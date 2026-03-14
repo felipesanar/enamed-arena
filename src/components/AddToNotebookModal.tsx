@@ -40,7 +40,7 @@ export function AddToNotebookModal({
   const [learningNote, setLearningNote] = useState('');
   const alreadyAdded = isInNotebook(questionId, simuladoId);
 
-  console.log('[AddToNotebookModal] Rendering, open:', open);
+  
 
   const handleSubmit = () => {
     if (!reason) return;

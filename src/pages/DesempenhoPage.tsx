@@ -49,7 +49,7 @@ function PerformanceNode({
 }
 
 export default function DesempenhoPage() {
-  console.log('[DesempenhoPage] Rendering');
+  
 
   // Find simulados with results available
   const simulados = useMemo(() => getSimulados(), []);

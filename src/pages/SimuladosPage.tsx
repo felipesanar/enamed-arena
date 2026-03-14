@@ -9,7 +9,7 @@ import { Calendar, Clock, FileText, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SimuladosPage() {
-  console.log('[SimuladosPage] Rendering');
+  
 
   const simulados = useMemo(() => getSimulados(), []);
 

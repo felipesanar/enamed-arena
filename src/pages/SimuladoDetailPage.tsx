@@ -40,7 +40,7 @@ export default function SimuladoDetailPage() {
 
   const simulado = useMemo(() => (id ? getSimuladoById(id) : null), [id]);
 
-  console.log('[SimuladoDetailPage] Rendering for id:', id, 'status:', simulado?.status);
+  
 
   if (!simulado) {
     return (

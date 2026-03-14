@@ -23,7 +23,7 @@ const STEPS = ['Segmento', 'Especialidade', 'Instituições', 'Confirmação'] a
 
 // ─── Step 1: Segment Selection ───
 function SegmentStep({ segment, onSelect }: { segment: UserSegment; onSelect: (s: UserSegment) => void }) {
-  console.log('[SegmentStep] Rendering, current:', segment);
+  
 
   const options: { value: UserSegment; label: string; desc: string; icon: typeof User }[] = [
     { value: 'guest', label: 'Não sou aluno', desc: 'Quero experimentar os simulados e conhecer a plataforma.', icon: User },
