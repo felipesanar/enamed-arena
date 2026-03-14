@@ -17,9 +17,9 @@ const rankingData = [
 ];
 
 function PositionBadge({ position }: { position: number }) {
-  if (position === 1) return <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center"><Medal className="h-4 w-4 text-yellow-600" /></div>;
-  if (position === 2) return <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center"><Medal className="h-4 w-4 text-gray-500" /></div>;
-  if (position === 3) return <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center"><Medal className="h-4 w-4 text-amber-700" /></div>;
+  if (position === 1) return <div className="h-8 w-8 rounded-full bg-warning/20 flex items-center justify-center"><Medal className="h-4 w-4 text-warning" /></div>;
+  if (position === 2) return <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center"><Medal className="h-4 w-4 text-muted-foreground" /></div>;
+  if (position === 3) return <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center"><Medal className="h-4 w-4 text-warning" /></div>;
   return <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-caption font-bold text-muted-foreground">{position}</div>;
 }
 
