@@ -195,6 +195,7 @@ export default function SimuladoDetailPage() {
               {/* CTA */}
               <div className="text-center">
                 <button
+                  onClick={() => navigate(`/simulados/${id}/prova`)}
                   className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   <Play className="h-5 w-5" />
