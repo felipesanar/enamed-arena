@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/simulado-helpers';
 
 interface ExamCompletedScreenProps {
+  simuladoId: string;
   simuladoTitle: string;
   resultsReleaseAt: string;
   answeredCount: number;
