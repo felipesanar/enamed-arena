@@ -2,12 +2,26 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, X, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  type ErrorReason,
-  ERROR_REASON_LABELS,
-  addToNotebook,
-  isInNotebook,
-} from '@/lib/notebook-helpers';
+import { simuladosApi } from '@/services/simuladosApi';
+import { toast } from '@/hooks/use-toast';
+
+// Map local reason keys to DB enum values
+type LocalReason = 'nao_sei' | 'nao_lembrei' | 'nao_entendi' | 'acertei_sem_certeza';
+type DbReason = 'did_not_know' | 'did_not_remember' | 'did_not_understand' | 'guessed_correctly';
+
+const REASON_MAP: Record<LocalReason, DbReason> = {
+  nao_sei: 'did_not_know',
+  nao_lembrei: 'did_not_remember',
+  nao_entendi: 'did_not_understand',
+  acertei_sem_certeza: 'guessed_correctly',
+};
+
+const REASON_LABELS: Record<LocalReason, string> = {
+  nao_sei: 'Não sei o conteúdo',
+  nao_lembrei: 'Não lembrei na hora',
+  nao_entendi: 'Não entendi a questão',
+  acertei_sem_certeza: 'Acertei sem certeza',
+};
 
 interface AddToNotebookModalProps {
   open: boolean;
@@ -20,70 +34,55 @@ interface AddToNotebookModalProps {
   questionNumber: number;
   questionText: string;
   wasCorrect: boolean;
+  userId: string;
   onAdded?: () => void;
 }
 
 export function AddToNotebookModal({
-  open,
-  onClose,
-  questionId,
-  simuladoId,
-  simuladoTitle,
-  area,
-  theme,
-  questionNumber,
-  questionText,
-  wasCorrect,
-  onAdded,
+  open, onClose, questionId, simuladoId, simuladoTitle,
+  area, theme, questionNumber, questionText, wasCorrect, userId, onAdded,
 }: AddToNotebookModalProps) {
-  const [reason, setReason] = useState<ErrorReason | null>(null);
+  const [reason, setReason] = useState<LocalReason | null>(null);
   const [learningNote, setLearningNote] = useState('');
-  const alreadyAdded = isInNotebook(questionId, simuladoId);
+  const [saving, setSaving] = useState(false);
 
-  
-
-  const handleSubmit = () => {
-    if (!reason) return;
-    addToNotebook({
-      questionId,
-      simuladoId,
-      simuladoTitle,
-      area,
-      theme,
-      questionNumber,
-      questionText: questionText.substring(0, 300),
-      reason,
-      learningNote,
-      wasCorrect,
-    });
-    onAdded?.();
-    onClose();
-    setReason(null);
-    setLearningNote('');
+  const handleSubmit = async () => {
+    if (!reason || !userId) return;
+    setSaving(true);
+    try {
+      await simuladosApi.addToErrorNotebook({
+        userId,
+        simuladoId,
+        questionId,
+        area,
+        theme,
+        reason: REASON_MAP[reason],
+        learningText: learningNote || null,
+        wasCorrect,
+        questionNumber,
+        questionText: questionText.substring(0, 500),
+        simuladoTitle,
+      });
+      toast({ title: 'Salvo no Caderno de Erros', description: 'Questão adicionada com sucesso.' });
+      onAdded?.();
+      onClose();
+      setReason(null);
+      setLearningNote('');
+    } catch (err) {
+      console.error('[AddToNotebookModal] Error:', err);
+      toast({ title: 'Erro ao salvar', description: 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const reasons: ErrorReason[] = wasCorrect
-    ? ['acertei_sem_certeza']
-    : ['nao_sei', 'nao_lembrei', 'nao_entendi'];
+  const reasons: LocalReason[] = wasCorrect ? ['acertei_sem_certeza'] : ['nao_sei', 'nao_lembrei', 'nao_entendi'];
 
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 16 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full p-6"
-            onClick={e => e.stopPropagation()}
-          >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4" onClick={onClose}>
+          <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
                 <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -99,34 +98,18 @@ export function AddToNotebookModal({
               </button>
             </div>
 
-            {alreadyAdded && (
-              <div className="rounded-xl bg-info/10 border border-info/20 p-3 mb-4">
-                <p className="text-body-sm text-info">Esta questão já está no seu Caderno de Erros. Salvar novamente atualizará a entrada existente.</p>
-              </div>
-            )}
-
-            {/* Reason selector */}
             <div className="mb-4">
               <p className="text-body-sm font-semibold text-foreground mb-2">Por que quer salvar esta questão?</p>
               <div className="grid grid-cols-1 gap-2">
                 {reasons.map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setReason(r)}
-                    className={cn(
-                      'text-left p-3 rounded-xl border text-body-sm transition-all',
-                      reason === r
-                        ? 'border-primary bg-primary/5 text-foreground font-medium'
-                        : 'border-border/60 bg-card text-muted-foreground hover:bg-accent/30',
-                    )}
-                  >
-                    {ERROR_REASON_LABELS[r]}
-                  </button>
+                  <button key={r} onClick={() => setReason(r)} className={cn(
+                    'text-left p-3 rounded-xl border text-body-sm transition-all',
+                    reason === r ? 'border-primary bg-primary/5 text-foreground font-medium' : 'border-border/60 bg-card text-muted-foreground hover:bg-accent/30',
+                  )}>{REASON_LABELS[r]}</button>
                 ))}
               </div>
             </div>
 
-            {/* Learning note */}
             <div className="mb-5">
               <p className="text-body-sm font-semibold text-foreground mb-2">Anotação de aprendizado <span className="text-muted-foreground font-normal">(opcional)</span></p>
               <textarea
@@ -139,19 +122,10 @@ export function AddToNotebookModal({
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body-sm font-medium hover:bg-muted transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!reason}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body-sm font-semibold hover:bg-wine-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
+              <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body-sm font-medium hover:bg-muted transition-colors">Cancelar</button>
+              <button onClick={handleSubmit} disabled={!reason || saving} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body-sm font-semibold hover:bg-wine-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 <Sparkles className="h-3.5 w-3.5" />
-                Salvar no Caderno
+                {saving ? 'Salvando...' : 'Salvar no Caderno'}
               </button>
             </div>
           </motion.div>

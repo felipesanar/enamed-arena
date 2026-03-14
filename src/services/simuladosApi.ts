@@ -349,6 +349,9 @@ export const simuladosApi = {
     reason: 'did_not_know' | 'did_not_remember' | 'did_not_understand' | 'guessed_correctly';
     learningText: string | null;
     wasCorrect: boolean;
+    questionNumber?: number;
+    questionText?: string;
+    simuladoTitle?: string;
   }): Promise<void> {
     const { error } = await supabase
       .from('error_notebook')
@@ -361,7 +364,10 @@ export const simuladosApi = {
         reason: entry.reason,
         learning_text: entry.learningText,
         was_correct: entry.wasCorrect,
-      }]);
+        question_number: entry.questionNumber ?? null,
+        question_text: entry.questionText ?? null,
+        simulado_title: entry.simuladoTitle ?? null,
+      } as any]);
 
     if (error) throw error;
   },

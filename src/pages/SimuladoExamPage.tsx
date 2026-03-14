@@ -2,74 +2,94 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/contexts/UserContext';
-import { getSimuladoById } from '@/data/mock';
-import { getQuestionsForSimulado } from '@/data/mock-questions';
+import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
+import { useExamStorageReal } from '@/hooks/useExamStorageReal';
 import { canAccessSimulado } from '@/lib/simulado-helpers';
-import { useExamStorage } from '@/hooks/useExamStorage';
 import { useExamTimer } from '@/hooks/useExamTimer';
 import { useFocusControl } from '@/hooks/useFocusControl';
-import { useKeyboardShortcuts, KEY_TO_OPTION_INDEX } from '@/hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ExamHeader } from '@/components/exam/ExamHeader';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
 import { QuestionNavigator } from '@/components/exam/QuestionNavigator';
 import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
 import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
-import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, Send, AlertCircle, Maximize } from 'lucide-react';
+import { computeSimuladoScore } from '@/lib/resultHelpers';
+import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, Send, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
 export default function SimuladoExamPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isOnboardingComplete, profile } = useUser();
+  const { isOnboardingComplete } = useUser();
 
-  const simulado = useMemo(() => (id ? getSimuladoById(id) : null), [id]);
-  const questions = useMemo(() => (id ? getQuestionsForSimulado(id) : []), [id]);
+  const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
 
-  const storage = useExamStorage(id || '');
+  const storage = useExamStorageReal(id || '');
   const [state, setState] = useState<ExamState | null>(null);
   const [showNavigator, setShowNavigator] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [initLoading, setInitLoading] = useState(true);
   const hasFinalized = useRef(false);
 
   console.log('[SimuladoExamPage] Rendering, id:', id, 'state status:', state?.status);
 
   // ── Gate: redirect if not eligible ──
   useEffect(() => {
+    if (loadingSimulado) return;
     if (!simulado || !canAccessSimulado(simulado.status) || !isOnboardingComplete) {
       console.log('[SimuladoExamPage] Not eligible, redirecting');
       navigate(simulado ? `/simulados/${id}` : '/simulados', { replace: true });
     }
-  }, [simulado, isOnboardingComplete, navigate, id]);
+  }, [simulado, loadingSimulado, isOnboardingComplete, navigate, id]);
 
-  // ── Init or resume attempt (Academy pattern) ──
+  // ── Init or resume attempt (Academy pattern — now async) ──
   useEffect(() => {
-    if (!simulado || !id) return;
-    const existing = storage.loadState();
+    if (!simulado || !id || loadingSimulado || questions.length === 0) return;
 
-    if (existing && existing.status === 'in_progress') {
-      console.log('[SimuladoExamPage] Resuming existing attempt');
-      setState(existing);
-      toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
-    } else if (!existing || existing.status === 'not_started') {
-      const fresh = storage.initializeState(
-        questions.length,
-        simulado.estimatedDurationMinutes,
-        simulado.executionWindowEnd,
-      );
-      setState(fresh);
-      console.log('[SimuladoExamPage] Created fresh attempt');
-    } else {
-      // submitted/expired
-      setState(existing);
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await storage.loadState();
+
+        if (cancelled) return;
+
+        if (existing && existing.status === 'in_progress') {
+          console.log('[SimuladoExamPage] Resuming existing attempt');
+          setState(existing);
+          toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
+        } else if (!existing || existing.status === 'not_started') {
+          const fresh = await storage.initializeState(
+            questions.length,
+            simulado.estimatedDurationMinutes,
+            simulado.executionWindowEnd,
+          );
+          if (!cancelled) {
+            setState(fresh);
+            console.log('[SimuladoExamPage] Created fresh attempt');
+          }
+        } else {
+          // submitted/expired
+          if (!cancelled) setState(existing);
+        }
+      } catch (err) {
+        console.error('[SimuladoExamPage] Init error:', err);
+        // Fallback to local
+        const local = storage.loadLocalState();
+        if (!cancelled && local) setState(local);
+      } finally {
+        if (!cancelled) setInitLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [simulado?.id]);
+  }, [simulado?.id, loadingSimulado, questions.length]);
 
-  // ── Focus control (Academy pattern) ──
+  // ── Focus control ──
   const focusControl = useFocusControl({
     onTabExit: () => {
       storage.registerTabExit();
@@ -82,30 +102,42 @@ export default function SimuladoExamPage() {
   });
 
   // ── Finalize ──
-  const finalize = useCallback(() => {
-    if (hasFinalized.current) return;
+  const finalize = useCallback(async () => {
+    if (hasFinalized.current || !state || !simulado) return;
     hasFinalized.current = true;
     setSubmitting(true);
 
-    storage.flushPendingState();
-    const finalState = storage.loadState();
-    if (!finalState) return;
+    try {
+      // Calculate score
+      const score = computeSimuladoScore(state, questions);
 
-    const submitted: ExamState = {
-      ...finalState,
-      status: 'submitted',
-      lastSavedAt: new Date().toISOString(),
-    };
-    storage.saveStateSync(submitted);
-    setState(submitted);
-    setShowSubmitModal(false);
-    setSubmitting(false);
+      await storage.submitAttempt(
+        score.percentageScore,
+        score.totalCorrect,
+        score.totalAnswered,
+        state,
+      );
 
-    console.log('[SimuladoExamPage] Exam finalized');
-    toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
-  }, [storage]);
+      const submitted: ExamState = {
+        ...state,
+        status: 'submitted',
+        lastSavedAt: new Date().toISOString(),
+      };
+      setState(submitted);
+      setShowSubmitModal(false);
 
-  // ── Timer (Academy deadline pattern) ──
+      console.log('[SimuladoExamPage] Exam finalized, score:', score.percentageScore);
+      toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
+    } catch (err) {
+      console.error('[SimuladoExamPage] Finalize error:', err);
+      toast({ title: 'Erro ao finalizar', description: 'Tente novamente.', variant: 'destructive' });
+      hasFinalized.current = false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [state, simulado, questions, storage]);
+
+  // ── Timer ──
   const handleTimeUp = useCallback(() => {
     console.log('[SimuladoExamPage] Time up — auto-finalizing');
     toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
@@ -118,7 +150,7 @@ export default function SimuladoExamPage() {
     paused: state?.status !== 'in_progress',
   });
 
-  // ── beforeunload (Academy sendBeacon pattern — adapted for localStorage only) ──
+  // ── beforeunload ──
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasFinalized.current || state?.status !== 'in_progress') return;
@@ -145,7 +177,7 @@ export default function SimuladoExamPage() {
     });
   }, [storage]);
 
-  // ── Handlers (Academy pattern) ──
+  // ── Handlers ──
   const handleSelectOption = useCallback((optionId: string) => {
     if (!currentQuestion) return;
     updateState(prev => ({
@@ -173,7 +205,7 @@ export default function SimuladoExamPage() {
           [currentQuestion.id]: {
             ...existing,
             eliminatedAlternatives: isEliminated
-              ? existing.eliminatedAlternatives.filter(id => id !== optionId)
+              ? existing.eliminatedAlternatives.filter(i => i !== optionId)
               : [...existing.eliminatedAlternatives, optionId],
           },
         },
@@ -218,7 +250,7 @@ export default function SimuladoExamPage() {
     });
   }, [currentQuestion, updateState]);
 
-  // ── Keyboard shortcuts (Academy pattern) ──
+  // ── Keyboard shortcuts ──
   const shortcuts = useMemo(() => {
     const map: Record<string, () => void> = {
       'ArrowLeft': handlePrev,
@@ -229,7 +261,6 @@ export default function SimuladoExamPage() {
       'H': toggleHighConfidence,
       'Escape': () => setShowSubmitModal(true),
     };
-    // 1-5 for selecting options
     if (currentQuestion) {
       currentQuestion.options.forEach((opt, i) => {
         map[String(i + 1)] = () => handleSelectOption(opt.id);
@@ -243,7 +274,7 @@ export default function SimuladoExamPage() {
   });
 
   // ── Loading ──
-  if (!simulado || !state) {
+  if (loadingSimulado || initLoading || !simulado || !state) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -276,7 +307,7 @@ export default function SimuladoExamPage() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Focus warnings — Academy pattern */}
+      {/* Focus warnings */}
       <AnimatePresence>
         {focusControl.isTabAway && (
           <motion.div
@@ -316,9 +347,8 @@ export default function SimuladoExamPage() {
         </div>
       </div>
 
-      {/* Body — Academy layout: content + side nav */}
+      {/* Body */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Question area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-3xl mx-auto">
             <QuestionDisplay
@@ -328,7 +358,7 @@ export default function SimuladoExamPage() {
               onEliminateOption={handleEliminateOption}
             />
 
-            {/* Action bar: review + high confidence */}
+            {/* Action bar */}
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <button
                 onClick={toggleReview}
@@ -395,7 +425,7 @@ export default function SimuladoExamPage() {
           </div>
         </main>
 
-        {/* Side navigator — Academy NavegacaoLateral pattern, always visible on desktop */}
+        {/* Side navigator */}
         <aside className="hidden md:flex w-64 border-l border-border bg-card p-4 flex-col gap-4 overflow-y-auto">
           <div>
             <p className="text-body font-semibold text-foreground mb-1">Navegação</p>

@@ -145,8 +145,11 @@ export type Database = {
           id: string
           learning_text: string | null
           question_id: string | null
+          question_number: number | null
+          question_text: string | null
           reason: Database["public"]["Enums"]["error_reason"]
           simulado_id: string | null
+          simulado_title: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -159,8 +162,11 @@ export type Database = {
           id?: string
           learning_text?: string | null
           question_id?: string | null
+          question_number?: number | null
+          question_text?: string | null
           reason: Database["public"]["Enums"]["error_reason"]
           simulado_id?: string | null
+          simulado_title?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -173,8 +179,11 @@ export type Database = {
           id?: string
           learning_text?: string | null
           question_id?: string | null
+          question_number?: number | null
+          question_text?: string | null
           reason?: Database["public"]["Enums"]["error_reason"]
           simulado_id?: string | null
+          simulado_title?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
