@@ -262,7 +262,7 @@ function ConfirmationStep({
   specialty: string;
   institutions: string[];
 }) {
-  console.log('[ConfirmationStep] Rendering');
+  
 
   return (
     <div>
