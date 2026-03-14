@@ -1,17 +1,15 @@
-import { useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { SimuladoCard } from "@/components/SimuladoCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { PremiumCard } from "@/components/PremiumCard";
-import { getSimulados } from "@/data/mock";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { useSimulados } from "@/hooks/useSimulados";
 import { Calendar, Clock, FileText, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SimuladosPage() {
-  
-
-  const simulados = useMemo(() => getSimulados(), []);
+  const { simulados, loading, error } = useSimulados();
 
   const available = simulados.filter(s => s.status === 'available' || s.status === 'in_progress');
   const upcoming = simulados.filter(s => s.status === 'upcoming');
