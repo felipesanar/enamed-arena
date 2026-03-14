@@ -1,14 +1,15 @@
 import { motion } from 'framer-motion';
-import { CheckCircle2, Clock, Flag, Zap, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Flag, Zap, AlertTriangle, Check } from 'lucide-react';
 import type { ExamSummary } from '@/types/exam';
 
 interface SubmitConfirmModalProps {
   summary: ExamSummary;
+  submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function SubmitConfirmModal({ summary, onConfirm, onCancel }: SubmitConfirmModalProps) {
+export function SubmitConfirmModal({ summary, submitting, onConfirm, onCancel }: SubmitConfirmModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
       <motion.div
@@ -22,11 +23,10 @@ export function SubmitConfirmModal({ summary, onConfirm, onCancel }: SubmitConfi
           </div>
           <h2 className="text-heading-2 text-foreground mb-2">Finalizar simulado?</h2>
           <p className="text-body text-muted-foreground">
-            Revise o resumo abaixo antes de confirmar. Após a finalização, não será possível alterar suas respostas.
+            Ao confirmar, seu simulado será enviado e não poderá ser alterado.
           </p>
         </div>
 
-        {/* Summary stats */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="p-3 rounded-xl bg-muted/50 text-center">
             <p className="text-heading-3 text-foreground">{summary.answered}</p>
@@ -36,10 +36,10 @@ export function SubmitConfirmModal({ summary, onConfirm, onCancel }: SubmitConfi
             <p className="text-heading-3 text-foreground">{summary.unanswered}</p>
             <p className="text-caption text-muted-foreground">Em branco</p>
           </div>
-          <div className="p-3 rounded-xl bg-warning/10 text-center">
+          <div className="p-3 rounded-xl bg-info/10 text-center">
             <div className="flex items-center justify-center gap-1">
-              <Flag className="h-3.5 w-3.5 text-warning" />
-              <p className="text-heading-3 text-warning">{summary.markedForReview}</p>
+              <Flag className="h-3.5 w-3.5 text-info" />
+              <p className="text-heading-3 text-info">{summary.markedForReview}</p>
             </div>
             <p className="text-caption text-muted-foreground">Para revisar</p>
           </div>
@@ -56,7 +56,16 @@ export function SubmitConfirmModal({ summary, onConfirm, onCancel }: SubmitConfi
           <div className="flex items-start gap-2 p-3 rounded-xl bg-warning/10 mb-6">
             <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
             <p className="text-body-sm text-warning">
-              Você tem {summary.unanswered} {summary.unanswered === 1 ? 'questão' : 'questões'} sem resposta. Questões em branco serão consideradas incorretas.
+              Você tem {summary.unanswered} {summary.unanswered === 1 ? 'questão' : 'questões'} sem resposta.
+            </p>
+          </div>
+        )}
+
+        {summary.markedForReview > 0 && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-info/10 mb-6">
+            <Flag className="h-4 w-4 text-info shrink-0 mt-0.5" />
+            <p className="text-body-sm text-info">
+              Você marcou {summary.markedForReview} {summary.markedForReview === 1 ? 'questão' : 'questões'} para revisão.
             </p>
           </div>
         )}
@@ -64,15 +73,27 @@ export function SubmitConfirmModal({ summary, onConfirm, onCancel }: SubmitConfi
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors"
+            disabled={submitting}
+            className="flex-1 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-50"
           >
-            Voltar à prova
+            Continuar respondendo
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+            disabled={submitting}
+            className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50"
           >
-            Finalizar
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Enviando...
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <Check className="h-4 w-4" />
+                Finalizar
+              </span>
+            )}
           </button>
         </div>
       </motion.div>
