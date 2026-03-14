@@ -13,8 +13,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { profile, isOnboardingComplete } = useUser();
   const segment = profile?.segment ?? 'guest';
 
-  console.log('[AppLayout] Rendering, segment:', segment, 'onboarding:', isOnboardingComplete);
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -29,7 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               {!isOnboardingComplete && (
                 <Link
                   to="/onboarding"
-                  className="text-caption font-medium text-primary hover:text-wine-hover transition-colors"
+                  className="text-caption font-semibold text-primary hover:text-wine-hover transition-colors"
                 >
                   Completar perfil
                 </Link>
@@ -37,14 +35,14 @@ export function AppLayout({ children }: AppLayoutProps) {
               <span className="text-caption text-muted-foreground hidden sm:inline">
                 {SEGMENT_LABELS[segment]}
               </span>
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/10">
                 <span className="text-caption font-bold text-primary">
                   {profile?.name?.[0]?.toUpperCase() || 'U'}
                 </span>
               </div>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
             {children}
           </main>
         </div>

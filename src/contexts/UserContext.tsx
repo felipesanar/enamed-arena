@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { UserProfile, OnboardingProfile, UserSegment, OnboardingStatus } from '@/types';
+import { SEGMENT_ACCESS } from '@/types';
 
 interface UserContextValue {
-  // Profile state
   profile: UserProfile | null;
   onboarding: OnboardingProfile | null;
   isLoading: boolean;
   isOnboardingComplete: boolean;
 
-  // Actions
   setSegment: (segment: UserSegment) => void;
   saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => void;
@@ -33,7 +32,7 @@ function saveToStorage<T>(key: string, data: T) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
-    console.error('[UserContext] Failed to save to storage:', e);
+    console.error('[UserContext] Storage save failed:', e);
   }
 }
 
@@ -42,16 +41,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [onboarding, setOnboarding] = useState<OnboardingProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load from localStorage on mount
   useEffect(() => {
-    console.log('[UserContext] Loading user state from storage');
     const storedProfile = loadFromStorage<UserProfile>(STORAGE_KEY_PROFILE);
     const storedOnboarding = loadFromStorage<OnboardingProfile>(STORAGE_KEY_ONBOARDING);
 
     if (storedProfile) {
       setProfile(storedProfile);
     } else {
-      // Default profile for demo/dev
       const defaultProfile: UserProfile = {
         id: 'demo-user',
         name: '',
@@ -72,7 +68,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const isOnboardingComplete = onboarding?.status === 'completed';
 
   const setSegment = useCallback((segment: UserSegment) => {
-    console.log('[UserContext] Setting segment:', segment);
     setProfile(prev => {
       if (!prev) return prev;
       const updated = { ...prev, segment };
@@ -82,7 +77,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
-    console.log('[UserContext] Saving onboarding:', data);
     const onboardingData: OnboardingProfile = {
       userId: profile?.id ?? 'demo-user',
       specialty: data.specialty,
@@ -92,13 +86,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
     setOnboarding(onboardingData);
     saveToStorage(STORAGE_KEY_ONBOARDING, onboardingData);
-
-    // TODO: When auth is ready, persist to Supabase:
-    // await supabase.from('onboarding_profiles').upsert({ ... })
   }, [profile?.id]);
 
   const updateProfile = useCallback((data: Partial<UserProfile>) => {
-    console.log('[UserContext] Updating profile:', data);
     setProfile(prev => {
       if (!prev) return prev;
       const updated = { ...prev, ...data };
@@ -108,7 +98,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetOnboarding = useCallback(() => {
-    console.log('[UserContext] Resetting onboarding');
     setOnboarding(null);
     localStorage.removeItem(STORAGE_KEY_ONBOARDING);
   }, []);
@@ -137,13 +126,12 @@ export function useUser() {
   return context;
 }
 
-export function useSegment() {
+export function useSegment(): UserSegment {
   const { profile } = useUser();
   return profile?.segment ?? 'guest';
 }
 
-export function useHasAccess(feature: keyof typeof import('@/types').SEGMENT_ACCESS['guest']) {
+export function useHasAccess(feature: keyof typeof SEGMENT_ACCESS['guest']): boolean {
   const segment = useSegment();
-  const { SEGMENT_ACCESS } = require('@/types');
   return SEGMENT_ACCESS[segment]?.[feature] ?? false;
 }

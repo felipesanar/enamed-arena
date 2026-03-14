@@ -15,30 +15,29 @@ export function UpgradeBanner({
   ctaText = "Conhecer o PRO: ENAMED",
   ctaTo = "/configuracoes",
 }: UpgradeBannerProps) {
-  console.log('[UpgradeBanner] Rendering');
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-accent via-card to-accent p-6 md:p-8"
+      className="relative overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-accent via-card to-accent/50 p-6 md:p-8"
     >
-      <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="absolute top-0 right-0 w-56 h-56 bg-primary/[0.03] rounded-full -translate-y-1/2 translate-x-1/2 blur-sm" />
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/[0.02] rounded-full translate-y-1/2 -translate-x-1/2 blur-sm" />
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-5">
         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
           <Sparkles className="h-6 w-6 text-primary" />
         </div>
         <div className="flex-1">
           <h3 className="text-heading-3 text-foreground mb-1">{title}</h3>
-          <p className="text-body text-muted-foreground">{description}</p>
+          <p className="text-body text-muted-foreground leading-relaxed">{description}</p>
         </div>
         <Link
           to={ctaTo}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors shrink-0"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-all duration-200 shrink-0 group shadow-sm"
         >
           {ctaText}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
     </motion.div>
