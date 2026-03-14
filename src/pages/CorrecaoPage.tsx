@@ -30,7 +30,7 @@ export default function CorrecaoPage() {
   console.log('[CorrecaoPage] Rendering for simulado:', id);
 
   if (!simulado) {
-    return <AppLayout><EmptyState title="Simulado não encontrado" /></AppLayout>;
+    return <AppLayout><EmptyState title="Simulado não encontrado" description="O simulado que você procura não existe." /></AppLayout>;
   }
 
   if (!canViewResults(simulado.status)) {
