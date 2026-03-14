@@ -55,8 +55,15 @@ export function ExamCompletedScreen({
         </button>
 
         <Link
+          to={`/simulados/${simuladoId}/resultado`}
+          className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors mb-3"
+        >
+          Ver Resultado
+        </Link>
+
+        <Link
           to="/simulados"
-          className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+          className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors"
         >
           Voltar ao calendário
         </Link>
