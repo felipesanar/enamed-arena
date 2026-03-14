@@ -4,6 +4,7 @@ import { StatCard } from "@/components/StatCard";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { motion } from "framer-motion";
 import { 
   Calendar, 
@@ -13,10 +14,12 @@ import {
   ArrowRight, 
   TrendingUp,
   Target,
-  Users 
+  Users,
+  Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NEXT_SIMULADO, RECENT_SIMULADOS, USER_STATS } from "@/data/mock";
+import { useUser } from "@/contexts/UserContext";
 
 const stats = [
   { label: "Simulados realizados", value: String(USER_STATS.simuladosCompleted), icon: Target, trend: null },
@@ -26,15 +29,49 @@ const stats = [
 ];
 
 export default function DashboardPage() {
-  console.log('[DashboardPage] Rendering');
+  const { profile, isOnboardingComplete } = useUser();
+  const segment = profile?.segment ?? 'guest';
+
+  console.log('[DashboardPage] Rendering, segment:', segment, 'onboarding:', isOnboardingComplete);
 
   return (
     <AppLayout>
       <PageHeader
-        title="Bem-vindo de volta"
-        subtitle="Acompanhe sua evolução e prepare-se para o próximo simulado."
+        title={isOnboardingComplete ? "Bem-vindo de volta" : "Bem-vindo ao SanarFlix Simulados"}
+        subtitle={isOnboardingComplete 
+          ? "Acompanhe sua evolução e prepare-se para o próximo simulado."
+          : "Configure seu perfil para personalizar sua experiência."
+        }
         badge="Plataforma de Simulados"
       />
+
+      {/* Onboarding CTA if not completed */}
+      {!isOnboardingComplete && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <Link to="/onboarding" className="block">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-primary/30 bg-accent/50 p-6 md:p-8 group cursor-pointer hover:border-primary/50 hover:bg-accent transition-all duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-heading-3 text-foreground mb-1">Complete seu perfil</h3>
+                  <p className="text-body text-muted-foreground">
+                    Informe sua especialidade e instituições desejadas para personalizar rankings e desempenho.
+                  </p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                  <ArrowRight className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      )}
 
       {/* Next Simulado CTA */}
       {NEXT_SIMULADO && (
@@ -83,7 +120,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Simulados & Quick Access */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-8">
         <div>
           <SectionHeader title="Últimos Simulados" />
           <div className="space-y-3">
@@ -133,6 +170,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Upgrade banner for non-pro users */}
+      {segment !== 'pro' && (
+        <UpgradeBanner />
+      )}
     </AppLayout>
   );
 }
