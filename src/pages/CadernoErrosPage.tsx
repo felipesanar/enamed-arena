@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// Map DB enum to display labels
 const REASON_LABELS: Record<string, string> = {
   did_not_know: 'Não sei o conteúdo',
   did_not_remember: 'Não lembrei na hora',
@@ -96,24 +95,6 @@ function NotebookEntryCard({ entry, onRemove }: { entry: NotebookEntry; onRemove
   );
 }
 
-export default function CadernoErrosPage() {
-  const { profile } = useUser();
-  const { user } = useAuth();
-  const segment = profile?.segment ?? 'guest';
-  const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
-
-  if (!hasAccess) {
-    return (
-      <AppLayout>
-        <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
-        <ProGate icon={BookOpen} feature="Caderno de Erros" description="Salve questões com motivo e anotação de aprendizado. Organize sua revisão por área e tema para estudar de forma estratégica. Recurso exclusivo PRO: ENAMED." requiredSegment="pro" currentSegment={segment} />
-      </AppLayout>
-    );
-  }
-
-  return <CadernoContent userId={user?.id || ''} />;
-}
-
 function CadernoContent({ userId }: { userId: string }) {
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,17 +154,17 @@ function CadernoContent({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <AppLayout>
+      <>
         <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
         <div className="space-y-3">{[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}</div>
-      </AppLayout>
+      </>
     );
   }
 
   if (entries.length === 0) {
     return (
-      <AppLayout>
+      <>
         <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
         <EmptyState
           icon={BookOpen}
@@ -191,18 +172,18 @@ function CadernoContent({ userId }: { userId: string }) {
           description="Adicione questões ao Caderno de Erros durante a correção de qualquer simulado."
           action={<Link to="/simulados" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">Ver simulados</Link>}
         />
-      </AppLayout>
+      </>
     );
   }
 
-  const groupedByArea = useMemo(() => {
+  const groupedByArea = (() => {
     const map = new Map<string, number>();
     entries.forEach(e => { if (e.area) map.set(e.area, (map.get(e.area) || 0) + 1); });
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  }, [entries]);
+  })();
 
   return (
-    <AppLayout>
+    <>
       <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
@@ -230,6 +211,26 @@ function CadernoContent({ userId }: { userId: string }) {
           </motion.div>
         ))}
       </div>
+    </>
+  );
+}
+
+export default function CadernoErrosPage() {
+  const { profile } = useUser();
+  const { user } = useAuth();
+  const segment = profile?.segment ?? 'guest';
+  const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
+
+  return (
+    <AppLayout>
+      {!hasAccess ? (
+        <>
+          <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
+          <ProGate icon={BookOpen} feature="Caderno de Erros" description="Salve questões com motivo e anotação de aprendizado. Organize sua revisão por área e tema para estudar de forma estratégica. Recurso exclusivo PRO: ENAMED." requiredSegment="pro" currentSegment={segment} />
+        </>
+      ) : (
+        <CadernoContent userId={user?.id || ''} />
+      )}
     </AppLayout>
   );
 }
