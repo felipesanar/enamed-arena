@@ -6,9 +6,9 @@ import {
   BarChart3, 
   BookOpen, 
   Settings,
-  ChevronLeft,
   GraduationCap,
-  Sparkles
+  Sparkles,
+  GitCompareArrows,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -32,14 +32,15 @@ const mainNav = [
   { title: "Desempenho", url: "/desempenho", icon: BarChart3 },
   { title: "Ranking", url: "/ranking", icon: Trophy },
   { title: "Correção", url: "/correcao", icon: FileText },
+  { title: "Comparativo", url: "/comparativo", icon: GitCompareArrows },
 ];
 
 const proNav = [
-  { title: "Caderno de Erros", url: "/caderno-erros", icon: BookOpen, pro: true },
+  { title: "Caderno de Erros", url: "/caderno-erros", icon: BookOpen },
 ];
 
 export function AppSidebar() {
-  const { state, toggleSidebar } = useSidebar();
+  const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
 

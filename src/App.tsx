@@ -5,11 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import SimuladosPage from "./pages/SimuladosPage.tsx";
+import SimuladoDetailPage from "./pages/SimuladoDetailPage.tsx";
 import DesempenhoPage from "./pages/DesempenhoPage.tsx";
 import RankingPage from "./pages/RankingPage.tsx";
 import CorrecaoPage from "./pages/CorrecaoPage.tsx";
+import ComparativoPage from "./pages/ComparativoPage.tsx";
 import CadernoErrosPage from "./pages/CadernoErrosPage.tsx";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage.tsx";
+import OnboardingPage from "./pages/OnboardingPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -23,11 +26,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/simulados" element={<SimuladosPage />} />
+          <Route path="/simulados/:id" element={<SimuladoDetailPage />} />
           <Route path="/desempenho" element={<DesempenhoPage />} />
           <Route path="/ranking" element={<RankingPage />} />
           <Route path="/correcao" element={<CorrecaoPage />} />
+          <Route path="/comparativo" element={<ComparativoPage />} />
           <Route path="/caderno-erros" element={<CadernoErrosPage />} />
           <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

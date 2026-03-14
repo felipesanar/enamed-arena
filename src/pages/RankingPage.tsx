@@ -1,26 +1,28 @@
 import { AppLayout } from "@/components/AppLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
+import { SectionHeader } from "@/components/SectionHeader";
 import { Trophy, Medal, TrendingUp } from "lucide-react";
-
-const rankingData = [
-  { position: 1, name: "Ana C.", score: 92, institution: "USP" },
-  { position: 2, name: "Lucas M.", score: 89, institution: "UNICAMP" },
-  { position: 3, name: "Maria S.", score: 87, institution: "UFMG" },
-  { position: 4, name: "João P.", score: 85, institution: "UFBA" },
-  { position: 5, name: "Carla D.", score: 84, institution: "UFRJ" },
-  { position: 6, name: "Pedro H.", score: 82, institution: "UnB" },
-  { position: 7, name: "Beatriz R.", score: 80, institution: "UFPE" },
-  { position: 8, name: "Rafael A.", score: 79, institution: "UFPR" },
-  { position: 9, name: "Juliana F.", score: 78, institution: "UFSC" },
-  { position: 10, name: "Thiago L.", score: 76, institution: "USP-RP" },
-];
+import { RANKING_DATA, USER_STATS } from "@/data/mock";
 
 function PositionBadge({ position }: { position: number }) {
-  if (position === 1) return <div className="h-8 w-8 rounded-full bg-warning/20 flex items-center justify-center"><Medal className="h-4 w-4 text-warning" /></div>;
-  if (position === 2) return <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center"><Medal className="h-4 w-4 text-muted-foreground" /></div>;
-  if (position === 3) return <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center"><Medal className="h-4 w-4 text-warning" /></div>;
-  return <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-caption font-bold text-muted-foreground">{position}</div>;
+  if (position <= 3) {
+    const colors = {
+      1: 'bg-warning/20 text-warning',
+      2: 'bg-muted text-muted-foreground',
+      3: 'bg-warning/10 text-warning',
+    };
+    return (
+      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${colors[position as 1 | 2 | 3]}`}>
+        <Medal className="h-4 w-4" />
+      </div>
+    );
+  }
+  return (
+    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-caption font-bold text-muted-foreground">
+      {position}
+    </div>
+  );
 }
 
 export default function RankingPage() {
@@ -35,7 +37,7 @@ export default function RankingPage() {
       />
 
       {/* Your position */}
-      <PremiumCard className="mb-6 bg-gradient-to-r from-primary/5 to-transparent border-primary/20">
+      <PremiumCard className="mb-6 p-5 md:p-6 border-primary/20 bg-gradient-to-r from-accent to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -43,17 +45,18 @@ export default function RankingPage() {
             </div>
             <div>
               <p className="text-body-sm text-muted-foreground">Sua posição</p>
-              <p className="text-heading-2 text-foreground">#142 de 3.241</p>
+              <p className="text-heading-2 text-foreground">#{USER_STATS.rankingPosition} de {USER_STATS.totalParticipants.toLocaleString('pt-BR')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-success">
             <TrendingUp className="h-4 w-4" />
-            <span className="text-body font-semibold">+18 posições</span>
+            <span className="text-body font-semibold">{USER_STATS.rankingTrend} posições</span>
           </div>
         </div>
       </PremiumCard>
 
       {/* Ranking table */}
+      <SectionHeader title="Top 10" />
       <PremiumCard className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -66,7 +69,7 @@ export default function RankingPage() {
               </tr>
             </thead>
             <tbody>
-              {rankingData.map((item, i) => (
+              {RANKING_DATA.map((item) => (
                 <tr key={item.position} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3.5">
                     <PositionBadge position={item.position} />
