@@ -12,7 +12,7 @@ import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { useExamStorage } from '@/hooks/useExamStorage';
 import { useUser } from '@/contexts/UserContext';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computeSimuladoScore, type QuestionResult } from '@/lib/result-helpers.ts';
+import { computeSimuladoScore, type QuestionResult } from '@/lib/resultHelpers';
 import { isInNotebook } from '@/lib/notebook-helpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';

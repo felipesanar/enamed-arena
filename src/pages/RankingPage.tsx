@@ -10,7 +10,7 @@ import { getSimulados } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { useExamStorage } from '@/hooks/useExamStorage';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computeSimuladoScore, generateMockRanking, type RankingParticipant } from '@/lib/result-helpers.ts';
+import { computeSimuladoScore, generateMockRanking, type RankingParticipant } from '@/lib/resultHelpers';
 import { cn } from '@/lib/utils';
 import { Trophy, Medal, TrendingUp, Filter, Users, Stethoscope, Building } from 'lucide-react';
 
