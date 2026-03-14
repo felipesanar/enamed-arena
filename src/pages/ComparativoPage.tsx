@@ -18,7 +18,7 @@ import {
   computeComparativeInsights,
   type SimuladoComparativeEntry,
   type ComparativeInsight,
-} from '@/lib/result-helpers';
+} from '@/lib/result-helpers.ts';
 import { cn } from '@/lib/utils';
 import {
   BarChart3, TrendingUp, TrendingDown, Activity, Trophy,
