@@ -16,9 +16,10 @@ import {
   type ErrorNotebookEntry,
 } from '@/lib/notebook-helpers';
 import {
-  BookOpen, Trash2, FileText, Stethoscope, Calendar,
-  Filter, ChevronDown, ChevronUp, StickyNote, Sparkles,
+  BookOpen, Trash2, Stethoscope,
+  ChevronDown, ChevronUp, StickyNote, AlertTriangle,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function NotebookEntryCard({
   entry,
@@ -47,9 +48,9 @@ function NotebookEntryCard({
             {entry.simuladoTitle} · {addedDate}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <span className={cn(
-            'text-caption font-semibold px-2 py-0.5 rounded-md',
+            'text-caption font-bold px-2 py-0.5 rounded-md',
             entry.wasCorrect ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive',
           )}>
             {entry.wasCorrect ? 'Sem certeza' : 'Errou'}
@@ -57,7 +58,7 @@ function NotebookEntryCard({
           <button
             onClick={() => onRemove(entry.id)}
             className="h-8 w-8 rounded-lg hover:bg-destructive/10 flex items-center justify-center transition-colors group"
-            title="Remover"
+            title="Remover do caderno"
           >
             <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive transition-colors" />
           </button>
@@ -67,7 +68,7 @@ function NotebookEntryCard({
       {/* Reason badge */}
       <div className="flex items-center gap-2 mb-3">
         <StickyNote className="h-3.5 w-3.5 text-primary" />
-        <span className="text-body-sm text-primary font-medium">{ERROR_REASON_LABELS[entry.reason]}</span>
+        <span className="text-body-sm text-primary font-semibold">{ERROR_REASON_LABELS[entry.reason]}</span>
       </div>
 
       {/* Learning note */}
@@ -80,7 +81,7 @@ function NotebookEntryCard({
       {/* Expandable question text */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className="inline-flex items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground transition-colors font-medium"
       >
         {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         {expanded ? 'Ocultar enunciado' : 'Ver enunciado'}
@@ -109,20 +110,18 @@ export default function CadernoErrosPage() {
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
 
-  console.log('[CadernoErrosPage] Rendering, segment:', segment, 'hasAccess:', hasAccess);
-
   if (!hasAccess) {
     return (
       <AppLayout>
         <PageHeader
           title="Caderno de Erros"
-          subtitle="Revise e pratique as questões que você errou."
+          subtitle="Salve questões importantes e revise de forma inteligente."
           badge="PRO: ENAMED Exclusivo"
         />
         <ProGate
           icon={BookOpen}
           feature="Caderno de Erros"
-          description="Salve questões importantes com motivo e anotação de aprendizado. Organize sua revisão por área e tema. Recurso exclusivo para assinantes PRO: ENAMED."
+          description="Salve questões com motivo e anotação de aprendizado. Organize sua revisão por área e tema para estudar de forma estratégica. Recurso exclusivo PRO: ENAMED."
           requiredSegment="pro"
           currentSegment={segment}
         />
@@ -158,13 +157,21 @@ function CadernoContent() {
       <AppLayout>
         <PageHeader
           title="Caderno de Erros"
-          subtitle="Revise e pratique as questões que você errou."
+          subtitle="Salve questões importantes e revise de forma inteligente."
           badge="PRO: ENAMED Exclusivo"
         />
         <EmptyState
           icon={BookOpen}
-          title="Caderno vazio"
-          description="Adicione questões ao seu Caderno de Erros a partir da correção de qualquer simulado. É a forma mais inteligente de revisar."
+          title="Seu caderno está vazio"
+          description="Adicione questões ao Caderno de Erros durante a correção de qualquer simulado. É a forma mais eficaz de direcionar sua revisão."
+          action={
+            <Link
+              to="/simulados"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+            >
+              Ver simulados
+            </Link>
+          }
         />
       </AppLayout>
     );
@@ -181,22 +188,22 @@ function CadernoContent() {
     <AppLayout>
       <PageHeader
         title="Caderno de Erros"
-        subtitle="Revise e pratique as questões que você errou."
+        subtitle="Salve questões importantes e revise de forma inteligente."
         badge="PRO: ENAMED Exclusivo"
       />
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
         <PremiumCard delay={0} className="p-4">
           <p className="text-heading-2 text-foreground">{entries.length}</p>
-          <p className="text-caption text-muted-foreground">Total de questões</p>
+          <p className="text-caption text-muted-foreground">Total salvas</p>
         </PremiumCard>
         <PremiumCard delay={0.06} className="p-4">
-          <p className="text-heading-2 text-foreground">{entries.filter(e => !e.wasCorrect).length}</p>
+          <p className="text-heading-2 text-destructive">{entries.filter(e => !e.wasCorrect).length}</p>
           <p className="text-caption text-muted-foreground">Questões erradas</p>
         </PremiumCard>
         <PremiumCard delay={0.12} className="p-4">
-          <p className="text-heading-2 text-foreground">{entries.filter(e => e.wasCorrect).length}</p>
+          <p className="text-heading-2 text-warning">{entries.filter(e => e.wasCorrect).length}</p>
           <p className="text-caption text-muted-foreground">Sem certeza</p>
         </PremiumCard>
         <PremiumCard delay={0.18} className="p-4">
@@ -205,11 +212,11 @@ function CadernoContent() {
         </PremiumCard>
       </div>
 
-      {/* Area breakdown */}
+      {/* Area filter */}
       <PremiumCard className="p-4 md:p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Stethoscope className="h-4 w-4 text-muted-foreground" />
-          <span className="text-body font-semibold text-foreground">Distribuição por Área</span>
+          <span className="text-body font-semibold text-foreground">Filtrar por Área</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -242,7 +249,7 @@ function CadernoContent() {
 
       {/* Entries list */}
       <SectionHeader
-        title={areaFilter ? `${areaFilter}` : 'Todas as questões'}
+        title={areaFilter || 'Todas as questões'}
         action={
           <span className="text-body-sm text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? 'questão' : 'questões'}

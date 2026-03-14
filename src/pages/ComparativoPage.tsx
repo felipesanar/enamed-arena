@@ -10,10 +10,8 @@ import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { getSimulados } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
-import { useExamStorage } from '@/hooks/useExamStorage';
 import { canViewResults } from '@/lib/simulado-helpers';
 import {
-  computeSimuladoScore,
   computePerformanceBreakdown,
   computeComparativeInsights,
   type SimuladoComparativeEntry,
@@ -28,6 +26,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, BarChart, Bar,
 } from 'recharts';
+import { Link } from 'react-router-dom';
 
 function InsightCard({ insight, delay }: { insight: ComparativeInsight; delay: number }) {
   const iconMap = {
@@ -50,8 +49,8 @@ function InsightCard({ insight, delay }: { insight: ComparativeInsight; delay: n
   return (
     <PremiumCard delay={delay} className={cn('p-4 md:p-5', color)}>
       <div className="flex items-start gap-3">
-        <div className="h-9 w-9 rounded-xl bg-card flex items-center justify-center shrink-0">
-          <Icon className="h-[18px] w-[18px]" />
+        <div className="h-10 w-10 rounded-xl bg-card flex items-center justify-center shrink-0 border border-border/30">
+          <Icon className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
@@ -60,7 +59,7 @@ function InsightCard({ insight, delay }: { insight: ComparativeInsight; delay: n
               <span className="text-heading-3 font-bold tabular-nums shrink-0">{insight.value}</span>
             )}
           </div>
-          <p className="text-body-sm text-muted-foreground">{insight.description}</p>
+          <p className="text-body-sm text-muted-foreground leading-relaxed">{insight.description}</p>
         </div>
       </div>
     </PremiumCard>
@@ -77,10 +76,11 @@ function useComparativeData(): { entries: SimuladoComparativeEntry[]; insights: 
       const questions = getQuestionsForSimulado(sim.id);
       const storageKey = `enamed_exam_${sim.id}`;
       let raw: string | null = null;
-      try { raw = localStorage.getItem(storageKey); } catch {}
+      try { raw = localStorage.getItem(storageKey); } catch { /* noop */ }
       if (!raw) return null;
 
-      const state = JSON.parse(raw);
+      let state: any;
+      try { state = JSON.parse(raw); } catch { return null; }
       if (state.status !== 'submitted' && state.status !== 'expired') return null;
 
       const breakdown = computePerformanceBreakdown(state, questions);
@@ -110,8 +110,6 @@ export default function ComparativoPage() {
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].comparativo;
 
-  console.log('[ComparativoPage] Rendering, segment:', segment, 'hasAccess:', hasAccess);
-
   if (!hasAccess) {
     return (
       <AppLayout>
@@ -123,7 +121,7 @@ export default function ComparativoPage() {
         <ProGate
           icon={BarChart3}
           feature="Comparativo entre Simulados"
-          description="Compare seu desempenho entre diferentes simulados, identifique padrões e acompanhe sua evolução ao longo do tempo. Disponível para assinantes SanarFlix."
+          description="Compare seu desempenho entre diferentes simulados, identifique padrões de evolução e acompanhe seu progresso ao longo do tempo. Disponível para assinantes SanarFlix."
           requiredSegment="standard"
           currentSegment={segment}
         />
@@ -147,8 +145,16 @@ function ComparativoContent() {
         />
         <EmptyState
           icon={BarChart3}
-          title="Dados insuficientes"
-          description="Complete ao menos 2 simulados para visualizar o comparativo de evolução. Continue praticando!"
+          title="Dados insuficientes para comparar"
+          description="Complete ao menos 2 simulados para visualizar seu comparativo de evolução. Continue praticando e acompanhe seu progresso aqui."
+          action={
+            <Link
+              to="/simulados"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+            >
+              Ver simulados
+            </Link>
+          }
         />
       </AppLayout>
     );
@@ -183,17 +189,17 @@ function ComparativoContent() {
       />
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
         {[
           { label: 'Simulados', value: String(sorted.length), icon: Target },
           { label: 'Média geral', value: `${avg}%`, icon: BarChart3 },
           { label: 'Melhor nota', value: `${Math.max(...sorted.map(e => e.percentageScore))}%`, icon: Trophy },
-          { label: 'Último', value: `${sorted[sorted.length - 1].percentageScore}%`, icon: Activity },
+          { label: 'Último score', value: `${sorted[sorted.length - 1].percentageScore}%`, icon: Activity },
         ].map((stat, i) => (
           <PremiumCard key={stat.label} delay={i * 0.06} className="p-4">
             <div className="flex items-center gap-2.5 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                <stat.icon className="h-4 w-4 text-primary" />
+              <div className="h-9 w-9 rounded-xl bg-accent flex items-center justify-center">
+                <stat.icon className="h-[18px] w-[18px] text-primary" />
               </div>
             </div>
             <p className="text-heading-2 text-foreground">{stat.value}</p>
@@ -213,7 +219,7 @@ function ComparativoContent() {
       {/* Score evolution chart */}
       <SectionHeader title="Evolução do Score" />
       <PremiumCard className="p-5 md:p-6 mb-8">
-        <div className="h-[280px]">
+        <div className="h-[280px] md:h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={scoreChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 90%)" />
@@ -244,7 +250,7 @@ function ComparativoContent() {
       {/* Area evolution chart */}
       <SectionHeader title="Evolução por Grande Área" />
       <PremiumCard className="p-5 md:p-6 mb-8">
-        <div className="h-[320px]">
+        <div className="h-[300px] md:h-[340px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={areaChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 90%)" />
@@ -279,7 +285,7 @@ function ComparativoContent() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-muted/20">
                 <th className="text-left text-overline uppercase text-muted-foreground px-5 py-3.5">Simulado</th>
                 <th className="text-right text-overline uppercase text-muted-foreground px-5 py-3.5">Score</th>
                 <th className="text-right text-overline uppercase text-muted-foreground px-5 py-3.5">Acertos</th>
@@ -291,12 +297,12 @@ function ComparativoContent() {
                 const prev = i > 0 ? sorted[i - 1] : null;
                 const diff = prev ? entry.percentageScore - prev.percentageScore : 0;
                 return (
-                  <tr key={entry.simuladoId} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                  <tr key={entry.simuladoId} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="px-5 py-3.5">
                       <span className="text-body font-medium text-foreground">{entry.title}</span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <span className="text-body font-semibold text-primary tabular-nums">{entry.percentageScore}%</span>
+                      <span className="text-body font-bold text-primary tabular-nums">{entry.percentageScore}%</span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <span className="text-body-sm text-muted-foreground tabular-nums">{entry.totalCorrect}/{entry.totalQuestions}</span>
@@ -305,11 +311,11 @@ function ComparativoContent() {
                       {i === 0 ? (
                         <span className="text-caption text-muted-foreground">—</span>
                       ) : diff > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-caption font-semibold text-success">
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-success">
                           <ArrowUpRight className="h-3 w-3" /> +{diff}%
                         </span>
                       ) : diff < 0 ? (
-                        <span className="inline-flex items-center gap-1 text-caption font-semibold text-destructive">
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-destructive">
                           <ArrowDownRight className="h-3 w-3" /> {diff}%
                         </span>
                       ) : (
