@@ -1,7 +1,6 @@
 import { 
   LayoutDashboard, 
   Calendar, 
-  FileText, 
   Trophy, 
   BarChart3, 
   BookOpen, 
@@ -31,7 +30,6 @@ const mainNav = [
   { title: "Simulados", url: "/simulados", icon: Calendar },
   { title: "Desempenho", url: "/desempenho", icon: BarChart3 },
   { title: "Ranking", url: "/ranking", icon: Trophy },
-  { title: "Correção", url: "/correcao", icon: FileText },
   { title: "Comparativo", url: "/comparativo", icon: GitCompareArrows },
 ];
 
@@ -42,9 +40,6 @@ const proNav = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
-
-  console.log('[AppSidebar] Current path:', location.pathname);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -55,7 +50,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col animate-fade-in">
-              <span className="text-caption uppercase text-sidebar-muted tracking-widest">
+              <span className="text-[10px] uppercase text-sidebar-muted tracking-[0.12em] font-semibold">
                 sanarflix
               </span>
               <span className="text-body font-bold text-sidebar-accent-foreground -mt-0.5">

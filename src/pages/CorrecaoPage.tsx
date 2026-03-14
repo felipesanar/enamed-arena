@@ -1,11 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
-import { StatusBadge } from '@/components/StatusBadge';
 import { AddToNotebookModal } from '@/components/AddToNotebookModal';
 import { getSimuladoById } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
@@ -37,8 +36,6 @@ export default function CorrecaoPage() {
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
 
-  console.log('[CorrecaoPage] Rendering for simulado:', id);
-
   if (!simulado) {
     return <AppLayout><EmptyState title="Simulado não encontrado" description="O simulado que você procura não existe." /></AppLayout>;
   }
@@ -55,7 +52,7 @@ export default function CorrecaoPage() {
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Link>
         </div>
-        <EmptyState icon={FileText} title="Sem correção disponível" description="Você não realizou este simulado." />
+        <EmptyState icon={FileText} title="Sem correção disponível" description="Você não realizou este simulado. Não há gabarito para exibir." />
       </AppLayout>
     );
   }
@@ -82,9 +79,9 @@ export default function CorrecaoPage() {
       </div>
 
       <PageHeader
-        title="Correção"
-        subtitle={`${simulado.title} — Gabarito Comentado`}
-        badge={`${score.totalCorrect}/${score.totalQuestions} acertos (${score.percentageScore}%)`}
+        title="Gabarito Comentado"
+        subtitle={`${simulado.title} — ${score.totalCorrect}/${score.totalQuestions} acertos (${score.percentageScore}%)`}
+        badge={`Correção · Simulado #${simulado.sequenceNumber}`}
       />
 
       <div className="flex gap-6">
@@ -101,7 +98,7 @@ export default function CorrecaoPage() {
               {/* Question header */}
               <PremiumCard className="p-5 md:p-6 mb-4">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="text-body font-bold text-foreground">Questão {question.number}</span>
                     <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">
                       {question.area}
@@ -112,25 +109,25 @@ export default function CorrecaoPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {answer?.markedForReview && (
-                      <span className="inline-flex items-center gap-1 text-caption text-info bg-info/10 px-2 py-0.5 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-caption text-info bg-info/10 px-2 py-0.5 rounded-md font-medium">
                         <Flag className="h-3 w-3" /> Revisão
                       </span>
                     )}
                     {answer?.highConfidence && (
-                      <span className="inline-flex items-center gap-1 text-caption text-success bg-success/10 px-2 py-0.5 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-caption text-success bg-success/10 px-2 py-0.5 rounded-md font-medium">
                         <Zap className="h-3 w-3" /> Alta certeza
                       </span>
                     )}
                     {result.isCorrect ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-semibold bg-success/10 text-success">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-bold bg-success/10 text-success">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Acertou
                       </span>
                     ) : result.wasAnswered ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-semibold bg-destructive/10 text-destructive">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-bold bg-destructive/10 text-destructive">
                         <XCircle className="h-3.5 w-3.5" /> Errou
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-semibold bg-warning/10 text-warning">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-bold bg-warning/10 text-warning">
                         Em branco
                       </span>
                     )}
@@ -275,10 +272,10 @@ export default function CorrecaoPage() {
               </button>
             ))}
           </div>
-          <div className="mt-4 space-y-2 text-caption text-muted-foreground border-t border-border pt-3">
-            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-success/20" /> Acertou</div>
-            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-destructive/20" /> Errou</div>
-            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-warning/20" /> Em branco</div>
+          <div className="mt-4 space-y-2.5 text-caption text-muted-foreground border-t border-border pt-4">
+            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-success/20 border border-success/30" /> Acertou</div>
+            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/30" /> Errou</div>
+            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-warning/20 border border-warning/30" /> Em branco</div>
           </div>
         </aside>
       </div>
@@ -301,6 +298,7 @@ export default function CorrecaoPage() {
               className="absolute bottom-0 left-0 right-0 bg-card border-t border-border rounded-t-2xl p-5 max-h-[60vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
+              <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-4" />
               <p className="text-body font-semibold text-foreground mb-3">Navegação por questões</p>
               <div className="grid grid-cols-5 gap-2">
                 {score.questionResults.map((r, i) => (

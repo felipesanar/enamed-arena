@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { motion } from "framer-motion";
 import { 
-  Calendar, BarChart3, Trophy, Clock, ArrowRight, TrendingUp, Target, Users, Sparkles,
+  Calendar, BarChart3, Trophy, Clock, ArrowRight, TrendingUp, Target, Users, Sparkles, BookOpen,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getNextSimulado, getRecentSimulados, USER_STATS } from "@/data/mock";
@@ -28,8 +28,6 @@ export default function DashboardPage() {
 
   const nextSimulado = useMemo(() => getNextSimulado(), []);
   const recentSimulados = useMemo(() => getRecentSimulados(), []);
-
-  console.log('[DashboardPage] Rendering, segment:', segment);
 
   return (
     <AppLayout>
@@ -117,16 +115,16 @@ export default function DashboardPage() {
               <Link key={sim.id} to={`/simulados/${sim.id}`}>
                 <PremiumCard interactive delay={i * 0.1} className="p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                         <BarChart3 className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <div>
-                        <p className="text-body font-medium text-foreground">{sim.title}</p>
+                      <div className="min-w-0">
+                        <p className="text-body font-medium text-foreground truncate">{sim.title}</p>
                         <p className="text-body-sm text-muted-foreground">{formatDateShort(sim.executionWindowStart)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
                       {sim.userState?.score !== undefined && (
                         <p className="text-heading-3 text-foreground">{sim.userState.score}%</p>
                       )}
@@ -136,7 +134,9 @@ export default function DashboardPage() {
                 </PremiumCard>
               </Link>
             )) : (
-              <p className="text-body-sm text-muted-foreground py-4">Nenhum simulado concluído ainda.</p>
+              <PremiumCard className="p-6 text-center">
+                <p className="text-body-sm text-muted-foreground">Nenhum simulado concluído ainda.</p>
+              </PremiumCard>
             )}
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function DashboardPage() {
               { title: "Calendário", desc: "Ver todos os simulados", icon: Calendar, to: "/simulados" },
               { title: "Ranking", desc: "Sua posição geral", icon: Trophy, to: "/ranking" },
               { title: "Desempenho", desc: "Análise detalhada", icon: BarChart3, to: "/desempenho" },
-              { title: "Correção", desc: "Revisar questões", icon: Target, to: "/correcao" },
+              { title: "Caderno de Erros", desc: "Revisão inteligente", icon: BookOpen, to: "/caderno-erros" },
             ].map((item, i) => (
               <Link key={item.title} to={item.to}>
                 <PremiumCard interactive delay={i * 0.08} className="p-4 h-full">
