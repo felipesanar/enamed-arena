@@ -7,6 +7,7 @@ import { UserProvider } from "@/contexts/UserContext";
 import Index from "./pages/Index.tsx";
 import SimuladosPage from "./pages/SimuladosPage.tsx";
 import SimuladoDetailPage from "./pages/SimuladoDetailPage.tsx";
+import SimuladoExamPage from "./pages/SimuladoExamPage.tsx";
 import DesempenhoPage from "./pages/DesempenhoPage.tsx";
 import RankingPage from "./pages/RankingPage.tsx";
 import CorrecaoPage from "./pages/CorrecaoPage.tsx";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/simulados" element={<SimuladosPage />} />
             <Route path="/simulados/:id" element={<SimuladoDetailPage />} />
+            <Route path="/simulados/:id/prova" element={<SimuladoExamPage />} />
             <Route path="/desempenho" element={<DesempenhoPage />} />
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/correcao" element={<CorrecaoPage />} />
