@@ -273,8 +273,14 @@ export default function SimuladoDetailPage() {
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/correcao"
+              to={`/simulados/${id}/resultado`}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+            >
+              Ver Resultado
+            </Link>
+            <Link
+              to={`/simulados/${id}/correcao`}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors"
             >
               Ver Correção
             </Link>
