@@ -13,7 +13,7 @@ import { getSimuladoById } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { useExamStorage } from '@/hooks/useExamStorage';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computePerformanceBreakdown } from '@/lib/result-helpers';
+import { computePerformanceBreakdown } from '@/lib/result-helpers.ts';
 import { SEGMENT_ACCESS } from '@/types';
 import {
   Trophy, CheckCircle2, XCircle, Target, BarChart3,
