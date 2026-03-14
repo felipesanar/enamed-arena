@@ -23,7 +23,7 @@ const STEPS = ['Segmento', 'Especialidade', 'Instituições', 'Confirmação'] a
 
 // ─── Step 1: Segment Selection ───
 function SegmentStep({ segment, onSelect }: { segment: UserSegment; onSelect: (s: UserSegment) => void }) {
-  console.log('[SegmentStep] Rendering, current:', segment);
+  
 
   const options: { value: UserSegment; label: string; desc: string; icon: typeof User }[] = [
     { value: 'guest', label: 'Não sou aluno', desc: 'Quero experimentar os simulados e conhecer a plataforma.', icon: User },
@@ -79,7 +79,7 @@ function SegmentStep({ segment, onSelect }: { segment: UserSegment; onSelect: (s
 // ─── Step 2: Specialty Selection ───
 function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (s: string) => void }) {
   const [search, setSearch] = useState('');
-  console.log('[SpecialtyStep] Rendering, current:', specialty);
+  
 
   const filtered = useMemo(() => {
     if (!search.trim()) return SPECIALTIES;
@@ -163,7 +163,7 @@ function InstitutionStep({
   minRequired: number;
 }) {
   const [search, setSearch] = useState('');
-  console.log('[InstitutionStep] Rendering, selected:', selected.length);
+  
 
   const filtered = useMemo(() => {
     if (!search.trim()) return INSTITUTIONS;
@@ -262,7 +262,7 @@ function ConfirmationStep({
   specialty: string;
   institutions: string[];
 }) {
-  console.log('[ConfirmationStep] Rendering');
+  
 
   return (
     <div>
@@ -312,7 +312,7 @@ export default function OnboardingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('[OnboardingPage] Step:', step, 'Segment:', selectedSegment);
+  
 
   const minInstitutions = selectedSegment === 'guest' ? MIN_INSTITUTIONS_GUEST : 1;
 

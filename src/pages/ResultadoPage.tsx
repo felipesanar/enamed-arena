@@ -30,7 +30,7 @@ export default function ResultadoPage() {
   const storage = useExamStorage(id || '');
   const examState = useMemo(() => storage.loadState(), [id]);
 
-  console.log('[ResultadoPage] Rendering for simulado:', id);
+  
 
   if (!simulado) {
     return <AppLayout><EmptyState title="Simulado não encontrado" description="O simulado que você procura não existe." /></AppLayout>;

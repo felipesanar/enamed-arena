@@ -38,7 +38,7 @@ type RankingFilter = 'all' | 'same_specialty' | 'same_institution';
 type SegmentFilter = 'all' | 'sanarflix' | 'pro';
 
 export default function RankingPage() {
-  console.log('[RankingPage] Rendering');
+  
 
   const { onboarding } = useUser();
   const userSpecialty = onboarding?.specialty || 'Clínica Médica';
