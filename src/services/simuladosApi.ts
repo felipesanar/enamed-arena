@@ -346,13 +346,13 @@ export const simuladosApi = {
     questionId: string | null;
     area: string | null;
     theme: string | null;
-    reason: string;
+    reason: 'did_not_know' | 'did_not_remember' | 'did_not_understand' | 'guessed_correctly';
     learningText: string | null;
     wasCorrect: boolean;
   }): Promise<void> {
     const { error } = await supabase
       .from('error_notebook')
-      .insert({
+      .insert([{
         user_id: entry.userId,
         simulado_id: entry.simuladoId,
         question_id: entry.questionId,
@@ -361,7 +361,7 @@ export const simuladosApi = {
         reason: entry.reason,
         learning_text: entry.learningText,
         was_correct: entry.wasCorrect,
-      });
+      }]);
 
     if (error) throw error;
   },
