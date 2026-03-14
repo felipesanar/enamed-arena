@@ -312,7 +312,7 @@ export default function OnboardingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('[OnboardingPage] Step:', step, 'Segment:', selectedSegment);
+  
 
   const minInstitutions = selectedSegment === 'guest' ? MIN_INSTITUTIONS_GUEST : 1;
 
