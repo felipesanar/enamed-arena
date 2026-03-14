@@ -7,18 +7,24 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
+import { UpgradeBanner } from '@/components/UpgradeBanner';
+import { useUser } from '@/contexts/UserContext';
 import { getSimuladoById } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { useExamStorage } from '@/hooks/useExamStorage';
-import { canViewResults, formatDate } from '@/lib/simulado-helpers';
+import { canViewResults } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/result-helpers';
+import { SEGMENT_ACCESS } from '@/types';
 import {
   Trophy, CheckCircle2, XCircle, Target, BarChart3,
-  FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown,
+  FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown, BookOpen, Sparkles,
 } from 'lucide-react';
 
 export default function ResultadoPage() {
   const { id } = useParams<{ id: string }>();
+  const { profile } = useUser();
+  const segment = profile?.segment ?? 'guest';
+
   const simulado = useMemo(() => (id ? getSimuladoById(id) : null), [id]);
   const questions = useMemo(() => (id ? getQuestionsForSimulado(id) : []), [id]);
   const storage = useExamStorage(id || '');
@@ -30,7 +36,6 @@ export default function ResultadoPage() {
     return <AppLayout><EmptyState title="Simulado não encontrado" description="O simulado que você procura não existe." /></AppLayout>;
   }
 
-  // Gate: only show results after window closes
   if (!canViewResults(simulado.status)) {
     return <Navigate to={`/simulados/${id}`} replace />;
   }
@@ -57,6 +62,9 @@ export default function ResultadoPage() {
 
   const bestArea = byArea[0];
   const worstArea = byArea[byArea.length - 1];
+
+  const hasComparativo = SEGMENT_ACCESS[segment].comparativo;
+  const hasCadernoErros = SEGMENT_ACCESS[segment].cadernoErros;
 
   return (
     <AppLayout>
@@ -173,6 +181,17 @@ export default function ResultadoPage() {
         ))}
       </div>
 
+      {/* Contextual upgrade banner for non-PRO */}
+      {!hasCadernoErros && (
+        <div className="mb-8">
+          <UpgradeBanner
+            title="Salve questões no Caderno de Erros"
+            description="Com o PRO: ENAMED, adicione questões ao seu Caderno de Erros direto da correção. Revise de forma inteligente e personalizada."
+            ctaText="Conhecer o PRO: ENAMED"
+          />
+        </div>
+      )}
+
       {/* CTAs */}
       <div className="flex flex-wrap gap-3">
         <Link
@@ -196,6 +215,15 @@ export default function ResultadoPage() {
           <Trophy className="h-4 w-4" />
           Ver Ranking
         </Link>
+        {hasComparativo && (
+          <Link
+            to="/comparativo"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Comparativo
+          </Link>
+        )}
       </div>
     </AppLayout>
   );
