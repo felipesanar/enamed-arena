@@ -220,7 +220,10 @@ export default function SimuladoDetailPage() {
           <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
             Você já iniciou este simulado. Continue de onde parou.
           </p>
-          <button className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">
+          <button
+            onClick={() => navigate(`/simulados/${id}/prova`)}
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+          >
             <Play className="h-4 w-4" />
             Continuar Simulado
           </button>
