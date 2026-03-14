@@ -1,6 +1,8 @@
 // ─── User Segments ───
 export type UserSegment = 'guest' | 'standard' | 'pro';
 
+export type OnboardingStatus = 'pending' | 'completed';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -10,18 +12,27 @@ export interface UserProfile {
 }
 
 export interface OnboardingProfile {
+  id?: string;
   userId: string;
   specialty: string;
   targetInstitutions: string[];
+  status: OnboardingStatus;
   completedAt?: string;
+}
+
+export interface OnboardingState {
+  profile: UserProfile | null;
+  onboarding: OnboardingProfile | null;
+  isOnboardingComplete: boolean;
+  isLoading: boolean;
 }
 
 // ─── Simulado ───
 export type SimuladoStatus = 'available' | 'upcoming' | 'completed' | 'locked' | 'live' | 'in_progress';
 
 export interface SimuladoWindow {
-  start: string; // ISO date
-  end: string;   // ISO date
+  start: string;
+  end: string;
 }
 
 export interface Simulado {
@@ -60,7 +71,7 @@ export interface QuestionAnswer {
   questionId: string;
   selectedOptionId: string | null;
   mark: QuestionMark;
-  timeSpent: number; // seconds
+  timeSpent: number;
 }
 
 // ─── Performance ───
@@ -96,6 +107,12 @@ export const SEGMENT_LABELS: Record<UserSegment, string> = {
   pro: 'PRO: ENAMED',
 };
 
+export const SEGMENT_DESCRIPTIONS: Record<UserSegment, string> = {
+  guest: 'Acesse simulados e ranking. Crie sua conta para personalizar a experiência.',
+  standard: 'Acesse simulados, ranking e comparativos entre simulados.',
+  pro: 'Acesso completo: simulados, ranking, comparativos e Caderno de Erros.',
+};
+
 export const SEGMENT_ACCESS = {
   guest: {
     simulados: true,
@@ -116,3 +133,5 @@ export const SEGMENT_ACCESS = {
     cadernoErros: true,
   },
 } as const;
+
+export const MIN_INSTITUTIONS_GUEST = 3;

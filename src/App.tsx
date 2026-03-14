@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { UserProvider } from "@/contexts/UserContext";
 import Index from "./pages/Index.tsx";
 import SimuladosPage from "./pages/SimuladosPage.tsx";
 import SimuladoDetailPage from "./pages/SimuladoDetailPage.tsx";
@@ -20,24 +21,25 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/simulados" element={<SimuladosPage />} />
-          <Route path="/simulados/:id" element={<SimuladoDetailPage />} />
-          <Route path="/desempenho" element={<DesempenhoPage />} />
-          <Route path="/ranking" element={<RankingPage />} />
-          <Route path="/correcao" element={<CorrecaoPage />} />
-          <Route path="/comparativo" element={<ComparativoPage />} />
-          <Route path="/caderno-erros" element={<CadernoErrosPage />} />
-          <Route path="/configuracoes" element={<ConfiguracoesPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <UserProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/simulados" element={<SimuladosPage />} />
+            <Route path="/simulados/:id" element={<SimuladoDetailPage />} />
+            <Route path="/desempenho" element={<DesempenhoPage />} />
+            <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/correcao" element={<CorrecaoPage />} />
+            <Route path="/comparativo" element={<ComparativoPage />} />
+            <Route path="/caderno-erros" element={<CadernoErrosPage />} />
+            <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </UserProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
