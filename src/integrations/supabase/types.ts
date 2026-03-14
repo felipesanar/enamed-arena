@@ -404,10 +404,50 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ranking_simulado: {
+        Row: {
+          especialidade: string | null
+          finished_at: string | null
+          full_name: string | null
+          instituicoes_alvo: string[] | null
+          nota_final: number | null
+          posicao: number | null
+          segment: Database["public"]["Enums"]["user_segment"] | null
+          simulado_id: string | null
+          total_answered: number | null
+          total_candidatos: number | null
+          total_correct: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempts_simulado_id_fkey"
+            columns: ["simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_ranking_for_simulado: {
+        Args: { p_simulado_id: string }
+        Returns: {
+          especialidade: string
+          finished_at: string
+          full_name: string
+          instituicoes_alvo: string[]
+          nota_final: number
+          posicao: number
+          segment: Database["public"]["Enums"]["user_segment"]
+          simulado_id: string
+          total_answered: number
+          total_candidatos: number
+          total_correct: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       attempt_status: "in_progress" | "submitted" | "expired"
