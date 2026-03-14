@@ -163,7 +163,7 @@ function InstitutionStep({
   minRequired: number;
 }) {
   const [search, setSearch] = useState('');
-  console.log('[InstitutionStep] Rendering, selected:', selected.length);
+  
 
   const filtered = useMemo(() => {
     if (!search.trim()) return INSTITUTIONS;
