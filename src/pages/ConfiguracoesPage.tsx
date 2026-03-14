@@ -3,12 +3,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { SEGMENT_LABELS } from "@/types";
-import { Settings, User, Bell, Shield, GraduationCap, Building2, Edit3 } from "lucide-react";
+import { Settings, User, Bell, Shield, GraduationCap, Building2, Edit3, LogOut, Database } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function ConfiguracoesPage() {
-  const { profile, onboarding, isOnboardingComplete } = useUser();
+  const { profile, onboarding, isOnboardingComplete, dataSource } = useUser();
+  const { user: authUser, signOut } = useAuth();
   const segment = profile?.segment ?? 'guest';
 
   return (
@@ -17,6 +19,39 @@ export default function ConfiguracoesPage() {
         title="Configurações"
         subtitle="Gerencie seu perfil e preferências da plataforma."
       />
+
+      {/* Auth info */}
+      {authUser && (
+        <>
+          <SectionHeader title="Conta" />
+          <PremiumCard className="p-5 mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-body font-semibold text-foreground">{profile?.name || 'Sem nome'}</p>
+                  <p className="text-body-sm text-muted-foreground">{authUser.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-success/10 text-success text-caption font-semibold">
+                  <Database className="h-3 w-3" />
+                  {dataSource === 'supabase' ? 'Dados reais (Supabase)' : 'Carregando...'}
+                </span>
+                <button
+                  onClick={signOut}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border text-body-sm font-medium text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sair
+                </button>
+              </div>
+            </div>
+          </PremiumCard>
+        </>
+      )}
 
       {/* Onboarding profile summary */}
       {isOnboardingComplete && onboarding && (

@@ -8,9 +8,11 @@ import {
   GraduationCap,
   Sparkles,
   GitCompareArrows,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUser } from "@/contexts/UserContext";
 import {
   Sidebar,
   SidebarContent,
@@ -39,6 +41,8 @@ const proNav = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { signOut } = useAuth();
+  const { profile } = useUser();
   const collapsed = state === "collapsed";
 
   return (
@@ -136,6 +140,25 @@ export function AppSidebar() {
                 <Settings className="h-[18px] w-[18px] shrink-0" />
                 {!collapsed && <span>Configurações</span>}
               </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* User info + Logout */}
+          {!collapsed && profile && (
+            <div className="mt-2 px-3 py-2 border-t border-sidebar-border">
+              <p className="text-caption text-sidebar-muted truncate mb-1">
+                {profile.email || profile.name || 'Usuário'}
+              </p>
+            </div>
+          )}
+
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={signOut}
+              className="h-10 flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-150 cursor-pointer"
+            >
+              <LogOut className="h-[18px] w-[18px] shrink-0" />
+              {!collapsed && <span>Sair</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
