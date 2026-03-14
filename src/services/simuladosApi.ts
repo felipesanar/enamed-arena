@@ -229,7 +229,16 @@ export const simuladosApi = {
   /** Update attempt (autosave, submit, etc.) */
   async updateAttempt(
     attemptId: string,
-    updates: Partial<Pick<AttemptRow, 'status' | 'current_question_index' | 'last_saved_at' | 'finished_at' | 'tab_exit_count' | 'fullscreen_exit_count' | 'score_percentage' | 'total_correct' | 'total_answered'>>,
+    updates: {
+      status?: 'in_progress' | 'submitted' | 'expired';
+      current_question_index?: number;
+      finished_at?: string;
+      tab_exit_count?: number;
+      fullscreen_exit_count?: number;
+      score_percentage?: number;
+      total_correct?: number;
+      total_answered?: number;
+    },
   ): Promise<void> {
     const { error } = await supabase
       .from('attempts')
