@@ -7,19 +7,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { motion } from "framer-motion";
 import { 
-  Calendar, 
-  BarChart3, 
-  Trophy, 
-  Clock, 
-  ArrowRight, 
-  TrendingUp,
-  Target,
-  Users,
-  Sparkles,
+  Calendar, BarChart3, Trophy, Clock, ArrowRight, TrendingUp, Target, Users, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { NEXT_SIMULADO, RECENT_SIMULADOS, USER_STATS } from "@/data/mock";
+import { getNextSimulado, getRecentSimulados, USER_STATS } from "@/data/mock";
+import { formatDateShort } from "@/lib/simulado-helpers";
 import { useUser } from "@/contexts/UserContext";
+import { useMemo } from "react";
 
 const stats = [
   { label: "Simulados realizados", value: String(USER_STATS.simuladosCompleted), icon: Target, trend: null },
@@ -32,7 +26,10 @@ export default function DashboardPage() {
   const { profile, isOnboardingComplete } = useUser();
   const segment = profile?.segment ?? 'guest';
 
-  console.log('[DashboardPage] Rendering, segment:', segment, 'onboarding:', isOnboardingComplete);
+  const nextSimulado = useMemo(() => getNextSimulado(), []);
+  const recentSimulados = useMemo(() => getRecentSimulados(), []);
+
+  console.log('[DashboardPage] Rendering, segment:', segment);
 
   return (
     <AppLayout>
@@ -45,13 +42,9 @@ export default function DashboardPage() {
         badge="Plataforma de Simulados"
       />
 
-      {/* Onboarding CTA if not completed */}
+      {/* Onboarding CTA */}
       {!isOnboardingComplete && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <Link to="/onboarding" className="block">
             <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-primary/30 bg-accent/50 p-6 md:p-8 group cursor-pointer hover:border-primary/50 hover:bg-accent transition-all duration-300">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -60,9 +53,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-heading-3 text-foreground mb-1">Complete seu perfil</h3>
-                  <p className="text-body text-muted-foreground">
-                    Informe sua especialidade e instituições desejadas para personalizar rankings e desempenho.
-                  </p>
+                  <p className="text-body text-muted-foreground">Informe sua especialidade e instituições para personalizar rankings e desempenho.</p>
                 </div>
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
                   <ArrowRight className="h-5 w-5 text-primary" />
@@ -74,33 +65,31 @@ export default function DashboardPage() {
       )}
 
       {/* Next Simulado CTA */}
-      {NEXT_SIMULADO && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <Link to={`/simulados/${NEXT_SIMULADO.id}`} className="block">
+      {nextSimulado && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
+          <Link to={`/simulados/${nextSimulado.id}`} className="block">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-wine-hover p-6 md:p-8 text-primary-foreground group cursor-pointer transition-all duration-300 hover:shadow-xl">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-              
               <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar className="h-4 w-4 opacity-80" />
-                    <span className="text-body-sm opacity-80">Próximo simulado</span>
+                    <span className="text-body-sm opacity-80">
+                      {nextSimulado.status === 'available' ? 'Disponível agora' : 'Próximo simulado'}
+                    </span>
                   </div>
-                  <h2 className="text-heading-2 mb-1">{NEXT_SIMULADO.title}</h2>
+                  <h2 className="text-heading-2 mb-1">{nextSimulado.title}</h2>
                   <p className="text-body opacity-80">
-                    {NEXT_SIMULADO.date} · {NEXT_SIMULADO.questions} questões · {NEXT_SIMULADO.duration}
+                    {formatDateShort(nextSimulado.executionWindowStart)} · {nextSimulado.questionsCount} questões · {nextSimulado.estimatedDuration}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2.5 backdrop-blur-sm">
                     <Clock className="h-4 w-4" />
-                    <span className="text-body font-semibold">Ver detalhes</span>
+                    <span className="text-body font-semibold">
+                      {nextSimulado.status === 'available' ? 'Iniciar agora' : 'Ver detalhes'}
+                    </span>
                   </div>
                   <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
                     <ArrowRight className="h-5 w-5" />
@@ -112,19 +101,19 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Stats Grid */}
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
         {stats.map((stat, i) => (
           <StatCard key={stat.label} {...stat} delay={i * 0.08} />
         ))}
       </div>
 
-      {/* Recent Simulados & Quick Access */}
+      {/* Recent + Quick Access */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-8">
         <div>
           <SectionHeader title="Últimos Simulados" />
           <div className="space-y-3">
-            {RECENT_SIMULADOS.map((sim, i) => (
+            {recentSimulados.length > 0 ? recentSimulados.map((sim, i) => (
               <Link key={sim.id} to={`/simulados/${sim.id}`}>
                 <PremiumCard interactive delay={i * 0.1} className="p-4">
                   <div className="flex items-center justify-between">
@@ -134,19 +123,21 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <p className="text-body font-medium text-foreground">{sim.title}</p>
-                        <p className="text-body-sm text-muted-foreground">{sim.date}</p>
+                        <p className="text-body-sm text-muted-foreground">{formatDateShort(sim.executionWindowStart)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-heading-3 text-foreground">{sim.score}%</p>
-                      </div>
+                      {sim.userState?.score !== undefined && (
+                        <p className="text-heading-3 text-foreground">{sim.userState.score}%</p>
+                      )}
                       <StatusBadge status={sim.status} />
                     </div>
                   </div>
                 </PremiumCard>
               </Link>
-            ))}
+            )) : (
+              <p className="text-body-sm text-muted-foreground py-4">Nenhum simulado concluído ainda.</p>
+            )}
           </div>
         </div>
 
@@ -171,10 +162,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Upgrade banner for non-pro users */}
-      {segment !== 'pro' && (
-        <UpgradeBanner />
-      )}
+      {segment !== 'pro' && <UpgradeBanner />}
     </AppLayout>
   );
 }

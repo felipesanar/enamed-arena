@@ -1,17 +1,46 @@
-import { useParams, Link } from "react-router-dom";
+import { useMemo } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
 import { EmptyState } from "@/components/EmptyState";
-import { SIMULADOS } from "@/data/mock";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ArrowLeft, Calendar, Clock, FileText, Play } from "lucide-react";
+import { SectionHeader } from "@/components/SectionHeader";
+import { useUser } from "@/contexts/UserContext";
+import { getSimuladoById } from "@/data/mock";
+import {
+  formatDate,
+  formatDateTime,
+  canAccessSimulado,
+  canViewResults,
+  STATUS_CONFIG,
+} from "@/lib/simulado-helpers";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  FileText,
+  Play,
+  AlertTriangle,
+  Shield,
+  Wifi,
+  Monitor,
+  Bell,
+  CheckCircle2,
+  Lock,
+  BarChart3,
+  Sparkles,
+} from "lucide-react";
 
 export default function SimuladoDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const simulado = SIMULADOS.find(s => s.id === id);
+  const navigate = useNavigate();
+  const { isOnboardingComplete } = useUser();
 
-  console.log('[SimuladoDetailPage] Rendering for id:', id);
+  const simulado = useMemo(() => (id ? getSimuladoById(id) : null), [id]);
+
+  console.log('[SimuladoDetailPage] Rendering for id:', id, 'status:', simulado?.status);
 
   if (!simulado) {
     return (
@@ -24,6 +53,10 @@ export default function SimuladoDetailPage() {
     );
   }
 
+  const statusInfo = STATUS_CONFIG[simulado.status];
+  const isAccessible = canAccessSimulado(simulado.status);
+  const hasResults = canViewResults(simulado.status);
+
   return (
     <AppLayout>
       <div className="mb-4">
@@ -35,53 +68,206 @@ export default function SimuladoDetailPage() {
 
       <PageHeader
         title={simulado.title}
-        subtitle={`${simulado.questions} questões · ${simulado.duration}`}
-        badge={simulado.date}
+        subtitle={simulado.description}
+        badge={`Simulado #${simulado.sequenceNumber}`}
         action={<StatusBadge status={simulado.status} />}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {/* Info cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
         {[
-          { label: 'Questões', value: String(simulado.questions), icon: FileText },
-          { label: 'Duração', value: simulado.duration, icon: Clock },
-          { label: 'Data', value: simulado.date, icon: Calendar },
+          { label: 'Questões', value: String(simulado.questionsCount), icon: FileText },
+          { label: 'Duração', value: simulado.estimatedDuration, icon: Clock },
+          { label: 'Janela abre', value: formatDate(simulado.executionWindowStart).split(',')[0], icon: Calendar },
+          { label: 'Resultado em', value: formatDate(simulado.resultsReleaseAt).split(',')[0], icon: BarChart3 },
         ].map((item, i) => (
-          <PremiumCard key={item.label} delay={i * 0.08} className="p-5">
+          <PremiumCard key={item.label} delay={i * 0.06} className="p-4 md:p-5">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center shrink-0">
-                <item.icon className="h-5 w-5 text-primary" />
+              <div className="h-9 w-9 rounded-lg bg-accent flex items-center justify-center shrink-0">
+                <item.icon className="h-[18px] w-[18px] text-primary" />
               </div>
-              <div>
-                <p className="text-heading-3 text-foreground">{item.value}</p>
-                <p className="text-body-sm text-muted-foreground">{item.label}</p>
+              <div className="min-w-0">
+                <p className="text-body font-semibold text-foreground truncate">{item.value}</p>
+                <p className="text-caption text-muted-foreground">{item.label}</p>
               </div>
             </div>
           </PremiumCard>
         ))}
       </div>
 
-      {simulado.status === 'available' && (
+      {/* Execution window details */}
+      <PremiumCard className="p-5 md:p-6 mb-6">
+        <SectionHeader title="Janela de Execução" className="mb-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <p className="text-overline uppercase text-muted-foreground mb-1">Abertura</p>
+            <p className="text-body font-medium text-foreground">{formatDateTime(simulado.executionWindowStart)}</p>
+          </div>
+          <div>
+            <p className="text-overline uppercase text-muted-foreground mb-1">Encerramento</p>
+            <p className="text-body font-medium text-foreground">{formatDateTime(simulado.executionWindowEnd)}</p>
+          </div>
+          <div>
+            <p className="text-overline uppercase text-muted-foreground mb-1">Liberação de resultado</p>
+            <p className="text-body font-medium text-foreground">{formatDateTime(simulado.resultsReleaseAt)}</p>
+          </div>
+        </div>
+      </PremiumCard>
+
+      {/* Status-specific content */}
+
+      {/* ── UPCOMING ── */}
+      {simulado.status === 'upcoming' && (
         <PremiumCard className="p-6 md:p-8 text-center">
-          <Play className="h-8 w-8 text-primary mx-auto mb-4" />
-          <h2 className="text-heading-2 text-foreground mb-2">Pronto para começar?</h2>
-          <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
-            Ao iniciar, o cronômetro começará automaticamente. Você terá {simulado.duration} para completar {simulado.questions} questões.
+          <div className="h-14 w-14 rounded-2xl bg-info/10 flex items-center justify-center mx-auto mb-4">
+            <Clock className="h-7 w-7 text-info" />
+          </div>
+          <h2 className="text-heading-2 text-foreground mb-2">Simulado em breve</h2>
+          <p className="text-body text-muted-foreground mb-2 max-w-md mx-auto">
+            A janela de execução abrirá em <strong>{formatDate(simulado.executionWindowStart)}</strong>.
           </p>
-          <button className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">
-            <Play className="h-4 w-4" />
-            Iniciar Simulado
+          <p className="text-body-sm text-muted-foreground max-w-md mx-auto">
+            Prepare-se para {simulado.questionsCount} questões em {simulado.estimatedDuration} de prova.
+          </p>
+          <button className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors">
+            <Bell className="h-4 w-4" />
+            Ativar lembrete por e-mail
           </button>
-          <p className="text-body-sm text-muted-foreground mt-4">
-            O resultado será liberado após o fechamento da janela.
-          </p>
         </PremiumCard>
       )}
 
-      {simulado.status === 'completed' && simulado.score !== undefined && (
+      {/* ── AVAILABLE (pre-start) ── */}
+      {isAccessible && !simulado.userState?.started && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Onboarding gate */}
+          {!isOnboardingComplete ? (
+            <PremiumCard className="p-6 md:p-8 text-center">
+              <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="h-7 w-7 text-warning" />
+              </div>
+              <h2 className="text-heading-2 text-foreground mb-2">Complete seu perfil primeiro</h2>
+              <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+                Para iniciar o simulado, você precisa informar sua especialidade e instituições desejadas. Isso personaliza seu ranking e desempenho.
+              </p>
+              <Link
+                to="/onboarding"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+              >
+                <Sparkles className="h-4 w-4" />
+                Completar perfil
+              </Link>
+            </PremiumCard>
+          ) : (
+            <PremiumCard className="p-6 md:p-8">
+              {/* Pre-start instructions */}
+              <div className="text-center mb-8">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Play className="h-7 w-7 text-primary" />
+                </div>
+                <h2 className="text-heading-2 text-foreground mb-2">Pronto para começar?</h2>
+                <p className="text-body text-muted-foreground max-w-lg mx-auto">
+                  Revise as orientações abaixo antes de iniciar. A prova não pode ser pausada após o início.
+                </p>
+              </div>
+
+              {/* Instructions grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
+                {[
+                  { icon: Clock, title: 'Duração', desc: `Você terá ${simulado.estimatedDuration} para completar ${simulado.questionsCount} questões.` },
+                  { icon: AlertTriangle, title: 'Sem pausa', desc: 'Uma vez iniciado, o cronômetro não pode ser pausado manualmente.' },
+                  { icon: Wifi, title: 'Conexão estável', desc: 'Garanta uma conexão estável. Em caso de falha técnica, suas respostas são salvas automaticamente.' },
+                  { icon: Monitor, title: 'Ambiente adequado', desc: 'Escolha um local tranquilo e sem interrupções, como em uma prova real.' },
+                ].map((item) => (
+                  <div key={item.title} className="flex items-start gap-3 p-4 rounded-xl bg-muted/50">
+                    <item.icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-body font-medium text-foreground">{item.title}</p>
+                      <p className="text-body-sm text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div className="text-center">
+                <button
+                  className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <Play className="h-5 w-5" />
+                  Iniciar Simulado
+                </button>
+                <p className="text-caption text-muted-foreground mt-4">
+                  O resultado será liberado em {formatDate(simulado.resultsReleaseAt)}.
+                </p>
+              </div>
+            </PremiumCard>
+          )}
+        </motion.div>
+      )}
+
+      {/* ── IN PROGRESS (user started) ── */}
+      {simulado.status === 'in_progress' && simulado.userState?.started && (
         <PremiumCard className="p-6 md:p-8 text-center">
-          <div className="text-display text-primary mb-2">{simulado.score}%</div>
-          <p className="text-body text-muted-foreground mb-6">Sua nota neste simulado</p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
+            <Play className="h-7 w-7 text-warning" />
+          </div>
+          <h2 className="text-heading-2 text-foreground mb-2">Simulado em andamento</h2>
+          <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+            Você já iniciou este simulado. Continue de onde parou.
+          </p>
+          <button className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">
+            <Play className="h-4 w-4" />
+            Continuar Simulado
+          </button>
+        </PremiumCard>
+      )}
+
+      {/* ── CLOSED WAITING ── */}
+      {simulado.status === 'closed_waiting' && (
+        <PremiumCard className="p-6 md:p-8 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-heading-2 text-foreground mb-2">Janela encerrada</h2>
+          <p className="text-body text-muted-foreground mb-2 max-w-md mx-auto">
+            A janela de execução deste simulado foi encerrada.
+          </p>
+          <p className="text-body text-muted-foreground max-w-md mx-auto">
+            O resultado e gabarito serão liberados em <strong>{formatDate(simulado.resultsReleaseAt)}</strong>.
+          </p>
+          <button className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors">
+            <Bell className="h-4 w-4" />
+            Receber aviso por e-mail
+          </button>
+        </PremiumCard>
+      )}
+
+      {/* ── RESULTS AVAILABLE / COMPLETED ── */}
+      {hasResults && (
+        <PremiumCard className="p-6 md:p-8 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="h-7 w-7 text-success" />
+          </div>
+
+          {simulado.userState?.score !== undefined ? (
+            <>
+              <div className="text-display text-primary mb-2">{simulado.userState.score}%</div>
+              <p className="text-body text-muted-foreground mb-6">Sua nota neste simulado</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-heading-2 text-foreground mb-2">Resultado disponível</h2>
+              <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+                O gabarito comentado e ranking deste simulado já estão liberados.
+              </p>
+            </>
+          )}
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/correcao"
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
@@ -94,16 +280,28 @@ export default function SimuladoDetailPage() {
             >
               Ver Desempenho
             </Link>
+            <Link
+              to="/ranking"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors"
+            >
+              Ver Ranking
+            </Link>
           </div>
         </PremiumCard>
       )}
 
-      {(simulado.status === 'upcoming' || simulado.status === 'locked') && (
-        <EmptyState
-          icon={Clock}
-          title="Simulado indisponível"
-          description="Este simulado ainda não está disponível. Aguarde a abertura da janela de execução."
-        />
+      {/* Theme tags */}
+      {simulado.themeTags.length > 0 && (
+        <div className="mt-6">
+          <SectionHeader title="Áreas abordadas" />
+          <div className="flex flex-wrap gap-2">
+            {simulado.themeTags.map(tag => (
+              <span key={tag} className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-body-sm font-medium">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
     </AppLayout>
   );

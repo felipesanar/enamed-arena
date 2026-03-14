@@ -1,6 +1,5 @@
 // ─── User Segments ───
 export type UserSegment = 'guest' | 'standard' | 'pro';
-
 export type OnboardingStatus = 'pending' | 'completed';
 
 export interface UserProfile {
@@ -28,23 +27,41 @@ export interface OnboardingState {
 }
 
 // ─── Simulado ───
-export type SimuladoStatus = 'available' | 'upcoming' | 'completed' | 'locked' | 'live' | 'in_progress';
+export type SimuladoStatus =
+  | 'upcoming'           // Before window opens
+  | 'available'          // Window is open, can start
+  | 'in_progress'        // User has started
+  | 'closed_waiting'     // Window closed, results not yet released
+  | 'results_available'  // Results released
+  | 'completed';         // User finished and results seen
 
-export interface SimuladoWindow {
-  start: string;
-  end: string;
+export interface SimuladoConfig {
+  id: string;
+  slug: string;
+  title: string;
+  sequenceNumber: number;
+  description: string;
+  questionsCount: number;
+  estimatedDuration: string; // e.g. "5h"
+  estimatedDurationMinutes: number;
+  executionWindowStart: string; // ISO
+  executionWindowEnd: string;   // ISO
+  resultsReleaseAt: string;     // ISO
+  themeTags: string[];
 }
 
-export interface Simulado {
-  id: string;
-  title: string;
-  number: number;
-  date: string;
-  status: SimuladoStatus;
-  questions: number;
-  duration: string;
-  window?: SimuladoWindow;
+export interface SimuladoUserState {
+  simuladoId: string;
+  started: boolean;
+  startedAt?: string;
+  finished: boolean;
+  finishedAt?: string;
   score?: number;
+}
+
+export interface SimuladoWithStatus extends SimuladoConfig {
+  status: SimuladoStatus;
+  userState?: SimuladoUserState;
 }
 
 // ─── Questions ───
@@ -114,24 +131,9 @@ export const SEGMENT_DESCRIPTIONS: Record<UserSegment, string> = {
 };
 
 export const SEGMENT_ACCESS = {
-  guest: {
-    simulados: true,
-    ranking: true,
-    comparativo: false,
-    cadernoErros: false,
-  },
-  standard: {
-    simulados: true,
-    ranking: true,
-    comparativo: true,
-    cadernoErros: false,
-  },
-  pro: {
-    simulados: true,
-    ranking: true,
-    comparativo: true,
-    cadernoErros: true,
-  },
+  guest: { simulados: true, ranking: true, comparativo: false, cadernoErros: false },
+  standard: { simulados: true, ranking: true, comparativo: true, cadernoErros: false },
+  pro: { simulados: true, ranking: true, comparativo: true, cadernoErros: true },
 } as const;
 
 export const MIN_INSTITUTIONS_GUEST = 3;
