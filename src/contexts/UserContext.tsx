@@ -1,106 +1,218 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { UserProfile, OnboardingProfile, UserSegment, OnboardingStatus } from '@/types';
 import { SEGMENT_ACCESS } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserContextValue {
   profile: UserProfile | null;
   onboarding: OnboardingProfile | null;
   isLoading: boolean;
   isOnboardingComplete: boolean;
+  /** Data source status for transparency */
+  dataSource: 'supabase' | 'loading' | 'unauthenticated';
 
   setSegment: (segment: UserSegment) => void;
   saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => void;
   resetOnboarding: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
 
-const STORAGE_KEY_PROFILE = 'sanarflix_profile';
-const STORAGE_KEY_ONBOARDING = 'sanarflix_onboarding';
-
-function loadFromStorage<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToStorage<T>(key: string, data: T) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.error('[UserContext] Storage save failed:', e);
-  }
-}
-
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { user: authUser, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'supabase' | 'loading' | 'unauthenticated'>('loading');
 
-  useEffect(() => {
-    const storedProfile = loadFromStorage<UserProfile>(STORAGE_KEY_PROFILE);
-    const storedOnboarding = loadFromStorage<OnboardingProfile>(STORAGE_KEY_ONBOARDING);
+  // Fetch real profile + onboarding from Supabase
+  const fetchUserData = useCallback(async (userId: string) => {
+    console.log('[UserContext] Fetching user data from Supabase for:', userId);
+    setIsLoading(true);
+    setDataSource('loading');
 
-    if (storedProfile) {
-      setProfile(storedProfile);
-    } else {
-      const defaultProfile: UserProfile = {
-        id: 'demo-user',
-        name: '',
-        email: '',
-        segment: 'guest',
-      };
-      setProfile(defaultProfile);
-      saveToStorage(STORAGE_KEY_PROFILE, defaultProfile);
+    try {
+      const [profileResult, onboardingResult] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('onboarding_profiles').select('*').eq('user_id', userId).maybeSingle(),
+      ]);
+
+      if (profileResult.error) {
+        console.error('[UserContext] Profile fetch error:', profileResult.error);
+      }
+
+      if (profileResult.data) {
+        const p = profileResult.data;
+        const userProfile: UserProfile = {
+          id: p.id,
+          name: p.full_name || '',
+          email: p.email || '',
+          segment: (p.segment as UserSegment) || 'guest',
+          avatarUrl: p.avatar_url || undefined,
+        };
+        setProfile(userProfile);
+        console.log('[UserContext] Profile loaded:', { segment: userProfile.segment });
+      } else {
+        // Profile should be auto-created by trigger, set fallback
+        const fallback: UserProfile = {
+          id: userId,
+          name: '',
+          email: '',
+          segment: 'guest',
+        };
+        setProfile(fallback);
+        console.log('[UserContext] No profile found, using fallback');
+      }
+
+      if (onboardingResult.data) {
+        const o = onboardingResult.data;
+        const onb: OnboardingProfile = {
+          id: o.id,
+          userId: o.user_id,
+          specialty: o.specialty,
+          targetInstitutions: o.target_institutions || [],
+          status: o.status as OnboardingStatus,
+          completedAt: o.completed_at || undefined,
+        };
+        setOnboarding(onb);
+        console.log('[UserContext] Onboarding loaded:', { status: onb.status });
+      } else {
+        setOnboarding(null);
+      }
+
+      setDataSource('supabase');
+    } catch (err) {
+      console.error('[UserContext] Unexpected error fetching user data:', err);
+    } finally {
+      setIsLoading(false);
     }
-
-    if (storedOnboarding) {
-      setOnboarding(storedOnboarding);
-    }
-
-    setIsLoading(false);
   }, []);
+
+  // React to auth state
+  useEffect(() => {
+    if (authLoading) {
+      setIsLoading(true);
+      setDataSource('loading');
+      return;
+    }
+
+    if (!authUser) {
+      setProfile(null);
+      setOnboarding(null);
+      setIsLoading(false);
+      setDataSource('unauthenticated');
+      return;
+    }
+
+    fetchUserData(authUser.id);
+  }, [authUser, authLoading, fetchUserData]);
 
   const isOnboardingComplete = onboarding?.status === 'completed';
 
-  const setSegment = useCallback((segment: UserSegment) => {
-    setProfile(prev => {
-      if (!prev) return prev;
-      const updated = { ...prev, segment };
-      saveToStorage(STORAGE_KEY_PROFILE, updated);
-      return updated;
-    });
-  }, []);
+  const setSegment = useCallback(async (segment: UserSegment) => {
+    if (!authUser) return;
+
+    // Optimistic update
+    setProfile(prev => prev ? { ...prev, segment } : prev);
+
+    // Persist to Supabase
+    const { error } = await supabase
+      .from('profiles')
+      .update({ segment })
+      .eq('id', authUser.id);
+
+    if (error) {
+      console.error('[UserContext] Error updating segment:', error);
+    } else {
+      console.log('[UserContext] Segment updated to:', segment);
+    }
+  }, [authUser]);
 
   const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
+    if (!authUser) throw new Error('Not authenticated');
+
+    const now = new Date().toISOString();
+
+    // Check if onboarding record already exists
+    const { data: existing } = await supabase
+      .from('onboarding_profiles')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+
+    if (existing) {
+      // Update
+      const { error } = await supabase
+        .from('onboarding_profiles')
+        .update({
+          specialty: data.specialty,
+          target_institutions: data.targetInstitutions,
+          status: 'completed' as const,
+          completed_at: now,
+        })
+        .eq('user_id', authUser.id);
+
+      if (error) throw error;
+    } else {
+      // Insert
+      const { error } = await supabase
+        .from('onboarding_profiles')
+        .insert({
+          user_id: authUser.id,
+          specialty: data.specialty,
+          target_institutions: data.targetInstitutions,
+          status: 'completed' as const,
+          completed_at: now,
+        });
+
+      if (error) throw error;
+    }
+
+    // Update local state
     const onboardingData: OnboardingProfile = {
-      userId: profile?.id ?? 'demo-user',
+      userId: authUser.id,
       specialty: data.specialty,
       targetInstitutions: data.targetInstitutions,
-      status: 'completed' as OnboardingStatus,
-      completedAt: new Date().toISOString(),
+      status: 'completed',
+      completedAt: now,
     };
     setOnboarding(onboardingData);
-    saveToStorage(STORAGE_KEY_ONBOARDING, onboardingData);
-  }, [profile?.id]);
+    console.log('[UserContext] Onboarding saved to Supabase');
+  }, [authUser]);
 
-  const updateProfile = useCallback((data: Partial<UserProfile>) => {
-    setProfile(prev => {
-      if (!prev) return prev;
-      const updated = { ...prev, ...data };
-      saveToStorage(STORAGE_KEY_PROFILE, updated);
-      return updated;
-    });
-  }, []);
+  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
+    if (!authUser) return;
 
-  const resetOnboarding = useCallback(() => {
+    setProfile(prev => prev ? { ...prev, ...data } : prev);
+
+    const updates: Record<string, any> = {};
+    if (data.name !== undefined) updates.full_name = data.name;
+    if (data.email !== undefined) updates.email = data.email;
+    if (data.avatarUrl !== undefined) updates.avatar_url = data.avatarUrl;
+    if (data.segment !== undefined) updates.segment = data.segment;
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', authUser.id);
+
+      if (error) console.error('[UserContext] Profile update error:', error);
+    }
+  }, [authUser]);
+
+  const resetOnboarding = useCallback(async () => {
     setOnboarding(null);
-    localStorage.removeItem(STORAGE_KEY_ONBOARDING);
+    // Note: We don't delete the record, just reset local state
+    // The user can redo onboarding which will update the existing record
   }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (authUser) await fetchUserData(authUser.id);
+  }, [authUser, fetchUserData]);
 
   return (
     <UserContext.Provider value={{
@@ -108,10 +220,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       onboarding,
       isLoading,
       isOnboardingComplete,
+      dataSource,
       setSegment,
       saveOnboarding,
       updateProfile,
       resetOnboarding,
+      refreshProfile,
     }}>
       {children}
     </UserContext.Provider>
