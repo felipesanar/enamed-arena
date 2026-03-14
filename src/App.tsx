@@ -7,6 +7,7 @@ import { UserProvider } from "@/contexts/UserContext";
 import Index from "./pages/Index.tsx";
 import SimuladosPage from "./pages/SimuladosPage.tsx";
 import SimuladoDetailPage from "./pages/SimuladoDetailPage.tsx";
+import SimuladoExamPage from "./pages/SimuladoExamPage.tsx";
 import DesempenhoPage from "./pages/DesempenhoPage.tsx";
 import RankingPage from "./pages/RankingPage.tsx";
 import CorrecaoPage from "./pages/CorrecaoPage.tsx";
