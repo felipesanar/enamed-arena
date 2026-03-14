@@ -6,19 +6,27 @@ import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AddToNotebookModal } from '@/components/AddToNotebookModal';
 import { getSimuladoById } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { useExamStorage } from '@/hooks/useExamStorage';
+import { useUser } from '@/contexts/UserContext';
 import { canViewResults } from '@/lib/simulado-helpers';
 import { computeSimuladoScore, type QuestionResult } from '@/lib/result-helpers';
+import { isInNotebook } from '@/lib/notebook-helpers';
+import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  FileText, BookOpen, Flag, Zap, Grid3X3,
+  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles,
 } from 'lucide-react';
 
 export default function CorrecaoPage() {
   const { id } = useParams<{ id: string }>();
+  const { profile } = useUser();
+  const segment = profile?.segment ?? 'guest';
+  const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
+
   const simulado = useMemo(() => (id ? getSimuladoById(id) : null), [id]);
   const questions = useMemo(() => (id ? getQuestionsForSimulado(id) : []), [id]);
   const storage = useExamStorage(id || '');
@@ -26,6 +34,8 @@ export default function CorrecaoPage() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showNav, setShowNav] = useState(false);
+  const [notebookModal, setNotebookModal] = useState(false);
+  const [notebookRefresh, setNotebookRefresh] = useState(0);
 
   console.log('[CorrecaoPage] Rendering for simulado:', id);
 
@@ -54,6 +64,7 @@ export default function CorrecaoPage() {
   const question = questions[currentIndex];
   const result = score.questionResults[currentIndex];
   const answer = examState.answers[question?.id];
+  const inNotebook = question && id ? isInNotebook(question.id, id) : false;
 
   if (!question) return null;
 
@@ -89,8 +100,8 @@ export default function CorrecaoPage() {
             >
               {/* Question header */}
               <PremiumCard className="p-5 md:p-6 mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-body font-bold text-foreground">Questão {question.number}</span>
                     <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">
                       {question.area}
@@ -99,7 +110,7 @@ export default function CorrecaoPage() {
                       {question.theme}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {answer?.markedForReview && (
                       <span className="inline-flex items-center gap-1 text-caption text-info bg-info/10 px-2 py-0.5 rounded-md">
                         <Flag className="h-3 w-3" /> Revisão
@@ -175,7 +186,7 @@ export default function CorrecaoPage() {
 
               {/* Commentary */}
               {question.explanation && (
-                <PremiumCard className="p-5 md:p-6 mb-6 border-primary/10 bg-primary/[0.02]">
+                <PremiumCard className="p-5 md:p-6 mb-4 border-primary/10 bg-primary/[0.02]">
                   <div className="flex items-center gap-2 mb-3">
                     <BookOpen className="h-4 w-4 text-primary" />
                     <h3 className="text-body font-bold text-primary">Comentário do Professor</h3>
@@ -185,6 +196,29 @@ export default function CorrecaoPage() {
                   </p>
                 </PremiumCard>
               )}
+
+              {/* Add to Notebook CTA */}
+              <div className="mb-6">
+                {canUseNotebook ? (
+                  <button
+                    onClick={() => setNotebookModal(true)}
+                    className={cn(
+                      'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-body-sm font-medium transition-all',
+                      inNotebook
+                        ? 'bg-primary/10 text-primary border border-primary/20'
+                        : 'bg-secondary text-secondary-foreground hover:bg-muted border border-border/50',
+                    )}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    {inNotebook ? 'Já no Caderno de Erros' : 'Adicionar ao Caderno de Erros'}
+                  </button>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent/50 border border-primary/10 text-body-sm text-muted-foreground">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span>Caderno de Erros — <strong className="text-primary font-semibold">PRO: ENAMED</strong></span>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </AnimatePresence>
 
@@ -292,6 +326,23 @@ export default function CorrecaoPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Notebook modal */}
+      {canUseNotebook && question && id && (
+        <AddToNotebookModal
+          open={notebookModal}
+          onClose={() => setNotebookModal(false)}
+          questionId={question.id}
+          simuladoId={id}
+          simuladoTitle={simulado.title}
+          area={question.area}
+          theme={question.theme}
+          questionNumber={question.number}
+          questionText={question.text}
+          wasCorrect={result.isCorrect}
+          onAdded={() => setNotebookRefresh(v => v + 1)}
+        />
+      )}
     </AppLayout>
   );
 }
