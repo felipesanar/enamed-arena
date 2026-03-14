@@ -1,20 +1,21 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/contexts/UserContext';
 import { getSimuladoById } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { canAccessSimulado } from '@/lib/simulado-helpers';
-import { loadAttempt, saveAttempt } from '@/lib/exam-persistence';
-import { useExamTimer } from '@/hooks/use-exam-timer';
-import { useTabWarning } from '@/hooks/use-tab-warning';
+import { useExamStorage } from '@/hooks/useExamStorage';
+import { useExamTimer } from '@/hooks/useExamTimer';
+import { useFocusControl } from '@/hooks/useFocusControl';
+import { useKeyboardShortcuts, KEY_TO_OPTION_INDEX } from '@/hooks/useKeyboardShortcuts';
 import { ExamHeader } from '@/components/exam/ExamHeader';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
 import { QuestionNavigator } from '@/components/exam/QuestionNavigator';
 import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
-import { computeExamSummary, type ExamAttempt } from '@/types/exam';
-import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, Send, AlertTriangle } from 'lucide-react';
+import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
+import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, Send, AlertCircle, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
@@ -27,13 +28,14 @@ export default function SimuladoExamPage() {
   const questions = useMemo(() => (id ? getQuestionsForSimulado(id) : []), [id]);
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
 
-  const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
+  const storage = useExamStorage(id || '');
+  const [state, setState] = useState<ExamState | null>(null);
   const [showNavigator, setShowNavigator] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [showTabWarning, setShowTabWarning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const hasFinalized = useRef(false);
 
-  console.log('[SimuladoExamPage] Rendering, id:', id, 'attempt status:', attempt?.status);
+  console.log('[SimuladoExamPage] Rendering, id:', id, 'state status:', state?.status);
 
   // ── Gate: redirect if not eligible ──
   useEffect(() => {
@@ -43,105 +45,146 @@ export default function SimuladoExamPage() {
     }
   }, [simulado, isOnboardingComplete, navigate, id]);
 
-  // ── Init or resume attempt ──
+  // ── Init or resume attempt (Academy pattern) ──
   useEffect(() => {
     if (!simulado || !id) return;
-    const existing = loadAttempt(id);
+    const existing = storage.loadState();
+
     if (existing && existing.status === 'in_progress') {
       console.log('[SimuladoExamPage] Resuming existing attempt');
-      setAttempt(existing);
+      setState(existing);
       toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
     } else if (!existing || existing.status === 'not_started') {
-      const fresh: ExamAttempt = {
-        simuladoId: id,
-        userId: profile?.id ?? 'demo-user',
-        status: 'in_progress',
-        startedAt: new Date().toISOString(),
-        lastSavedAt: new Date().toISOString(),
-        totalDurationSeconds: simulado.estimatedDurationMinutes * 60,
-        timeRemainingSeconds: simulado.estimatedDurationMinutes * 60,
-        currentQuestionIndex: 0,
-        answers: {},
-        reviewFlags: {},
-        highConfidenceFlags: {},
-        emailReminderEnabled: false,
-      };
-      setAttempt(fresh);
-      saveAttempt(fresh);
+      const fresh = storage.initializeState(
+        questions.length,
+        simulado.estimatedDurationMinutes,
+        simulado.executionWindowEnd,
+      );
+      setState(fresh);
       console.log('[SimuladoExamPage] Created fresh attempt');
     } else {
-      // submitted already
-      setAttempt(existing);
+      // submitted/expired
+      setState(existing);
     }
-  }, [simulado, id, profile?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simulado?.id]);
 
-  // ── Auto-save helper ──
-  const doSave = useCallback((updated: ExamAttempt) => {
-    saveAttempt(updated);
-  }, []);
-
-  // ── Timer callbacks ──
-  const handleTimeUp = useCallback(() => {
-    console.log('[SimuladoExamPage] Time up!');
-    setAttempt(prev => {
-      if (!prev) return prev;
-      const final = { ...prev, status: 'submitted' as const, finishedAt: new Date().toISOString(), timeRemainingSeconds: 0 };
-      saveAttempt(final);
-      return final;
-    });
-    toast({ title: 'Tempo esgotado', description: 'Sua prova foi finalizada automaticamente.' });
-  }, []);
-
-  const handleTimerTick = useCallback((remaining: number) => {
-    setAttempt(prev => {
-      if (!prev || prev.status !== 'in_progress') return prev;
-      const updated = { ...prev, timeRemainingSeconds: remaining };
-      doSave(updated);
-      return updated;
-    });
-  }, [doSave]);
-
-  const timeRemaining = useExamTimer({
-    attempt: attempt ?? { status: 'not_started', timeRemainingSeconds: 0 } as any,
-    onTimeUp: handleTimeUp,
-    onTick: handleTimerTick,
-  });
-
-  // ── Tab switch warning ──
-  useTabWarning({
-    enabled: attempt?.status === 'in_progress',
-    onTabSwitch: () => {
-      setTabSwitchCount(c => c + 1);
-      setShowTabWarning(true);
-      setTimeout(() => setShowTabWarning(false), 5000);
+  // ── Focus control (Academy pattern) ──
+  const focusControl = useFocusControl({
+    onTabExit: () => {
+      storage.registerTabExit();
+      console.log('[SimuladoExamPage] Tab exit registered');
+    },
+    onTabReturn: () => {},
+    onFullscreenExit: () => {
+      storage.registerFullscreenExit();
     },
   });
 
-  // ── Handlers ──
-  const currentIndex = attempt?.currentQuestionIndex ?? 0;
-  const currentQuestion = questions[currentIndex];
+  // ── Finalize ──
+  const finalize = useCallback(() => {
+    if (hasFinalized.current) return;
+    hasFinalized.current = true;
+    setSubmitting(true);
 
-  const updateAttempt = useCallback((updater: (prev: ExamAttempt) => ExamAttempt) => {
-    setAttempt(prev => {
+    storage.flushPendingState();
+    const finalState = storage.loadState();
+    if (!finalState) return;
+
+    const submitted: ExamState = {
+      ...finalState,
+      status: 'submitted',
+      lastSavedAt: new Date().toISOString(),
+    };
+    storage.saveStateSync(submitted);
+    setState(submitted);
+    setShowSubmitModal(false);
+    setSubmitting(false);
+
+    console.log('[SimuladoExamPage] Exam finalized');
+    toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
+  }, [storage]);
+
+  // ── Timer (Academy deadline pattern) ──
+  const handleTimeUp = useCallback(() => {
+    console.log('[SimuladoExamPage] Time up — auto-finalizing');
+    toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
+    setTimeout(() => finalize(), 2000);
+  }, [finalize]);
+
+  const timeRemaining = useExamTimer({
+    deadline: state?.effectiveDeadline ?? null,
+    onTimeUp: handleTimeUp,
+    paused: state?.status !== 'in_progress',
+  });
+
+  // ── beforeunload (Academy sendBeacon pattern — adapted for localStorage only) ──
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasFinalized.current || state?.status !== 'in_progress') return;
+      storage.flushPendingState();
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state?.status, storage]);
+
+  // ── Current question ──
+  const currentIndex = state?.currentQuestionIndex ?? 0;
+  const currentQuestion = questions[currentIndex];
+  const currentAnswer = state?.answers[currentQuestion?.id];
+
+  // ── State updater with debounced save ──
+  const updateState = useCallback((updater: (prev: ExamState) => ExamState) => {
+    setState(prev => {
       if (!prev || prev.status !== 'in_progress') return prev;
       const updated = updater(prev);
-      doSave(updated);
+      storage.saveStateDebounced(updated);
       return updated;
     });
-  }, [doSave]);
+  }, [storage]);
 
+  // ── Handlers (Academy pattern) ──
   const handleSelectOption = useCallback((optionId: string) => {
     if (!currentQuestion) return;
-    updateAttempt(prev => ({
+    updateState(prev => ({
       ...prev,
-      answers: { ...prev.answers, [currentQuestion.id]: optionId },
+      answers: {
+        ...prev.answers,
+        [currentQuestion.id]: {
+          ...(prev.answers[currentQuestion.id] || { questionId: currentQuestion.id, selectedOption: null, markedForReview: false, highConfidence: false, eliminatedAlternatives: [] }),
+          questionId: currentQuestion.id,
+          selectedOption: optionId,
+        },
+      },
     }));
-  }, [currentQuestion, updateAttempt]);
+  }, [currentQuestion, updateState]);
+
+  const handleEliminateOption = useCallback((optionId: string) => {
+    if (!currentQuestion) return;
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] || { questionId: currentQuestion.id, selectedOption: null, markedForReview: false, highConfidence: false, eliminatedAlternatives: [] };
+      const isEliminated = existing.eliminatedAlternatives.includes(optionId);
+      return {
+        ...prev,
+        answers: {
+          ...prev.answers,
+          [currentQuestion.id]: {
+            ...existing,
+            eliminatedAlternatives: isEliminated
+              ? existing.eliminatedAlternatives.filter(id => id !== optionId)
+              : [...existing.eliminatedAlternatives, optionId],
+          },
+        },
+      };
+    });
+  }, [currentQuestion, updateState]);
 
   const handleNavigate = useCallback((index: number) => {
-    updateAttempt(prev => ({ ...prev, currentQuestionIndex: index }));
+    updateState(prev => ({ ...prev, currentQuestionIndex: index }));
     setShowNavigator(false);
-  }, [updateAttempt]);
+  }, [updateState]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) handleNavigate(currentIndex - 1);
@@ -153,54 +196,67 @@ export default function SimuladoExamPage() {
 
   const toggleReview = useCallback(() => {
     if (!currentQuestion) return;
-    updateAttempt(prev => ({
-      ...prev,
-      reviewFlags: { ...prev.reviewFlags, [currentQuestion.id]: !prev.reviewFlags[currentQuestion.id] },
-    }));
-  }, [currentQuestion, updateAttempt]);
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] || { questionId: currentQuestion.id, selectedOption: null, markedForReview: false, highConfidence: false, eliminatedAlternatives: [] };
+      const newVal = !existing.markedForReview;
+      toast({ title: newVal ? 'Questão marcada para revisão' : 'Marcação removida' });
+      return {
+        ...prev,
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal } },
+      };
+    });
+  }, [currentQuestion, updateState]);
 
   const toggleHighConfidence = useCallback(() => {
     if (!currentQuestion) return;
-    updateAttempt(prev => ({
-      ...prev,
-      highConfidenceFlags: { ...prev.highConfidenceFlags, [currentQuestion.id]: !prev.highConfidenceFlags[currentQuestion.id] },
-    }));
-  }, [currentQuestion, updateAttempt]);
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] || { questionId: currentQuestion.id, selectedOption: null, markedForReview: false, highConfidence: false, eliminatedAlternatives: [] };
+      return {
+        ...prev,
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
+      };
+    });
+  }, [currentQuestion, updateState]);
 
-  const handleSubmit = useCallback(() => {
-    updateAttempt(prev => ({
-      ...prev,
-      status: 'submitted',
-      finishedAt: new Date().toISOString(),
-      timeRemainingSeconds: timeRemaining,
-    }));
-    setShowSubmitModal(false);
-    console.log('[SimuladoExamPage] Exam submitted');
-  }, [updateAttempt, timeRemaining]);
-
-  const handleExit = useCallback(() => {
-    // Save before navigating (contingency save)
-    if (attempt && attempt.status === 'in_progress') {
-      saveAttempt({ ...attempt, timeRemainingSeconds: timeRemaining });
+  // ── Keyboard shortcuts (Academy pattern) ──
+  const shortcuts = useMemo(() => {
+    const map: Record<string, () => void> = {
+      'ArrowLeft': handlePrev,
+      'ArrowRight': handleNext,
+      'r': toggleReview,
+      'R': toggleReview,
+      'h': toggleHighConfidence,
+      'H': toggleHighConfidence,
+      'Escape': () => setShowSubmitModal(true),
+    };
+    // 1-5 for selecting options
+    if (currentQuestion) {
+      currentQuestion.options.forEach((opt, i) => {
+        map[String(i + 1)] = () => handleSelectOption(opt.id);
+      });
     }
-    navigate(`/simulados/${id}`);
-  }, [attempt, timeRemaining, navigate, id]);
+    return map;
+  }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption]);
 
-  // ── Loading / invalid states ──
-  if (!simulado || !attempt) {
+  useKeyboardShortcuts(shortcuts, {
+    enabled: state?.status === 'in_progress' && !showSubmitModal && !submitting,
+  });
+
+  // ── Loading ──
+  if (!simulado || !state) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-body text-muted-foreground">Carregando prova...</p>
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-body text-muted-foreground">Carregando simulado...</p>
         </div>
       </div>
     );
   }
 
-  // ── Completed state ──
-  if (attempt.status === 'submitted' || attempt.status === 'expired') {
-    const summary = computeExamSummary(attempt, questionIds);
+  // ── Completed ──
+  if (state.status === 'submitted' || state.status === 'expired') {
+    const summary = computeExamSummary(state, questionIds);
     return (
       <ExamCompletedScreen
         simuladoTitle={simulado.title}
@@ -213,157 +269,161 @@ export default function SimuladoExamPage() {
 
   if (!currentQuestion) return null;
 
-  const isReviewFlagged = attempt.reviewFlags[currentQuestion.id];
-  const isHighConfFlagged = attempt.highConfidenceFlags[currentQuestion.id];
-  const summary = computeExamSummary(attempt, questionIds);
+  const summary = computeExamSummary(state, questionIds);
+  const isReviewFlagged = currentAnswer?.markedForReview;
+  const isHighConfFlagged = currentAnswer?.highConfidence;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <ExamHeader
-        title={simulado.title}
-        currentQuestion={currentIndex + 1}
-        totalQuestions={questions.length}
-        timeRemaining={timeRemaining}
-        lastSaved={attempt.lastSavedAt}
-        onExit={handleExit}
-      />
-
-      {/* Tab switch warning banner */}
+    <div className="h-screen flex flex-col bg-background">
+      {/* Focus warnings — Academy pattern */}
       <AnimatePresence>
-        {showTabWarning && (
+        {focusControl.isTabAway && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-warning/10 border-b border-warning/20 px-4 py-3 flex items-center gap-2"
+            className="bg-destructive/10 border-b border-destructive/20 px-4 py-3 flex items-center gap-2"
           >
-            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-            <p className="text-body-sm text-warning">
-              Alternância de aba detectada ({tabSwitchCount}x). Mantenha o foco na prova para simular condições reais.
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-body-sm text-destructive font-medium">
+              Você saiu da aba da prova. Retorne para continuar o simulado.
             </p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex">
-        {/* Main content */}
-        <main className="flex-1 max-w-3xl mx-auto w-full px-4 md:px-6 py-6 md:py-8">
-          <QuestionDisplay
-            question={currentQuestion}
-            selectedOptionId={attempt.answers[currentQuestion.id] ?? null}
-            onSelectOption={handleSelectOption}
-          />
+      <ExamHeader
+        title={simulado.title}
+        currentQuestion={currentIndex + 1}
+        totalQuestions={questions.length}
+        timeRemaining={timeRemaining}
+        onFinalize={() => setShowSubmitModal(true)}
+      />
 
-          {/* Action bar */}
-          <div className="mt-8 flex flex-wrap items-center gap-2">
-            <button
-              onClick={toggleReview}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-colors',
-                isReviewFlagged
-                  ? 'bg-warning/10 text-warning border border-warning/30'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
-              <Flag className="h-3.5 w-3.5" />
-              {isReviewFlagged ? 'Marcada para revisar' : 'Marcar para revisar'}
-            </button>
-            <button
-              onClick={toggleHighConfidence}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-colors',
-                isHighConfFlagged
-                  ? 'bg-success/10 text-success border border-success/30'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
-              <Zap className="h-3.5 w-3.5" />
-              {isHighConfFlagged ? 'Alta certeza' : 'Marcar alta certeza'}
-            </button>
+      {/* Progress bar */}
+      <div className="px-4 md:px-6 py-2 bg-muted/30 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-300"
+              style={{ width: `${(summary.answered / summary.total) * 100}%` }}
+            />
           </div>
+          <span className="text-caption font-medium text-muted-foreground whitespace-nowrap">
+            {summary.answered}/{summary.total} respondidas
+          </span>
+        </div>
+      </div>
 
-          {/* Navigation bar */}
-          <div className="mt-6 flex items-center justify-between">
-            <button
-              onClick={handlePrev}
-              disabled={currentIndex === 0}
-              className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Anterior
-            </button>
+      {/* Body — Academy layout: content + side nav */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Question area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="max-w-3xl mx-auto">
+            <QuestionDisplay
+              question={currentQuestion}
+              answer={currentAnswer}
+              onSelectOption={handleSelectOption}
+              onEliminateOption={handleEliminateOption}
+            />
 
-            <div className="flex items-center gap-2">
+            {/* Action bar: review + high confidence */}
+            <div className="mt-6 flex flex-wrap items-center gap-2">
               <button
-                onClick={() => setShowNavigator(v => !v)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-body-sm font-medium hover:bg-muted/80 transition-colors"
+                onClick={toggleReview}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
+                  isReviewFlagged
+                    ? 'bg-info/10 text-info border border-info/30'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                )}
               >
-                <Grid3X3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Questões</span>
+                <Flag className="h-3.5 w-3.5" />
+                {isReviewFlagged ? 'Marcada para revisão' : 'Revisar'}
+              </button>
+              <button
+                onClick={toggleHighConfidence}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
+                  isHighConfFlagged
+                    ? 'bg-success/10 text-success border border-success/30'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                )}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {isHighConfFlagged ? 'Alta certeza' : 'Alta certeza'}
               </button>
             </div>
 
-            {currentIndex < questions.length - 1 ? (
+            {/* Navigation */}
+            <div className="mt-6 flex items-center justify-between pb-8">
               <button
-                onClick={handleNext}
-                className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors"
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Próxima
-                <ChevronRight className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
               </button>
-            ) : (
+
               <button
-                onClick={() => setShowSubmitModal(true)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+                onClick={() => setShowNavigator(v => !v)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-body-sm font-medium hover:bg-muted/80 transition-colors md:hidden"
               >
-                <Send className="h-4 w-4" />
-                Finalizar
+                <Grid3X3 className="h-4 w-4" />
               </button>
-            )}
+
+              {currentIndex < questions.length - 1 ? (
+                <button
+                  onClick={handleNext}
+                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors"
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowSubmitModal(true)}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+                >
+                  <Send className="h-4 w-4" />
+                  Finalizar
+                </button>
+              )}
+            </div>
           </div>
         </main>
 
-        {/* Side navigator (desktop) */}
-        <AnimatePresence>
-          {showNavigator && (
-            <motion.aside
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="hidden md:block w-72 border-l border-border bg-card p-4 overflow-y-auto"
-            >
-              <div className="mb-4">
-                <p className="text-body font-semibold text-foreground mb-1">Navegação</p>
-                <p className="text-caption text-muted-foreground">
-                  {summary.answered}/{summary.total} respondidas
-                </p>
-              </div>
-              <QuestionNavigator
-                total={questions.length}
-                currentIndex={currentIndex}
-                answers={attempt.answers}
-                reviewFlags={attempt.reviewFlags}
-                highConfidenceFlags={attempt.highConfidenceFlags}
-                questionIds={questionIds}
-                onNavigate={handleNavigate}
-              />
-              <div className="mt-6 space-y-2 text-caption text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-accent border border-accent" />
-                  Respondida
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-warning" />
-                  Para revisar
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-success" />
-                  Alta certeza
-                </div>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
+        {/* Side navigator — Academy NavegacaoLateral pattern, always visible on desktop */}
+        <aside className="hidden md:flex w-64 border-l border-border bg-card p-4 flex-col gap-4 overflow-y-auto">
+          <div>
+            <p className="text-body font-semibold text-foreground mb-1">Navegação</p>
+            <p className="text-caption text-muted-foreground mb-3">
+              {summary.answered}/{summary.total} respondidas
+            </p>
+          </div>
+          <QuestionNavigator
+            totalQuestions={questions.length}
+            currentIndex={currentIndex}
+            answers={state.answers}
+            questionIds={questionIds}
+            onNavigate={handleNavigate}
+          />
+          <div className="mt-auto space-y-2 text-caption text-muted-foreground pt-4 border-t border-border">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded bg-accent border border-accent" />
+              Respondida
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded bg-info/20" />
+              Para revisão
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded bg-success" />
+              Alta certeza
+            </div>
+          </div>
+        </aside>
       </div>
 
       {/* Mobile navigator overlay */}
@@ -392,11 +452,9 @@ export default function SimuladoExamPage() {
                 </p>
               </div>
               <QuestionNavigator
-                total={questions.length}
+                totalQuestions={questions.length}
                 currentIndex={currentIndex}
-                answers={attempt.answers}
-                reviewFlags={attempt.reviewFlags}
-                highConfidenceFlags={attempt.highConfidenceFlags}
+                answers={state.answers}
                 questionIds={questionIds}
                 onNavigate={handleNavigate}
               />
@@ -412,11 +470,12 @@ export default function SimuladoExamPage() {
         )}
       </AnimatePresence>
 
-      {/* Submit confirmation modal */}
+      {/* Submit modal */}
       {showSubmitModal && (
         <SubmitConfirmModal
           summary={summary}
-          onConfirm={handleSubmit}
+          submitting={submitting}
+          onConfirm={finalize}
           onCancel={() => setShowSubmitModal(false)}
         />
       )}
