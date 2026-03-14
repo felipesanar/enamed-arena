@@ -1,9 +1,9 @@
-import { Calendar, Clock, FileText } from "lucide-react";
+import { Calendar, Clock, FileText, Trophy } from "lucide-react";
 import { PremiumCard } from "./PremiumCard";
 import { StatusBadge } from "./StatusBadge";
 import type { SimuladoWithStatus } from "@/types";
 import { Link } from "react-router-dom";
-import { getSimuladoCTA, formatDateShort, formatDate } from "@/lib/simulado-helpers";
+import { getSimuladoCTA, formatDateShort } from "@/lib/simulado-helpers";
 
 interface SimuladoCardProps {
   simulado: SimuladoWithStatus;
@@ -11,9 +11,8 @@ interface SimuladoCardProps {
 }
 
 export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
-  console.log('[SimuladoCard] Rendering:', simulado.title, 'status:', simulado.status);
-
   const cta = getSimuladoCTA(simulado.status);
+  const hasScore = simulado.userState?.score !== undefined;
 
   return (
     <PremiumCard interactive delay={delay} className="flex flex-col p-5 md:p-6">
@@ -41,6 +40,15 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
           {simulado.estimatedDuration}
         </span>
       </div>
+
+      {/* Score display for completed simulados */}
+      {hasScore && (
+        <div className="flex items-center gap-2 mt-3 p-2.5 rounded-xl bg-accent/50 border border-border/30">
+          <Trophy className="h-4 w-4 text-primary" />
+          <span className="text-body-sm text-muted-foreground">Sua nota:</span>
+          <span className="text-body font-bold text-primary ml-auto">{simulado.userState!.score}%</span>
+        </div>
+      )}
 
       {/* Window info */}
       {simulado.status === 'upcoming' && (
