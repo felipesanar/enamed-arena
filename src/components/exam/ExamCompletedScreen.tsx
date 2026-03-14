@@ -12,7 +12,7 @@ interface ExamCompletedScreenProps {
 }
 
 export function ExamCompletedScreen({
-  simuladoTitle, resultsReleaseAt, answeredCount, totalCount,
+  simuladoId, simuladoTitle, resultsReleaseAt, answeredCount, totalCount,
 }: ExamCompletedScreenProps) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
