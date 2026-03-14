@@ -1,21 +1,30 @@
-import { useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { SimuladoCard } from "@/components/SimuladoCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { PremiumCard } from "@/components/PremiumCard";
-import { getSimulados } from "@/data/mock";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { useSimulados } from "@/hooks/useSimulados";
 import { Calendar, Clock, FileText, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SimuladosPage() {
-  
-
-  const simulados = useMemo(() => getSimulados(), []);
+  const { simulados, loading, error } = useSimulados();
 
   const available = simulados.filter(s => s.status === 'available' || s.status === 'in_progress');
   const upcoming = simulados.filter(s => s.status === 'upcoming');
   const past = simulados.filter(s => s.status === 'completed' || s.status === 'results_available' || s.status === 'closed_waiting');
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <PageHeader title="Calendário de Simulados" subtitle="Carregando simulados..." badge="Simulados ENAMED 2026" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1,2,3].map(i => <SkeletonCard key={i} />)}
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
