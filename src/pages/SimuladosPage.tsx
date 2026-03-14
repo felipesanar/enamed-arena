@@ -15,6 +15,17 @@ export default function SimuladosPage() {
   const upcoming = simulados.filter(s => s.status === 'upcoming');
   const past = simulados.filter(s => s.status === 'completed' || s.status === 'results_available' || s.status === 'closed_waiting');
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <PageHeader title="Calendário de Simulados" subtitle="Carregando simulados..." badge="Simulados ENAMED 2026" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1,2,3].map(i => <SkeletonCard key={i} />)}
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <PageHeader
