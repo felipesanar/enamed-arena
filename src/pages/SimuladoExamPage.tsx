@@ -259,6 +259,7 @@ export default function SimuladoExamPage() {
     const summary = computeExamSummary(state, questionIds);
     return (
       <ExamCompletedScreen
+        simuladoId={simulado.id}
         simuladoTitle={simulado.title}
         resultsReleaseAt={simulado.resultsReleaseAt}
         answeredCount={summary.answered}
