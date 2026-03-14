@@ -10,7 +10,7 @@ import { getSimulados } from '@/data/mock';
 import { getQuestionsForSimulado } from '@/data/mock-questions';
 import { useExamStorage } from '@/hooks/useExamStorage';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computePerformanceBreakdown, type ThemePerformance } from '@/lib/result-helpers.ts';
+import { computePerformanceBreakdown, type ThemePerformance } from '@/lib/resultHelpers';
 import { cn } from '@/lib/utils';
 import {
   BarChart3, TrendingUp, BookOpen, Stethoscope, Target, Star, TrendingDown, FileText, ChevronRight,
