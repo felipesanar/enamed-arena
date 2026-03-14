@@ -79,7 +79,7 @@ function SegmentStep({ segment, onSelect }: { segment: UserSegment; onSelect: (s
 // ─── Step 2: Specialty Selection ───
 function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (s: string) => void }) {
   const [search, setSearch] = useState('');
-  console.log('[SpecialtyStep] Rendering, current:', specialty);
+  
 
   const filtered = useMemo(() => {
     if (!search.trim()) return SPECIALTIES;
