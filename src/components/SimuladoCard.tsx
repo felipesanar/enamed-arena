@@ -1,60 +1,77 @@
 import { Calendar, Clock, FileText } from "lucide-react";
 import { PremiumCard } from "./PremiumCard";
 import { StatusBadge } from "./StatusBadge";
-import type { Simulado } from "@/types";
+import type { SimuladoWithStatus } from "@/types";
 import { Link } from "react-router-dom";
+import { getSimuladoCTA, formatDateShort, formatDate } from "@/lib/simulado-helpers";
 
 interface SimuladoCardProps {
-  simulado: Simulado;
+  simulado: SimuladoWithStatus;
   delay?: number;
 }
 
 export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
-  console.log('[SimuladoCard] Rendering:', simulado.title);
+  console.log('[SimuladoCard] Rendering:', simulado.title, 'status:', simulado.status);
+
+  const cta = getSimuladoCTA(simulado.status);
 
   return (
     <PremiumCard interactive delay={delay} className="flex flex-col p-5 md:p-6">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-          <Calendar className="h-5 w-5 text-primary" />
+          <span className="text-body font-bold text-primary">#{simulado.sequenceNumber}</span>
         </div>
         <StatusBadge status={simulado.status} />
       </div>
+
       <h3 className="text-heading-3 text-foreground mb-1">{simulado.title}</h3>
-      <div className="flex items-center gap-4 text-body-sm text-muted-foreground mt-1">
+      <p className="text-body-sm text-muted-foreground mb-3 line-clamp-2">{simulado.description}</p>
+
+      <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Calendar className="h-3.5 w-3.5" />
-          {simulado.date}
+          {formatDateShort(simulado.executionWindowStart)}
         </span>
         <span className="flex items-center gap-1.5">
           <FileText className="h-3.5 w-3.5" />
-          {simulado.questions}q
+          {simulado.questionsCount}q
         </span>
         <span className="flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5" />
-          {simulado.duration}
+          {simulado.estimatedDuration}
         </span>
       </div>
+
+      {/* Window info */}
+      {simulado.status === 'upcoming' && (
+        <p className="text-caption text-info mt-2">
+          Abre em {formatDateShort(simulado.executionWindowStart)}
+        </p>
+      )}
+      {simulado.status === 'closed_waiting' && (
+        <p className="text-caption text-muted-foreground mt-2">
+          Resultado em {formatDateShort(simulado.resultsReleaseAt)}
+        </p>
+      )}
+
       <div className="mt-auto pt-4">
-        {simulado.status === "available" && (
+        {cta.variant === 'primary' ? (
           <Link
             to={`/simulados/${simulado.id}`}
             className="block w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors text-center"
           >
-            Iniciar Simulado
+            {cta.label}
           </Link>
-        )}
-        {simulado.status === "completed" && (
+        ) : cta.variant === 'secondary' ? (
           <Link
             to={`/simulados/${simulado.id}`}
             className="block w-full py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors text-center"
           >
-            Ver Resultado
+            {cta.label}
           </Link>
-        )}
-        {(simulado.status === "upcoming" || simulado.status === "locked") && (
+        ) : (
           <div className="w-full py-2.5 rounded-xl bg-muted text-muted-foreground text-body text-center font-medium">
-            Indisponível
+            {cta.label}
           </div>
         )}
       </div>

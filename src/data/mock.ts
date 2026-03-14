@@ -1,4 +1,5 @@
-import type { Simulado, RankingEntry, AreaPerformance, UserProfile } from '@/types';
+import type { SimuladoConfig, SimuladoUserState, RankingEntry, AreaPerformance, UserProfile } from '@/types';
+import { enrichSimulado } from '@/lib/simulado-helpers';
 
 export const CURRENT_USER: UserProfile = {
   id: 'user-1',
@@ -7,20 +8,99 @@ export const CURRENT_USER: UserProfile = {
   segment: 'pro',
 };
 
-export const SIMULADOS: Simulado[] = [
-  { id: 's1', title: 'Simulado ENAMED #1', number: 1, date: '18 Jan 2026', status: 'completed', questions: 120, duration: '5h', score: 68 },
-  { id: 's2', title: 'Simulado ENAMED #2', number: 2, date: '15 Fev 2026', status: 'completed', questions: 120, duration: '5h', score: 76 },
-  { id: 's3', title: 'Simulado ENAMED #3', number: 3, date: '22 Mar 2026', status: 'available', questions: 120, duration: '5h', window: { start: '2026-03-14T00:00:00Z', end: '2026-03-22T23:59:59Z' } },
-  { id: 's4', title: 'Simulado ENAMED #4', number: 4, date: '19 Abr 2026', status: 'upcoming', questions: 120, duration: '5h' },
-  { id: 's5', title: 'Simulado ENAMED #5', number: 5, date: '17 Mai 2026', status: 'upcoming', questions: 120, duration: '5h' },
-  { id: 's6', title: 'Simulado ENAMED #6', number: 6, date: '21 Jun 2026', status: 'locked', questions: 120, duration: '5h' },
-  { id: 's7', title: 'Simulado ENAMED #7', number: 7, date: '19 Jul 2026', status: 'locked', questions: 120, duration: '5h' },
+// ─── Simulado Configs (source of truth for the 7 simulados) ───
+export const SIMULADO_CONFIGS: SimuladoConfig[] = [
+  {
+    id: 's1', slug: 'simulado-enamed-1', title: 'Simulado ENAMED #1', sequenceNumber: 1,
+    description: 'Primeiro simulado do ciclo 2026. Avalie sua base em todas as grandes áreas da residência médica.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-01-12T08:00:00-03:00', executionWindowEnd: '2026-01-18T23:59:59-03:00',
+    resultsReleaseAt: '2026-01-22T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
+  {
+    id: 's2', slug: 'simulado-enamed-2', title: 'Simulado ENAMED #2', sequenceNumber: 2,
+    description: 'Segundo simulado com foco em temas de alta incidência nas provas de residência.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-02-09T08:00:00-03:00', executionWindowEnd: '2026-02-15T23:59:59-03:00',
+    resultsReleaseAt: '2026-02-19T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
+  {
+    id: 's3', slug: 'simulado-enamed-3', title: 'Simulado ENAMED #3', sequenceNumber: 3,
+    description: 'Terceiro simulado do ano. Monitore sua evolução e identifique áreas de melhoria.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-03-09T08:00:00-03:00', executionWindowEnd: '2026-03-22T23:59:59-03:00',
+    resultsReleaseAt: '2026-03-26T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
+  {
+    id: 's4', slug: 'simulado-enamed-4', title: 'Simulado ENAMED #4', sequenceNumber: 4,
+    description: 'Quarto simulado. Aprofundamento em diagnóstico diferencial e conduta.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-04-13T08:00:00-03:00', executionWindowEnd: '2026-04-19T23:59:59-03:00',
+    resultsReleaseAt: '2026-04-23T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
+  {
+    id: 's5', slug: 'simulado-enamed-5', title: 'Simulado ENAMED #5', sequenceNumber: 5,
+    description: 'Quinto simulado. Foco em questões com cenário clínico complexo.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-05-11T08:00:00-03:00', executionWindowEnd: '2026-05-17T23:59:59-03:00',
+    resultsReleaseAt: '2026-05-21T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
+  {
+    id: 's6', slug: 'simulado-enamed-6', title: 'Simulado ENAMED #6', sequenceNumber: 6,
+    description: 'Sexto simulado. Simulação de condições reais de prova com cronômetro.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-06-15T08:00:00-03:00', executionWindowEnd: '2026-06-21T23:59:59-03:00',
+    resultsReleaseAt: '2026-06-25T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
+  {
+    id: 's7', slug: 'simulado-enamed-7', title: 'Simulado ENAMED #7', sequenceNumber: 7,
+    description: 'Último simulado do ciclo. Avaliação final antes da prova real.',
+    questionsCount: 120, estimatedDuration: '5h', estimatedDurationMinutes: 300,
+    executionWindowStart: '2026-07-13T08:00:00-03:00', executionWindowEnd: '2026-07-19T23:59:59-03:00',
+    resultsReleaseAt: '2026-07-23T10:00:00-03:00',
+    themeTags: ['Clínica Médica', 'Cirurgia', 'Pediatria', 'GO', 'Preventiva'],
+  },
 ];
 
-export const NEXT_SIMULADO = SIMULADOS.find(s => s.status === 'available') ?? SIMULADOS.find(s => s.status === 'upcoming')!;
+// ─── User states (mock: first 2 completed) ───
+export const SIMULADO_USER_STATES: SimuladoUserState[] = [
+  { simuladoId: 's1', started: true, startedAt: '2026-01-12T09:00:00-03:00', finished: true, finishedAt: '2026-01-12T13:30:00-03:00', score: 68 },
+  { simuladoId: 's2', started: true, startedAt: '2026-02-09T10:00:00-03:00', finished: true, finishedAt: '2026-02-09T14:45:00-03:00', score: 76 },
+];
 
-export const RECENT_SIMULADOS = SIMULADOS.filter(s => s.status === 'completed').reverse();
+// ─── Derived simulados with status ───
+export function getSimulados(now?: Date) {
+  return SIMULADO_CONFIGS.map(config => {
+    const userState = SIMULADO_USER_STATES.find(s => s.simuladoId === config.id);
+    return enrichSimulado(config, userState, now);
+  });
+}
 
+// ─── Convenience getters ───
+export function getNextSimulado(now?: Date) {
+  const simulados = getSimulados(now);
+  return simulados.find(s => s.status === 'available') ?? simulados.find(s => s.status === 'upcoming');
+}
+
+export function getRecentSimulados(now?: Date) {
+  const simulados = getSimulados(now);
+  return simulados.filter(s => s.status === 'completed' || s.status === 'results_available').reverse();
+}
+
+export function getSimuladoById(id: string, now?: Date) {
+  const config = SIMULADO_CONFIGS.find(c => c.id === id);
+  if (!config) return null;
+  const userState = SIMULADO_USER_STATES.find(s => s.simuladoId === id);
+  return enrichSimulado(config, userState, now);
+}
+
+// ─── Other mock data ───
 export const RANKING_DATA: RankingEntry[] = [
   { position: 1, name: 'Ana C.', score: 92, institution: 'USP' },
   { position: 2, name: 'Lucas M.', score: 89, institution: 'UNICAMP' },
@@ -52,21 +132,10 @@ export const USER_STATS = {
 };
 
 export const SPECIALTIES = [
-  'Clínica Médica',
-  'Cirurgia Geral',
-  'Pediatria',
-  'Ginecologia e Obstetrícia',
-  'Ortopedia e Traumatologia',
-  'Cardiologia',
-  'Dermatologia',
-  'Oftalmologia',
-  'Otorrinolaringologia',
-  'Anestesiologia',
-  'Radiologia',
-  'Psiquiatria',
-  'Neurologia',
-  'Urologia',
-  'Medicina de Família e Comunidade',
+  'Clínica Médica', 'Cirurgia Geral', 'Pediatria', 'Ginecologia e Obstetrícia',
+  'Ortopedia e Traumatologia', 'Cardiologia', 'Dermatologia', 'Oftalmologia',
+  'Otorrinolaringologia', 'Anestesiologia', 'Radiologia', 'Psiquiatria',
+  'Neurologia', 'Urologia', 'Medicina de Família e Comunidade',
 ];
 
 export const INSTITUTIONS = [
