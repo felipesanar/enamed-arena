@@ -197,20 +197,19 @@ export default function SimuladoExamPage() {
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] || { questionId: currentQuestion.id, selectedOption: null, markedForReview: false, highConfidence: false, eliminatedAlternatives: [] };
       const isEliminated = existing.eliminatedAlternatives.includes(optionId);
+      const answer: ExamAnswer = {
+        ...existing,
+        eliminatedAlternatives: isEliminated
+          ? existing.eliminatedAlternatives.filter(i => i !== optionId)
+          : [...existing.eliminatedAlternatives, optionId],
+      };
+      storage.trackAnswer(currentQuestion.id, answer);
       return {
         ...prev,
-        answers: {
-          ...prev.answers,
-          [currentQuestion.id]: {
-            ...existing,
-            eliminatedAlternatives: isEliminated
-              ? existing.eliminatedAlternatives.filter(i => i !== optionId)
-              : [...existing.eliminatedAlternatives, optionId],
-          },
-        },
+        answers: { ...prev.answers, [currentQuestion.id]: answer },
       };
     });
-  }, [currentQuestion, updateState]);
+  }, [currentQuestion, updateState, storage]);
 
   const handleNavigate = useCallback((index: number) => {
     updateState(prev => ({ ...prev, currentQuestionIndex: index }));

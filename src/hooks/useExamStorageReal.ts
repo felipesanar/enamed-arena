@@ -143,11 +143,11 @@ export function useExamStorageReal(simuladoId: string) {
         fullscreen_exit_count: state.fullscreenExitCount,
       });
 
-      // Sync pending answers
-      const pending = { ...pendingAnswersRef.current };
-      if (Object.keys(pending).length > 0) {
-        await simuladosApi.bulkUpsertAnswers(attemptIdRef.current, pending);
-        pendingAnswersRef.current = {};
+      // Sync ALL answers from state (not just pending)
+      const allAnswers = state.answers;
+      if (Object.keys(allAnswers).length > 0) {
+        await simuladosApi.bulkUpsertAnswers(attemptIdRef.current, allAnswers);
+        console.log('[ExamStorageReal] Synced', Object.keys(allAnswers).length, 'answers to DB');
       }
     } catch (err) {
       console.error('[ExamStorageReal] DB sync failed (will retry):', err);
