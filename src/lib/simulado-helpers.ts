@@ -14,17 +14,25 @@ export function deriveSimuladoStatus(
   const windowEnd = parseISO(config.executionWindowEnd);
   const resultsAt = parseISO(config.resultsReleaseAt);
 
-  // User already finished and results are out
-  if (userState?.finished && isAfter(now, resultsAt)) {
+  const userFinished = userState?.finished === true;
+
+  // User finished and results are out
+  if (userFinished && isAfter(now, resultsAt)) {
     return 'completed';
   }
 
-  // Results released (even if user didn't take it)
-  if (isAfter(now, resultsAt)) {
-    return 'results_available';
+  // Results released but user finished (before results date — shouldn't happen often)
+  // User finished but results not yet released
+  if (userFinished && isAfter(now, windowEnd) && !isAfter(now, resultsAt)) {
+    return 'closed_waiting';
   }
 
-  // Window closed, waiting for results
+  // Results date passed but user never finished → they missed it
+  if (isAfter(now, resultsAt) && !userFinished) {
+    return 'closed_waiting';
+  }
+
+  // Window closed, waiting for results (user didn't finish)
   if (isAfter(now, windowEnd)) {
     return 'closed_waiting';
   }
