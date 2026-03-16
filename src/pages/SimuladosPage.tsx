@@ -68,7 +68,7 @@ export default function SimuladosPage() {
       {/* Past simulados */}
       {past.length > 0 && (
         <div className="mb-8">
-          <SectionHeader title="Realizados" />
+          <SectionHeader title="Anteriores" />
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {past.map((sim, i) => (
               <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
