@@ -6,13 +6,12 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { ProGate } from '@/components/ProGate';
+import { SkeletonCard } from '@/components/SkeletonCard';
 import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
-import { getSimulados } from '@/data/mock';
-import { getQuestionsForSimulado } from '@/data/mock-questions';
+import { useSimulados } from '@/hooks/useSimulados';
 import { canViewResults } from '@/lib/simulado-helpers';
 import {
-  computePerformanceBreakdown,
   computeComparativeInsights,
   type SimuladoComparativeEntry,
   type ComparativeInsight,
@@ -66,43 +65,34 @@ function InsightCard({ insight, delay }: { insight: ComparativeInsight; delay: n
   );
 }
 
-/** Hook to compute comparative data across all completed simulados */
-function useComparativeData(): { entries: SimuladoComparativeEntry[]; insights: ComparativeInsight[] } {
-  const simulados = useMemo(() => getSimulados(), []);
-  const completed = simulados.filter(s => canViewResults(s.status));
+/** Build comparative data from Supabase attempts */
+function useComparativeData() {
+  const { simulados, loading } = useSimulados();
+
+  const completed = useMemo(
+    () => simulados.filter(s => canViewResults(s.status) && s.userState?.score != null),
+    [simulados],
+  );
 
   const entries: SimuladoComparativeEntry[] = useMemo(() => {
     return completed.map(sim => {
-      const questions = getQuestionsForSimulado(sim.id);
-      const storageKey = `enamed_exam_${sim.id}`;
-      let raw: string | null = null;
-      try { raw = localStorage.getItem(storageKey); } catch { /* noop */ }
-      if (!raw) return null;
-
-      let state: any;
-      try { state = JSON.parse(raw); } catch { return null; }
-      if (state.status !== 'submitted' && state.status !== 'expired') return null;
-
-      const breakdown = computePerformanceBreakdown(state, questions);
-      const areaScores: Record<string, number> = {};
-      breakdown.byArea.forEach(a => { areaScores[a.area] = a.score; });
-
+      const score = sim.userState!.score!;
       return {
         simuladoId: sim.id,
         title: sim.title,
         sequenceNumber: sim.sequenceNumber,
-        percentageScore: breakdown.overall.percentageScore,
-        totalCorrect: breakdown.overall.totalCorrect,
-        totalQuestions: breakdown.overall.totalQuestions,
-        completedAt: state.lastSavedAt || state.startedAt,
-        areaScores,
+        percentageScore: score,
+        totalCorrect: 0, // detailed breakdown requires fetching answers per attempt
+        totalQuestions: sim.questionsCount,
+        completedAt: sim.userState!.finishedAt || sim.userState!.startedAt || '',
+        areaScores: {},
       } as SimuladoComparativeEntry;
-    }).filter(Boolean) as SimuladoComparativeEntry[];
+    });
   }, [completed]);
 
   const insights = useMemo(() => computeComparativeInsights(entries), [entries]);
 
-  return { entries, insights };
+  return { entries, insights, loading };
 }
 
 export default function ComparativoPage() {
@@ -133,7 +123,18 @@ export default function ComparativoPage() {
 }
 
 function ComparativoContent() {
-  const { entries, insights } = useComparativeData();
+  const { entries, insights, loading } = useComparativeData();
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <PageHeader title="Comparativo entre Simulados" subtitle="Carregando..." badge="Análise Comparativa" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1,2,3].map(i => <SkeletonCard key={i} />)}
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (entries.length < 2) {
     return (
@@ -160,23 +161,11 @@ function ComparativoContent() {
     );
   }
 
-  // Chart data
   const sorted = [...entries].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
   const scoreChartData = sorted.map(e => ({
     name: `#${e.sequenceNumber}`,
     score: e.percentageScore,
-    acertos: e.totalCorrect,
   }));
-
-  // Area evolution data
-  const allAreas = Array.from(new Set(sorted.flatMap(e => Object.keys(e.areaScores))));
-  const areaChartData = sorted.map(e => {
-    const row: Record<string, any> = { name: `#${e.sequenceNumber}` };
-    allAreas.forEach(a => { row[a] = e.areaScores[a] ?? 0; });
-    return row;
-  });
-
-  const areaColors = ['hsl(345, 65%, 30%)', 'hsl(210, 80%, 52%)', 'hsl(152, 60%, 36%)', 'hsl(38, 92%, 50%)', 'hsl(280, 60%, 50%)'];
 
   const avg = Math.round(sorted.reduce((a, e) => a + e.percentageScore, 0) / sorted.length);
 
@@ -247,38 +236,6 @@ function ComparativoContent() {
         </div>
       </PremiumCard>
 
-      {/* Area evolution chart */}
-      <SectionHeader title="Evolução por Grande Área" />
-      <PremiumCard className="p-5 md:p-6 mb-8">
-        <div className="h-[300px] md:h-[340px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={areaChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 90%)" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(220 10% 46%)' }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: 'hsl(220 10% 46%)' }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(0 0% 100%)',
-                  border: '1px solid hsl(220 12% 90%)',
-                  borderRadius: '12px',
-                  fontSize: 13,
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              {allAreas.map((area, i) => (
-                <Bar
-                  key={area}
-                  dataKey={area}
-                  name={area}
-                  fill={areaColors[i % areaColors.length]}
-                  radius={[4, 4, 0, 0]}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </PremiumCard>
-
       {/* Per-simulado comparison table */}
       <SectionHeader title="Detalhamento por Simulado" />
       <PremiumCard className="p-0 overflow-hidden mb-8">
@@ -288,7 +245,6 @@ function ComparativoContent() {
               <tr className="border-b border-border bg-muted/20">
                 <th className="text-left text-overline uppercase text-muted-foreground px-5 py-3.5">Simulado</th>
                 <th className="text-right text-overline uppercase text-muted-foreground px-5 py-3.5">Score</th>
-                <th className="text-right text-overline uppercase text-muted-foreground px-5 py-3.5">Acertos</th>
                 <th className="text-right text-overline uppercase text-muted-foreground px-5 py-3.5 hidden sm:table-cell">Variação</th>
               </tr>
             </thead>
@@ -303,9 +259,6 @@ function ComparativoContent() {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <span className="text-body font-bold text-primary tabular-nums">{entry.percentageScore}%</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <span className="text-body-sm text-muted-foreground tabular-nums">{entry.totalCorrect}/{entry.totalQuestions}</span>
                     </td>
                     <td className="px-5 py-3.5 text-right hidden sm:table-cell">
                       {i === 0 ? (

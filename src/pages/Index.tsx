@@ -5,29 +5,48 @@ import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { SkeletonCard } from "@/components/SkeletonCard";
 import { motion } from "framer-motion";
 import { 
   Calendar, BarChart3, Trophy, Clock, ArrowRight, TrendingUp, Target, Users, Sparkles, BookOpen,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getNextSimulado, getRecentSimulados, USER_STATS } from "@/data/mock";
+import { useSimulados } from "@/hooks/useSimulados";
 import { formatDateShort } from "@/lib/simulado-helpers";
 import { useUser } from "@/contexts/UserContext";
 import { useMemo } from "react";
 
-const stats = [
-  { label: "Simulados realizados", value: String(USER_STATS.simuladosCompleted), icon: Target, trend: null },
-  { label: "Média geral", value: `${USER_STATS.averageScore}%`, icon: TrendingUp, trend: USER_STATS.scoreTrend },
-  { label: "Posição no ranking", value: `#${USER_STATS.rankingPosition}`, icon: Trophy, trend: USER_STATS.rankingTrend },
-  { label: "Participantes", value: USER_STATS.totalParticipants.toLocaleString('pt-BR'), icon: Users, trend: null },
-];
-
 export default function DashboardPage() {
   const { profile, isOnboardingComplete } = useUser();
   const segment = profile?.segment ?? 'guest';
+  const { simulados, loading } = useSimulados();
 
-  const nextSimulado = useMemo(() => getNextSimulado(), []);
-  const recentSimulados = useMemo(() => getRecentSimulados(), []);
+  const nextSimulado = useMemo(() => {
+    return simulados.find(s => s.status === 'available') ?? simulados.find(s => s.status === 'upcoming') ?? null;
+  }, [simulados]);
+
+  const recentSimulados = useMemo(() => {
+    return simulados.filter(s => s.status === 'completed' || s.status === 'results_available').reverse();
+  }, [simulados]);
+
+  const userStats = useMemo(() => {
+    const completed = simulados.filter(s => s.userState?.finished);
+    const completedCount = completed.length;
+    const avgScore = completedCount > 0
+      ? Math.round(completed.reduce((sum, s) => sum + (s.userState?.score ?? 0), 0) / completedCount)
+      : 0;
+    return {
+      simuladosCompleted: completedCount,
+      averageScore: avgScore,
+    };
+  }, [simulados]);
+
+  const stats = [
+    { label: "Simulados realizados", value: String(userStats.simuladosCompleted), icon: Target, trend: null },
+    { label: "Média geral", value: `${userStats.averageScore}%`, icon: TrendingUp, trend: null },
+    { label: "Ranking", value: "—", icon: Trophy, trend: null },
+    { label: "Simulados", value: String(simulados.length), icon: Users, trend: null },
+  ];
 
   return (
     <AppLayout>
@@ -63,7 +82,9 @@ export default function DashboardPage() {
       )}
 
       {/* Next Simulado CTA */}
-      {nextSimulado && (
+      {loading ? (
+        <div className="mb-8"><SkeletonCard /></div>
+      ) : nextSimulado ? (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
           <Link to={`/simulados/${nextSimulado.id}`} className="block">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-wine-hover p-6 md:p-8 text-primary-foreground group cursor-pointer transition-all duration-300 hover:shadow-xl">
@@ -97,7 +118,7 @@ export default function DashboardPage() {
             </div>
           </Link>
         </motion.div>
-      )}
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
@@ -111,7 +132,9 @@ export default function DashboardPage() {
         <div>
           <SectionHeader title="Últimos Simulados" />
           <div className="space-y-3">
-            {recentSimulados.length > 0 ? recentSimulados.map((sim, i) => (
+            {loading ? (
+              [1,2].map(i => <SkeletonCard key={i} />)
+            ) : recentSimulados.length > 0 ? recentSimulados.map((sim, i) => (
               <Link key={sim.id} to={`/simulados/${sim.id}`}>
                 <PremiumCard interactive delay={i * 0.1} className="p-4">
                   <div className="flex items-center justify-between">
