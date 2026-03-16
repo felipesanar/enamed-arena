@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { AppLayout } from "@/components/AppLayout";
+import { GraduationCap as BrandIcon } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
 import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS, type UserSegment } from "@/types";

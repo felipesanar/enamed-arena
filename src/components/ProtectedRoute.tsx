@@ -1,14 +1,18 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  skipOnboardingCheck?: boolean;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const { isOnboardingComplete, isLoading: userLoading } = useUser();
+  const location = useLocation();
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -21,6 +25,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Redirect to onboarding if not completed (unless we're already there)
+  if (!skipOnboardingCheck && !isOnboardingComplete && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;
