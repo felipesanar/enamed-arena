@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { AppLayout } from "@/components/AppLayout";
+import { GraduationCap as BrandIcon } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
 import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS, type UserSegment } from "@/types";
@@ -370,8 +370,16 @@ export default function OnboardingPage() {
   };
 
   return (
-    <AppLayout>
-      <div className="max-w-3xl mx-auto py-4">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/30 flex flex-col">
+      {/* Brand header */}
+      <div className="text-center pt-8 pb-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary mx-auto mb-2">
+          <BrandIcon className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">sanarflix</span>
+        <p className="text-heading-3 text-foreground">PRO: ENAMED</p>
+      </div>
+      <div className="max-w-3xl mx-auto py-4 px-4 flex-1 w-full">
         {/* Progress bar */}
         <div className="flex items-center gap-2 mb-8">
           {STEPS.map((label, i) => (
@@ -467,6 +475,6 @@ export default function OnboardingPage() {
           )}
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
 }
