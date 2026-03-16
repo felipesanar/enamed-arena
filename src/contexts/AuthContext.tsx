@@ -56,7 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: email.trim().toLowerCase(),
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: window.location.origin.includes('localhost')
+          ? 'https://enamed-arena.lovable.app'
+          : window.location.origin,
         data: { full_name: fullName },
       },
     });
