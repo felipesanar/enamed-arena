@@ -475,6 +475,7 @@ export default function OnboardingPage() {
           )}
         </div>
       </div>
-    </AppLayout>
+      </div>
+    </div>
   );
 }
