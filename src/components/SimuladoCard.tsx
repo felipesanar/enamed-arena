@@ -56,7 +56,12 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
           Abre em {formatDateShort(simulado.executionWindowStart)}
         </p>
       )}
-      {simulado.status === 'closed_waiting' && (
+      {simulado.status === 'closed_waiting' && !simulado.userState?.finished && (
+        <p className="text-caption text-muted-foreground mt-2">
+          Não realizado
+        </p>
+      )}
+      {simulado.status === 'closed_waiting' && simulado.userState?.finished && (
         <p className="text-caption text-muted-foreground mt-2">
           Resultado em {formatDateShort(simulado.resultsReleaseAt)}
         </p>
