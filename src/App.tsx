@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 import Index from "./pages/Index";
 import SimuladosPage from "./pages/SimuladosPage";
 import SimuladoDetailPage from "./pages/SimuladoDetailPage";
@@ -41,6 +42,7 @@ const App = () => (
             <Routes>
               {/* Public */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               {/* Protected */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
