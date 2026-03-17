@@ -21,7 +21,14 @@ import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 min — avoid unnecessary refetches on tab return
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
