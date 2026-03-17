@@ -101,8 +101,9 @@ export function useExamFlow(): UseExamFlowReturn {
     let cancelled = false;
     (async () => {
       try {
-        const existing = await storage.loadState();
+        const result = await storage.loadState();
         if (cancelled) return;
+        const existing = result.state;
 
         if (existing && existing.status === 'in_progress') {
           setState(existing);
