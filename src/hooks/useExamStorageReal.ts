@@ -1,18 +1,24 @@
 /**
  * Real exam storage — persists attempt + answers in Supabase.
  * Maintains localStorage as fast write-through cache for UX (debounced sync to DB).
- * Architecture follows Academy's useSimuladoStorage with real persistence.
  */
 
 import { useCallback, useRef } from 'react';
-import { simuladosApi, type AttemptRow } from '@/services/simuladosApi';
+import { simuladosApi } from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
+import { toast } from '@/hooks/use-toast';
 import type { ExamState, ExamAnswer } from '@/types/exam';
 
 const STORAGE_PREFIX = 'enamed_exam_';
 
 function getLocalKey(simuladoId: string): string {
   return `${STORAGE_PREFIX}${simuladoId}`;
+}
+
+export interface LoadStateResult {
+  state: ExamState | null;
+  fromCache: boolean;
 }
 
 export function useExamStorageReal(simuladoId: string) {
@@ -40,21 +46,20 @@ export function useExamStorageReal(simuladoId: string) {
         lastSavedAt: new Date().toISOString(),
       }));
     } catch (e) {
-      console.error('[ExamStorageReal] Local save failed:', e);
+      logger.error('[ExamStorageReal] Local save failed:', e);
     }
   }, [simuladoId]);
 
   // ── Load from Supabase (or local cache as fallback) ──
-  const loadState = useCallback(async (): Promise<ExamState | null> => {
-    if (!user) return loadLocalState();
+  const loadState = useCallback(async (): Promise<LoadStateResult> => {
+    if (!user) return { state: loadLocalState(), fromCache: true };
 
     try {
       const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
-      if (!attempt) return loadLocalState(); // No DB attempt yet
+      if (!attempt) return { state: loadLocalState(), fromCache: false };
 
       attemptIdRef.current = attempt.id;
 
-      // Load answers from DB
       const answerRows = await simuladosApi.getAnswers(attempt.id);
       const answers: Record<string, ExamAnswer> = {};
       answerRows.forEach(a => {
@@ -79,13 +84,17 @@ export function useExamStorageReal(simuladoId: string) {
         status: attempt.status as ExamState['status'],
       };
 
-      // Update local cache
       saveLocalState(state);
-      console.log('[ExamStorageReal] Loaded from Supabase, status:', state.status);
-      return state;
+      logger.log('[ExamStorageReal] Loaded from Supabase, status:', state.status);
+      return { state, fromCache: false };
     } catch (err) {
-      console.error('[ExamStorageReal] DB load failed, using local cache:', err);
-      return loadLocalState();
+      logger.error('[ExamStorageReal] DB load failed, using local cache');
+      toast({
+        title: 'Dados carregados do cache local',
+        description: 'Algumas respostas podem não estar sincronizadas.',
+        variant: 'destructive',
+      });
+      return { state: loadLocalState(), fromCache: true };
     }
   }, [simuladoId, user, loadLocalState, saveLocalState]);
 
@@ -112,7 +121,6 @@ export function useExamStorageReal(simuladoId: string) {
       status: 'in_progress',
     };
 
-    // Create real attempt in Supabase
     if (user) {
       try {
         const attempt = await simuladosApi.createAttempt(
@@ -121,9 +129,9 @@ export function useExamStorageReal(simuladoId: string) {
           effectiveDeadline.toISOString(),
         );
         attemptIdRef.current = attempt.id;
-        console.log('[ExamStorageReal] Created DB attempt:', attempt.id);
+        logger.log('[ExamStorageReal] Created DB attempt:', attempt.id);
       } catch (err) {
-        console.error('[ExamStorageReal] Failed to create DB attempt:', err);
+        logger.error('[ExamStorageReal] Failed to create DB attempt');
       }
     }
 
@@ -136,21 +144,19 @@ export function useExamStorageReal(simuladoId: string) {
     if (!attemptIdRef.current || !user) return;
 
     try {
-      // Sync attempt metadata
       await simuladosApi.updateAttempt(attemptIdRef.current, {
         current_question_index: state.currentQuestionIndex,
         tab_exit_count: state.tabExitCount,
         fullscreen_exit_count: state.fullscreenExitCount,
       });
 
-      // Sync ALL answers from state (not just pending)
       const allAnswers = state.answers;
       if (Object.keys(allAnswers).length > 0) {
         await simuladosApi.bulkUpsertAnswers(attemptIdRef.current, allAnswers);
-        console.log('[ExamStorageReal] Synced', Object.keys(allAnswers).length, 'answers to DB');
+        logger.log('[ExamStorageReal] Synced', Object.keys(allAnswers).length, 'answers to DB');
       }
     } catch (err) {
-      console.error('[ExamStorageReal] DB sync failed (will retry):', err);
+      logger.error('[ExamStorageReal] DB sync failed (will retry)');
     }
   }, [user]);
 
@@ -164,7 +170,6 @@ export function useExamStorageReal(simuladoId: string) {
 
   const saveStateSync = useCallback((state: ExamState) => {
     saveLocalState(state);
-    // Don't await — fire and forget for sync saves
     syncToDb(state);
   }, [saveLocalState, syncToDb]);
 
@@ -187,16 +192,15 @@ export function useExamStorageReal(simuladoId: string) {
     totalAnswered: number,
     finalState: ExamState,
   ): Promise<void> => {
-    // Sync finalState directly — not localStorage
     try {
       await syncToDb(finalState);
-      console.log('[ExamStorageReal] Final sync succeeded');
+      logger.log('[ExamStorageReal] Final sync succeeded');
     } catch (err) {
-      console.warn('[ExamStorageReal] First sync failed, retrying...', err);
+      logger.warn('[ExamStorageReal] First sync failed, retrying...');
       try {
         await syncToDb(finalState);
       } catch (retryErr) {
-        console.error('[ExamStorageReal] Retry also failed:', retryErr);
+        logger.error('[ExamStorageReal] Retry also failed');
       }
     }
 
@@ -211,7 +215,7 @@ export function useExamStorageReal(simuladoId: string) {
 
     const submitted: ExamState = { ...finalState, status: 'submitted', lastSavedAt: new Date().toISOString() };
     saveLocalState(submitted);
-    console.log('[ExamStorageReal] Attempt submitted');
+    logger.log('[ExamStorageReal] Attempt submitted');
   }, [syncToDb, saveLocalState]);
 
   // ── Integrity events ──

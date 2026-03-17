@@ -1,12 +1,11 @@
 /**
  * Ranking API service — real Supabase queries.
- * Architecture mirrored from Ranking ENAMED's useRanking hook and ranking_public view.
- * Uses security definer function get_ranking_for_simulado() for cross-user data access.
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
-// ─── Types (mirroring Ranking ENAMED's RankingPublicRow) ───
+// ─── Types ───
 
 export interface RankingRow {
   user_id: string;
@@ -37,24 +36,24 @@ export interface RankingParticipant {
 export interface RankingStats {
   totalCandidatos: number;
   notaMedia: number;
-  notaCorte: number; // top 10%
+  notaCorte: number;
 }
 
 // ─── Fetch ranking for a specific simulado ───
 
 export async function fetchRankingForSimulado(simuladoId: string): Promise<RankingRow[]> {
-  console.log('[rankingApi] Fetching ranking for simulado:', simuladoId);
+  logger.log('[rankingApi] Fetching ranking for simulado');
 
   const { data, error } = await supabase.rpc('get_ranking_for_simulado', {
     p_simulado_id: simuladoId,
   });
 
   if (error) {
-    console.error('[rankingApi] Error fetching ranking:', error);
+    logger.error('[rankingApi] Error fetching ranking:', error);
     throw error;
   }
 
-  console.log('[rankingApi] Ranking loaded:', data?.length, 'participants');
+  logger.log('[rankingApi] Ranking loaded:', data?.length, 'participants');
   return (data || []) as RankingRow[];
 }
 
@@ -63,12 +62,11 @@ export async function fetchRankingForSimulado(simuladoId: string): Promise<Ranki
 export async function fetchSimuladosWithResults(): Promise<
   Array<{ id: string; title: string; sequence_number: number }>
 > {
-  console.log('[rankingApi] Fetching simulados with results');
+  logger.log('[rankingApi] Fetching simulados with results');
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Get simulados where this user has a submitted attempt
   const { data: attempts, error } = await supabase
     .from('attempts')
     .select('simulado_id, simulados(id, title, sequence_number)')
@@ -77,16 +75,16 @@ export async function fetchSimuladosWithResults(): Promise<
     .not('score_percentage', 'is', null);
 
   if (error) {
-    console.error('[rankingApi] Error fetching simulados with results:', error);
+    logger.error('[rankingApi] Error fetching simulados with results:', error);
     return [];
   }
 
-  // Deduplicate by simulado_id
+  // Deduplicate by simulado_id — type the join result properly
   const seen = new Set<string>();
   const result: Array<{ id: string; title: string; sequence_number: number }> = [];
-  
+
   for (const a of attempts || []) {
-    const sim = (a as any).simulados;
+    const sim = a.simulados as unknown as { id: string; title: string; sequence_number: number } | null;
     if (sim && !seen.has(sim.id)) {
       seen.add(sim.id);
       result.push({
@@ -118,7 +116,7 @@ export function transformRankingData(
   }));
 }
 
-// ─── Compute global stats (mirroring ENAMED's globalStats) ───
+// ─── Compute global stats ───
 
 export function computeRankingStats(rows: RankingRow[]): RankingStats {
   if (rows.length === 0) {
@@ -128,8 +126,7 @@ export function computeRankingStats(rows: RankingRow[]): RankingStats {
   const totalCandidatos = rows.length;
   const sumNotas = rows.reduce((sum, r) => sum + Number(r.nota_final || 0), 0);
   const notaMedia = Math.round(sumNotas / totalCandidatos);
-  
-  // Top 10% cutoff score
+
   const top10Index = Math.max(0, Math.floor(totalCandidatos * 0.1) - 1);
   const sorted = [...rows].sort((a, b) => Number(b.nota_final) - Number(a.nota_final));
   const notaCorte = Math.round(Number(sorted[top10Index]?.nota_final || 0));
@@ -137,7 +134,7 @@ export function computeRankingStats(rows: RankingRow[]): RankingStats {
   return { totalCandidatos, notaMedia, notaCorte };
 }
 
-// ─── Apply filters (mirroring ENAMED's filter pattern) ───
+// ─── Apply filters ───
 
 export type ComparisonFilter = 'all' | 'same_specialty' | 'same_institution';
 export type SegmentFilter = 'all' | 'sanarflix' | 'pro';
@@ -151,7 +148,6 @@ export function applyRankingFilters(
 ): RankingParticipant[] {
   let filtered = participants;
 
-  // Comparison filter
   if (comparisonFilter === 'same_specialty') {
     filtered = filtered.filter(
       (p) => p.specialty === userSpecialty || p.isCurrentUser,
@@ -162,14 +158,12 @@ export function applyRankingFilters(
     );
   }
 
-  // Segment filter
   if (segmentFilter === 'sanarflix') {
     filtered = filtered.filter((p) => p.segment !== 'guest' || p.isCurrentUser);
   } else if (segmentFilter === 'pro') {
     filtered = filtered.filter((p) => p.segment === 'pro' || p.isCurrentUser);
   }
 
-  // Re-rank after filtering
   return filtered
     .sort((a, b) => b.score - a.score)
     .map((p, i) => ({ ...p, position: i + 1 }));
