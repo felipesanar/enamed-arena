@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [flowState, setFlowState] = useState<FlowState>('idle');
   const [cooldown, setCooldown] = useState(false);
+  const [resending, setResending] = useState(false);
 
   // Already logged in → redirect
   if (!loading && user) {
