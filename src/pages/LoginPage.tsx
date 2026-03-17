@@ -7,6 +7,7 @@ import { GraduationCap, Mail, User, ArrowRight, CheckCircle2, Clock, RefreshCw }
 type AuthMode = 'login' | 'signup';
 type FlowState = 'idle' | 'sending' | 'sent';
 
+
 export default function LoginPage() {
   const { user, loading, sendLoginLink, sendSignUpLink } = useAuth();
 
