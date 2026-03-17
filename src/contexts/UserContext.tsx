@@ -26,10 +26,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [dataSource, setDataSource] = useState<'supabase' | 'loading' | 'unauthenticated'>('loading');
 
-  const fetchUserData = useCallback(async (userId: string) => {
-    console.log('[UserContext] Fetching user data from Supabase for:', userId);
-    setIsLoading(true);
-    setDataSource('loading');
+  const fetchUserData = useCallback(async (userId: string, silent = false) => {
+    console.log('[UserContext] Fetching user data from Supabase for:', userId, silent ? '(silent)' : '');
+    // Only show loading spinner on initial load, not on refetch
+    if (!silent) {
+      setIsLoading(true);
+      setDataSource('loading');
+    }
 
     try {
       const [profileResult, onboardingResult] = await Promise.all([
