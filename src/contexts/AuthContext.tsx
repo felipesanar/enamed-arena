@@ -6,12 +6,20 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  /** Send magic link for LOGIN only (existing users). Will not create new accounts. */
+  sendLoginLink: (email: string) => Promise<{ error: string | null }>;
+  /** Send magic link for SIGNUP (creates guest account if email doesn't exist). */
+  sendSignUpLink: (email: string, fullName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+function getRedirectUrl(): string {
+  const origin = window.location.origin;
+  // Always redirect to /auth/callback for token verification
+  return `${origin}/auth/callback`;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -51,33 +59,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
+  const sendLoginLink = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('[AuthContext] Sending login magic link to:', normalizedEmail);
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        emailRedirectTo: getRedirectUrl(),
+        shouldCreateUser: false, // LOGIN ONLY — do not create new accounts
+      },
     });
+
     if (error) {
-      console.log('[AuthContext] Sign in error:', error.message);
+      console.log('[AuthContext] Login link error:', error.message);
       return { error: error.message };
     }
+
     return { error: null };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
+  const sendSignUpLink = useCallback(async (email: string, fullName: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('[AuthContext] Sending signup magic link to:', normalizedEmail);
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
       options: {
-        emailRedirectTo: window.location.origin.includes('localhost')
-          ? 'https://enamed-arena.lovable.app'
-          : window.location.origin,
+        emailRedirectTo: getRedirectUrl(),
+        shouldCreateUser: true, // SIGNUP — allows creating new guest accounts
         data: { full_name: fullName },
       },
     });
+
     if (error) {
-      console.log('[AuthContext] Sign up error:', error.message);
+      console.log('[AuthContext] Signup link error:', error.message);
       return { error: error.message };
     }
+
     return { error: null };
   }, []);
 
@@ -87,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, sendLoginLink, sendSignUpLink, signOut }}>
       {children}
     </AuthContext.Provider>
   );
