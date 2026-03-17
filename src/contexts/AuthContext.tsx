@@ -6,10 +6,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** Sign in with email + password (existing users only). */
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** Sign up with email + password (creates guest account). */
+  signUpWithPassword: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
   /** Send magic link for LOGIN only (existing users). Will not create new accounts. */
   sendLoginLink: (email: string) => Promise<{ error: string | null }>;
-  /** Send magic link for SIGNUP (creates guest account if email doesn't exist). */
-  sendSignUpLink: (email: string, fullName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -17,7 +19,6 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 function getRedirectUrl(): string {
   const origin = window.location.origin;
-  // Always redirect to /auth/callback for token verification
   return `${origin}/auth/callback`;
 }
 
@@ -28,12 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // 1. Set up auth state listener FIRST (per Supabase best practices)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         const newUserId = currentSession?.user?.id ?? null;
 
-        // TOKEN_REFRESHED with same user → update session silently, no state churn
         if (event === 'TOKEN_REFRESHED' && newUserId === userIdRef.current) {
           console.log('[AuthContext] Token refreshed silently (same user)');
           setSession(currentSession);
@@ -48,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // 2. Then check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       userIdRef.current = existingSession?.user?.id ?? null;
       setSession(existingSession);
@@ -59,6 +57,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('[AuthContext] Signing in with password:', normalizedEmail);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    if (error) {
+      console.log('[AuthContext] Password sign-in error:', error.message);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  }, []);
+
+  const signUpWithPassword = useCallback(async (email: string, password: string, fullName: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('[AuthContext] Signing up with password:', normalizedEmail);
+
+    const { error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        emailRedirectTo: getRedirectUrl(),
+        data: { full_name: fullName },
+      },
+    });
+
+    if (error) {
+      console.log('[AuthContext] Password sign-up error:', error.message);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  }, []);
+
   const sendLoginLink = useCallback(async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     console.log('[AuthContext] Sending login magic link to:', normalizedEmail);
@@ -67,33 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: normalizedEmail,
       options: {
         emailRedirectTo: getRedirectUrl(),
-        shouldCreateUser: false, // LOGIN ONLY — do not create new accounts
+        shouldCreateUser: false,
       },
     });
 
     if (error) {
       console.log('[AuthContext] Login link error:', error.message);
-      return { error: error.message };
-    }
-
-    return { error: null };
-  }, []);
-
-  const sendSignUpLink = useCallback(async (email: string, fullName: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    console.log('[AuthContext] Sending signup magic link to:', normalizedEmail);
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        emailRedirectTo: getRedirectUrl(),
-        shouldCreateUser: true, // SIGNUP — allows creating new guest accounts
-        data: { full_name: fullName },
-      },
-    });
-
-    if (error) {
-      console.log('[AuthContext] Signup link error:', error.message);
       return { error: error.message };
     }
 
@@ -106,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, sendLoginLink, sendSignUpLink, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithPassword, signUpWithPassword, sendLoginLink, signOut }}>
       {children}
     </AuthContext.Provider>
   );
