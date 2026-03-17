@@ -185,11 +185,11 @@ export default function LoginPage() {
               <div className="flex flex-col gap-3 pt-2">
                 <button
                   onClick={handleResend}
-                  disabled={cooldown || flowState === 'sending'}
+                  disabled={cooldown || resending}
                   className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-border text-body-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw className={`h-4 w-4 ${flowState === 'sending' ? 'animate-spin' : ''}`} />
-                  {cooldown ? 'Aguarde para reenviar' : flowState === 'sending' ? 'Reenviando...' : 'Reenviar link'}
+                  <RefreshCw className={`h-4 w-4 ${resending ? 'animate-spin' : ''}`} />
+                  {cooldown ? 'Aguarde para reenviar' : resending ? 'Reenviando...' : 'Reenviar link'}
                 </button>
                 <button
                   onClick={handleBackToForm}
