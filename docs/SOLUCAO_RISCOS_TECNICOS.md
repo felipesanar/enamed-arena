@@ -8,16 +8,16 @@ Este documento mapeia cada risco da auditoria para uma solução concreta: statu
 
 | # | Risco | Status | Onde atuar |
 |---|--------|--------|------------|
-| 1 | RLS Supabase não auditable | Pendente | Dashboard Supabase + doc |
+| 1 | RLS Supabase não auditable | **Resolvido** | docs/SUPABASE_RLS.md |
 | 2 | Env não documentado | **Resolvido** | .env.example + README |
 | 3 | SimuladoExamPage muito complexa | **Resolvido** | useExamFlow + página enxuta |
 | 4 | Dois requests em getQuestions | **Parcial** (fluxo claro) | Opcional: RPC/join no Supabase |
 | 5 | Código morto e dois cadernos | **Resolvido** | Remoção + errorNotebookReasons |
-| 6 | TypeScript permissivo | Pendente | tsconfig + tipos + remover any |
-| 7 | Falhas silenciosas | Pendente | UserContext + useExamStorageReal + UI |
-| 8 | Sem error boundary | Pendente | Componente + App.tsx |
-| 9 | Fetches redundantes | Pendente | React Query em useSimuladoDetail/useSimulados |
-| 10 | Logs em produção | Pendente | Logger condicional (DEV) |
+| 6 | TypeScript permissivo | **Resolvido** | noImplicitAny + noFallthroughCasesInSwitch + env tipado + `as any` removido |
+| 7 | Falhas silenciosas | **Resolvido** | UserContext (profileError + toast) + useExamStorageReal (fromCache + toast) |
+| 8 | Sem error boundary | **Resolvido** | ErrorBoundary.tsx + App.tsx |
+| 9 | Fetches redundantes | **Resolvido** | React Query em useSimuladoDetail + useSimulados |
+| 10 | Logs em produção | **Resolvido** | logger.ts condicional (DEV) em todos os arquivos sensíveis |
 
 ---
 
