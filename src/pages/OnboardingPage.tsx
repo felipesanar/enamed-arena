@@ -5,6 +5,7 @@ import { GraduationCap as BrandIcon } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
 import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS } from "@/types";
+import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import {
   GraduationCap,
   Building2,
