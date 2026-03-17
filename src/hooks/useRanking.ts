@@ -60,8 +60,8 @@ export function useRanking(): UseRankingReturn {
   >([]);
   const [selectedSimuladoId, setSelectedSimuladoId] = useState<string | null>(null);
   const [rawRanking, setRawRanking] = useState<RankingRow[]>([]);
-  const [comparisonFilter, setComparisonFilter] = useState<ComparisonFilter>('all');
-  const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>('all');
+  const [comparisonFilter, setComparisonFilter] = usePersistedState<ComparisonFilter>('ranking:comparison', 'all');
+  const [segmentFilter, setSegmentFilter] = usePersistedState<SegmentFilter>('ranking:segment', 'all');
   
   const userSpecialty = onboarding?.specialty || '';
   const userInstitution = onboarding?.targetInstitutions?.[0] || '';
