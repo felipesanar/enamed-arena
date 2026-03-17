@@ -41,7 +41,7 @@ export default function DashboardPage() {
     };
   }, [simulados]);
 
-  const stats = [
+  const stats: Array<{ label: string; value: string; icon: typeof Target; trend: string | null }> = [
     { label: "Simulados realizados", value: String(userStats.simuladosCompleted), icon: Target, trend: null },
     { label: "Média geral", value: `${userStats.averageScore}%`, icon: TrendingUp, trend: null },
     { label: "Ranking", value: "—", icon: Trophy, trend: null },
