@@ -9,12 +9,10 @@ interface UserContextValue {
   onboarding: OnboardingProfile | null;
   isLoading: boolean;
   isOnboardingComplete: boolean;
-  /** Data source status for transparency */
   dataSource: 'supabase' | 'loading' | 'unauthenticated';
 
-  setSegment: (segment: UserSegment) => void;
   saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
-  updateProfile: (data: Partial<UserProfile>) => void;
+  updateProfile: (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => void;
   resetOnboarding: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -28,7 +26,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [dataSource, setDataSource] = useState<'supabase' | 'loading' | 'unauthenticated'>('loading');
 
-  // Fetch real profile + onboarding from Supabase
   const fetchUserData = useCallback(async (userId: string) => {
     console.log('[UserContext] Fetching user data from Supabase for:', userId);
     setIsLoading(true);
@@ -54,7 +51,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           avatarUrl: p.avatar_url || undefined,
         };
         setProfile(userProfile);
-        console.log('[UserContext] Profile loaded:', { segment: userProfile.segment });
+        console.log('[UserContext] Profile loaded — segment from DB:', userProfile.segment);
       } else {
         // Profile should be auto-created by trigger, set fallback
         const fallback: UserProfile = {
@@ -64,7 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           segment: 'guest',
         };
         setProfile(fallback);
-        console.log('[UserContext] No profile found, using fallback');
+        console.log('[UserContext] No profile found, using guest fallback');
       }
 
       if (onboardingResult.data) {
@@ -91,7 +88,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // React to auth state
   useEffect(() => {
     if (authLoading) {
       setIsLoading(true);
@@ -112,31 +108,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const isOnboardingComplete = onboarding?.status === 'completed';
 
-  const setSegment = useCallback(async (segment: UserSegment) => {
-    if (!authUser) return;
-
-    // Optimistic update
-    setProfile(prev => prev ? { ...prev, segment } : prev);
-
-    // Persist to Supabase
-    const { error } = await supabase
-      .from('profiles')
-      .update({ segment })
-      .eq('id', authUser.id);
-
-    if (error) {
-      console.error('[UserContext] Error updating segment:', error);
-    } else {
-      console.log('[UserContext] Segment updated to:', segment);
-    }
-  }, [authUser]);
-
   const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
     if (!authUser) throw new Error('Not authenticated');
 
     const now = new Date().toISOString();
 
-    // Check if onboarding record already exists
     const { data: existing } = await supabase
       .from('onboarding_profiles')
       .select('id')
@@ -144,7 +120,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
 
     if (existing) {
-      // Update
       const { error } = await supabase
         .from('onboarding_profiles')
         .update({
@@ -157,7 +132,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
     } else {
-      // Insert
       const { error } = await supabase
         .from('onboarding_profiles')
         .insert({
@@ -171,7 +145,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     }
 
-    // Update local state
     const onboardingData: OnboardingProfile = {
       userId: authUser.id,
       specialty: data.specialty,
@@ -183,16 +156,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     console.log('[UserContext] Onboarding saved to Supabase');
   }, [authUser]);
 
-  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
+  const updateProfile = useCallback(async (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => {
     if (!authUser) return;
 
+    // Only allow updating name and avatar — segment is read-only
     setProfile(prev => prev ? { ...prev, ...data } : prev);
 
     const updates: Record<string, any> = {};
     if (data.name !== undefined) updates.full_name = data.name;
-    if (data.email !== undefined) updates.email = data.email;
     if (data.avatarUrl !== undefined) updates.avatar_url = data.avatarUrl;
-    if (data.segment !== undefined) updates.segment = data.segment;
 
     if (Object.keys(updates).length > 0) {
       const { error } = await supabase
@@ -206,8 +178,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const resetOnboarding = useCallback(async () => {
     setOnboarding(null);
-    // Note: We don't delete the record, just reset local state
-    // The user can redo onboarding which will update the existing record
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -221,7 +191,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       isLoading,
       isOnboardingComplete,
       dataSource,
-      setSegment,
       saveOnboarding,
       updateProfile,
       resetOnboarding,
