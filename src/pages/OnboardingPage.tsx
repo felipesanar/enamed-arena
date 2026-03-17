@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap as BrandIcon } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
-import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS, type UserSegment } from "@/types";
+import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS } from "@/types";
 import {
   GraduationCap,
   Building2,
@@ -14,72 +14,13 @@ import {
   Search,
   X,
   Sparkles,
-  User,
-  Shield,
-  Crown,
 } from "lucide-react";
 
-const STEPS = ['Segmento', 'Especialidade', 'Instituições', 'Confirmação'] as const;
+const STEPS = ['Especialidade', 'Instituições', 'Confirmação'] as const;
 
-// ─── Step 1: Segment Selection ───
-function SegmentStep({ segment, onSelect }: { segment: UserSegment; onSelect: (s: UserSegment) => void }) {
-  
-
-  const options: { value: UserSegment; label: string; desc: string; icon: typeof User }[] = [
-    { value: 'guest', label: 'Não sou aluno', desc: 'Quero experimentar os simulados e conhecer a plataforma.', icon: User },
-    { value: 'standard', label: 'Aluno SanarFlix', desc: 'Tenho assinatura SanarFlix e quero acompanhar minha evolução.', icon: Shield },
-    { value: 'pro', label: 'Aluno PRO: ENAMED', desc: 'Tenho o plano PRO e quero acesso completo à plataforma.', icon: Crown },
-  ];
-
-  return (
-    <div>
-      <div className="text-center mb-8">
-        <div className="h-14 w-14 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">
-          <User className="h-7 w-7 text-primary" />
-        </div>
-        <h2 className="text-heading-2 text-foreground mb-2">Como você se identifica?</h2>
-        <p className="text-body text-muted-foreground max-w-md mx-auto">
-          Isso nos ajuda a personalizar sua experiência e mostrar os recursos certos para você.
-        </p>
-      </div>
-
-      <div className="space-y-3 max-w-lg mx-auto">
-        {options.map((opt) => {
-          const isSelected = segment === opt.value;
-          return (
-            <button
-              key={opt.value}
-              onClick={() => onSelect(opt.value)}
-              className={`w-full flex items-center gap-4 p-5 rounded-xl border-2 transition-all duration-200 text-left group ${
-                isSelected
-                  ? 'border-primary bg-accent shadow-sm'
-                  : 'border-border bg-card hover:border-primary/30 hover:bg-accent/30'
-              }`}
-            >
-              <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:text-primary'
-              }`}>
-                <opt.icon className="h-5 w-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-body font-semibold transition-colors ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                  {opt.label}
-                </p>
-                <p className="text-body-sm text-muted-foreground">{opt.desc}</p>
-              </div>
-              {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 2: Specialty Selection ───
+// ─── Step 1: Specialty Selection ───
 function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (s: string) => void }) {
   const [search, setSearch] = useState('');
-  
 
   const filtered = useMemo(() => {
     if (!search.trim()) return SPECIALTIES;
@@ -99,7 +40,6 @@ function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (
       </div>
 
       <div className="max-w-lg mx-auto">
-        {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
@@ -116,7 +56,6 @@ function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (
           )}
         </div>
 
-        {/* Options grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
           {filtered.map((spec) => {
             const isSelected = specialty === spec;
@@ -152,7 +91,7 @@ function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (
   );
 }
 
-// ─── Step 3: Institution Selection ───
+// ─── Step 2: Institution Selection ───
 function InstitutionStep({
   selected,
   onToggle,
@@ -163,7 +102,6 @@ function InstitutionStep({
   minRequired: number;
 }) {
   const [search, setSearch] = useState('');
-  
 
   const filtered = useMemo(() => {
     if (!search.trim()) return INSTITUTIONS;
@@ -183,7 +121,6 @@ function InstitutionStep({
       </div>
 
       <div className="max-w-lg mx-auto">
-        {/* Counter + Search */}
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -207,7 +144,6 @@ function InstitutionStep({
           </div>
         </div>
 
-        {/* Selected pills */}
         {selected.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {selected.map(inst => (
@@ -223,7 +159,6 @@ function InstitutionStep({
           </div>
         )}
 
-        {/* Options */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-1">
           {filtered.map((inst) => {
             const isSelected = selected.includes(inst);
@@ -252,17 +187,17 @@ function InstitutionStep({
   );
 }
 
-// ─── Step 4: Confirmation ───
+// ─── Step 3: Confirmation ───
 function ConfirmationStep({
   segment,
   specialty,
   institutions,
 }: {
-  segment: UserSegment;
+  segment: string;
   specialty: string;
   institutions: string[];
 }) {
-  
+  const segmentLabel = SEGMENT_LABELS[segment as keyof typeof SEGMENT_LABELS] ?? segment;
 
   return (
     <div>
@@ -278,8 +213,9 @@ function ConfirmationStep({
 
       <div className="max-w-lg mx-auto space-y-4">
         <div className="p-5 rounded-xl border border-border bg-card">
-          <p className="text-overline uppercase text-muted-foreground mb-1">Segmento</p>
-          <p className="text-body font-semibold text-foreground">{SEGMENT_LABELS[segment]}</p>
+          <p className="text-overline uppercase text-muted-foreground mb-1">Seu plano</p>
+          <p className="text-body font-semibold text-foreground">{segmentLabel}</p>
+          <p className="text-caption text-muted-foreground mt-1">Definido pela sua assinatura</p>
         </div>
         <div className="p-5 rounded-xl border border-border bg-card">
           <p className="text-overline uppercase text-muted-foreground mb-1">Especialidade desejada</p>
@@ -302,26 +238,24 @@ function ConfirmationStep({
 
 // ─── Main Onboarding Page ───
 export default function OnboardingPage() {
-  const { profile, saveOnboarding, setSegment, isOnboardingComplete } = useUser();
+  const { profile, saveOnboarding } = useUser();
   const navigate = useNavigate();
 
+  const segment = profile?.segment ?? 'guest';
+
   const [step, setStep] = useState(0);
-  const [selectedSegment, setSelectedSegment] = useState<UserSegment>(profile?.segment ?? 'guest');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  
-
-  const minInstitutions = selectedSegment === 'guest' ? MIN_INSTITUTIONS_GUEST : 1;
+  const minInstitutions = segment === 'guest' ? MIN_INSTITUTIONS_GUEST : 1;
 
   const canProceed = () => {
     switch (step) {
-      case 0: return true; // segment always has a value
-      case 1: return selectedSpecialty !== '';
-      case 2: return selectedInstitutions.length >= minInstitutions;
-      case 3: return true;
+      case 0: return selectedSpecialty !== '';
+      case 1: return selectedInstitutions.length >= minInstitutions;
+      case 2: return true;
       default: return false;
     }
   };
@@ -329,8 +263,8 @@ export default function OnboardingPage() {
   const handleNext = () => {
     setError('');
     if (!canProceed()) {
-      if (step === 1) setError('Selecione uma especialidade para continuar.');
-      if (step === 2) setError(`Selecione ao menos ${minInstitutions} instituição(ões).`);
+      if (step === 0) setError('Selecione uma especialidade para continuar.');
+      if (step === 1) setError(`Selecione ao menos ${minInstitutions} instituição(ões).`);
       return;
     }
     if (step < STEPS.length - 1) {
@@ -348,7 +282,6 @@ export default function OnboardingPage() {
     setIsSaving(true);
     setError('');
     try {
-      setSegment(selectedSegment);
       await saveOnboarding({
         specialty: selectedSpecialty,
         targetInstitutions: selectedInstitutions,
@@ -416,10 +349,9 @@ export default function OnboardingPage() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
           >
-            {step === 0 && <SegmentStep segment={selectedSegment} onSelect={setSelectedSegment} />}
-            {step === 1 && <SpecialtyStep specialty={selectedSpecialty} onSelect={setSelectedSpecialty} />}
-            {step === 2 && <InstitutionStep selected={selectedInstitutions} onToggle={toggleInstitution} minRequired={minInstitutions} />}
-            {step === 3 && <ConfirmationStep segment={selectedSegment} specialty={selectedSpecialty} institutions={selectedInstitutions} />}
+            {step === 0 && <SpecialtyStep specialty={selectedSpecialty} onSelect={setSelectedSpecialty} />}
+            {step === 1 && <InstitutionStep selected={selectedInstitutions} onToggle={toggleInstitution} minRequired={minInstitutions} />}
+            {step === 2 && <ConfirmationStep segment={segment} specialty={selectedSpecialty} institutions={selectedInstitutions} />}
           </motion.div>
         </AnimatePresence>
 

@@ -33,7 +33,6 @@ export default function LoginPage() {
         if (result.error) {
           setError(translateError(result.error));
         }
-        // onAuthStateChange handles redirect
       } else {
         if (!fullName.trim()) {
           setError('Informe seu nome completo.');
@@ -127,10 +126,25 @@ export default function LoginPage() {
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    {m === 'login' ? 'Entrar' : 'Criar conta'}
+                    {m === 'login' ? 'Entrar' : 'Experimentar grátis'}
                   </button>
                 ))}
               </div>
+
+              {/* Context info for signup */}
+              {mode === 'signup' && (
+                <div className="mb-4 p-3 rounded-xl bg-accent/50 border border-border">
+                  <p className="text-body-sm text-muted-foreground">
+                    Crie sua conta gratuita para acessar os simulados. Já é aluno SanarFlix?{' '}
+                    <button
+                      onClick={() => { setMode('login'); setError(''); }}
+                      className="text-primary font-semibold hover:underline"
+                    >
+                      Entre com sua conta
+                    </button>
+                  </p>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === 'signup' && (
@@ -207,7 +221,7 @@ export default function LoginPage() {
                     <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   ) : (
                     <>
-                      {mode === 'login' ? 'Entrar' : 'Criar conta'}
+                      {mode === 'login' ? 'Entrar' : 'Criar conta gratuita'}
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
@@ -218,7 +232,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-caption text-muted-foreground">
-          Plataforma exclusiva para candidatos à residência médica
+          {mode === 'login'
+            ? 'Alunos SanarFlix e PRO: ENAMED, entrem com a conta criada pelo time.'
+            : 'Cadastro gratuito para não alunos. Alunos SanarFlix entram por login.'}
         </p>
       </motion.div>
     </div>
