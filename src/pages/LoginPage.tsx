@@ -307,20 +307,6 @@ export default function LoginPage() {
                   {flowState === 'sending' ? <Spinner /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
                 </button>
 
-                <div className="relative flex items-center gap-3 py-1">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-caption text-muted-foreground">ou</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => { setLoginMethod('magic-link'); setError(''); }}
-                  className="w-full h-11 rounded-xl border border-border text-body-sm font-semibold text-foreground hover:bg-accent transition-colors flex items-center justify-center gap-2"
-                >
-                  <Wand2 className="h-4 w-4" />
-                  Entrar com link mágico
-                </button>
               </motion.form>
             )}
 
