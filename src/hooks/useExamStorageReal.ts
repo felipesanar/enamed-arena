@@ -174,10 +174,10 @@ export function useExamStorageReal(simuladoId: string) {
   }, []);
 
   // ── Flush before finalize ──
-  const flushPendingState = useCallback(async () => {
+  const flushPendingState = useCallback(async (state?: ExamState) => {
     if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
-    const localState = loadLocalState();
-    if (localState) await syncToDb(localState);
+    const stateToSync = state || loadLocalState();
+    if (stateToSync) await syncToDb(stateToSync);
   }, [loadLocalState, syncToDb]);
 
   // ── Submit (finalize) ──
@@ -187,8 +187,18 @@ export function useExamStorageReal(simuladoId: string) {
     totalAnswered: number,
     finalState: ExamState,
   ): Promise<void> => {
-    // Flush all pending answers first
-    await flushPendingState();
+    // Sync finalState directly — not localStorage
+    try {
+      await syncToDb(finalState);
+      console.log('[ExamStorageReal] Final sync succeeded');
+    } catch (err) {
+      console.warn('[ExamStorageReal] First sync failed, retrying...', err);
+      try {
+        await syncToDb(finalState);
+      } catch (retryErr) {
+        console.error('[ExamStorageReal] Retry also failed:', retryErr);
+      }
+    }
 
     if (attemptIdRef.current) {
       await simuladosApi.submitAttempt(
@@ -202,7 +212,7 @@ export function useExamStorageReal(simuladoId: string) {
     const submitted: ExamState = { ...finalState, status: 'submitted', lastSavedAt: new Date().toISOString() };
     saveLocalState(submitted);
     console.log('[ExamStorageReal] Attempt submitted');
-  }, [flushPendingState, saveLocalState]);
+  }, [syncToDb, saveLocalState]);
 
   // ── Integrity events ──
   const registerTabExit = useCallback(() => {
