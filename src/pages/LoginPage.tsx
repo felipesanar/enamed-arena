@@ -115,7 +115,7 @@ export default function LoginPage() {
       if (result.error) {
         setError(translateError(result.error));
       } else {
-        console.log('[LoginPage] Magic link resent to:', trimmedEmail);
+        // Resent successfully
       }
     } catch {
       setError('Erro ao reenviar. Tente novamente.');
