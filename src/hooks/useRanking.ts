@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import {
