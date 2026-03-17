@@ -3,12 +3,15 @@ import type { UserProfile, OnboardingProfile, UserSegment, OnboardingStatus } fr
 import { SEGMENT_ACCESS } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
+import { toast } from '@/hooks/use-toast';
 
 interface UserContextValue {
   profile: UserProfile | null;
   onboarding: OnboardingProfile | null;
   isLoading: boolean;
   isOnboardingComplete: boolean;
+  profileError: string | null;
   dataSource: 'supabase' | 'loading' | 'unauthenticated';
 
   saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
@@ -24,15 +27,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'supabase' | 'loading' | 'unauthenticated'>('loading');
 
   const fetchUserData = useCallback(async (userId: string, silent = false) => {
-    console.log('[UserContext] Fetching user data from Supabase for:', userId, silent ? '(silent)' : '');
-    // Only show loading spinner on initial load, not on refetch
+    logger.log('[UserContext] Fetching user data from Supabase', silent ? '(silent)' : '');
     if (!silent) {
       setIsLoading(true);
       setDataSource('loading');
     }
+    setProfileError(null);
 
     try {
       const [profileResult, onboardingResult] = await Promise.all([
@@ -41,7 +45,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (profileResult.error) {
-        console.error('[UserContext] Profile fetch error:', profileResult.error);
+        logger.error('[UserContext] Profile fetch error:', profileResult.error);
+        setProfileError('Erro ao carregar perfil. Tente recarregar a página.');
       }
 
       if (profileResult.data) {
@@ -54,9 +59,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           avatarUrl: p.avatar_url || undefined,
         };
         setProfile(userProfile);
-        console.log('[UserContext] Profile loaded — segment from DB:', userProfile.segment);
+        logger.log('[UserContext] Profile loaded — segment:', userProfile.segment);
       } else {
-        // Profile should be auto-created by trigger, set fallback
         const fallback: UserProfile = {
           id: userId,
           name: '',
@@ -64,7 +68,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           segment: 'guest',
         };
         setProfile(fallback);
-        console.log('[UserContext] No profile found, using guest fallback');
+        logger.log('[UserContext] No profile found, using guest fallback');
       }
 
       if (onboardingResult.data) {
@@ -78,25 +82,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
           completedAt: o.completed_at || undefined,
         };
         setOnboarding(onb);
-        console.log('[UserContext] Onboarding loaded:', { status: onb.status });
+        logger.log('[UserContext] Onboarding loaded:', { status: onb.status });
       } else {
         setOnboarding(null);
       }
 
       setDataSource('supabase');
-    } catch (err) {
-      console.error('[UserContext] Unexpected error fetching user data:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar perfil';
+      logger.error('[UserContext] Unexpected error fetching user data:', message);
+      setProfileError(message);
+      toast({
+        title: 'Erro ao carregar perfil',
+        description: 'Não foi possível carregar seus dados. Tente recarregar.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Track the user ID to avoid re-fetching on same-user auth events
   const lastFetchedUserIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     if (authLoading) {
-      // Only show loading if we haven't loaded data yet
       if (!profile) {
         setIsLoading(true);
         setDataSource('loading');
@@ -110,18 +119,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setOnboarding(null);
       setIsLoading(false);
       setDataSource('unauthenticated');
+      setProfileError(null);
       return;
     }
 
-    // Skip refetch if same user — data is already loaded
     if (lastFetchedUserIdRef.current === authUser.id && profile) {
-      console.log('[UserContext] Same user, skipping refetch');
+      logger.log('[UserContext] Same user, skipping refetch');
       return;
     }
 
     lastFetchedUserIdRef.current = authUser.id;
     fetchUserData(authUser.id);
-  }, [authUser?.id, authLoading, fetchUserData]); // depend on authUser.id, not authUser object
+  }, [authUser?.id, authLoading, fetchUserData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isOnboardingComplete = onboarding?.status === 'completed';
 
@@ -170,16 +179,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       completedAt: now,
     };
     setOnboarding(onboardingData);
-    console.log('[UserContext] Onboarding saved to Supabase');
+    logger.log('[UserContext] Onboarding saved to Supabase');
   }, [authUser]);
 
   const updateProfile = useCallback(async (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => {
     if (!authUser) return;
 
-    // Only allow updating name and avatar — segment is read-only
     setProfile(prev => prev ? { ...prev, ...data } : prev);
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, string | undefined> = {};
     if (data.name !== undefined) updates.full_name = data.name;
     if (data.avatarUrl !== undefined) updates.avatar_url = data.avatarUrl;
 
@@ -189,7 +197,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .update(updates)
         .eq('id', authUser.id);
 
-      if (error) console.error('[UserContext] Profile update error:', error);
+      if (error) logger.error('[UserContext] Profile update error:', error);
     }
   }, [authUser]);
 
@@ -207,6 +215,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       onboarding,
       isLoading,
       isOnboardingComplete,
+      profileError,
       dataSource,
       saveOnboarding,
       updateProfile,

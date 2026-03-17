@@ -64,7 +64,7 @@ export default function LoginPage() {
         setError(translateError(result.error));
         setFlowState('idle');
       } else {
-        console.log('[LoginPage] Password auth successful for:', trimmedEmail);
+        // Auth state change will redirect automatically
         if (mode === 'signup') {
           // Supabase may require email confirmation
           setFlowState('sent');
@@ -93,7 +93,7 @@ export default function LoginPage() {
         setError(translateError(result.error));
         setFlowState('idle');
       } else {
-        console.log('[LoginPage] Magic link sent to:', trimmedEmail);
+        // Magic link sent successfully
         setFlowState('sent');
       }
     } catch {
@@ -115,7 +115,7 @@ export default function LoginPage() {
       if (result.error) {
         setError(translateError(result.error));
       } else {
-        console.log('[LoginPage] Magic link resent to:', trimmedEmail);
+        // Resent successfully
       }
     } catch {
       setError('Erro ao reenviar. Tente novamente.');

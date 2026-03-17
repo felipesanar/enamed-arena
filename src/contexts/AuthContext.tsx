@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -34,12 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newUserId = currentSession?.user?.id ?? null;
 
         if (event === 'TOKEN_REFRESHED' && newUserId === userIdRef.current) {
-          console.log('[AuthContext] Token refreshed silently (same user)');
+          logger.log('[AuthContext] Token refreshed silently (same user)');
           setSession(currentSession);
           return;
         }
 
-        console.log('[AuthContext] Auth state changed:', event);
+        logger.log('[AuthContext] Auth state changed:', event);
         userIdRef.current = newUserId;
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('[AuthContext] Signing in with password:', normalizedEmail);
+    logger.log('[AuthContext] Signing in with password');
 
     const { error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      console.log('[AuthContext] Password sign-in error:', error.message);
+      logger.log('[AuthContext] Password sign-in error:', error.message);
       return { error: error.message };
     }
 
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithPassword = useCallback(async (email: string, password: string, fullName: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('[AuthContext] Signing up with password:', normalizedEmail);
+    logger.log('[AuthContext] Signing up with password');
 
     const { error } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      console.log('[AuthContext] Password sign-up error:', error.message);
+      logger.log('[AuthContext] Password sign-up error:', error.message);
       return { error: error.message };
     }
 
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendLoginLink = useCallback(async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('[AuthContext] Sending login magic link to:', normalizedEmail);
+    logger.log('[AuthContext] Sending login magic link');
 
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      console.log('[AuthContext] Login link error:', error.message);
+      logger.log('[AuthContext] Login link error:', error.message);
       return { error: error.message };
     }
 
@@ -116,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    console.log('[AuthContext] Signing out');
+    logger.log('[AuthContext] Signing out');
     await supabase.auth.signOut();
   }, []);
 

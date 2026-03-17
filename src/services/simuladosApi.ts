@@ -1,11 +1,12 @@
 /**
  * Simulados API service — real Supabase queries.
- * Architecture based on SanarFlix Academy's simuladosApi.
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { SimuladoConfig, Question, QuestionOption } from '@/types';
-import type { ExamState, ExamAnswer } from '@/types/exam';
+import { logger } from '@/lib/logger';
+import type { SimuladoConfig, Question } from '@/types';
+import type { ExamAnswer } from '@/types/exam';
+import type { TablesInsert } from '@/integrations/supabase/types';
 
 // ─── Types for DB rows ───
 export interface SimuladoRow {
@@ -109,9 +110,8 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[]): Que
 // ─── API ───
 
 export const simuladosApi = {
-  /** Fetch all published simulados */
   async listSimulados(): Promise<SimuladoConfig[]> {
-    console.log('[SimuladosApi] Fetching simulados');
+    logger.log('[SimuladosApi] Fetching simulados');
     const { data, error } = await supabase
       .from('simulados')
       .select('*')
@@ -119,14 +119,13 @@ export const simuladosApi = {
       .order('sequence_number', { ascending: true });
 
     if (error) {
-      console.error('[SimuladosApi] Error fetching simulados:', error);
+      logger.error('[SimuladosApi] Error fetching simulados:', error);
       throw error;
     }
 
     return (data || []).map(rowToSimuladoConfig);
   },
 
-  /** Fetch a single simulado by ID */
   async getSimulado(id: string): Promise<SimuladoConfig | null> {
     const { data, error } = await supabase
       .from('simulados')
@@ -135,14 +134,13 @@ export const simuladosApi = {
       .maybeSingle();
 
     if (error) {
-      console.error('[SimuladosApi] Error fetching simulado:', error);
+      logger.error('[SimuladosApi] Error fetching simulado:', error);
       throw error;
     }
 
     return data ? rowToSimuladoConfig(data) : null;
   },
 
-  /** Fetch questions with options for a simulado. Two-step: questions first, then options by question ids. */
   async getQuestions(simuladoId: string): Promise<Question[]> {
     const { data: questionsData, error: questionsError } = await supabase
       .from('questions')
@@ -151,7 +149,7 @@ export const simuladosApi = {
       .order('question_number', { ascending: true });
 
     if (questionsError) {
-      console.error('[SimuladosApi] Error fetching questions:', questionsError);
+      logger.error('[SimuladosApi] Error fetching questions:', questionsError);
       throw questionsError;
     }
 
@@ -165,7 +163,7 @@ export const simuladosApi = {
       .in('question_id', questionIds);
 
     if (optionsError) {
-      console.error('[SimuladosApi] Error fetching question options:', optionsError);
+      logger.error('[SimuladosApi] Error fetching question options:', optionsError);
       throw optionsError;
     }
 
@@ -173,7 +171,6 @@ export const simuladosApi = {
     return questions.map(q => rowsToQuestion(q, options));
   },
 
-  /** Get user's attempt for a simulado */
   async getAttempt(simuladoId: string, userId: string): Promise<AttemptRow | null> {
     const { data, error } = await supabase
       .from('attempts')
@@ -183,14 +180,13 @@ export const simuladosApi = {
       .maybeSingle();
 
     if (error) {
-      console.error('[SimuladosApi] Error fetching attempt:', error);
+      logger.error('[SimuladosApi] Error fetching attempt:', error);
       throw error;
     }
 
     return data as AttemptRow | null;
   },
 
-  /** Get all user attempts (for dashboard/performance) */
   async getUserAttempts(userId: string): Promise<AttemptRow[]> {
     const { data, error } = await supabase
       .from('attempts')
@@ -202,13 +198,12 @@ export const simuladosApi = {
     return (data || []) as AttemptRow[];
   },
 
-  /** Create a new attempt */
   async createAttempt(
     simuladoId: string,
     userId: string,
     effectiveDeadline: string,
   ): Promise<AttemptRow> {
-    console.log('[SimuladosApi] Creating attempt for simulado:', simuladoId);
+    logger.log('[SimuladosApi] Creating attempt for simulado');
     const { data, error } = await supabase
       .from('attempts')
       .insert({
@@ -224,7 +219,6 @@ export const simuladosApi = {
     return data as AttemptRow;
   },
 
-  /** Update attempt (autosave, submit, etc.) */
   async updateAttempt(
     attemptId: string,
     updates: {
@@ -244,12 +238,11 @@ export const simuladosApi = {
       .eq('id', attemptId);
 
     if (error) {
-      console.error('[SimuladosApi] Error updating attempt:', error);
+      logger.error('[SimuladosApi] Error updating attempt:', error);
       throw error;
     }
   },
 
-  /** Upsert an answer (autosave per question) */
   async upsertAnswer(
     attemptId: string,
     questionId: string,
@@ -276,12 +269,11 @@ export const simuladosApi = {
       );
 
     if (error) {
-      console.error('[SimuladosApi] Error upserting answer:', error);
+      logger.error('[SimuladosApi] Error upserting answer:', error);
       throw error;
     }
   },
 
-  /** Bulk upsert answers (for batch autosave) */
   async bulkUpsertAnswers(
     attemptId: string,
     answers: Record<string, ExamAnswer>,
@@ -303,12 +295,11 @@ export const simuladosApi = {
       .upsert(rows, { onConflict: 'attempt_id,question_id' });
 
     if (error) {
-      console.error('[SimuladosApi] Error bulk upserting answers:', error);
+      logger.error('[SimuladosApi] Error bulk upserting answers:', error);
       throw error;
     }
   },
 
-  /** Get all answers for an attempt */
   async getAnswers(attemptId: string): Promise<AnswerRow[]> {
     const { data, error } = await supabase
       .from('answers')
@@ -319,14 +310,13 @@ export const simuladosApi = {
     return (data || []) as AnswerRow[];
   },
 
-  /** Submit attempt (finalize) */
   async submitAttempt(
     attemptId: string,
     scorePercentage: number,
     totalCorrect: number,
     totalAnswered: number,
   ): Promise<void> {
-    console.log('[SimuladosApi] Submitting attempt:', attemptId);
+    logger.log('[SimuladosApi] Submitting attempt');
     await this.updateAttempt(attemptId, {
       status: 'submitted',
       finished_at: new Date().toISOString(),
@@ -351,26 +341,28 @@ export const simuladosApi = {
     questionText?: string;
     simuladoTitle?: string;
   }): Promise<void> {
+    const row: TablesInsert<'error_notebook'> = {
+      user_id: entry.userId,
+      simulado_id: entry.simuladoId,
+      question_id: entry.questionId,
+      area: entry.area,
+      theme: entry.theme,
+      reason: entry.reason,
+      learning_text: entry.learningText,
+      was_correct: entry.wasCorrect,
+      question_number: entry.questionNumber ?? null,
+      question_text: entry.questionText ?? null,
+      simulado_title: entry.simuladoTitle ?? null,
+    };
+
     const { error } = await supabase
       .from('error_notebook')
-      .insert([{
-        user_id: entry.userId,
-        simulado_id: entry.simuladoId,
-        question_id: entry.questionId,
-        area: entry.area,
-        theme: entry.theme,
-        reason: entry.reason,
-        learning_text: entry.learningText,
-        was_correct: entry.wasCorrect,
-        question_number: entry.questionNumber ?? null,
-        question_text: entry.questionText ?? null,
-        simulado_title: entry.simuladoTitle ?? null,
-      } as any]);
+      .insert([row]);
 
     if (error) throw error;
   },
 
-  async getErrorNotebook(userId: string): Promise<any[]> {
+  async getErrorNotebook(userId: string) {
     const { data, error } = await supabase
       .from('error_notebook')
       .select('*')
