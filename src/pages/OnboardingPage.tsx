@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap as BrandIcon } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
 import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS } from "@/types";
+import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import {
   GraduationCap,
   Building2,
@@ -243,9 +244,9 @@ export default function OnboardingPage() {
 
   const segment = profile?.segment ?? 'guest';
 
-  const [step, setStep] = useState(0);
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
-  const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([]);
+  const [step, setStep] = usePersistedState('onboarding:step', 0);
+  const [selectedSpecialty, setSelectedSpecialty] = usePersistedState('onboarding:specialty', '');
+  const [selectedInstitutions, setSelectedInstitutions] = usePersistedState<string[]>('onboarding:institutions', []);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -286,6 +287,8 @@ export default function OnboardingPage() {
         specialty: selectedSpecialty,
         targetInstitutions: selectedInstitutions,
       });
+      // Clean up persisted onboarding state on success
+      clearPersistedStateByPrefix('onboarding:');
       console.log('[OnboardingPage] Onboarding completed successfully');
       navigate('/');
     } catch (e) {

@@ -26,10 +26,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [dataSource, setDataSource] = useState<'supabase' | 'loading' | 'unauthenticated'>('loading');
 
-  const fetchUserData = useCallback(async (userId: string) => {
-    console.log('[UserContext] Fetching user data from Supabase for:', userId);
-    setIsLoading(true);
-    setDataSource('loading');
+  const fetchUserData = useCallback(async (userId: string, silent = false) => {
+    console.log('[UserContext] Fetching user data from Supabase for:', userId, silent ? '(silent)' : '');
+    // Only show loading spinner on initial load, not on refetch
+    if (!silent) {
+      setIsLoading(true);
+      setDataSource('loading');
+    }
 
     try {
       const [profileResult, onboardingResult] = await Promise.all([
@@ -88,14 +91,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Track the user ID to avoid re-fetching on same-user auth events
+  const lastFetchedUserIdRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     if (authLoading) {
-      setIsLoading(true);
-      setDataSource('loading');
+      // Only show loading if we haven't loaded data yet
+      if (!profile) {
+        setIsLoading(true);
+        setDataSource('loading');
+      }
       return;
     }
 
     if (!authUser) {
+      lastFetchedUserIdRef.current = null;
       setProfile(null);
       setOnboarding(null);
       setIsLoading(false);
@@ -103,8 +113,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Skip refetch if same user — data is already loaded
+    if (lastFetchedUserIdRef.current === authUser.id && profile) {
+      console.log('[UserContext] Same user, skipping refetch');
+      return;
+    }
+
+    lastFetchedUserIdRef.current = authUser.id;
     fetchUserData(authUser.id);
-  }, [authUser, authLoading, fetchUserData]);
+  }, [authUser?.id, authLoading, fetchUserData]); // depend on authUser.id, not authUser object
 
   const isOnboardingComplete = onboarding?.status === 'completed';
 
@@ -181,7 +198,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (authUser) await fetchUserData(authUser.id);
+    if (authUser) await fetchUserData(authUser.id, true);
   }, [authUser, fetchUserData]);
 
   return (
