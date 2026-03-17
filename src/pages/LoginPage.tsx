@@ -64,7 +64,7 @@ export default function LoginPage() {
         setError(translateError(result.error));
         setFlowState('idle');
       } else {
-        console.log('[LoginPage] Password auth successful for:', trimmedEmail);
+        // Auth state change will redirect automatically
         if (mode === 'signup') {
           // Supabase may require email confirmation
           setFlowState('sent');
