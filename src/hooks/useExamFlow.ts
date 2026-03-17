@@ -1,0 +1,345 @@
+/**
+ * useExamFlow — orchestration hook for the exam page.
+ * Encapsulates: init/resume attempt, finalize, timer, focus control, keyboard shortcuts,
+ * state updates, and navigation. SimuladoExamPage only composes UI from this hook.
+ */
+
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
+import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
+import { useExamStorageReal } from '@/hooks/useExamStorageReal';
+import { canAccessSimulado } from '@/lib/simulado-helpers';
+import { useExamTimer } from '@/hooks/useExamTimer';
+import { useFocusControl } from '@/hooks/useFocusControl';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
+import { computeSimuladoScore } from '@/lib/resultHelpers';
+import type { Question } from '@/types';
+import { toast } from '@/hooks/use-toast';
+
+export interface UseExamFlowReturn {
+  // Data
+  simulado: ReturnType<typeof useSimuladoDetail>['simulado'];
+  questions: Question[];
+  questionIds: string[];
+  state: ExamState | null;
+
+  // Loading & eligibility
+  loading: boolean;
+  isCompleted: boolean;
+
+  // UI state
+  showNavigator: boolean;
+  setShowNavigator: (v: boolean | ((prev: boolean) => boolean)) => void;
+  showSubmitModal: boolean;
+  setShowSubmitModal: (v: boolean | ((prev: boolean) => boolean)) => void;
+  submitting: boolean;
+
+  // Side effects (focus, timer, finalize)
+  focusControl: ReturnType<typeof useFocusControl>;
+  timeRemaining: ReturnType<typeof useExamTimer>;
+  finalize: () => Promise<void>;
+
+  // State update (debounced persist)
+  updateState: (updater: (prev: ExamState) => ExamState) => void;
+
+  // Answer & navigation handlers
+  handleSelectOption: (optionId: string) => void;
+  handleEliminateOption: (optionId: string) => void;
+  handleNavigate: (index: number) => void;
+  handlePrev: () => void;
+  handleNext: () => void;
+  toggleReview: () => void;
+  toggleHighConfidence: () => void;
+
+  // Derived for current question
+  summary: ReturnType<typeof computeExamSummary> | null;
+  currentIndex: number;
+  currentQuestion: Question | undefined;
+  currentAnswer: ExamAnswer | undefined;
+  isReviewFlagged: boolean;
+  isHighConfFlagged: boolean;
+}
+
+const emptySummary = {
+  total: 0,
+  answered: 0,
+  unanswered: 0,
+  markedForReview: 0,
+  highConfidence: 0,
+};
+
+export function useExamFlow(): UseExamFlowReturn {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isOnboardingComplete } = useUser();
+
+  const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
+  const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
+  const storage = useExamStorageReal(id || '');
+
+  const [state, setState] = useState<ExamState | null>(null);
+  const [showNavigator, setShowNavigator] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [initLoading, setInitLoading] = useState(true);
+  const hasFinalized = useRef(false);
+
+  // ── Gate: redirect if not eligible ──
+  useEffect(() => {
+    if (loadingSimulado) return;
+    if (!simulado || !canAccessSimulado(simulado.status) || !isOnboardingComplete) {
+      navigate(simulado ? `/simulados/${id}` : '/simulados', { replace: true });
+    }
+  }, [simulado, loadingSimulado, isOnboardingComplete, navigate, id]);
+
+  // ── Init or resume attempt ──
+  useEffect(() => {
+    if (!simulado || !id || loadingSimulado || questions.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await storage.loadState();
+        if (cancelled) return;
+
+        if (existing && existing.status === 'in_progress') {
+          setState(existing);
+          toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
+        } else if (!existing || existing.status === 'not_started') {
+          const fresh = await storage.initializeState(
+            questions.length,
+            simulado.estimatedDurationMinutes,
+            simulado.executionWindowEnd,
+          );
+          if (!cancelled) setState(fresh);
+        } else {
+          if (!cancelled) setState(existing);
+        }
+      } catch (err) {
+        const local = storage.loadLocalState();
+        if (!cancelled && local) setState(local);
+      } finally {
+        if (!cancelled) setInitLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // Intentionally re-run only when simulado or questions change; storage/setState are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simulado?.id, loadingSimulado, questions.length]);
+
+  const focusControl = useFocusControl({
+    onTabExit: () => storage.registerTabExit(),
+    onTabReturn: () => {},
+    onFullscreenExit: () => storage.registerFullscreenExit(),
+  });
+
+  const finalize = useCallback(async () => {
+    if (hasFinalized.current || !state || !simulado) return;
+    hasFinalized.current = true;
+    setSubmitting(true);
+
+    try {
+      const score = computeSimuladoScore(state, questions);
+      await storage.submitAttempt(
+        score.percentageScore,
+        score.totalCorrect,
+        score.totalAnswered,
+        state,
+      );
+      setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
+      setShowSubmitModal(false);
+      toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
+    } catch (err) {
+      toast({ title: 'Erro ao finalizar', description: 'Tente novamente.', variant: 'destructive' });
+      hasFinalized.current = false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [state, simulado, questions, storage]);
+
+  const handleTimeUp = useCallback(() => {
+    toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
+    setTimeout(() => finalize(), 2000);
+  }, [finalize]);
+
+  const timeRemaining = useExamTimer({
+    deadline: state?.effectiveDeadline ?? null,
+    onTimeUp: handleTimeUp,
+    paused: state?.status !== 'in_progress',
+  });
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasFinalized.current || state?.status !== 'in_progress') return;
+      storage.flushPendingState();
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state?.status, storage]);
+
+  const currentIndex = state?.currentQuestionIndex ?? 0;
+  const currentQuestion = questions[currentIndex];
+  const currentAnswer = currentQuestion ? state?.answers[currentQuestion.id] : undefined;
+
+  const updateState = useCallback((updater: (prev: ExamState) => ExamState) => {
+    setState(prev => {
+      if (!prev || prev.status !== 'in_progress') return prev;
+      const updated = updater(prev);
+      storage.saveStateDebounced(updated);
+      return updated;
+    });
+  }, [storage]);
+
+  const handleSelectOption = useCallback((optionId: string) => {
+    if (!currentQuestion) return;
+    const answer: ExamAnswer = {
+      ...(state?.answers[currentQuestion.id] ?? {
+        questionId: currentQuestion.id,
+        selectedOption: null,
+        markedForReview: false,
+        highConfidence: false,
+        eliminatedAlternatives: [],
+      }),
+      questionId: currentQuestion.id,
+      selectedOption: optionId,
+    };
+    storage.trackAnswer(currentQuestion.id, answer);
+    updateState(prev => ({
+      ...prev,
+      answers: { ...prev.answers, [currentQuestion.id]: answer },
+    }));
+  }, [currentQuestion, state?.answers, updateState, storage]);
+
+  const handleEliminateOption = useCallback((optionId: string) => {
+    if (!currentQuestion) return;
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] ?? {
+        questionId: currentQuestion.id,
+        selectedOption: null,
+        markedForReview: false,
+        highConfidence: false,
+        eliminatedAlternatives: [],
+      };
+      const isEliminated = existing.eliminatedAlternatives.includes(optionId);
+      const answer: ExamAnswer = {
+        ...existing,
+        eliminatedAlternatives: isEliminated
+          ? existing.eliminatedAlternatives.filter(i => i !== optionId)
+          : [...existing.eliminatedAlternatives, optionId],
+      };
+      storage.trackAnswer(currentQuestion.id, answer);
+      return { ...prev, answers: { ...prev.answers, [currentQuestion.id]: answer } };
+    });
+  }, [currentQuestion, updateState, storage]);
+
+  const handleNavigate = useCallback((index: number) => {
+    updateState(prev => ({ ...prev, currentQuestionIndex: index }));
+    setShowNavigator(false);
+  }, [updateState]);
+
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) handleNavigate(currentIndex - 1);
+  }, [currentIndex, handleNavigate]);
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < questions.length - 1) handleNavigate(currentIndex + 1);
+  }, [currentIndex, questions.length, handleNavigate]);
+
+  const toggleReview = useCallback(() => {
+    if (!currentQuestion) return;
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] ?? {
+        questionId: currentQuestion.id,
+        selectedOption: null,
+        markedForReview: false,
+        highConfidence: false,
+        eliminatedAlternatives: [],
+      };
+      const newVal = !existing.markedForReview;
+      toast({ title: newVal ? 'Questão marcada para revisão' : 'Marcação removida' });
+      return {
+        ...prev,
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal } },
+      };
+    });
+  }, [currentQuestion, updateState]);
+
+  const toggleHighConfidence = useCallback(() => {
+    if (!currentQuestion) return;
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] ?? {
+        questionId: currentQuestion.id,
+        selectedOption: null,
+        markedForReview: false,
+        highConfidence: false,
+        eliminatedAlternatives: [],
+      };
+      return {
+        ...prev,
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
+      };
+    });
+  }, [currentQuestion, updateState]);
+
+  const shortcuts = useMemo(() => {
+    const map: Record<string, () => void> = {
+      ArrowLeft: handlePrev,
+      ArrowRight: handleNext,
+      r: toggleReview,
+      R: toggleReview,
+      h: toggleHighConfidence,
+      H: toggleHighConfidence,
+      Escape: () => setShowSubmitModal(true),
+    };
+    if (currentQuestion) {
+      currentQuestion.options.forEach((opt, i) => {
+        map[String(i + 1)] = () => handleSelectOption(opt.id);
+      });
+    }
+    return map;
+  }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption]);
+
+  useKeyboardShortcuts(shortcuts, {
+    enabled: state?.status === 'in_progress' && !showSubmitModal && !submitting,
+  });
+
+  const loading = loadingSimulado || initLoading || !simulado || !state;
+  const isCompleted = state?.status === 'submitted' || state?.status === 'expired';
+  const summary = state && questionIds.length > 0 ? computeExamSummary(state, questionIds) : null;
+
+  return {
+    simulado,
+    questions,
+    questionIds,
+    state,
+    loading,
+    isCompleted,
+    showNavigator,
+    setShowNavigator,
+    showSubmitModal,
+    setShowSubmitModal,
+    submitting,
+    focusControl,
+    timeRemaining,
+    finalize,
+    updateState,
+    handleSelectOption,
+    handleEliminateOption,
+    handleNavigate,
+    handlePrev,
+    handleNext,
+    toggleReview,
+    toggleHighConfidence,
+    summary: summary ?? emptySummary,
+    currentIndex,
+    currentQuestion,
+    currentAnswer,
+    isReviewFlagged: currentAnswer?.markedForReview ?? false,
+    isHighConfFlagged: currentAnswer?.highConfidence ?? false,
+  };
+}

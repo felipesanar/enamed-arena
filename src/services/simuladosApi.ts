@@ -142,37 +142,35 @@ export const simuladosApi = {
     return data ? rowToSimuladoConfig(data) : null;
   },
 
-  /** Fetch questions with options for a simulado */
+  /** Fetch questions with options for a simulado. Two-step: questions first, then options by question ids. */
   async getQuestions(simuladoId: string): Promise<Question[]> {
-    console.log('[SimuladosApi] Fetching questions for:', simuladoId);
+    const { data: questionsData, error: questionsError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('simulado_id', simuladoId)
+      .order('question_number', { ascending: true });
 
-    const [questionsResult, optionsResult] = await Promise.all([
-      supabase
-        .from('questions')
-        .select('*')
-        .eq('simulado_id', simuladoId)
-        .order('question_number', { ascending: true }),
-      supabase
-        .from('question_options')
-        .select('*')
-        .in('question_id',
-          // We need the question IDs first — use a subquery approach
-          // Actually, fetch all options for this simulado's questions
-          (await supabase
-            .from('questions')
-            .select('id')
-            .eq('simulado_id', simuladoId)
-          ).data?.map(q => q.id) || []
-        ),
-    ]);
+    if (questionsError) {
+      console.error('[SimuladosApi] Error fetching questions:', questionsError);
+      throw questionsError;
+    }
 
-    if (questionsResult.error) throw questionsResult.error;
-    if (optionsResult.error) throw optionsResult.error;
+    const questions = (questionsData || []) as QuestionRow[];
+    if (questions.length === 0) return [];
 
-    const questions = questionsResult.data || [];
-    const options = optionsResult.data || [];
+    const questionIds = questions.map(q => q.id);
+    const { data: optionsData, error: optionsError } = await supabase
+      .from('question_options')
+      .select('*')
+      .in('question_id', questionIds);
 
-    return questions.map(q => rowsToQuestion(q as QuestionRow, options as QuestionOptionRow[]));
+    if (optionsError) {
+      console.error('[SimuladosApi] Error fetching question options:', optionsError);
+      throw optionsError;
+    }
+
+    const options = (optionsData || []) as QuestionOptionRow[];
+    return questions.map(q => rowsToQuestion(q, options));
   },
 
   /** Get user's attempt for a simulado */

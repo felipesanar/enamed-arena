@@ -1,73 +1,78 @@
-# Welcome to your Lovable project
+# Simulados SanarFlix / PRO: ENAMED
 
-## Project info
+Plataforma de simulados para residência médica. Usuários realizam provas cronometradas, consultam resultados, ranking, desempenho por área/tema e (assinantes PRO) Caderno de Erros e comparativo entre simulados.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack
 
-## How can I edit this code?
+- **Build:** Vite 5, TypeScript
+- **UI:** React 18, React Router 6, shadcn/ui (Radix), Tailwind CSS, Framer Motion
+- **Estado:** TanStack React Query, Context (Auth, User)
+- **Backend:** Supabase (Auth + Postgres)
+- **Testes:** Vitest, Testing Library, Playwright (Lovable)
 
-There are several ways of editing your application.
+## Variáveis de ambiente
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Copie o exemplo e preencha com os valores do seu projeto Supabase:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+cp .env.example .env
 ```
 
-**Edit a file directly in GitHub**
+Edite `.env` e defina:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Variável | Obrigatório | Descrição |
+|----------|-------------|-----------|
+| `VITE_SUPABASE_URL` | Sim | URL do projeto (ex.: `https://xxxx.supabase.co`) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Sim | Chave anônima (anon/public) do Supabase |
+| `VITE_SUPABASE_PROJECT_ID` | Não | ID do projeto (opcional, para scripts) |
 
-**Use GitHub Codespaces**
+**Importante:** Nunca commite o `.env` com valores reais. O `.env.example` contém apenas placeholders.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Como rodar
 
-## What technologies are used for this project?
+```sh
+# Instalar dependências
+npm i
 
-This project is built with:
+# Desenvolvimento (porta 8080)
+npm run dev
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Build de produção
+npm run build
 
-## How can I deploy this project?
+# Preview do build
+npm run preview
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+# Testes unitários
+npm run test
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Estrutura resumida
 
-Yes, you can!
+- **`src/App.tsx`** — Rotas e providers (Query, Auth, User, Router).
+- **`src/contexts/`** — AuthContext (login/sessão), UserContext (perfil e onboarding).
+- **`src/pages/`** — Páginas por rota (Index, Simulados, Prova, Resultado, Ranking, etc.).
+- **`src/hooks/`** — useSimulados, useSimuladoDetail, useExamFlow (prova), useExamStorageReal, useRanking.
+- **`src/services/`** — simuladosApi, rankingApi (Supabase).
+- **`src/lib/`** — simulado-helpers, resultHelpers, errorNotebookReasons, utils.
+- **`src/integrations/supabase/`** — client e tipos gerados.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Segmentos de usuário
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+O app diferencia três segmentos (definidos no banco, tabela `profiles.segment`):
+
+| Segmento | Acesso |
+|----------|--------|
+| **guest** | Simulados, ranking. Caderno de Erros e comparativo bloqueados (ProGate). |
+| **standard** | Simulados, ranking, comparativo. Caderno de Erros bloqueado. |
+| **pro** | Acesso completo: simulados, ranking, comparativo, Caderno de Erros. |
+
+Quem define o valor de `segment` (manual no Supabase ou integração com outro sistema) não está no código; verifique no dashboard do Supabase ou com a equipe de produto.
+
+## Deploy
+
+O projeto foi criado no [Lovable](https://lovable.dev); lá você pode usar Share → Publish. Para deploy manual (Vercel, Netlify, etc.), configure as variáveis de ambiente e use o build estático (`npm run build` → pasta `dist`).
+
+## Licença e créditos
+
+Projeto gerado no Lovable e continuado no Cursor. Stack: Vite, React, TypeScript, shadcn-ui, Tailwind CSS, Supabase.

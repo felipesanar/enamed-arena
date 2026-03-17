@@ -4,24 +4,11 @@ import { BookOpen, X, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { simuladosApi } from '@/services/simuladosApi';
 import { toast } from '@/hooks/use-toast';
-
-// Map local reason keys to DB enum values
-type LocalReason = 'nao_sei' | 'nao_lembrei' | 'nao_entendi' | 'acertei_sem_certeza';
-type DbReason = 'did_not_know' | 'did_not_remember' | 'did_not_understand' | 'guessed_correctly';
-
-const REASON_MAP: Record<LocalReason, DbReason> = {
-  nao_sei: 'did_not_know',
-  nao_lembrei: 'did_not_remember',
-  nao_entendi: 'did_not_understand',
-  acertei_sem_certeza: 'guessed_correctly',
-};
-
-const REASON_LABELS: Record<LocalReason, string> = {
-  nao_sei: 'Não sei o conteúdo',
-  nao_lembrei: 'Não lembrei na hora',
-  nao_entendi: 'Não entendi a questão',
-  acertei_sem_certeza: 'Acertei sem certeza',
-};
+import {
+  type LocalReason,
+  LOCAL_REASON_LABELS,
+  LOCAL_TO_DB_REASON,
+} from '@/lib/errorNotebookReasons';
 
 interface AddToNotebookModalProps {
   open: boolean;
@@ -56,7 +43,7 @@ export function AddToNotebookModal({
         questionId,
         area,
         theme,
-        reason: REASON_MAP[reason],
+        reason: LOCAL_TO_DB_REASON[reason],
         learningText: learningNote || null,
         wasCorrect,
         questionNumber,
@@ -105,7 +92,7 @@ export function AddToNotebookModal({
                   <button key={r} onClick={() => setReason(r)} className={cn(
                     'text-left p-3 rounded-xl border text-body-sm transition-all',
                     reason === r ? 'border-primary bg-primary/5 text-foreground font-medium' : 'border-border/60 bg-card text-muted-foreground hover:bg-accent/30',
-                  )}>{REASON_LABELS[r]}</button>
+                  )}>{LOCAL_REASON_LABELS[r]}</button>
                 ))}
               </div>
             </div>

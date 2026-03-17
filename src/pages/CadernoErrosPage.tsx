@@ -17,13 +17,7 @@ import {
   ChevronDown, ChevronUp, StickyNote,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const REASON_LABELS: Record<string, string> = {
-  did_not_know: 'Não sei o conteúdo',
-  did_not_remember: 'Não lembrei na hora',
-  did_not_understand: 'Não entendi a questão',
-  guessed_correctly: 'Acertei sem certeza',
-};
+import { getReasonLabel } from '@/lib/errorNotebookReasons';
 
 interface NotebookEntry {
   id: string;
@@ -67,7 +61,7 @@ function NotebookEntryCard({ entry, onRemove }: { entry: NotebookEntry; onRemove
 
       <div className="flex items-center gap-2 mb-3">
         <StickyNote className="h-3.5 w-3.5 text-primary" />
-        <span className="text-body-sm text-primary font-semibold">{REASON_LABELS[entry.reason] || entry.reason}</span>
+        <span className="text-body-sm text-primary font-semibold">{getReasonLabel(entry.reason)}</span>
       </div>
 
       {entry.learningNote && (
