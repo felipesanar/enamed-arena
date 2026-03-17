@@ -287,6 +287,8 @@ export default function OnboardingPage() {
         specialty: selectedSpecialty,
         targetInstitutions: selectedInstitutions,
       });
+      // Clean up persisted onboarding state on success
+      clearPersistedStateByPrefix('onboarding:');
       console.log('[OnboardingPage] Onboarding completed successfully');
       navigate('/');
     } catch (e) {
