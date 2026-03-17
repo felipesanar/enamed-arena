@@ -244,9 +244,9 @@ export default function OnboardingPage() {
 
   const segment = profile?.segment ?? 'guest';
 
-  const [step, setStep] = useState(0);
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
-  const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([]);
+  const [step, setStep] = usePersistedState('onboarding:step', 0);
+  const [selectedSpecialty, setSelectedSpecialty] = usePersistedState('onboarding:specialty', '');
+  const [selectedInstitutions, setSelectedInstitutions] = usePersistedState<string[]>('onboarding:institutions', []);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
