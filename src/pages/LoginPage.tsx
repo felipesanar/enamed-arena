@@ -75,7 +75,7 @@ export default function LoginPage() {
     if (cooldown) return;
     setCooldown(true);
     setError('');
-    setFlowState('sending');
+    setResending(true);
 
     try {
       const trimmedEmail = email.trim().toLowerCase();
@@ -89,14 +89,13 @@ export default function LoginPage() {
 
       if (result.error) {
         setError(translateError(result.error));
-        setFlowState('sent'); // Stay on sent screen
       } else {
         console.log('[LoginPage] Magic link resent to:', trimmedEmail);
-        setFlowState('sent');
       }
     } catch {
       setError('Erro ao reenviar. Tente novamente.');
-      setFlowState('sent');
+    } finally {
+      setResending(false);
     }
 
     // Cooldown for 30 seconds
