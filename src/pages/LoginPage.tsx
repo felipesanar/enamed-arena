@@ -93,7 +93,7 @@ export default function LoginPage() {
         setError(translateError(result.error));
         setFlowState('idle');
       } else {
-        console.log('[LoginPage] Magic link sent to:', trimmedEmail);
+        // Magic link sent successfully
         setFlowState('sent');
       }
     } catch {
