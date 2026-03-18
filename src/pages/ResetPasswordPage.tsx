@@ -2,9 +2,19 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
-import { GraduationCap, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 
 type FlowState = 'idle' | 'saving' | 'done' | 'error';
+
+function getRecoveryParam(key: string) {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  return searchParams.get(key) || hashParams.get(key);
+}
+
+function clearRecoveryParams() {
+  window.history.replaceState({}, document.title, '/reset-password');
+}
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -16,20 +26,91 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Supabase handles the token exchange from the URL hash automatically
-    // We just need to check if a session exists after the recovery flow
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    let mounted = true;
+
+    const failRecovery = (message: string) => {
+      if (!mounted) return;
+      setError(message);
+      setFlowState('error');
+      setReady(false);
+    };
+
+    const prepareRecoverySession = async () => {
+      const accessToken = getRecoveryParam('access_token');
+      const refreshToken = getRecoveryParam('refresh_token');
+      const tokenHash = getRecoveryParam('token_hash') || getRecoveryParam('token');
+      const recoveryType = getRecoveryParam('type');
+      const providerError = getRecoveryParam('error_description') || getRecoveryParam('error');
+
+      if (providerError) {
+        failRecovery(decodeURIComponent(providerError).replace(/\+/g, ' '));
+        return;
+      }
+
+      if (accessToken && refreshToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (sessionError) {
+          failRecovery('Link inválido ou expirado. Solicite um novo email.');
+          return;
+        }
+
+        clearRecoveryParams();
+        if (mounted) {
+          setReady(true);
+          setFlowState('idle');
+        }
+        return;
+      }
+
+      if (tokenHash && recoveryType === 'recovery') {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+
+        if (verifyError) {
+          failRecovery('Link inválido ou expirado. Solicite um novo email.');
+          return;
+        }
+
+        clearRecoveryParams();
+        if (mounted) {
+          setReady(true);
+          setFlowState('idle');
+        }
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        if (mounted) {
+          setReady(true);
+          setFlowState('idle');
+        }
+        return;
+      }
+
+      failRecovery('Link inválido ou expirado. Solicite um novo email.');
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setReady(true);
+        setFlowState('idle');
       }
     });
 
-    // Also check immediately in case event already fired
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    void prepareRecoverySession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,6 +149,26 @@ export default function ResetPasswordPage() {
             <p className="text-body-sm text-muted-foreground">
               Sua senha foi redefinida com sucesso. Redirecionando...
             </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (flowState === 'error') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
+          <Brand />
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm text-center space-y-4">
+            <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <AlertCircle className="h-7 w-7 text-destructive" />
+            </div>
+            <h2 className="text-heading-3 text-foreground">Não foi possível validar o link</h2>
+            <p className="text-body-sm text-muted-foreground">{error}</p>
+            <Link to="/forgot-password" className="inline-block text-body-sm text-primary font-semibold hover:underline mt-2">
+              Solicitar novo email
+            </Link>
           </div>
         </motion.div>
       </div>
