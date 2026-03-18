@@ -187,6 +187,14 @@ async function triggerNovu(payload: NovuPayload): Promise<Response> {
         subject,
         html,
       },
+      providers: {
+        sendgrid: {
+          trackingSettings: {
+            clickTracking: { enable: false, enableText: false },
+            openTracking: { enable: false },
+          },
+        },
+      },
     },
   };
 

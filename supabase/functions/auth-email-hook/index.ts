@@ -169,6 +169,14 @@ serve(async (req) => {
           subject,
           html,
         },
+        providers: {
+          sendgrid: {
+            trackingSettings: {
+              clickTracking: { enable: false, enableText: false },
+              openTracking: { enable: false },
+            },
+          },
+        },
       },
     };
 
