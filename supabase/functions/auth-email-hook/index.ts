@@ -174,20 +174,25 @@ serve(async (req) => {
 
     console.log(`[auth-email-hook] Sending ${emailType} email to ${email} via Novu`);
 
-    const novuRes = await fetch(NOVU_TRIGGER_URL, {
+    // Fire-and-forget: respond immediately to avoid Supabase Auth 5s timeout
+    const novuPromise = fetch(NOVU_TRIGGER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(novuBody),
+    }).then(async (res) => {
+      const text = await res.text();
+      if (!res.ok) {
+        console.error(`[auth-email-hook] Novu error [${res.status}]: ${text}`);
+      } else {
+        console.log(`[auth-email-hook] Email sent successfully via Novu`);
+      }
+    }).catch((err) => {
+      console.error(`[auth-email-hook] Novu fetch failed:`, err);
     });
 
-    const novuText = await novuRes.text();
-
-    if (!novuRes.ok) {
-      console.error(`[auth-email-hook] Novu error [${novuRes.status}]: ${novuText}`);
-      // Return error but don't block auth flow
-    } else {
-      console.log(`[auth-email-hook] Email sent successfully via Novu`);
-    }
+    // Keep the promise alive in the background but respond immediately
+    // EdgeRuntime will keep the isolate alive until the promise settles
+    void novuPromise;
 
     // Return expected hook response to suppress Supabase default email
     return new Response(JSON.stringify({}), {
