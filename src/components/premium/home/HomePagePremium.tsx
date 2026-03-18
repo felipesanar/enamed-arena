@@ -16,7 +16,7 @@ const SECTION_SPACING = "mb-8 md:mb-10";
 const STAGGER_CHILDREN = 0.06;
 const STAGGER_DELAY = 0.04;
 const DURATION = 0.45;
-const EASE = [0.25, 0.46, 0.45, 0.94];
+const EASE = [0.25, 0.46, 0.45, 0.94] as const;
 
 export function HomePagePremium() {
   const prefersReducedMotion = useReducedMotion();
