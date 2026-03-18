@@ -13,11 +13,39 @@ export default function SimuladoExamPage() {
 
   if (flow.loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-body text-muted-foreground">Carregando simulado...</p>
+      <div className="h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
+          <div className="flex items-center justify-between px-4 md:px-6 h-14">
+            <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+              <div className="w-24 h-1.5 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="h-9 w-20 bg-muted rounded-lg animate-pulse" />
+          </div>
+        </header>
+        <div className="px-4 md:px-6 py-2 bg-muted/30 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-1.5 rounded-full bg-muted animate-pulse" />
+            <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+          </div>
         </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="flex gap-2">
+              <div className="h-6 w-20 bg-muted rounded animate-pulse" />
+              <div className="h-6 w-24 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="h-4 w-full bg-muted rounded animate-pulse" />
+            <div className="h-4 w-full bg-muted rounded animate-pulse" />
+            <div className="h-4 max-w-[75%] w-full bg-muted rounded animate-pulse" />
+            <div className="pt-6 space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-14 w-full bg-muted rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -227,14 +255,13 @@ export default function SimuladoExamPage() {
         )}
       </AnimatePresence>
 
-      {flow.showSubmitModal && (
-        <SubmitConfirmModal
-          summary={flow.summary}
-          submitting={flow.submitting}
-          onConfirm={flow.finalize}
-          onCancel={() => flow.setShowSubmitModal(false)}
-        />
-      )}
+      <SubmitConfirmModal
+        open={flow.showSubmitModal}
+        summary={flow.summary}
+        submitting={flow.submitting}
+        onConfirm={flow.finalize}
+        onCancel={() => flow.setShowSubmitModal(false)}
+      />
     </div>
   );
 }

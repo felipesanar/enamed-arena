@@ -5,7 +5,6 @@
  */
 
 import { useMemo } from 'react';
-import { AppLayout } from '@/components/AppLayout';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -74,7 +73,7 @@ export default function RankingPage() {
   // Empty state: no simulados with results
   if (!loading && simuladosWithResults.length === 0) {
     return (
-      <AppLayout>
+      <>
         <PageHeader
           title="Ranking ENAMED"
           subtitle="Compare seu desempenho com milhares de candidatos."
@@ -85,12 +84,12 @@ export default function RankingPage() {
           title="Ranking indisponível"
           description="Complete um simulado e aguarde a liberação do resultado para acessar o ranking."
         />
-      </AppLayout>
+      </>
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <PageHeader
         title="Ranking ENAMED"
         subtitle="Compare seu desempenho com milhares de candidatos."
@@ -122,30 +121,33 @@ export default function RankingPage() {
             </div>
           )}
 
-          {/* Your position card */}
+          {/* Hero: sua posição em destaque (Fase D) */}
           {currentUser && (
-            <PremiumCard className="mb-6 p-5 md:p-6 border-primary/20 bg-gradient-to-r from-accent to-transparent">
-              <div className="flex items-center justify-between flex-wrap gap-4">
+            <PremiumCard variant="hero" className="mb-6 border-primary/20 bg-gradient-to-r from-accent/50 to-transparent">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Trophy className="h-6 w-6 text-primary" />
+                  <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Trophy className="h-7 w-7 text-primary" aria-hidden />
                   </div>
                   <div>
-                    <p className="text-body-sm text-muted-foreground">Sua posição</p>
-                    <p className="text-heading-2 text-foreground">
-                      #{currentUser.position} de {filteredParticipants.length}
+                    <p className="text-overline uppercase text-muted-foreground tracking-wide mb-0.5">Sua posição</p>
+                    <p className="text-display font-bold text-foreground tabular-nums">
+                      #{currentUser.position}
+                      <span className="text-heading-2 font-semibold text-muted-foreground ml-1">
+                        de {filteredParticipants.length}
+                      </span>
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className="text-body-sm text-muted-foreground">Sua nota</p>
-                    <p className="text-heading-2 text-primary">{currentUser.score}%</p>
+                <div className="flex items-center gap-8 sm:gap-10">
+                  <div className="text-center sm:text-right">
+                    <p className="text-caption text-muted-foreground">Sua nota</p>
+                    <p className="text-heading-1 font-bold text-primary tabular-nums">{currentUser.score}%</p>
                   </div>
                   {stats.totalCandidatos > 1 && (
-                    <div className="text-right hidden sm:block">
-                      <p className="text-body-sm text-muted-foreground">Média geral</p>
-                      <p className="text-heading-2 text-muted-foreground">{stats.notaMedia}%</p>
+                    <div className="text-center sm:text-right hidden sm:block">
+                      <p className="text-caption text-muted-foreground">Média geral</p>
+                      <p className="text-heading-2 font-semibold text-muted-foreground tabular-nums">{stats.notaMedia}%</p>
                     </div>
                   )}
                 </div>
@@ -317,6 +319,6 @@ export default function RankingPage() {
           )}
         </>
       )}
-    </AppLayout>
+    </>
   );
 }

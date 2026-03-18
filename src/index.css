@@ -76,6 +76,11 @@
     --shadow-md: 0 4px 12px -2px hsl(220 20% 10% / 0.06), 0 2px 4px -2px hsl(220 20% 10% / 0.04);
     --shadow-lg: 0 12px 32px -4px hsl(220 20% 10% / 0.08), 0 4px 8px -2px hsl(220 20% 10% / 0.04);
     --shadow-premium: 0 8px 24px -4px hsl(345 65% 30% / 0.12), 0 2px 8px -2px hsl(345 65% 30% / 0.06);
+
+    /* Fase A — Hero e respiro */
+    --hero-gradient: linear-gradient(135deg, hsl(345 65% 30%), hsl(345 65% 22%));
+    --section-breathe: 2.5rem;
+    --section-breathe-md: 3rem;
   }
 
   .dark {
@@ -173,6 +178,26 @@
     transform: translateY(-1px);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .premium-card-interactive:hover {
+      transform: none;
+    }
+  }
+
+  /* Hero card — protagonista por tela (Fase A) */
+  .premium-card-hero {
+    @apply rounded-2xl border border-primary/20 bg-card;
+    box-shadow: var(--shadow-premium);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .premium-card-hero:hover {
+    box-shadow: 0 12px 32px -4px hsl(345 65% 30% / 0.16), 0 4px 12px -2px hsl(345 65% 30% / 0.08);
+  }
+
+  /* Content card = padrão .premium-card (listas, blocos de apoio) */
+  /* Stat = StatCard; hero stat pode usar .premium-card-hero com tipografia maior */
+
   .text-gradient-wine {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, hsl(345 65% 30%), hsl(345 60% 42%));
@@ -201,6 +226,16 @@
   /* Premium divider */
   .divider-premium {
     @apply border-t border-border/60;
+  }
+
+  /* Section respiro (Fase A) — margem entre seções hero e densas */
+  .section-breathe {
+    margin-bottom: var(--section-breathe);
+  }
+  @media (min-width: 768px) {
+    .section-breathe {
+      margin-bottom: var(--section-breathe-md);
+    }
   }
 }
 

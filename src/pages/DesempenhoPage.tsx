@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AppLayout } from '@/components/AppLayout';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { StatCard } from '@/components/StatCard';
@@ -40,6 +39,7 @@ function PerformanceNode({
 }
 
 export default function DesempenhoPage() {
+  const prefersReducedMotion = useReducedMotion();
   const { simulados, loading: loadingSimulados } = useSimulados();
   const simuladosWithResults = useMemo(() => simulados.filter(s => canViewResults(s.status)), [simulados]);
 
@@ -65,26 +65,26 @@ export default function DesempenhoPage() {
 
   if (loading && !breakdown) {
     return (
-      <AppLayout>
-        <PageHeader title="Desempenho" subtitle="Acompanhe sua performance detalhada por área e tema." badge="Análise de Performance" />
+      <>
+        <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
         <SkeletonCard />
-      </AppLayout>
+      </>
     );
   }
 
   if (simuladosWithResults.length === 0 || !breakdown) {
     return (
-      <AppLayout>
-        <PageHeader title="Desempenho" subtitle="Acompanhe sua performance detalhada por área e tema." badge="Análise de Performance" />
+      <>
+        <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
         <EmptyState
           icon={BarChart3}
           title="Sem dados de desempenho"
           description="Complete um simulado e aguarde a liberação do resultado para ver sua análise de desempenho."
         />
-      </AppLayout>
+      </>
     );
   }
 
@@ -94,8 +94,8 @@ export default function DesempenhoPage() {
   const worstArea = byArea[byArea.length - 1];
 
   return (
-    <AppLayout>
-      <PageHeader title="Desempenho" subtitle="Acompanhe sua performance detalhada por área e tema." badge="Análise de Performance" />
+    <>
+      <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
 
       {simuladosWithResults.length > 1 && (
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
@@ -117,30 +117,30 @@ export default function DesempenhoPage() {
       {byArea.length > 1 && (
         <PremiumCard className="p-5 md:p-6 mb-8">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-4 w-4 text-primary" /></div>
-            <h3 className="text-heading-3 text-foreground">Relatório de Desempenho</h3>
+            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-4 w-4 text-primary" aria-hidden /></div>
+            <h3 className="text-heading-3 text-foreground">Resumo do seu desempenho</h3>
           </div>
           <p className="text-body text-muted-foreground mb-5">
             Seu aproveitamento geral foi de <strong className="text-foreground">{overall.percentageScore}%</strong> ({overall.totalCorrect}/{overall.totalQuestions} questões).
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-xl border border-success/20 bg-success/[0.03] p-4">
-              <h4 className="font-semibold flex items-center gap-2 text-success text-body-sm mb-2"><Star className="h-4 w-4" /> Ponto Forte</h4>
+              <h4 className="font-semibold flex items-center gap-2 text-success text-body-sm mb-2"><Star className="h-4 w-4" aria-hidden /> Onde você brilha</h4>
               <p className="text-body-sm text-muted-foreground">Sua principal fortaleza foi em <strong className="text-foreground">{bestArea.area}</strong> com <strong className="text-foreground">{bestArea.score}%</strong>.</p>
             </div>
             <div className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4">
-              <h4 className="font-semibold flex items-center gap-2 text-destructive text-body-sm mb-2"><TrendingDown className="h-4 w-4" /> Oportunidade</h4>
+              <h4 className="font-semibold flex items-center gap-2 text-destructive text-body-sm mb-2"><TrendingDown className="h-4 w-4" aria-hidden /> Próximo foco</h4>
               <p className="text-body-sm text-muted-foreground">A área com maior oportunidade é <strong className="text-foreground">{worstArea.area}</strong> com <strong className="text-foreground">{worstArea.score}%</strong>.</p>
             </div>
           </div>
         </PremiumCard>
       )}
 
-      {/* Hierarchical Analysis */}
+      {/* Análise por área e tema */}
       <PremiumCard className="p-5 md:p-6 mb-8">
         <div className="flex items-center gap-2.5 mb-4">
-          <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" /></div>
-          <h3 className="text-heading-3 text-foreground">Análise Hierárquica</h3>
+          <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" aria-hidden /></div>
+          <h3 className="text-heading-3 text-foreground">Análise por grande área e tema</h3>
         </div>
         <div className="flex flex-col lg:flex-row gap-5">
           <div className="lg:border-r lg:border-border/30 lg:pr-6 space-y-3">
@@ -171,7 +171,7 @@ export default function DesempenhoPage() {
                 <div className="space-y-2 max-h-[350px] overflow-y-auto">
                   <AnimatePresence>
                     {themesForArea.map(theme => (
-                      <motion.div key={theme.theme} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+                      <motion.div key={theme.theme} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -8 }} transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}>
                         <div className="p-3.5 rounded-xl border border-border/40 bg-card hover:bg-accent/30 transition-all">
                           <div className="flex justify-between items-center gap-2">
                             <span className="font-medium text-body-sm text-foreground">{theme.theme}</span>
@@ -191,7 +191,7 @@ export default function DesempenhoPage() {
         </div>
       </PremiumCard>
 
-      <SectionHeader title="Desempenho por Grande Área" />
+      <SectionHeader title="Sua evolução por grande área" />
       <div className="space-y-3">
         {byArea.map((area, i) => (
           <PremiumCard key={area.area} delay={i * 0.06} className="p-4 md:p-5">
@@ -200,11 +200,11 @@ export default function DesempenhoPage() {
               <div className="flex items-center gap-3"><span className="text-body-sm text-muted-foreground">{area.correct}/{area.questions} questões</span><span className="text-heading-3 text-foreground">{area.score}%</span></div>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${area.score}%` }} transition={{ duration: 0.7, delay: i * 0.06 }} className="h-full rounded-full bg-primary" />
+              <motion.div initial={prefersReducedMotion ? false : { width: 0 }} animate={{ width: `${area.score}%` }} transition={{ duration: prefersReducedMotion ? 0 : 0.7, delay: prefersReducedMotion ? 0 : i * 0.06 }} className="h-full rounded-full bg-primary" />
             </div>
           </PremiumCard>
         ))}
       </div>
-    </AppLayout>
+    </>
   );
 }

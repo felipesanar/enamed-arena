@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AppLayout } from '@/components/AppLayout';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
+import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
@@ -22,6 +22,7 @@ import {
 
 export default function CorrecaoPage() {
   const { id } = useParams<{ id: string }>();
+  const prefersReducedMotion = useReducedMotion();
   const { profile } = useUser();
   const { user } = useAuth();
   const segment = profile?.segment ?? 'guest';
@@ -43,11 +44,20 @@ export default function CorrecaoPage() {
   }, [examState, questions]);
 
   if (loading) {
-    return <AppLayout><div className="space-y-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div></AppLayout>;
+    return <><div className="space-y-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div></>;
   }
 
   if (!simulado) {
-    return <AppLayout><EmptyState title="Simulado não encontrado" description="O simulado que você procura não existe." /></AppLayout>;
+    return (
+      <>
+        <EmptyState
+          title="Simulado não encontrado"
+          description="O simulado que você procura não existe."
+          backHref="/simulados"
+          backLabel="Voltar ao calendário"
+        />
+      </>
+    );
   }
 
   if (!canViewResults(simulado.status)) {
@@ -56,14 +66,20 @@ export default function CorrecaoPage() {
 
   if (!examState || !score || (examState.status !== 'submitted' && examState.status !== 'expired')) {
     return (
-      <AppLayout>
+      <>
         <div className="mb-4">
           <Link to={`/simulados/${id}`} className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Link>
         </div>
-        <EmptyState icon={FileText} title="Sem correção disponível" description="Você não realizou este simulado." />
-      </AppLayout>
+        <EmptyState
+          icon={FileText}
+          title="Sem correção disponível"
+          description="Você não realizou este simulado."
+          backHref={id ? `/simulados/${id}` : "/simulados"}
+          backLabel="Voltar ao simulado"
+        />
+      </>
     );
   }
 
@@ -79,17 +95,20 @@ export default function CorrecaoPage() {
   };
 
   return (
-    <AppLayout>
-      <div className="mb-4">
-        <Link to={`/simulados/${id}/resultado`} className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao resultado
-        </Link>
-      </div>
+    <>
+      <PageBreadcrumb
+        items={[
+          { label: "Simulados", href: "/simulados" },
+          { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
+          { label: "Correção" },
+        ]}
+        className="mb-4"
+      />
 
       <PageHeader
         title="Gabarito Comentado"
         subtitle={`${simulado.title} — ${score.totalCorrect}/${score.totalQuestions} acertos (${score.percentageScore}%)`}
-        badge={`Correção · Simulado #${simulado.sequenceNumber}`}
+        badge={`Simulado #${simulado.sequenceNumber} · Correção`}
       />
 
       <div className="flex gap-6">
@@ -97,15 +116,16 @@ export default function CorrecaoPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, x: 20 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, x: prefersReducedMotion ? 0 : -20 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
             >
               <PremiumCard className="p-5 md:p-6 mb-4">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="text-body font-bold text-foreground">Questão {question.number}</span>
+                    <span className="text-caption text-muted-foreground">de {questions.length}</span>
                     <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">{question.area}</span>
                     <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">{question.theme}</span>
                   </div>
@@ -228,8 +248,8 @@ export default function CorrecaoPage() {
       {/* Mobile navigator */}
       <AnimatePresence>
         {showNav && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 md:hidden bg-foreground/40 backdrop-blur-sm" onClick={() => setShowNav(false)}>
-            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="absolute bottom-0 left-0 right-0 bg-card border-t border-border rounded-t-2xl p-5 max-h-[60vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <motion.div initial={prefersReducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.2 }} className="fixed inset-0 z-50 md:hidden bg-foreground/40 backdrop-blur-sm" onClick={() => setShowNav(false)}>
+            <motion.div initial={prefersReducedMotion ? false : { y: '100%' }} animate={{ y: 0 }} exit={{ y: prefersReducedMotion ? 0 : '100%' }} transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', damping: 25, stiffness: 300 }} className="absolute bottom-0 left-0 right-0 bg-card border-t border-border rounded-t-2xl p-5 max-h-[60vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-4" />
               <p className="text-body font-semibold text-foreground mb-3">Navegação por questões</p>
               <div className="grid grid-cols-5 gap-2">
@@ -263,6 +283,6 @@ export default function CorrecaoPage() {
           onAdded={() => setNotebookRefresh(v => v + 1)}
         />
       )}
-    </AppLayout>
+    </>
   );
 }

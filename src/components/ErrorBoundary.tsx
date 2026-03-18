@@ -60,14 +60,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col gap-3">
               <button
                 onClick={this.handleReload}
-                className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" aria-hidden />
                 Recarregar página
               </button>
               <button
                 onClick={this.handleGoHome}
-                className="text-body-sm text-primary font-semibold hover:underline"
+                className="text-body-sm text-primary font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg py-2 px-3"
               >
                 Voltar ao início
               </button>

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { AppLayout } from '@/components/AppLayout';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -26,6 +25,12 @@ import {
   Tooltip, Legend, BarChart, Bar,
 } from 'recharts';
 import { Link } from 'react-router-dom';
+import {
+  CHART_COLORS,
+  chartTickStyle,
+  chartGridProps,
+  chartTooltipContentStyle,
+} from '@/lib/chartTheme';
 
 function InsightCard({ insight, delay }: { insight: ComparativeInsight; delay: number }) {
   const iconMap = {
@@ -102,7 +107,7 @@ export default function ComparativoPage() {
 
   if (!hasAccess) {
     return (
-      <AppLayout>
+      <>
         <PageHeader
           title="Comparativo entre Simulados"
           subtitle="Acompanhe sua evolução ao longo dos simulados."
@@ -111,11 +116,16 @@ export default function ComparativoPage() {
         <ProGate
           icon={BarChart3}
           feature="Comparativo entre Simulados"
-          description="Compare seu desempenho entre diferentes simulados, identifique padrões de evolução e acompanhe seu progresso ao longo do tempo. Disponível para assinantes SanarFlix."
+          description="Compare seu desempenho entre diferentes simulados, identifique padrões de evolução e acompanhe seu progresso ao longo do tempo."
           requiredSegment="standard"
           currentSegment={segment}
+          benefits={[
+            "Gráfico de evolução do score entre simulados",
+            "Insights automáticos (melhoria, queda, consistência)",
+            "Detalhamento e variação por simulado",
+          ]}
         />
-      </AppLayout>
+      </>
     );
   }
 
@@ -127,18 +137,18 @@ function ComparativoContent() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <>
         <PageHeader title="Comparativo entre Simulados" subtitle="Carregando..." badge="Análise Comparativa" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1,2,3].map(i => <SkeletonCard key={i} />)}
         </div>
-      </AppLayout>
+      </>
     );
   }
 
   if (entries.length < 2) {
     return (
-      <AppLayout>
+      <>
         <PageHeader
           title="Comparativo entre Simulados"
           subtitle="Acompanhe sua evolução ao longo dos simulados."
@@ -157,7 +167,7 @@ function ComparativoContent() {
             </Link>
           }
         />
-      </AppLayout>
+      </>
     );
   }
 
@@ -170,14 +180,14 @@ function ComparativoContent() {
   const avg = Math.round(sorted.reduce((a, e) => a + e.percentageScore, 0) / sorted.length);
 
   return (
-    <AppLayout>
+    <>
       <PageHeader
         title="Comparativo entre Simulados"
-        subtitle="Acompanhe sua evolução ao longo dos simulados."
+        subtitle="Sua evolução ao longo dos simulados."
         badge="Análise Comparativa"
       />
 
-      {/* Summary stats */}
+      {/* Resumo numérico */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
         {[
           { label: 'Simulados', value: String(sorted.length), icon: Target },
@@ -197,38 +207,31 @@ function ComparativoContent() {
         ))}
       </div>
 
-      {/* Insights */}
-      <SectionHeader title="Insights de Evolução" />
+      {/* Onde você evoluiu */}
+      <SectionHeader title="Onde você evoluiu" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {insights.map((insight, i) => (
           <InsightCard key={insight.title} insight={insight} delay={i * 0.06} />
         ))}
       </div>
 
-      {/* Score evolution chart */}
-      <SectionHeader title="Evolução do Score" />
+      {/* Gráfico de evolução */}
+      <SectionHeader title="Sua evolução do score" />
       <PremiumCard className="p-5 md:p-6 mb-8">
         <div className="h-[280px] md:h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={scoreChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 90%)" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(220 10% 46%)' }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: 'hsl(220 10% 46%)' }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(0 0% 100%)',
-                  border: '1px solid hsl(220 12% 90%)',
-                  borderRadius: '12px',
-                  fontSize: 13,
-                }}
-              />
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="name" tick={chartTickStyle} />
+              <YAxis domain={[0, 100]} tick={chartTickStyle} />
+              <Tooltip contentStyle={chartTooltipContentStyle} />
               <Line
                 type="monotone"
                 dataKey="score"
                 name="Score (%)"
-                stroke="hsl(345, 65%, 30%)"
+                stroke={CHART_COLORS.primary}
                 strokeWidth={3}
-                dot={{ fill: 'hsl(345, 65%, 30%)', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                dot={{ fill: CHART_COLORS.primary, r: 5, strokeWidth: 2, stroke: '#fff' }}
                 activeDot={{ r: 7 }}
               />
             </LineChart>
@@ -236,8 +239,8 @@ function ComparativoContent() {
         </div>
       </PremiumCard>
 
-      {/* Per-simulado comparison table */}
-      <SectionHeader title="Detalhamento por Simulado" />
+      {/* Tabela por simulado */}
+      <SectionHeader title="Detalhamento por simulado" />
       <PremiumCard className="p-0 overflow-hidden mb-8">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -284,6 +287,6 @@ function ComparativoContent() {
           </table>
         </div>
       </PremiumCard>
-    </AppLayout>
+    </>
   );
 }

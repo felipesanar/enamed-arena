@@ -4,6 +4,25 @@ Este documento mapeia cada risco da auditoria para uma solução concreta: statu
 
 ---
 
+## Status após implementação (concluído)
+
+**Todos os 10 riscos foram tratados.** Resumo do que está em produção/repo:
+
+- **RLS** — Auditado; todas as tabelas com políticas corretas. Documentação em `docs/SUPABASE_RLS.md`.
+- **Env** — Documentado (`.env.example` + README).
+- **SimuladoExamPage** — Lógica em `useExamFlow`; página enxuta.
+- **getQuestions** — Fluxo em 2 requests claro; otimização para 1 request (RPC/join) permanece **opcional**.
+- **Código morto / caderno** — Removido e unificado em `errorNotebookReasons.ts`.
+- **TypeScript** — `noImplicitAny: true`, `noFallthroughCasesInSwitch: true`, `vite-env.d.ts` tipado, `as any` removido (simuladosApi com `TablesInsert`, rankingApi com tipagem do join).
+- **Falhas silenciosas** — UserContext expõe `profileError` e exibe toast em erro; useExamStorageReal retorna `fromCache` e notifica o usuário quando usa cache local.
+- **Error boundary** — Componente criado e envolvendo toda a árvore em `App.tsx`.
+- **Fetches redundantes** — `useSimuladoDetail` e `useSimulados` usam React Query com cache de 5 min.
+- **Logs em produção** — `logger.ts` criado; `console.log` substituído por `logger.log` em AuthContext, UserContext, LoginPage, simuladosApi, rankingApi, useExamStorageReal, useSimuladoDetail e useSimulados.
+
+**Build:** 0 erros. **Testes:** 17 passando.
+
+---
+
 ## Visão geral de status
 
 | # | Risco | Status | Onde atuar |
@@ -198,12 +217,10 @@ Este documento mapeia cada risco da auditoria para uma solução concreta: statu
 
 ## Ordem sugerida de implementação
 
-1. **Risco 8 (Error boundary)** — rápido e reduz tela branca.  
-2. **Risco 7 (Falhas silenciosas)** — melhor UX em erro de perfil e prova.  
-3. **Risco 1 (RLS)** — revisão e documentação no Supabase.  
-4. **Risco 10 (Logs)** — logger + substituição de console.  
-5. **Risco 6 (TypeScript)** — env + remoção de any + strict gradual.  
-6. **Risco 9 (Cache React Query)** — mais trabalho, mas melhora performance.  
-7. **Risco 4 (getQuestions em 1 request)** — opcional; fazer se quiser menos latência na abertura da prova.
+**Implementação concluída.** A ordem usada foi a sugerida; todos os itens foram aplicados (com risco 4 mantido como otimização opcional).
 
-Os itens já marcados como resolvidos (2, 3, 5) só precisam de manutenção conforme descrito acima.
+**Manutenção contínua:**
+- Ao criar novas tabelas no Supabase, ativar RLS e documentar em `docs/SUPABASE_RLS.md`.
+- Ao adicionar variáveis de ambiente, atualizar `.env.example` e README.
+- Novos motivos no Caderno de Erros → `src/lib/errorNotebookReasons.ts`.
+- Novos pontos de log sensível → usar `logger.log` / `logger.warn` em vez de `console`.

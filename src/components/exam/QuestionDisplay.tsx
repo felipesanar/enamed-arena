@@ -54,8 +54,9 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                 className={cn(
                   'w-full text-left p-4 rounded-xl border-2 transition-all duration-200',
                   'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                  'active:scale-[0.995]',
                   isSelected
-                    ? 'border-primary bg-primary/5 shadow-sm'
+                    ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20'
                     : isEliminated
                       ? 'border-border bg-muted/20 opacity-40'
                       : 'border-border bg-card hover:border-primary/40 hover:bg-muted/30',
@@ -81,20 +82,22 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                 </div>
               </button>
 
-              {/* Eliminate/restore button — Academy pattern */}
+              {/* Eliminate/restore — visible on touch (sm and below), hover on desktop */}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEliminateOption(opt.id);
                 }}
                 className={cn(
-                  'absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md flex items-center justify-center',
-                  'transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted',
-                  isEliminated ? 'opacity-100 text-destructive' : 'opacity-0 group-hover:opacity-100',
+                  'absolute right-3 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] h-11 w-11 rounded-lg flex items-center justify-center',
+                  'transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-90',
+                  isEliminated ? 'opacity-100 text-destructive' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100',
                 )}
                 title={isEliminated ? 'Restaurar alternativa' : 'Eliminar alternativa'}
+                aria-label={isEliminated ? 'Restaurar alternativa' : 'Eliminar alternativa'}
               >
-                {isEliminated ? <Undo2 className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                {isEliminated ? <Undo2 className="h-4 w-4" aria-hidden /> : <Trash2 className="h-4 w-4" aria-hidden />}
               </button>
             </div>
           );

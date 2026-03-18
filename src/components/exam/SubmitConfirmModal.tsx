@@ -1,29 +1,53 @@
-import { motion } from 'framer-motion';
 import { CheckCircle2, Flag, Zap, AlertTriangle, Check } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import type { ExamSummary } from '@/types/exam';
 
 interface SubmitConfirmModalProps {
+  open: boolean;
   summary: ExamSummary;
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function SubmitConfirmModal({ summary, submitting, onConfirm, onCancel }: SubmitConfirmModalProps) {
+export function SubmitConfirmModal({
+  open,
+  summary,
+  submitting,
+  onConfirm,
+  onCancel,
+}: SubmitConfirmModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-card rounded-2xl border border-border shadow-lg max-w-md w-full p-6 md:p-8"
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+      <DialogContent
+        className="max-w-md w-full rounded-2xl border border-border p-6 md:p-8 gap-0"
+        onPointerDownOutside={(e) => submitting && e.preventDefault()}
+        onEscapeKeyDown={(e) => submitting && e.preventDefault()}
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Finalizar simulado?</DialogTitle>
+          <DialogDescription>
+            Ao confirmar, seu simulado será enviado e não poderá ser alterado.
+          </DialogDescription>
+        </DialogHeader>
+
         <div className="text-center mb-6">
           <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="h-7 w-7 text-primary" />
+            <CheckCircle2 className="h-7 w-7 text-primary" aria-hidden />
           </div>
           <h2 className="text-heading-2 text-foreground mb-2">Finalizar simulado?</h2>
-          <p className="text-body text-muted-foreground">
+          <p className="text-body text-muted-foreground mb-1">
             Ao confirmar, seu simulado será enviado e não poderá ser alterado.
+          </p>
+          <p className="text-body-sm text-muted-foreground">
+            Nada será perdido. Você poderá conferir o gabarito quando o resultado for liberado.
           </p>
         </div>
 
@@ -38,14 +62,14 @@ export function SubmitConfirmModal({ summary, submitting, onConfirm, onCancel }:
           </div>
           <div className="p-3 rounded-xl bg-info/10 text-center">
             <div className="flex items-center justify-center gap-1">
-              <Flag className="h-3.5 w-3.5 text-info" />
+              <Flag className="h-3.5 w-3.5 text-info" aria-hidden />
               <p className="text-heading-3 text-info">{summary.markedForReview}</p>
             </div>
             <p className="text-caption text-muted-foreground">Para revisar</p>
           </div>
           <div className="p-3 rounded-xl bg-success/10 text-center">
             <div className="flex items-center justify-center gap-1">
-              <Zap className="h-3.5 w-3.5 text-success" />
+              <Zap className="h-3.5 w-3.5 text-success" aria-hidden />
               <p className="text-heading-3 text-success">{summary.highConfidence}</p>
             </div>
             <p className="text-caption text-muted-foreground">Alta certeza</p>
@@ -54,7 +78,7 @@ export function SubmitConfirmModal({ summary, submitting, onConfirm, onCancel }:
 
         {summary.unanswered > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-warning/10 mb-6">
-            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" aria-hidden />
             <p className="text-body-sm text-warning">
               Você tem {summary.unanswered} {summary.unanswered === 1 ? 'questão' : 'questões'} sem resposta.
             </p>
@@ -63,7 +87,7 @@ export function SubmitConfirmModal({ summary, submitting, onConfirm, onCancel }:
 
         {summary.markedForReview > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-info/10 mb-6">
-            <Flag className="h-4 w-4 text-info shrink-0 mt-0.5" />
+            <Flag className="h-4 w-4 text-info shrink-0 mt-0.5" aria-hidden />
             <p className="text-body-sm text-info">
               Você marcou {summary.markedForReview} {summary.markedForReview === 1 ? 'questão' : 'questões'} para revisão.
             </p>
@@ -72,31 +96,39 @@ export function SubmitConfirmModal({ summary, submitting, onConfirm, onCancel }:
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="flex-1 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            className={cn(
+              'flex-1 min-h-[44px] px-4 py-3 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]'
+            )}
           >
             Continuar respondendo
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={submitting}
-            className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50"
+            className={cn(
+              'flex-1 min-h-[44px] px-4 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]'
+            )}
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" aria-hidden />
                 Enviando...
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
-                <Check className="h-4 w-4" />
+                <Check className="h-4 w-4" aria-hidden />
                 Finalizar
               </span>
             )}
           </button>
         </div>
-      </motion.div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

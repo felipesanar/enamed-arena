@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Menu } from "lucide-react";
+import { CommandPalette } from "@/components/CommandPalette";
+import { Menu, Command } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SEGMENT_LABELS } from "@/types";
 import { Link } from "react-router-dom";
@@ -10,6 +12,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const [commandOpen, setCommandOpen] = useState(false);
   const { profile, isOnboardingComplete } = useUser();
   const segment = profile?.segment ?? 'guest';
 
@@ -22,6 +25,16 @@ export function AppLayout({ children }: AppLayoutProps) {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
+
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              className="ml-2 flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-caption text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              title="Atalhos (⌘K)"
+            >
+              <Command className="h-3.5 w-3.5" aria-hidden />
+              <span className="hidden sm:inline">⌘K</span>
+            </button>
 
             <div className="ml-auto flex items-center gap-3">
               {!isOnboardingComplete && (
@@ -47,6 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </SidebarProvider>
   );
 }

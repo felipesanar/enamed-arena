@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AppLayout } from '@/components/AppLayout';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -34,7 +33,7 @@ interface NotebookEntry {
   addedAt: string;
 }
 
-function NotebookEntryCard({ entry, onRemove }: { entry: NotebookEntry; onRemove: (id: string) => void }) {
+function NotebookEntryCard({ entry, onRemove, reducedMotion }: { entry: NotebookEntry; onRemove: (id: string) => void; reducedMotion?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const addedDate = new Date(entry.addedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -78,7 +77,7 @@ function NotebookEntryCard({ entry, onRemove }: { entry: NotebookEntry; onRemove
           </button>
           <AnimatePresence>
             {expanded && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+              <motion.div initial={reducedMotion ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.2 }} className="overflow-hidden">
                 <p className="text-body-sm text-muted-foreground mt-2 leading-relaxed border-t border-border/30 pt-3">{entry.questionText}</p>
               </motion.div>
             )}
@@ -90,6 +89,7 @@ function NotebookEntryCard({ entry, onRemove }: { entry: NotebookEntry; onRemove
 }
 
 function CadernoContent({ userId }: { userId: string }) {
+  const prefersReducedMotion = useReducedMotion();
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [areaFilter, setAreaFilter] = useState<string | null>(null);
@@ -149,7 +149,7 @@ function CadernoContent({ userId }: { userId: string }) {
   if (loading) {
     return (
       <>
-        <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
+        <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
         <div className="space-y-3">{[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}</div>
       </>
@@ -159,11 +159,11 @@ function CadernoContent({ userId }: { userId: string }) {
   if (entries.length === 0) {
     return (
       <>
-        <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
+        <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />
         <EmptyState
           icon={BookOpen}
           title="Seu caderno está vazio"
-          description="Adicione questões ao Caderno de Erros durante a correção de qualquer simulado."
+          description="Durante a correção de um simulado, salve as questões que quiser revisar. Elas aparecerão aqui, organizadas por área."
           action={<Link to="/simulados" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">Ver simulados</Link>}
         />
       </>
@@ -178,17 +178,17 @@ function CadernoContent({ userId }: { userId: string }) {
 
   return (
     <>
-      <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
+      <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-        <PremiumCard delay={0} className="p-4"><p className="text-heading-2 text-foreground">{entries.length}</p><p className="text-caption text-muted-foreground">Total salvas</p></PremiumCard>
-        <PremiumCard delay={0.06} className="p-4"><p className="text-heading-2 text-destructive">{entries.filter(e => !e.wasCorrect).length}</p><p className="text-caption text-muted-foreground">Questões erradas</p></PremiumCard>
-        <PremiumCard delay={0.12} className="p-4"><p className="text-heading-2 text-warning">{entries.filter(e => e.wasCorrect).length}</p><p className="text-caption text-muted-foreground">Sem certeza</p></PremiumCard>
-        <PremiumCard delay={0.18} className="p-4"><p className="text-heading-2 text-foreground">{areas.length}</p><p className="text-caption text-muted-foreground">Áreas cobertas</p></PremiumCard>
+        <PremiumCard delay={0} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{entries.length}</p><p className="text-caption text-muted-foreground">Questões para revisar</p></PremiumCard>
+        <PremiumCard delay={0.06} className="p-4"><p className="text-heading-2 text-destructive tabular-nums">{entries.filter(e => !e.wasCorrect).length}</p><p className="text-caption text-muted-foreground">Erradas</p></PremiumCard>
+        <PremiumCard delay={0.12} className="p-4"><p className="text-heading-2 text-warning tabular-nums">{entries.filter(e => e.wasCorrect).length}</p><p className="text-caption text-muted-foreground">Sem certeza</p></PremiumCard>
+        <PremiumCard delay={0.18} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{areas.length}</p><p className="text-caption text-muted-foreground">Áreas</p></PremiumCard>
       </div>
 
       <PremiumCard className="p-4 md:p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3"><Stethoscope className="h-4 w-4 text-muted-foreground" /><span className="text-body font-semibold text-foreground">Filtrar por Área</span></div>
+        <div className="flex items-center gap-2 mb-3"><Stethoscope className="h-4 w-4 text-muted-foreground" aria-hidden /><span className="text-body font-semibold text-foreground">Filtrar por área</span></div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas ({entries.length})</button>
           {groupedByArea.map(([area, count]) => (
@@ -197,11 +197,11 @@ function CadernoContent({ userId }: { userId: string }) {
         </div>
       </PremiumCard>
 
-      <SectionHeader title={areaFilter || 'Todas as questões'} action={<span className="text-body-sm text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'questão' : 'questões'}</span>} />
+      <SectionHeader title={areaFilter ? `Revisão · ${areaFilter}` : 'Suas questões para revisar'} action={<span className="text-body-sm text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'questão' : 'questões'}</span>} />
       <div className="space-y-3 pb-8">
         {filtered.map((entry, i) => (
-          <motion.div key={entry.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-            <NotebookEntryCard entry={entry} onRemove={handleRemove} />
+          <motion.div key={entry.id} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : i * 0.04 }}>
+            <NotebookEntryCard entry={entry} onRemove={handleRemove} reducedMotion={!!prefersReducedMotion} />
           </motion.div>
         ))}
       </div>
@@ -216,15 +216,26 @@ export default function CadernoErrosPage() {
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
 
   return (
-    <AppLayout>
+    <>
       {!hasAccess ? (
         <>
-          <PageHeader title="Caderno de Erros" subtitle="Salve questões importantes e revise de forma inteligente." badge="PRO: ENAMED Exclusivo" />
-          <ProGate icon={BookOpen} feature="Caderno de Erros" description="Salve questões com motivo e anotação de aprendizado. Organize sua revisão por área e tema para estudar de forma estratégica. Recurso exclusivo PRO: ENAMED." requiredSegment="pro" currentSegment={segment} />
+          <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />
+          <ProGate
+            icon={BookOpen}
+            feature="Caderno de Erros"
+            description="Salve questões com motivo e anotação de aprendizado. Organize sua revisão por área e tema para estudar de forma estratégica."
+            requiredSegment="pro"
+            currentSegment={segment}
+            benefits={[
+              "Salvar questões direto da correção com motivo (errou, sem certeza)",
+              "Anotação de aprendizado por questão",
+              "Filtrar e revisar por área e tema",
+            ]}
+          />
         </>
       ) : (
         <CadernoContent userId={user?.id || ''} />
       )}
-    </AppLayout>
+    </>
   );
 }

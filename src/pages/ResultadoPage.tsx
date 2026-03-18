@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { AppLayout } from '@/components/AppLayout';
+import { motion, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
+import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -24,6 +24,7 @@ export default function ResultadoPage() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
+  const prefersReducedMotion = useReducedMotion();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
   const { examState, loading: loadingExam } = useExamResult(id);
@@ -32,18 +33,27 @@ export default function ResultadoPage() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <>
         <div className="space-y-4">
           <SkeletonCard />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
           <SkeletonCard />
         </div>
-      </AppLayout>
+      </>
     );
   }
 
   if (!simulado) {
-    return <AppLayout><EmptyState title="Simulado não encontrado" description="O simulado que você procura não existe." /></AppLayout>;
+    return (
+      <>
+        <EmptyState
+          title="Simulado não encontrado"
+          description="O simulado que você procura não existe."
+          backHref="/simulados"
+          backLabel="Voltar ao calendário"
+        />
+      </>
+    );
   }
 
   if (!canViewResults(simulado.status)) {
@@ -52,7 +62,7 @@ export default function ResultadoPage() {
 
   if (!examState || (examState.status !== 'submitted' && examState.status !== 'expired')) {
     return (
-      <AppLayout>
+      <>
         <div className="mb-4">
           <Link to={`/simulados/${id}`} className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao simulado
@@ -62,8 +72,10 @@ export default function ResultadoPage() {
           icon={FileText}
           title="Sem resultado disponível"
           description="Você não realizou este simulado. Não há resultado para exibir."
+          backHref={id ? `/simulados/${id}` : "/simulados"}
+          backLabel="Voltar ao simulado"
         />
-      </AppLayout>
+      </>
     );
   }
 
@@ -75,12 +87,15 @@ export default function ResultadoPage() {
   const hasCadernoErros = SEGMENT_ACCESS[segment].cadernoErros;
 
   return (
-    <AppLayout>
-      <div className="mb-4">
-        <Link to={`/simulados/${id}`} className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao simulado
-        </Link>
-      </div>
+    <>
+      <PageBreadcrumb
+        items={[
+          { label: "Simulados", href: "/simulados" },
+          { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
+          { label: "Resultado" },
+        ]}
+        className="mb-4"
+      />
 
       <PageHeader
         title={`Resultado — ${simulado.title}`}
@@ -89,13 +104,19 @@ export default function ResultadoPage() {
         action={<StatusBadge status={simulado.status} />}
       />
 
-      {/* Hero score */}
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-        <PremiumCard className="p-6 md:p-10 text-center mb-8 border-primary/20 bg-gradient-to-br from-accent via-card to-card">
+      {/* Hero score — momento de reconhecimento (Fase D) */}
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
+        className="mb-8"
+      >
+        <PremiumCard variant="hero" className="text-center border-primary/20 bg-gradient-to-br from-accent/40 via-card to-card">
           <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Trophy className="h-10 w-10 text-primary" />
+            <Trophy className="h-10 w-10 text-primary" aria-hidden />
           </div>
-          <div className="text-display text-primary mb-1">{overall.percentageScore}%</div>
+          <p className="text-overline uppercase text-muted-foreground tracking-wide mb-1">Seu desempenho neste simulado</p>
+          <div className="text-display font-bold text-primary mb-1 tabular-nums">{overall.percentageScore}%</div>
           <p className="text-body-lg text-muted-foreground mb-6">
             {overall.totalCorrect} de {overall.totalQuestions} questões corretas
           </p>
@@ -182,22 +203,39 @@ export default function ResultadoPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <Link to={`/simulados/${id}/correcao`} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">
-          <FileText className="h-4 w-4" /> Ver Correção
+      {/* Um CTA primário, demais secundários (Fase D) */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Link
+          to={`/simulados/${id}/correcao`}
+          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
+        >
+          <FileText className="h-4 w-4" aria-hidden />
+          Ver correção
         </Link>
-        <Link to="/desempenho" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors">
-          <BarChart3 className="h-4 w-4" /> Desempenho Detalhado
+        <Link
+          to="/desempenho"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <BarChart3 className="h-4 w-4" aria-hidden />
+          Desempenho
         </Link>
-        <Link to="/ranking" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors">
-          <Trophy className="h-4 w-4" /> Ver Ranking
+        <Link
+          to="/ranking"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <Trophy className="h-4 w-4" aria-hidden />
+          Ranking
         </Link>
         {hasComparativo && (
-          <Link to="/comparativo" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors">
-            <BarChart3 className="h-4 w-4" /> Comparativo
+          <Link
+            to="/comparativo"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <BarChart3 className="h-4 w-4" aria-hidden />
+            Comparativo
           </Link>
         )}
       </div>
-    </AppLayout>
+    </>
   );
 }

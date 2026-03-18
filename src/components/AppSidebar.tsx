@@ -76,14 +76,14 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
+                  <SidebarMenuButton asChild className="min-h-[44px] h-11">
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-150"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[3px] border-l-sidebar-primary pl-[9px] -ml-px"
                     >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -104,13 +104,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {proNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
+                  <SidebarMenuButton asChild className="min-h-[44px] h-11">
                     <NavLink
                       to={item.url}
-                      className="flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-150"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[3px] border-l-sidebar-primary pl-[9px] -ml-px"
                     >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                       {!collapsed && (
                         <span className="flex items-center gap-2">
                           {item.title}
@@ -131,13 +131,13 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-10">
+            <SidebarMenuButton asChild className="min-h-[44px] h-11">
               <NavLink
                 to="/configuracoes"
-                className="flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-150"
-                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                className="flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[3px] border-l-sidebar-primary pl-[9px] -ml-px"
               >
-                <Settings className="h-[18px] w-[18px] shrink-0" />
+                <Settings className="h-[18px] w-[18px] shrink-0" aria-hidden />
                 {!collapsed && <span>Configurações</span>}
               </NavLink>
             </SidebarMenuButton>
@@ -155,9 +155,9 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
-              className="h-10 flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-150 cursor-pointer"
+              className="min-h-[44px] h-11 flex items-center gap-3 px-3 rounded-lg text-body text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
             >
-              <LogOut className="h-[18px] w-[18px] shrink-0" />
+              <LogOut className="h-[18px] w-[18px] shrink-0" aria-hidden />
               {!collapsed && <span>Sair</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -9,7 +9,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
-import Index from "./pages/Index";
+import { DashboardLayout } from "@/components/premium/DashboardLayout";
+import { HomePagePremium } from "@/components/premium/home/HomePagePremium";
 import SimuladosPage from "./pages/SimuladosPage";
 import SimuladoDetailPage from "./pages/SimuladoDetailPage";
 import SimuladoExamPage from "./pages/SimuladoExamPage";
@@ -46,18 +47,20 @@ const App = () => (
               <Route path="/login" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-              {/* Protected */}
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/simulados" element={<ProtectedRoute><SimuladosPage /></ProtectedRoute>} />
-              <Route path="/simulados/:id" element={<ProtectedRoute><SimuladoDetailPage /></ProtectedRoute>} />
-              <Route path="/simulados/:id/prova" element={<ProtectedRoute><SimuladoExamPage /></ProtectedRoute>} />
-              <Route path="/simulados/:id/resultado" element={<ProtectedRoute><ResultadoPage /></ProtectedRoute>} />
-              <Route path="/simulados/:id/correcao" element={<ProtectedRoute><CorrecaoPage /></ProtectedRoute>} />
-              <Route path="/desempenho" element={<ProtectedRoute><DesempenhoPage /></ProtectedRoute>} />
-              <Route path="/ranking" element={<ProtectedRoute><RankingPage /></ProtectedRoute>} />
-              <Route path="/comparativo" element={<ProtectedRoute><ComparativoPage /></ProtectedRoute>} />
-              <Route path="/caderno-erros" element={<ProtectedRoute><CadernoErrosPage /></ProtectedRoute>} />
-              <Route path="/configuracoes" element={<ProtectedRoute><ConfiguracoesPage /></ProtectedRoute>} />
+              {/* Protected — premium shell */}
+              <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                <Route index element={<HomePagePremium />} />
+                <Route path="simulados" element={<SimuladosPage />} />
+                <Route path="simulados/:id" element={<SimuladoDetailPage />} />
+                <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />
+                <Route path="simulados/:id/resultado" element={<ResultadoPage />} />
+                <Route path="simulados/:id/correcao" element={<CorrecaoPage />} />
+                <Route path="desempenho" element={<DesempenhoPage />} />
+                <Route path="ranking" element={<RankingPage />} />
+                <Route path="comparativo" element={<ComparativoPage />} />
+                <Route path="caderno-erros" element={<CadernoErrosPage />} />
+                <Route path="configuracoes" element={<ConfiguracoesPage />} />
+              </Route>
               <Route path="/onboarding" element={<ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

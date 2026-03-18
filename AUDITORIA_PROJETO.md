@@ -562,16 +562,18 @@ O projeto é uma **SPA de simulados para residência médica** (PRO: ENAMED / Sa
 
 ## 10 maiores riscos técnicos
 
-1. **RLS Supabase não auditable** — Dados podem estar expostos se políticas estiverem incorretas.  
-2. **Env não documentado** — Deploy sem VITE_SUPABASE_* quebra ou aponta para projeto errado.  
-3. **SimuladoExamPage muito complexa** — Aumenta risco de regressão e bugs na prova.  
-4. **Dois requests em getQuestions** — Latência e manutenção desnecessárias.  
-5. **Código morto e dois “cadernos”** — Confusão e risco de usar persistência errada.  
-6. **TypeScript permissivo** — Erros passam até runtime.  
-7. **Falhas silenciosas (UserContext, useExamStorageReal fallback)** — Usuário pode ver estado inconsistente sem feedback.  
-8. **Sem error boundary** — Falhas não tratadas podem quebrar a árvore de UI.  
-9. **Fetches redundantes (useSimuladoDetail em várias páginas)** — Performance e carga no backend.  
-10. **Logs com dados de usuário em produção** — Exposição em console/ferramentas.
+*(Todos foram tratados. Detalhes em `docs/SOLUCAO_RISCOS_TECNICOS.md` e `docs/SUPABASE_RLS.md`.)*
+
+1. **RLS Supabase não auditable** — ✅ Auditado; políticas documentadas em `docs/SUPABASE_RLS.md`.  
+2. **Env não documentado** — ✅ `.env.example` + README.  
+3. **SimuladoExamPage muito complexa** — ✅ Lógica em `useExamFlow`; página enxuta.  
+4. **Dois requests em getQuestions** — ⚠️ Fluxo claro; otimização para 1 request (RPC/join) opcional.  
+5. **Código morto e dois “cadernos”** — ✅ Removido + labels em `errorNotebookReasons.ts`.  
+6. **TypeScript permissivo** — ✅ `noImplicitAny`, env tipado, `as any` removido.  
+7. **Falhas silenciosas** — ✅ UserContext (`profileError` + toast); useExamStorageReal (`fromCache` + toast).  
+8. **Sem error boundary** — ✅ `ErrorBoundary` + App.tsx.  
+9. **Fetches redundantes** — ✅ React Query em useSimuladoDetail e useSimulados (cache 5 min).  
+10. **Logs em produção** — ✅ `logger.ts` condicional (DEV) nos pontos sensíveis.
 
 ---
 

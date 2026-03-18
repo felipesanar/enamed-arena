@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { CheckCircle2, Bell, Calendar, ArrowRight } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { CheckCircle2, Calendar, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/simulado-helpers';
 
@@ -14,35 +14,42 @@ interface ExamCompletedScreenProps {
 export function ExamCompletedScreen({
   simuladoId, simuladoTitle, resultsReleaseAt, answeredCount, totalCount,
 }: ExamCompletedScreenProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.6 }}
         className="max-w-lg w-full text-center"
       >
+        {/* Micro-celebration: ícone com leve bounce (respeita reduced-motion) */}
         <motion.div
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring', damping: 15 }}
+          initial={prefersReducedMotion ? false : { scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.15, type: 'spring', stiffness: 200, damping: 18 }}
           className="h-20 w-20 rounded-3xl bg-success/10 flex items-center justify-center mx-auto mb-6"
         >
-          <CheckCircle2 className="h-10 w-10 text-success" />
+          <CheckCircle2 className="h-10 w-10 text-success" aria-hidden />
         </motion.div>
 
         <h1 className="text-heading-1 text-foreground mb-3">Simulado concluído!</h1>
         <p className="text-body-lg text-muted-foreground mb-2">
           Você completou o <strong className="text-foreground">{simuladoTitle}</strong>.
         </p>
-        <p className="text-body text-muted-foreground mb-8">
+        {/* Copy de confiança */}
+        <p className="text-body text-muted-foreground mb-1">
+          Suas respostas foram salvas com sucesso. Nada será perdido.
+        </p>
+        <p className="text-body-sm text-muted-foreground mb-6">
           {answeredCount} de {totalCount} questões respondidas.
         </p>
 
         <div className="premium-card p-5 mb-8 text-left">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
-              <Calendar className="h-5 w-5 text-primary" />
+              <Calendar className="h-5 w-5 text-primary" aria-hidden />
             </div>
             <div>
               <p className="text-body font-semibold text-foreground mb-1">Liberação do resultado</p>
@@ -54,22 +61,18 @@ export function ExamCompletedScreen({
           </div>
         </div>
 
-        <button className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors mb-4 w-full justify-center">
-          <Bell className="h-4 w-4" />
-          Receber aviso por e-mail
-        </button>
-
+        {/* Um CTA principal (Fase C) */}
         <Link
           to={`/simulados/${simuladoId}/resultado`}
-          className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors mb-3 group"
+          className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-colors mb-4 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
         >
-          Ver Resultado
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          Ver resultado
+          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" aria-hidden />
         </Link>
 
         <Link
           to="/simulados"
-          className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors"
+          className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted/50 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
         >
           Voltar ao calendário
         </Link>

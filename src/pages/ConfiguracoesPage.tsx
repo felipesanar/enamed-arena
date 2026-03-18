@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/AppLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -14,16 +13,15 @@ export default function ConfiguracoesPage() {
   const segment = profile?.segment ?? 'guest';
 
   return (
-    <AppLayout>
+    <>
       <PageHeader
         title="Configurações"
-        subtitle="Gerencie seu perfil e preferências da plataforma."
+        subtitle="Seu perfil e preferências da plataforma."
       />
 
-      {/* Auth info */}
       {authUser && (
         <>
-          <SectionHeader title="Conta" />
+          <SectionHeader title="Sua conta" />
           <PremiumCard className="p-5 mb-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
@@ -53,8 +51,7 @@ export default function ConfiguracoesPage() {
         </>
       )}
 
-      {/* Plan — read-only */}
-      <SectionHeader title="Seu Plano" />
+      <SectionHeader title="Seu plano" />
       <PremiumCard className="p-5 mb-6">
         <div className="flex items-center gap-4">
           <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
@@ -73,11 +70,10 @@ export default function ConfiguracoesPage() {
         </div>
       </PremiumCard>
 
-      {/* Onboarding profile summary */}
       {isOnboardingComplete && onboarding && (
         <>
           <SectionHeader
-            title="Perfil Acadêmico"
+            title="Seu perfil acadêmico"
             action={
               <Link
                 to="/onboarding"
@@ -117,10 +113,10 @@ export default function ConfiguracoesPage() {
         </>
       )}
 
-      <SectionHeader title="Geral" />
+      <SectionHeader title="Outras preferências" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
         {[
-          { title: "Perfil", desc: "Dados pessoais e preferências", icon: User },
+          { title: "Dados pessoais", desc: "Nome e informações da conta", icon: User },
           { title: "Notificações", desc: "Alertas de simulados e resultados", icon: Bell },
           { title: "Preferências", desc: "Personalizar a experiência", icon: Settings },
         ].map((item, i) => (
@@ -137,6 +133,6 @@ export default function ConfiguracoesPage() {
           </PremiumCard>
         ))}
       </div>
-    </AppLayout>
+    </>
   );
 }

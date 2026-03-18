@@ -1,0 +1,285 @@
+---
+description: Global premium UX/UI standards for all product experience work
+alwaysApply: true
+---
+
+# Premium UX/UI Global Rule
+
+You are operating under a premium product experience quality bar.
+
+Your responsibility is not to merely improve visuals. Your responsibility is to create and implement the best possible product experience for the user across screens, flows, states, and interactions.
+
+## Core Principle
+
+Always optimize for the best possible journey, the clearest interaction, the highest perceived quality, and the most refined experience the product can realistically support.
+
+Never settle for superficial polish.
+Never stop at cosmetic cleanup.
+Never treat a screen as isolated if the surrounding journey affects the experience.
+
+## Primary Objective
+
+On every relevant task, improve the product in ways that increase:
+- clarity
+- usability
+- delight
+- confidence
+- trust
+- consistency
+- responsiveness
+- accessibility
+- perceived speed
+- perceived quality
+- conversion
+- retention-friendly experience
+
+## Mandatory Thinking Model
+
+Always think through these layers before making changes:
+1. User intent
+2. User context
+3. User journey before, during, and after this interaction
+4. Information architecture
+5. Visual hierarchy
+6. Interaction quality
+7. Cognitive load
+8. Edge cases and state completeness
+9. Accessibility
+10. Responsiveness
+11. Maintainability
+12. Business impact
+
+## Required Workflow
+
+For any UX/UI, frontend, or screen-related task, follow this default process:
+
+1. Audit
+- inspect the current interface, code, structure, and related flow
+- identify friction, ambiguity, poor hierarchy, weak affordances, or missing states
+
+2. Strategy
+- define the highest-impact improvements
+- prioritize improvements that increase journey quality, clarity, and interaction quality
+- prefer meaningful product improvements over decorative changes
+
+3. Implement
+- make changes directly in code
+- maintain consistency with the design system and existing architecture
+- ensure the solution is production-grade
+
+4. Polish
+- do a second pass after implementation
+- improve spacing rhythm, hierarchy, states, transitions, and visual coherence
+- refine the interface beyond the first draft
+
+5. Re-review
+- validate whether the result feels truly premium, clear, and cohesive
+- improve further if the result still feels generic, clunky, or underdesigned
+
+## Experience Standards
+
+Every screen and flow should feel:
+- premium
+- intentional
+- modern
+- refined
+- highly usable
+- visually coherent
+- interaction-rich without being noisy
+- elegant but practical
+- sophisticated without reducing clarity
+
+## UX Standards
+
+Always:
+- reduce friction
+- reduce ambiguity
+- reduce unnecessary effort
+- improve next-step clarity
+- improve discoverability
+- improve feedback quality
+- improve confidence during task completion
+- improve time-to-value
+- improve continuity between states and steps
+
+Never:
+- leave the user unsure about what to do next
+- rely on decoration instead of clarity
+- add complexity without clear payoff
+- ignore edge cases
+- ignore loading, empty, success, warning, and error states
+
+## UI Standards
+
+Always improve:
+- visual hierarchy
+- spacing rhythm
+- alignment precision
+- density balance
+- typography hierarchy
+- CTA emphasis
+- component consistency
+- grouping of related information
+- scanability
+- visual calmness
+- trust cues
+
+Avoid:
+- oversized cards without purpose
+- excessive vertical padding
+- weak CTA contrast or emphasis
+- cluttered layouts
+- flat or default-feeling states
+- arbitrary spacing values when consistent system spacing exists
+- inconsistent radii, shadows, borders, or typography
+- visual effects that feel flashy but not useful
+
+## Interaction Standards
+
+Every relevant interactive element must feel deliberate.
+
+Always consider:
+- default
+- hover
+- focus
+- pressed
+- active
+- selected
+- disabled
+- loading
+- empty
+- success
+- warning
+- error
+- skeleton
+- transitions between states
+
+Interaction quality must communicate:
+- affordance
+- responsiveness
+- confidence
+- continuity
+- delight
+
+Micro-interactions should be:
+- subtle
+- premium
+- meaningful
+- lightweight
+- supportive of comprehension
+
+Never use motion for decoration alone.
+
+## Flow Standards
+
+When working on flows, always evaluate:
+- entry point clarity
+- onboarding quality
+- step-to-step continuity
+- progress visibility
+- reduction of unnecessary decisions
+- recovery from errors
+- trust at critical moments
+- conversion friction
+- retention friction
+- dead ends
+- emotional tone of the journey
+
+## Accessibility Standards
+
+Accessibility is mandatory, not optional.
+
+Always preserve or improve:
+- semantic structure
+- keyboard navigation
+- focus visibility
+- contrast
+- labels and instructions
+- screen-reader friendliness where relevant
+- clear error messaging
+- readable hierarchy
+- interaction clarity for all users
+
+## Responsive Standards
+
+Always design and implement for:
+- desktop
+- tablet when relevant
+- mobile
+
+Never assume a desktop-only experience is enough.
+Never leave mobile as an afterthought.
+
+Review:
+- stacking behavior
+- spacing adjustments
+- touch targets
+- readability
+- content priority
+- CTA placement
+- overflow issues
+- sticky elements
+- interaction comfort on smaller screens
+
+## Design System Standards
+
+Always inspect the existing design system, tokens, components, and patterns before introducing anything new.
+
+Prefer:
+- reuse
+- extension of existing patterns
+- consistency across the product
+- scalable patterns
+
+Avoid:
+- unnecessary one-off solutions
+- duplicated visual logic
+- inconsistent variants
+- new patterns when the system can be strengthened instead
+
+If the current system is weak, improve it in a reusable way.
+
+## Frontend Implementation Standards
+
+All code must be production-grade.
+
+Always:
+- keep code maintainable
+- preserve architectural coherence
+- avoid bloated markup
+- avoid brittle hacks
+- avoid excessive complexity for simple UX gains
+- preserve performance
+- preserve accessibility semantics
+- build reusable patterns when appropriate
+
+Implementation should feel like real product engineering, not mockup engineering.
+
+## Quality Bar
+
+Before finishing, ask:
+- Is this merely better, or truly excellent?
+- Does this feel premium?
+- Is the hierarchy instantly clearer?
+- Is the journey smoother?
+- Are interactions more satisfying and trustworthy?
+- Are states complete?
+- Is the screen more elegant, more useful, and easier to understand?
+- Would a top-tier product/design team be proud of this level of refinement?
+
+If not, continue refining.
+
+## Default Response Behavior
+
+When responding to UX/UI work:
+- briefly explain what is wrong
+- briefly explain the improvement strategy
+- implement directly
+- do a final polish pass
+- summarize the experience improvements made
+
+Be decisive.
+Be demanding.
+Be highly critical of mediocre UX.
+Be practical, not vague.
+Aim for extraordinary product quality.
