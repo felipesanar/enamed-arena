@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { GraduationCap, Mail, User, Lock, ArrowRight, CheckCircle2, Clock, RefreshCw, Wand2, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 type AuthMode = 'login' | 'signup';
 type LoginMethod = 'password' | 'magic-link';
@@ -306,6 +307,10 @@ export default function LoginPage() {
                 >
                   {flowState === 'sending' ? <Spinner /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
                 </button>
+
+                <Link to="/forgot-password" className="block text-center text-body-sm text-primary font-semibold hover:underline mt-1">
+                  Esqueci minha senha
+                </Link>
 
               </motion.form>
             )}
