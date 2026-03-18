@@ -131,10 +131,7 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    console.log("[auth-email-hook] Received hook event:", JSON.stringify({
-      type: payload.type,
-      email: payload.user?.email,
-    }));
+    console.log("[auth-email-hook] Full payload:", JSON.stringify(payload));
 
     // Supabase Auth Send Email Hook payload structure
     // It provides token_hash, NOT a confirmation_url — we must build it
