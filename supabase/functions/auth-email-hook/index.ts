@@ -136,14 +136,33 @@ serve(async (req) => {
       email: payload.user?.email,
     }));
 
-    // Supabase Auth hook payload structure
+    // Supabase Auth Send Email Hook payload structure
+    // It provides token_hash, NOT a confirmation_url — we must build it
     const user = payload.user || {};
     const emailData = payload.email_data || {};
     const emailType = emailData.email_action_type || payload.type || "unknown";
-    const actionUrl = emailData.confirmation_url ||
-                      emailData.redirect_to ||
-                      emailData.action_link ||
-                      "";
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const tokenHash = emailData.token_hash || "";
+    const redirectTo = emailData.redirect_to || "https://enamed-arena.lovable.app";
+
+    // Build the verification URL that Supabase expects
+    let actionUrl = "";
+    if (tokenHash) {
+      // Map email_action_type to the Supabase verify type parameter
+      const typeMap: Record<string, string> = {
+        signup: "signup",
+        email_change: "email_change",
+        recovery: "recovery",
+        magic_link: "magiclink",
+        invite: "invite",
+        reauthentication: "reauthentication",
+      };
+      const verifyType = typeMap[emailType] || emailType;
+      actionUrl = `${supabaseUrl}/auth/v1/verify?token=${tokenHash}&type=${verifyType}&redirect_to=${encodeURIComponent(redirectTo)}`;
+    }
+
+    console.log(`[auth-email-hook] Built actionUrl for type=${emailType}:`, actionUrl ? actionUrl.substring(0, 80) + "..." : "EMPTY");
 
     const userId = user.id || "anonymous";
     const email = user.email || "";
