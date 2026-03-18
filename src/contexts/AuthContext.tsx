@@ -14,6 +14,8 @@ interface AuthContextType {
   /** Send magic link for LOGIN only (existing users). Will not create new accounts. */
   sendLoginLink: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  /** Send password reset email via Supabase (routed through Novu hook). */
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
