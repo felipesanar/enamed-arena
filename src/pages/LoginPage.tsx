@@ -308,6 +308,10 @@ export default function LoginPage() {
                   {flowState === 'sending' ? <Spinner /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
                 </button>
 
+                <Link to="/forgot-password" className="block text-center text-body-sm text-primary font-semibold hover:underline mt-1">
+                  Esqueci minha senha
+                </Link>
+
               </motion.form>
             )}
 
