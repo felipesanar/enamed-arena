@@ -123,8 +123,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    logger.log('[AuthContext] Requesting password reset');
+
+    const redirectTo = `${window.location.origin}/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo,
+    });
+
+    if (error) {
+      logger.log('[AuthContext] Password reset error:', error.message);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithPassword, signUpWithPassword, sendLoginLink, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithPassword, signUpWithPassword, sendLoginLink, signOut, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
