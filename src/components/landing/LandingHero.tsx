@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Trophy, BarChart3, ChevronRight, Zap, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const NAV_HEIGHT = 80;
 const EASE = [0.32, 0.72, 0.2, 1] as const;
@@ -111,7 +112,7 @@ export function LandingHero() {
   return (
     <section
       id="hero"
-      className="relative min-h-[100svh] flex flex-col justify-center overflow-hidden"
+      className="relative min-h-[100svh] flex flex-col justify-center overflow-x-hidden overflow-y-visible"
       style={{ paddingTop: NAV_HEIGHT + 48, paddingBottom: 48 }}
     >
       {/* Background — camadas de profundidade, tokens da marca */}
@@ -233,45 +234,49 @@ export function LandingHero() {
             initial={{ opacity: 0, scale: 0.97, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8, delay: STAGGER.visual, ease: EASE }}
-            className="relative hidden lg:block"
+            className="relative hidden min-w-0 overflow-visible lg:block lg:-mr-2 xl:-mr-4"
           >
-            <div className="relative w-full max-w-[520px] ml-auto">
-              {/* Camada 1: atmosfera + humano (fallback ou mídia) */}
-              <div className="absolute inset-0 rounded-[28px] overflow-hidden">
-                {HERO_HUMAN_IMAGE_SRC ? (
-                  <>
+            {/*
+              Coluna usa largura total da célula (sem max-w que prendia o card). Card sem w-full para self-end + translate-x funcionarem.
+            */}
+            <div className="relative ml-auto w-full min-w-0 max-w-none overflow-visible pb-12 pt-2 lg:pt-10 xl:pt-12">
+              <div className="flex flex-col items-end gap-0">
+                <div className="relative z-0 mt-2 w-[min(118%,26rem)] shrink-0 bg-transparent shadow-none ring-0 sm:mt-3 sm:w-[min(118%,28rem)] lg:mt-4 lg:w-[min(118%,30rem)]">
+                  {HERO_HUMAN_IMAGE_SRC ? (
                     <img
                       src={HERO_HUMAN_IMAGE_SRC}
                       alt="Estudante de medicina no ecossistema SanarFlix Simulados"
-                      className="absolute inset-0 w-full h-full object-cover object-right-bottom scale-105"
+                      className="block h-[min(36rem,62vh)] w-full translate-y-12 rounded-xl border-0 object-cover object-[48%_18%] shadow-none outline-none [filter:brightness(1.08)_contrast(1.03)_drop-shadow(0_22px_48px_rgb(0_0_0/0.28))] sm:h-[min(38rem,64vh)] sm:translate-y-14 sm:object-[46%_16%] sm:rounded-2xl lg:h-[min(40rem,66vh)] lg:translate-y-16 xl:translate-y-[4.75rem]"
+                      decoding="async"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-landing-bg via-landing-bg/85 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-landing-bg/95 via-transparent to-transparent" />
-                  </>
-                ) : (
-                  /* Fallback editorial: silhueta suave sugerindo presença de estudo */
-                  <div
-                    className="absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-wine-glow/5"
-                    aria-hidden
-                  />
-                )}
-                {/* Núcleo de luz sutil (atmosfera) */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] h-[70%] rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
-              </div>
+                  ) : (
+                    <div
+                      className="flex aspect-[3/4] min-h-[24rem] w-full items-center justify-center rounded-[28px] bg-gradient-to-br from-primary/6 via-transparent to-wine-glow/5"
+                      aria-hidden
+                    />
+                  )}
+                </div>
 
-              {/* Camada 2: painel principal de produto */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: STAGGER.panel, ease: EASE }}
-                className="relative rounded-[24px] border border-border overflow-hidden bg-card/90 backdrop-blur-xl shadow-[0_24px_80px_-12px_rgba(0,0,0,0.5),0_0_0_1px_hsl(var(--border))]"
-              >
-                <div className="absolute inset-0 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: STAGGER.panel, ease: EASE }}
+                  className="relative z-10 -mt-12 max-w-[min(100%,520px)] shrink-0 self-end sm:-mt-14 lg:-mt-16 lg:translate-x-4 xl:translate-x-8 2xl:translate-x-12"
+                >
+                <div
+                  className={cn(
+                    "relative origin-top-right rounded-[22px] border border-border bg-card/92 shadow-[0_24px_70px_-18px_rgba(0,0,0,0.5),0_0_0_1px_hsl(var(--border))]",
+                    "backdrop-blur-xl will-change-transform",
+                    /* ~10–14% menor visualmente; textos e dados iguais, só escala */
+                    "scale-[0.86] sm:scale-[0.88] xl:scale-[0.9]",
+                  )}
+                >
+                <div className="absolute inset-0 pointer-events-none rounded-[22px] overflow-hidden">
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[85%] h-[40%] bg-gradient-to-b from-primary/10 to-transparent rounded-full blur-2xl" />
                   <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-wine-glow/6 rounded-full blur-3xl" />
                 </div>
 
-                <div className="relative p-6 space-y-5 min-h-[400px] flex flex-col justify-between">
+                <div className="relative flex min-h-[360px] flex-col justify-between space-y-4 p-5 sm:min-h-[380px] sm:space-y-5 sm:p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-overline uppercase tracking-wider text-muted-foreground">
@@ -328,14 +333,16 @@ export function LandingHero() {
                     </div>
                   </div>
                 </div>
+                </div>
               </motion.div>
+              </div>
 
-              {/* Cards orbitais fora da área do painel (sem sobrepor métricas) */}
+              {/* Cards orbitais — relativos ao bloco foto+card */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: STAGGER.float1, ease: EASE }}
-                className="absolute -left-[8.5rem] top-[14%] w-[140px] rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3"
+                className="absolute -left-[8.5rem] top-[6.5rem] w-[140px] rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3 xl:top-[7.5rem]"
               >
                 <p className="text-caption font-semibold text-primary flex items-center gap-1">
                   <TrendingUp className="h-3.5 w-3.5" />
@@ -349,7 +356,7 @@ export function LandingHero() {
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: STAGGER.float2, ease: EASE }}
-                className="absolute -right-2 bottom-[8%] w-[130px] rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3"
+                className="absolute -right-2 bottom-6 w-[130px] rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-3 lg:bottom-8"
               >
                 <p className="text-caption font-semibold text-muted-foreground">Ranking</p>
                 <p className="text-heading-2 font-bold text-foreground mt-1 flex items-center gap-1">
