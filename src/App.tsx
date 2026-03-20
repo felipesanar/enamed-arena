@@ -25,6 +25,7 @@ import CadernoErrosPage from "./pages/CadernoErrosPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +47,7 @@ const App = () => (
             <BrowserRouter>
             <Routes>
               {/* Public */}
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />

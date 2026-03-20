@@ -24,6 +24,9 @@ export function ProtectedRoute({ children, skipOnboardingCheck = false }: Protec
   }
 
   if (!user) {
+    if (location.pathname === "/") {
+      return <Navigate to="/landing" replace />;
+    }
     return <Navigate to="/login" replace />;
   }
 

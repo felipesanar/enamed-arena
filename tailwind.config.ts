@@ -79,6 +79,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
           muted: "hsl(var(--sidebar-muted))",
         },
+        landing: {
+          bg: "hsl(var(--landing-bg))",
+          "bg-soft": "hsl(var(--landing-bg-soft))",
+          surface: "hsl(var(--landing-surface))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

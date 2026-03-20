@@ -401,6 +401,11 @@ export default function LoginPage() {
             ? 'Use suas credenciais para acessar a plataforma.'
             : 'Ao criar conta, você acessará como não aluno. Alunos SanarFlix entram por login.'}
         </p>
+        <p className="text-center mt-3">
+          <Link to="/landing" className="text-body-sm text-primary font-semibold hover:underline">
+            Conhecer a plataforma de simulados
+          </Link>
+        </p>
       </motion.div>
     </div>
   );
