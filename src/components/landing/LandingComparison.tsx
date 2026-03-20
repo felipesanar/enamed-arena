@@ -113,7 +113,7 @@ export function LandingComparison() {
                   <tr
                     key={row.position}
                     className={`border-b border-border/60 last:border-0 ${
-                      row.highlight ? "bg-primary/10 border-l-2 border-l-primary" : ""
+                      row.position === 3 ? "bg-primary/10 border-l-2 border-l-primary" : ""
                     }`}
                   >
                     <td className="py-3 px-5 font-semibold text-foreground tabular-nums">{row.position}</td>
