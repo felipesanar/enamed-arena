@@ -267,7 +267,7 @@ export const simuladosApi = {
       updates.fullscreen_exit_count !== undefined;
 
     if (isProgressOnlyUpdate) {
-      const { error } = await supabase.rpc('update_attempt_progress_guarded', {
+      const { error } = await (supabase.rpc as any)('update_attempt_progress_guarded', {
         p_attempt_id: attemptId,
         p_current_question_index: updates.current_question_index ?? 0,
         p_tab_exit_count: updates.tab_exit_count ?? 0,
@@ -361,7 +361,7 @@ export const simuladosApi = {
 
   async submitAttempt(attemptId: string): Promise<FinalizedAttemptResult> {
     logger.log('[SimuladosApi] Submitting attempt with guarded server-side processing');
-    const { data, error } = await supabase.rpc('finalize_attempt_with_guard', {
+    const { data, error } = await supabase.rpc('finalize_attempt_with_results', {
       p_attempt_id: attemptId,
     });
 
@@ -370,7 +370,8 @@ export const simuladosApi = {
       throw error;
     }
 
-    const row = (data?.[0] ?? null) as FinalizedAttemptResult | null;
+    const rows = data as unknown as FinalizedAttemptResult[];
+    const row = rows?.[0] ?? null;
     if (!row) {
       throw new Error('Finalizacao do simulado nao retornou resultado.');
     }
@@ -378,7 +379,7 @@ export const simuladosApi = {
   },
 
   async setAttemptResultNotification(attemptId: string, enabled: boolean): Promise<void> {
-    const { error } = await supabase.rpc('set_attempt_result_notification', {
+    const { error } = await (supabase.rpc as any)('set_attempt_result_notification', {
       p_attempt_id: attemptId,
       p_enabled: enabled,
     });
@@ -389,7 +390,7 @@ export const simuladosApi = {
   },
 
   async enqueueAttemptReprocessing(attemptId: string, reason?: string): Promise<void> {
-    const { error } = await supabase.rpc('enqueue_attempt_reprocessing', {
+    const { error } = await (supabase.rpc as any)('enqueue_attempt_reprocessing', {
       p_attempt_id: attemptId,
       p_reason: reason ?? null,
     });
@@ -400,7 +401,7 @@ export const simuladosApi = {
   },
 
   async getAttemptQuestionResults(attemptId: string): Promise<AttemptQuestionResultRow[]> {
-    const { data, error } = await supabase.rpc('get_attempt_question_results', {
+    const { data, error } = await (supabase.rpc as any)('get_attempt_question_results', {
       p_attempt_id: attemptId,
     });
     if (error) {

@@ -39,7 +39,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const fetchOnboardingEditGuard = useCallback(async () => {
     if (!authUser) return;
-    const { data, error } = await supabase.rpc('get_onboarding_edit_guard_state');
+    const { data, error } = await (supabase.rpc as any)('get_onboarding_edit_guard_state');
     if (error) {
       logger.error('[UserContext] Onboarding edit guard fetch error:', error);
       setOnboardingEditLocked(false);
@@ -160,7 +160,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
     if (!authUser) throw new Error('Not authenticated');
-    const { data: savedRow, error } = await supabase.rpc('save_onboarding_guarded', {
+    const { data: savedRow, error } = await (supabase.rpc as any)('save_onboarding_guarded', {
       p_specialty: data.specialty,
       p_target_institutions: data.targetInstitutions,
     });
@@ -168,12 +168,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const row = Array.isArray(savedRow) ? savedRow[0] : savedRow;
     const onboardingData: OnboardingProfile = {
-      id: row?.id,
-      userId: row?.user_id ?? authUser.id,
-      specialty: row?.specialty ?? data.specialty,
-      targetInstitutions: row?.target_institutions ?? data.targetInstitutions,
-      status: (row?.status as OnboardingStatus) ?? 'completed',
-      completedAt: row?.completed_at ?? undefined,
+      id: (row as any)?.id,
+      userId: (row as any)?.user_id ?? authUser.id,
+      specialty: (row as any)?.specialty ?? data.specialty,
+      targetInstitutions: (row as any)?.target_institutions ?? data.targetInstitutions,
+      status: ((row as any)?.status as OnboardingStatus) ?? 'completed',
+      completedAt: (row as any)?.completed_at ?? undefined,
     };
     setOnboarding(onboardingData);
     await fetchOnboardingEditGuard();
