@@ -6,7 +6,10 @@ import { useSimulados } from "@/hooks/useSimulados";
 import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
+import { QuickActionCard } from "./QuickActionCard";
+import { RankingExpressCard } from "./RankingExpressCard";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { Calendar, BookOpen } from "lucide-react";
 
 const SECTION_SPACING = "mb-5 md:mb-6";
 const STAGGER_CHILDREN = 0.06;
@@ -116,14 +119,6 @@ export function HomePagePremium() {
       animate="visible"
       className="space-y-5 md:space-y-6"
     >
-      {/* Next simulado banner — always on top */}
-      <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <NextSimuladoBanner
-          nextWindowStart={nextSimulado?.executionWindowStart ?? null}
-          nextWindowEnd={nextSimulado?.executionWindowEnd ?? null}
-        />
-      </motion.div>
-
       {/* Welcome + last simulado summary */}
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
         <HomeHeroSection
@@ -135,6 +130,35 @@ export function HomePagePremium() {
           lastRankTotal={null}
           bestArea={null}
         />
+      </motion.div>
+
+      {/* Next simulado banner */}
+      <motion.div variants={itemVariants} className={SECTION_SPACING}>
+        <NextSimuladoBanner
+          nextWindowStart={nextSimulado?.executionWindowStart ?? null}
+          nextWindowEnd={nextSimulado?.executionWindowEnd ?? null}
+        />
+      </motion.div>
+
+      {/* Quick Actions + Ranking Express */}
+      <motion.div variants={itemVariants} className={SECTION_SPACING}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
+          <QuickActionCard
+            title="Calendário"
+            copy="Veja as próximas janelas e planeje sua rotina."
+            ctaLabel="Abrir calendário"
+            to="/simulados"
+            icon={Calendar}
+          />
+          <QuickActionCard
+            title="Caderno de Erros"
+            copy="Revise seus erros e acelere sua evolução."
+            ctaLabel="Abrir caderno"
+            to="/caderno-erros"
+            icon={BookOpen}
+          />
+          <RankingExpressCard />
+        </div>
       </motion.div>
 
       {segment !== "pro" && (
