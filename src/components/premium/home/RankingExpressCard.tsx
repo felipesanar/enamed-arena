@@ -63,13 +63,13 @@ export function RankingExpressCard() {
                     #{mockPosition}
                   </span>
                 </div>
-                {lastScore !== null && (
+                {mockLastScore !== null && (
                   <div className="pb-0.5">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Última nota</p>
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="h-3.5 w-3.5 text-primary/60" aria-hidden />
                       <span className="text-lg font-bold text-foreground tabular-nums leading-none">
-                        {lastScore}%
+                        {mockLastScore}%
                       </span>
                     </div>
                   </div>
