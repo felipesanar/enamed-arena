@@ -50,14 +50,6 @@ export function HomeHeroSection({
               ? `Você já realizou ${simuladosRealizados} simulado${simuladosRealizados !== 1 ? "s" : ""}.`
               : "Comece seu primeiro simulado para acompanhar sua evolução."}
           </p>
-          <div className="flex flex-wrap gap-2.5">
-            <PremiumLink to="/simulados" variant="primary" showArrow>
-              Ver calendário
-            </PremiumLink>
-            <PremiumLink to="/caderno-erros" variant="secondary">
-              Abrir Caderno de Erros
-            </PremiumLink>
-          </div>
         </SurfaceCard>
       </motion.div>
 

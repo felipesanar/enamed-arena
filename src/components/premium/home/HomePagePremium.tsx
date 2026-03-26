@@ -6,7 +6,10 @@ import { useSimulados } from "@/hooks/useSimulados";
 import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
+import { QuickActionCard } from "./QuickActionCard";
+import { RankingExpressCard } from "./RankingExpressCard";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { Calendar, BookOpen } from "lucide-react";
 
 const SECTION_SPACING = "mb-5 md:mb-6";
 const STAGGER_CHILDREN = 0.06;
