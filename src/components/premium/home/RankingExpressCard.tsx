@@ -11,10 +11,12 @@ export function RankingExpressCard() {
 
   const specialty = onboarding?.specialty || null;
   const institutions = onboarding?.targetInstitutions || [];
-  const hasRanking = !loading && currentUser;
-  const hasSimulados = simuladosWithResults.length > 0;
 
-  const lastScore = history?.[0] ? Math.round(Number(history[0].score_percentage)) : null;
+  // Mock data for preview — remove when real data is available
+  const mockPosition = currentUser?.position ?? 12;
+  const mockLastScore = history?.[0] ? Math.round(Number(history[0].score_percentage)) : 78;
+  const hasRanking = true; // force visible for preview
+  const hasSimulados = simuladosWithResults.length > 0;
 
   return (
     <Link
@@ -58,16 +60,16 @@ export function RankingExpressCard() {
                 <div>
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Posição</p>
                   <span className="text-3xl font-extrabold text-primary tabular-nums leading-none">
-                    #{currentUser.position}
+                    #{mockPosition}
                   </span>
                 </div>
-                {lastScore !== null && (
+                {mockLastScore !== null && (
                   <div className="pb-0.5">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Última nota</p>
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="h-3.5 w-3.5 text-primary/60" aria-hidden />
                       <span className="text-lg font-bold text-foreground tabular-nums leading-none">
-                        {lastScore}%
+                        {mockLastScore}%
                       </span>
                     </div>
                   </div>
