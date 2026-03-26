@@ -240,12 +240,12 @@ export const simuladosApi = {
     _effectiveDeadline: string,
   ): Promise<AttemptRow> {
     logger.log('[SimuladosApi] Creating guarded attempt for simulado');
-    const { data, error } = await supabase.rpc('create_attempt_guarded', {
+    const { data, error } = await (supabase.rpc as any)('create_attempt_guarded', {
       p_simulado_id: simuladoId,
     });
 
     if (error) throw error;
-    return data as AttemptRow;
+    return data as unknown as AttemptRow;
   },
 
   async updateAttempt(

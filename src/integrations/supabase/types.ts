@@ -75,6 +75,115 @@ export type Database = {
           },
         ]
       }
+      attempt_processing_queue: {
+        Row: {
+          attempt_count: number
+          attempt_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          processed_at: string | null
+          status: Database["public"]["Enums"]["attempt_processing_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          attempt_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["attempt_processing_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["attempt_processing_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_processing_queue_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: true
+            referencedRelation: "attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attempt_question_results: {
+        Row: {
+          attempt_id: string
+          correct_option_id: string | null
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          selected_option_id: string | null
+          updated_at: string
+          was_answered: boolean
+        }
+        Insert: {
+          attempt_id: string
+          correct_option_id?: string | null
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          selected_option_id?: string | null
+          updated_at?: string
+          was_answered?: boolean
+        }
+        Update: {
+          attempt_id?: string
+          correct_option_id?: string | null
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          selected_option_id?: string | null
+          updated_at?: string
+          was_answered?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_question_results_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_question_results_correct_option_id_fkey"
+            columns: ["correct_option_id"]
+            isOneToOne: false
+            referencedRelation: "question_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_question_results_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_question_results_selected_option_id_fkey"
+            columns: ["selected_option_id"]
+            isOneToOne: false
+            referencedRelation: "question_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attempts: {
         Row: {
           created_at: string
@@ -529,6 +638,10 @@ export type Database = {
       }
     }
     Functions: {
+      enqueue_attempt_reprocessing: {
+        Args: { p_attempt_id: string; p_reason?: string }
+        Returns: string
+      }
       finalize_attempt_with_results: {
         Args: { p_attempt_id: string }
         Returns: {
@@ -536,6 +649,16 @@ export type Database = {
           total_answered: number
           total_correct: number
           total_questions: number
+        }[]
+      }
+      get_attempt_question_results: {
+        Args: { p_attempt_id: string }
+        Returns: {
+          correct_option_id: string
+          is_correct: boolean
+          question_id: string
+          selected_option_id: string
+          was_answered: boolean
         }[]
       }
       get_ranking_for_simulado: {
@@ -579,12 +702,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      process_attempt_reprocessing_queue: {
+        Args: { p_limit?: number }
+        Returns: {
+          failed_count: number
+          processed_count: number
+        }[]
+      }
       recalculate_user_performance: {
         Args: { p_user_id: string }
         Returns: undefined
       }
     }
     Enums: {
+      attempt_processing_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
       attempt_status: "in_progress" | "submitted" | "expired"
       error_reason:
         | "did_not_know"
@@ -721,6 +856,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      attempt_processing_status: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+      ],
       attempt_status: ["in_progress", "submitted", "expired"],
       error_reason: [
         "did_not_know",
