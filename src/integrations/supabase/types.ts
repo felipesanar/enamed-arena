@@ -402,6 +402,104 @@ export type Database = {
         }
         Relationships: []
       }
+      user_performance_history: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          finished_at: string
+          id: string
+          score_percentage: number
+          simulado_id: string
+          total_answered: number
+          total_correct: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          finished_at: string
+          id?: string
+          score_percentage: number
+          simulado_id: string
+          total_answered: number
+          total_correct: number
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          finished_at?: string
+          id?: string
+          score_percentage?: number
+          simulado_id?: string
+          total_answered?: number
+          total_correct?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_performance_history_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: true
+            referencedRelation: "attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_performance_history_simulado_id_fkey"
+            columns: ["simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_performance_summary: {
+        Row: {
+          avg_score: number
+          best_score: number
+          created_at: string
+          last_finished_at: string | null
+          last_score: number
+          last_simulado_id: string | null
+          total_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_score?: number
+          best_score?: number
+          created_at?: string
+          last_finished_at?: string | null
+          last_score?: number
+          last_simulado_id?: string | null
+          total_attempts?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_score?: number
+          best_score?: number
+          created_at?: string
+          last_finished_at?: string | null
+          last_score?: number
+          last_simulado_id?: string | null
+          total_attempts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_performance_summary_last_simulado_id_fkey"
+            columns: ["last_simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       ranking_simulado: {
@@ -431,6 +529,15 @@ export type Database = {
       }
     }
     Functions: {
+      finalize_attempt_with_results: {
+        Args: { p_attempt_id: string }
+        Returns: {
+          score_percentage: number
+          total_answered: number
+          total_correct: number
+          total_questions: number
+        }[]
+      }
       get_ranking_for_simulado: {
         Args: { p_simulado_id: string }
         Returns: {
@@ -447,6 +554,34 @@ export type Database = {
           total_correct: number
           user_id: string
         }[]
+      }
+      get_user_performance_history: {
+        Args: { p_limit?: number; p_user_id?: string }
+        Returns: {
+          attempt_id: string
+          finished_at: string
+          score_percentage: number
+          simulado_id: string
+          total_answered: number
+          total_correct: number
+          total_questions: number
+        }[]
+      }
+      get_user_performance_summary: {
+        Args: { p_user_id?: string }
+        Returns: {
+          avg_score: number
+          best_score: number
+          last_finished_at: string
+          last_score: number
+          last_simulado_id: string
+          total_attempts: number
+          user_id: string
+        }[]
+      }
+      recalculate_user_performance: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
