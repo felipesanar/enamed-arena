@@ -74,6 +74,16 @@ export default function ConfiguracoesPage() {
                 : 'Aluno PRO: ENAMED — acesso completo à plataforma.'}
             </p>
           </div>
+          {segment === 'guest' && (
+            <a
+              href="https://sanarflix.com.br/sanarflix-pro-enamed"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-body-sm font-semibold hover:bg-wine-hover transition-colors shrink-0"
+            >
+              Conhecer o PRO
+            </a>
+          )}
         </div>
       </PremiumCard>
 
@@ -135,23 +145,17 @@ export default function ConfiguracoesPage() {
 
       <SectionHeader title="Outras preferências" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-        {[
-          { title: "Dados pessoais", desc: "Nome e informações da conta", icon: User },
-          { title: "Notificações", desc: "Alertas de simulados e resultados", icon: Bell },
-          { title: "Preferências", desc: "Personalizar a experiência", icon: Settings },
-        ].map((item, i) => (
-          <PremiumCard key={item.title} interactive delay={i * 0.08} className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
-                <item.icon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-body font-medium text-foreground">{item.title}</p>
-                <p className="text-body-sm text-muted-foreground">{item.desc}</p>
-              </div>
+        <PremiumCard interactive delay={0} className="p-5">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
+              <User className="h-5 w-5 text-primary" />
             </div>
-          </PremiumCard>
-        ))}
+            <div>
+              <p className="text-body font-medium text-foreground">Dados pessoais</p>
+              <p className="text-body-sm text-muted-foreground">Nome e informações da conta</p>
+            </div>
+          </div>
+        </PremiumCard>
       </div>
     </>
   );
