@@ -431,29 +431,6 @@ export type Database = {
       }
     }
     Functions: {
-      finalize_attempt_with_results: {
-        Args: { p_attempt_id: string }
-        Returns: {
-          score_percentage: number
-          total_answered: number
-          total_correct: number
-          total_questions: number
-        }[]
-      }
-      enqueue_attempt_reprocessing: {
-        Args: { p_attempt_id: string; p_reason?: string }
-        Returns: string
-      }
-      get_attempt_question_results: {
-        Args: { p_attempt_id: string }
-        Returns: {
-          correct_option_id: string
-          is_correct: boolean
-          question_id: string
-          selected_option_id: string
-          was_answered: boolean
-        }[]
-      }
       get_ranking_for_simulado: {
         Args: { p_simulado_id: string }
         Returns: {
@@ -469,37 +446,6 @@ export type Database = {
           total_candidatos: number
           total_correct: number
           user_id: string
-        }[]
-      }
-      get_user_performance_history: {
-        Args: { p_limit?: number; p_user_id?: string }
-        Returns: {
-          attempt_id: string
-          finished_at: string
-          score_percentage: number
-          simulado_id: string
-          total_answered: number
-          total_correct: number
-          total_questions: number
-        }[]
-      }
-      get_user_performance_summary: {
-        Args: { p_user_id?: string }
-        Returns: {
-          avg_score: number
-          best_score: number
-          last_finished_at: string
-          last_score: number
-          last_simulado_id: string
-          total_attempts: number
-          user_id: string
-        }[]
-      }
-      process_attempt_reprocessing_queue: {
-        Args: { p_limit?: number }
-        Returns: {
-          failed_count: number
-          processed_count: number
         }[]
       }
     }
