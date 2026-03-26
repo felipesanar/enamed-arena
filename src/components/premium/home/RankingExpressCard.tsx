@@ -60,7 +60,7 @@ export function RankingExpressCard() {
                 <div>
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Posição</p>
                   <span className="text-3xl font-extrabold text-primary tabular-nums leading-none">
-                    #{currentUser.position}
+                    #{mockPosition}
                   </span>
                 </div>
                 {lastScore !== null && (
