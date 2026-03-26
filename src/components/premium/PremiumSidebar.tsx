@@ -8,7 +8,7 @@ const SIDEBAR_WIDTH = 280;
 export function PremiumSidebar() {
   return (
     <aside
-      className="flex h-screen w-full max-w-[280px] flex-col overflow-hidden border-r border-white/[0.06] bg-[#07111F] bg-[linear-gradient(180deg,#07111F_0%,#091427_50%,#0B1630_100%)] shadow-[2px_0_24px_rgba(0,0,0,0.15)]"
+      className="flex h-screen w-full max-w-[280px] flex-col overflow-hidden border-r border-white/[0.08] bg-[#3D0F1E] bg-[linear-gradient(180deg,#3D0F1E_0%,#4A1525_50%,#2D0A15_100%)] shadow-[2px_0_24px_rgba(0,0,0,0.2)]"
       style={{ width: SIDEBAR_WIDTH }}
       aria-label="Navegação principal"
     >
