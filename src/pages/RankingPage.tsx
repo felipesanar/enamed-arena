@@ -4,16 +4,18 @@
  * Uses useRanking hook backed by get_ranking_for_simulado() security definer function.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useRanking } from '@/hooks/useRanking';
 import { cn } from '@/lib/utils';
 import { Trophy, Medal, Filter, Users, Stethoscope, Building } from 'lucide-react';
 import type { ComparisonFilter, SegmentFilter } from '@/services/rankingApi';
+import { trackEvent } from '@/lib/analytics';
 
 // ─── Sub-components ───
 
@@ -54,6 +56,7 @@ function RankingSkeleton() {
 // ─── Main Page ───
 
 export default function RankingPage() {
+  const mountedAtRef = useRef<number>(Date.now());
   const {
     loading,
     simuladosWithResults,
@@ -67,8 +70,23 @@ export default function RankingPage() {
     segmentFilter,
     setSegmentFilter,
     userSpecialty,
-    userInstitution,
+    userInstitutions,
   } = useRanking();
+
+  useEffect(() => {
+    trackEvent('ranking_viewed', {
+      selectedSimuladoId,
+      comparisonFilter,
+      segmentFilter,
+    });
+  }, [selectedSimuladoId, comparisonFilter, segmentFilter]);
+
+  useEffect(() => {
+    return () => {
+      const seconds = Math.max(1, Math.round((Date.now() - mountedAtRef.current) / 1000));
+      trackEvent('ranking_engagement_time', { seconds });
+    };
+  }, []);
 
   // Empty state: no simulados with results
   if (!loading && simuladosWithResults.length === 0) {
@@ -101,6 +119,12 @@ export default function RankingPage() {
 
       {!loading && (
         <>
+          {selectedSimuladoId && (
+            <div className="mb-6">
+              <SimuladoResultNav simuladoId={selectedSimuladoId} />
+            </div>
+          )}
+
           {/* Simulado selector */}
           {simuladosWithResults.length > 1 && (
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
@@ -224,6 +248,11 @@ export default function RankingPage() {
                     </div>
                   </div>
                 </div>
+                {comparisonFilter === 'same_institution' && userInstitutions.length > 0 && (
+                  <p className="text-caption text-muted-foreground mt-3">
+                    Comparando com instituicoes alvo: {userInstitutions.join(', ')}.
+                  </p>
+                )}
               </PremiumCard>
 
               {/* Ranking table */}

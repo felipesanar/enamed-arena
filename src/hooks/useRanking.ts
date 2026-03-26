@@ -44,7 +44,7 @@ interface UseRankingReturn {
   
   // User context
   userSpecialty: string;
-  userInstitution: string;
+  userInstitutions: string[];
   
   // Actions
   refetch: () => void;
@@ -64,7 +64,7 @@ export function useRanking(): UseRankingReturn {
   const [segmentFilter, setSegmentFilter] = usePersistedState<SegmentFilter>('ranking:segment', 'all');
   
   const userSpecialty = onboarding?.specialty || '';
-  const userInstitution = onboarding?.targetInstitutions?.[0] || '';
+  const userInstitutions = onboarding?.targetInstitutions || [];
 
   // Fetch available simulados
   useEffect(() => {
@@ -140,9 +140,9 @@ export function useRanking(): UseRankingReturn {
         comparisonFilter,
         segmentFilter,
         userSpecialty,
-        userInstitution,
+        userInstitutions,
       ),
-    [allParticipants, comparisonFilter, segmentFilter, userSpecialty, userInstitution],
+    [allParticipants, comparisonFilter, segmentFilter, userSpecialty, userInstitutions],
   );
 
   const currentUser = useMemo(
@@ -175,7 +175,7 @@ export function useRanking(): UseRankingReturn {
     segmentFilter,
     setSegmentFilter,
     userSpecialty,
-    userInstitution,
+    userInstitutions,
     refetch,
   };
 }

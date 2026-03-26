@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SkeletonCard } from "@/components/SkeletonCard";
+import { SimuladoResultNav } from "@/components/simulado/SimuladoResultNav";
 import { useUser } from "@/contexts/UserContext";
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import {
@@ -15,11 +15,10 @@ import {
   formatDateTime,
   canAccessSimulado,
   canViewResults,
-  STATUS_CONFIG,
 } from "@/lib/simulado-helpers";
 import {
-  Calendar, Clock, FileText, Play, AlertTriangle,
-  Wifi, Monitor, Bell, CheckCircle2, Lock, BarChart3, Sparkles,
+  Clock, Play, AlertTriangle,
+  Wifi, Monitor, CheckCircle2, Lock, Sparkles,
 } from "lucide-react";
 
 export default function SimuladoDetailPage() {
@@ -205,44 +204,9 @@ export default function SimuladoDetailPage() {
               </p>
             </>
           )}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link to={`/simulados/${id}/correcao`} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]">
-              Ver Correção
-            </Link>
-            <Link to={`/simulados/${id}/resultado`} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-              Ver Resultado
-            </Link>
-            <Link to="/desempenho" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-              Ver Desempenho
-            </Link>
-            <Link to="/ranking" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-              Ver Ranking
-            </Link>
-          </div>
+          {id && <SimuladoResultNav simuladoId={id} className="justify-center" />}
         </PremiumCard>
       )}
-
-      {/* Apoio: informações e janela */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-        {[
-          { label: 'Questões', value: String(simulado.questionsCount), icon: FileText },
-          { label: 'Duração', value: simulado.estimatedDuration, icon: Clock },
-          { label: 'Janela abre', value: formatDate(simulado.executionWindowStart).split(',')[0], icon: Calendar },
-          { label: 'Resultado em', value: formatDate(simulado.resultsReleaseAt).split(',')[0], icon: BarChart3 },
-        ].map((item, i) => (
-          <PremiumCard key={item.label} delay={i * 0.06} className="p-4 md:p-5">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-accent flex items-center justify-center shrink-0">
-                <item.icon className="h-[18px] w-[18px] text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-body font-semibold text-foreground truncate">{item.value}</p>
-                <p className="text-caption text-muted-foreground">{item.label}</p>
-              </div>
-            </div>
-          </PremiumCard>
-        ))}
-      </div>
 
       <PremiumCard className="p-5 md:p-6 mb-6">
         <SectionHeader title="Janela de Execução" className="mb-3" />
@@ -261,19 +225,6 @@ export default function SimuladoDetailPage() {
           </div>
         </div>
       </PremiumCard>
-
-      {simulado.themeTags.length > 0 && (
-        <div className="mt-6">
-          <SectionHeader title="Áreas abordadas" />
-          <div className="flex flex-wrap gap-2">
-            {simulado.themeTags.map(tag => (
-              <span key={tag} className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-body-sm font-medium">
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 }

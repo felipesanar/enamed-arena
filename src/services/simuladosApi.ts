@@ -59,6 +59,7 @@ export interface AttemptRow {
   score_percentage: number | null;
   total_correct: number | null;
   total_answered: number | null;
+  notify_result_email?: boolean;
 }
 
 export interface AnswerRow {
@@ -70,6 +71,41 @@ export interface AnswerRow {
   high_confidence: boolean;
   eliminated_options: string[];
   answered_at: string | null;
+}
+
+export interface FinalizedAttemptResult {
+  score_percentage: number;
+  total_correct: number;
+  total_answered: number;
+  total_questions: number;
+}
+
+export interface UserPerformanceSummaryRow {
+  user_id: string;
+  total_attempts: number;
+  avg_score: number;
+  best_score: number;
+  last_score: number;
+  last_simulado_id: string | null;
+  last_finished_at: string | null;
+}
+
+export interface UserPerformanceHistoryRow {
+  attempt_id: string;
+  simulado_id: string;
+  score_percentage: number;
+  total_correct: number;
+  total_answered: number;
+  total_questions: number;
+  finished_at: string;
+}
+
+export interface AttemptQuestionResultRow {
+  question_id: string;
+  selected_option_id: string | null;
+  correct_option_id: string | null;
+  is_correct: boolean;
+  was_answered: boolean;
 }
 
 // ─── Converters ───
@@ -200,20 +236,13 @@ export const simuladosApi = {
 
   async createAttempt(
     simuladoId: string,
-    userId: string,
-    effectiveDeadline: string,
+    _userId: string,
+    _effectiveDeadline: string,
   ): Promise<AttemptRow> {
-    logger.log('[SimuladosApi] Creating attempt for simulado');
-    const { data, error } = await supabase
-      .from('attempts')
-      .insert({
-        simulado_id: simuladoId,
-        user_id: userId,
-        status: 'in_progress',
-        effective_deadline: effectiveDeadline,
-      })
-      .select()
-      .single();
+    logger.log('[SimuladosApi] Creating guarded attempt for simulado');
+    const { data, error } = await supabase.rpc('create_attempt_guarded', {
+      p_simulado_id: simuladoId,
+    });
 
     if (error) throw error;
     return data as AttemptRow;
@@ -232,6 +261,26 @@ export const simuladosApi = {
       total_answered?: number;
     },
   ): Promise<void> {
+    const isProgressOnlyUpdate =
+      updates.current_question_index !== undefined ||
+      updates.tab_exit_count !== undefined ||
+      updates.fullscreen_exit_count !== undefined;
+
+    if (isProgressOnlyUpdate) {
+      const { error } = await supabase.rpc('update_attempt_progress_guarded', {
+        p_attempt_id: attemptId,
+        p_current_question_index: updates.current_question_index ?? 0,
+        p_tab_exit_count: updates.tab_exit_count ?? 0,
+        p_fullscreen_exit_count: updates.fullscreen_exit_count ?? 0,
+      });
+
+      if (error) {
+        logger.error('[SimuladosApi] Guarded progress update failed:', error);
+        throw error;
+      }
+      return;
+    }
+
     const { error } = await supabase
       .from('attempts')
       .update({ ...updates, last_saved_at: new Date().toISOString() })
@@ -310,20 +359,78 @@ export const simuladosApi = {
     return (data || []) as AnswerRow[];
   },
 
-  async submitAttempt(
-    attemptId: string,
-    scorePercentage: number,
-    totalCorrect: number,
-    totalAnswered: number,
-  ): Promise<void> {
-    logger.log('[SimuladosApi] Submitting attempt');
-    await this.updateAttempt(attemptId, {
-      status: 'submitted',
-      finished_at: new Date().toISOString(),
-      score_percentage: scorePercentage,
-      total_correct: totalCorrect,
-      total_answered: totalAnswered,
+  async submitAttempt(attemptId: string): Promise<FinalizedAttemptResult> {
+    logger.log('[SimuladosApi] Submitting attempt with guarded server-side processing');
+    const { data, error } = await supabase.rpc('finalize_attempt_with_guard', {
+      p_attempt_id: attemptId,
     });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error finalizing attempt:', error);
+      throw error;
+    }
+
+    const row = (data?.[0] ?? null) as FinalizedAttemptResult | null;
+    if (!row) {
+      throw new Error('Finalizacao do simulado nao retornou resultado.');
+    }
+    return row;
+  },
+
+  async setAttemptResultNotification(attemptId: string, enabled: boolean): Promise<void> {
+    const { error } = await supabase.rpc('set_attempt_result_notification', {
+      p_attempt_id: attemptId,
+      p_enabled: enabled,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error setting attempt result notification:', error);
+      throw error;
+    }
+  },
+
+  async enqueueAttemptReprocessing(attemptId: string, reason?: string): Promise<void> {
+    const { error } = await supabase.rpc('enqueue_attempt_reprocessing', {
+      p_attempt_id: attemptId,
+      p_reason: reason ?? null,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error enqueuing attempt reprocessing:', error);
+      throw error;
+    }
+  },
+
+  async getAttemptQuestionResults(attemptId: string): Promise<AttemptQuestionResultRow[]> {
+    const { data, error } = await supabase.rpc('get_attempt_question_results', {
+      p_attempt_id: attemptId,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching attempt question results:', error);
+      throw error;
+    }
+    return (data || []) as AttemptQuestionResultRow[];
+  },
+
+  async getUserPerformanceSummary(userId: string): Promise<UserPerformanceSummaryRow | null> {
+    const { data, error } = await supabase.rpc('get_user_performance_summary', {
+      p_user_id: userId,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching user performance summary:', error);
+      throw error;
+    }
+    return (data?.[0] ?? null) as UserPerformanceSummaryRow | null;
+  },
+
+  async getUserPerformanceHistory(userId: string, limit = 20): Promise<UserPerformanceHistoryRow[]> {
+    const { data, error } = await supabase.rpc('get_user_performance_history', {
+      p_user_id: userId,
+      p_limit: limit,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching user performance history:', error);
+      throw error;
+    }
+    return (data || []) as UserPerformanceHistoryRow[];
   },
 
   // ─── Error Notebook ───

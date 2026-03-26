@@ -8,6 +8,7 @@ import { simuladosApi } from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
+import { trackEvent } from '@/lib/analytics';
 import type { ExamState, ExamAnswer } from '@/types/exam';
 
 const STORAGE_PREFIX = 'enamed_exam_';
@@ -26,6 +27,30 @@ export function useExamStorageReal(simuladoId: string) {
   const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptIdRef = useRef<string | null>(null);
   const pendingAnswersRef = useRef<Record<string, ExamAnswer>>({});
+
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const withRetry = useCallback(async <T,>(
+    operation: () => Promise<T>,
+    label: string,
+    attempts = 3,
+    baseDelayMs = 350,
+  ): Promise<T> => {
+    let lastError: unknown = null;
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        const isLast = i === attempts - 1;
+        logger.warn(`[ExamStorageReal] ${label} failed (attempt ${i + 1}/${attempts})`);
+        if (!isLast) {
+          await sleep(baseDelayMs * (i + 1));
+        }
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }, []);
 
   // ── Local cache read ──
   const loadLocalState = useCallback((): ExamState | null => {
@@ -129,6 +154,10 @@ export function useExamStorageReal(simuladoId: string) {
           effectiveDeadline.toISOString(),
         );
         attemptIdRef.current = attempt.id;
+        trackEvent('simulado_started', {
+          simuladoId,
+          attemptId: attempt.id,
+        });
         logger.log('[ExamStorageReal] Created DB attempt:', attempt.id);
       } catch (err) {
         logger.error('[ExamStorageReal] Failed to create DB attempt');
@@ -143,29 +172,34 @@ export function useExamStorageReal(simuladoId: string) {
   const syncToDb = useCallback(async (state: ExamState) => {
     if (!attemptIdRef.current || !user) return;
 
-    try {
-      await simuladosApi.updateAttempt(attemptIdRef.current, {
+    await withRetry(async () => simuladosApi.updateAttempt(attemptIdRef.current!, {
         current_question_index: state.currentQuestionIndex,
         tab_exit_count: state.tabExitCount,
         fullscreen_exit_count: state.fullscreenExitCount,
-      });
+      }),
+      'Update attempt metadata',
+    );
 
-      const allAnswers = state.answers;
-      if (Object.keys(allAnswers).length > 0) {
-        await simuladosApi.bulkUpsertAnswers(attemptIdRef.current, allAnswers);
-        logger.log('[ExamStorageReal] Synced', Object.keys(allAnswers).length, 'answers to DB');
-      }
-    } catch (err) {
-      logger.error('[ExamStorageReal] DB sync failed (will retry)');
+    const allAnswers = state.answers;
+    if (Object.keys(allAnswers).length > 0) {
+      await withRetry(
+        async () => simuladosApi.bulkUpsertAnswers(attemptIdRef.current!, allAnswers),
+        'Bulk upsert answers',
+      );
+      logger.log('[ExamStorageReal] Synced', Object.keys(allAnswers).length, 'answers to DB');
     }
-  }, [user]);
+  }, [user, withRetry]);
 
   // ── Save state (write-through: local immediately, DB debounced) ──
   const saveStateDebounced = useCallback((state: ExamState) => {
     saveLocalState(state);
 
     if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
-    debouncedSaveRef.current = setTimeout(() => syncToDb(state), 2000);
+    debouncedSaveRef.current = setTimeout(() => {
+      syncToDb(state).catch(() => {
+        logger.error('[ExamStorageReal] Debounced DB sync failed');
+      });
+    }, 2000);
   }, [saveLocalState, syncToDb]);
 
   const saveStateSync = useCallback((state: ExamState) => {
@@ -174,49 +208,91 @@ export function useExamStorageReal(simuladoId: string) {
   }, [saveLocalState, syncToDb]);
 
   // ── Track answer changes for batch sync ──
-  const trackAnswer = useCallback((questionId: string, answer: ExamAnswer) => {
+  const trackAnswer = useCallback(async (questionId: string, answer: ExamAnswer) => {
     pendingAnswersRef.current[questionId] = answer;
-  }, []);
+    if (!attemptIdRef.current || !user) return;
+    try {
+      await withRetry(
+        async () => simuladosApi.upsertAnswer(attemptIdRef.current!, questionId, {
+          selectedOptionId: answer.selectedOption,
+          markedForReview: answer.markedForReview,
+          highConfidence: answer.highConfidence,
+          eliminatedOptions: answer.eliminatedAlternatives || [],
+        }),
+        `Immediate upsert answer ${questionId}`,
+      );
+      delete pendingAnswersRef.current[questionId];
+    } catch {
+      logger.error('[ExamStorageReal] Immediate answer save failed');
+    }
+  }, [user, withRetry]);
 
   // ── Flush before finalize ──
   const flushPendingState = useCallback(async (state?: ExamState) => {
     if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
     const stateToSync = state || loadLocalState();
     if (stateToSync) await syncToDb(stateToSync);
-  }, [loadLocalState, syncToDb]);
 
-  // ── Submit (finalize) ──
-  const submitAttempt = useCallback(async (
-    scorePercentage: number,
-    totalCorrect: number,
-    totalAnswered: number,
-    finalState: ExamState,
-  ): Promise<void> => {
-    try {
-      await syncToDb(finalState);
-      logger.log('[ExamStorageReal] Final sync succeeded');
-    } catch (err) {
-      logger.warn('[ExamStorageReal] First sync failed, retrying...');
-      try {
-        await syncToDb(finalState);
-      } catch (retryErr) {
-        logger.error('[ExamStorageReal] Retry also failed');
-      }
+    const pending = pendingAnswersRef.current;
+    if (attemptIdRef.current && Object.keys(pending).length > 0) {
+      await withRetry(
+        async () => simuladosApi.bulkUpsertAnswers(attemptIdRef.current!, pending),
+        'Flush pending answers',
+      );
+      pendingAnswersRef.current = {};
+    }
+  }, [loadLocalState, syncToDb, withRetry]);
+
+  const ensureAllAnswersPersisted = useCallback(async (finalState: ExamState) => {
+    if (!attemptIdRef.current || !user) return;
+
+    if (Object.keys(finalState.answers).length > 0) {
+      await withRetry(
+        async () => simuladosApi.bulkUpsertAnswers(attemptIdRef.current!, finalState.answers),
+        'Final answers upsert',
+      );
     }
 
-    if (attemptIdRef.current) {
-      await simuladosApi.submitAttempt(
-        attemptIdRef.current,
-        scorePercentage,
-        totalCorrect,
-        totalAnswered,
+    const persistedAnswers = await withRetry(
+      async () => simuladosApi.getAnswers(attemptIdRef.current!),
+      'Load persisted answers for integrity check',
+    );
+    const persistedQuestionIds = new Set(persistedAnswers.map(a => a.question_id));
+    const missing = Object.keys(finalState.answers).filter(questionId => !persistedQuestionIds.has(questionId));
+    if (missing.length > 0) {
+      throw new Error(`Respostas pendentes de persistencia: ${missing.length}`);
+    }
+  }, [user, withRetry]);
+
+  // ── Submit (finalize) ──
+  const submitAttempt = useCallback(async (finalState: ExamState): Promise<void> => {
+    await flushPendingState(finalState);
+    await ensureAllAnswersPersisted(finalState);
+
+    if (!attemptIdRef.current) {
+      throw new Error('Tentativa nao inicializada para finalizacao.');
+    }
+    try {
+      await withRetry(
+        async () => simuladosApi.submitAttempt(attemptIdRef.current!),
+        'Finalize attempt server-side',
       );
+    } catch (error) {
+      // Fail-safe path: enqueue for server-side reprocessing and bubble a clear error.
+      await withRetry(
+        async () => simuladosApi.enqueueAttemptReprocessing(
+          attemptIdRef.current!,
+          'Finalizacao falhou no client; tentativa enfileirada para reprocessamento.',
+        ),
+        'Enqueue attempt reprocessing',
+      );
+      throw error;
     }
 
     const submitted: ExamState = { ...finalState, status: 'submitted', lastSavedAt: new Date().toISOString() };
     saveLocalState(submitted);
     logger.log('[ExamStorageReal] Attempt submitted');
-  }, [syncToDb, saveLocalState]);
+  }, [flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState]);
 
   // ── Integrity events ──
   const registerTabExit = useCallback(() => {
@@ -238,6 +314,17 @@ export function useExamStorageReal(simuladoId: string) {
     localStorage.removeItem(getLocalKey(simuladoId));
   }, [simuladoId]);
 
+  const setResultNotification = useCallback(async (enabled: boolean) => {
+    if (!attemptIdRef.current || !user) return;
+    await simuladosApi.setAttemptResultNotification(attemptIdRef.current, enabled);
+  }, [user]);
+
+  const getResultNotificationPreference = useCallback(async (): Promise<boolean> => {
+    if (!user) return false;
+    const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
+    return Boolean(attempt?.notify_result_email);
+  }, [simuladoId, user]);
+
   return {
     loadState,
     loadLocalState,
@@ -246,9 +333,12 @@ export function useExamStorageReal(simuladoId: string) {
     flushPendingState,
     initializeState,
     submitAttempt,
+    ensureAllAnswersPersisted,
     trackAnswer,
     registerTabExit,
     registerFullscreenExit,
+    setResultNotification,
+    getResultNotificationPreference,
     clearState,
     attemptId: attemptIdRef,
   };

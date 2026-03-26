@@ -1,4 +1,4 @@
-import { Calendar, Clock, FileText, Trophy } from "lucide-react";
+import { Calendar, Trophy } from "lucide-react";
 import { PremiumCard } from "./PremiumCard";
 import { StatusBadge } from "./StatusBadge";
 import type { SimuladoWithStatus } from "@/types";
@@ -29,15 +29,7 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
       <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Calendar className="h-3.5 w-3.5" />
-          {formatDateShort(simulado.executionWindowStart)}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <FileText className="h-3.5 w-3.5" />
-          {simulado.questionsCount}q
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Clock className="h-3.5 w-3.5" />
-          {simulado.estimatedDuration}
+          {formatDateShort(simulado.executionWindowStart)} - {formatDateShort(simulado.executionWindowEnd)}
         </span>
       </div>
 

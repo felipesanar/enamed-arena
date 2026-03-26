@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
@@ -7,6 +7,7 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { AddToNotebookModal } from '@/components/AddToNotebookModal';
+import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,7 @@ import { canViewResults } from '@/lib/simulado-helpers';
 import { computeSimuladoScore } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
   FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles,
@@ -22,6 +24,7 @@ import {
 
 export default function CorrecaoPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const prefersReducedMotion = useReducedMotion();
   const { profile } = useUser();
   const { user } = useAuth();
@@ -29,9 +32,10 @@ export default function CorrecaoPage() {
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { examState, loading: loadingExam } = useExamResult(id);
+  const { examState, attempt, loading: loadingExam } = useExamResult(id);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const initialQuestionParam = Number(searchParams.get('q') || '1');
+  const [currentIndex, setCurrentIndex] = useState(Math.max(0, initialQuestionParam - 1));
   const [showNav, setShowNav] = useState(false);
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
@@ -42,6 +46,15 @@ export default function CorrecaoPage() {
     if (!examState || !questions.length) return null;
     return computeSimuladoScore(examState, questions);
   }, [examState, questions]);
+
+  useEffect(() => {
+    if (!id || !simulado) return;
+    trackEvent('correction_viewed', {
+      simuladoId: id,
+      simuladoTitle: simulado.title,
+      segment,
+    });
+  }, [id, simulado, segment]);
 
   if (loading) {
     return <><div className="space-y-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div></>;
@@ -89,6 +102,13 @@ export default function CorrecaoPage() {
 
   if (!question || !result) return null;
 
+  useEffect(() => {
+    const q = Number(searchParams.get('q') || '1');
+    if (!Number.isNaN(q) && q > 0) {
+      setCurrentIndex(Math.max(0, Math.min(questions.length - 1, q - 1)));
+    }
+  }, [searchParams, questions.length]);
+
   const handleNavigate = (idx: number) => {
     setCurrentIndex(idx);
     setShowNav(false);
@@ -107,9 +127,15 @@ export default function CorrecaoPage() {
 
       <PageHeader
         title="Gabarito Comentado"
-        subtitle={`${simulado.title} — ${score.totalCorrect}/${score.totalQuestions} acertos (${score.percentageScore}%)`}
+        subtitle={`${simulado.title} — ${attempt?.total_correct ?? score.totalCorrect}/${score.totalQuestions} acertos (${attempt?.score_percentage != null ? Math.round(Number(attempt.score_percentage)) : score.percentageScore}%)`}
         badge={`Simulado #${simulado.sequenceNumber} · Correção`}
       />
+
+      {id && (
+        <div className="mb-6">
+          <SimuladoResultNav simuladoId={id} />
+        </div>
+      )}
 
       <div className="flex gap-6">
         <div className="flex-1 min-w-0">

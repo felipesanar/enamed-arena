@@ -8,7 +8,14 @@ import { Settings, User, Bell, Shield, GraduationCap, Building2, Edit3, LogOut, 
 import { Link } from "react-router-dom";
 
 export default function ConfiguracoesPage() {
-  const { profile, onboarding, isOnboardingComplete, dataSource } = useUser();
+  const {
+    profile,
+    onboarding,
+    isOnboardingComplete,
+    dataSource,
+    onboardingEditLocked,
+    onboardingNextEditableAt,
+  } = useUser();
   const { user: authUser, signOut } = useAuth();
   const segment = profile?.segment ?? 'guest';
 
@@ -75,15 +82,28 @@ export default function ConfiguracoesPage() {
           <SectionHeader
             title="Seu perfil acadêmico"
             action={
-              <Link
-                to="/onboarding"
-                className="inline-flex items-center gap-1.5 text-body-sm text-primary hover:text-wine-hover transition-colors font-semibold"
-              >
-                <Edit3 className="h-3.5 w-3.5" />
-                Editar
-              </Link>
+              onboardingEditLocked ? (
+                <span className="inline-flex items-center gap-1.5 text-body-sm text-warning font-semibold">
+                  <Edit3 className="h-3.5 w-3.5" />
+                  Edição bloqueada em janela ativa
+                </span>
+              ) : (
+                <Link
+                  to="/onboarding"
+                  className="inline-flex items-center gap-1.5 text-body-sm text-primary hover:text-wine-hover transition-colors font-semibold"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  Editar
+                </Link>
+              )
             }
           />
+          {onboardingEditLocked && (
+            <p className="text-caption text-warning mb-3">
+              Você poderá editar novamente entre janelas de simulado.
+              {onboardingNextEditableAt ? ` Liberação prevista: ${new Date(onboardingNextEditableAt).toLocaleString('pt-BR')}.` : ''}
+            </p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <PremiumCard className="p-5">
               <div className="flex items-center gap-3 mb-3">

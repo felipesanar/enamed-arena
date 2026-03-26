@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
 import { UpgradeBanner } from '@/components/UpgradeBanner';
 import { SkeletonCard } from '@/components/SkeletonCard';
+import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useUser } from '@/contexts/UserContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
@@ -17,7 +18,7 @@ import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import {
   Trophy, CheckCircle2, XCircle, Target, BarChart3,
-  FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown, BookOpen,
+  FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown,
 } from 'lucide-react';
 
 export default function ResultadoPage() {
@@ -27,7 +28,7 @@ export default function ResultadoPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { examState, loading: loadingExam } = useExamResult(id);
+  const { examState, attempt, loading: loadingExam } = useExamResult(id);
 
   const loading = loadingSim || loadingExam;
 
@@ -81,6 +82,11 @@ export default function ResultadoPage() {
 
   const breakdown = computePerformanceBreakdown(examState, questions);
   const { overall, byArea } = breakdown;
+  const officialCorrect = attempt?.total_correct ?? overall.totalCorrect;
+  const officialAnswered = attempt?.total_answered ?? overall.totalAnswered;
+  const officialPercentage = attempt?.score_percentage != null
+    ? Math.round(Number(attempt.score_percentage))
+    : overall.percentageScore;
   const bestArea = byArea[0];
   const worstArea = byArea[byArea.length - 1];
   const hasComparativo = SEGMENT_ACCESS[segment].comparativo;
@@ -116,16 +122,16 @@ export default function ResultadoPage() {
             <Trophy className="h-10 w-10 text-primary" aria-hidden />
           </div>
           <p className="text-overline uppercase text-muted-foreground tracking-wide mb-1">Seu desempenho neste simulado</p>
-          <div className="text-display font-bold text-primary mb-1 tabular-nums">{overall.percentageScore}%</div>
+          <div className="text-display font-bold text-primary mb-1 tabular-nums">{officialPercentage}%</div>
           <p className="text-body-lg text-muted-foreground mb-6">
-            {overall.totalCorrect} de {overall.totalQuestions} questões corretas
+            {officialCorrect} de {overall.totalQuestions} questões corretas
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
             {[
-              { label: 'Acertos', value: String(overall.totalCorrect), icon: CheckCircle2, color: 'text-success' },
+              { label: 'Acertos', value: String(officialCorrect), icon: CheckCircle2, color: 'text-success' },
               { label: 'Erros', value: String(overall.totalIncorrect), icon: XCircle, color: 'text-destructive' },
               { label: 'Em branco', value: String(overall.totalUnanswered), icon: Target, color: 'text-muted-foreground' },
-              { label: 'Respondidas', value: String(overall.totalAnswered), icon: Clock, color: 'text-info' },
+              { label: 'Respondidas', value: String(officialAnswered), icon: Clock, color: 'text-info' },
             ].map((stat, i) => (
               <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.08 }} className="p-3 rounded-xl bg-card border border-border">
                 <stat.icon className={`h-5 w-5 ${stat.color} mx-auto mb-1.5`} />
@@ -203,30 +209,9 @@ export default function ResultadoPage() {
         </div>
       )}
 
-      {/* Um CTA primário, demais secundários (Fase D) */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          to={`/simulados/${id}/correcao`}
-          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
-        >
-          <FileText className="h-4 w-4" aria-hidden />
-          Ver correção
-        </Link>
-        <Link
-          to="/desempenho"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <BarChart3 className="h-4 w-4" aria-hidden />
-          Desempenho
-        </Link>
-        <Link
-          to="/ranking"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <Trophy className="h-4 w-4" aria-hidden />
-          Ranking
-        </Link>
-        {hasComparativo && (
+      {id && <SimuladoResultNav simuladoId={id} />}
+      {hasComparativo && (
+        <div className="mt-4">
           <Link
             to="/comparativo"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-transparent text-muted-foreground text-body font-medium hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -234,8 +219,8 @@ export default function ResultadoPage() {
             <BarChart3 className="h-4 w-4" aria-hidden />
             Comparativo
           </Link>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { CheckCircle2, Calendar, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Calendar, ArrowRight, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/simulado-helpers';
 
@@ -9,10 +9,20 @@ interface ExamCompletedScreenProps {
   resultsReleaseAt: string;
   answeredCount: number;
   totalCount: number;
+  notifyResultByEmail: boolean;
+  notificationSaving: boolean;
+  onToggleNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 }
 
 export function ExamCompletedScreen({
-  simuladoId, simuladoTitle, resultsReleaseAt, answeredCount, totalCount,
+  simuladoId,
+  simuladoTitle,
+  resultsReleaseAt,
+  answeredCount,
+  totalCount,
+  notifyResultByEmail,
+  notificationSaving,
+  onToggleNotifyResultByEmail,
 }: ExamCompletedScreenProps) {
   const prefersReducedMotion = useReducedMotion();
 
@@ -58,6 +68,28 @@ export function ExamCompletedScreen({
                 <strong className="text-foreground">{formatDate(resultsReleaseAt)}</strong>.
               </p>
             </div>
+          </div>
+        </div>
+
+        <div className="premium-card p-4 mb-6 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <Mail className="h-4 w-4 text-primary mt-0.5" aria-hidden />
+              <div>
+                <p className="text-body-sm font-semibold text-foreground">Avisar por email quando liberar</p>
+                <p className="text-caption text-muted-foreground">
+                  Receba um lembrete assim que o resultado ficar disponivel.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={notificationSaving}
+              onClick={() => onToggleNotifyResultByEmail(!notifyResultByEmail)}
+              className="px-3 py-1.5 rounded-lg border border-border bg-card text-body-sm font-medium hover:bg-muted disabled:opacity-60"
+            >
+              {notifyResultByEmail ? 'Ativado' : 'Ativar'}
+            </button>
           </div>
         </div>
 

@@ -14,9 +14,9 @@ import { useExamTimer } from '@/hooks/useExamTimer';
 import { useFocusControl } from '@/hooks/useFocusControl';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
-import { computeSimuladoScore } from '@/lib/resultHelpers';
 import type { Question } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { trackEvent } from '@/lib/analytics';
 
 export interface UseExamFlowReturn {
   // Data
@@ -35,11 +35,13 @@ export interface UseExamFlowReturn {
   showSubmitModal: boolean;
   setShowSubmitModal: (v: boolean | ((prev: boolean) => boolean)) => void;
   submitting: boolean;
+  notificationSaving: boolean;
 
   // Side effects (focus, timer, finalize)
   focusControl: ReturnType<typeof useFocusControl>;
   timeRemaining: ReturnType<typeof useExamTimer>;
   finalize: () => Promise<void>;
+  setNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 
   // State update (debounced persist)
   updateState: (updater: (prev: ExamState) => ExamState) => void;
@@ -60,6 +62,8 @@ export interface UseExamFlowReturn {
   currentAnswer: ExamAnswer | undefined;
   isReviewFlagged: boolean;
   isHighConfFlagged: boolean;
+  attemptId: string | null;
+  notifyResultByEmail: boolean;
 }
 
 const emptySummary = {
@@ -83,6 +87,8 @@ export function useExamFlow(): UseExamFlowReturn {
   const [showNavigator, setShowNavigator] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notifyResultByEmail, setNotifyResultByEmailState] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
   const hasFinalized = useRef(false);
 
@@ -118,6 +124,9 @@ export function useExamFlow(): UseExamFlowReturn {
         } else {
           if (!cancelled) setState(existing);
         }
+
+        const notifEnabled = await storage.getResultNotificationPreference();
+        if (!cancelled) setNotifyResultByEmailState(notifEnabled);
       } catch (err) {
         const local = storage.loadLocalState();
         if (!cancelled && local) setState(local);
@@ -143,14 +152,14 @@ export function useExamFlow(): UseExamFlowReturn {
     setSubmitting(true);
 
     try {
-      const score = computeSimuladoScore(state, questions);
-      await storage.submitAttempt(
-        score.percentageScore,
-        score.totalCorrect,
-        score.totalAnswered,
-        state,
-      );
+      await storage.submitAttempt(state);
       setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
+      const answeredCount = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
+      trackEvent('simulado_completed', {
+        simuladoId: simulado.id,
+        answered: answeredCount,
+        total: questionIds.length,
+      });
       setShowSubmitModal(false);
       toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
     } catch (err) {
@@ -159,7 +168,29 @@ export function useExamFlow(): UseExamFlowReturn {
     } finally {
       setSubmitting(false);
     }
-  }, [state, simulado, questions, storage]);
+  }, [state, simulado, storage, questionIds.length]);
+
+  const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
+    setNotificationSaving(true);
+    try {
+      await storage.setResultNotification(enabled);
+      setNotifyResultByEmailState(enabled);
+      toast({
+        title: enabled ? 'Notificação ativada' : 'Notificação desativada',
+        description: enabled
+          ? 'Vamos avisar por email quando o resultado for liberado.'
+          : 'Você não receberá aviso por email para este simulado.',
+      });
+    } catch {
+      toast({
+        title: 'Erro ao atualizar notificação',
+        description: 'Tente novamente em instantes.',
+        variant: 'destructive',
+      });
+    } finally {
+      setNotificationSaving(false);
+    }
+  }, [storage]);
 
   const handleTimeUp = useCallback(() => {
     toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
@@ -325,9 +356,11 @@ export function useExamFlow(): UseExamFlowReturn {
     showSubmitModal,
     setShowSubmitModal,
     submitting,
+    notificationSaving,
     focusControl,
     timeRemaining,
     finalize,
+    setNotifyResultByEmail,
     updateState,
     handleSelectOption,
     handleEliminateOption,
@@ -342,5 +375,7 @@ export function useExamFlow(): UseExamFlowReturn {
     currentAnswer,
     isReviewFlagged: currentAnswer?.markedForReview ?? false,
     isHighConfFlagged: currentAnswer?.highConfidence ?? false,
+    attemptId: storage.attemptId.current,
+    notifyResultByEmail,
   };
 }

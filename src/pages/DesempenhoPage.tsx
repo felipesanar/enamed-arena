@@ -6,9 +6,11 @@ import { StatCard } from '@/components/StatCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
+import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useSimulados } from '@/hooks/useSimulados';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
+import { useUserPerformance } from '@/hooks/useUserPerformance';
 import { canViewResults } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown, type ThemePerformance } from '@/lib/resultHelpers';
 import { cn } from '@/lib/utils';
@@ -16,6 +18,7 @@ import {
   BarChart3, BookOpen, Stethoscope, Target, Star, TrendingDown, FileText,
 } from 'lucide-react';
 import type { AreaPerformance } from '@/types';
+import { Link } from 'react-router-dom';
 
 function PerformanceNode({
   name, score, total, correct, isSelected, onClick,
@@ -41,10 +44,12 @@ function PerformanceNode({
 export default function DesempenhoPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading: loadingSimulados } = useSimulados();
+  const { history } = useUserPerformance();
   const simuladosWithResults = useMemo(() => simulados.filter(s => canViewResults(s.status)), [simulados]);
 
   const [selectedSimuladoId, setSelectedSimuladoId] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
   // Set default selected simulado when data loads
   useEffect(() => {
@@ -90,6 +95,19 @@ export default function DesempenhoPage() {
 
   const { overall, byArea, byTheme } = breakdown;
   const themesForArea = selectedArea ? byTheme.filter(t => t.area === selectedArea) : [];
+  const questionResultsForTheme = useMemo(() => {
+    if (!selectedTheme) return [];
+    return breakdown.overall.questionResults
+      .filter((q) => q.theme === selectedTheme && (!selectedArea || q.area === selectedArea))
+      .map((q) => {
+        const question = questions.find((item) => item.id === q.questionId);
+        return {
+          ...q,
+          number: question?.number ?? null,
+          text: question?.text ?? '',
+        };
+      });
+  }, [selectedTheme, selectedArea, breakdown.overall.questionResults, questions]);
   const bestArea = byArea[0];
   const worstArea = byArea[byArea.length - 1];
 
@@ -97,10 +115,16 @@ export default function DesempenhoPage() {
     <>
       <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
 
+      {selectedSimuladoId && (
+        <div className="mb-6">
+          <SimuladoResultNav simuladoId={selectedSimuladoId} />
+        </div>
+      )}
+
       {simuladosWithResults.length > 1 && (
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {simuladosWithResults.map(s => (
-            <button key={s.id} onClick={() => { setSelectedSimuladoId(s.id); setSelectedArea(null); }} className={cn(
+            <button key={s.id} onClick={() => { setSelectedSimuladoId(s.id); setSelectedArea(null); setSelectedTheme(null); }} className={cn(
               'px-4 py-2 rounded-xl text-body-sm font-medium transition-all whitespace-nowrap',
               s.id === selectedSimuladoId ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted',
             )}>{s.title}</button>
@@ -113,6 +137,18 @@ export default function DesempenhoPage() {
         <StatCard label="Acertos" value={`${overall.totalCorrect}/${overall.totalQuestions}`} icon={Target} delay={0.08} />
         <StatCard label="Questões respondidas" value={String(overall.totalAnswered)} icon={BookOpen} delay={0.16} />
       </div>
+
+      {history.length > 1 && (
+        <PremiumCard className="p-5 md:p-6 mb-8">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" aria-hidden /></div>
+            <h3 className="text-heading-3 text-foreground">Evolucao recente</h3>
+          </div>
+          <p className="text-body-sm text-muted-foreground">
+            Ultimos {Math.min(history.length, 5)} simulados: {history.slice(0, 5).map(h => `${Math.round(h.score_percentage)}%`).join(' -> ')}
+          </p>
+        </PremiumCard>
+      )}
 
       {byArea.length > 1 && (
         <PremiumCard className="p-5 md:p-6 mb-8">
@@ -157,7 +193,7 @@ export default function DesempenhoPage() {
               <p className="text-overline uppercase text-muted-foreground mb-3">Grande Área</p>
               <div className="space-y-2 max-h-[350px] overflow-y-auto">
                 {byArea.map(area => (
-                  <PerformanceNode key={area.area} name={area.area} score={area.score} total={area.questions} correct={area.correct} isSelected={selectedArea === area.area} onClick={() => setSelectedArea(prev => prev === area.area ? null : area.area)} />
+                  <PerformanceNode key={area.area} name={area.area} score={area.score} total={area.questions} correct={area.correct} isSelected={selectedArea === area.area} onClick={() => { setSelectedArea(prev => prev === area.area ? null : area.area); setSelectedTheme(null); }} />
                 ))}
               </div>
             </div>
@@ -172,7 +208,15 @@ export default function DesempenhoPage() {
                   <AnimatePresence>
                     {themesForArea.map(theme => (
                       <motion.div key={theme.theme} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -8 }} transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}>
-                        <div className="p-3.5 rounded-xl border border-border/40 bg-card hover:bg-accent/30 transition-all">
+                        <button
+                          onClick={() => setSelectedTheme((prev) => (prev === theme.theme ? null : theme.theme))}
+                          className={cn(
+                            'w-full text-left p-3.5 rounded-xl border transition-all',
+                            selectedTheme === theme.theme
+                              ? 'border-primary/40 bg-accent/50'
+                              : 'border-border/40 bg-card hover:bg-accent/30',
+                          )}
+                        >
                           <div className="flex justify-between items-center gap-2">
                             <span className="font-medium text-body-sm text-foreground">{theme.theme}</span>
                             <div className="flex items-center gap-2">
@@ -180,7 +224,7 @@ export default function DesempenhoPage() {
                               <span className="font-bold text-body-sm text-primary tabular-nums">{theme.score}%</span>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -189,6 +233,49 @@ export default function DesempenhoPage() {
             </div>
           </div>
         </div>
+      </PremiumCard>
+
+      <PremiumCard className="p-5 md:p-6 mb-8">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <BookOpen className="h-4 w-4 text-primary" aria-hidden />
+          </div>
+          <h3 className="text-heading-3 text-foreground">Drill-down por questão</h3>
+        </div>
+        {!selectedTheme ? (
+          <p className="text-body-sm text-muted-foreground">
+            Selecione um tema para ver as questões e navegar direto para a correção.
+          </p>
+        ) : questionResultsForTheme.length === 0 ? (
+          <p className="text-body-sm text-muted-foreground">Nenhuma questão encontrada para o tema selecionado.</p>
+        ) : (
+          <div className="space-y-2">
+            {questionResultsForTheme.map((q, idx) => (
+              <Link
+                key={q.questionId}
+                to={`/simulados/${selectedSimuladoId}/correcao?q=${q.number ?? idx + 1}`}
+                className="flex items-start justify-between gap-3 p-3 rounded-xl border border-border/40 hover:bg-accent/30 transition-colors"
+              >
+                <div>
+                  <p className="text-body-sm font-medium text-foreground">
+                    Questão {q.number ?? idx + 1}
+                  </p>
+                  <p className="text-caption text-muted-foreground line-clamp-2">
+                    {q.text || 'Enunciado indisponível'}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    'text-caption font-semibold px-2 py-0.5 rounded-md',
+                    q.isCorrect ? 'bg-success/10 text-success' : q.wasAnswered ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning',
+                  )}
+                >
+                  {q.isCorrect ? 'Acerto' : q.wasAnswered ? 'Erro' : 'Em branco'}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </PremiumCard>
 
       <SectionHeader title="Sua evolução por grande área" />

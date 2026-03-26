@@ -1,7 +1,5 @@
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SurfaceCard } from "@/components/premium/SurfaceCard";
-import { MetricPill } from "@/components/premium/MetricPill";
 import { PremiumLink } from "@/components/premium/PremiumLink";
 
 interface HomeHeroSectionProps {
@@ -21,64 +19,59 @@ export function HomeHeroSection({
   insightCopy,
   statusInsight,
 }: HomeHeroSectionProps) {
+  const nivel = mediaAtual >= 75 ? "Avançado" : mediaAtual >= 50 ? "Intermediário" : "Inicial";
+
   return (
     <section
-      className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10"
+      className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5"
       aria-label="Boas-vindas e status"
     >
-      {/* Left: main hero panel — more breath, cockpit metrics */}
       <motion.div
-        className="lg:col-span-7"
-        initial={{ opacity: 0, y: 16 }}
+        className="lg:col-span-8"
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: easeOut }}
+        transition={{ duration: 0.42, ease: easeOut }}
       >
-        <SurfaceCard radius="hero" className="p-8 md:p-10 lg:p-12">
-          <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-[#8C93A3] mb-3">
+        <SurfaceCard radius="hero" className="p-5 md:p-6 lg:p-7">
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-[#8C93A3] mb-2">
             PLATAFORMA DE SIMULADOS
           </p>
-          <h1 className="text-[40px] md:text-[44px] lg:text-[48px] font-semibold tracking-[-0.03em] leading-[1.05] text-[#1A2233] mb-4">
+          <h1 className="text-[30px] md:text-[34px] lg:text-[36px] font-semibold tracking-[-0.02em] leading-[1.08] text-[#1A2233] mb-2">
             Bem-vindo de volta,{" "}
             <span className="text-[#1A2233]">{userName || "estudante"}</span>
           </h1>
-          <p className="text-[15px] md:text-base text-[#5F6778] leading-relaxed max-w-xl mb-8">
-            Seu desempenho começa a ganhar forma. Agora o foco é construir
-            consistência, revisar com inteligência e acelerar sua evolução.
+          <p className="text-[14px] md:text-[15px] text-[#5F6778] leading-relaxed mb-3">
+            Você está no nível {nivel} · {simuladosRealizados} simulados feitos.
           </p>
-          {/* Cockpit-style metrics */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            <MetricPill>{simuladosRealizados} simulado realizado</MetricPill>
-            <MetricPill>{mediaAtual}% média atual</MetricPill>
-            <MetricPill>Ranking disponível</MetricPill>
-            <MetricPill accent>Caderno de Erros ativo</MetricPill>
-          </div>
-          <div className="flex flex-wrap gap-3 mb-6">
-            <PremiumLink to="/simulados" variant="primary" showArrow>
-              Ver calendário
-            </PremiumLink>
-            <PremiumLink to="/caderno-erros" variant="secondary">
-              Abrir Caderno de Erros
-            </PremiumLink>
-          </div>
-          <p className="text-[13px] text-[#8C93A3] leading-relaxed border-l-2 border-[rgba(142,31,61,0.2)] pl-4">
+          <p className="text-[13px] text-[#8C93A3] leading-relaxed border-l-2 border-[rgba(142,31,61,0.2)] pl-3 mb-4">
             {insightCopy}
+          </p>
+          <div className="flex flex-wrap gap-2.5 mb-3">
+            <PremiumLink to="/simulados" variant="primary" showArrow>
+              Ir para o próximo simulado
+            </PremiumLink>
+            <PremiumLink to="/desempenho" variant="secondary">
+              Ver meu desempenho
+            </PremiumLink>
+          </div>
+          <p className="text-[12px] text-[#8C93A3] leading-relaxed">
+            {statusInsight}
           </p>
         </SurfaceCard>
       </motion.div>
 
-      {/* Right: status panel with radial score — more presence */}
       <motion.div
-        className="lg:col-span-5"
-        initial={{ opacity: 0, y: 16 }}
+        className="lg:col-span-4"
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.08, ease: easeOut }}
+        transition={{ duration: 0.42, delay: 0.06, ease: easeOut }}
       >
-        <SurfaceCard radius="large" className="p-8 md:p-9 h-full flex flex-col">
-          <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-[#8C93A3] mb-8">
+        <SurfaceCard radius="large" className="p-5 md:p-6 h-full flex flex-col">
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-[#8C93A3] mb-4">
             Status atual
           </p>
-          <div className="flex flex-col items-center flex-1">
-            <div className="relative w-40 h-40 md:w-44 md:h-44 mb-6">
+          <div className="flex flex-col items-center flex-1 justify-center">
+            <div className="relative w-28 h-28 md:w-32 md:h-32 mb-3">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle
                   cx="50"
@@ -103,20 +96,15 @@ export function HomeHeroSection({
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl md:text-5xl font-semibold tracking-[-0.03em] text-[#1A2233]">
+                <span className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-[#1A2233]">
                   {mediaAtual}%
                 </span>
               </div>
             </div>
-            <p className="text-[13px] font-medium text-[#5F6778] mb-4">
+            <p className="text-[12px] font-medium text-[#5F6778] mb-2">
               Média geral atual
             </p>
-            <ul className="text-[13px] text-[#5F6778] space-y-1.5 mb-6 text-center">
-              <li>{simuladosRealizados} simulado feito</li>
-              <li>Início da jornada</li>
-              <li>Ranking liberado</li>
-            </ul>
-            <p className="text-[13px] text-[#8C93A3] leading-relaxed text-center max-w-xs">
+            <p className="text-[12px] text-[#8C93A3] leading-relaxed text-center max-w-xs">
               {statusInsight}
             </p>
           </div>

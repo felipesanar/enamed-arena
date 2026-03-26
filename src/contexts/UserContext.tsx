@@ -13,11 +13,15 @@ interface UserContextValue {
   isOnboardingComplete: boolean;
   profileError: string | null;
   dataSource: 'supabase' | 'loading' | 'unauthenticated';
+  onboardingEditLocked: boolean;
+  onboardingEditReason: string | null;
+  onboardingNextEditableAt: string | null;
 
   saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
   updateProfile: (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => void;
   resetOnboarding: () => void;
   refreshProfile: () => Promise<void>;
+  refreshOnboardingEditGuard: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -29,6 +33,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'supabase' | 'loading' | 'unauthenticated'>('loading');
+  const [onboardingEditLocked, setOnboardingEditLocked] = useState(false);
+  const [onboardingEditReason, setOnboardingEditReason] = useState<string | null>(null);
+  const [onboardingNextEditableAt, setOnboardingNextEditableAt] = useState<string | null>(null);
+
+  const fetchOnboardingEditGuard = useCallback(async () => {
+    if (!authUser) return;
+    const { data, error } = await supabase.rpc('get_onboarding_edit_guard_state');
+    if (error) {
+      logger.error('[UserContext] Onboarding edit guard fetch error:', error);
+      setOnboardingEditLocked(false);
+      setOnboardingEditReason(null);
+      setOnboardingNextEditableAt(null);
+      return;
+    }
+    const row = Array.isArray(data) ? data[0] : null;
+    setOnboardingEditLocked(!(row?.can_edit ?? true));
+    setOnboardingEditReason(row?.reason ?? null);
+    setOnboardingNextEditableAt(row?.next_edit_available_at ?? null);
+  }, [authUser]);
 
   const fetchUserData = useCallback(async (userId: string, silent = false) => {
     logger.log('[UserContext] Fetching user data from Supabase', silent ? '(silent)' : '');
@@ -88,6 +111,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
 
       setDataSource('supabase');
+      await fetchOnboardingEditGuard();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar perfil';
       logger.error('[UserContext] Unexpected error fetching user data:', message);
@@ -100,7 +124,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchOnboardingEditGuard]);
 
   const lastFetchedUserIdRef = React.useRef<string | null>(null);
 
@@ -136,51 +160,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
     if (!authUser) throw new Error('Not authenticated');
+    const { data: savedRow, error } = await supabase.rpc('save_onboarding_guarded', {
+      p_specialty: data.specialty,
+      p_target_institutions: data.targetInstitutions,
+    });
+    if (error) throw error;
 
-    const now = new Date().toISOString();
-
-    const { data: existing } = await supabase
-      .from('onboarding_profiles')
-      .select('id')
-      .eq('user_id', authUser.id)
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from('onboarding_profiles')
-        .update({
-          specialty: data.specialty,
-          target_institutions: data.targetInstitutions,
-          status: 'completed' as const,
-          completed_at: now,
-        })
-        .eq('user_id', authUser.id);
-
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('onboarding_profiles')
-        .insert({
-          user_id: authUser.id,
-          specialty: data.specialty,
-          target_institutions: data.targetInstitutions,
-          status: 'completed' as const,
-          completed_at: now,
-        });
-
-      if (error) throw error;
-    }
-
+    const row = Array.isArray(savedRow) ? savedRow[0] : savedRow;
     const onboardingData: OnboardingProfile = {
-      userId: authUser.id,
-      specialty: data.specialty,
-      targetInstitutions: data.targetInstitutions,
-      status: 'completed',
-      completedAt: now,
+      id: row?.id,
+      userId: row?.user_id ?? authUser.id,
+      specialty: row?.specialty ?? data.specialty,
+      targetInstitutions: row?.target_institutions ?? data.targetInstitutions,
+      status: (row?.status as OnboardingStatus) ?? 'completed',
+      completedAt: row?.completed_at ?? undefined,
     };
     setOnboarding(onboardingData);
+    await fetchOnboardingEditGuard();
     logger.log('[UserContext] Onboarding saved to Supabase');
-  }, [authUser]);
+  }, [authUser, fetchOnboardingEditGuard]);
 
   const updateProfile = useCallback(async (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => {
     if (!authUser) return;
@@ -217,10 +215,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
       isOnboardingComplete,
       profileError,
       dataSource,
+      onboardingEditLocked,
+      onboardingEditReason,
+      onboardingNextEditableAt,
       saveOnboarding,
       updateProfile,
       resetOnboarding,
       refreshProfile,
+      refreshOnboardingEditGuard: fetchOnboardingEditGuard,
     }}>
       {children}
     </UserContext.Provider>

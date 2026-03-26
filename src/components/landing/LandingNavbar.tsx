@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics";
 
 const NAV_SECTIONS = [
   { id: "diferenciais", label: "Diferenciais" },
@@ -171,7 +172,7 @@ export function LandingNavbar() {
                   )}
                   asChild
                 >
-                  <Link to="/login">Entrar</Link>
+                  <Link to="/login" onClick={() => trackEvent("lead_captured", { source: "landing_nav_login" })}>Entrar</Link>
                 </Button>
                 <Button
                   size="default"
@@ -183,7 +184,9 @@ export function LandingNavbar() {
                   )}
                   asChild
                 >
-                  <Link to="/login">Participar do simulado</Link>
+                  <Link to="/login" onClick={() => trackEvent("lead_captured", { source: "landing_nav_primary" })}>
+                    Participar do simulado
+                  </Link>
                 </Button>
 
                 <button

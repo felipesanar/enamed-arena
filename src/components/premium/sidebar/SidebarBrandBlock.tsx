@@ -2,18 +2,18 @@ import { GraduationCap } from "lucide-react";
 
 export function SidebarBrandBlock() {
   return (
-    <div className="flex items-center gap-3 px-1">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#12203A] border border-white/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] transition-transform duration-200 hover:scale-[1.02]">
-        <GraduationCap className="h-5 w-5 text-white/95" aria-hidden />
+    <div className="flex items-center gap-2.5 px-0.5 [@media(max-height:700px)]:gap-2">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-[#12203A] shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] transition-transform duration-200 hover:scale-[1.02] [@media(max-height:700px)]:h-8 [@media(max-height:700px)]:w-8">
+        <GraduationCap className="h-4 w-4 text-white/95 [@media(max-height:700px)]:h-3.5 [@media(max-height:700px)]:w-3.5" aria-hidden />
       </div>
       <div className="flex flex-col min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.14em] font-semibold text-white/55">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.13em] text-white/55">
           SANARFLIX
         </span>
-        <span className="text-[15px] font-bold tracking-[-0.02em] text-white leading-tight">
+        <span className="text-[13px] font-bold leading-tight tracking-[-0.02em] text-white [@media(max-height:700px)]:text-[12px]">
           PRO: ENAMED
         </span>
-        <span className="mt-1.5 inline-flex w-fit items-center rounded-full border border-[rgba(142,31,61,0.35)] bg-[rgba(142,31,61,0.14)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#d4899a] shadow-[0_0_0_1px_rgba(142,31,61,0.1)]">
+        <span className="mt-1 inline-flex w-fit items-center rounded-full border border-[rgba(142,31,61,0.35)] bg-[rgba(142,31,61,0.14)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#d4899a] shadow-[0_0_0_1px_rgba(142,31,61,0.1)] [@media(max-height:700px)]:mt-0.5 [@media(max-height:700px)]:px-1.5 [@media(max-height:700px)]:py-0">
           Pro
         </span>
       </div>

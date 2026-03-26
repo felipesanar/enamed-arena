@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VIEWPORT_REVEAL, DURATION_NORMAL, EASE } from "@/lib/landingMotion";
 import { NEXT_SIMULADO } from "@/lib/landingMockData";
+import { trackEvent } from "@/lib/analytics";
 
 export function LandingCta() {
   return (
@@ -45,7 +46,11 @@ export function LandingCta() {
                 className="min-h-[56px] px-8 rounded-full font-semibold bg-primary text-primary-foreground hover:bg-wine-hover shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-1 transition-all duration-300"
                 asChild
               >
-                <Link to="/login" className="inline-flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2"
+                  onClick={() => trackEvent("lead_captured", { source: "landing_cta_primary" })}
+                >
                   Quero participar
                   <ArrowRight className="h-5 w-5" aria-hidden />
                 </Link>
@@ -56,7 +61,9 @@ export function LandingCta() {
                 className="min-h-[56px] px-8 rounded-full font-semibold border-border bg-transparent hover:bg-muted/50 hover:border-primary/20 transition-all duration-300"
                 asChild
               >
-                <Link to="/login">Já tenho conta — Entrar</Link>
+                <Link to="/login" onClick={() => trackEvent("lead_captured", { source: "landing_cta_secondary" })}>
+                  Já tenho conta — Entrar
+                </Link>
               </Button>
           </div>
         </motion.div>

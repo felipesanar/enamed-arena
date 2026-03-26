@@ -59,43 +59,26 @@ export async function fetchRankingForSimulado(simuladoId: string): Promise<Ranki
 
 // ─── Fetch simulados that have submitted attempts (for selector) ───
 
-export async function fetchSimuladosWithResults(): Promise<
-  Array<{ id: string; title: string; sequence_number: number }>
-> {
-  logger.log('[rankingApi] Fetching simulados with results');
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data: attempts, error } = await supabase
-    .from('attempts')
-    .select('simulado_id, simulados(id, title, sequence_number)')
-    .eq('user_id', user.id)
-    .in('status', ['submitted', 'expired'])
-    .not('score_percentage', 'is', null);
+export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; title: string; sequence_number: number }>> {
+  logger.log('[rankingApi] Fetching simulados with released results');
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('simulados')
+    .select('id, title, sequence_number, results_release_at, status')
+    .eq('status', 'published')
+    .lte('results_release_at', nowIso)
+    .order('sequence_number', { ascending: true });
 
   if (error) {
-    logger.error('[rankingApi] Error fetching simulados with results:', error);
+    logger.error('[rankingApi] Error fetching released-result simulados:', error);
     return [];
   }
 
-  // Deduplicate by simulado_id — type the join result properly
-  const seen = new Set<string>();
-  const result: Array<{ id: string; title: string; sequence_number: number }> = [];
-
-  for (const a of attempts || []) {
-    const sim = a.simulados as unknown as { id: string; title: string; sequence_number: number } | null;
-    if (sim && !seen.has(sim.id)) {
-      seen.add(sim.id);
-      result.push({
-        id: sim.id,
-        title: sim.title,
-        sequence_number: sim.sequence_number,
-      });
-    }
-  }
-
-  return result.sort((a, b) => a.sequence_number - b.sequence_number);
+  return (data || []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    sequence_number: row.sequence_number,
+  }));
 }
 
 // ─── Transform raw ranking rows into display participants ───
@@ -144,7 +127,7 @@ export function applyRankingFilters(
   comparisonFilter: ComparisonFilter,
   segmentFilter: SegmentFilter,
   userSpecialty: string,
-  userInstitution: string,
+  userInstitutions: string[],
 ): RankingParticipant[] {
   let filtered = participants;
 
@@ -153,8 +136,9 @@ export function applyRankingFilters(
       (p) => p.specialty === userSpecialty || p.isCurrentUser,
     );
   } else if (comparisonFilter === 'same_institution') {
+    const institutionSet = new Set(userInstitutions.filter(Boolean));
     filtered = filtered.filter(
-      (p) => p.institution === userInstitution || p.isCurrentUser,
+      (p) => institutionSet.has(p.institution) || p.isCurrentUser,
     );
   }
 

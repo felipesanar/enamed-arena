@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Sparkles, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { trackEvent } from "@/lib/analytics";
 
 interface UpgradeBannerProps {
   title?: string;
@@ -13,7 +13,7 @@ export function UpgradeBanner({
   title = "Desbloqueie o acesso completo",
   description = "Com o PRO: ENAMED, você tem acesso ao Caderno de Erros, comparativos entre simulados e muito mais.",
   ctaText = "Conhecer o PRO: ENAMED",
-  ctaTo = "/configuracoes",
+  ctaTo = "https://sanarflix.com.br/sanarflix-pro-enamed",
 }: UpgradeBannerProps) {
   const prefersReducedMotion = useReducedMotion();
 
@@ -34,13 +34,22 @@ export function UpgradeBanner({
           <h3 className="text-heading-3 text-foreground mb-1">{title}</h3>
           <p className="text-body text-muted-foreground leading-relaxed">{description}</p>
         </div>
-        <Link
-          to={ctaTo}
+        <a
+          href={ctaTo}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() =>
+            trackEvent("upsell_clicked", {
+              source: "upgrade_banner",
+              title,
+              ctaTo,
+            })
+          }
           className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-all duration-200 shrink-0 group shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
         >
           {ctaText}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-        </Link>
+        </a>
       </div>
     </motion.div>
   );

@@ -58,6 +58,9 @@ export default function SimuladoExamPage() {
         resultsReleaseAt={flow.simulado.resultsReleaseAt}
         answeredCount={flow.summary.answered}
         totalCount={flow.summary.total}
+        notifyResultByEmail={flow.notifyResultByEmail}
+        notificationSaving={flow.notificationSaving}
+        onToggleNotifyResultByEmail={flow.setNotifyResultByEmail}
       />
     );
   }

@@ -1,8 +1,8 @@
 import { LucideIcon, Lock, Sparkles, ArrowRight, Check } from "lucide-react";
-import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
+import { trackEvent } from "@/lib/analytics";
 
 interface ProGateProps {
   feature: string;
@@ -10,7 +10,7 @@ interface ProGateProps {
   icon?: LucideIcon;
   requiredSegment?: UserSegment;
   currentSegment?: UserSegment;
-  /** Route for the upgrade CTA. Default: /configuracoes */
+  /** Route for the upgrade CTA. */
   ctaTo?: string;
   /** Benefícios em destaque (Fase E — preview visual do valor) */
   benefits?: string[];
@@ -22,7 +22,7 @@ export function ProGate({
   icon: Icon = Lock,
   requiredSegment = 'pro',
   currentSegment = 'guest',
-  ctaTo = '/configuracoes',
+  ctaTo = 'https://sanarflix.com.br/sanarflix-pro-enamed',
   benefits,
 }: ProGateProps) {
   const prefersReducedMotion = useReducedMotion();
@@ -71,14 +71,25 @@ export function ProGate({
           </div>
         )}
 
-        <Link
-          to={ctaTo}
+        <a
+          href={ctaTo}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() =>
+            trackEvent("upsell_clicked", {
+              source: "pro_gate",
+              feature,
+              currentSegment,
+              requiredSegment,
+              ctaTo,
+            })
+          }
           className={cn("inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]")}
         >
           <Sparkles className="h-5 w-5" aria-hidden />
           Conhecer o {upgradeLabel}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-        </Link>
+        </a>
         
         <p className="text-caption text-muted-foreground mt-4">
           {requiredSegment === 'pro' 

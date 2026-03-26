@@ -3,16 +3,14 @@ import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
 import { useSimulados } from "@/hooks/useSimulados";
+import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { UpcomingSimulationCard } from "./UpcomingSimulationCard";
 import { KpiGrid } from "./KpiGrid";
-import { QuickActionsSection } from "./QuickActionsSection";
-import { InsightsSection } from "./InsightsSection";
-import { ResumeSection } from "./ResumeSection";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 
-/** Spacing system: 4/8/12/16/24/32 — section rhythm */
-const SECTION_SPACING = "mb-8 md:mb-10";
+/** Compact spacing for above-the-fold dashboard */
+const SECTION_SPACING = "mb-5 md:mb-6";
 const STAGGER_CHILDREN = 0.06;
 const STAGGER_DELAY = 0.04;
 const DURATION = 0.45;
@@ -22,31 +20,58 @@ export function HomePagePremium() {
   const prefersReducedMotion = useReducedMotion();
   const { profile, isOnboardingComplete } = useUser();
   const { simulados, loading } = useSimulados();
+  const { summary, history } = useUserPerformance();
 
   const stats = useMemo(() => {
     const completed = simulados.filter((s) => s.userState?.finished);
-    const count = completed.length;
-    const avg =
-      count > 0
+    const fallbackCount = completed.length;
+    const fallbackAvg =
+      fallbackCount > 0
         ? Math.round(
             completed.reduce((sum, s) => sum + (s.userState?.score ?? 0), 0) /
-              count
+              fallbackCount
           )
         : 0;
+
+    const count = summary?.total_attempts ?? fallbackCount;
+    const avg = summary?.avg_score ? Math.round(summary.avg_score) : fallbackAvg;
     return {
       simuladosRealizados: count,
       mediaAtual: avg,
       simuladosNoAno: simulados.length,
     };
+  }, [simulados, summary?.avg_score, summary?.total_attempts]);
+
+  const nextSimulationDate = useMemo(() => {
+    const now = Date.now();
+    const upcoming = simulados
+      .map((simulado) => simulado.executionWindowStart)
+      .filter((date) => {
+        const timestamp = Date.parse(date);
+        return Number.isFinite(timestamp) && timestamp > now;
+      })
+      .sort((a, b) => Date.parse(a) - Date.parse(b));
+
+    return upcoming[0] ?? null;
   }, [simulados]);
 
   const userName = profile?.name?.split(" ")[0] || "estudante";
   const segment = profile?.segment ?? "guest";
 
+  const latestScore = history[0] ? Math.round(Number(history[0].score_percentage)) : null;
+  const previousScore = history[1] ? Math.round(Number(history[1].score_percentage)) : null;
   const insightCopy =
-    "Seu histórico ainda é curto, mas já permite começar a comparar evolução, revisar padrões de erro e ajustar estratégia.";
+    latestScore != null && previousScore != null
+      ? latestScore > previousScore
+        ? `Seu último simulado subiu ${latestScore - previousScore} pontos.`
+        : latestScore < previousScore
+          ? `Seu último simulado caiu ${previousScore - latestScore} pontos.`
+          : "Seu último simulado manteve a mesma pontuação do anterior."
+      : "Seu próximo ganho vem de rotina consistente e revisão objetiva dos erros recorrentes.";
   const statusInsight =
-    "Seu maior ganho agora não vem de volume. Vem de repetição com revisão de erros.";
+    latestScore != null
+      ? `Último simulado: ${latestScore}%. Mantenha frequência semanal para sustentar evolução.`
+      : "Mantenha frequência semanal para transformar sua média em tendência de alta.";
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -105,7 +130,7 @@ export function HomePagePremium() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-8 md:space-y-10"
+      className="space-y-5 md:space-y-6"
     >
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
         <HomeHeroSection
@@ -118,7 +143,10 @@ export function HomePagePremium() {
       </motion.div>
 
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <UpcomingSimulationCard />
+        <UpcomingSimulationCard
+          simuladosRealizados={stats.simuladosRealizados}
+          nextSimulationDate={nextSimulationDate}
+        />
       </motion.div>
 
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
@@ -127,18 +155,6 @@ export function HomePagePremium() {
           mediaAtual={stats.mediaAtual}
           simuladosNoAno={stats.simuladosNoAno}
         />
-      </motion.div>
-
-      <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <QuickActionsSection />
-      </motion.div>
-
-      <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <InsightsSection simuladosRealizados={stats.simuladosRealizados} />
-      </motion.div>
-
-      <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <ResumeSection />
       </motion.div>
 
       {segment !== "pro" && (

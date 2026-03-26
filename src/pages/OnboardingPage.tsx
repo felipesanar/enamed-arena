@@ -6,6 +6,7 @@ import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
 import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS } from "@/types";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
+import { trackEvent } from "@/lib/analytics";
 import {
   GraduationCap,
   Building2,
@@ -239,7 +240,14 @@ function ConfirmationStep({
 
 // ─── Main Onboarding Page ───
 export default function OnboardingPage() {
-  const { profile, saveOnboarding } = useUser();
+  const {
+    profile,
+    onboarding,
+    isOnboardingComplete,
+    saveOnboarding,
+    onboardingEditLocked,
+    onboardingNextEditableAt,
+  } = useUser();
   const navigate = useNavigate();
 
   const segment = profile?.segment ?? 'guest';
@@ -249,6 +257,11 @@ export default function OnboardingPage() {
   const [selectedInstitutions, setSelectedInstitutions] = usePersistedState<string[]>('onboarding:institutions', []);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const isEditingBlocked = isOnboardingComplete && onboardingEditLocked;
+
+  const nextEditableText = onboardingNextEditableAt
+    ? new Date(onboardingNextEditableAt).toLocaleString('pt-BR')
+    : null;
 
   const minInstitutions = segment === 'guest' ? MIN_INSTITUTIONS_GUEST : 1;
 
@@ -262,6 +275,7 @@ export default function OnboardingPage() {
   };
 
   const handleNext = () => {
+    if (isEditingBlocked) return;
     setError('');
     if (!canProceed()) {
       if (step === 0) setError('Selecione uma especialidade para continuar.');
@@ -274,11 +288,16 @@ export default function OnboardingPage() {
   };
 
   const handleBack = () => {
+    if (isEditingBlocked) return;
     setError('');
     if (step > 0) setStep(step - 1);
   };
 
   const handleFinish = async () => {
+    if (isEditingBlocked) {
+      setError('Seu perfil só pode ser editado entre janelas de execução.');
+      return;
+    }
     if (!canProceed()) return;
     setIsSaving(true);
     setError('');
@@ -286,6 +305,11 @@ export default function OnboardingPage() {
       await saveOnboarding({
         specialty: selectedSpecialty,
         targetInstitutions: selectedInstitutions,
+      });
+      trackEvent('onboarding_completed', {
+        segment,
+        specialty: selectedSpecialty,
+        institutionsCount: selectedInstitutions.length,
       });
       // Clean up persisted onboarding state on success
       clearPersistedStateByPrefix('onboarding:');
@@ -316,6 +340,16 @@ export default function OnboardingPage() {
         <p className="text-heading-3 text-foreground">PRO: ENAMED</p>
       </div>
       <div className="max-w-3xl mx-auto py-4 px-4 flex-1 w-full">
+        {isEditingBlocked && onboarding && (
+          <div className="mb-6 p-4 rounded-xl border border-warning/30 bg-warning/10 text-warning">
+            <p className="text-body-sm font-semibold">Edição temporariamente bloqueada</p>
+            <p className="text-caption mt-1">
+              Durante janela de execução você não pode alterar especialidade/instituições.
+              {nextEditableText ? ` Próxima janela de edição: ${nextEditableText}.` : ''}
+            </p>
+          </div>
+        )}
+
         {/* Progress bar */}
         <div className="flex items-center gap-2 mb-8">
           {STEPS.map((label, i) => (
@@ -383,7 +417,7 @@ export default function OnboardingPage() {
           {step < STEPS.length - 1 ? (
             <button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isEditingBlocked}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
             >
               Continuar
@@ -392,7 +426,7 @@ export default function OnboardingPage() {
           ) : (
             <button
               onClick={handleFinish}
-              disabled={isSaving}
+              disabled={isSaving || isEditingBlocked}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
             >
               {isSaving ? (
