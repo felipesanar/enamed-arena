@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { PremiumLink } from "@/components/premium/PremiumLink";
-import { Sparkles, TrendingUp, Award, BarChart3 } from "lucide-react";
+import { TrendingUp, Award, BarChart3 } from "lucide-react";
 
 interface HomeHeroSectionProps {
   userName: string;
@@ -41,9 +41,6 @@ export function HomeHeroSection({
           {/* Decorative orbs */}
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[hsl(345,60%,40%)] opacity-[0.12] blur-3xl pointer-events-none" />
           <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-[hsl(345,50%,50%)] opacity-[0.08] blur-3xl pointer-events-none" />
-          <div className="absolute top-4 right-6 opacity-[0.06]">
-            <Sparkles className="h-32 w-32 text-white" />
-          </div>
 
           <div className="relative z-10">
             <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/50 mb-3">
