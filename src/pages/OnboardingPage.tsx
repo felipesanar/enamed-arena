@@ -21,13 +21,17 @@ import {
 const STEPS = ['Especialidade', 'Instituições', 'Confirmação'] as const;
 
 // ─── Step 1: Specialty Selection ───
+const AINDA_NAO_SEI = 'Ainda não sei';
+
 function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (s: string) => void }) {
   const [search, setSearch] = useState('');
 
+  const allOptions = useMemo(() => [AINDA_NAO_SEI, ...SPECIALTIES], []);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return SPECIALTIES;
-    return SPECIALTIES.filter(s => s.toLowerCase().includes(search.toLowerCase()));
-  }, [search]);
+    if (!search.trim()) return allOptions;
+    return allOptions.filter(s => s.toLowerCase().includes(search.toLowerCase()));
+  }, [search, allOptions]);
 
   return (
     <div>
@@ -61,17 +65,22 @@ function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
           {filtered.map((spec) => {
             const isSelected = specialty === spec;
+            const isUndecided = spec === AINDA_NAO_SEI;
             return (
               <button
                 key={spec}
                 onClick={() => onSelect(spec)}
                 className={`flex items-center justify-between p-3.5 rounded-xl border transition-all duration-150 text-left group ${
+                  isUndecided ? 'sm:col-span-2' : ''
+                } ${
                   isSelected
                     ? 'border-primary bg-accent'
+                    : isUndecided
+                    ? 'border-dashed border-border bg-muted/30 hover:border-primary/30 hover:bg-accent/30'
                     : 'border-border bg-card hover:border-primary/30 hover:bg-accent/30'
                 }`}
               >
-                <span className={`text-body transition-colors ${isSelected ? 'text-primary font-medium' : 'text-foreground'}`}>
+                <span className={`text-body transition-colors ${isSelected ? 'text-primary font-medium' : isUndecided ? 'text-muted-foreground italic' : 'text-foreground'}`}>
                   {spec}
                 </span>
                 {isSelected ? (
@@ -94,21 +103,46 @@ function SpecialtyStep({ specialty, onSelect }: { specialty: string; onSelect: (
 }
 
 // ─── Step 2: Institution Selection ───
+const MAX_INSTITUTIONS = 3;
+
 function InstitutionStep({
   selected,
   onToggle,
-  minRequired,
 }: {
   selected: string[];
   onToggle: (inst: string) => void;
-  minRequired: number;
 }) {
   const [search, setSearch] = useState('');
+  const isUndecided = selected.includes(AINDA_NAO_SEI);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return INSTITUTIONS;
     return INSTITUTIONS.filter(i => i.toLowerCase().includes(search.toLowerCase()));
   }, [search]);
+
+  const handleToggleUndecided = () => {
+    if (isUndecided) {
+      onToggle(AINDA_NAO_SEI);
+    } else {
+      // Clear all and set "ainda não sei"
+      selected.forEach(inst => onToggle(inst));
+      onToggle(AINDA_NAO_SEI);
+    }
+  };
+
+  const handleToggleInstitution = (inst: string) => {
+    if (isUndecided) {
+      // Remove "ainda não sei" first
+      onToggle(AINDA_NAO_SEI);
+    }
+    const alreadySelected = selected.filter(s => s !== AINDA_NAO_SEI).includes(inst);
+    if (!alreadySelected && selected.filter(s => s !== AINDA_NAO_SEI).length >= MAX_INSTITUTIONS) {
+      return; // Max reached
+    }
+    onToggle(inst);
+  };
+
+  const realSelected = selected.filter(s => s !== AINDA_NAO_SEI);
 
   return (
     <div>
@@ -118,72 +152,95 @@ function InstitutionStep({
         </div>
         <h2 className="text-heading-2 text-foreground mb-2">Quais instituições você deseja?</h2>
         <p className="text-body text-muted-foreground max-w-md mx-auto">
-          Selecione as instituições onde pretende prestar residência. Mínimo de {minRequired} {minRequired === 1 ? 'instituição' : 'instituições'}.
+          Selecione até {MAX_INSTITUTIONS} instituições onde pretende prestar residência.
         </p>
       </div>
 
       <div className="max-w-lg mx-auto">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar instituição..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
+        {/* "Ainda não sei" option */}
+        <button
+          onClick={handleToggleUndecided}
+          className={`w-full mb-4 p-3.5 rounded-xl border transition-all duration-150 text-left flex items-center justify-between ${
+            isUndecided
+              ? 'border-primary bg-accent'
+              : 'border-dashed border-border bg-muted/30 hover:border-primary/30 hover:bg-accent/30'
+          }`}
+        >
+          <span className={`text-body transition-colors ${isUndecided ? 'text-primary font-medium' : 'text-muted-foreground italic'}`}>
+            {AINDA_NAO_SEI}
+          </span>
+          {isUndecided && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+        </button>
+
+        {!isUndecided && (
+          <>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar instituição..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className={`text-caption font-semibold px-3 py-2 rounded-lg shrink-0 ${
+                realSelected.length > 0 ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+              }`}>
+                {realSelected.length}/{MAX_INSTITUTIONS}
+              </div>
+            </div>
+
+            {realSelected.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {realSelected.map(inst => (
+                  <button
+                    key={inst}
+                    onClick={() => onToggle(inst)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-body-sm font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    {inst}
+                    <X className="h-3 w-3" />
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-          <div className={`text-caption font-semibold px-3 py-2 rounded-lg shrink-0 ${
-            selected.length >= minRequired ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-          }`}>
-            {selected.length}/{minRequired}+
-          </div>
-        </div>
 
-        {selected.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {selected.map(inst => (
-              <button
-                key={inst}
-                onClick={() => onToggle(inst)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-body-sm font-medium hover:bg-primary/20 transition-colors"
-              >
-                {inst}
-                <X className="h-3 w-3" />
-              </button>
-            ))}
-          </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-1">
+              {filtered.map((inst) => {
+                const isSelected = realSelected.includes(inst);
+                const isMaxReached = !isSelected && realSelected.length >= MAX_INSTITUTIONS;
+                return (
+                  <button
+                    key={inst}
+                    onClick={() => handleToggleInstitution(inst)}
+                    disabled={isMaxReached}
+                    className={`p-3 rounded-xl border text-center transition-all duration-150 text-body-sm font-medium ${
+                      isSelected
+                        ? 'border-primary bg-accent text-primary'
+                        : isMaxReached
+                        ? 'border-border bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
+                        : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-accent/30'
+                    }`}
+                  >
+                    {inst}
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <p className="col-span-3 text-center text-body-sm text-muted-foreground py-8">
+                  Nenhuma instituição encontrada para "{search}"
+                </p>
+              )}
+            </div>
+          </>
         )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-1">
-          {filtered.map((inst) => {
-            const isSelected = selected.includes(inst);
-            return (
-              <button
-                key={inst}
-                onClick={() => onToggle(inst)}
-                className={`p-3 rounded-xl border text-center transition-all duration-150 text-body-sm font-medium ${
-                  isSelected
-                    ? 'border-primary bg-accent text-primary'
-                    : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-accent/30'
-                }`}
-              >
-                {inst}
-              </button>
-            );
-          })}
-          {filtered.length === 0 && (
-            <p className="col-span-3 text-center text-body-sm text-muted-foreground py-8">
-              Nenhuma instituição encontrada para "{search}"
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -263,12 +320,10 @@ export default function OnboardingPage() {
     ? new Date(onboardingNextEditableAt).toLocaleString('pt-BR')
     : null;
 
-  const minInstitutions = segment === 'guest' ? MIN_INSTITUTIONS_GUEST : 1;
-
   const canProceed = () => {
     switch (step) {
       case 0: return selectedSpecialty !== '';
-      case 1: return selectedInstitutions.length >= minInstitutions;
+      case 1: return selectedInstitutions.length >= 1;
       case 2: return true;
       default: return false;
     }
@@ -279,7 +334,7 @@ export default function OnboardingPage() {
     setError('');
     if (!canProceed()) {
       if (step === 0) setError('Selecione uma especialidade para continuar.');
-      if (step === 1) setError(`Selecione ao menos ${minInstitutions} instituição(ões).`);
+      if (step === 1) setError('Selecione ao menos 1 instituição ou marque "Ainda não sei".');
       return;
     }
     if (step < STEPS.length - 1) {
@@ -323,11 +378,11 @@ export default function OnboardingPage() {
     }
   };
 
-  const toggleInstitution = (inst: string) => {
+  const toggleInstitution = useCallback((inst: string) => {
     setSelectedInstitutions(prev =>
       prev.includes(inst) ? prev.filter(i => i !== inst) : [...prev, inst]
     );
-  };
+  }, [setSelectedInstitutions]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/30 flex flex-col">
@@ -387,7 +442,7 @@ export default function OnboardingPage() {
             transition={{ duration: 0.25 }}
           >
             {step === 0 && <SpecialtyStep specialty={selectedSpecialty} onSelect={setSelectedSpecialty} />}
-            {step === 1 && <InstitutionStep selected={selectedInstitutions} onToggle={toggleInstitution} minRequired={minInstitutions} />}
+            {step === 1 && <InstitutionStep selected={selectedInstitutions} onToggle={toggleInstitution} />}
             {step === 2 && <ConfirmationStep segment={segment} specialty={selectedSpecialty} institutions={selectedInstitutions} />}
           </motion.div>
         </AnimatePresence>

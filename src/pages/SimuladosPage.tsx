@@ -50,7 +50,7 @@ export default function SimuladosPage() {
     <>
       <PageHeader
         title="Calendário de Simulados"
-        subtitle="7 simulados ao longo do ano para acompanhar sua evolução."
+        subtitle="100 questões inéditas distribuídas no modelo ENAMED elaboradas pelos professores do SanarFlix PRO, com base na prevalência INEP e nas Diretrizes Curriculares Nacionais."
         badge="Simulados ENAMED 2026"
       />
 

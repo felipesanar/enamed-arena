@@ -85,7 +85,7 @@ export function ExamHeader({
           {/* Finalize button */}
           <button
             onClick={onFinalize}
-            className="px-3 md:px-4 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-body-sm font-medium hover:bg-destructive/90 transition-colors"
+            className="px-3 md:px-4 py-1.5 rounded-lg bg-destructive text-white text-body-sm font-semibold hover:bg-destructive/90 transition-colors"
           >
             Finalizar
           </button>

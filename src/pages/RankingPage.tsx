@@ -250,7 +250,13 @@ export default function RankingPage() {
                 </div>
                 {comparisonFilter === 'same_institution' && userInstitutions.length > 0 && (
                   <p className="text-caption text-muted-foreground mt-3">
-                    Comparando com instituicoes alvo: {userInstitutions.join(', ')}.
+                    Filtrando por instituições alvo: {userInstitutions.join(', ')}.
+                    {userInstitutions.length > 1 && ' Use os sub-filtros para comparar por instituição específica.'}
+                  </p>
+                )}
+                {comparisonFilter === 'same_specialty' && userSpecialty && (
+                  <p className="text-caption text-muted-foreground mt-3">
+                    Filtrando por especialidade: {userSpecialty}.
                   </p>
                 )}
               </PremiumCard>

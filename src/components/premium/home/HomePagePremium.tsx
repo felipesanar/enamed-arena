@@ -5,11 +5,9 @@ import { useUser } from "@/contexts/UserContext";
 import { useSimulados } from "@/hooks/useSimulados";
 import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { HomeHeroSection } from "./HomeHeroSection";
-import { UpcomingSimulationCard } from "./UpcomingSimulationCard";
-import { KpiGrid } from "./KpiGrid";
+import { NextSimuladoBanner } from "./NextSimuladoBanner";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 
-/** Compact spacing for above-the-fold dashboard */
 const SECTION_SPACING = "mb-5 md:mb-6";
 const STAGGER_CHILDREN = 0.06;
 const STAGGER_DELAY = 0.04;
@@ -38,40 +36,26 @@ export function HomePagePremium() {
     return {
       simuladosRealizados: count,
       mediaAtual: avg,
-      simuladosNoAno: simulados.length,
     };
   }, [simulados, summary?.avg_score, summary?.total_attempts]);
 
-  const nextSimulationDate = useMemo(() => {
+  // Find next upcoming simulado window
+  const nextSimulado = useMemo(() => {
     const now = Date.now();
     const upcoming = simulados
-      .map((simulado) => simulado.executionWindowStart)
-      .filter((date) => {
-        const timestamp = Date.parse(date);
-        return Number.isFinite(timestamp) && timestamp > now;
+      .filter((s) => {
+        const start = Date.parse(s.executionWindowStart);
+        const end = Date.parse(s.executionWindowEnd);
+        return (Number.isFinite(start) && start > now) || (Number.isFinite(end) && end > now);
       })
-      .sort((a, b) => Date.parse(a) - Date.parse(b));
-
+      .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
     return upcoming[0] ?? null;
   }, [simulados]);
 
   const userName = profile?.name?.split(" ")[0] || "estudante";
   const segment = profile?.segment ?? "guest";
 
-  const latestScore = history[0] ? Math.round(Number(history[0].score_percentage)) : null;
-  const previousScore = history[1] ? Math.round(Number(history[1].score_percentage)) : null;
-  const insightCopy =
-    latestScore != null && previousScore != null
-      ? latestScore > previousScore
-        ? `Seu último simulado subiu ${latestScore - previousScore} pontos.`
-        : latestScore < previousScore
-          ? `Seu último simulado caiu ${previousScore - latestScore} pontos.`
-          : "Seu último simulado manteve a mesma pontuação do anterior."
-      : "Seu próximo ganho vem de rotina consistente e revisão objetiva dos erros recorrentes.";
-  const statusInsight =
-    latestScore != null
-      ? `Último simulado: ${latestScore}%. Mantenha frequência semanal para sustentar evolução.`
-      : "Mantenha frequência semanal para transformar sua média em tendência de alta.";
+  const lastScore = history[0] ? Math.round(Number(history[0].score_percentage)) : null;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -106,17 +90,17 @@ export function HomePagePremium() {
         className={SECTION_SPACING}
       >
         <UpgradeBanner />
-        <div className="rounded-3xl border-2 border-dashed border-[rgba(142,31,61,0.25)] bg-[rgba(142,31,61,0.06)] p-8 text-center">
-          <h2 className="text-2xl font-semibold text-[#1A2233] mb-2">
+        <div className="rounded-3xl border-2 border-dashed border-primary/25 bg-primary/[0.04] p-8 text-center">
+          <h2 className="text-2xl font-semibold text-foreground mb-2">
             Complete seu perfil
           </h2>
-          <p className="text-[#5F6778] mb-6 max-w-md mx-auto">
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Informe especialidade e instituições para personalizar rankings e
             desempenho.
           </p>
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#8E1F3D] text-white px-5 py-2.5 font-medium hover:bg-[#A3294B] transition-all duration-[220ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(142,31,61,0.28)] focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 font-medium hover:bg-wine-hover transition-all duration-[220ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             Ir ao perfil
           </Link>
@@ -132,28 +116,24 @@ export function HomePagePremium() {
       animate="visible"
       className="space-y-5 md:space-y-6"
     >
+      {/* Next simulado banner — always on top */}
+      <motion.div variants={itemVariants} className={SECTION_SPACING}>
+        <NextSimuladoBanner
+          nextWindowStart={nextSimulado?.executionWindowStart ?? null}
+          nextWindowEnd={nextSimulado?.executionWindowEnd ?? null}
+        />
+      </motion.div>
+
+      {/* Welcome + last simulado summary */}
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
         <HomeHeroSection
           userName={userName}
           simuladosRealizados={stats.simuladosRealizados}
           mediaAtual={stats.mediaAtual}
-          insightCopy={insightCopy}
-          statusInsight={statusInsight}
-        />
-      </motion.div>
-
-      <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <UpcomingSimulationCard
-          simuladosRealizados={stats.simuladosRealizados}
-          nextSimulationDate={nextSimulationDate}
-        />
-      </motion.div>
-
-      <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <KpiGrid
-          simuladosRealizados={stats.simuladosRealizados}
-          mediaAtual={stats.mediaAtual}
-          simuladosNoAno={stats.simuladosNoAno}
+          lastScore={lastScore}
+          lastRankPosition={null}
+          lastRankTotal={null}
+          bestArea={null}
         />
       </motion.div>
 
