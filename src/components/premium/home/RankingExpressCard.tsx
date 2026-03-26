@@ -11,10 +11,12 @@ export function RankingExpressCard() {
 
   const specialty = onboarding?.specialty || null;
   const institutions = onboarding?.targetInstitutions || [];
-  const hasRanking = !loading && currentUser;
-  const hasSimulados = simuladosWithResults.length > 0;
 
-  const lastScore = history?.[0] ? Math.round(Number(history[0].score_percentage)) : null;
+  // Mock data for preview — remove when real data is available
+  const mockPosition = currentUser?.position ?? 12;
+  const mockLastScore = history?.[0] ? Math.round(Number(history[0].score_percentage)) : 78;
+  const hasRanking = true; // force visible for preview
+  const hasSimulados = simuladosWithResults.length > 0;
 
   return (
     <Link
