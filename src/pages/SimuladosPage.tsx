@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { SimuladoCard } from "@/components/SimuladoCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -6,16 +7,41 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Link } from "react-router-dom";
 import { useSimulados } from "@/hooks/useSimulados";
-import { Calendar, Clock, FileText, Info } from "lucide-react";
+import { Calendar, Clock, FileText, Info, Search, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 export default function SimuladosPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  const available = simulados.filter(s => s.status === 'available' || s.status === 'in_progress');
-  const upcoming = simulados.filter(s => s.status === 'upcoming');
-  const past = simulados.filter(s => s.status === 'completed' || s.status === 'results_available' || s.status === 'closed_waiting');
+  // Collect all unique theme tags
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    simulados.forEach(s => s.themeTags?.forEach(t => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [simulados]);
+
+  // Filter simulados
+  const filtered = useMemo(() => {
+    let result = simulados;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s =>
+        s.title.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q)
+      );
+    }
+    if (selectedTag) {
+      result = result.filter(s => s.themeTags?.includes(selectedTag));
+    }
+    return result;
+  }, [simulados, searchQuery, selectedTag]);
+
+  const available = filtered.filter(s => s.status === 'available' || s.status === 'in_progress');
+  const upcoming = filtered.filter(s => s.status === 'upcoming');
+  const past = filtered.filter(s => s.status === 'completed' || s.status === 'results_available' || s.status === 'closed_waiting');
   /** Próximo simulado: disponível agora ou primeiro próximo */
   const nextSimulado = available[0] ?? upcoming[0] ?? null;
 
