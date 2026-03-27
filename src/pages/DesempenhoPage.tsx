@@ -12,7 +12,7 @@ import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useUserPerformance } from '@/hooks/useUserPerformance';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computePerformanceBreakdown, type ThemePerformance } from '@/lib/resultHelpers';
+import { computePerformanceBreakdown, type ThemePerformance, type DifficultyPerformance } from '@/lib/resultHelpers';
 import { cn } from '@/lib/utils';
 import {
   BarChart3, BookOpen, Stethoscope, Target, Star, TrendingDown, FileText,
@@ -93,7 +93,7 @@ export default function DesempenhoPage() {
     );
   }
 
-  const { overall, byArea, byTheme } = breakdown;
+  const { overall, byArea, byTheme, byDifficulty } = breakdown;
   const themesForArea = selectedArea ? byTheme.filter(t => t.area === selectedArea) : [];
   const questionResultsForTheme = useMemo(() => {
     if (!selectedTheme) return [];
@@ -277,6 +277,28 @@ export default function DesempenhoPage() {
           </div>
         )}
       </PremiumCard>
+
+      {/* Performance por dificuldade */}
+      {byDifficulty.length > 0 && (
+        <PremiumCard className="p-5 md:p-6 mb-8">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><Target className="h-4 w-4 text-primary" aria-hidden /></div>
+            <h3 className="text-heading-3 text-foreground">Desempenho por dificuldade</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {byDifficulty.map((d) => {
+              const color = d.score >= 70 ? 'text-success' : d.score >= 40 ? 'text-warning' : 'text-destructive';
+              return (
+                <div key={d.difficulty} className="rounded-xl border border-border/40 bg-card p-4 text-center">
+                  <p className="text-body-sm text-muted-foreground mb-1">{d.difficulty}</p>
+                  <p className={cn('text-heading-2 font-bold tabular-nums', color)}>{d.score}%</p>
+                  <p className="text-caption text-muted-foreground mt-1">{d.correct}/{d.total} questões</p>
+                </div>
+              );
+            })}
+          </div>
+        </PremiumCard>
+      )}
 
       <SectionHeader title="Sua evolução por grande área" />
       <div className="space-y-3">
