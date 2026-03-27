@@ -1,0 +1,3 @@
+UPDATE public.simulados
+SET results_release_at = '2026-03-27T00:00:00+00'
+WHERE id = '10000001-0001-4001-8001-000000000001';
