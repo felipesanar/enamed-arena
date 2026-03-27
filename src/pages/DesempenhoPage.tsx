@@ -278,6 +278,28 @@ export default function DesempenhoPage() {
         )}
       </PremiumCard>
 
+      {/* Performance por dificuldade */}
+      {byDifficulty.length > 0 && (
+        <PremiumCard className="p-5 md:p-6 mb-8">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><Target className="h-4 w-4 text-primary" aria-hidden /></div>
+            <h3 className="text-heading-3 text-foreground">Desempenho por dificuldade</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {byDifficulty.map((d) => {
+              const color = d.score >= 70 ? 'text-success' : d.score >= 40 ? 'text-warning' : 'text-destructive';
+              return (
+                <div key={d.difficulty} className="rounded-xl border border-border/40 bg-card p-4 text-center">
+                  <p className="text-body-sm text-muted-foreground mb-1">{d.difficulty}</p>
+                  <p className={cn('text-heading-2 font-bold tabular-nums', color)}>{d.score}%</p>
+                  <p className="text-caption text-muted-foreground mt-1">{d.correct}/{d.total} questões</p>
+                </div>
+              );
+            })}
+          </div>
+        </PremiumCard>
+      )}
+
       <SectionHeader title="Sua evolução por grande área" />
       <div className="space-y-3">
         {byArea.map((area, i) => (
