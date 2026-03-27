@@ -80,6 +80,48 @@ export default function SimuladosPage() {
         badge="Simulados ENAMED 2026"
       />
 
+      {/* Search + Filter */}
+      <div className="mb-6 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Buscar simulado por nome..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-card text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Limpar busca"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedTag(null)}
+              className={`px-3 py-1.5 rounded-lg text-caption font-medium transition-all ${!selectedTag ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+            >
+              Todos
+            </button>
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(prev => prev === tag ? null : tag)}
+                className={`px-3 py-1.5 rounded-lg text-caption font-medium transition-all ${selectedTag === tag ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Hero: Seu próximo simulado (Fase C) */}
       {nextSimulado && (
         <motion.section
