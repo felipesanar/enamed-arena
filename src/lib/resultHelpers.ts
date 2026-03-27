@@ -135,7 +135,32 @@ export function computePerformanceBreakdown(
     };
   }).sort((a, b) => b.score - a.score);
 
-  return { overall, byArea, byTheme };
+  // Group by difficulty
+  const diffMap = new Map<string, { total: number; correct: number }>();
+  const DIFF_LABELS: Record<string, string> = { easy: 'Fácil', medium: 'Média', hard: 'Difícil' };
+  overall.questionResults.forEach(r => {
+    const diff = r.difficulty || 'medium';
+    const entry = diffMap.get(diff) || { total: 0, correct: 0 };
+    entry.total++;
+    if (r.isCorrect) entry.correct++;
+    diffMap.set(diff, entry);
+  });
+
+  const diffOrder = ['easy', 'medium', 'hard'];
+  const byDifficulty: DifficultyPerformance[] = Array.from(diffMap.entries())
+    .map(([difficulty, data]) => ({
+      difficulty: DIFF_LABELS[difficulty] || difficulty,
+      total: data.total,
+      correct: data.correct,
+      score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+    }))
+    .sort((a, b) => {
+      const aIdx = diffOrder.indexOf(Object.keys(DIFF_LABELS).find(k => DIFF_LABELS[k] === a.difficulty) || '');
+      const bIdx = diffOrder.indexOf(Object.keys(DIFF_LABELS).find(k => DIFF_LABELS[k] === b.difficulty) || '');
+      return aIdx - bIdx;
+    });
+
+  return { overall, byArea, byTheme, byDifficulty };
 }
 
 // ─── Comparative Helpers ───
