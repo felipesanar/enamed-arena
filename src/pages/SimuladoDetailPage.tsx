@@ -257,6 +257,19 @@ export default function SimuladoDetailPage() {
         </PremiumCard>
       )}
 
+      {/* Fallback: user started/finished but status doesn't match specific blocks above */}
+      {isAccessible && simulado.userState?.started && simulado.status !== 'in_progress' && (
+        <PremiumCard variant="hero" className="text-center mb-8">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-heading-2 text-foreground mb-2">Simulado já realizado</h2>
+          <p className="text-body text-muted-foreground max-w-md mx-auto">
+            Você já realizou este simulado. O resultado será liberado em <strong>{formatDate(simulado.resultsReleaseAt)}</strong>.
+          </p>
+        </PremiumCard>
+      )}
+
       <PremiumCard className="p-5 md:p-6 mb-6">
         <SectionHeader title="Janela de Execução" className="mb-3" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
