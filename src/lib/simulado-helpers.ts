@@ -21,14 +21,13 @@ export function deriveSimuladoStatus(
     return 'completed';
   }
 
-  // Results released but user finished (before results date — shouldn't happen often)
-  // User finished but results not yet released
-  if (userFinished && isAfter(now, windowEnd) && !isAfter(now, resultsAt)) {
+  // User finished but results not yet released (regardless of window state)
+  if (userFinished) {
     return 'closed_waiting';
   }
 
   // Results date passed but user never finished → they missed it
-  if (isAfter(now, resultsAt) && !userFinished) {
+  if (isAfter(now, resultsAt)) {
     return 'closed_waiting';
   }
 
