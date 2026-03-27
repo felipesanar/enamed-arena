@@ -49,6 +49,18 @@ describe('deriveSimuladoStatus', () => {
     expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('closed_waiting');
   });
 
+  it('returns closed_waiting when user finished but window still open and results not released', () => {
+    const now = new Date('2025-06-01T12:00:00Z');
+    const userState: SimuladoUserState = {
+      simuladoId: 's1',
+      started: true,
+      finished: true,
+      finishedAt: '2025-06-01T11:00:00Z',
+      score: 75,
+    };
+    expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('closed_waiting');
+  });
+
   it('returns completed when user finished and results date passed', () => {
     const now = new Date('2025-06-03T12:00:00Z');
     const userState: SimuladoUserState = {
