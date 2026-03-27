@@ -661,6 +661,14 @@ export type Database = {
           was_answered: boolean
         }[]
       }
+      get_onboarding_edit_guard_state: {
+        Args: never
+        Returns: {
+          can_edit: boolean
+          next_edit_available_at: string
+          reason: string
+        }[]
+      }
       get_ranking_for_simulado: {
         Args: { p_simulado_id: string }
         Returns: {
