@@ -209,7 +209,7 @@ export function useExamFlow(): UseExamFlowReturn {
       storage.flushPendingState();
 
       // sendBeacon: fire-and-forget sync to server as last resort
-      const aid = attemptIdRef.current ?? storage.attemptId.current;
+      const aid = storage.attemptId.current;
       if (aid && state) {
         try {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
