@@ -39,12 +39,13 @@ export function useSimulados() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const configs = data?.configs ?? [];
-  const attempts = data?.attempts ?? [];
+  const configs = data?.configs;
+  const attempts = data?.attempts;
 
   const simulados: SimuladoWithStatus[] = useMemo(() => {
+    if (!configs) return [];
     return configs.map(config => {
-      const attempt = attempts.find(a => a.simulado_id === config.id);
+      const attempt = attempts?.find(a => a.simulado_id === config.id);
       const userState = attempt ? attemptToUserState(attempt) : undefined;
       return enrichSimulado(config, userState);
     });
