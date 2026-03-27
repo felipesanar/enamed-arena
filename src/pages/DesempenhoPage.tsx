@@ -66,6 +66,20 @@ export default function DesempenhoPage() {
     return computePerformanceBreakdown(examState, questions);
   }, [examState, questions]);
 
+  const questionResultsForTheme = useMemo(() => {
+    if (!selectedTheme || !breakdown) return [];
+    return breakdown.overall.questionResults
+      .filter((q) => q.theme === selectedTheme && (!selectedArea || q.area === selectedArea))
+      .map((q) => {
+        const question = questions.find((item) => item.id === q.questionId);
+        return {
+          ...q,
+          number: question?.number ?? null,
+          text: question?.text ?? '',
+        };
+      });
+  }, [selectedTheme, selectedArea, breakdown, questions]);
+
   const loading = loadingSimulados || loadingDetail || loadingExam;
 
   if (loading && !breakdown) {
@@ -95,19 +109,6 @@ export default function DesempenhoPage() {
 
   const { overall, byArea, byTheme, byDifficulty } = breakdown;
   const themesForArea = selectedArea ? byTheme.filter(t => t.area === selectedArea) : [];
-  const questionResultsForTheme = useMemo(() => {
-    if (!selectedTheme) return [];
-    return breakdown.overall.questionResults
-      .filter((q) => q.theme === selectedTheme && (!selectedArea || q.area === selectedArea))
-      .map((q) => {
-        const question = questions.find((item) => item.id === q.questionId);
-        return {
-          ...q,
-          number: question?.number ?? null,
-          text: question?.text ?? '',
-        };
-      });
-  }, [selectedTheme, selectedArea, breakdown.overall.questionResults, questions]);
   const bestArea = byArea[0];
   const worstArea = byArea[byArea.length - 1];
 
