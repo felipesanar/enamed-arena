@@ -207,12 +207,40 @@ export function useExamFlow(): UseExamFlowReturn {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasFinalized.current || state?.status !== 'in_progress') return;
       storage.flushPendingState();
+
+      // sendBeacon: fire-and-forget sync to server as last resort
+      const aid = attemptIdRef.current ?? storage.attemptId.current;
+      if (aid && state) {
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          if (supabaseUrl && supabaseKey) {
+            const rows = Object.entries(state.answers).map(([questionId, ans]) => ({
+              attempt_id: aid,
+              question_id: questionId,
+              selected_option_id: ans.selectedOption,
+              marked_for_review: ans.markedForReview,
+              high_confidence: ans.highConfidence,
+              eliminated_options: ans.eliminatedAlternatives || [],
+              answered_at: ans.selectedOption ? new Date().toISOString() : null,
+            }));
+            if (rows.length > 0) {
+              const url = `${supabaseUrl}/rest/v1/answers?on_conflict=attempt_id,question_id`;
+              const blob = new Blob([JSON.stringify(rows)], { type: 'application/json' });
+              navigator.sendBeacon(url + `&apikey=${supabaseKey}`, blob);
+            }
+          }
+        } catch {
+          // best-effort, ignore errors
+        }
+      }
+
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [state?.status, storage]);
+  }, [state?.status, state, storage]);
 
   const currentIndex = state?.currentQuestionIndex ?? 0;
   const currentQuestion = questions[currentIndex];

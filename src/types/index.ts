@@ -79,6 +79,8 @@ export interface Question {
   text: string;
   area: string;
   theme: string;
+  difficulty?: string | null;
+  imageUrl?: string | null;
   options: QuestionOption[];
   correctOptionId: string;
   explanation?: string;
