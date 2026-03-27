@@ -12,6 +12,7 @@ export interface QuestionResult {
   questionId: string;
   area: string;
   theme: string;
+  difficulty: string | null;
   isCorrect: boolean;
   wasAnswered: boolean;
   selectedOptionId: string | null;
@@ -38,10 +39,18 @@ export interface ThemePerformance {
   score: number;
 }
 
+export interface DifficultyPerformance {
+  difficulty: string;
+  total: number;
+  correct: number;
+  score: number;
+}
+
 export interface PerformanceBreakdown {
   overall: SimuladoScore;
   byArea: AreaPerformance[];
   byTheme: ThemePerformance[];
+  byDifficulty: DifficultyPerformance[];
 }
 
 export function computeSimuladoScore(
@@ -57,6 +66,7 @@ export function computeSimuladoScore(
       questionId: q.id,
       area: q.area,
       theme: q.theme,
+      difficulty: q.difficulty ?? null,
       isCorrect,
       wasAnswered,
       selectedOptionId: answer?.selectedOption ?? null,
