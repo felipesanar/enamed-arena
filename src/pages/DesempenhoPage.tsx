@@ -12,7 +12,7 @@ import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useUserPerformance } from '@/hooks/useUserPerformance';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computePerformanceBreakdown, type ThemePerformance } from '@/lib/resultHelpers';
+import { computePerformanceBreakdown, type ThemePerformance, type DifficultyPerformance } from '@/lib/resultHelpers';
 import { cn } from '@/lib/utils';
 import {
   BarChart3, BookOpen, Stethoscope, Target, Star, TrendingDown, FileText,
@@ -93,7 +93,7 @@ export default function DesempenhoPage() {
     );
   }
 
-  const { overall, byArea, byTheme } = breakdown;
+  const { overall, byArea, byTheme, byDifficulty } = breakdown;
   const themesForArea = selectedArea ? byTheme.filter(t => t.area === selectedArea) : [];
   const questionResultsForTheme = useMemo(() => {
     if (!selectedTheme) return [];
