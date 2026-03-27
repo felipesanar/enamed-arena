@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/types';
 import type { ExamAnswer } from '@/types/exam';
-import { Trash2, Undo2 } from 'lucide-react';
+import { Trash2, Undo2, ZoomIn, X } from 'lucide-react';
 
 interface QuestionDisplayProps {
   question: Question;
@@ -13,6 +14,7 @@ interface QuestionDisplayProps {
 export function QuestionDisplay({ question, answer, onSelectOption, onEliminateOption }: QuestionDisplayProps) {
   const selectedId = answer?.selectedOption ?? null;
   const eliminated = answer?.eliminatedAlternatives ?? [];
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <div className="animate-fade-in">
@@ -35,6 +37,50 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
           {question.text}
         </p>
       </div>
+
+      {/* Question image with lightbox */}
+      {question.imageUrl && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            className="relative group cursor-zoom-in rounded-xl overflow-hidden border border-border bg-muted/30 inline-block"
+          >
+            <img
+              src={question.imageUrl}
+              alt={`Imagem da questão ${question.number}`}
+              className="max-w-full max-h-80 object-contain"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center">
+              <ZoomIn className="h-6 w-6 text-foreground/0 group-hover:text-foreground/70 transition-colors" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Lightbox overlay */}
+      {lightboxOpen && question.imageUrl && (
+        <div
+          className="fixed inset-0 z-[60] bg-foreground/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-muted transition-colors z-10"
+            aria-label="Fechar imagem"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={question.imageUrl}
+            alt={`Imagem da questão ${question.number}`}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Options — inspired by Academy's AlternativaProva, elevated visually */}
       <div className="space-y-3">
