@@ -33,10 +33,11 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
         </span>
       </div>
 
-      {/* Score display for completed simulados */}
-      {hasScore && (
+      {/* Score display only when results are released */}
+      {hasScore && simulado.status === 'completed' && (
         <div className="flex items-center gap-2 mt-3 p-2.5 rounded-xl bg-accent/50 border border-border/30">
           <Trophy className="h-4 w-4 text-primary" />
+          <span className="text-body-sm text-muted-foreground">Sua nota:</span>
           <span className="text-body font-bold text-primary ml-auto">{simulado.userState!.score}%</span>
         </div>
       )}
