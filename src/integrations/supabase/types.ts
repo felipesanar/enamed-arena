@@ -638,6 +638,32 @@ export type Database = {
       }
     }
     Functions: {
+      create_attempt_guarded: {
+        Args: { p_simulado_id: string }
+        Returns: {
+          created_at: string
+          current_question_index: number
+          effective_deadline: string
+          finished_at: string | null
+          fullscreen_exit_count: number
+          id: string
+          last_saved_at: string
+          score_percentage: number | null
+          simulado_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["attempt_status"]
+          tab_exit_count: number
+          total_answered: number | null
+          total_correct: number | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "attempts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       enqueue_attempt_reprocessing: {
         Args: { p_attempt_id: string; p_reason?: string }
         Returns: string
@@ -719,6 +745,15 @@ export type Database = {
       }
       recalculate_user_performance: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      update_attempt_progress_guarded: {
+        Args: {
+          p_attempt_id: string
+          p_current_question_index: number
+          p_fullscreen_exit_count?: number
+          p_tab_exit_count?: number
+        }
         Returns: undefined
       }
     }
