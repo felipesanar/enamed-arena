@@ -97,6 +97,11 @@ export const STATUS_CONFIG: Record<SimuladoStatus, {
     badgeClass: 'bg-success/10 text-success',
     description: 'A janela de execução está aberta. Você pode iniciar agora.',
   },
+  available_late: {
+    label: 'Treino',
+    badgeClass: 'bg-warning/10 text-warning',
+    description: 'Fora da janela de execução. Resultado não entra no ranking.',
+  },
   in_progress: {
     label: 'Em andamento',
     badgeClass: 'bg-warning/10 text-warning',
