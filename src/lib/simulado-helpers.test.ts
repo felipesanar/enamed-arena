@@ -86,8 +86,9 @@ describe('deriveSimuladoStatus', () => {
 });
 
 describe('canAccessSimulado', () => {
-  it('returns true for available and in_progress', () => {
+  it('returns true for available, available_late, and in_progress', () => {
     expect(canAccessSimulado('available')).toBe(true);
+    expect(canAccessSimulado('available_late')).toBe(true);
     expect(canAccessSimulado('in_progress')).toBe(true);
   });
 
