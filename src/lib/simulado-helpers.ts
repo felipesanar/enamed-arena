@@ -26,14 +26,9 @@ export function deriveSimuladoStatus(
     return 'closed_waiting';
   }
 
-  // Results date passed but user never finished → they missed it
-  if (isAfter(now, resultsAt)) {
-    return 'closed_waiting';
-  }
-
-  // Window closed, waiting for results (user didn't finish)
+  // Window closed, user never finished → available as practice
   if (isAfter(now, windowEnd)) {
-    return 'closed_waiting';
+    return 'available_late';
   }
 
   // User started but hasn't finished (within window)
