@@ -23,6 +23,7 @@ export function ExamCompletedScreen({
   totalCount,
   notifyResultByEmail,
   notificationSaving,
+  isWithinWindow = true,
   onToggleNotifyResultByEmail,
 }: ExamCompletedScreenProps) {
   const prefersReducedMotion = useReducedMotion();
