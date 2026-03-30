@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { CheckCircle2, Calendar, ArrowRight, Mail } from 'lucide-react';
+import { CheckCircle2, Calendar, ArrowRight, Mail, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/simulado-helpers';
 
@@ -11,6 +11,7 @@ interface ExamCompletedScreenProps {
   totalCount: number;
   notifyResultByEmail: boolean;
   notificationSaving: boolean;
+  isWithinWindow?: boolean;
   onToggleNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 }
 
@@ -22,6 +23,7 @@ export function ExamCompletedScreen({
   totalCount,
   notifyResultByEmail,
   notificationSaving,
+  isWithinWindow = true,
   onToggleNotifyResultByEmail,
 }: ExamCompletedScreenProps) {
   const prefersReducedMotion = useReducedMotion();
@@ -44,10 +46,18 @@ export function ExamCompletedScreen({
           <CheckCircle2 className="h-10 w-10 text-success" aria-hidden />
         </motion.div>
 
-        <h1 className="text-heading-1 text-foreground mb-3">Simulado concluído!</h1>
+        <h1 className="text-heading-1 text-foreground mb-3">
+          {isWithinWindow ? 'Simulado concluído!' : 'Treino concluído!'}
+        </h1>
         <p className="text-body-lg text-muted-foreground mb-2">
           Você completou o <strong className="text-foreground">{simuladoTitle}</strong>.
         </p>
+        {!isWithinWindow && (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/10 border border-warning/20 text-warning text-body-sm font-medium mb-3">
+            <AlertTriangle className="h-4 w-4" />
+            Realizado fora da janela — não entra no ranking.
+          </div>
+        )}
         {/* Copy de confiança */}
         <p className="text-body text-muted-foreground mb-1">
           Suas respostas foram salvas com sucesso. Nada será perdido.

@@ -48,6 +48,11 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
           Abre em {formatDateShort(simulado.executionWindowStart)}
         </p>
       )}
+      {simulado.status === 'available_late' && (
+        <p className="text-caption text-warning mt-2">
+          Fora da janela · Não entra no ranking
+        </p>
+      )}
       {simulado.status === 'closed_waiting' && !simulado.userState?.finished && (
         <p className="text-caption text-muted-foreground mt-2">
           Não realizado

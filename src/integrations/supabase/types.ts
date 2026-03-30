@@ -192,6 +192,7 @@ export type Database = {
           finished_at: string | null
           fullscreen_exit_count: number
           id: string
+          is_within_window: boolean
           last_saved_at: string
           score_percentage: number | null
           simulado_id: string
@@ -209,6 +210,7 @@ export type Database = {
           finished_at?: string | null
           fullscreen_exit_count?: number
           id?: string
+          is_within_window?: boolean
           last_saved_at?: string
           score_percentage?: number | null
           simulado_id: string
@@ -226,6 +228,7 @@ export type Database = {
           finished_at?: string | null
           fullscreen_exit_count?: number
           id?: string
+          is_within_window?: boolean
           last_saved_at?: string
           score_percentage?: number | null
           simulado_id?: string
@@ -647,6 +650,7 @@ export type Database = {
           finished_at: string | null
           fullscreen_exit_count: number
           id: string
+          is_within_window: boolean
           last_saved_at: string
           score_percentage: number | null
           simulado_id: string

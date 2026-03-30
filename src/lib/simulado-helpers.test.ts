@@ -44,9 +44,9 @@ describe('deriveSimuladoStatus', () => {
     expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('in_progress');
   });
 
-  it('returns closed_waiting when now is after window end and user did not finish', () => {
+  it('returns available_late when now is after window end and user did not finish', () => {
     const now = new Date('2025-06-01T15:00:00Z');
-    expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('closed_waiting');
+    expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('available_late');
   });
 
   it('returns closed_waiting when user finished but window still open and results not released', () => {
@@ -86,8 +86,9 @@ describe('deriveSimuladoStatus', () => {
 });
 
 describe('canAccessSimulado', () => {
-  it('returns true for available and in_progress', () => {
+  it('returns true for available, available_late, and in_progress', () => {
     expect(canAccessSimulado('available')).toBe(true);
+    expect(canAccessSimulado('available_late')).toBe(true);
     expect(canAccessSimulado('in_progress')).toBe(true);
   });
 
@@ -108,6 +109,7 @@ describe('canViewResults', () => {
   it('returns false for other statuses', () => {
     expect(canViewResults('upcoming')).toBe(false);
     expect(canViewResults('available')).toBe(false);
+    expect(canViewResults('available_late')).toBe(false);
     expect(canViewResults('in_progress')).toBe(false);
     expect(canViewResults('closed_waiting')).toBe(false);
   });
@@ -116,6 +118,7 @@ describe('canViewResults', () => {
 describe('getSimuladoCTA', () => {
   it('returns correct CTA for each status', () => {
     expect(getSimuladoCTA('available')).toEqual({ label: 'Iniciar Simulado', variant: 'primary' });
+    expect(getSimuladoCTA('available_late')).toEqual({ label: 'Iniciar Treino', variant: 'primary' });
     expect(getSimuladoCTA('in_progress')).toEqual({ label: 'Continuar Simulado', variant: 'primary' });
     expect(getSimuladoCTA('results_available').label).toBe('Ver Resultado');
     expect(getSimuladoCTA('completed').label).toBe('Ver Resultado');

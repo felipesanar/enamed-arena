@@ -26,14 +26,9 @@ export function deriveSimuladoStatus(
     return 'closed_waiting';
   }
 
-  // Results date passed but user never finished → they missed it
-  if (isAfter(now, resultsAt)) {
-    return 'closed_waiting';
-  }
-
-  // Window closed, waiting for results (user didn't finish)
+  // Window closed, user never finished → available as practice
   if (isAfter(now, windowEnd)) {
-    return 'closed_waiting';
+    return 'available_late';
   }
 
   // User started but hasn't finished (within window)
@@ -102,6 +97,11 @@ export const STATUS_CONFIG: Record<SimuladoStatus, {
     badgeClass: 'bg-success/10 text-success',
     description: 'A janela de execução está aberta. Você pode iniciar agora.',
   },
+  available_late: {
+    label: 'Treino',
+    badgeClass: 'bg-warning/10 text-warning',
+    description: 'Fora da janela de execução. Resultado não entra no ranking.',
+  },
   in_progress: {
     label: 'Em andamento',
     badgeClass: 'bg-warning/10 text-warning',
@@ -131,6 +131,8 @@ export function getSimuladoCTA(status: SimuladoStatus): { label: string; variant
   switch (status) {
     case 'available':
       return { label: 'Iniciar Simulado', variant: 'primary' };
+    case 'available_late':
+      return { label: 'Iniciar Treino', variant: 'primary' };
     case 'in_progress':
       return { label: 'Continuar Simulado', variant: 'primary' };
     case 'results_available':
@@ -148,7 +150,7 @@ export function getSimuladoCTA(status: SimuladoStatus): { label: string; variant
  * Check if a user can start/access a simulado.
  */
 export function canAccessSimulado(status: SimuladoStatus): boolean {
-  return status === 'available' || status === 'in_progress';
+  return status === 'available' || status === 'available_late' || status === 'in_progress';
 }
 
 export function canViewResults(status: SimuladoStatus): boolean {
