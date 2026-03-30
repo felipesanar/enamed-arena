@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { CheckCircle2, Calendar, ArrowRight, Mail } from 'lucide-react';
+import { CheckCircle2, Calendar, ArrowRight, Mail, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/simulado-helpers';
 
