@@ -11,6 +11,7 @@ interface ExamCompletedScreenProps {
   totalCount: number;
   notifyResultByEmail: boolean;
   notificationSaving: boolean;
+  isWithinWindow?: boolean;
   onToggleNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 }
 
