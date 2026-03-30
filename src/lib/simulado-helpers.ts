@@ -131,6 +131,8 @@ export function getSimuladoCTA(status: SimuladoStatus): { label: string; variant
   switch (status) {
     case 'available':
       return { label: 'Iniciar Simulado', variant: 'primary' };
+    case 'available_late':
+      return { label: 'Iniciar Treino', variant: 'primary' };
     case 'in_progress':
       return { label: 'Continuar Simulado', variant: 'primary' };
     case 'results_available':
