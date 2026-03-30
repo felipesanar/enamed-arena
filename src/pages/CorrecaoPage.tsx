@@ -40,6 +40,14 @@ export default function CorrecaoPage() {
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
 
+  // Sync currentIndex with search params — must be before early returns
+  useEffect(() => {
+    const q = Number(searchParams.get('q') || '1');
+    if (!Number.isNaN(q) && q > 0 && questions.length > 0) {
+      setCurrentIndex(Math.max(0, Math.min(questions.length - 1, q - 1)));
+    }
+  }, [searchParams, questions.length]);
+
   const loading = loadingSim || loadingExam;
 
   const score = useMemo(() => {
@@ -102,12 +110,7 @@ export default function CorrecaoPage() {
 
   if (!question || !result) return null;
 
-  useEffect(() => {
-    const q = Number(searchParams.get('q') || '1');
-    if (!Number.isNaN(q) && q > 0) {
-      setCurrentIndex(Math.max(0, Math.min(questions.length - 1, q - 1)));
-    }
-  }, [searchParams, questions.length]);
+  // useEffect for search params moved above early returns
 
   const handleNavigate = (idx: number) => {
     setCurrentIndex(idx);
