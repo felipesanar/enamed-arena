@@ -44,9 +44,9 @@ describe('deriveSimuladoStatus', () => {
     expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('in_progress');
   });
 
-  it('returns closed_waiting when now is after window end and user did not finish', () => {
+  it('returns available_late when now is after window end and user did not finish', () => {
     const now = new Date('2025-06-01T15:00:00Z');
-    expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('closed_waiting');
+    expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('available_late');
   });
 
   it('returns closed_waiting when user finished but window still open and results not released', () => {
