@@ -109,6 +109,7 @@ describe('canViewResults', () => {
   it('returns false for other statuses', () => {
     expect(canViewResults('upcoming')).toBe(false);
     expect(canViewResults('available')).toBe(false);
+    expect(canViewResults('available_late')).toBe(false);
     expect(canViewResults('in_progress')).toBe(false);
     expect(canViewResults('closed_waiting')).toBe(false);
   });
