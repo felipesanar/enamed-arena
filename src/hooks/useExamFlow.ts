@@ -96,6 +96,8 @@ export function useExamFlow(): UseExamFlowReturn {
   useEffect(() => {
     if (loadingSimulado) return;
     if (!simulado || !canAccessSimulado(simulado.status) || !isOnboardingComplete) {
+      // Allow access for available_late (practice mode)
+      if (simulado && simulado.status === 'available_late') return;
       navigate(simulado ? `/simulados/${id}` : '/simulados', { replace: true });
     }
   }, [simulado, loadingSimulado, isOnboardingComplete, navigate, id]);

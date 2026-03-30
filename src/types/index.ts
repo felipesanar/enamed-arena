@@ -30,6 +30,7 @@ export interface OnboardingState {
 export type SimuladoStatus =
   | 'upcoming'           // Before window opens
   | 'available'          // Window is open, can start
+  | 'available_late'     // Window closed, user can still do as practice (no ranking)
   | 'in_progress'        // User has started
   | 'closed_waiting'     // Window closed, results not yet released
   | 'results_available'  // Results released

@@ -150,7 +150,7 @@ export function getSimuladoCTA(status: SimuladoStatus): { label: string; variant
  * Check if a user can start/access a simulado.
  */
 export function canAccessSimulado(status: SimuladoStatus): boolean {
-  return status === 'available' || status === 'in_progress';
+  return status === 'available' || status === 'available_late' || status === 'in_progress';
 }
 
 export function canViewResults(status: SimuladoStatus): boolean {
