@@ -103,7 +103,7 @@ export default function SimuladoDetailPage() {
         </PremiumCard>
       )}
 
-      {isAccessible && !simulado.userState?.started && (
+      {(isAccessible && !simulado.userState?.started) && (
         <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.5 }} className="mb-8">
           {!isOnboardingComplete ? (
             <PremiumCard variant="hero" className="text-center">
@@ -128,7 +128,15 @@ export default function SimuladoDetailPage() {
                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <Play className="h-7 w-7 text-primary" />
                 </div>
-                <h2 className="text-heading-2 text-foreground mb-2">Pronto para começar?</h2>
+                <h2 className="text-heading-2 text-foreground mb-2">
+                  {simulado.status === 'available_late' ? 'Modo Treino' : 'Pronto para começar?'}
+                </h2>
+                {simulado.status === 'available_late' && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/10 border border-warning/20 text-warning text-body-sm font-medium mb-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    Fora da janela de execução — resultado não entra no ranking.
+                  </div>
+                )}
                 <p className="text-body text-muted-foreground max-w-lg mx-auto mb-6">
                   Revise as orientações abaixo. A prova não pode ser pausada após o início.
                 </p>
@@ -137,7 +145,7 @@ export default function SimuladoDetailPage() {
                   className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
                 >
                   <Play className="h-5 w-5" />
-                  Iniciar Simulado
+                  {simulado.status === 'available_late' ? 'Iniciar Treino' : 'Iniciar Simulado'}
                 </button>
 
                 {/* Exam choice modal */}
@@ -196,9 +204,11 @@ export default function SimuladoDetailPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-caption text-muted-foreground text-center mt-6">
-                Resultado em {formatDate(simulado.resultsReleaseAt)}.
-              </p>
+              {simulado.status !== 'available_late' && (
+                <p className="text-caption text-muted-foreground text-center mt-6">
+                  Resultado em {formatDate(simulado.resultsReleaseAt)}.
+                </p>
+              )}
             </PremiumCard>
           )}
         </motion.div>
