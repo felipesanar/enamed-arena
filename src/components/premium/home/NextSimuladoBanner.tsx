@@ -35,7 +35,7 @@ function deriveScenario(simulados: SimuladoWithStatus[]): BannerScenario {
   if (openWindow) {
     const finished = openWindow.userState?.finished === true;
     if (!finished) {
-      return { type: "open_not_done", simuladoSlug: openWindow.slug, title: openWindow.title };
+      return { type: "open_not_done", simuladoId: openWindow.id, title: openWindow.title };
     }
     // Finished — check if results are released
     const resultsAt = Date.parse(openWindow.resultsReleaseAt);
