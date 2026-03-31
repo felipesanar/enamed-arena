@@ -23,8 +23,7 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
         <StatusBadge status={simulado.status} />
       </div>
 
-      <h3 className="text-heading-3 text-foreground mb-1">{simulado.title}</h3>
-      <p className="text-body-sm text-muted-foreground mb-3 line-clamp-2">{simulado.description}</p>
+      <h3 className="text-heading-3 text-foreground mb-3">{simulado.title}</h3>
 
       <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">

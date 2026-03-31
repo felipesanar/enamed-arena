@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { SimuladoCard } from "@/components/SimuladoCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -7,50 +7,33 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Link } from "react-router-dom";
 import { useSimulados } from "@/hooks/useSimulados";
-import { Calendar, Clock, FileText, Info, Search, X } from "lucide-react";
+import { Info } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 export default function SimuladosPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // Collect all unique theme tags
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    simulados.forEach(s => s.themeTags?.forEach(t => tags.add(t)));
-    return Array.from(tags).sort();
-  }, [simulados]);
-
-  // Filter simulados
-  const filtered = useMemo(() => {
-    let result = simulados;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(s =>
-        s.title.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q)
-      );
-    }
-    if (selectedTag) {
-      result = result.filter(s => s.themeTags?.includes(selectedTag));
-    }
-    return result;
-  }, [simulados, searchQuery, selectedTag]);
-
-  const available = filtered.filter(s => s.status === 'available' || s.status === 'in_progress');
-  const upcoming = filtered.filter(s => s.status === 'upcoming');
-  const past = filtered.filter(s => s.status === 'completed' || s.status === 'results_available' || s.status === 'closed_waiting');
-  /** Próximo simulado: disponível agora ou primeiro próximo */
-  const nextSimulado = available[0] ?? upcoming[0] ?? null;
+  // Sections
+  const active = useMemo(
+    () => simulados.filter(s => s.status === "available" || s.status === "available_late" || s.status === "in_progress"),
+    [simulados]
+  );
+  const upcoming = useMemo(
+    () => simulados.filter(s => s.status === "upcoming"),
+    [simulados]
+  );
+  const past = useMemo(
+    () => simulados.filter(s => s.status === "completed" || s.status === "results_available" || s.status === "closed_waiting"),
+    [simulados]
+  );
 
   if (loading) {
     return (
       <>
-        <PageHeader title="Calendário de Simulados" subtitle="Carregando simulados..." badge="Simulados ENAMED 2026" />
+        <PageHeader title="Simulados" badge="ENAMED 2026" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1,2,3].map(i => <SkeletonCard key={i} />)}
+          {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
         </div>
       </>
     );
@@ -59,7 +42,7 @@ export default function SimuladosPage() {
   if (error) {
     return (
       <>
-        <PageHeader title="Calendário de Simulados" badge="Simulados ENAMED 2026" />
+        <PageHeader title="Simulados" badge="ENAMED 2026" />
         <EmptyState
           variant="error"
           title="Não foi possível carregar os simulados"
@@ -75,72 +58,16 @@ export default function SimuladosPage() {
   return (
     <>
       <PageHeader
-        title="Calendário de Simulados"
-        subtitle="100 questões inéditas distribuídas no modelo ENAMED elaboradas pelos professores do SanarFlix PRO, com base na prevalência INEP e nas Diretrizes Curriculares Nacionais."
-        badge="Simulados ENAMED 2026"
+        title="Simulados"
+        subtitle="100 questões inéditas no modelo ENAMED, elaboradas pelos professores do SanarFlix PRO."
+        badge="ENAMED 2026"
       />
 
-      {/* Search + Filter */}
-      <div className="mb-6 space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar simulado por nome..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-card text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Limpar busca"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-        {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedTag(null)}
-              className={`px-3 py-1.5 rounded-lg text-caption font-medium transition-all ${!selectedTag ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-            >
-              Todos
-            </button>
-            {allTags.map(tag => (
-              <button
-                key={tag}
-                onClick={() => setSelectedTag(prev => prev === tag ? null : tag)}
-                className={`px-3 py-1.5 rounded-lg text-caption font-medium transition-all ${selectedTag === tag ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Hero: Seu próximo simulado (Fase C) */}
-      {nextSimulado && (
-        <motion.section
-          initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
-          className="mb-8"
-          aria-label="Seu próximo simulado"
-        >
-          <SectionHeader title="Seu próximo simulado" className="mb-4" />
-          <SimuladoCard simulado={nextSimulado} delay={0} />
-        </motion.section>
-      )}
-
-      {/* Como funciona — compacto */}
+      {/* Como funciona — topo */}
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : 0.05 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
         className="mb-8"
       >
         <PremiumCard className="p-4 md:p-5 border-info/20 bg-info/5">
@@ -149,144 +76,74 @@ export default function SimuladosPage() {
             <div>
               <p className="text-body font-medium text-foreground mb-1">Como funciona</p>
               <p className="text-body-sm text-muted-foreground">
-                Cada simulado possui uma janela de execução definida. O resultado, gabarito comentado e ranking são liberados após o encerramento da janela. Não é possível pausar a prova após iniciá-la.
+                Cada simulado possui uma janela de execução definida. Realize dentro da janela para entrar no ranking nacional. Após a janela, é possível fazer como treino. Resultado, gabarito e ranking são liberados após o encerramento. Não é possível pausar a prova após iniciá-la.
               </p>
             </div>
           </div>
         </PremiumCard>
       </motion.div>
 
-      {/* Disponíveis agora (excluindo o que já está no hero quando é o mesmo) */}
-      {available.length > 0 && (
-        <div className="mb-8">
-          <SectionHeader title="Disponíveis agora" className="mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {available.map((sim, i) => (
-              <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
-            ))}
-          </div>
-        </div>
+      {/* Simulados Ativos */}
+      {active.length > 0 && (
+        <Section title="Simulados ativos" delay={0.05} reduced={prefersReducedMotion}>
+          {active.map((sim, i) => (
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
+          ))}
+        </Section>
       )}
 
-      {/* Próximos (timeline) */}
+      {/* Próximos */}
       {upcoming.length > 0 && (
-        <div className="mb-8">
-          <SectionHeader title="Próximos na sua linha do tempo" className="mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {upcoming.map((sim, i) => (
-              <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
-            ))}
-          </div>
-        </div>
+        <Section title="Próximos" delay={0.1} reduced={prefersReducedMotion}>
+          {upcoming.map((sim, i) => (
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
+          ))}
+        </Section>
       )}
 
       {/* Anteriores */}
       {past.length > 0 && (
-        <div className="mb-8">
-          <SectionHeader title="Anteriores" className="mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {past.map((sim, i) => (
-              <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
-            ))}
-          </div>
-        </div>
+        <Section title="Anteriores" delay={0.15} reduced={prefersReducedMotion}>
+          {past.map((sim, i) => (
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
+          ))}
+        </Section>
       )}
 
-      {/* Cronograma */}
-      <div className="section-breathe">
-        <SectionHeader title="Cronograma 2026" className="mb-4" />
-        {/* Mobile: card list (touch-friendly, no horizontal scroll) */}
-        <div className="md:hidden space-y-3">
-          {simulados.map((sim) => {
-            const startDate = new Date(sim.executionWindowStart);
-            const endDate = new Date(sim.executionWindowEnd);
-            const fmtShort = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-            const statusLabel =
-              sim.status === 'available' ? 'Aberto' :
-              sim.status === 'completed' || sim.status === 'results_available' ? 'Concluído' :
-              sim.status === 'closed_waiting' ? 'Encerrado' : 'Em breve';
-            const statusClass =
-              sim.status === 'available' ? 'bg-success/10 text-success' :
-              sim.status === 'completed' || sim.status === 'results_available' ? 'bg-primary/10 text-primary' :
-              'bg-muted text-muted-foreground';
-            return (
-              <Link
-                key={sim.id}
-                to={`/simulados/${sim.id}`}
-                className="block rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:shadow-md hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.998]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-body font-bold text-primary">#{sim.sequenceNumber}</span>
-                    <p className="text-body font-medium text-foreground truncate mt-0.5">{sim.title}</p>
-                    <p className="text-body-sm text-muted-foreground mt-1">
-                      {fmtShort(startDate)} – {fmtShort(endDate)}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 text-caption font-semibold px-2 py-1 rounded ${statusClass}`}>
-                    {statusLabel}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-        {/* Desktop: table */}
-        <PremiumCard className="p-0 overflow-hidden hidden md:block">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-overline uppercase text-muted-foreground px-5 py-3">#</th>
-                  <th className="text-left text-overline uppercase text-muted-foreground px-5 py-3">Simulado</th>
-                  <th className="text-left text-overline uppercase text-muted-foreground px-5 py-3 sm:table-cell">Janela</th>
-                  <th className="text-left text-overline uppercase text-muted-foreground px-5 py-3 md:table-cell">Resultado</th>
-                  <th className="text-right text-overline uppercase text-muted-foreground px-5 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {simulados.map(sim => {
-                  const startDate = new Date(sim.executionWindowStart);
-                  const endDate = new Date(sim.executionWindowEnd);
-                  const resultsDate = new Date(sim.resultsReleaseAt);
-                  const fmtShort = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-
-                  return (
-                    <tr key={sim.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-5 py-3">
-                        <span className="text-body font-bold text-primary">#{sim.sequenceNumber}</span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="text-body font-medium text-foreground">{sim.title}</span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="text-body-sm text-muted-foreground">
-                          {fmtShort(startDate)} – {fmtShort(endDate)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 hidden md:table-cell">
-                        <span className="text-body-sm text-muted-foreground">{fmtShort(resultsDate)}</span>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <span className={`inline-flex items-center text-caption font-semibold px-2 py-0.5 rounded ${
-                          sim.status === 'available' ? 'bg-success/10 text-success' :
-                          sim.status === 'completed' || sim.status === 'results_available' ? 'bg-primary/10 text-primary' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {sim.status === 'available' ? 'Aberto' :
-                           sim.status === 'completed' || sim.status === 'results_available' ? 'Concluído' :
-                           sim.status === 'closed_waiting' ? 'Encerrado' :
-                           'Em breve'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </PremiumCard>
-      </div>
+      {simulados.length === 0 && (
+        <EmptyState
+          title="Nenhum simulado disponível"
+          description="Fique atento — novos simulados serão publicados em breve."
+          backHref="/"
+          backLabel="Voltar ao início"
+        />
+      )}
     </>
+  );
+}
+
+function Section({
+  title,
+  delay,
+  reduced,
+  children,
+}: {
+  title: string;
+  delay: number;
+  reduced: boolean | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.section
+      initial={reduced ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0 : 0.4, delay: reduced ? 0 : delay }}
+      className="mb-8"
+    >
+      <SectionHeader title={title} className="mb-4" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {children}
+      </div>
+    </motion.section>
   );
 }
