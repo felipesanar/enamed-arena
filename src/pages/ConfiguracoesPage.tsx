@@ -42,7 +42,7 @@ export default function ConfiguracoesPage() {
       if (error) throw error;
       toast.success('Nome atualizado com sucesso.');
       setEditing(false);
-      refetchProfile?.();
+      refreshProfile?.();
     } catch (err) {
       console.error('[ConfiguracoesPage] Error saving name:', err);
       toast.error('Erro ao salvar. Tente novamente.');
