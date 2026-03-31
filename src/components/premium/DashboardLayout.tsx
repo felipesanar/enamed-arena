@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 
 export function DashboardLayout() {
   const location = useLocation();
-  const sectionLabel = ROUTE_LABELS[location.pathname] ?? "";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const isMobile = useIsMobile();
