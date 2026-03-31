@@ -230,7 +230,6 @@ export function HomePagePremium() {
           recentScores={recentScores}
           rankingTitle={selectedRankingTitle}
           segmentFilter={segmentFilter}
-          hasRankingConfig={selectedSimuladoId !== null}
         />
       </motion.div>
 
@@ -243,6 +242,12 @@ export function HomePagePremium() {
   );
 }
 
+const SEGMENT_LABEL: Record<SegmentFilter, string> = {
+  all: 'Geral',
+  sanarflix: 'Aluno SanarFlix',
+  pro: 'Aluno PRO',
+};
+
 function HeroPerformanceCard({
   lastScore,
   scoreDelta,
@@ -251,7 +256,6 @@ function HeroPerformanceCard({
   recentScores,
   rankingTitle,
   segmentFilter,
-  hasRankingConfig,
 }: {
   lastScore: number | null;
   scoreDelta: number | null;
@@ -260,7 +264,6 @@ function HeroPerformanceCard({
   recentScores: number[];
   rankingTitle: string | null;
   segmentFilter: SegmentFilter;
-  hasRankingConfig: boolean;
 }) {
   const hasScore = lastScore !== null;
   const safeScore = lastScore ?? 0;
@@ -298,12 +301,6 @@ function HeroPerformanceCard({
   const nextTier = hasScore
     ? `Próximo nível: Top ${Math.max(1, 100 - Math.min(100, safeScore + 10))}%`
     : "Seu primeiro marco te espera";
-
-  const SEGMENT_LABEL: Record<SegmentFilter, string> = {
-    all: 'Geral',
-    sanarflix: 'Aluno SanarFlix',
-    pro: 'Aluno PRO',
-  };
 
   const variationState = (() => {
     const pearl = {
@@ -454,7 +451,7 @@ function HeroPerformanceCard({
             </div>
 
             {/* Ranking snapshot */}
-            {!hasRankingConfig && rankPosition === null ? (
+            {rankPosition === null ? (
               <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-4 text-center">
                 <p className="text-[13px] font-semibold text-[rgba(245,241,238,0.85)] mb-1">
                   Veja como você está no ranking
@@ -488,9 +485,11 @@ function HeroPerformanceCard({
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] truncate">
-                    {rankingTitle ? `${rankingTitle} · ${SEGMENT_LABEL[segmentFilter]}` : null}
-                  </p>
+                  {rankingTitle && (
+                    <p className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] truncate">
+                      {`${rankingTitle} · ${SEGMENT_LABEL[segmentFilter]}`}
+                    </p>
+                  )}
                   <p className="text-[9px] leading-snug text-[rgba(245,241,238,0.68)]">
                     {variationState.helper}
                   </p>
