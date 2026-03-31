@@ -154,7 +154,7 @@ export const simuladosApi = {
       .from('simulados')
       .select('*')
       .eq('status', 'published')
-      .order('sequence_number', { ascending: true });
+      .order('sequence_number', { ascending: false });
 
     if (error) {
       logger.error('[SimuladosApi] Error fetching simulados:', error);
