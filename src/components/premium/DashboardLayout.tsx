@@ -8,15 +8,6 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const ROUTE_LABELS: Record<string, string> = {
-  "/": "",
-  "/simulados": "Simulados",
-  "/desempenho": "Desempenho",
-  "/ranking": "Ranking",
-  "/comparativo": "Comparativo",
-  "/caderno-erros": "Caderno de Erros",
-  "/configuracoes": "Configurações",
-};
 
 export function DashboardLayout() {
   const location = useLocation();
