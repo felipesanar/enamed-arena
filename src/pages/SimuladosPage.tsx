@@ -9,10 +9,32 @@ import { Link } from "react-router-dom";
 import { useSimulados } from "@/hooks/useSimulados";
 import { Info } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useSegment } from "@/contexts/UserContext";
+import { useUserPerformance } from "@/hooks/useUserPerformance";
+import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
+import { useExamResult } from "@/hooks/useExamResult";
+import { computePerformanceBreakdown } from "@/lib/resultHelpers";
 
 export default function SimuladosPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
+
+  const segment = useSegment();
+  const isLocked = segment !== 'pro';
+
+  const { summary } = useUserPerformance();
+  const lastSimuladoId = !isLocked ? (summary?.last_simulado_id ?? null) : null;
+
+  const { questions } = useSimuladoDetail(lastSimuladoId ?? undefined);
+  const { examState } = useExamResult(lastSimuladoId ?? undefined);
+
+  const worstArea = useMemo(() => {
+    if (!examState || !questions.length) return null;
+    if (examState.status !== 'submitted' && examState.status !== 'expired') return null;
+    const breakdown = computePerformanceBreakdown(examState, questions);
+    const byArea = breakdown.byArea;
+    return byArea.length > 0 ? byArea[byArea.length - 1].area : null;
+  }, [examState, questions]);
 
   // Sections
   const active = useMemo(
@@ -87,7 +109,7 @@ export default function SimuladosPage() {
       {active.length > 0 && (
         <Section title="Simulados ativos" delay={0.05} reduced={prefersReducedMotion}>
           {active.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} isLocked={isLocked} worstArea={worstArea} />
           ))}
         </Section>
       )}
@@ -96,7 +118,7 @@ export default function SimuladosPage() {
       {upcoming.length > 0 && (
         <Section title="Próximos" delay={0.1} reduced={prefersReducedMotion}>
           {upcoming.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} isLocked={isLocked} worstArea={worstArea} />
           ))}
         </Section>
       )}
@@ -105,7 +127,7 @@ export default function SimuladosPage() {
       {past.length > 0 && (
         <Section title="Anteriores" delay={0.15} reduced={prefersReducedMotion}>
           {past.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} isLocked={isLocked} worstArea={worstArea} />
           ))}
         </Section>
       )}
