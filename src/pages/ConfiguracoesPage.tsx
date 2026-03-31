@@ -21,7 +21,7 @@ export default function ConfiguracoesPage() {
     isOnboardingComplete,
     onboardingEditLocked,
     onboardingNextEditableAt,
-    refetchProfile,
+    refreshProfile,
   } = useUser();
   const { user: authUser, signOut } = useAuth();
   const segment = profile?.segment ?? 'guest';
