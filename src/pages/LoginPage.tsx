@@ -1,125 +1,126 @@
-import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, Mail, User, Lock, ArrowRight, CheckCircle2, Clock, RefreshCw, Wand2, Eye, EyeOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, CheckCircle2, Clock, GraduationCap, Lock, Mail, RefreshCw, ShieldCheck, Stethoscope, Trophy, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { TextField } from "@/components/auth/TextField";
+import { PasswordField } from "@/components/auth/PasswordField";
+import { FormFeedback } from "@/components/auth/FormFeedback";
+import { RankingClimbWidget } from "@/components/auth/RankingClimbWidget";
+import { cn } from "@/lib/utils";
 
-type AuthMode = 'login' | 'signup';
-type LoginMethod = 'password' | 'magic-link';
-type FlowState = 'idle' | 'sending' | 'sent';
+type AuthMode = "login" | "signup";
+type LoginMethod = "password" | "magic-link";
+type FlowState = "idle" | "sending" | "sent";
 
 export default function LoginPage() {
   const { user, loading, signInWithPassword, signUpWithPassword, sendLoginLink } = useAuth();
 
-  const [mode, setMode] = useState<AuthMode>('login');
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [flowState, setFlowState] = useState<FlowState>('idle');
+  const [error, setError] = useState("");
+  const [flowState, setFlowState] = useState<FlowState>("idle");
   const [cooldown, setCooldown] = useState(false);
   const [resending, setResending] = useState(false);
 
-  if (!loading && user) {
-    return <Navigate to="/" replace />;
-  }
+  if (!loading && user) return <Navigate to="/" replace />;
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-10 w-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-auth-base">
+        <div className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
       </div>
     );
   }
 
-  // ─── Handlers ───
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handlePasswordSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) { setError('Informe seu email.'); return; }
-    if (!password) { setError('Informe sua senha.'); return; }
-
-    if (mode === 'signup') {
-      if (!fullName.trim()) { setError('Informe seu nome completo.'); return; }
-      if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return; }
+    if (!trimmedEmail) {
+      setError("Informe seu email.");
+      return;
+    }
+    if (!password) {
+      setError("Informe sua senha.");
+      return;
     }
 
-    setFlowState('sending');
+    if (mode === "signup") {
+      if (!fullName.trim()) {
+        setError("Informe seu nome completo.");
+        return;
+      }
+      if (password.length < 6) {
+        setError("A senha deve ter pelo menos 6 caracteres.");
+        return;
+      }
+    }
+
+    setFlowState("sending");
 
     try {
-      let result: { error: string | null };
-
-      if (mode === 'login') {
-        result = await signInWithPassword(trimmedEmail, password);
-      } else {
-        result = await signUpWithPassword(trimmedEmail, password, fullName.trim());
-      }
+      const result =
+        mode === "login"
+          ? await signInWithPassword(trimmedEmail, password)
+          : await signUpWithPassword(trimmedEmail, password, fullName.trim());
 
       if (result.error) {
         setError(translateError(result.error));
-        setFlowState('idle');
-      } else {
-        // Auth state change will redirect automatically
-        if (mode === 'signup') {
-          // Supabase may require email confirmation
-          setFlowState('sent');
-        }
-        // For login, auth state change will redirect automatically
+        setFlowState("idle");
+        return;
       }
+
+      if (mode === "signup") setFlowState("sent");
     } catch {
-      setError('Erro inesperado. Tente novamente.');
-      setFlowState('idle');
+      setError("Erro inesperado. Tente novamente.");
+      setFlowState("idle");
     }
   };
 
-  const handleMagicLinkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleMagicLinkSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) { setError('Informe seu email.'); return; }
+    if (!trimmedEmail) {
+      setError("Informe seu email.");
+      return;
+    }
 
-    setFlowState('sending');
+    setFlowState("sending");
 
     try {
       const result = await sendLoginLink(trimmedEmail);
-
       if (result.error) {
         setError(translateError(result.error));
-        setFlowState('idle');
-      } else {
-        // Magic link sent successfully
-        setFlowState('sent');
+        setFlowState("idle");
+        return;
       }
+      setFlowState("sent");
     } catch {
-      setError('Erro inesperado. Tente novamente.');
-      setFlowState('idle');
+      setError("Erro inesperado. Tente novamente.");
+      setFlowState("idle");
     }
   };
 
   const handleResend = async () => {
     if (cooldown) return;
     setCooldown(true);
-    setError('');
+    setError("");
     setResending(true);
 
     try {
-      const trimmedEmail = email.trim().toLowerCase();
-      const result = await sendLoginLink(trimmedEmail);
-
-      if (result.error) {
-        setError(translateError(result.error));
-      } else {
-        // Resent successfully
-      }
+      const result = await sendLoginLink(email.trim().toLowerCase());
+      if (result.error) setError(translateError(result.error));
     } catch {
-      setError('Erro ao reenviar. Tente novamente.');
+      setError("Erro ao reenviar. Tente novamente.");
     } finally {
       setResending(false);
     }
@@ -127,368 +128,357 @@ export default function LoginPage() {
     setTimeout(() => setCooldown(false), 30000);
   };
 
-  const handleBackToForm = () => {
-    setFlowState('idle');
-    setError('');
+  const switchMode = (nextMode: AuthMode) => {
+    setMode(nextMode);
+    setError("");
+    setFlowState("idle");
     setCooldown(false);
+    if (nextMode === "signup") setLoginMethod("password");
   };
 
-  function translateError(msg: string): string {
-    if (msg.includes('Invalid login credentials')) {
-      return 'Email ou senha incorretos. Verifique suas credenciais.';
-    }
-    if (msg.includes('Signups not allowed for otp')) {
-      return 'Nenhuma conta encontrada com este email. Verifique o endereço ou crie uma conta.';
-    }
-    if (msg.includes('Email not confirmed')) {
-      return 'Confirme seu email antes de fazer login. Verifique sua caixa de entrada.';
-    }
-    if (msg.includes('User already registered')) {
-      return 'Este email já está cadastrado. Use a aba "Entrar" para acessar sua conta.';
-    }
-    if (msg.includes('rate limit') || msg.includes('too many')) {
-      return 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.';
-    }
-    if (msg.includes('invalid') || msg.includes('Invalid')) {
-      return 'Email inválido. Verifique o endereço informado.';
-    }
-    return msg;
-  }
-
-  function switchMode(newMode: AuthMode) {
-    setMode(newMode);
-    setError('');
-    setFlowState('idle');
-    setCooldown(false);
-    if (newMode === 'signup') {
-      setLoginMethod('password');
-    }
-  }
-
-  // ─── Sent State (magic link or signup confirmation) ───
-  if (flowState === 'sent') {
+  if (flowState === "sent") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md space-y-6"
-        >
-          <Brand />
-
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="text-center space-y-4">
-              <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="h-7 w-7 text-success" />
-              </div>
-              <h2 className="text-heading-3 text-foreground">Verifique seu email</h2>
-              <p className="text-body-sm text-muted-foreground">
-                Enviamos {loginMethod === 'magic-link' ? 'um link de acesso' : 'um email de confirmação'} para{' '}
-                <strong className="text-foreground">{email}</strong>.
-                {loginMethod === 'magic-link'
-                  ? ' Clique no link do email para entrar na plataforma.'
-                  : ' Confirme seu email para ativar sua conta.'}
-              </p>
-
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/50 border border-border">
-                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                <p className="text-caption text-muted-foreground text-left">
-                  O link é válido por 1 hora. Verifique também a pasta de spam.
-                </p>
-              </div>
-
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-body-sm text-destructive font-medium bg-destructive/10 rounded-lg p-3"
-                >
-                  {error}
-                </motion.p>
-              )}
-
-              <div className="flex flex-col gap-3 pt-2">
-                {loginMethod === 'magic-link' && (
-                  <button
-                    onClick={handleResend}
-                    disabled={cooldown || resending}
-                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-border text-body-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${resending ? 'animate-spin' : ''}`} />
-                    {cooldown ? 'Aguarde para reenviar' : resending ? 'Reenviando...' : 'Reenviar link'}
-                  </button>
-                )}
-                <button
-                  onClick={handleBackToForm}
-                  className="text-body-sm text-primary font-semibold hover:underline"
-                >
-                  Voltar
-                </button>
-              </div>
-            </div>
+      <AuthShell
+        heroEyebrow="Confirmação de acesso"
+        heroTitle="Tudo pronto. Falta só confirmar no e-mail."
+        heroSubtitle="Seu acesso continua seguro e sem fricção. Assim que confirmar, você entra direto na plataforma."
+        mobileHero={<MobileHeaderAndHero compact />}
+      >
+        <LogoPro />
+        <div className="mt-6 space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
+            <CheckCircle2 className="h-7 w-7 text-success" />
           </div>
-        </motion.div>
-      </div>
+          <div className="space-y-2 text-center">
+            <h2 className="text-heading-3 text-auth-text-primary">Verifique seu e-mail</h2>
+            <p className="text-body-sm text-auth-text-muted">
+              Enviamos {loginMethod === "magic-link" ? "um link de acesso" : "um e-mail de confirmação"} para{" "}
+              <strong className="text-auth-text-primary">{email}</strong>.
+              {loginMethod === "magic-link"
+                ? " Clique no link recebido para entrar imediatamente."
+                : " Confirme sua conta para ativar o primeiro acesso."}
+            </p>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-xl border border-auth-border-subtle bg-auth-surface-soft p-3">
+            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-auth-text-muted" />
+            <p className="text-caption text-auth-text-muted">
+              O link é válido por 1 hora. Caso não encontre, revise spam e promoções.
+            </p>
+          </div>
+
+          {error && <FormFeedback tone="error" message={error} />}
+
+          <div className="space-y-2 pt-1">
+            {loginMethod === "magic-link" && (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={cooldown || resending}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-auth-border-subtle bg-auth-surface-soft text-body-sm font-medium text-auth-text-primary transition-all hover:border-auth-border-strong hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <RefreshCw className={cn("h-4 w-4", resending ? "animate-spin" : "")} />
+                {cooldown ? "Aguarde para reenviar" : resending ? "Reenviando..." : "Reenviar link"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setFlowState("idle");
+                setError("");
+                setCooldown(false);
+              }}
+              className="flex h-11 w-full items-center justify-center rounded-xl text-body-sm font-semibold text-primary transition-colors hover:text-primary/85"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+      </AuthShell>
     );
   }
 
-  // ─── Main Form ───
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md space-y-6"
-      >
-        <Brand />
+    <AuthShell
+      heroEyebrow="PRO ENAMED"
+      heroTitle="Simulados para o ENAMED, com direção"
+      heroSubtitle="Entre, realize os simulados e compare seu desempenho no ranking nacional."
+      mobileHero={<MobileHeaderAndHero />}
+      mobileFooter={<MobileTrustFooter />}
+    >
+      <div className="hidden md:block">
+        <LogoPro />
+      </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          {/* Mode tabs */}
-          <div className="flex mb-6 bg-muted rounded-xl p-1">
-            {(['login', 'signup'] as const).map((m) => (
+      <div className="mt-1.5 flex rounded-lg border border-auth-border-subtle bg-auth-surface-soft p-0.5 lg:mt-2.5">
+        {(["login", "signup"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => switchMode(tab)}
+            className={cn(
+              "flex-1 rounded-md px-3 py-2 text-body-sm font-semibold transition-all lg:rounded-[6px] lg:px-2.5 lg:py-1 lg:text-[12px]",
+              mode === tab
+                ? "bg-auth-input text-auth-text-primary shadow-[inset_0_1px_0_0_hsl(var(--auth-text-primary)/0.12)]"
+                : "text-[hsl(var(--auth-text-primary)/0.72)] hover:text-auth-text-primary"
+            )}
+          >
+            {tab === "login" ? "Entrar" : "Criar conta"}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-3 text-body-sm text-auth-hero-support md:hidden">
+        {mode === "login"
+          ? "Entre e continue de onde parou."
+          : "Crie sua conta e comece hoje."}
+      </p>
+
+      <div className="mt-3 lg:mt-2.5">
+        <p className="text-auth-form-micro text-center">
+          Acesse com e-mail
+        </p>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {mode === "login" && loginMethod === "password" && (
+          <motion.form
+            key="login-password"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handlePasswordSubmit}
+            className="mt-3 space-y-3"
+          >
+            <TextField
+              label="Seu e-mail"
+              icon={Mail}
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="nome@exemplo.com.br"
+              labelClassName="text-auth-form-label"
+            />
+            <PasswordField
+              label="Sua senha"
+              value={password}
+              onChange={setPassword}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((state) => !state)}
+              labelClassName="text-auth-form-label"
+            />
+
+            {error && <FormFeedback tone="error" message={error} />}
+
+            <button
+              type="submit"
+              disabled={flowState === "sending"}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
+            >
+              {flowState === "sending" ? <Spinner /> : <>Entrar na plataforma <ArrowRight className="h-4 w-4" /></>}
+            </button>
+
+            <div className="flex items-center justify-between text-[12px] pt-2">
+              <Link to="/forgot-password" className="text-auth-link-subtle hover:underline">
+                Esqueceu sua senha?
+              </Link>
               <button
-                key={m}
-                onClick={() => switchMode(m)}
-                className={`flex-1 py-2.5 rounded-lg text-body-sm font-semibold transition-all ${
-                  mode === m
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                type="button"
+                onClick={() => {
+                  setLoginMethod("magic-link");
+                  setError("");
+                }}
+                className="text-auth-link-accent font-semibold hover:underline"
               >
-                {m === 'login' ? 'Entrar' : 'Criar conta'}
+                Usar magic link
               </button>
-            ))}
-          </div>
-
-          {/* Context info */}
-          {mode === 'login' ? (
-            <div className="mb-4 p-3 rounded-xl bg-accent/50 border border-border">
-              <p className="text-body-sm text-muted-foreground">
-                Alunos SanarFlix e PRO: ENAMED, entrem com o email e senha da sua conta.
-                Não alunos que já têm conta também entram por aqui.
-              </p>
             </div>
-          ) : (
-            <div className="mb-4 p-3 rounded-xl bg-accent/50 border border-border">
-              <p className="text-body-sm text-muted-foreground">
-                Crie sua conta para acessar simulados como não aluno. Já é aluno SanarFlix?{' '}
-                <button
-                  onClick={() => switchMode('login')}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Entre com sua conta
-                </button>
-              </p>
-            </div>
-          )}
+          </motion.form>
+        )}
 
-          <AnimatePresence mode="wait">
-            {mode === 'login' && loginMethod === 'password' && (
-              <motion.form
-                key="login-password"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handlePasswordSubmit}
-                className="space-y-4"
-              >
-                <FieldEmail value={email} onChange={setEmail} />
-                <FieldPassword value={password} onChange={setPassword} show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+        {mode === "login" && loginMethod === "magic-link" && (
+          <motion.form
+            key="login-magic"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleMagicLinkSubmit}
+            className="mt-3 space-y-3"
+          >
+            <TextField
+              label="Seu e-mail"
+              icon={Mail}
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="nome@exemplo.com.br"
+              hint="Enviamos um link seguro para seu e-mail."
+              labelClassName="text-auth-form-label"
+            />
 
-                <ErrorMessage error={error} />
+            {error && <FormFeedback tone="error" message={error} />}
 
-                <button
-                  type="submit"
-                  disabled={flowState === 'sending'}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {flowState === 'sending' ? <Spinner /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
-                </button>
+            <button
+              type="submit"
+              disabled={flowState === "sending"}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
+            >
+              {flowState === "sending" ? <Spinner /> : <>Receber link de acesso <Mail className="h-4 w-4" /></>}
+            </button>
 
-                <Link to="/forgot-password" className="block text-center text-body-sm text-primary font-semibold hover:underline mt-1">
-                  Esqueci minha senha
-                </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setLoginMethod("password");
+                setError("");
+              }}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-auth-border-subtle bg-auth-surface-soft text-body-sm font-semibold text-auth-text-primary transition-all hover:border-auth-border-strong hover:bg-auth-surface-soft/90 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
+            >
+              <Lock className="h-4 w-4" />
+              Entrar com senha
+            </button>
+          </motion.form>
+        )}
 
-              </motion.form>
-            )}
+        {mode === "signup" && (
+          <motion.form
+            key="signup"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handlePasswordSubmit}
+            className="mt-3 space-y-3"
+          >
+            <TextField
+              label="Como você gosta de ser chamado(a)"
+              icon={User}
+              type="text"
+              autoComplete="name"
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Seu nome"
+              labelClassName="text-auth-form-label"
+            />
+            <TextField
+              label="Seu e-mail"
+              icon={Mail}
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="nome@exemplo.com.br"
+              labelClassName="text-auth-form-label"
+            />
+            <PasswordField
+              label="Crie uma senha"
+              value={password}
+              onChange={setPassword}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((state) => !state)}
+              placeholder="Mínimo de 6 caracteres"
+              labelClassName="text-auth-form-label"
+            />
 
-            {mode === 'login' && loginMethod === 'magic-link' && (
-              <motion.form
-                key="login-magic"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handleMagicLinkSubmit}
-                className="space-y-4"
-              >
-                <FieldEmail value={email} onChange={setEmail} />
+            {error && <FormFeedback tone="error" message={error} />}
 
-                <ErrorMessage error={error} />
+            <button
+              type="submit"
+              disabled={flowState === "sending"}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
+            >
+              {flowState === "sending" ? <Spinner /> : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
+            </button>
+          </motion.form>
+        )}
+      </AnimatePresence>
 
-                <button
-                  type="submit"
-                  disabled={flowState === 'sending'}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {flowState === 'sending' ? <Spinner /> : <>Enviar link de acesso <Mail className="h-4 w-4" /></>}
-                </button>
-
-                <div className="relative flex items-center gap-3 py-1">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-caption text-muted-foreground">ou</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => { setLoginMethod('password'); setError(''); }}
-                  className="w-full h-11 rounded-xl border border-border text-body-sm font-semibold text-foreground hover:bg-accent transition-colors flex items-center justify-center gap-2"
-                >
-                  <Lock className="h-4 w-4" />
-                  Entrar com email e senha
-                </button>
-              </motion.form>
-            )}
-
-            {mode === 'signup' && (
-              <motion.form
-                key="signup"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handlePasswordSubmit}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="text-body-sm font-medium text-foreground mb-1.5 block">Nome completo</label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={e => setFullName(e.target.value)}
-                      placeholder="Seu nome"
-                      className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-background text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <FieldEmail value={email} onChange={setEmail} />
-                <FieldPassword value={password} onChange={setPassword} show={showPassword} onToggle={() => setShowPassword(!showPassword)} label="Criar senha" placeholder="Mínimo 6 caracteres" />
-
-                <ErrorMessage error={error} />
-
-                <button
-                  type="submit"
-                  disabled={flowState === 'sending'}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {flowState === 'sending' ? <Spinner /> : <>Criar conta gratuita <ArrowRight className="h-4 w-4" /></>}
-                </button>
-              </motion.form>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <p className="text-center text-caption text-muted-foreground">
-          {mode === 'login'
-            ? 'Use suas credenciais para acessar a plataforma.'
-            : 'Ao criar conta, você acessará como não aluno. Alunos SanarFlix entram por login.'}
+      <div className="mt-4 hidden md:block text-center text-[11px] text-auth-text-muted/90">
+        <p className="mx-auto max-w-[34ch] leading-snug text-auth-text-primary">
+          Ao continuar, você concorda com nossos termos e política de privacidade.
         </p>
-        <p className="text-center mt-3">
-          <Link to="/landing" className="text-body-sm text-primary font-semibold hover:underline">
-            Conhecer a plataforma de simulados
-          </Link>
-        </p>
-      </motion.div>
-    </div>
+      </div>
+    </AuthShell>
   );
 }
 
-// ─── Reusable sub-components ───
-
-function Brand() {
+function LogoPro() {
   return (
     <div className="text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mx-auto mb-4">
-        <GraduationCap className="h-7 w-7 text-primary-foreground" />
-      </div>
-      <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">sanarflix</span>
-      <h1 className="text-heading-2 text-foreground mt-0.5">PRO: ENAMED</h1>
-      <p className="text-body-sm text-muted-foreground mt-2">
-        Plataforma premium de simulados para residência médica
-      </p>
-    </div>
-  );
-}
-
-function FieldEmail({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <label className="text-body-sm font-medium text-foreground mb-1.5 block">Email</label>
-      <div className="relative">
-        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="email"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder="seu@email.com"
-          className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-background text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
-          required
-        />
+      <div className="mx-auto inline-flex items-center gap-2.5 rounded-xl border border-auth-border-subtle bg-auth-surface-soft px-4 py-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#a855f7]">
+          <span className="text-[14px] font-black text-white">P</span>
+        </div>
+        <div className="text-left">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#c4b5fd]">SanarFlix</div>
+          <div className="text-[15px] font-bold leading-tight text-auth-text-primary">PRO ENAMED</div>
+        </div>
       </div>
     </div>
   );
 }
 
-function FieldPassword({ value, onChange, show, onToggle, label = 'Senha', placeholder = 'Sua senha' }: {
-  value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void; label?: string; placeholder?: string;
-}) {
+function MobileHeaderAndHero({ compact = false }: { compact?: boolean }) {
   return (
-    <div>
-      <label className="text-body-sm font-medium text-foreground mb-1.5 block">{label}</label>
-      <div className="relative">
-        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full h-11 pl-10 pr-11 rounded-xl border border-border bg-background text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
-          required
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          tabIndex={-1}
-        >
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-auth-border-subtle bg-auth-surface-soft px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <GraduationCap className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-body font-semibold text-auth-hero-headline">SANARFLIX PRO</span>
+          </div>
+          <span className="rounded-full border border-primary/35 bg-primary/15 px-3 py-1 text-caption font-semibold uppercase tracking-[0.08em] text-primary-foreground">
+            ENAMED
+          </span>
+        </div>
       </div>
+
+      {!compact && (
+        <div className="rounded-2xl border border-auth-border-subtle bg-auth-hero-surface px-4 py-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <h2 className="max-w-[14ch] text-heading-1 leading-[1.02] tracking-tight text-auth-hero-headline">
+                Simulados para o ENAMED, com direção
+              </h2>
+              <p className="text-body text-auth-hero-subtitle">Compare seu desempenho no ranking nacional.</p>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.86 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-1 inline-flex h-16 w-16 items-center justify-center rounded-full border border-primary/40 text-caption font-semibold text-primary-foreground"
+            >
+              +94.2%
+            </motion.div>
+          </div>
+
+          <div className="mt-4">
+            <RankingClimbWidget compact />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ErrorMessage({ error }: { error: string }) {
-  if (!error) return null;
+function MobileTrustFooter() {
   return (
-    <motion.p
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-body-sm text-destructive font-medium bg-destructive/10 rounded-lg p-3"
-    >
-      {error}
-    </motion.p>
+    <div className="space-y-3 text-center">
+      <p className="text-auth-form-micro text-[11px] tracking-[0.12em]">Ambiente de alta performance</p>
+      <div className="flex items-center justify-center gap-5 text-auth-text-muted/90">
+        <ShieldCheck className="h-4 w-4" />
+        <Stethoscope className="h-4 w-4" />
+        <Trophy className="h-4 w-4" />
+      </div>
+    </div>
   );
 }
 
 function Spinner() {
-  return <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />;
+  return <span className="h-4 w-4 rounded-full border-2 border-primary-foreground/35 border-t-primary-foreground animate-spin" />;
 }
