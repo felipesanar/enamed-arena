@@ -78,3 +78,37 @@ export const headerItemReveal = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: DURATION_NORMAL, ease: EASE } },
 };
+
+/** Spring para movimentos orgânicos */
+export const SPRING_GENTLE = { type: "spring", stiffness: 120, damping: 20 };
+export const SPRING_SNAPPY = { type: "spring", stiffness: 200, damping: 22 };
+
+/** Duração para hero-level */
+export const DURATION_CINEMATIC = 0.75;
+
+/** Variante: entrada da esquerda */
+export const itemRevealLeft = {
+  hidden: { opacity: 0, x: -24 },
+  show: { opacity: 1, x: 0, transition: { duration: DURATION_NORMAL, ease: EASE } },
+};
+
+/** Variante: entrada da direita */
+export const itemRevealRight = {
+  hidden: { opacity: 0, x: 24 },
+  show: { opacity: 1, x: 0, transition: { duration: DURATION_NORMAL, ease: EASE } },
+};
+
+/** Variante: scale + fade (para elementos de destaque) */
+export const itemRevealScale = {
+  hidden: { opacity: 0, scale: 0.92 },
+  show: { opacity: 1, scale: 1, transition: { duration: DURATION_SLOW, ease: EASE } },
+};
+
+/** Container com stagger mais lento (para seções densas) */
+export const containerRevealSlow = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.08 },
+  },
+};
