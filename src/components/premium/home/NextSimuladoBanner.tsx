@@ -17,7 +17,7 @@ function formatDateShort(dateIso: string): string {
 
 type BannerScenario =
   | { type: "before_window"; start: string; end: string }
-  | { type: "open_not_done"; simuladoSlug: string; title: string }
+  | { type: "open_not_done"; simuladoId: string; title: string }
   | { type: "open_done_waiting"; resultsAt: string }
   | { type: "after_done"; simuladoId: string; title: string }
   | { type: "no_upcoming" };
