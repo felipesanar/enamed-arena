@@ -1,87 +1,83 @@
 
 
-## Plano: Permitir simulados fora da janela (sem ranking)
+## Plano de Implementacao — Feedbacks por Tela (Bloco 1: Home + Sidebar + TopBar)
 
-### Resumo
+Vamos implementar tela a tela. Este primeiro bloco cobre **Home (Inicio)**, **Menu Lateral (Sidebar)** e **Barra Superior (TopBar)**. Apos aprovacao, seguimos para o proximo bloco.
 
-Atualmente, o sistema **bloqueia** o acesso ao simulado fora da janela de execução (tanto no frontend quanto no backend via `create_attempt_guarded`). A mudança é: alunos podem fazer o simulado a qualquer momento, mas tentativas fora da janela **não contam no ranking**.
+---
 
-### Mudanças necessárias
+### Bloco 1A — Home (Inicio)
 
-#### 1. Banco de dados — Coluna `is_within_window` na tabela `attempts`
+**1. Card Calendario — mostrar proximas datas**
+- No `QuickActionCard` de "Calendario", substituir o copy generico por datas reais do proximo simulado (reutilizar `nextSimulado` que ja existe em `HomePagePremium`).
+- Exibir: "Proxima janela: 03/04 a 06/04" (ou "Nenhuma janela proxima").
 
-Adicionar coluna booleana `is_within_window` (default `true`) à tabela `attempts`. Essa flag é calculada no momento da criação da tentativa e determina se o resultado entra no ranking.
+**2. Ranking Express — clarificar simulado de referencia + empty state + logica correta**
+- Em `RankingExpressCard.tsx`: remover dados mock (`mockPosition`, `mockLastScore`, `hasRanking = true`).
+- Exibir o titulo do simulado de referencia (ex: "Simulado #1").
+- Empty state real: "Complete um simulado dentro da janela para aparecer no ranking."
+- Ranking express mostra posicao apenas do ranking geral (sem filtro de especialidade/instituicao aqui — isso fica na pagina completa).
 
-#### 2. Backend — Atualizar `create_attempt_guarded`
-
-Remover as validações que bloqueiam criação de tentativas fora da janela (`RAISE EXCEPTION 'window has not started'` e `'window has ended'`). Em vez disso, calcular `is_within_window` baseado em se `now()` está dentro de `[execution_window_start, execution_window_end]` e gravar na tentativa. O cálculo de deadline precisa ser adaptado: fora da janela, usar apenas `duration_minutes` sem o `LEAST` com `execution_window_end`.
-
-#### 3. Backend — Atualizar `get_ranking_for_simulado`
-
-Adicionar filtro `AND a.is_within_window = true` para que apenas tentativas realizadas dentro da janela sejam consideradas no ranking.
-
-#### 4. Frontend — Status e navegação (`simulado-helpers.ts`)
-
-- Remover bloqueio de `canAccessSimulado` para simulados com janela expirada. Simulados passam a ser `available` (ou novo status como `available_late`) quando a janela fechou mas o usuário ainda não fez.
-- Ajustar `deriveSimuladoStatus`: se a janela acabou, o usuário **não** fez, e o resultado já saiu → status permite acesso para treino.
-- Manter `closed_waiting` apenas para quem já finalizou e aguarda resultado.
-
-#### 5. Frontend — `useExamFlow.ts` gate
-
-Remover/ajustar o redirect que impede acesso quando `!canAccessSimulado(simulado.status)`. Permitir acesso em status `available_late` / simulados com janela expirada.
-
-#### 6. Frontend — `SimuladoDetailPage.tsx`
-
-- Mostrar CTA "Iniciar Simulado (Treino)" para simulados com janela expirada.
-- Exibir aviso claro: "Este simulado está fora da janela de execução. Seu resultado não será considerado no ranking."
-
-#### 7. Frontend — `SimuladoCard.tsx`
-
-- Atualizar para exibir estado adequado para simulados fora da janela (ex: "Disponível para treino").
-
-#### 8. Frontend — Tela de resultado / Ranking
-
-- Na tela pós-prova (`ExamCompletedScreen`), indicar se a tentativa foi fora da janela.
-- Na página de ranking, tentativas fora da janela já são excluídas pelo backend (passo 3).
-
-### Detalhes técnicos
+**3. Proximo Simulado Banner — 5 cenarios**
+Refatorar `NextSimuladoBanner` para receber mais contexto e cobrir todos os cenarios:
 
 ```text
-attempts table
-┌──────────────────────┐
-│ + is_within_window   │  boolean, default true
-└──────────────────────┘
-
-create_attempt_guarded()
-  REMOVE: window start/end checks (RAISE EXCEPTION)
-  ADD:    v_in_window := (v_now >= v_simulado.execution_window_start 
-                      AND v_now <= v_simulado.execution_window_end)
-  ADD:    deadline = duration only (no LEAST) when outside window
-  STORE:  is_within_window = v_in_window
-
-get_ranking_for_simulado()
-  ADD:    WHERE ... AND a.is_within_window = true
-
-SimuladoStatus (types/index.ts)
-  ADD:    'available_late'  — window passed, user can still do as practice
-
-deriveSimuladoStatus()
-  CHANGE: after windowEnd, if user never finished → 'available_late'
-          (instead of 'closed_waiting')
-
-canAccessSimulado()
-  ADD:    'available_late' → true
+Cenario                                          | Exibicao
+-------------------------------------------------|--------------------------------------------
+Antes da janela                                  | "Proximo simulado: DD/MM" + CTA "Ver simulados"
+Janela aberta, nao realizado                     | CTA "Realizar simulado" (link para detail)
+Janela aberta, realizado, resultado nao liberado | Icone cadeado + "Resultado em DD/MM"
+Apos janela, realizado                           | CTA "Ver resultado"
+Apos janela, sem proximo                         | "Proximo simulado: DD/MM" + "Ver simulados"
 ```
 
-### Ordem de execução
+Isso requer passar para o banner: `simulados` (lista completa), nao apenas `nextWindowStart/End`.
 
-1. Migration: add `is_within_window` column
-2. Migration: update `create_attempt_guarded` function
-3. Migration: update `get_ranking_for_simulado` function
-4. Code: update types (`SimuladoStatus` + `STATUS_CONFIG`)
-5. Code: update `simulado-helpers.ts` (status derivation, CTA, tests)
-6. Code: update `useExamFlow.ts` gate
-7. Code: update `SimuladoDetailPage.tsx` (new CTA + warning)
-8. Code: update `SimuladoCard.tsx` (new status display)
-9. Code: update `ExamCompletedScreen.tsx` (out-of-window indicator)
+---
+
+### Bloco 1B — Menu Lateral (Sidebar)
+
+**4. Logo no canto superior esquerdo**
+- Em `SidebarBrandBlock.tsx`: substituir o icone `GraduationCap` por uma imagem de logo (ou manter icone + ajustar posicionamento para ficar mais proeminente como logo no canto superior esquerdo).
+
+**5. Corrigir animacao de transicao**
+- Verificar `PremiumSidebar` e `NavItem` para animacoes de hover/active. Garantir transicoes suaves sem glitches.
+
+**6. Labels de segmento — substituir em toda a plataforma**
+- Atualizar `SEGMENT_LABELS` em `src/types/index.ts`:
+  - `guest` → "Visitante"
+  - `standard` → "Aluno SanarFlix"  
+  - `pro` → "Aluno PRO"
+
+---
+
+### Bloco 1C — Barra Superior (TopBar)
+
+**7. Remover nome da pagina, manter apenas label + perfil**
+- Em `TopUtilityBar.tsx`: remover `sectionLabel` prop e sua exibicao.
+- Manter apenas: label do segmento (Visitante / Aluno SanarFlix / Aluno PRO) + icone do perfil com link para `/configuracoes`.
+- Fazer o avatar ser clicavel (link para configuracoes).
+
+---
+
+### Arquivos impactados (Bloco 1)
+
+| Arquivo | Mudanca |
+|---|---|
+| `src/types/index.ts` | Atualizar `SEGMENT_LABELS` |
+| `src/components/premium/home/HomePagePremium.tsx` | Passar dados completos para banner |
+| `src/components/premium/home/NextSimuladoBanner.tsx` | Refatorar para 5 cenarios |
+| `src/components/premium/home/QuickActionCard.tsx` | Aceitar prop de datas |
+| `src/components/premium/home/RankingExpressCard.tsx` | Remover mocks, empty state, titulo do simulado |
+| `src/components/premium/sidebar/SidebarBrandBlock.tsx` | Logo |
+| `src/components/premium/TopUtilityBar.tsx` | Simplificar, remover sectionLabel |
+
+### Blocos seguintes (apos aprovacao deste)
+
+- **Bloco 2**: Simulados (remover busca/filtros, secoes, card sem subtitulo, "como funciona" no topo)
+- **Bloco 3**: Execucao do Simulado (checklist, experiencia offline placeholder, tela cheia, fonte Finalizar)
+- **Bloco 4**: Desempenho (remover redundancias, reordenar secoes, remover dificuldade)
+- **Bloco 5**: Ranking (filtro exclusivo especialidade OU instituicao, anonimizar nomes, numeros)
+- **Bloco 6**: Correcao + Caderno de Erros (comentario visivel, split view, filtros avancados, checkbox resolver)
+- **Bloco 7**: Comparativo (comparativo de grandes areas) + Configuracoes (remover "dados reais", editar pessoais)
 
