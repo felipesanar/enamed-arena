@@ -72,7 +72,7 @@ export function DashboardLayout() {
             <Command className="h-3.5 w-3.5" aria-hidden />
             <span className="hidden sm:inline">⌘K</span>
           </button>
-          <TopUtilityBar sectionLabel={sectionLabel} className="ml-auto" />
+          <TopUtilityBar className="ml-auto" />
         </div>
 
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8">
