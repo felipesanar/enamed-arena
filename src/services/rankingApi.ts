@@ -136,9 +136,10 @@ export function applyRankingFilters(
       (p) => p.specialty === userSpecialty || p.isCurrentUser,
     );
   } else if (comparisonFilter === 'same_institution') {
-    const institutionSet = new Set(userInstitutions.filter(Boolean));
+    // Exclusive: filter by first target institution only
+    const targetInstitution = userInstitutions.find(Boolean) || '';
     filtered = filtered.filter(
-      (p) => institutionSet.has(p.institution) || p.isCurrentUser,
+      (p) => p.institution === targetInstitution || p.isCurrentUser,
     );
   }
 
