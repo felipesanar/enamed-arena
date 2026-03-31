@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useExamFlow } from '@/hooks/useExamFlow';
 import { ExamHeader } from '@/components/exam/ExamHeader';
@@ -8,8 +9,34 @@ import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
 import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, Send, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+function useFullscreen() {
+  const enterFullscreen = useCallback(() => {
+    try {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    } catch {}
+  }, []);
+
+  const exitFullscreen = useCallback(() => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {}
+  }, []);
+
+  return { enterFullscreen, exitFullscreen };
+}
+
 export default function SimuladoExamPage() {
   const flow = useExamFlow();
+  const { enterFullscreen, exitFullscreen } = useFullscreen();
+
+  // Enter fullscreen on mount, exit on unmount
+  useEffect(() => {
+    enterFullscreen();
+    return () => exitFullscreen();
+  }, [enterFullscreen, exitFullscreen]);
 
   if (flow.loading) {
     return (
