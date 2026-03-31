@@ -118,7 +118,7 @@ export function SimuladoCard({ simulado, delay = 0, isLocked, worstArea }: Simul
         onClick={() => window.open(PRO_ENAMED_URL, '_blank', 'noopener,noreferrer')}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && window.open(PRO_ENAMED_URL, '_blank', 'noopener,noreferrer')}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && window.open(PRO_ENAMED_URL, '_blank', 'noopener,noreferrer')}
         aria-label={`${simulado.title} — exclusivo Aluno PRO`}
       >
         {cardContent}
