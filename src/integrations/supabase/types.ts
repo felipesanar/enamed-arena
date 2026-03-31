@@ -260,6 +260,7 @@ export type Database = {
           question_number: number | null
           question_text: string | null
           reason: Database["public"]["Enums"]["error_reason"]
+          resolved_at: string | null
           simulado_id: string | null
           simulado_title: string | null
           theme: string | null
@@ -277,6 +278,7 @@ export type Database = {
           question_number?: number | null
           question_text?: string | null
           reason: Database["public"]["Enums"]["error_reason"]
+          resolved_at?: string | null
           simulado_id?: string | null
           simulado_title?: string | null
           theme?: string | null
@@ -294,6 +296,7 @@ export type Database = {
           question_number?: number | null
           question_text?: string | null
           reason?: Database["public"]["Enums"]["error_reason"]
+          resolved_at?: string | null
           simulado_id?: string | null
           simulado_title?: string | null
           theme?: string | null

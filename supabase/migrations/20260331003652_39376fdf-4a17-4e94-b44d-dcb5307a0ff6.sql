@@ -1,0 +1,1 @@
+ALTER TABLE public.error_notebook ADD COLUMN IF NOT EXISTS resolved_at timestamptz DEFAULT NULL;
