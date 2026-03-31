@@ -17,7 +17,7 @@ function formatDateShort(dateIso: string): string {
 
 type BannerScenario =
   | { type: "before_window"; start: string; end: string }
-  | { type: "open_not_done"; simuladoSlug: string; title: string }
+  | { type: "open_not_done"; simuladoId: string; title: string }
   | { type: "open_done_waiting"; resultsAt: string }
   | { type: "after_done"; simuladoId: string; title: string }
   | { type: "no_upcoming" };
@@ -35,7 +35,7 @@ function deriveScenario(simulados: SimuladoWithStatus[]): BannerScenario {
   if (openWindow) {
     const finished = openWindow.userState?.finished === true;
     if (!finished) {
-      return { type: "open_not_done", simuladoSlug: openWindow.slug, title: openWindow.title };
+      return { type: "open_not_done", simuladoId: openWindow.id, title: openWindow.title };
     }
     // Finished — check if results are released
     const resultsAt = Date.parse(openWindow.resultsReleaseAt);
@@ -147,7 +147,7 @@ export function NextSimuladoBanner({ simulados }: NextSimuladoBannerProps) {
           subtitle="Realize agora para garantir sua posição no ranking."
         />
         <Link
-          to={`/simulados/${scenario.simuladoSlug}`}
+          to={`/simulados/${scenario.simuladoId}`}
           className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-[13px] font-semibold shadow-[0_2px_8px_-2px_hsl(345_65%_30%/0.3)] hover:brightness-110 transition-all duration-200 active:scale-[0.98] shrink-0 no-underline"
         >
           Realizar simulado

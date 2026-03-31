@@ -203,19 +203,23 @@ export default function RankingPage() {
                     <p className="text-caption text-muted-foreground mb-1.5">Comparar com</p>
                     <div className="flex gap-1.5">
                       {([
-                        { key: 'all' as ComparisonFilter, label: 'Todos', icon: Users },
-                        { key: 'same_specialty' as ComparisonFilter, label: userSpecialty || 'Minha especialidade', icon: Stethoscope },
-                        { key: 'same_institution' as ComparisonFilter, label: userInstitutions[0] || 'Minha instituição', icon: Building },
+                        { key: 'all' as ComparisonFilter, label: 'Todos', icon: Users, disabled: false },
+                        { key: 'same_specialty' as ComparisonFilter, label: userSpecialty || 'Especialidade', icon: Stethoscope, disabled: !userSpecialty },
+                        { key: 'same_institution' as ComparisonFilter, label: userInstitutions[0] || 'Instituição', icon: Building, disabled: userInstitutions.length === 0 },
                       ]).map((f) => (
                         <button
                           key={f.key}
-                          onClick={() => setComparisonFilter(f.key)}
+                          onClick={() => !f.disabled && setComparisonFilter(f.key)}
+                          disabled={f.disabled}
                           className={cn(
                             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
                             comparisonFilter === f.key
                               ? 'bg-primary text-primary-foreground'
+                              : f.disabled
+                              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
                               : 'bg-muted text-muted-foreground hover:bg-muted/80',
                           )}
+                          title={f.disabled ? 'Configure nas Configurações' : undefined}
                         >
                           <f.icon className="h-3.5 w-3.5" />
                           <span className="hidden sm:inline">{f.label}</span>
