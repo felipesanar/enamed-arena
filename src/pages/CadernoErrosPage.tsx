@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -12,11 +12,12 @@ import { simuladosApi } from '@/services/simuladosApi';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
 import {
-  BookOpen, Trash2, Stethoscope,
-  ChevronDown, ChevronUp, StickyNote,
+  BookOpen, Trash2, Stethoscope, Filter,
+  StickyNote, ExternalLink, CheckSquare, Square,
+  Calendar, FileText,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getReasonLabel } from '@/lib/errorNotebookReasons';
+import { getReasonLabel, type DbReason } from '@/lib/errorNotebookReasons';
 
 interface NotebookEntry {
   id: string;
@@ -31,14 +32,26 @@ interface NotebookEntry {
   learningNote: string | null;
   wasCorrect: boolean;
   addedAt: string;
+  resolvedAt: string | null;
 }
 
-function NotebookEntryCard({ entry, onRemove, reducedMotion }: { entry: NotebookEntry; onRemove: (id: string) => void; reducedMotion?: boolean }) {
-  const [expanded, setExpanded] = useState(false);
+type ReasonFilter = 'all' | DbReason;
+type ResolvedFilter = 'all' | 'pending' | 'resolved';
+
+function NotebookEntryCard({
+  entry,
+  onRemove,
+  onToggleResolved,
+}: {
+  entry: NotebookEntry;
+  onRemove: (id: string) => void;
+  onToggleResolved: (id: string, resolved: boolean) => void;
+}) {
   const addedDate = new Date(entry.addedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const isResolved = !!entry.resolvedAt;
 
   return (
-    <PremiumCard className="p-4 md:p-5">
+    <PremiumCard className={cn('p-4 md:p-5', isResolved && 'opacity-60')}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1.5">
@@ -49,9 +62,6 @@ function NotebookEntryCard({ entry, onRemove, reducedMotion }: { entry: Notebook
           <p className="text-caption text-muted-foreground">{entry.simuladoTitle || 'Simulado'} · {addedDate}</p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className={cn('text-caption font-bold px-2 py-0.5 rounded-md', entry.wasCorrect ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive')}>
-            {entry.wasCorrect ? 'Sem certeza' : 'Errou'}
-          </span>
           <button onClick={() => onRemove(entry.id)} className="h-8 w-8 rounded-lg hover:bg-destructive/10 flex items-center justify-center transition-colors group" title="Remover do caderno">
             <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive transition-colors" />
           </button>
@@ -69,21 +79,30 @@ function NotebookEntryCard({ entry, onRemove, reducedMotion }: { entry: Notebook
         </div>
       )}
 
-      {entry.questionText && (
-        <>
-          <button onClick={() => setExpanded(v => !v)} className="inline-flex items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground transition-colors font-medium">
-            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {expanded ? 'Ocultar enunciado' : 'Ver enunciado'}
-          </button>
-          <AnimatePresence>
-            {expanded && (
-              <motion.div initial={reducedMotion ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.2 }} className="overflow-hidden">
-                <p className="text-body-sm text-muted-foreground mt-2 leading-relaxed border-t border-border/30 pt-3">{entry.questionText}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      )}
+      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/30">
+        {/* Checkbox resolver */}
+        <button
+          onClick={() => onToggleResolved(entry.id, !isResolved)}
+          className={cn(
+            'inline-flex items-center gap-2 text-body-sm font-medium transition-colors',
+            isResolved ? 'text-success' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {isResolved ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+          {isResolved ? 'Resolvido' : 'Resolver erro'}
+        </button>
+
+        {/* Link to full question + comment */}
+        {entry.simuladoId && entry.questionNumber && (
+          <Link
+            to={`/simulados/${entry.simuladoId}/correcao?q=${entry.questionNumber}`}
+            className="inline-flex items-center gap-1.5 text-caption text-primary hover:text-primary/80 font-medium transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Ver questão e comentário completos
+          </Link>
+        )}
+      </div>
     </PremiumCard>
   );
 }
@@ -92,7 +111,12 @@ function CadernoContent({ userId }: { userId: string }) {
   const prefersReducedMotion = useReducedMotion();
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters
   const [areaFilter, setAreaFilter] = useState<string | null>(null);
+  const [reasonFilter, setReasonFilter] = useState<ReasonFilter>('all');
+  const [simuladoFilter, setSimuladoFilter] = useState<string | null>(null);
+  const [resolvedFilter, setResolvedFilter] = useState<ResolvedFilter>('all');
 
   const fetchEntries = useCallback(async () => {
     if (!userId) return;
@@ -112,8 +136,8 @@ function CadernoContent({ userId }: { userId: string }) {
         learningNote: row.learning_text,
         wasCorrect: row.was_correct,
         addedAt: row.created_at,
+        resolvedAt: row.resolved_at || null,
       })));
-      console.log('[CadernoErrosPage] Loaded', data.length, 'entries from Supabase');
     } catch (err) {
       console.error('[CadernoErrosPage] Error loading:', err);
     } finally {
@@ -121,28 +145,41 @@ function CadernoContent({ userId }: { userId: string }) {
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+  useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  const areas = useMemo(() => {
-    const set = new Set(entries.map(e => e.area).filter(Boolean) as string[]);
-    return Array.from(set).sort();
+  // Derived filter options
+  const areas = useMemo(() => Array.from(new Set(entries.map(e => e.area).filter(Boolean) as string[])).sort(), [entries]);
+  const simulados = useMemo(() => {
+    const map = new Map<string, string>();
+    entries.forEach(e => { if (e.simuladoId && e.simuladoTitle) map.set(e.simuladoId, e.simuladoTitle); });
+    return Array.from(map.entries());
   }, [entries]);
 
   const filtered = useMemo(() => {
     let data = entries;
     if (areaFilter) data = data.filter(e => e.area === areaFilter);
+    if (reasonFilter !== 'all') data = data.filter(e => e.reason === reasonFilter);
+    if (simuladoFilter) data = data.filter(e => e.simuladoId === simuladoFilter);
+    if (resolvedFilter === 'pending') data = data.filter(e => !e.resolvedAt);
+    if (resolvedFilter === 'resolved') data = data.filter(e => !!e.resolvedAt);
     return data.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
-  }, [entries, areaFilter]);
+  }, [entries, areaFilter, reasonFilter, simuladoFilter, resolvedFilter]);
 
   const handleRemove = async (id: string) => {
     try {
       await simuladosApi.deleteErrorNotebookEntry(id, userId);
       setEntries(prev => prev.filter(e => e.id !== id));
-      console.log('[CadernoErrosPage] Removed entry:', id);
     } catch (err) {
       console.error('[CadernoErrosPage] Error removing:', err);
+    }
+  };
+
+  const handleToggleResolved = async (id: string, resolved: boolean) => {
+    try {
+      await simuladosApi.toggleResolvedEntry(id, userId, resolved);
+      setEntries(prev => prev.map(e => e.id === id ? { ...e, resolvedAt: resolved ? new Date().toISOString() : null } : e));
+    } catch (err) {
+      console.error('[CadernoErrosPage] Error toggling resolved:', err);
     }
   };
 
@@ -163,48 +200,109 @@ function CadernoContent({ userId }: { userId: string }) {
         <EmptyState
           icon={BookOpen}
           title="Seu caderno está vazio"
-          description="Durante a correção de um simulado, salve as questões que quiser revisar. Elas aparecerão aqui, organizadas por área."
+          description="Durante a correção de um simulado, salve as questões que quiser revisar. Elas aparecerão aqui."
           action={<Link to="/simulados" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors">Ver simulados</Link>}
         />
       </>
     );
   }
 
-  const groupedByArea = (() => {
-    const map = new Map<string, number>();
-    entries.forEach(e => { if (e.area) map.set(e.area, (map.get(e.area) || 0) + 1); });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  })();
+  const pendingCount = entries.filter(e => !e.resolvedAt).length;
+  const resolvedCount = entries.filter(e => !!e.resolvedAt).length;
 
   return (
     <>
       <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />
 
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-        <PremiumCard delay={0} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{entries.length}</p><p className="text-caption text-muted-foreground">Questões para revisar</p></PremiumCard>
-        <PremiumCard delay={0.06} className="p-4"><p className="text-heading-2 text-destructive tabular-nums">{entries.filter(e => !e.wasCorrect).length}</p><p className="text-caption text-muted-foreground">Erradas</p></PremiumCard>
-        <PremiumCard delay={0.12} className="p-4"><p className="text-heading-2 text-warning tabular-nums">{entries.filter(e => e.wasCorrect).length}</p><p className="text-caption text-muted-foreground">Sem certeza</p></PremiumCard>
+        <PremiumCard delay={0} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{entries.length}</p><p className="text-caption text-muted-foreground">Total de questões</p></PremiumCard>
+        <PremiumCard delay={0.06} className="p-4"><p className="text-heading-2 text-warning tabular-nums">{pendingCount}</p><p className="text-caption text-muted-foreground">Pendentes</p></PremiumCard>
+        <PremiumCard delay={0.12} className="p-4"><p className="text-heading-2 text-success tabular-nums">{resolvedCount}</p><p className="text-caption text-muted-foreground">Resolvidos</p></PremiumCard>
         <PremiumCard delay={0.18} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{areas.length}</p><p className="text-caption text-muted-foreground">Áreas</p></PremiumCard>
       </div>
 
+      {/* Advanced Filters */}
       <PremiumCard className="p-4 md:p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3"><Stethoscope className="h-4 w-4 text-muted-foreground" aria-hidden /><span className="text-body font-semibold text-foreground">Filtrar por área</span></div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas ({entries.length})</button>
-          {groupedByArea.map(([area, count]) => (
-            <button key={area} onClick={() => setAreaFilter(prev => prev === area ? null : area)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', areaFilter === area ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{area} ({count})</button>
-          ))}
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-body font-semibold text-foreground">Filtros</span>
+        </div>
+
+        <div className="space-y-4">
+          {/* Area filter */}
+          <div>
+            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><Stethoscope className="h-3.5 w-3.5" /> Grande área</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas</button>
+              {areas.map(area => (
+                <button key={area} onClick={() => setAreaFilter(prev => prev === area ? null : area)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', areaFilter === area ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{area}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reason filter */}
+          <div>
+            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><StickyNote className="h-3.5 w-3.5" /> Tipo de erro</p>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { key: 'all' as ReasonFilter, label: 'Todos' },
+                { key: 'did_not_know' as ReasonFilter, label: 'Não sei' },
+                { key: 'did_not_remember' as ReasonFilter, label: 'Não lembrei' },
+                { key: 'did_not_understand' as ReasonFilter, label: 'Não entendi' },
+                { key: 'guessed_correctly' as ReasonFilter, label: 'Acertei sem certeza' },
+              ]).map(f => (
+                <button key={f.key} onClick={() => setReasonFilter(f.key)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', reasonFilter === f.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{f.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Simulado filter */}
+          {simulados.length > 1 && (
+            <div>
+              <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Simulado</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button onClick={() => setSimuladoFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !simuladoFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todos</button>
+                {simulados.map(([id, title]) => (
+                  <button key={id} onClick={() => setSimuladoFilter(prev => prev === id ? null : id)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', simuladoFilter === id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{title}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Resolved filter */}
+          <div>
+            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><CheckSquare className="h-3.5 w-3.5" /> Status</p>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { key: 'all' as ResolvedFilter, label: 'Todos' },
+                { key: 'pending' as ResolvedFilter, label: `Pendentes (${pendingCount})` },
+                { key: 'resolved' as ResolvedFilter, label: `Resolvidos (${resolvedCount})` },
+              ]).map(f => (
+                <button key={f.key} onClick={() => setResolvedFilter(f.key)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', resolvedFilter === f.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{f.label}</button>
+              ))}
+            </div>
+          </div>
         </div>
       </PremiumCard>
 
+      {/* Entries list */}
       <SectionHeader title={areaFilter ? `Revisão · ${areaFilter}` : 'Suas questões para revisar'} action={<span className="text-body-sm text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'questão' : 'questões'}</span>} />
-      <div className="space-y-3 pb-8">
-        {filtered.map((entry, i) => (
-          <motion.div key={entry.id} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : i * 0.04 }}>
-            <NotebookEntryCard entry={entry} onRemove={handleRemove} reducedMotion={!!prefersReducedMotion} />
-          </motion.div>
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={Filter}
+          title="Nenhum resultado"
+          description="Nenhuma questão corresponde aos filtros selecionados."
+        />
+      ) : (
+        <div className="space-y-3 pb-8">
+          {filtered.map((entry, i) => (
+            <motion.div key={entry.id} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : Math.min(i * 0.04, 0.3) }}>
+              <NotebookEntryCard entry={entry} onRemove={handleRemove} onToggleResolved={handleToggleResolved} />
+            </motion.div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -229,7 +327,7 @@ export default function CadernoErrosPage() {
             benefits={[
               "Salvar questões direto da correção com motivo (errou, sem certeza)",
               "Anotação de aprendizado por questão",
-              "Filtrar e revisar por área e tema",
+              "Filtrar e revisar por área, tema, tipo de erro e simulado",
             ]}
           />
         </>

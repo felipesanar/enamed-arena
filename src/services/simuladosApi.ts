@@ -493,4 +493,14 @@ export const simuladosApi = {
 
     if (error) throw error;
   },
+
+  async toggleResolvedEntry(entryId: string, userId: string, resolved: boolean): Promise<void> {
+    const { error } = await supabase
+      .from('error_notebook')
+      .update({ resolved_at: resolved ? new Date().toISOString() : null } as any)
+      .eq('id', entryId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  },
 };
