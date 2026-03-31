@@ -190,21 +190,22 @@ export default function RankingPage() {
 
           {filteredParticipants.length > 0 && (
             <>
-              {/* Filters */}
-              <PremiumCard className="p-4 md:p-5 mb-6">
+               {/* Filters — exclusive: specialty OR institution */}
+               <PremiumCard className="p-4 md:p-5 mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Filter className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-body font-semibold text-foreground">Filtros</span>
+                  <span className="text-body font-semibold text-foreground">Filtrar ranking</span>
                 </div>
+
                 <div className="flex flex-wrap gap-3">
-                  {/* Comparison filter */}
+                  {/* Comparison filter — mutually exclusive */}
                   <div>
                     <p className="text-caption text-muted-foreground mb-1.5">Comparar com</p>
                     <div className="flex gap-1.5">
                       {([
                         { key: 'all' as ComparisonFilter, label: 'Todos', icon: Users },
-                        { key: 'same_specialty' as ComparisonFilter, label: 'Mesma especialidade', icon: Stethoscope },
-                        { key: 'same_institution' as ComparisonFilter, label: 'Mesma instituição', icon: Building },
+                        { key: 'same_specialty' as ComparisonFilter, label: userSpecialty || 'Minha especialidade', icon: Stethoscope },
+                        { key: 'same_institution' as ComparisonFilter, label: userInstitutions[0] || 'Minha instituição', icon: Building },
                       ]).map((f) => (
                         <button
                           key={f.key}
@@ -229,8 +230,8 @@ export default function RankingPage() {
                     <div className="flex gap-1.5">
                       {([
                         { key: 'all' as SegmentFilter, label: 'Todos' },
-                        { key: 'sanarflix' as SegmentFilter, label: 'SanarFlix' },
-                        { key: 'pro' as SegmentFilter, label: 'PRO: ENAMED' },
+                        { key: 'sanarflix' as SegmentFilter, label: 'Aluno SanarFlix' },
+                        { key: 'pro' as SegmentFilter, label: 'Aluno PRO' },
                       ]).map((f) => (
                         <button
                           key={f.key}
@@ -248,15 +249,21 @@ export default function RankingPage() {
                     </div>
                   </div>
                 </div>
-                {comparisonFilter === 'same_institution' && userInstitutions.length > 0 && (
-                  <p className="text-caption text-muted-foreground mt-3">
-                    Filtrando por instituições alvo: {userInstitutions.join(', ')}.
-                    {userInstitutions.length > 1 && ' Use os sub-filtros para comparar por instituição específica.'}
-                  </p>
-                )}
-                {comparisonFilter === 'same_specialty' && userSpecialty && (
-                  <p className="text-caption text-muted-foreground mt-3">
-                    Filtrando por especialidade: {userSpecialty}.
+
+                {comparisonFilter !== 'all' && (
+                  <p className="text-caption text-muted-foreground mt-3 flex items-center gap-1.5">
+                    {comparisonFilter === 'same_specialty' && userSpecialty && (
+                      <><Stethoscope className="h-3.5 w-3.5" /> Filtrando por especialidade: <strong>{userSpecialty}</strong></>
+                    )}
+                    {comparisonFilter === 'same_institution' && userInstitutions.length > 0 && (
+                      <><Building className="h-3.5 w-3.5" /> Filtrando por instituição: <strong>{userInstitutions[0]}</strong></>
+                    )}
+                    {comparisonFilter === 'same_specialty' && !userSpecialty && (
+                      <>Configure sua especialidade nas Configurações para usar este filtro.</>
+                    )}
+                    {comparisonFilter === 'same_institution' && userInstitutions.length === 0 && (
+                      <>Configure suas instituições-alvo nas Configurações para usar este filtro.</>
+                    )}
                   </p>
                 )}
               </PremiumCard>
