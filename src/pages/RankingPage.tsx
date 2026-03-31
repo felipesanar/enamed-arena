@@ -4,7 +4,7 @@
  * Uses useRanking hook backed by get_ranking_for_simulado() security definer function.
  */
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -13,9 +13,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useRanking } from '@/hooks/useRanking';
 import { cn } from '@/lib/utils';
-import { Trophy, Medal, Filter, Users, Stethoscope, Building } from 'lucide-react';
+import { Trophy, Medal, Filter, Users, Stethoscope, Building, Globe, Crown } from 'lucide-react';
 import type { ComparisonFilter, SegmentFilter } from '@/services/rankingApi';
 import { trackEvent } from '@/lib/analytics';
+import { useUser } from '@/contexts/UserContext';
+
+// ─── Module-scope constants ───
+
+const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.ElementType }> = [
+  { key: 'all',       label: 'Todos',          icon: Globe },
+  { key: 'sanarflix', label: 'Aluno SanarFlix', icon: Users },
+  { key: 'pro',       label: 'Aluno PRO',       icon: Crown },
+];
 
 // ─── Sub-components ───
 
@@ -72,6 +81,23 @@ export default function RankingPage() {
     userSpecialty,
     userInstitutions,
   } = useRanking();
+
+  const { profile } = useUser();
+  const segment = profile?.segment ?? 'guest';
+
+  const allowedSegments = useMemo((): SegmentFilter[] => {
+    if (segment === 'pro') return ['all', 'sanarflix', 'pro'];
+    if (segment === 'standard') return ['all', 'sanarflix'];
+    return ['all'];
+  }, [segment]);
+
+  const visibleSegmentOptions = SEGMENT_OPTIONS.filter(o => allowedSegments.includes(o.key));
+
+  useEffect(() => {
+    if (!allowedSegments.includes(segmentFilter)) {
+      setSegmentFilter('all');
+    }
+  }, [allowedSegments, segmentFilter, setSegmentFilter]);
 
   useEffect(() => {
     trackEvent('ranking_viewed', {
@@ -198,14 +224,13 @@ export default function RankingPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {/* Comparison filter — mutually exclusive */}
+                  {/* Comparison filter */}
                   <div>
                     <p className="text-caption text-muted-foreground mb-1.5">Comparar com</p>
                     <div className="flex gap-1.5">
                       {([
-                        { key: 'all' as ComparisonFilter, label: 'Todos', icon: Users, disabled: false },
+                        { key: 'all' as ComparisonFilter,           label: 'Todos',       icon: Users,        disabled: false },
                         { key: 'same_specialty' as ComparisonFilter, label: userSpecialty || 'Especialidade', icon: Stethoscope, disabled: !userSpecialty },
-                        { key: 'same_institution' as ComparisonFilter, label: userInstitutions[0] || 'Instituição', icon: Building, disabled: userInstitutions.length === 0 },
                       ]).map((f) => (
                         <button
                           key={f.key}
@@ -213,7 +238,8 @@ export default function RankingPage() {
                           disabled={f.disabled}
                           className={cn(
                             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
-                            comparisonFilter === f.key
+                            (comparisonFilter === f.key ||
+                              (f.key === 'same_specialty' && comparisonFilter === 'same_institution'))
                               ? 'bg-primary text-primary-foreground'
                               : f.disabled
                               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
@@ -226,28 +252,54 @@ export default function RankingPage() {
                         </button>
                       ))}
                     </div>
+
+                    {/* Sub-filtro de instituição — só quando especialidade está ativo */}
+                    {comparisonFilter !== 'all' && (
+                      <div className="mt-2 flex items-center gap-2 border-t border-border pt-2.5">
+                        <span className="text-caption text-muted-foreground">Restringir à:</span>
+                        <button
+                          onClick={() =>
+                            setComparisonFilter(
+                              comparisonFilter === 'same_institution' ? 'same_specialty' : 'same_institution'
+                            )
+                          }
+                          disabled={userInstitutions.length === 0}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
+                            comparisonFilter === 'same_institution'
+                              ? 'bg-primary text-primary-foreground'
+                              : userInstitutions.length === 0
+                              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                          )}
+                          title={userInstitutions.length === 0 ? 'Configure nas Configurações' : undefined}
+                        >
+                          <Building className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">{userInstitutions[0] || 'Instituição'}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Segment filter */}
                   <div>
                     <p className="text-caption text-muted-foreground mb-1.5">Segmento</p>
                     <div className="flex gap-1.5">
-                      {([
-                        { key: 'all' as SegmentFilter, label: 'Todos' },
-                        { key: 'sanarflix' as SegmentFilter, label: 'Aluno SanarFlix' },
-                        { key: 'pro' as SegmentFilter, label: 'Aluno PRO' },
-                      ]).map((f) => (
+                      {visibleSegmentOptions.map((f) => (
                         <button
                           key={f.key}
                           onClick={() => setSegmentFilter(f.key)}
                           className={cn(
-                            'px-3 py-2 rounded-lg text-caption font-medium transition-all',
+                            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
                             segmentFilter === f.key
                               ? 'bg-primary text-primary-foreground'
+                              : f.key === 'pro'
+                              ? 'bg-muted text-[#c4b5fd] hover:bg-muted/80'
                               : 'bg-muted text-muted-foreground hover:bg-muted/80',
                           )}
                         >
-                          {f.label}
+                          <f.icon className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">{f.label}</span>
                         </button>
                       ))}
                     </div>
