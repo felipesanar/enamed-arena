@@ -97,7 +97,8 @@ export default function RankingPage() {
     if (!allowedSegments.includes(segmentFilter)) {
       setSegmentFilter('all');
     }
-  }, [allowedSegments, segmentFilter, setSegmentFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowedSegments, setSegmentFilter]);
 
   useEffect(() => {
     trackEvent('ranking_viewed', {
