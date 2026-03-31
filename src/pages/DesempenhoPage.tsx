@@ -12,12 +12,11 @@ import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useUserPerformance } from '@/hooks/useUserPerformance';
 import { canViewResults } from '@/lib/simulado-helpers';
-import { computePerformanceBreakdown, type ThemePerformance, type DifficultyPerformance } from '@/lib/resultHelpers';
+import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { cn } from '@/lib/utils';
 import {
   BarChart3, BookOpen, Stethoscope, Target, Star, TrendingDown, FileText,
 } from 'lucide-react';
-import type { AreaPerformance } from '@/types';
 import { Link } from 'react-router-dom';
 
 function PerformanceNode({
@@ -51,14 +50,13 @@ export default function DesempenhoPage() {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
-  // Set default selected simulado when data loads
   useEffect(() => {
     if (!selectedSimuladoId && simuladosWithResults.length > 0) {
       setSelectedSimuladoId(simuladosWithResults[0].id);
     }
   }, [simuladosWithResults, selectedSimuladoId]);
 
-  const { simulado: selectedSimulado, questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined);
+  const { questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined);
   const { examState, loading: loadingExam } = useExamResult(selectedSimuladoId || undefined);
 
   const breakdown = useMemo(() => {
@@ -72,11 +70,7 @@ export default function DesempenhoPage() {
       .filter((q) => q.theme === selectedTheme && (!selectedArea || q.area === selectedArea))
       .map((q) => {
         const question = questions.find((item) => item.id === q.questionId);
-        return {
-          ...q,
-          number: question?.number ?? null,
-          text: question?.text ?? '',
-        };
+        return { ...q, number: question?.number ?? null, text: question?.text ?? '' };
       });
   }, [selectedTheme, selectedArea, breakdown, questions]);
 
@@ -86,8 +80,8 @@ export default function DesempenhoPage() {
     return (
       <>
         <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {[...Array(2)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
         <SkeletonCard />
       </>
@@ -107,7 +101,7 @@ export default function DesempenhoPage() {
     );
   }
 
-  const { overall, byArea, byTheme, byDifficulty } = breakdown;
+  const { overall, byArea, byTheme } = breakdown;
   const themesForArea = selectedArea ? byTheme.filter(t => t.area === selectedArea) : [];
   const bestArea = byArea[0];
   const worstArea = byArea[byArea.length - 1];
@@ -133,47 +127,12 @@ export default function DesempenhoPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Aproveitamento geral" value={`${overall.percentageScore}%`} icon={BarChart3} delay={0} />
-        <StatCard label="Acertos" value={`${overall.totalCorrect}/${overall.totalQuestions}`} icon={Target} delay={0.08} />
-        <StatCard label="Questões respondidas" value={String(overall.totalAnswered)} icon={BookOpen} delay={0.16} />
+      {/* 1. Acertos — single prominent stat */}
+      <div className="mb-8">
+        <StatCard label="Acertos" value={`${overall.totalCorrect}/${overall.totalQuestions}`} icon={Target} delay={0} />
       </div>
 
-      {history.length > 1 && (
-        <PremiumCard className="p-5 md:p-6 mb-8">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" aria-hidden /></div>
-            <h3 className="text-heading-3 text-foreground">Evolucao recente</h3>
-          </div>
-          <p className="text-body-sm text-muted-foreground">
-            Ultimos {Math.min(history.length, 5)} simulados: {history.slice(0, 5).map(h => `${Math.round(h.score_percentage)}%`).join(' -> ')}
-          </p>
-        </PremiumCard>
-      )}
-
-      {byArea.length > 1 && (
-        <PremiumCard className="p-5 md:p-6 mb-8">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-4 w-4 text-primary" aria-hidden /></div>
-            <h3 className="text-heading-3 text-foreground">Resumo do seu desempenho</h3>
-          </div>
-          <p className="text-body text-muted-foreground mb-5">
-            Seu aproveitamento geral foi de <strong className="text-foreground">{overall.percentageScore}%</strong> ({overall.totalCorrect}/{overall.totalQuestions} questões).
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-success/20 bg-success/[0.03] p-4">
-              <h4 className="font-semibold flex items-center gap-2 text-success text-body-sm mb-2"><Star className="h-4 w-4" aria-hidden /> Onde você brilha</h4>
-              <p className="text-body-sm text-muted-foreground">Sua principal fortaleza foi em <strong className="text-foreground">{bestArea.area}</strong> com <strong className="text-foreground">{bestArea.score}%</strong>.</p>
-            </div>
-            <div className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4">
-              <h4 className="font-semibold flex items-center gap-2 text-destructive text-body-sm mb-2"><TrendingDown className="h-4 w-4" aria-hidden /> Próximo foco</h4>
-              <p className="text-body-sm text-muted-foreground">A área com maior oportunidade é <strong className="text-foreground">{worstArea.area}</strong> com <strong className="text-foreground">{worstArea.score}%</strong>.</p>
-            </div>
-          </div>
-        </PremiumCard>
-      )}
-
-      {/* Análise por área e tema */}
+      {/* 2. Análise por grande área e tema */}
       <PremiumCard className="p-5 md:p-6 mb-8">
         <div className="flex items-center gap-2.5 mb-4">
           <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><BarChart3 className="h-4 w-4 text-primary" aria-hidden /></div>
@@ -210,7 +169,7 @@ export default function DesempenhoPage() {
                     {themesForArea.map(theme => (
                       <motion.div key={theme.theme} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -8 }} transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}>
                         <button
-                          onClick={() => setSelectedTheme((prev) => (prev === theme.theme ? null : theme.theme))}
+                          onClick={() => setSelectedTheme(prev => prev === theme.theme ? null : theme.theme)}
                           className={cn(
                             'w-full text-left p-3.5 rounded-xl border transition-all',
                             selectedTheme === theme.theme
@@ -236,6 +195,30 @@ export default function DesempenhoPage() {
         </div>
       </PremiumCard>
 
+      {/* 3. Resumo do desempenho */}
+      {byArea.length > 1 && (
+        <PremiumCard className="p-5 md:p-6 mb-8">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-4 w-4 text-primary" aria-hidden /></div>
+            <h3 className="text-heading-3 text-foreground">Resumo do desempenho</h3>
+          </div>
+          <p className="text-body text-muted-foreground mb-5">
+            Seu aproveitamento geral foi de <strong className="text-foreground">{overall.percentageScore}%</strong> ({overall.totalCorrect}/{overall.totalQuestions} questões).
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-success/20 bg-success/[0.03] p-4">
+              <h4 className="font-semibold flex items-center gap-2 text-success text-body-sm mb-2"><Star className="h-4 w-4" aria-hidden /> Onde você brilha</h4>
+              <p className="text-body-sm text-muted-foreground">Sua principal fortaleza foi em <strong className="text-foreground">{bestArea.area}</strong> com <strong className="text-foreground">{bestArea.score}%</strong>.</p>
+            </div>
+            <div className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4">
+              <h4 className="font-semibold flex items-center gap-2 text-destructive text-body-sm mb-2"><TrendingDown className="h-4 w-4" aria-hidden /> Próximo foco</h4>
+              <p className="text-body-sm text-muted-foreground">A área com maior oportunidade é <strong className="text-foreground">{worstArea.area}</strong> com <strong className="text-foreground">{worstArea.score}%</strong>.</p>
+            </div>
+          </div>
+        </PremiumCard>
+      )}
+
+      {/* 4. Drill-down por questão */}
       <PremiumCard className="p-5 md:p-6 mb-8">
         <div className="flex items-center gap-2.5 mb-4">
           <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -279,29 +262,8 @@ export default function DesempenhoPage() {
         )}
       </PremiumCard>
 
-      {/* Performance por dificuldade */}
-      {byDifficulty.length > 0 && (
-        <PremiumCard className="p-5 md:p-6 mb-8">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center"><Target className="h-4 w-4 text-primary" aria-hidden /></div>
-            <h3 className="text-heading-3 text-foreground">Desempenho por dificuldade</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {byDifficulty.map((d) => {
-              const color = d.score >= 70 ? 'text-success' : d.score >= 40 ? 'text-warning' : 'text-destructive';
-              return (
-                <div key={d.difficulty} className="rounded-xl border border-border/40 bg-card p-4 text-center">
-                  <p className="text-body-sm text-muted-foreground mb-1">{d.difficulty}</p>
-                  <p className={cn('text-heading-2 font-bold tabular-nums', color)}>{d.score}%</p>
-                  <p className="text-caption text-muted-foreground mt-1">{d.correct}/{d.total} questões</p>
-                </div>
-              );
-            })}
-          </div>
-        </PremiumCard>
-      )}
-
-      <SectionHeader title="Sua evolução por grande área" />
+      {/* 5. Evolução por grande área — barras */}
+      <SectionHeader title="Evolução por grande área" />
       <div className="space-y-3">
         {byArea.map((area, i) => (
           <PremiumCard key={area.area} delay={i * 0.06} className="p-4 md:p-5">

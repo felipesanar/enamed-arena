@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -22,7 +21,7 @@ import {
 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, BarChart, Bar,
+  Tooltip,
 } from 'recharts';
 import { Link } from 'react-router-dom';
 import {
@@ -70,7 +69,6 @@ function InsightCard({ insight, delay }: { insight: ComparativeInsight; delay: n
   );
 }
 
-/** Build comparative data from Supabase attempts */
 function useComparativeData() {
   const { simulados, loading } = useSimulados();
 
@@ -80,19 +78,16 @@ function useComparativeData() {
   );
 
   const entries: SimuladoComparativeEntry[] = useMemo(() => {
-    return completed.map(sim => {
-      const score = sim.userState!.score!;
-      return {
-        simuladoId: sim.id,
-        title: sim.title,
-        sequenceNumber: sim.sequenceNumber,
-        percentageScore: score,
-        totalCorrect: 0, // detailed breakdown requires fetching answers per attempt
-        totalQuestions: sim.questionsCount,
-        completedAt: sim.userState!.finishedAt || sim.userState!.startedAt || '',
-        areaScores: {},
-      } as SimuladoComparativeEntry;
-    });
+    return completed.map(sim => ({
+      simuladoId: sim.id,
+      title: sim.title,
+      sequenceNumber: sim.sequenceNumber,
+      percentageScore: sim.userState!.score!,
+      totalCorrect: 0,
+      totalQuestions: sim.questionsCount,
+      completedAt: sim.userState!.finishedAt || sim.userState!.startedAt || '',
+      areaScores: {},
+    }));
   }, [completed]);
 
   const insights = useMemo(() => computeComparativeInsights(entries), [entries]);
@@ -122,7 +117,7 @@ export default function ComparativoPage() {
           benefits={[
             "Gráfico de evolução do score entre simulados",
             "Insights automáticos (melhoria, queda, consistência)",
-            "Detalhamento e variação por simulado",
+            "Comparativo de grandes áreas entre simulados",
           ]}
         />
       </>
@@ -140,7 +135,7 @@ function ComparativoContent() {
       <>
         <PageHeader title="Comparativo entre Simulados" subtitle="Carregando..." badge="Análise Comparativa" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1,2,3].map(i => <SkeletonCard key={i} />)}
+          {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
         </div>
       </>
     );
@@ -179,6 +174,27 @@ function ComparativoContent() {
 
   const avg = Math.round(sorted.reduce((a, e) => a + e.percentageScore, 0) / sorted.length);
 
+  // Collect all unique areas across entries for area comparison
+  const allAreas = useMemo(() => {
+    const areaSet = new Set<string>();
+    sorted.forEach(e => Object.keys(e.areaScores).forEach(a => areaSet.add(a)));
+    return Array.from(areaSet).sort();
+  }, [sorted]);
+
+  // Build area comparison data: for each area, show score per simulado
+  const areaComparisonData = useMemo(() => {
+    if (allAreas.length === 0) return [];
+    return allAreas.map(area => {
+      const row: Record<string, string | number> = { area };
+      sorted.forEach(e => {
+        row[`#${e.sequenceNumber}`] = e.areaScores[area] ?? 0;
+      });
+      return row;
+    });
+  }, [allAreas, sorted]);
+
+  const hasAreaData = areaComparisonData.length > 0 && sorted.some(e => Object.keys(e.areaScores).length > 0);
+
   return (
     <>
       <PageHeader
@@ -187,7 +203,7 @@ function ComparativoContent() {
         badge="Análise Comparativa"
       />
 
-      {/* Resumo numérico */}
+      {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
         {[
           { label: 'Simulados', value: String(sorted.length), icon: Target },
@@ -207,7 +223,7 @@ function ComparativoContent() {
         ))}
       </div>
 
-      {/* Onde você evoluiu */}
+      {/* Insights */}
       <SectionHeader title="Onde você evoluiu" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {insights.map((insight, i) => (
@@ -215,8 +231,8 @@ function ComparativoContent() {
         ))}
       </div>
 
-      {/* Gráfico de evolução */}
-      <SectionHeader title="Sua evolução do score" />
+      {/* Score evolution chart */}
+      <SectionHeader title="Evolução do score" />
       <PremiumCard className="p-5 md:p-6 mb-8">
         <div className="h-[280px] md:h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -239,7 +255,87 @@ function ComparativoContent() {
         </div>
       </PremiumCard>
 
-      {/* Tabela por simulado */}
+      {/* Area comparison — grandes áreas entre simulados */}
+      {hasAreaData && (
+        <>
+          <SectionHeader title="Comparativo por grande área" />
+          <PremiumCard className="p-5 md:p-6 mb-8">
+            <p className="text-body-sm text-muted-foreground mb-4">
+              Veja como cada grande área variou entre os simulados.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left text-overline uppercase text-muted-foreground px-4 py-3">Grande Área</th>
+                    {sorted.map(e => (
+                      <th key={e.simuladoId} className="text-center text-overline uppercase text-muted-foreground px-4 py-3">
+                        #{e.sequenceNumber}
+                      </th>
+                    ))}
+                    <th className="text-center text-overline uppercase text-muted-foreground px-4 py-3">Variação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allAreas.map(area => {
+                    const scores = sorted.map(e => e.areaScores[area] ?? null);
+                    const validScores = scores.filter((s): s is number => s !== null);
+                    const first = validScores[0] ?? 0;
+                    const last = validScores[validScores.length - 1] ?? 0;
+                    const diff = last - first;
+                    return (
+                      <tr key={area} className="border-b border-border/50 last:border-0">
+                        <td className="px-4 py-3 text-body-sm font-medium text-foreground">{area}</td>
+                        {scores.map((score, i) => (
+                          <td key={i} className="px-4 py-3 text-center">
+                            {score !== null ? (
+                              <span className="text-body-sm font-bold text-primary tabular-nums">{score}%</span>
+                            ) : (
+                              <span className="text-caption text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        ))}
+                        <td className="px-4 py-3 text-center">
+                          {validScores.length >= 2 ? (
+                            diff > 0 ? (
+                              <span className="inline-flex items-center gap-1 text-caption font-bold text-success">
+                                <ArrowUpRight className="h-3 w-3" /> +{diff}%
+                              </span>
+                            ) : diff < 0 ? (
+                              <span className="inline-flex items-center gap-1 text-caption font-bold text-destructive">
+                                <ArrowDownRight className="h-3 w-3" /> {diff}%
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
+                                <Minus className="h-3 w-3" /> 0%
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-caption text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </PremiumCard>
+        </>
+      )}
+
+      {!hasAreaData && (
+        <>
+          <SectionHeader title="Comparativo por grande área" />
+          <PremiumCard className="p-5 md:p-6 mb-8">
+            <p className="text-body-sm text-muted-foreground text-center py-6">
+              O comparativo detalhado por grande área será exibido quando houver dados de área disponíveis entre simulados.
+            </p>
+          </PremiumCard>
+        </>
+      )}
+
+      {/* Table per simulado */}
       <SectionHeader title="Detalhamento por simulado" />
       <PremiumCard className="p-0 overflow-hidden mb-8">
         <div className="overflow-x-auto">
