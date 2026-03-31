@@ -122,9 +122,9 @@ export interface RankingEntry {
 
 // ─── Constants ───
 export const SEGMENT_LABELS: Record<UserSegment, string> = {
-  guest: 'Não Aluno',
-  standard: 'SanarFlix Padrão',
-  pro: 'PRO: ENAMED',
+  guest: 'Visitante',
+  standard: 'Aluno SanarFlix',
+  pro: 'Aluno PRO',
 };
 
 export const SEGMENT_DESCRIPTIONS: Record<UserSegment, string> = {

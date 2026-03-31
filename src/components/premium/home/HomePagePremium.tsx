@@ -17,6 +17,12 @@ const STAGGER_DELAY = 0.04;
 const DURATION = 0.45;
 const EASE = [0.25, 0.46, 0.45, 0.94] as const;
 
+function formatDateShort(dateIso: string): string {
+  const d = new Date(dateIso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(d);
+}
+
 export function HomePagePremium() {
   const prefersReducedMotion = useReducedMotion();
   const { profile, isOnboardingComplete } = useUser();
@@ -36,28 +42,27 @@ export function HomePagePremium() {
 
     const count = summary?.total_attempts ?? fallbackCount;
     const avg = summary?.avg_score ? Math.round(summary.avg_score) : fallbackAvg;
-    return {
-      simuladosRealizados: count,
-      mediaAtual: avg,
-    };
+    return { simuladosRealizados: count, mediaAtual: avg };
   }, [simulados, summary?.avg_score, summary?.total_attempts]);
 
-  // Find next upcoming simulado window
+  // Next upcoming simulado for the calendar card
   const nextSimulado = useMemo(() => {
     const now = Date.now();
-    const upcoming = simulados
+    return simulados
       .filter((s) => {
         const start = Date.parse(s.executionWindowStart);
         const end = Date.parse(s.executionWindowEnd);
         return (Number.isFinite(start) && start > now) || (Number.isFinite(end) && end > now);
       })
-      .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
-    return upcoming[0] ?? null;
+      .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart))[0] ?? null;
   }, [simulados]);
+
+  const calendarCopy = nextSimulado
+    ? `Próxima janela: ${formatDateShort(nextSimulado.executionWindowStart)} a ${formatDateShort(nextSimulado.executionWindowEnd)}`
+    : "Nenhuma janela próxima.";
 
   const userName = profile?.name?.split(" ")[0] || "estudante";
   const segment = profile?.segment ?? "guest";
-
   const lastScore = history[0] ? Math.round(Number(history[0].score_percentage)) : null;
 
   const containerVariants = {
@@ -66,10 +71,7 @@ export function HomePagePremium() {
       ? { opacity: 1 }
       : {
           opacity: 1,
-          transition: {
-            staggerChildren: STAGGER_CHILDREN,
-            delayChildren: STAGGER_DELAY,
-          },
+          transition: { staggerChildren: STAGGER_CHILDREN, delayChildren: STAGGER_DELAY },
         },
   };
 
@@ -77,11 +79,7 @@ export function HomePagePremium() {
     ? {}
     : {
         hidden: { opacity: 0, y: 14 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: DURATION, ease: EASE },
-        },
+        visible: { opacity: 1, y: 0, transition: { duration: DURATION, ease: EASE } },
       };
 
   if (!isOnboardingComplete) {
@@ -98,8 +96,7 @@ export function HomePagePremium() {
             Complete seu perfil
           </h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Informe especialidade e instituições para personalizar rankings e
-            desempenho.
+            Informe especialidade e instituições para personalizar rankings e desempenho.
           </p>
           <Link
             to="/onboarding"
@@ -119,7 +116,6 @@ export function HomePagePremium() {
       animate="visible"
       className="space-y-5 md:space-y-6"
     >
-      {/* Welcome + last simulado summary */}
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
         <HomeHeroSection
           userName={userName}
@@ -132,20 +128,15 @@ export function HomePagePremium() {
         />
       </motion.div>
 
-      {/* Next simulado banner */}
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
-        <NextSimuladoBanner
-          nextWindowStart={nextSimulado?.executionWindowStart ?? null}
-          nextWindowEnd={nextSimulado?.executionWindowEnd ?? null}
-        />
+        <NextSimuladoBanner simulados={simulados} />
       </motion.div>
 
-      {/* Quick Actions + Ranking Express */}
       <motion.div variants={itemVariants} className={SECTION_SPACING}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
           <QuickActionCard
             title="Calendário"
-            copy="Veja as próximas janelas e planeje sua rotina."
+            copy={calendarCopy}
             ctaLabel="Abrir calendário"
             to="/simulados"
             icon={Calendar}

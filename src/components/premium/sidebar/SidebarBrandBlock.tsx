@@ -1,10 +1,10 @@
-import { GraduationCap } from "lucide-react";
+import { Stethoscope } from "lucide-react";
 
 export function SidebarBrandBlock() {
   return (
     <div className="flex items-center gap-2.5 px-0.5 [@media(max-height:700px)]:gap-2">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-[#5A1A30] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.06)] transition-transform duration-200 hover:scale-[1.02] [@media(max-height:700px)]:h-8 [@media(max-height:700px)]:w-8">
-        <GraduationCap className="h-4 w-4 text-white/95 [@media(max-height:700px)]:h-3.5 [@media(max-height:700px)]:w-3.5" aria-hidden />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-[#5A1A30] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.06)] [@media(max-height:700px)]:h-8 [@media(max-height:700px)]:w-8">
+        <Stethoscope className="h-4.5 w-4.5 text-white/95 [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4" aria-hidden />
       </div>
       <div className="flex flex-col min-w-0">
         <span className="text-[9px] font-semibold uppercase tracking-[0.13em] text-white/55">

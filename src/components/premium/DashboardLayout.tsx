@@ -8,19 +8,9 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const ROUTE_LABELS: Record<string, string> = {
-  "/": "",
-  "/simulados": "Simulados",
-  "/desempenho": "Desempenho",
-  "/ranking": "Ranking",
-  "/comparativo": "Comparativo",
-  "/caderno-erros": "Caderno de Erros",
-  "/configuracoes": "Configurações",
-};
 
 export function DashboardLayout() {
   const location = useLocation();
-  const sectionLabel = ROUTE_LABELS[location.pathname] ?? "";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -72,7 +62,7 @@ export function DashboardLayout() {
             <Command className="h-3.5 w-3.5" aria-hidden />
             <span className="hidden sm:inline">⌘K</span>
           </button>
-          <TopUtilityBar sectionLabel={sectionLabel} className="ml-auto" />
+          <TopUtilityBar className="ml-auto" />
         </div>
 
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8">
