@@ -74,6 +74,7 @@ export default function LoginPage() {
   const [cooldown, setCooldown] = useState(false);
   const [resending, setResending] = useState(false);
   const [hubspotModalOpen, setHubspotModalOpen] = useState(false);
+  const [signupRetryIn, setSignupRetryIn] = useState(0);
 
   if (!loading && user) return <Navigate to="/" replace />;
 
