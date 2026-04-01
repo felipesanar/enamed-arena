@@ -1,43 +1,64 @@
-import { useMemo } from "react";
-import { PageHeader } from "@/components/PageHeader";
-import { SimuladoCard } from "@/components/SimuladoCard";
-import { SectionHeader } from "@/components/SectionHeader";
-import { PremiumCard } from "@/components/PremiumCard";
-import { SkeletonCard } from "@/components/SkeletonCard";
-import { EmptyState } from "@/components/EmptyState";
-import { Link } from "react-router-dom";
-import { useSimulados } from "@/hooks/useSimulados";
-import { Info } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import {
+  Info, Play, Lock, CheckCircle2, Clock, Coffee, Calendar,
+  ChevronDown, ArrowRight,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { format, intervalToDuration, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { useSimulados } from "@/hooks/useSimulados";
+import type { SimuladoWithStatus } from "@/types";
+
+// ─── Loading skeleton ────────────────────────────────────────────────────────
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-[220px] rounded-[24px] bg-muted/40" />
+      {[1, 2, 3].map(i => (
+        <div key={i} className="h-[80px] rounded-xl bg-muted/30 ml-8" />
+      ))}
+    </div>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function SimuladosPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
 
-  const byDateDesc = (a: { executionWindowStart: string }, b: { executionWindowStart: string }) =>
-    Date.parse(b.executionWindowStart) - Date.parse(a.executionWindowStart);
+  const heroSimulado = useMemo(() => {
+    const active = simulados.find(s => s.status === "available" || s.status === "in_progress");
+    if (active) return active;
+    const upcomingSorted = simulados
+      .filter(s => s.status === "upcoming")
+      .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
+    return upcomingSorted[0] ?? null;
+  }, [simulados]);
 
-  // Sections
-  const active = useMemo(
-    () => simulados.filter(s => s.status === "available" || s.status === "available_late" || s.status === "in_progress").sort(byDateDesc),
-    [simulados]
-  );
-  const upcoming = useMemo(
-    () => simulados.filter(s => s.status === "upcoming").sort(byDateDesc),
-    [simulados]
-  );
-  const past = useMemo(
-    () => simulados.filter(s => s.status === "completed" || s.status === "results_available" || s.status === "closed_waiting").sort(byDateDesc),
-    [simulados]
-  );
+  const timelineItems = useMemo(() => {
+    const heroId = heroSimulado?.id;
+    const finished = simulados
+      .filter(s =>
+        (s.status === "closed_waiting" || s.status === "completed" || s.status === "available_late") &&
+        s.id !== heroId
+      )
+      .sort((a, b) => Date.parse(b.executionWindowStart) - Date.parse(a.executionWindowStart));
+    const upcomingRest = simulados
+      .filter(s => s.status === "upcoming" && s.id !== heroId)
+      .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
+    return [...finished, ...upcomingRest];
+  }, [simulados, heroSimulado]);
 
   if (loading) {
     return (
       <>
         <PageHeader title="Simulados" badge="ENAMED 2026" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
-        </div>
+        <LoadingSkeleton />
       </>
     );
   }
@@ -67,87 +88,74 @@ export default function SimuladosPage() {
         badge="ENAMED 2026"
       />
 
-      {/* Como funciona — topo */}
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
-        className="mb-8"
+        transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : 0.05 }}
+        className="mb-6"
       >
-        <PremiumCard className="p-4 md:p-5 border-info/20 bg-info/5">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
-            <div>
-              <p className="text-body font-medium text-foreground mb-1">Como funciona</p>
-              <p className="text-body-sm text-muted-foreground">
-                Cada simulado possui uma janela de execução definida. Realize dentro da janela para entrar no ranking nacional. Após a janela, é possível fazer como treino. Resultado, gabarito e ranking são liberados após o encerramento. Não é possível pausar a prova após iniciá-la.
-              </p>
-            </div>
-          </div>
-        </PremiumCard>
+        <HowItWorksCard />
       </motion.div>
 
-      {/* Simulados Ativos */}
-      {active.length > 0 && (
-        <Section title="Simulados ativos" delay={0.05} reduced={prefersReducedMotion}>
-          {active.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
-          ))}
-        </Section>
+      {heroSimulado ? (
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
+          className="mb-8"
+        >
+          <HeroCard sim={heroSimulado} />
+        </motion.div>
+      ) : (
+        simulados.length === 0 && (
+          <EmptyState
+            title="Nenhum simulado disponível no momento"
+            description="Fique de olho, em breve novos simulados serão publicados!"
+            backHref="/"
+            backLabel="Voltar ao início"
+          />
+        )
       )}
 
-      {/* Próximos */}
-      {upcoming.length > 0 && (
-        <Section title="Próximos" delay={0.1} reduced={prefersReducedMotion}>
-          {upcoming.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
-          ))}
-        </Section>
-      )}
-
-      {/* Anteriores */}
-      {past.length > 0 && (
-        <Section title="Anteriores" delay={0.15} reduced={prefersReducedMotion}>
-          {past.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
-          ))}
-        </Section>
-      )}
-
-      {simulados.length === 0 && (
-        <EmptyState
-          title="Nenhum simulado disponível no momento"
-          description="Fique de olho, em breve novos simulados serão publicados!"
-          backHref="/"
-          backLabel="Voltar ao início"
-        />
+      {timelineItems.length > 0 && (
+        <TimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
       )}
     </>
   );
 }
 
-function Section({
-  title,
-  delay,
-  reduced,
-  children,
-}: {
-  title: string;
-  delay: number;
-  reduced: boolean | null;
-  children: React.ReactNode;
-}) {
+// ─── Sub-component stubs (replaced in subsequent tasks) ──────────────────────
+
+function HowItWorksCard() {
   return (
-    <motion.section
-      initial={reduced ? false : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reduced ? 0 : 0.4, delay: reduced ? 0 : delay }}
-      className="mb-8"
-    >
-      <SectionHeader title={title} className="mb-4" />
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {children}
-      </div>
-    </motion.section>
+    <div className="h-20 rounded-xl bg-muted/20 flex items-center justify-center text-muted-foreground text-sm">
+      HowItWorksCard — stub
+    </div>
   );
+}
+
+function HeroCard({ sim }: { sim: SimuladoWithStatus }) {
+  return (
+    <div className="h-[220px] rounded-[24px] bg-muted/20 flex items-center justify-center text-muted-foreground text-sm">
+      HeroCard stub — {sim.title}
+    </div>
+  );
+}
+
+function TimelineSection({ items, reduced }: { items: SimuladoWithStatus[]; reduced: boolean }) {
+  return (
+    <div className="text-muted-foreground text-sm">
+      TimelineSection stub — {items.length} items
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function TimelineItem({ sim, index, reduced }: { sim: SimuladoWithStatus; index: number; reduced: boolean }) {
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function CountdownBlock({ label, value }: { label: string; value: string }) {
+  return null;
 }
