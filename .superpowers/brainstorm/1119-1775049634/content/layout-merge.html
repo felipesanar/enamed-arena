@@ -1,0 +1,222 @@
+<h2>Mescla: Hero + Timeline Chronicle</h2>
+<p class="subtitle">Três interpretações da combinação — escolha a estrutura que mais faz sentido</p>
+
+<div class="cards">
+
+  <!-- Option A: Hero spotlight + Timeline vertical abaixo -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0c0810;padding:18px;min-height:340px;font-family:system-ui;font-size:12px">
+
+      <!-- HERO: Simulado ativo — full width -->
+      <div style="background:linear-gradient(135deg,#5a1530 0%,#2a0818 50%,#1a0510 100%);border:1px solid rgba(232,56,98,.35);border-radius:18px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-30px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(232,56,98,.2);filter:blur(40px);pointer-events:none"></div>
+        <div style="position:absolute;bottom:-20px;left:20px;width:80px;height:80px;border-radius:50%;background:rgba(100,20,60,.3);filter:blur(30px);pointer-events:none"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="font-size:9px;font-weight:700;color:#e83862;letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px">◉ Janela aberta · fecha 06/04</div>
+            <div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-.025em;margin-bottom:3px">Simulado ENAMED — Mar/2026</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.45)">#3 · 100 questões · 03/04 – 06/04</div>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;text-align:center;border:1px solid rgba(255,255,255,.1)">
+            <div style="font-size:20px;font-weight:900;color:#fff;line-height:1">#3</div>
+            <div style="font-size:8px;color:rgba(255,255,255,.35);margin-top:2px">edição</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="background:#e83862;color:#fff;border-radius:9px;padding:8px 16px;font-size:11px;font-weight:700;cursor:pointer">Iniciar Simulado →</div>
+          <div style="border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.55);border-radius:9px;padding:8px 12px;font-size:11px">Como funciona</div>
+        </div>
+      </div>
+
+      <!-- TIMELINE abaixo do hero -->
+      <div style="position:relative;padding-left:20px">
+        <div style="position:absolute;left:6px;top:6px;bottom:6px;width:1.5px;background:linear-gradient(to bottom,rgba(232,56,98,.5),rgba(80,60,100,.2))"></div>
+
+        <!-- Próximo -->
+        <div style="position:relative;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+          <div style="position:absolute;left:-17px;width:7px;height:7px;border-radius:50%;background:rgba(100,160,240,.5);border:1.5px solid rgba(100,160,240,.6);flex-shrink:0"></div>
+          <div style="background:rgba(20,30,60,.5);border:1px solid rgba(100,160,240,.15);border-radius:10px;padding:8px 12px;flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:9px;color:rgba(100,160,240,.7);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Em breve</div>
+                <div style="font-size:12px;font-weight:600;color:rgba(240,234,245,.7)">Simulado Mai/2026</div>
+              </div>
+              <div style="font-size:9px;color:rgba(240,234,245,.3)">Abre 01/05</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anterior 1 -->
+        <div style="position:relative;margin-bottom:10px">
+          <div style="position:absolute;left:-17px;top:10px;width:7px;height:7px;border-radius:50%;background:rgba(240,234,245,.12);border:1px solid rgba(240,234,245,.2)"></div>
+          <div style="background:rgba(10,8,18,.4);border:1px solid rgba(240,234,245,.07);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:9px;color:rgba(240,234,245,.28);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Concluído</div>
+              <div style="font-size:12px;font-weight:600;color:rgba(240,234,245,.45)">Simulado Jan/2026</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:15px;font-weight:800;color:#e83862;line-height:1">78%</div>
+              <div style="font-size:9px;color:rgba(240,234,245,.3)">Ver resultado</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anterior 2 (mais desmaiado) -->
+        <div style="position:relative">
+          <div style="position:absolute;left:-17px;top:10px;width:6px;height:6px;border-radius:50%;background:rgba(240,234,245,.07)"></div>
+          <div style="background:rgba(10,8,18,.3);border:1px solid rgba(240,234,245,.04);border-radius:10px;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;opacity:.6">
+            <div style="font-size:11px;font-weight:600;color:rgba(240,234,245,.35)">Simulado Nov/2025</div>
+            <div style="font-size:13px;font-weight:700;color:rgba(232,56,98,.6)">65%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Hero topo + Timeline abaixo</h3>
+      <p>Hero ocupa toda a largura no topo (máximo impacto). Timeline vive abaixo como registro cronológico contínuo. Layout em coluna única — legível em qualquer tela, ritmo natural de leitura.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Two-column: Hero+Upcoming left | Timeline right -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0c0810;padding:18px;min-height:340px;font-family:system-ui;font-size:12px">
+
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:12px;height:100%">
+
+        <!-- LEFT: Hero + upcoming -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <!-- Hero card -->
+          <div style="background:linear-gradient(135deg,#5a1530,#2a0818);border:1px solid rgba(232,56,98,.3);border-radius:16px;padding:14px;flex:1;position:relative;overflow:hidden">
+            <div style="position:absolute;top:-20px;right:-15px;width:80px;height:80px;background:rgba(232,56,98,.2);border-radius:50%;filter:blur(25px);pointer-events:none"></div>
+            <div style="font-size:9px;color:#e83862;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">◉ Disponível</div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px;letter-spacing:-.02em">Simulado ENAMED</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:10px">Mar/2026 · #3 · 03–06/04</div>
+            <div style="background:#e83862;color:#fff;border-radius:8px;padding:7px 13px;font-size:11px;font-weight:700;display:inline-block">Iniciar →</div>
+          </div>
+          <!-- Upcoming mini card -->
+          <div style="background:rgba(20,30,60,.5);border:1px solid rgba(100,160,240,.2);border-radius:12px;padding:10px 12px">
+            <div style="font-size:9px;color:rgba(100,160,240,.7);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Em breve</div>
+            <div style="font-size:12px;font-weight:600;color:rgba(240,234,245,.65)">Simulado Mai/2026</div>
+            <div style="font-size:9px;color:rgba(240,234,245,.3);margin-top:2px">Abre 01/05 · #4</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Timeline de anteriores -->
+        <div style="position:relative;padding-left:18px">
+          <div style="font-size:9px;color:rgba(240,234,245,.3);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Histórico</div>
+          <div style="position:absolute;left:6px;top:28px;bottom:0;width:1.5px;background:linear-gradient(to bottom,rgba(240,234,245,.15),rgba(240,234,245,.03))"></div>
+
+          <!-- Item 1 -->
+          <div style="position:relative;margin-bottom:10px">
+            <div style="position:absolute;left:-14px;top:7px;width:6px;height:6px;border-radius:50%;background:rgba(240,234,245,.2)"></div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:8px 10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                <div style="font-size:10px;font-weight:600;color:rgba(240,234,245,.5)">Jan/2026</div>
+                <div style="font-size:14px;font-weight:800;color:#e83862">78%</div>
+              </div>
+              <div style="font-size:9px;color:rgba(240,234,245,.28)">#2 · Ver resultado →</div>
+            </div>
+          </div>
+          <!-- Item 2 -->
+          <div style="position:relative;margin-bottom:10px">
+            <div style="position:absolute;left:-14px;top:7px;width:6px;height:6px;border-radius:50%;background:rgba(240,234,245,.12)"></div>
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:9px;padding:8px 10px;opacity:.7">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                <div style="font-size:10px;font-weight:600;color:rgba(240,234,245,.4)">Nov/2025</div>
+                <div style="font-size:14px;font-weight:700;color:rgba(232,56,98,.65)">65%</div>
+              </div>
+              <div style="font-size:9px;color:rgba(240,234,245,.22)">#1 · Ver resultado →</div>
+            </div>
+          </div>
+          <!-- Item 3 ghost -->
+          <div style="position:relative;opacity:.4">
+            <div style="position:absolute;left:-14px;top:7px;width:5px;height:5px;border-radius:50%;background:rgba(240,234,245,.08)"></div>
+            <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:9px;padding:7px 10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="font-size:10px;color:rgba(240,234,245,.3)">Set/2025</div>
+                <div style="font-size:13px;font-weight:700;color:rgba(232,56,98,.5)">71%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Split: Ações (esq) + Histórico (dir)</h3>
+      <p>Divisão intencional: esquerda é sobre o que fazer agora (ativo + próximo), direita é o registro do que passou. Duas funções, dois espaços. Em mobile, empilha naturalmente.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Hero topo + Timeline horizontal scroll -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0c0810;padding:18px;min-height:340px;font-family:system-ui;font-size:12px">
+
+      <!-- Hero topo -->
+      <div style="background:linear-gradient(135deg,#5a1530,#2a0818,#0d0510);border:1px solid rgba(232,56,98,.3);border-radius:18px;padding:14px;margin-bottom:14px;position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 10% 50%,rgba(232,56,98,.12),transparent);pointer-events:none;border-radius:18px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:9px;color:#e83862;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px">◉ Disponível · fecha em 2 dias</div>
+            <div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.025em;margin-bottom:2px">Simulado ENAMED — Mar/2026</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4)">#3 · 100 questões</div>
+          </div>
+          <div style="background:#e83862;color:#fff;border-radius:10px;padding:9px 15px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0">Iniciar →</div>
+        </div>
+      </div>
+
+      <!-- Label da rail -->
+      <div style="font-size:9px;color:rgba(240,234,245,.3);font-weight:600;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;padding-left:2px">Linha do tempo</div>
+
+      <!-- Timeline horizontal rail -->
+      <div style="position:relative;overflow:hidden">
+        <!-- Linha -->
+        <div style="position:absolute;top:14px;left:0;right:0;height:1.5px;background:linear-gradient(to right,rgba(232,56,98,.5),rgba(100,160,240,.3),rgba(240,234,245,.1))"></div>
+
+        <div style="display:flex;gap:10px;padding-top:0">
+          <!-- Node 1: Em breve -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px">
+            <div style="width:10px;height:10px;border-radius:50%;background:rgba(100,160,240,.5);border:2px solid rgba(100,160,240,.6);z-index:1;flex-shrink:0"></div>
+            <div style="background:rgba(20,30,60,.6);border:1px solid rgba(100,160,240,.2);border-radius:9px;padding:6px 7px;width:100%;text-align:center">
+              <div style="font-size:8px;color:rgba(100,160,240,.7);font-weight:600;text-transform:uppercase;margin-bottom:2px">Em breve</div>
+              <div style="font-size:9px;color:rgba(240,234,245,.6);font-weight:600">Mai/26</div>
+            </div>
+          </div>
+
+          <!-- Node 2: Concluído -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px">
+            <div style="width:9px;height:9px;border-radius:50%;background:rgba(240,234,245,.18);border:1px solid rgba(240,234,245,.25);z-index:1;flex-shrink:0"></div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:6px 7px;width:100%;text-align:center">
+              <div style="font-size:8px;color:rgba(240,234,245,.3);margin-bottom:2px">Jan/26</div>
+              <div style="font-size:13px;font-weight:800;color:#e83862;line-height:1">78%</div>
+            </div>
+          </div>
+
+          <!-- Node 3 -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px;opacity:.6">
+            <div style="width:8px;height:8px;border-radius:50%;background:rgba(240,234,245,.1);z-index:1;flex-shrink:0"></div>
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:9px;padding:6px 7px;width:100%;text-align:center">
+              <div style="font-size:8px;color:rgba(240,234,245,.25);margin-bottom:2px">Nov/25</div>
+              <div style="font-size:13px;font-weight:700;color:rgba(232,56,98,.6);line-height:1">65%</div>
+            </div>
+          </div>
+
+          <!-- Node 4 faded -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px;opacity:.35">
+            <div style="width:7px;height:7px;border-radius:50%;background:rgba(240,234,245,.08);z-index:1;flex-shrink:0"></div>
+            <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:9px;padding:6px 7px;width:100%;text-align:center">
+              <div style="font-size:8px;color:rgba(240,234,245,.2);margin-bottom:2px">Set/25</div>
+              <div style="font-size:13px;font-weight:700;color:rgba(232,56,98,.45);line-height:1">71%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Hero topo + Timeline horizontal</h3>
+      <p>Hero focado (ativo + CTA), depois uma "rail" horizontal mostrando o arco completo: próximos à esquerda, passados com notas à direita. Scroll horizontal em mobile, tudo visível em desktop. Sensação de jornada.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Todos mantêm o banner "Como funciona". Posso refinar a opção escolhida antes de escrever o spec.</p>

@@ -1,0 +1,7 @@
+/** Detecta se o segmento de rota é um UUID (Postgres) ou outro identificador (ex.: slug). */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuidString(value: string): boolean {
+  return UUID_PATTERN.test(value.trim());
+}

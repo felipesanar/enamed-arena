@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { GraduationCap, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { BrandIcon } from '@/components/brand/BrandMark';
 import { motion } from 'framer-motion';
 
 type CallbackState = 'verifying' | 'success' | 'error';
@@ -105,8 +106,8 @@ export default function AuthCallbackPage() {
       >
         {/* Brand */}
         <div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mx-auto mb-4">
-            <GraduationCap className="h-7 w-7 text-primary-foreground" />
+          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 ring-1 ring-primary/25 mx-auto mb-4">
+            <BrandIcon size="lg" className="h-10 w-10" alt="" />
           </div>
           <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">
             sanarflix

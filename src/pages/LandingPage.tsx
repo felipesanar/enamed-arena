@@ -7,7 +7,6 @@ import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
 import { LandingExperience } from "@/components/landing/LandingExperience";
 import { LandingComparison } from "@/components/landing/LandingComparison";
 import { LandingPremium } from "@/components/landing/LandingPremium";
-import { LandingSocialProof } from "@/components/landing/LandingSocialProof";
 import { LandingCta } from "@/components/landing/LandingCta";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
@@ -25,9 +24,13 @@ export default function LandingPage() {
           animate={{ x: [0, 35, 0], y: [0, -25, 0] }}
           transition={{ duration: 14, ease: "easeInOut", repeat: Infinity }}
         />
-        {/* Orb 2 — top-right, primary */}
+        {/* Orb 2 — top-right: main + leve accent-mid (variedade tonal) */}
         <motion.div
-          className="absolute top-[5%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[hsl(var(--primary)/0.10)] blur-[90px]"
+          className="absolute top-[5%] right-[-10%] h-[500px] w-[500px] rounded-full blur-[90px]"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(var(--primary) / 0.14) 0%, hsl(var(--landing-accent-mid) / 0.06) 55%, transparent 70%)",
+          }}
           animate={{ x: [0, -28, 0], y: [0, 20, 0] }}
           transition={{ duration: 18, ease: "easeInOut", repeat: Infinity }}
         />
@@ -58,7 +61,6 @@ export default function LandingPage() {
         <LandingExperience />
         <LandingComparison />
         <LandingPremium />
-        <LandingSocialProof />
         <LandingCta />
         <LandingFooter />
       </main>

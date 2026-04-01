@@ -1,0 +1,183 @@
+<h2>Direção visual da tela /simulados</h2>
+<p class="subtitle">Três abordagens distintas — mesmas informações, jornada idêntica, estética diferente</p>
+
+<div class="cards">
+
+  <!-- Option A: Timeline / Chronicle -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0812;padding:20px;min-height:280px;font-family:system-ui">
+
+      <!-- Tiny header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div>
+          <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8b6fa0;margin-bottom:3px">ENAMED 2026</div>
+          <div style="font-size:20px;font-weight:800;color:#f0eaf5;letter-spacing:-.03em">Simulados</div>
+        </div>
+        <div style="background:rgba(176,48,120,.18);border:1px solid rgba(176,48,120,.3);border-radius:8px;padding:5px 10px;font-size:10px;color:#d48fb0;font-weight:600">100 questões ENAMED</div>
+      </div>
+
+      <!-- Timeline spine -->
+      <div style="position:relative;padding-left:28px">
+        <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#8b1f4d,rgba(139,31,77,.15))"></div>
+
+        <!-- Active event -->
+        <div style="position:relative;margin-bottom:14px">
+          <div style="position:absolute;left:-24px;top:8px;width:10px;height:10px;border-radius:50%;background:#e83862;box-shadow:0 0 10px rgba(232,56,98,.7)"></div>
+          <div style="background:linear-gradient(135deg,rgba(232,56,98,.15),rgba(100,10,40,.25));border:1px solid rgba(232,56,98,.35);border-radius:14px;padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:10px;font-weight:700;color:#e83862;letter-spacing:.1em;text-transform:uppercase">● Disponível agora</span>
+              <span style="font-size:10px;color:rgba(240,234,245,.4)">#3</span>
+            </div>
+            <div style="font-size:14px;font-weight:700;color:#f0eaf5;margin-bottom:5px">Simulado ENAMED — Mar/2026</div>
+            <div style="font-size:11px;color:rgba(240,234,245,.5);margin-bottom:10px">03/04 – 06/04 · Janela aberta</div>
+            <div style="background:#e83862;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;display:inline-block">Iniciar Simulado →</div>
+          </div>
+        </div>
+
+        <!-- Upcoming event -->
+        <div style="position:relative;margin-bottom:14px">
+          <div style="position:absolute;left:-24px;top:8px;width:8px;height:8px;border-radius:50%;background:rgba(100,160,240,.5);border:2px solid rgba(100,160,240,.4)"></div>
+          <div style="background:rgba(20,30,60,.4);border:1px solid rgba(100,160,240,.2);border-radius:14px;padding:10px 14px">
+            <div style="font-size:10px;color:rgba(100,160,240,.7);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Em breve</div>
+            <div style="font-size:13px;font-weight:600;color:rgba(240,234,245,.7)">Simulado ENAMED — Mai/2026</div>
+            <div style="font-size:11px;color:rgba(240,234,245,.35);margin-top:3px">Abre 01/05/2026</div>
+          </div>
+        </div>
+
+        <!-- Past event -->
+        <div style="position:relative">
+          <div style="position:absolute;left:-24px;top:8px;width:8px;height:8px;border-radius:50%;background:rgba(240,234,245,.12);border:1px solid rgba(240,234,245,.15)"></div>
+          <div style="background:rgba(10,8,18,.5);border:1px solid rgba(240,234,245,.07);border-radius:14px;padding:10px 14px">
+            <div style="display:flex;justify-content:space-between">
+              <div>
+                <div style="font-size:10px;color:rgba(240,234,245,.3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Concluído</div>
+                <div style="font-size:13px;font-weight:600;color:rgba(240,234,245,.5)">Simulado ENAMED — Jan/2026</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:16px;font-weight:800;color:#e83862">78%</div>
+                <div style="font-size:9px;color:rgba(240,234,245,.3)">sua nota</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Timeline Chronicle</h3>
+      <p>Coluna cronológica com spine vertical, cada simulado como evento. Ativo pulsa, próximos surgem como "coming soon", passados ficam desmaiados com nota em destaque. Editorial, único, narrativo.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Hero + Bento -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f2f7;padding:20px;min-height:280px;font-family:system-ui">
+
+      <!-- Header row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8e3a6a;margin-bottom:2px">ENAMED 2026</div>
+          <div style="font-size:20px;font-weight:800;color:#1a0d14;letter-spacing:-.03em">Simulados</div>
+        </div>
+      </div>
+
+      <!-- Hero card — active -->
+      <div style="background:linear-gradient(135deg,#6a1e38,#3d0d22);border-radius:18px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(232,56,98,.25);filter:blur(30px)"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">● Em andamento</div>
+            <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">Simulado ENAMED</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.55);margin-bottom:12px">Março 2026 · 100 questões</div>
+          </div>
+          <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;text-align:center">
+            <div style="font-size:18px;font-weight:900;color:#fff">#3</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="background:#e83862;color:#fff;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:700">Iniciar Simulado</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45)">03/04 – 06/04</div>
+        </div>
+      </div>
+
+      <!-- Bento row: next + past -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:12px">
+          <div style="font-size:9px;color:#5a8fb0;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Em breve</div>
+          <div style="font-size:12px;font-weight:700;color:#1a0d14;margin-bottom:3px">Mai/2026</div>
+          <div style="font-size:10px;color:#888">Abre 01/05</div>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:12px">
+          <div style="font-size:9px;color:#2d8f5a;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Concluído · Jan/26</div>
+          <div style="font-size:20px;font-weight:900;color:#8e1f3d;letter-spacing:-.03em">78%</div>
+          <div style="font-size:10px;color:#888">Ver resultado</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Hero + Bento Grid</h3>
+      <p>Card hero grande para o simulado ativo (dark premium), bento com cards assimétricos para próximos e anteriores. Visual clean no light mode, hierarquia imediata. Moderno, familiar mas elevado.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Obsidian Dashboard -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;padding:20px;min-height:280px;font-family:system-ui">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#555;margin-bottom:3px">ENAMED 2026</div>
+          <div style="font-size:20px;font-weight:800;color:#f0f0f0;letter-spacing:-.03em">Simulados</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#e83862;box-shadow:0 0 8px rgba(232,56,98,.6)"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#2d2d2d"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#2d2d2d"></div>
+        </div>
+      </div>
+
+      <!-- Active: full-bleed spotlight card -->
+      <div style="border:1px solid rgba(232,56,98,.4);border-radius:14px;padding:14px;margin-bottom:10px;position:relative;background:rgba(232,56,98,.05)">
+        <div style="position:absolute;inset:0;border-radius:14px;background:radial-gradient(ellipse 60% 80% at 0% 50%,rgba(232,56,98,.12),transparent);pointer-events:none"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:10px;color:#e83862;font-weight:700;letter-spacing:.1em;text-transform:uppercase">◉ Disponível</div>
+          <div style="font-size:10px;color:#555">Janela fecha 06/04</div>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:#f0f0f0;margin-bottom:3px">Simulado ENAMED — Março 2026</div>
+        <div style="font-size:11px;color:#555;margin-bottom:10px">#3 · 100 questões · 03/04 – 06/04</div>
+        <div style="display:flex;gap:8px">
+          <div style="background:#e83862;color:#fff;border-radius:7px;padding:6px 12px;font-size:11px;font-weight:700">Iniciar Simulado</div>
+          <div style="border:1px solid #333;color:#888;border-radius:7px;padding:6px 12px;font-size:11px">Ver detalhes</div>
+        </div>
+      </div>
+
+      <!-- Two rows compact -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:#1a1a1a;border:1px solid #252525;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:10px;color:#4a7fc0;font-weight:600;margin-bottom:2px">Em breve</div>
+            <div style="font-size:12px;color:#ccc;font-weight:600">Simulado Maio 2026</div>
+          </div>
+          <div style="font-size:10px;color:#444">Abre 01/05</div>
+        </div>
+        <div style="background:#1a1a1a;border:1px solid #252525;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:2px">Concluído</div>
+            <div style="font-size:12px;color:#999;font-weight:600">Simulado Jan 2026</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:15px;font-weight:800;color:#e83862">78%</div>
+            <div style="font-size:9px;color:#444">Ver resultado →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Obsidian Dashboard</h3>
+      <p>Full dark, minimalismo cirúrgico. Simulado ativo como spotlight com glow wine, próximos e anteriores como linhas compactas em dark cards. Sério, denso, para quem quer foco total. Sem distrações.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:20px">Clique para selecionar. Todas mantêm: Como funciona, seções Ativos/Próximos/Anteriores, CTA por status.</p>

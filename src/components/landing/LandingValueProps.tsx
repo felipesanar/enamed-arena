@@ -40,14 +40,14 @@ const ITEMS = [
     icon: Trophy,
     title: "Ranking e comparativos",
     description:
-      "Compare-se com outros alunos, por especialidade ou geral. Posição, percentil e evolução ao longo do tempo.",
+      "Acompanhe sua posição entre os alunos, por especialidade ou no geral, com visão de percentil e evolução ao longo do tempo.",
   },
   {
     id: "analise",
     icon: FileCheck,
     title: "Análise pós-prova",
     description:
-      "Correção comentada, justificativas e estatísticas por questão. Não é só certo ou errado — é aprendizado.",
+      "Correção comentada, justificativas e estatísticas por questão para transformar a revisão em parte real do seu preparo.",
   },
   {
     id: "evolucao",
@@ -98,7 +98,7 @@ export function LandingValueProps() {
             <motion.h2
               variants={headerItemReveal}
               id="value-props-heading"
-              className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
+              className="w-full max-w-none text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
             >
               Muito além de um simulado comum.
             </motion.h2>
@@ -106,9 +106,9 @@ export function LandingValueProps() {
           <div className="lg:w-[320px] lg:shrink-0 lg:border-l lg:border-border/50 lg:pl-8 mt-4 lg:mt-0 lg:pb-1">
             <motion.p
               variants={headerItemReveal}
-              className="text-body-lg text-muted-foreground leading-relaxed"
+              className="w-full max-w-none text-body-lg text-muted-foreground leading-relaxed"
             >
-              Cada recurso foi desenhado para quem leva preparação a sério e quer performance de alto nível.
+              Cada recurso foi planejado para quem busca uma preparação completa, estratégica e com foco em alta performance.
             </motion.p>
           </div>
         </motion.header>
@@ -142,7 +142,7 @@ export function LandingValueProps() {
               </div>
               <div className="relative z-10">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 border border-primary/20 mb-4 group-hover:bg-primary/25 group-hover:border-primary/30 transition-colors duration-300">
-                  <props.icon className="h-5 w-5 text-primary" aria-hidden />
+                  <props.icon className="h-5 w-5 text-landing-accent" aria-hidden />
                 </div>
                 <h3 className="font-semibold text-foreground text-heading-3 mb-2">{props.title}</h3>
                 <p className="text-body text-muted-foreground leading-relaxed">{props.description}</p>

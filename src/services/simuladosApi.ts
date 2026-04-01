@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { isUuidString } from '@/lib/simulado-id';
 import { logger } from '@/lib/logger';
 import type { SimuladoConfig, Question } from '@/types';
 import type { ExamAnswer } from '@/types/exam';
@@ -60,6 +61,8 @@ export interface AttemptRow {
   total_correct: number | null;
   total_answered: number | null;
   notify_result_email?: boolean;
+  /** Definido pelo backend na finalização; false quando a prova não entra no ranking nacional. */
+  is_within_window?: boolean;
 }
 
 export interface AnswerRow {
@@ -164,19 +167,22 @@ export const simuladosApi = {
     return (data || []).map(rowToSimuladoConfig);
   },
 
-  async getSimulado(id: string): Promise<SimuladoConfig | null> {
-    const { data, error } = await supabase
-      .from('simulados')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+  /** Aceita UUID (`id`) ou `slug` na URL (ex.: `/simulados/simulado-2-.../start`). */
+  async getSimulado(idOrSlug: string): Promise<SimuladoConfig | null> {
+    const ref = idOrSlug.trim();
+    if (!ref) return null;
+
+    const base = supabase.from('simulados').select('*');
+    const { data, error } = isUuidString(ref)
+      ? await base.eq('id', ref).maybeSingle()
+      : await base.eq('slug', ref).maybeSingle();
 
     if (error) {
       logger.error('[SimuladosApi] Error fetching simulado:', error);
       throw error;
     }
 
-    return data ? rowToSimuladoConfig(data) : null;
+    return data ? rowToSimuladoConfig(data as SimuladoRow) : null;
   },
 
   async getQuestions(simuladoId: string): Promise<Question[]> {

@@ -83,6 +83,9 @@ export default {
           bg: "hsl(var(--landing-bg))",
           "bg-soft": "hsl(var(--landing-bg-soft))",
           surface: "hsl(var(--landing-surface))",
+          /** Texto/ícone de destaque sobre fundo escuro (Theme SanarFlix PRO) */
+          accent: "hsl(var(--landing-accent-text))",
+          "accent-mid": "hsl(var(--landing-accent-mid))",
         },
       },
       borderRadius: {
@@ -108,8 +111,8 @@ export default {
         "micro-label": ["0.5625rem", { lineHeight: "1.2", letterSpacing: "0.14em", fontWeight: "600" }],
       },
       boxShadow: {
-        "glow-wine": "0 0 24px -4px hsl(345 65% 42% / 0.18)",
-        "glow-wine-lg": "0 0 40px -6px hsl(345 65% 42% / 0.24)",
+        "glow-wine": "0 0 24px -4px hsl(var(--primary) / 0.2)",
+        "glow-wine-lg": "0 0 40px -6px hsl(var(--primary) / 0.26)",
       },
       keyframes: {
         "accordion-down": {

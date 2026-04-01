@@ -165,6 +165,35 @@
     --auth-shadow-card: 0 30px 80px -28px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
     --auth-shadow-ambient: 0 28px 84px -32px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
   }
+
+  /*
+   * Landing (`dark landing-dark`): paleta Theme SanarFlix PRO
+   * main #64031E · dark #3D0011 · light #A3455D · lighter #F9E4EA · surface #FCF3F5
+   * --landing-accent-*: texto/ícones sobre fundo escuro (mais vivo que primary, sem competir com CTA sólido)
+   */
+  .landing-dark {
+    --brand-sanar-main: 343 94% 20%;
+    --brand-sanar-dark: 343 100% 12%;
+    --brand-sanar-light: 347 41% 46%;
+    --brand-sanar-lighter: 343 63% 93%;
+    --brand-sanar-surface: 343 43% 97%;
+
+    --primary: var(--brand-sanar-main);
+    --primary-foreground: 0 0% 100%;
+    --ring: 343 82% 36%;
+    --wine: var(--brand-sanar-main);
+    /* Hover CTA: levemente mais claro que main, ainda vinho profundo (evita “rosa UI”) */
+    --wine-hover: 343 78% 28%;
+    /* Halos / divisores: família sanar-light, leitura coerente em glows */
+    --wine-glow: 347 36% 44%;
+    --accent: 343 28% 14%;
+    --accent-foreground: 343 32% 68%;
+    /* Texto/ícone de destaque sobre bg escuro — aquecido vs #A3455D, mais luminoso p/ contraste */
+    --landing-accent-text: 351 50% 62%;
+    --landing-accent-mid: 348 46% 48%;
+    --landing-glow-primary: 347 40% 38% / 0.32;
+    --landing-glow-soft: 343 55% 16% / 0.2;
+  }
 }
 
 @layer base {
@@ -411,7 +440,88 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Landing dark — gradient headline sobre fundo escuro (mais contraste) */
+/*
+ * Landing — “wine”: stops claros o suficiente no fundo escuro (dark/main no início sumiam o texto).
+ * Mesma família de cores do hero-em, com ênfase final mais luminosa para leitura.
+ */
 .landing-dark .text-gradient-wine {
-  background-image: linear-gradient(135deg, hsl(345 55% 55%), hsl(345 60% 65%));
+  background-image: linear-gradient(
+    110deg,
+    hsl(var(--landing-accent-mid)) 0%,
+    hsl(var(--brand-sanar-light)) 40%,
+    hsl(var(--landing-accent-text)) 78%,
+    hsl(var(--brand-sanar-lighter) / 0.92) 100%
+  );
+}
+
+/* Ênfase editorial — gradiente “cheio” (ex.: “completa” no bloco PRO): arco vinho → rosa vivo → highlight claro + sweep suave */
+.landing-dark .text-gradient-wine-impact {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(
+    108deg,
+    hsl(var(--brand-sanar-dark)) 0%,
+    hsl(var(--primary)) 8%,
+    hsl(var(--landing-accent-mid)) 18%,
+    hsl(348 72% 52%) 30%,
+    hsl(350 84% 62%) 40%,
+    hsl(352 92% 74%) 48%,
+    hsl(355 96% 82%) 54%,
+    hsl(var(--brand-sanar-light)) 62%,
+    hsl(var(--landing-accent-text)) 72%,
+    hsl(343 62% 86%) 84%,
+    hsl(var(--brand-sanar-lighter) / 0.99) 100%
+  );
+  background-size: 220% 140%;
+  background-position: 5% 45%;
+  background-repeat: no-repeat;
+  /* Profundidade sem competir com o texto: brilho difuso no contorno */
+  filter: drop-shadow(0 0 20px hsl(var(--primary) / 0.2))
+    drop-shadow(0 0 36px hsl(350 75% 55% / 0.12))
+    drop-shadow(0 3px 14px hsl(343 80% 25% / 0.35));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-dark .text-gradient-wine-impact {
+    animation: wine-impact-shift 18s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes wine-impact-shift {
+  0% {
+    background-position: 4% 42%;
+  }
+  45% {
+    background-position: 52% 58%;
+  }
+  100% {
+    background-position: 96% 48%;
+  }
+}
+
+/* Hero — ênfase: só stops com luminância suficiente no fundo escuro (evita “sumir” à esquerda) */
+.landing-dark .text-gradient-hero-em {
+  background-image: linear-gradient(
+    105deg,
+    hsl(var(--landing-accent-mid)) 0%,
+    hsl(var(--brand-sanar-light)) 44%,
+    hsl(var(--landing-accent-text)) 100%
+  );
+}
+
+.landing-dark .bg-gradient-brand-progress {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--brand-sanar-main)) 0%,
+    hsl(var(--brand-sanar-light)) 52%,
+    hsl(var(--landing-accent-mid)) 100%
+  );
+}
+
+/* Pulsing dot for live/active simulados */
+@keyframes sim-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+.sim-dot-pulse {
+  animation: sim-pulse 1.8s ease-in-out infinite;
 }

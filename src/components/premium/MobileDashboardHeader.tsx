@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Stethoscope, ExternalLink, ArrowRight, CalendarDays, Trophy } from "lucide-react";
+import {
+  Bell,
+  ExternalLink,
+  ArrowRight,
+  CalendarDays,
+  Stethoscope,
+  Trophy,
+} from "lucide-react";
+import { BrandIcon } from "@/components/brand/BrandMark";
 import { useUser } from "@/contexts/UserContext";
 import { useSimulados } from "@/hooks/useSimulados";
 import {

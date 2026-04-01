@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 200">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke: url(#Gradiente_sem_nome_7);
+        stroke-width: .99px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: none;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-2 {
+        stroke: url(#Gradiente_sem_nome_7-2);
+        stroke-width: 1.42px;
+      }
+
+      .cls-3 {
+        fill: url(#Gradiente_sem_nome_7-3);
+      }
+
+      .cls-4 {
+        fill: url(#Gradiente_sem_nome_16);
+      }
+    </style>
+    <radialGradient id="Gradiente_sem_nome_16" data-name="Gradiente sem nome 16" cx="100" cy="100" fx="100" fy="100" r="98.83" gradientUnits="userSpaceOnUse">
+      <stop offset=".06" stop-color="#3d3d3b"/>
+      <stop offset="1" stop-color="#010101"/>
+    </radialGradient>
+    <linearGradient id="Gradiente_sem_nome_7" data-name="Gradiente sem nome 7" x1=".68" y1="100" x2="199.32" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset=".26" stop-color="#fff"/>
+      <stop offset="1" stop-color="#aaaaab"/>
+    </linearGradient>
+    <linearGradient id="Gradiente_sem_nome_7-2" data-name="Gradiente sem nome 7" x1="53.18" x2="146.82" xlink:href="#Gradiente_sem_nome_7"/>
+    <linearGradient id="Gradiente_sem_nome_7-3" data-name="Gradiente sem nome 7" x1="83.01" y1="143.74" x2="132.37" y2="16.5" xlink:href="#Gradiente_sem_nome_7"/>
+  </defs>
+  <circle class="cls-4" cx="100" cy="100" r="98.83"/>
+  <circle class="cls-1" cx="100" cy="100" r="98.83"/>
+  <path class="cls-2" d="M90.32,157.07c-7.72,0-15.07-3.33-20.15-9.14-6.49-7.73-8.12-18.15-4.75-27.18-2-1.37-3.82-3.02-5.39-4.89-8.93-11.1-8.02-26.8,2.06-36.61l28.48-28.47c.46-.45.86-.83,1.27-1.19,4.92-4.3,11.18-6.66,17.66-6.66,7.72,0,15.07,3.33,20.15,9.14,6.46,7.7,8.1,18.07,4.78,27.08.89.6,1.74,1.26,2.55,1.98.38.33.86.78,1.32,1.24,5.04,5.04,7.82,11.76,7.82,18.91,0,7.14-2.79,13.86-7.84,18.92l-29.02,29.02c-.35.36-.8.77-1.25,1.18-4.93,4.32-11.2,6.67-17.68,6.67Z"/>
+  <path class="cls-3" d="M129.02,90.18c-2.07-1.81-4.62-2.99-7.34-3.37-2.04-.28-3.47-2.15-3.19-4.19.11-.81.48-1.57,1.06-2.14h0c5.64-5.51,6.09-14.43,1.02-20.48-5.35-6.12-14.65-6.73-20.76-1.38-.25.22-.49.44-.72.68l-28.59,28.58c-5.57,5.42-6.1,14.19-1.22,20.25,2.26,2.7,5.41,4.49,8.89,5.06,2.04.3,3.45,2.21,3.15,4.25-.12.79-.48,1.52-1.05,2.09h0c-5.64,5.51-6.09,14.43-1.02,20.48,5.36,6.12,14.66,6.74,20.78,1.38.25-.22.49-.44.72-.67l29.02-29.02c5.75-5.74,5.75-15.06,0-20.81-.24-.24-.48-.47-.74-.69Z"/>
+</svg>

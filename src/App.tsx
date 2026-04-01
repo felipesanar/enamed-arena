@@ -57,6 +57,7 @@ const App = () => (
               <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<HomePagePremium />} />
                 <Route path="simulados" element={<SimuladosPage />} />
+                <Route path="simulados/:id/start" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />
                 <Route path="simulados/:id/resultado" element={<ResultadoPage />} />

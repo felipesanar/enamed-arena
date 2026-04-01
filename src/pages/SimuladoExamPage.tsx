@@ -87,6 +87,7 @@ export default function SimuladoExamPage() {
         totalCount={flow.summary.total}
         notifyResultByEmail={flow.notifyResultByEmail}
         notificationSaving={flow.notificationSaving}
+        isWithinWindow={flow.isWithinWindow}
         onToggleNotifyResultByEmail={flow.setNotifyResultByEmail}
       />
     );

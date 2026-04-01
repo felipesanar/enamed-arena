@@ -4,6 +4,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import type { UserSegment } from '@/types';
 
 // ─── Types ───
 
@@ -122,6 +123,13 @@ export function computeRankingStats(rows: RankingRow[]): RankingStats {
 export type ComparisonFilter = 'all' | 'same_specialty' | 'same_institution';
 export type SegmentFilter = 'all' | 'sanarflix' | 'pro';
 
+/** Quais filtros de segmento a UI pode exibir conforme o segmento do usuário logado. */
+export function getAllowedRankingSegmentFilters(segment: UserSegment): SegmentFilter[] {
+  if (segment === 'pro') return ['all', 'sanarflix', 'pro'];
+  if (segment === 'standard') return ['all', 'sanarflix'];
+  return ['all'];
+}
+
 export function applyRankingFilters(
   participants: RankingParticipant[],
   comparisonFilter: ComparisonFilter,
@@ -143,8 +151,9 @@ export function applyRankingFilters(
     );
   }
 
+  // "sanarflix" = aluno SanarFlix padrão (standard), não inclui PRO nem visitante
   if (segmentFilter === 'sanarflix') {
-    filtered = filtered.filter((p) => p.segment !== 'guest' || p.isCurrentUser);
+    filtered = filtered.filter((p) => p.segment === 'standard' || p.isCurrentUser);
   } else if (segmentFilter === 'pro') {
     filtered = filtered.filter((p) => p.segment === 'pro' || p.isCurrentUser);
   }

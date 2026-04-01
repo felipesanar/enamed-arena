@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { BrandLogo } from "@/components/brand/BrandMark";
 import { motion } from "framer-motion";
 import { VIEWPORT_REVEAL, DURATION_NORMAL, EASE } from "@/lib/landingMotion";
 
@@ -22,13 +23,10 @@ export function LandingFooter() {
       <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <Link
           to="/landing"
-          className="flex items-center gap-2 shrink-0"
+          className="flex items-center gap-2 shrink-0 max-w-[14rem]"
           aria-label="SanarFlix Simulados"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <span className="text-primary-foreground font-bold text-sm">S</span>
-          </div>
-          <span className="font-semibold text-foreground text-body-sm">SanarFlix Simulados</span>
+          <BrandLogo variant="md" tone="onDark" className="max-h-8 w-auto sm:max-h-9" />
         </Link>
         <nav className="flex flex-wrap items-center justify-center gap-4 md:gap-6" aria-label="Links do rodapé">
           {FOOTER_LINKS.map((link) => (

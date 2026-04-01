@@ -17,16 +17,17 @@ interface UseSimuladoDetailReturn {
   refetch: () => void;
 }
 
-async function fetchSimuladoDetail(simuladoId: string, userId: string | undefined) {
-  const [config, questionData, attempt] = await Promise.all([
-    simuladosApi.getSimulado(simuladoId),
-    simuladosApi.getQuestions(simuladoId),
-    userId ? simuladosApi.getAttempt(simuladoId, userId) : Promise.resolve(null),
-  ]);
-
+async function fetchSimuladoDetail(routeRef: string, userId: string | undefined) {
+  const config = await simuladosApi.getSimulado(routeRef);
   if (!config) {
     return { simulado: null, questions: [] as Question[] };
   }
+
+  const canonicalId = config.id;
+  const [questionData, attempt] = await Promise.all([
+    simuladosApi.getQuestions(canonicalId),
+    userId ? simuladosApi.getAttempt(canonicalId, userId) : Promise.resolve(null),
+  ]);
 
   const userState: SimuladoUserState | undefined = attempt
     ? {

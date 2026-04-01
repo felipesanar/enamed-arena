@@ -36,26 +36,20 @@ export function LandingPremium() {
           viewport={VIEWPORT_HEADER}
           className="mb-12 text-center"
         >
-          <motion.p
-            variants={headerItemReveal}
-            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center justify-center gap-2"
-          >
-            <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
-            SanarFlix PRO
-            <span className="w-6 h-px bg-gradient-to-l from-transparent via-primary to-wine-glow" />
-          </motion.p>
           <motion.h2
             variants={headerItemReveal}
             id="premium-heading"
-            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
+            className="w-full max-w-none text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
           >
             A preparação mais{" "}
-            <span className="text-gradient-wine">completa</span>{" "}
+            <span className="text-gradient-wine-impact inline-block pb-1 font-extrabold tracking-tight">
+              completa
+            </span>{" "}
             do mercado.
           </motion.h2>
           <motion.p
             variants={headerItemReveal}
-            className="mt-4 text-body-lg text-muted-foreground max-w-[36rem] mx-auto leading-relaxed"
+            className="mx-auto mt-4 w-full max-w-5xl text-body-lg text-muted-foreground leading-relaxed"
           >
             Recursos exclusivos para quem quer extrair o máximo de cada simulado.
           </motion.p>
@@ -75,7 +69,7 @@ export function LandingPremium() {
               whileHover={{ y: -3, transition: { duration: DURATION_FAST, ease: EASE } }}
               className="p-5 rounded-2xl border border-border bg-card/50 hover:border-primary/20 hover:bg-card/70 transition-all duration-300"
             >
-              <f.icon className="h-6 w-6 text-primary mb-3" aria-hidden />
+              <f.icon className="h-6 w-6 text-landing-accent mb-3" aria-hidden />
               <h3 className="font-semibold text-foreground text-heading-3 mb-1">{f.title}</h3>
               <p className="text-body-sm text-muted-foreground">{f.desc}</p>
             </motion.div>

@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { ComparisonFilter, SegmentFilter } from '@/services/rankingApi';
+import { BarChart3, AlertTriangle, CalendarDays, BookOpen, ArrowUpRight, Lock } from "lucide-react";
+const PRO_ENAMED_URL = "https://sanarflix.com.br/sanarflix-pro-enamed";
 import { motion, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
 import { useSimulados } from "@/hooks/useSimulados";
@@ -38,36 +39,23 @@ function formatDateShort(dateIso: string): string {
   }).format(d);
 }
 
-const SEGMENT_LABEL: Record<SegmentFilter, string> = {
-  all: 'Geral',
-  sanarflix: 'Alunos SanarFlix',
-  pro: 'Alunos PRO',
-};
-
-function buildRankingLabel(
-  segmentFilter: SegmentFilter,
-  comparisonFilter: ComparisonFilter,
-  userSpecialty: string,
-  userInstitutions: string[],
+/** Linha única: em qual chave o aluno concorre (perfil de onboarding). */
+function buildRankingCompetitionLine(
+  specialty: string,
+  institutions: string[],
 ): string {
-  const isGeneral = segmentFilter === 'all' && comparisonFilter === 'all';
-  if (isGeneral) return 'Ranking Nacional Geral';
+  const spec = specialty.trim();
+  const insts = institutions.map((i) => String(i).trim()).filter(Boolean);
+  let instLabel = "";
+  if (insts.length === 1) instLabel = insts[0];
+  else if (insts.length === 2) instLabel = `${insts[0]} e ${insts[1]}`;
+  else if (insts.length > 2)
+    instLabel = `${insts[0]}, ${insts[1]} e mais ${insts.length - 2}`;
 
-  const base =
-    segmentFilter === 'all'
-      ? 'Ranking Geral'
-      : `Ranking de ${SEGMENT_LABEL[segmentFilter]}`;
-
-  if (comparisonFilter === 'same_specialty' && userSpecialty) {
-    return `${base} – ${userSpecialty}`;
-  }
-  if (comparisonFilter === 'same_institution' && userInstitutions.length > 0) {
-    const institution = userInstitutions[0];
-    const prefix = userSpecialty ? `${userSpecialty} ` : '';
-    return `${base} – ${prefix}${institution}`;
-  }
-
-  return base;
+  if (spec && instLabel) return `${spec} · ${instLabel}`;
+  if (spec) return spec;
+  if (instLabel) return instLabel;
+  return "Especialidade e instituições do seu perfil";
 }
 
 export function HomePagePremium() {
@@ -81,9 +69,6 @@ export function HomePagePremium() {
     stats: rankingStats,
     loading: rankingLoading,
     simuladosWithResults,
-    selectedSimuladoId,
-    segmentFilter,
-    comparisonFilter,
     userSpecialty,
     userInstitutions,
   } = useRanking();
@@ -159,16 +144,22 @@ export function HomePagePremium() {
   const segment = profile?.segment ?? "guest";
   const lastScore =
     history[0] ? Math.round(Number(history[0].score_percentage)) : null;
-  const recentScores = useMemo(
-    () =>
-      history
-        .slice(0, 6)
-        .map((entry) =>
-          Math.max(0, Math.min(100, Math.round(Number(entry.score_percentage))))
-        )
-        .reverse(),
-    [history]
-  );
+  /** Até 6 notas, da esquerda para a direita: mais antiga → mais recente (última à direita). */
+  const recentScores = useMemo(() => {
+    if (history.length === 0) return [];
+    const asc = [...history].sort((a, b) => {
+      const ta = Date.parse(a.finished_at);
+      const tb = Date.parse(b.finished_at);
+      const na = Number.isFinite(ta) ? ta : 0;
+      const nb = Number.isFinite(tb) ? tb : 0;
+      return na - nb;
+    });
+    return asc
+      .slice(-6)
+      .map((entry) =>
+        Math.max(0, Math.min(100, Math.round(Number(entry.score_percentage))))
+      );
+  }, [history]);
   const scoreDelta = useMemo(() => {
     if (recentScores.length < 2) return null;
     return (
@@ -179,16 +170,10 @@ export function HomePagePremium() {
 
   const rankPosition = currentUser?.position ?? null;
   const rankTotal = rankingStats?.totalCandidatos ?? null;
-  const selectedRankingTitle = useMemo(() => {
-    if (!selectedSimuladoId) return null;
-    return (
-      simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title ?? null
-    );
-  }, [selectedSimuladoId, simuladosWithResults]);
 
-  const rankingLabel = useMemo(
-    () => buildRankingLabel(segmentFilter, comparisonFilter, userSpecialty, userInstitutions),
-    [segmentFilter, comparisonFilter, userSpecialty, userInstitutions]
+  const rankingCompetitionLine = useMemo(
+    () => buildRankingCompetitionLine(userSpecialty, userInstitutions),
+    [userSpecialty, userInstitutions]
   );
 
   const containerVariants = {
@@ -260,36 +245,42 @@ export function HomePagePremium() {
         <NextSimuladoBanner simulados={simulados} />
       </motion.div>
 
-      {/* Layer 1: Hero premium */}
+      {/* Layer 1: Hero premium — full width */}
       <motion.div variants={itemVariants}>
         <HomeHeroSection
           userName={userName}
           simuladosRealizados={stats.simuladosRealizados}
           mediaAtual={stats.mediaAtual}
           lastScore={lastScore}
-          lastRankPosition={rankPosition}
-          lastRankTotal={rankTotal}
-          bestArea={null}
           recentScores={recentScores}
-          nextWindowDate={nextWindowDate}
-          pendingErrors={null}
-          worstArea={worstArea}
-          segment={segment}
         />
       </motion.div>
 
-      {/* Layer 2: "Seu caminho até aqui" card */}
+      {/* Layer 2: KPI grid (left) + "Seu caminho até aqui" (right) */}
       <motion.div variants={itemVariants}>
-        <HeroPerformanceCard
-          lastScore={lastScore}
-          scoreDelta={scoreDelta}
-          rankPosition={rankPosition}
-          rankTotal={rankTotal}
-          recentScores={recentScores}
-          rankingTitle={selectedRankingTitle}
-          rankingLabel={rankingLabel}
-          hasRankingConfig={simuladosWithResults.length > 0}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 lg:items-stretch">
+          <div className="lg:col-span-5 lg:flex lg:min-h-0 lg:flex-col">
+            <KpiGridSection
+              lastScore={lastScore}
+              worstArea={worstArea}
+              nextWindowDate={nextWindowDate}
+              nextSimuladoTitle={nextSimulado?.title ?? null}
+              pendingErrors={null}
+              segment={segment}
+            />
+          </div>
+          <div className="lg:col-span-7 lg:min-h-0">
+            <HeroPerformanceCard
+              lastScore={lastScore}
+              scoreDelta={scoreDelta}
+              rankPosition={rankPosition}
+              rankTotal={rankTotal}
+              recentScores={recentScores}
+              rankingCompetitionLine={rankingCompetitionLine}
+              hasRankingConfig={simuladosWithResults.length > 0}
+            />
+          </div>
+        </div>
       </motion.div>
 
       {segment !== "pro" && (
@@ -307,8 +298,7 @@ function HeroPerformanceCard({
   rankPosition,
   rankTotal,
   recentScores,
-  rankingTitle,
-  rankingLabel,
+  rankingCompetitionLine,
   hasRankingConfig,
 }: {
   lastScore: number | null;
@@ -316,8 +306,7 @@ function HeroPerformanceCard({
   rankPosition: number | null;
   rankTotal: number | null;
   recentScores: number[];
-  rankingTitle: string | null;
-  rankingLabel: string;
+  rankingCompetitionLine: string;
   hasRankingConfig: boolean;
 }) {
   const hasScore = lastScore !== null;
@@ -329,14 +318,20 @@ function HeroPerformanceCard({
       ? "single"
       : "multi";
 
+  /**
+   * Multi: esquerda → direita = mais antigo → mais recente (destaque à direita).
+   * Single: 1º resultado à esquerda; placeholders à direita (evita “única barra” no fim).
+   * None: placeholders; destaque à esquerda como início da jornada.
+   */
   const chartBars = (() => {
-    if (historyMode === "multi") return recentScores.slice(-6);
+    if (historyMode === "multi") return recentScores;
     if (historyMode === "single")
-      return [16, 22, 18, 28, 24, safeScore];
+      return [safeScore, 16, 22, 18, 28, 24];
     return [12, 18, 15, 22, 26, 30];
   })();
   const maxBar = Math.max(...chartBars, 1);
-  const focusIdx = chartBars.length - 1;
+  const focusIdx =
+    historyMode === "multi" ? chartBars.length - 1 : 0;
 
   const progressPct = hasScore
     ? Math.max(14, Math.min(96, safeScore))
@@ -395,9 +390,7 @@ function HeroPerformanceCard({
   })();
 
   return (
-    <div className="flex justify-end">
-      <div className="w-full md:w-[56%] lg:w-[48%]">
-        <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-4 md:p-5 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)]">
+    <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-4 md:p-5 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)] lg:h-full">
           {/* Atmospheric layers */}
           <div className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full bg-[rgba(232,56,98,0.16)] blur-[60px]" />
           <div className="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 rounded-full bg-[rgba(12,18,32,0.55)] blur-[40px]" />
@@ -458,7 +451,7 @@ function HeroPerformanceCard({
                 const pct = Math.max(18, Math.round((val / maxBar) * 100));
                 const isReal =
                   historyMode === "multi" ||
-                  (historyMode === "single" && isFocused);
+                  (historyMode === "single" && idx === 0);
 
                 let bg: string;
                 let shadow: string | undefined;
@@ -475,7 +468,9 @@ function HeroPerformanceCard({
                 }
 
                 const tooltipText = isReal
-                  ? `Tentativa ${idx + 1}: ${val}%`
+                  ? historyMode === "multi"
+                    ? `${idx + 1}º (esquerda = mais antigo): ${val}%`
+                    : `1º resultado: ${val}%`
                   : "Continue concluindo os simulados para preencher este histórico.";
 
                 return (
@@ -504,6 +499,29 @@ function HeroPerformanceCard({
                 );
               })}
             </div>
+
+            <Link
+              to="/desempenho"
+              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/70 hover:text-white transition-colors duration-200 no-underline group"
+            >
+              {hasScore
+                ? "Ver desempenho completo"
+                : "Iniciar jornada de desempenho"}
+              <svg
+                className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5"
+                fill="none"
+                viewBox="0 0 12 12"
+                aria-hidden
+              >
+                <path
+                  d="M2.5 6h7M6.5 3l3 3-3 3"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Link>
 
             {/* Ranking snapshot */}
             {!hasRankingConfig ? (
@@ -558,10 +576,14 @@ function HeroPerformanceCard({
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] truncate">
-                    {rankingTitle
-                      ? `${rankingTitle} · ${rankingLabel}`
-                      : rankingLabel}
+                  <p
+                    className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] max-md:line-clamp-2 md:truncate"
+                    title={`Sua chave no ranking: ${rankingCompetitionLine}`}
+                  >
+                    <span className="text-[rgba(245,241,238,0.55)]">
+                      Sua chave no ranking:{" "}
+                    </span>
+                    {rankingCompetitionLine}
                   </p>
                   <p className="text-[9px] leading-snug text-[rgba(245,241,238,0.68)]">
                     {variationState.helper}
@@ -586,14 +608,11 @@ function HeroPerformanceCard({
               </div>
             )}
 
-            {/* CTA */}
             <Link
-              to="/desempenho"
+              to="/ranking"
               className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/70 hover:text-white transition-colors duration-200 no-underline group"
             >
-              {hasScore
-                ? "Ver desempenho completo"
-                : "Iniciar jornada de desempenho"}
+              Ver ranking completo
               <svg
                 className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5"
                 fill="none"
@@ -611,7 +630,199 @@ function HeroPerformanceCard({
             </Link>
           </div>
         </div>
-      </div>
+  );
+}
+
+function KpiGridSection({
+  lastScore,
+  worstArea,
+  nextWindowDate,
+  nextSimuladoTitle,
+  pendingErrors,
+  segment,
+}: {
+  lastScore: number | null;
+  worstArea: string | null;
+  nextWindowDate: string | null;
+  nextSimuladoTitle: string | null;
+  pendingErrors: number | null;
+  segment: string;
+}) {
+  const isPro = segment === "pro";
+
+  const lastSimuladoAria = [
+    "Desempenho",
+    lastScore !== null ? `nota ${lastScore}%` : "sem nota ainda",
+  ].join(", ");
+
+  const windowAria = nextWindowDate
+    ? `Próximo simulado, janela em ${nextWindowDate}`
+    : "Simulados, nenhuma data futura listada";
+
+  const cadernoAria =
+    pendingErrors !== null && pendingErrors > 0
+      ? `Caderno de erros, ${pendingErrors} questões pendentes`
+      : "Caderno de erros, revisar questões marcadas";
+
+  const kpis = [
+    {
+      key: "last",
+      title: "Último resultado",
+      value: lastScore !== null ? `${lastScore}%` : "—",
+      hint:
+        lastScore !== null
+          ? "Nota do último simulado concluído."
+          : "Conclua um simulado para registrar sua primeira nota.",
+      footnote: "Ver evolução e histórico",
+      valueKind: "percent" as const,
+      ariaLabel: lastSimuladoAria,
+      to: "/desempenho",
+      icon: BarChart3,
+      locked: false,
+    },
+    {
+      key: "ranking",
+      title: "Grande área de atenção",
+      value: worstArea ?? "—",
+      hint:
+        worstArea !== null
+          ? "Sugerido com base no seu último desempenho por área."
+          : "Complete um simulado para ver onde investir estudo.",
+      footnote: "Abrir análise por área",
+      valueKind: "text" as const,
+      ariaLabel: `Grande área de atenção: ${worstArea ?? "sem dados ainda"}`,
+      to: "/desempenho",
+      icon: AlertTriangle,
+      locked: false,
+    },
+    {
+      key: "window",
+      title: "Próximo simulado",
+      value: nextWindowDate ?? "—",
+      hint:
+        nextSimuladoTitle !== null
+          ? nextSimuladoTitle
+          : nextWindowDate !== null
+            ? "Início da janela de execução."
+            : "Nenhum simulado futuro na lista no momento.",
+      footnote: "Ver agenda de simulados",
+      valueKind: "date" as const,
+      ariaLabel: windowAria,
+      to: "/simulados",
+      icon: CalendarDays,
+      locked: false,
+    },
+    {
+      key: "caderno",
+      title: "Caderno de erros",
+      value: pendingErrors !== null ? String(pendingErrors) : "Revisar",
+      hint: isPro
+        ? "Questões marcadas para revisão comentada."
+        : "Disponível para assinantes SanarFlix PRO.",
+      footnote: isPro ? "Continuar revisão" : "Conhecer o PRO",
+      valueKind: pendingErrors !== null && pendingErrors > 0 ? ("count" as const) : ("cta" as const),
+      ariaLabel: cadernoAria,
+      to: "/caderno-erros",
+      icon: BookOpen,
+      locked: !isPro,
+    },
+  ];
+
+  return (
+    <div className="grid w-full grid-cols-2 auto-rows-fr gap-2 sm:gap-2 min-h-0 lg:h-full lg:min-h-0 lg:flex-1">
+      {kpis.map((kpi) => {
+        const isPercent = kpi.valueKind === "percent";
+        const isTextValue = kpi.valueKind === "text";
+        const isDate = kpi.valueKind === "date";
+        const isCount = kpi.valueKind === "count";
+
+        const cardInner = (
+          <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-primary/20 bg-[linear-gradient(165deg,rgba(142,31,61,0.06)_0%,#FFFFFF_44%,#FAF5F7_100%)] p-2.5 sm:p-3 shadow-[0_8px_18px_-14px_hsl(345_60%_30%/0.35),0_2px_6px_hsl(220_20%_10%/0.04)] transition-all duration-[240ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/28 hover:shadow-[0_12px_22px_-16px_hsl(345_60%_30%/0.42),0_4px_10px_-8px_hsl(345_60%_30%/0.12)]">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
+            <div className="pointer-events-none absolute -right-5 -top-5 h-16 w-16 rounded-full bg-primary/[0.05] blur-xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+            {kpi.locked && (
+              <div className="absolute inset-0 z-20 rounded-[16px] bg-background/55 backdrop-blur-[2px] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-primary/20 bg-white/90 px-3 py-2 shadow-sm">
+                  <Lock className="h-4 w-4 text-primary" aria-hidden />
+                  <span className="text-[9px] font-bold text-primary/75 uppercase tracking-[0.14em]">
+                    PRO
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+              <div className="mb-1.5 flex shrink-0 items-start justify-between gap-1.5">
+                <div className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-primary/18 bg-gradient-to-br from-primary/[0.1] to-primary/[0.18] shadow-[0_6px_14px_-10px_hsl(345_65%_30%/0.4)]">
+                  <kpi.icon className="h-3.5 w-3.5 text-primary" aria-hidden />
+                </div>
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/50 bg-white/90 text-muted-foreground/65 shadow-sm transition-all duration-200 group-hover:border-primary/25 group-hover:text-primary">
+                  <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
+                </span>
+              </div>
+
+              <p className="mb-1 line-clamp-2 text-[10px] font-semibold leading-tight tracking-wide text-muted-foreground sm:text-[11px]">
+                {kpi.title}
+              </p>
+
+              <div className="flex min-h-0 flex-1 flex-col justify-center gap-1 border-t border-primary/[0.1] pt-2">
+                <p
+                  className={[
+                    "font-extrabold tracking-[-0.03em] text-foreground",
+                    isPercent || isDate || isCount
+                      ? "text-[clamp(1.2rem,2.4vw+0.55rem,1.65rem)] leading-[1.08] tabular-nums"
+                      : isTextValue
+                        ? "text-[clamp(0.8125rem,1.2vw+0.5rem,1.0625rem)] font-bold leading-snug line-clamp-2 break-words"
+                        : "text-[clamp(1rem,2vw+0.45rem,1.35rem)] font-bold leading-tight",
+                  ].join(" ")}
+                >
+                  {kpi.value}
+                </p>
+                <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground sm:text-body-sm sm:leading-snug">
+                  {kpi.hint}
+                </p>
+              </div>
+
+              <div className="mt-auto shrink-0 pt-1.5">
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold leading-none tracking-wide text-primary sm:text-[11px]">
+                  {kpi.footnote}
+                  <span aria-hidden className="text-primary/55">→</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+
+        const aria = `${kpi.title}. ${kpi.ariaLabel}. Valor: ${kpi.value}. ${kpi.hint}`;
+
+        if (kpi.locked) {
+          return (
+            <a
+              key={kpi.key}
+              href={PRO_ENAMED_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex h-full min-h-0 no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-[16px]"
+              aria-label={`${kpi.title} — exclusivo Aluno PRO. ${kpi.hint}`}
+            >
+              {cardInner}
+            </a>
+          );
+        }
+
+        return (
+          <Link
+            key={kpi.key}
+            to={kpi.to}
+            className="group flex h-full min-h-0 no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-[16px]"
+            aria-label={aria}
+          >
+            {cardInner}
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -619,24 +830,21 @@ function HeroPerformanceCard({
 function HomePageSkeleton() {
   return (
     <div className="space-y-5 md:space-y-6 animate-fade-in">
-      {/* Banner skeleton — top */}
+      {/* Banner skeleton */}
       <Skeleton className="h-[72px] rounded-[20px]" />
 
-      {/* Hero skeleton */}
+      {/* Hero skeleton — full width */}
+      <Skeleton className="h-[220px] rounded-[28px] bg-primary/[0.06]" />
+
+      {/* KPI grid + performance card skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
-        <div className="lg:col-span-7">
-          <Skeleton className="h-[260px] rounded-[28px] bg-primary/[0.06]" />
-        </div>
         <div className="lg:col-span-5">
-          <Skeleton className="h-[260px] rounded-[28px] bg-muted/60" />
+          <Skeleton className="h-[260px] rounded-[22px] bg-muted/60" />
+        </div>
+        <div className="lg:col-span-7">
+          <Skeleton className="h-[260px] rounded-[22px] bg-muted/40" />
         </div>
       </div>
-
-      {/* Performance card skeleton — offset right */}
-      <div className="flex justify-end">
-        <Skeleton className="h-[310px] w-full md:w-[56%] lg:w-[48%] rounded-[22px] bg-muted/40" />
-      </div>
-
     </div>
   );
 }

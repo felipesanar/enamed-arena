@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import { Clock, ChevronLeft, ChevronRight, Flag } from "lucide-react";
 
 /** Dados de demonstração — 5 questões simuladas no estilo Modo Prova */
@@ -101,6 +103,10 @@ export function LandingExamDemo() {
   const handlePrev = () => setCurrentIndex((i) => Math.max(0, i - 1));
   const handleNext = () => setCurrentIndex((i) => Math.min(DEMO_QUESTIONS.length - 1, i + 1));
 
+  const isLastQuestion = currentIndex === DEMO_QUESTIONS.length - 1;
+  const nextCtaClassName =
+    "inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors";
+
   return (
     <div className="relative rounded-3xl border border-border overflow-hidden bg-card/90 shadow-xl flex flex-col min-h-[420px]">
       {/* Header — espelho do ExamHeader */}
@@ -148,9 +154,9 @@ export function LandingExamDemo() {
       <div className="flex flex-1 min-h-0">
         {/* Conteúdo principal — questão + alternativas */}
         <main className="flex-1 overflow-y-auto p-4 md:p-5">
-          <div className="max-w-2xl">
+          <div className="w-full max-w-none">
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="px-2.5 py-1 rounded-md bg-primary/15 text-primary text-caption font-medium">
+              <span className="rounded-md border border-[hsl(var(--landing-accent-mid)/0.45)] bg-[hsl(var(--primary)/0.22)] px-2.5 py-1 text-caption font-semibold text-landing-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                 {q.area}
               </span>
               <span className="px-2.5 py-1 rounded-md bg-muted text-muted-foreground text-caption">
@@ -215,15 +221,23 @@ export function LandingExamDemo() {
                 <ChevronLeft className="h-4 w-4" />
                 Anterior
               </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={currentIndex === DEMO_QUESTIONS.length - 1}
-                className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Próxima
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              {isLastQuestion ? (
+                <Link
+                  to="/login?mode=signup"
+                  className={nextCtaClassName}
+                  onClick={() =>
+                    trackEvent("lead_captured", { source: "landing_exam_demo_create_account" })
+                  }
+                >
+                  Criar conta
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </Link>
+              ) : (
+                <button type="button" onClick={handleNext} className={nextCtaClassName}>
+                  Próxima
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </button>
+              )}
             </div>
           </div>
         </main>
@@ -247,7 +261,9 @@ export function LandingExamDemo() {
                   className={cn(
                     "h-9 w-full rounded-lg text-caption font-semibold transition-all",
                     isCurrent && "ring-2 ring-primary ring-offset-1 ring-offset-card",
-                    isAnswered && !isReview && "bg-primary/15 text-primary",
+                    isAnswered &&
+                      !isReview &&
+                      "border border-[hsl(var(--landing-accent-mid)/0.35)] bg-[hsl(var(--primary)/0.2)] text-landing-accent",
                     isReview && "bg-info/20 text-info",
                     !isAnswered && !isReview && "bg-muted/50 text-muted-foreground hover:bg-muted",
                   )}
@@ -259,7 +275,7 @@ export function LandingExamDemo() {
           </div>
           <div className="mt-auto pt-4 border-t border-border space-y-2 text-caption text-muted-foreground">
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded bg-primary/30 border border-primary/40" />
+              <span className="h-3 w-3 rounded border border-[hsl(var(--landing-accent-mid)/0.5)] bg-[hsl(var(--primary)/0.35)]" />
               Respondida
             </div>
             <div className="flex items-center gap-2">

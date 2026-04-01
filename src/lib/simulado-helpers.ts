@@ -98,9 +98,10 @@ export const STATUS_CONFIG: Record<SimuladoStatus, {
     description: 'A janela de execução está aberta. Você pode iniciar agora.',
   },
   available_late: {
-    label: 'Treino',
-    badgeClass: 'bg-warning/10 text-warning',
-    description: 'Fora da janela de execução. Resultado não entra no ranking.',
+    label: 'Disponível',
+    badgeClass: 'bg-info/10 text-info',
+    description:
+      'Mesmo simulado completo para preparo; a realização após o fim da janela oficial não entra no ranking nacional.',
   },
   in_progress: {
     label: 'Em andamento',
@@ -132,7 +133,7 @@ export function getSimuladoCTA(status: SimuladoStatus): { label: string; variant
     case 'available':
       return { label: 'Iniciar Simulado', variant: 'primary' };
     case 'available_late':
-      return { label: 'Iniciar Treino', variant: 'primary' };
+      return { label: 'Iniciar Simulado', variant: 'primary' };
     case 'in_progress':
       return { label: 'Continuar Simulado', variant: 'primary' };
     case 'results_available':

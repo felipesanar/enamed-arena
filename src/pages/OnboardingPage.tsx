@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap as BrandIcon } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SPECIALTIES, INSTITUTIONS } from "@/data/mock";
 import { MIN_INSTITUTIONS_GUEST, SEGMENT_LABELS } from "@/types";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import { trackEvent } from "@/lib/analytics";
+import { BrandIcon } from "@/components/brand/BrandMark";
 import {
   GraduationCap,
   Building2,
@@ -388,8 +388,8 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/30 flex flex-col">
       {/* Brand header */}
       <div className="text-center pt-8 pb-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary mx-auto mb-2">
-          <BrandIcon className="h-5 w-5 text-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 ring-1 ring-primary/20 mx-auto mb-2">
+          <BrandIcon size="sm" className="h-8 w-8" alt="" />
         </div>
         <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">sanarflix</span>
         <p className="text-heading-3 text-foreground">PRO: ENAMED</p>

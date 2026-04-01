@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Completo — Desempenho</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #F0EBF0; color: #1a0d14; padding: 24px; }
+  .page { max-width: 760px; margin: 0 auto; }
+  .label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(0,0,0,0.4); margin-bottom: 4px; }
+  .label-light { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+
+  /* ── Hero Banner ── */
+  .hero {
+    background: linear-gradient(135deg, hsl(345,64%,22%) 0%, hsl(340,58%,14%) 60%, #0f111a 100%);
+    border-radius: 22px 22px 0 0;
+    padding: 18px 20px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: hsl(345,72%,48%);
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.25;
+    pointer-events: none;
+  }
+  .hero-pills {
+    display: flex; gap: 5px; margin-bottom: 12px; overflow-x: auto;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .hero-pills::-webkit-scrollbar { display: none; }
+  .pill {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 10px; font-weight: 600; color: #fff;
+    white-space: nowrap; cursor: pointer;
+  }
+  .pill.inactive {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.4);
+  }
+  .hero-main { display: flex; align-items: flex-end; justify-content: space-between; }
+  .hero-score { font-size: 40px; font-weight: 900; color: #fff; letter-spacing: -2px; line-height: 1; }
+  .hero-sub { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .hero-chips { display: flex; gap: 6px; margin-bottom: 4px; }
+  .hero-chip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 7px 11px; text-align: center;
+  }
+  .hero-chip .val { font-size: 14px; font-weight: 800; line-height: 1; }
+  .hero-chip .sub { font-size: 7px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  /* ── SimResultNav (existing component, styled) ── */
+  .nav-strip {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-top: none;
+    padding: 8px 16px;
+    display: flex; gap: 6px; align-items: center;
+  }
+  .nav-btn {
+    font-size: 10px; padding: 4px 10px; border-radius: 7px;
+    border: 1px solid rgba(142,31,61,0.2); background: rgba(142,31,61,0.05);
+    color: #8e1f3d; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .nav-sep { font-size: 10px; color: rgba(0,0,0,0.25); }
+
+  /* ── Body card ── */
+  .body-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-top: none;
+    border-radius: 0 0 22px 22px;
+    padding: 16px;
+    box-shadow: 0 12px 32px -16px rgba(142,31,61,0.15), 0 4px 12px -6px rgba(0,0,0,0.06);
+  }
+
+  /* ── Two-column layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Area cards ── */
+  .area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .area-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 10px;
+    padding: 8px 10px;
+    box-shadow: 0 2px 8px -4px rgba(0,0,0,0.06);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .area-card.best { border-color: rgba(34,197,94,0.3); box-shadow: 0 3px 10px -4px rgba(34,197,94,0.2); }
+  .area-card.worst { border-color: rgba(239,68,68,0.25); box-shadow: 0 3px 10px -4px rgba(239,68,68,0.15); }
+  .area-card.selected { border-color: rgba(142,31,61,0.4); box-shadow: 0 3px 10px -4px rgba(142,31,61,0.2); }
+  .area-name { font-size: 9px; color: rgba(0,0,0,0.45); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .area-score { font-size: 20px; font-weight: 900; letter-spacing: -0.8px; line-height: 1; }
+  .area-bar { width: 100%; height: 3px; background: rgba(0,0,0,0.06); border-radius: 99px; margin-top: 5px; overflow: hidden; }
+  .area-bar-fill { height: 100%; border-radius: 99px; }
+
+  /* ── Theme list ── */
+  .theme-list { display: flex; flex-direction: column; gap: 3px; }
+  .theme-row {
+    background: #fafafa;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 9px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .theme-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 10px;
+  }
+  .theme-name { font-size: 11px; font-weight: 600; color: #1a0d14; }
+  .theme-score { font-size: 12px; font-weight: 800; }
+  .theme-row.open { border-color: rgba(142,31,61,0.3); background: #fff; }
+  .theme-questions {
+    border-top: 1px solid rgba(142,31,61,0.1);
+    padding: 6px 10px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .q-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    text-decoration: none;
+  }
+  .q-row:last-child { border-bottom: none; }
+  .q-text { font-size: 10px; color: #333; flex: 1; margin-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge {
+    font-size: 9px; font-weight: 700;
+    padding: 1px 6px; border-radius: 5px; white-space: nowrap;
+  }
+  .badge.ok { color: #15803d; background: rgba(34,197,94,0.1); }
+  .badge.err { color: #dc2626; background: rgba(239,68,68,0.1); }
+  .badge.blank { color: #d97706; background: rgba(251,191,36,0.1); }
+
+  /* ── Summary cards ── */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .summary-card {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid;
+  }
+  .summary-card.green { border-color: rgba(34,197,94,0.2); background: rgba(34,197,94,0.03); }
+  .summary-card.red { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.03); }
+  .summary-card .s-icon { font-size: 12px; margin-right: 4px; }
+  .summary-card .s-title { font-size: 10px; font-weight: 700; margin-bottom: 4px; }
+  .summary-card .s-title.green { color: #15803d; }
+  .summary-card .s-title.red { color: #dc2626; }
+  .summary-card .s-text { font-size: 11px; color: rgba(0,0,0,0.55); line-height: 1.5; }
+  .summary-card .s-text strong { color: #1a0d14; }
+
+  /* ── Evolution bars ── */
+  .evo-section { margin-top: 14px; }
+  .evo-row { margin-bottom: 8px; }
+  .evo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .evo-name { font-size: 11px; font-weight: 600; color: #1a0d14; }
+  .evo-score { font-size: 12px; font-weight: 800; color: #8e1f3d; }
+  .evo-bar { height: 6px; background: rgba(142,31,61,0.08); border-radius: 99px; overflow: hidden; }
+  .evo-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #8e1f3d, #e83862); }
+
+  /* ── Section divider ── */
+  .section-divider { border: none; border-top: 1px solid rgba(0,0,0,0.06); margin: 14px 0; }
+
+  /* ── Annotations ── */
+  .anno { font-size: 9px; color: #8e1f3d; background: rgba(142,31,61,0.08); border: 1px dashed rgba(142,31,61,0.25); border-radius: 5px; padding: 2px 6px; display: inline-block; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p style="font-size:11px;color:rgba(0,0,0,0.45);margin-bottom:14px;text-align:center;">Design completo da página /desempenho — mockup fiel ao layout final</p>
+
+  <!-- ═══ HERO BANNER ═══ -->
+  <div class="hero">
+    <!-- Pill selector (só aparece com >1 simulado) -->
+    <div class="hero-pills">
+      <div class="pill">Sim. #1 — Fundamentos</div>
+      <div class="pill inactive">Sim. #2 — Clínica</div>
+      <div class="pill inactive">Sim. #3 — Cirurgia</div>
+    </div>
+
+    <div class="hero-main">
+      <div>
+        <div class="label-light">Aproveitamento geral</div>
+        <div class="hero-score">72%</div>
+        <div class="hero-sub">43 de 60 questões · 1h 24min</div>
+      </div>
+      <div class="hero-chips">
+        <div class="hero-chip">
+          <div class="val" style="color:#4ade80;">82%</div>
+          <div class="sub">melhor área</div>
+        </div>
+        <div class="hero-chip">
+          <div class="val" style="color:#f87171;">54%</div>
+          <div class="sub">foco</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ NAV STRIP (SimuladoResultNav existente) ═══ -->
+  <div class="nav-strip">
+    <span style="font-size:10px;color:rgba(0,0,0,0.4);">Ver também:</span>
+    <div class="nav-btn">Correção</div>
+    <div class="nav-btn">Resultado</div>
+    <div class="nav-btn">Ranking</div>
+  </div>
+
+  <!-- ═══ BODY CARD ═══ -->
+  <div class="body-card">
+
+    <!-- SEÇÃO 1: Área + Temas (2 colunas) -->
+    <div class="anno">Seção 1 — Análise por Área e Tema</div>
+    <div class="two-col">
+
+      <!-- Coluna esquerda: Grid 2×2 de grandes áreas -->
+      <div>
+        <div class="label">Grande Área</div>
+        <div class="area-grid">
+          <div class="area-card best selected">
+            <div class="area-name">Clínica Médica</div>
+            <div class="area-score" style="color:#15803d;">82%</div>
+            <div style="font-size:8px;color:rgba(0,0,0,0.35);margin-top:1px;">18/22 questões</div>
+            <div class="area-bar"><div class="area-bar-fill" style="width:82%;background:#22c55e;"></div></div>
+          </div>
+          <div class="area-card">
+            <div class="area-name">Cirurgia Geral</div>
+            <div class="area-score" style="color:#1a0d14;">68%</div>
+            <div style="font-size:8px;color:rgba(0,0,0,0.35);margin-top:1px;">11/16 questões</div>
+            <div class="area-bar"><div class="area-bar-fill" style="width:68%;background:#8e1f3d;"></div></div>
+          </div>
+          <div class="area-card">
+            <div class="area-name">Ginecologia</div>
+            <div class="area-score" style="color:#1a0d14;">63%</div>
+            <div style="font-size:8px;color:rgba(0,0,0,0.35);margin-top:1px;">7/11 questões</div>
+            <div class="area-bar"><div class="area-bar-fill" style="width:63%;background:#8e1f3d;"></div></div>
+          </div>
+          <div class="area-card worst">
+            <div class="area-name">Prev. e Saúde Col.</div>
+            <div class="area-score" style="color:#dc2626;">54%</div>
+            <div style="font-size:8px;color:rgba(0,0,0,0.35);margin-top:1px;">6/11 questões</div>
+            <div class="area-bar"><div class="area-bar-fill" style="width:54%;background:#ef4444;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coluna direita: Temas da área selecionada com accordion -->
+      <div>
+        <div class="label">Temas · Clínica Médica</div>
+        <div class="theme-list">
+
+          <!-- Tema selecionado/aberto -->
+          <div class="theme-row open">
+            <div class="theme-header">
+              <span class="theme-name" style="color:#8e1f3d;">▾ HAS</span>
+              <span class="theme-score" style="color:#15803d;">90%</span>
+            </div>
+            <div class="theme-questions">
+              <a class="q-row" href="#" onclick="return false">
+                <span class="q-text">Q1 — Tratamento da HAS refratária em idosos</span>
+                <span class="badge ok">✓ Acerto</span>
+              </a>
+              <a class="q-row" href="#" onclick="return false">
+                <span class="q-text">Q5 — Diagnóstico de crise hipertensiva</span>
+                <span class="badge err">✗ Erro</span>
+              </a>
+              <a class="q-row" href="#" onclick="return false">
+                <span class="q-text">Q9 — Complicações renais da HAS</span>
+                <span class="badge ok">✓ Acerto</span>
+              </a>
+              <a class="q-row" href="#" onclick="return false">
+                <span class="q-text">Q14 — HAS na gestação</span>
+                <span class="badge blank">— Em branco</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Temas fechados -->
+          <div class="theme-row">
+            <div class="theme-header">
+              <span class="theme-name">▸ Diabetes Mellitus</span>
+              <span class="theme-score" style="color:#1a0d14;">75%</span>
+            </div>
+          </div>
+          <div class="theme-row">
+            <div class="theme-header">
+              <span class="theme-name">▸ Dislipidemia</span>
+              <span class="theme-score" style="color:#d97706;">60%</span>
+            </div>
+          </div>
+          <div class="theme-row">
+            <div class="theme-header">
+              <span class="theme-name">▸ Pneumologia</span>
+              <span class="theme-score" style="color:#dc2626;">48%</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- SEÇÃO 2: Resumo (só aparece com >1 área) -->
+    <div class="anno">Seção 2 — Resumo do Desempenho</div>
+    <p style="font-size:12px;color:rgba(0,0,0,0.55);margin-bottom:0;">Seu aproveitamento geral foi de <strong style="color:#1a0d14;">72%</strong> (43/60 questões).</p>
+    <div class="summary-grid">
+      <div class="summary-card green">
+        <div class="s-title green"><span class="s-icon">★</span> Onde você brilha</div>
+        <div class="s-text">Sua principal fortaleza foi em <strong>Clínica Médica</strong> com <strong>82%</strong>.</div>
+      </div>
+      <div class="summary-card red">
+        <div class="s-title red"><span class="s-icon">↓</span> Próximo foco</div>
+        <div class="s-text">A maior oportunidade está em <strong>Prev. e Saúde Col.</strong> com <strong>54%</strong>.</div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- SEÇÃO 3: Evolução por grande área (barras) -->
+    <div class="anno">Seção 3 — Evolução por Grande Área</div>
+    <div class="evo-section">
+      <div class="evo-row">
+        <div class="evo-header">
+          <span class="evo-name">Clínica Médica</span>
+          <span class="evo-score">82% <span style="font-size:9px;color:rgba(0,0,0,0.35);">18/22</span></span>
+        </div>
+        <div class="evo-bar"><div class="evo-bar-fill" style="width:82%;"></div></div>
+      </div>
+      <div class="evo-row">
+        <div class="evo-header">
+          <span class="evo-name">Cirurgia Geral</span>
+          <span class="evo-score">68% <span style="font-size:9px;color:rgba(0,0,0,0.35);">11/16</span></span>
+        </div>
+        <div class="evo-bar"><div class="evo-bar-fill" style="width:68%;opacity:0.8;"></div></div>
+      </div>
+      <div class="evo-row">
+        <div class="evo-header">
+          <span class="evo-name">Ginecologia e Obstetrícia</span>
+          <span class="evo-score">63% <span style="font-size:9px;color:rgba(0,0,0,0.35);">7/11</span></span>
+        </div>
+        <div class="evo-bar"><div class="evo-bar-fill" style="width:63%;opacity:0.7;"></div></div>
+      </div>
+      <div class="evo-row">
+        <div class="evo-header">
+          <span class="evo-name">Prev. e Saúde Coletiva</span>
+          <span class="evo-score" style="color:#dc2626;">54% <span style="font-size:9px;color:rgba(0,0,0,0.35);">6/11</span></span>
+        </div>
+        <div class="evo-bar"><div class="evo-bar-fill" style="width:54%;background:linear-gradient(90deg,#991b1b,#ef4444);"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /body-card -->
+
+  <p style="font-size:10px;color:rgba(0,0,0,0.3);text-align:center;margin-top:16px;">
+    O card escuro é um único elemento com border-radius superior. Corpo branco com border-radius inferior. Tudo uma peça só.
+  </p>
+</div>
+</body>
+</html>

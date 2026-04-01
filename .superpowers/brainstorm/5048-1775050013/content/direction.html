@@ -1,0 +1,171 @@
+<h2>Qual direção visual para a página de Desempenho?</h2>
+<p class="subtitle">Mesmas seções, mesmas informações — apenas a linguagem visual muda. Qual tom premium você quer?</p>
+
+<div class="cards">
+
+  <!-- Option A: Command Center -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0D1117;padding:16px;min-height:220px;border-radius:8px 8px 0 0;">
+      <!-- Mockup A: dark premium -->
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <div style="flex:1;background:linear-gradient(135deg,#1a1f2e,#0f1419);border:1px solid rgba(232,56,98,0.3);border-radius:12px;padding:12px;">
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Aproveitamento</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <!-- ring -->
+            <svg width="48" height="48" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+              <circle cx="24" cy="24" r="18" fill="none" stroke="#e83862" stroke-width="4" stroke-dasharray="70 43" stroke-linecap="round" transform="rotate(-90 24 24)"/>
+            </svg>
+            <div>
+              <div style="font-size:26px;font-weight:800;color:#fff;line-height:1;">72%</div>
+              <div style="font-size:9px;color:rgba(255,255,255,0.4);">43/60 questões</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;background:linear-gradient(135deg,#1a1f2e,#0f1419);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;">
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Áreas</div>
+          <!-- radar/bar chart simplified -->
+          <div style="space-y:4px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <div style="font-size:8px;color:rgba(255,255,255,0.6);width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Clínica Méd.</div>
+              <div style="flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;"><div style="width:82%;height:100%;background:linear-gradient(90deg,#8e1f3d,#e83862);border-radius:99px;"></div></div>
+              <div style="font-size:8px;color:#e83862;font-weight:700;">82%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <div style="font-size:8px;color:rgba(255,255,255,0.6);width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Cirurgia</div>
+              <div style="flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;"><div style="width:68%;height:100%;background:linear-gradient(90deg,#8e1f3d,#e83862);border-radius:99px;"></div></div>
+              <div style="font-size:8px;color:#e83862;font-weight:700;">68%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="font-size:8px;color:rgba(255,255,255,0.6);width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Prev. Social</div>
+              <div style="flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;"><div style="width:54%;height:100%;background:linear-gradient(90deg,#555,#888);border-radius:99px;"></div></div>
+              <div style="font-size:8px;color:rgba(255,255,255,0.5);font-weight:700;">54%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- drill-down row -->
+      <div style="background:linear-gradient(135deg,#1a1f2e,#0f1419);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:10px;">
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Questões — Clínica Médica · HAS</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <div style="padding:4px 8px;border-radius:6px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);font-size:8px;color:#4ade80;">Q1 ✓</div>
+          <div style="padding:4px 8px;border-radius:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);font-size:8px;color:#f87171;">Q2 ✗</div>
+          <div style="padding:4px 8px;border-radius:6px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);font-size:8px;color:#4ade80;">Q3 ✓</div>
+          <div style="padding:4px 8px;border-radius:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);font-size:8px;color:#f87171;">Q5 ✗</div>
+          <div style="padding:4px 8px;border-radius:6px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);font-size:8px;color:#fbbf24;">Q7 —</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Command Center</h3>
+      <p>Superfícies escuras com acentos wine. Score em anel radial. Áreas como barras iluminadas. Questões em chips coloridos por resultado. Clima de painel de controle premium.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Editorial Light -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F8F5F7;padding:16px;min-height:220px;border-radius:8px 8px 0 0;">
+      <!-- Mockup B: light editorial -->
+      <div style="margin-bottom:10px;">
+        <!-- Hero score typographic -->
+        <div style="background:#fff;border-radius:14px;border:1px solid rgba(142,31,61,0.12);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px -8px rgba(142,31,61,0.15);">
+          <div>
+            <div style="font-size:9px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px;">Aproveitamento Geral</div>
+            <div style="font-size:36px;font-weight:900;color:#2A0D1A;letter-spacing:-2px;line-height:1;">72%</div>
+            <div style="font-size:9px;color:rgba(0,0,0,0.4);margin-top:2px;">43 de 60 questões corretas</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:9px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Melhor área</div>
+            <div style="font-size:13px;font-weight:700;color:#8e1f3d;">Clínica Médica</div>
+            <div style="font-size:9px;color:rgba(0,0,0,0.4);margin-top:4px;text-transform:uppercase;letter-spacing:1px;">Foco</div>
+            <div style="font-size:13px;font-weight:700;color:#c9444b;">Prev. Social</div>
+          </div>
+        </div>
+      </div>
+      <!-- Area bars editorial -->
+      <div style="background:#fff;border-radius:14px;border:1px solid rgba(0,0,0,0.06);padding:10px;box-shadow:0 2px 8px -4px rgba(0,0,0,0.08);">
+        <div style="font-size:9px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Grande Área</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="padding:6px 8px;border-radius:8px;border:1px solid rgba(34,197,94,0.2);background:rgba(34,197,94,0.04);">
+            <div style="font-size:8px;color:rgba(0,0,0,0.5);margin-bottom:2px;">Clínica Médica</div>
+            <div style="font-size:16px;font-weight:800;color:#15803d;">82%</div>
+          </div>
+          <div style="padding:6px 8px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#fafafa;">
+            <div style="font-size:8px;color:rgba(0,0,0,0.5);margin-bottom:2px;">Cirurgia</div>
+            <div style="font-size:16px;font-weight:800;color:#2A0D1A;">68%</div>
+          </div>
+          <div style="padding:6px 8px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#fafafa;">
+            <div style="font-size:8px;color:rgba(0,0,0,0.5);margin-bottom:2px;">Ginecologia</div>
+            <div style="font-size:16px;font-weight:800;color:#2A0D1A;">63%</div>
+          </div>
+          <div style="padding:6px 8px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.04);">
+            <div style="font-size:8px;color:rgba(0,0,0,0.5);margin-bottom:2px;">Prev. Social</div>
+            <div style="font-size:16px;font-weight:800;color:#dc2626;">54%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Editorial Light</h3>
+      <p>Fundo claro, tipografia grande e ousada. Score como número hero. Áreas em grid de cards com cor semântica (verde/vermelho). Questões em lista limpa com badges. Clima de relatório premium impresso.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Split Athletic -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f111a;padding:0;min-height:220px;border-radius:8px 8px 0 0;overflow:hidden;">
+      <!-- Hero banner dark with score -->
+      <div style="background:linear-gradient(135deg,hsl(345,64%,22%) 0%,hsl(345,60%,14%) 60%,#0f111a 100%);padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px;">Simulado #1 — Fundamentos</div>
+          <div style="font-size:30px;font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1.">72%</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;">43/60 · 1h24min</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <div style="text-align:center;background:rgba(255,255,255,0.06);border-radius:8px;padding:6px 8px;">
+            <div style="font-size:14px;font-weight:700;color:#4ade80;">82%</div>
+            <div style="font-size:7px;color:rgba(255,255,255,0.35);">melhor</div>
+          </div>
+          <div style="text-align:center;background:rgba(255,255,255,0.06);border-radius:8px;padding:6px 8px;">
+            <div style="font-size:14px;font-weight:700;color:#f87171;">54%</div>
+            <div style="font-size:7px;color:rgba(255,255,255,0.35);">foco</div>
+          </div>
+        </div>
+      </div>
+      <!-- two-col content -->
+      <div style="display:flex;gap:0;padding:10px;gap:8px;">
+        <!-- left: area accordion -->
+        <div style="flex:1;">
+          <div style="font-size:8px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Grande Área</div>
+          <div style="background:rgba(232,56,98,0.15);border:1px solid rgba(232,56,98,0.3);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:#fff;font-weight:600;">▶ Clínica Médica</span><span style="font-size:9px;color:#e83862;font-weight:700;">82%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:rgba(255,255,255,0.6);">Cirurgia</span><span style="font-size:9px;color:rgba(255,255,255,0.7);font-weight:700;">68%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:rgba(255,255,255,0.6);">Prev. Social</span><span style="font-size:9px;color:#f87171;font-weight:700;">54%</span>
+          </div>
+        </div>
+        <!-- right: theme drill responsive -->
+        <div style="flex:1;">
+          <div style="font-size:8px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Tema · Clínica Médica</div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:rgba(255,255,255,0.6);">HAS</span><span style="font-size:9px;color:#4ade80;font-weight:700;">90%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:rgba(255,255,255,0.6);">Diabetes</span><span style="font-size:9px;color:rgba(255,255,255,0.7);font-weight:700;">75%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:rgba(255,255,255,0.6);">Dislipidemia</span><span style="font-size:9px;color:#fbbf24;font-weight:700;">60%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Split Atlético</h3>
+      <p>Hero banner escuro wine no topo com o score. Abaixo, dois painéis lado a lado: área (esquerda) e temas do clique (direita). Questões expandem inline. Fluxo contínuo, sem seções separadas.</p>
+    </div>
+  </div>
+
+</div>

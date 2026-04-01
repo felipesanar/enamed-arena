@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Final — Hero Section</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #07060e;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #eae4f2;
+  padding: 1.75rem 1.5rem 3rem;
+}
+
+.page-header { text-align: center; margin-bottom: 2rem; }
+.page-title { font-size: 1.2rem; font-weight: 700; color: #f0eaf4; margin-bottom: 0.25rem; }
+.page-sub { font-size: 0.82rem; color: #6a5e7a; }
+
+/* ── NAVBAR mock ── */
+.navbar-mock {
+  max-width: 960px; margin: 0 auto 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 0.7rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0;
+  position: relative; z-index: 10;
+}
+.nav-logo { display: flex; align-items: center; gap: 0.55rem; }
+.nav-logo-box {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: #b03050; display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800; color: #fff;
+  box-shadow: 0 4px 12px rgba(176,48,80,0.4);
+}
+.nav-logo-text { font-size: 0.78rem; font-weight: 600; color: #d8d0e8; }
+.nav-links { display: flex; gap: 1.25rem; }
+.nav-link { font-size: 0.7rem; color: rgba(234,228,242,0.45); font-weight: 500; }
+.nav-link.active { color: #eae4f2; }
+.nav-actions { display: flex; gap: 0.5rem; align-items: center; }
+.nav-ghost { font-size: 0.68rem; color: rgba(234,228,242,0.5); font-weight: 500; padding: 0.3rem 0.6rem; }
+.nav-cta {
+  background: #b03050; color: #fff; font-size: 0.68rem; font-weight: 700;
+  padding: 0.32rem 0.75rem; border-radius: 7px;
+  box-shadow: 0 2px 10px rgba(176,48,80,0.35);
+}
+
+/* ── HERO ── */
+.hero-wrapper {
+  max-width: 960px; margin: 0 auto;
+  position: relative;
+  min-height: 520px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* Background layers */
+.hero-bg {
+  position: absolute; inset: -40px; z-index: 0; border-radius: 20px;
+  background: linear-gradient(145deg, #07060d 0%, #0e0b1a 50%, #080511 100%);
+  overflow: hidden;
+}
+.hero-bg::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 15%, transparent 75%);
+}
+.glow-1 {
+  position: absolute; top: -80px; left: -60px;
+  width: 420px; height: 420px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(176,48,80,0.22) 0%, transparent 60%);
+}
+.glow-2 {
+  position: absolute; bottom: -120px; right: 15%;
+  width: 320px; height: 320px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(90,60,180,0.14) 0%, transparent 62%);
+}
+.glow-3 {
+  position: absolute; top: 35%; right: 8%;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(176,48,80,0.11) 0%, transparent 65%);
+}
+
+/* Hero content grid */
+.hero-content {
+  position: relative; z-index: 2;
+  display: grid; grid-template-columns: 1.1fr 0.9fr;
+  align-items: center;
+  padding: 3.5rem 2.5rem 3rem;
+  gap: 2rem;
+  min-height: 520px;
+}
+
+/* ── LEFT COLUMN ── */
+.hero-copy { display: flex; flex-direction: column; }
+
+.eyebrow-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(176,48,80,0.1);
+  border: 1px solid rgba(176,48,80,0.28);
+  border-radius: 999px;
+  padding: 0.32rem 0.85rem 0.32rem 0.6rem;
+  margin-bottom: 1.25rem; align-self: flex-start;
+  backdrop-filter: blur(10px);
+}
+.badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #c03055;
+  box-shadow: 0 0 6px rgba(192,48,85,0.6);
+}
+.badge-text {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: rgba(210,90,115,0.95);
+}
+
+.hero-h1 {
+  font-size: 3.2rem; font-weight: 800; line-height: 1.05;
+  letter-spacing: -0.04em; color: #eae4f2;
+  margin-bottom: 1rem;
+}
+.hero-h1 em {
+  font-style: normal;
+  background: linear-gradient(90deg, #d8405e 0%, #b03050 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 1rem; color: rgba(234,228,242,0.45);
+  line-height: 1.6; margin-bottom: 1.75rem;
+  max-width: 34ch;
+}
+
+.cta-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+.cta-primary {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  background: #b03050; color: #fff;
+  font-size: 0.88rem; font-weight: 700;
+  padding: 0.75rem 1.4rem; border-radius: 10px;
+  box-shadow: 0 6px 28px rgba(176,48,80,0.45), 0 2px 8px rgba(176,48,80,0.25);
+  letter-spacing: -0.01em;
+}
+.cta-arrow { font-size: 1rem; }
+.cta-secondary {
+  font-size: 0.82rem; color: rgba(234,228,242,0.45); font-weight: 500;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid rgba(234,228,242,0.2);
+}
+
+.social-proof {
+  display: flex; align-items: center; gap: 0.65rem;
+}
+.avatars { display: flex; }
+.av {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid #07060d;
+  margin-left: -6px; display: flex; align-items: center; justify-content: center;
+  font-size: 0.55rem; font-weight: 700; color: rgba(255,255,255,0.9);
+}
+.av:first-child { margin-left: 0; }
+.sp-text { font-size: 0.72rem; color: rgba(234,228,242,0.38); }
+.sp-text strong { color: rgba(234,228,242,0.65); }
+
+/* ── RIGHT COLUMN ── */
+.hero-visual {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; position: relative;
+}
+
+.main-card-scene {
+  width: 100%; position: relative;
+  padding: 0 2.5rem; /* room for floating chips */
+}
+
+/* Floating chips */
+.chip-float {
+  position: absolute; z-index: 10;
+  background: rgba(8,6,16,0.92);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 11px; padding: 0.55rem 0.75rem;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 32px -4px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+}
+.chip-left { left: 0; top: 50%; transform: translateY(-50%); }
+.chip-right { right: 0; top: 50%; transform: translateY(-50%); }
+.chip-fval {
+  font-size: 1.15rem; font-weight: 800; color: #eae4f2; line-height: 1;
+  display: flex; align-items: center; gap: 0.2rem;
+}
+.chip-fval .accent { color: #c03055; font-size: 0.9rem; }
+.chip-flbl {
+  font-size: 0.5rem; color: rgba(234,228,242,0.38);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.2rem;
+}
+
+/* Main card */
+.main-card {
+  background: linear-gradient(165deg, rgba(18,14,30,0.97) 0%, rgba(11,8,20,0.99) 100%);
+  border: 1px solid rgba(176,48,80,0.32);
+  border-radius: 20px; padding: 1.25rem 1.4rem;
+  box-shadow:
+    0 32px 80px -16px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 0 1px rgba(176,48,80,0.08);
+  transform: perspective(900px) rotateX(2.5deg) rotateY(-2deg);
+  position: relative;
+  transform-origin: center center;
+}
+.main-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: 20px; pointer-events: none;
+  background: radial-gradient(ellipse 80% 55% at 50% -5%, rgba(176,48,80,0.14) 0%, transparent 60%);
+}
+
+.card-eyebrow {
+  font-size: 0.58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.14em; color: #b83050;
+  display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.55rem;
+}
+.sparkle { font-size: 0.65rem; }
+
+.card-headline { font-size: 1.2rem; font-weight: 800; color: #eae4f2; line-height: 1.15; margin-bottom: 0.3rem; }
+.card-desc { font-size: 0.65rem; color: rgba(234,228,242,0.38); line-height: 1.5; margin-bottom: 0.9rem; }
+
+.card-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 0.75rem; }
+
+.area-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem; }
+.area-item {
+  background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 9px; padding: 0.45rem 0.5rem;
+}
+.area-name { font-size: 0.5rem; color: rgba(234,228,242,0.35); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
+.area-score { font-size: 0.9rem; font-weight: 800; line-height: 1; }
+.area-score.green { color: #4ade80; }
+.area-score.yellow { color: #facc15; }
+.area-score.red { color: #c03055; }
+
+/* Progress bar inside card */
+.prog-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+.prog-label { font-size: 0.52rem; color: rgba(234,228,242,0.35); white-space: nowrap; flex-shrink: 0; }
+.prog-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #b03050, #d04070); }
+.prog-val { font-size: 0.52rem; font-weight: 700; color: rgba(234,228,242,0.55); flex-shrink: 0; }
+
+/* Bottom stats bar */
+.stats-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-top: 1.1rem; width: 100%;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 0.75rem 1rem;
+}
+.stat { text-align: center; flex: 1; }
+.stat-val { font-size: 1.05rem; font-weight: 800; color: #eae4f2; line-height: 1; }
+.stat-lbl { font-size: 0.52rem; color: rgba(234,228,242,0.3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+.stat-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.07); flex-shrink: 0; }
+
+/* Annotation layer */
+.annotations {
+  max-width: 960px; margin: 1.25rem auto 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;
+}
+.ann {
+  background: #110d1a; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 0.7rem 0.85rem;
+}
+.ann-num {
+  font-size: 0.58rem; font-weight: 800; color: #b03050;
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;
+}
+.ann-title { font-size: 0.78rem; font-weight: 700; color: #d8d0e8; margin-bottom: 0.2rem; }
+.ann-desc { font-size: 0.68rem; color: #5a4e6a; line-height: 1.4; }
+
+/* approval section */
+.approve-section {
+  max-width: 960px; margin: 1.75rem auto 0;
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+}
+.btn {
+  padding: 0.6rem 1.4rem; border-radius: 9px; font-size: 0.82rem;
+  font-weight: 700; cursor: pointer; border: none; font-family: inherit;
+  transition: all 0.18s;
+}
+.btn-approve {
+  background: #b03050; color: #fff;
+  box-shadow: 0 4px 16px rgba(176,48,80,0.4);
+}
+.btn-approve:hover { background: #c03560; transform: translateY(-1px); }
+.btn-revise {
+  background: rgba(255,255,255,0.05); color: rgba(234,228,242,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.btn-revise:hover { background: rgba(255,255,255,0.08); color: rgba(234,228,242,0.8); }
+
+.approve-label { font-size: 0.78rem; color: #4a3e5a; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">Design Completo — Hero Section</div>
+  <p class="page-sub">Atmospheric Premium · Split layout · Precision &amp; Premium direction</p>
+</div>
+
+<!-- NAVBAR MOCK -->
+<div style="max-width:960px;margin:0 auto 0;padding:0">
+  <div class="navbar-mock">
+    <div class="nav-logo">
+      <div class="nav-logo-box">S</div>
+      <span class="nav-logo-text">SanarFlix Simulados</span>
+    </div>
+    <div class="nav-links">
+      <span class="nav-link">Diferenciais</span>
+      <span class="nav-link">Como funciona</span>
+      <span class="nav-link">Experiência</span>
+      <span class="nav-link">Performance</span>
+      <span class="nav-link active">SanarFlix PRO</span>
+    </div>
+    <div class="nav-actions">
+      <span class="nav-ghost">Entrar</span>
+      <span class="nav-cta">Participar do simulado</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div style="max-width:960px;margin:0 auto;position:relative;">
+  <div class="hero-wrapper">
+    <!-- Background -->
+    <div class="hero-bg">
+      <div class="glow-1"></div>
+      <div class="glow-2"></div>
+      <div class="glow-3"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="hero-content">
+
+      <!-- LEFT -->
+      <div class="hero-copy">
+        <div class="eyebrow-badge">
+          <div class="badge-dot"></div>
+          <span class="badge-text">SanarFlix Simulados</span>
+        </div>
+
+        <h1 class="hero-h1">
+          Performance com<br>
+          <em>precisão cirúrgica.</em>
+        </h1>
+
+        <p class="hero-sub">
+          Análise por área, ranking em tempo real e IA que define exatamente o que revisar antes da próxima prova.
+        </p>
+
+        <div class="cta-row">
+          <span class="cta-primary">
+            Entrar no próximo simulado <span class="cta-arrow">→</span>
+          </span>
+          <span class="cta-secondary">Ver como funciona</span>
+        </div>
+
+        <div class="social-proof">
+          <div class="avatars">
+            <div class="av" style="background:#7040a0">A</div>
+            <div class="av" style="background:#4060c0">B</div>
+            <div class="av" style="background:#b03050">C</div>
+            <div class="av" style="background:#306080">D</div>
+            <div class="av" style="background:#507040">E</div>
+          </div>
+          <span class="sp-text"><strong>18.400 alunos</strong> em preparação agora</span>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="hero-visual">
+        <div class="main-card-scene">
+          <!-- Chip Esquerda -->
+          <div class="chip-float chip-left">
+            <div class="chip-fval"><span class="accent">▲</span> +12%</div>
+            <div class="chip-flbl">Evolução</div>
+          </div>
+          <!-- Chip Direita -->
+          <div class="chip-float chip-right">
+            <div class="chip-fval"><span class="accent">#</span>42</div>
+            <div class="chip-flbl">Ranking</div>
+          </div>
+          <!-- Card principal -->
+          <div class="main-card">
+            <div class="card-eyebrow">
+              <span class="sparkle">✦</span> Análise SanarFlix
+            </div>
+            <div class="card-headline">Unifesp + 3 instituições</div>
+            <div class="card-desc">você seria aprovado nestas instituições com o desempenho atual</div>
+
+            <div class="card-divider"></div>
+
+            <div class="area-grid">
+              <div class="area-item">
+                <div class="area-name">Clínica Méd.</div>
+                <div class="area-score green">82%</div>
+              </div>
+              <div class="area-item">
+                <div class="area-name">Cirurgia</div>
+                <div class="area-score yellow">68%</div>
+              </div>
+              <div class="area-item">
+                <div class="area-name">Pediatria</div>
+                <div class="area-score red">54%</div>
+              </div>
+            </div>
+
+            <div class="prog-row">
+              <span class="prog-label">Progresso geral</span>
+              <div class="prog-track"><div class="prog-fill" style="width:74%"></div></div>
+              <span class="prog-val">74%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="stats-bar">
+          <div class="stat">
+            <div class="stat-val">4.200+</div>
+            <div class="stat-lbl">aprovados</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <div class="stat-val">18</div>
+            <div class="stat-lbl">provas no banco</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <div class="stat-val">97%</div>
+            <div class="stat-lbl">satisfação</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ANNOTATIONS -->
+<div class="annotations">
+  <div class="ann">
+    <div class="ann-num">① Fundo</div>
+    <div class="ann-title">Grid + 3 glow layers</div>
+    <div class="ann-desc">Grade 36px com máscara radial. Glow wine no top-left, roxo no bottom-right, sutil no top-right. Profundidade sem competir com o conteúdo.</div>
+  </div>
+  <div class="ann">
+    <div class="ann-num">② Eyebrow</div>
+    <div class="ann-title">Badge pill com dot vivo</div>
+    <div class="ann-desc">Pílula com borda wine, dot com glow, backdrop-blur. Ancora a marca antes da headline. Animação: fade-in + slide-up no load.</div>
+  </div>
+  <div class="ann">
+    <div class="ann-num">③ Card 3D</div>
+    <div class="ann-title">Perspectiva + hover tilt</div>
+    <div class="ann-desc">rotateX(2.5°) rotateY(-2°) estático + hover suave via Framer spring. Borda wine, glow interno, radial no topo do card.</div>
+  </div>
+  <div class="ann">
+    <div class="ann-num">④ Chips flutuantes</div>
+    <div class="ann-title">Esquerda + direita do card</div>
+    <div class="ann-desc">Posicionados absolutamente. Backdrop-blur + shadow profunda. Entram com slide-x staggered depois do card principal aparecer.</div>
+  </div>
+</div>
+
+<!-- APPROVE -->
+<div class="approve-section">
+  <span class="approve-label">Este design está aprovado?</span>
+  <button class="btn btn-approve" onclick="approve()">✓ Aprovado — gerar spec</button>
+  <button class="btn btn-revise" onclick="revise()">← Quero ajustes</button>
+</div>
+
+<script>
+function approve() {
+  if (window.__recordSelection) window.__recordSelection('approved', 'Design aprovado');
+  document.querySelector('.approve-section').innerHTML = '<p style="color:#4ade80;font-weight:700;font-size:0.88rem;">✓ Aprovado! Continuando no terminal...</p>';
+}
+function revise() {
+  if (window.__recordSelection) window.__recordSelection('revise', 'Quer ajustes');
+  document.querySelector('.approve-section').innerHTML = '<p style="color:#facc15;font-weight:700;font-size:0.88rem;">← Me diga no terminal o que ajustar.</p>';
+}
+</script>
+</body>
+</html>

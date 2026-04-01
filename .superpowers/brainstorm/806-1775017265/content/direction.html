@@ -1,0 +1,170 @@
+<style>
+  body { background: #0d0d12; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+
+  h2 { color: #f0eaf4; font-size: 1.4rem; font-weight: 700; margin-bottom: 0.35rem; }
+  .subtitle { color: #8b7fa0; font-size: 0.95rem; margin-bottom: 2rem; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+
+  .card {
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.25s ease;
+    background: #14121a;
+  }
+  .card:hover { transform: translateY(-4px); border-color: rgba(180,60,90,0.4); }
+  .card.selected { border-color: #c04060; box-shadow: 0 0 0 4px rgba(192,64,96,0.18); }
+
+  .card-image {
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Direção A — Power & Urgência */
+  .dir-a .card-image {
+    background: linear-gradient(135deg, #0a0008 0%, #1a0010 40%, #2d0020 100%);
+  }
+  .dir-a .card-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 80% 20%, rgba(160,20,60,0.35) 0%, transparent 65%);
+  }
+  .dir-a .eyebrow { color: #c04060; font-size: 0.6rem; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .dir-a .headline { color: #fff; font-size: 1.45rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 0.6rem; }
+  .dir-a .headline em { color: #e03060; font-style: normal; display: block; }
+  .dir-a .sub { color: rgba(255,255,255,0.45); font-size: 0.72rem; line-height: 1.4; }
+  .dir-a .cta-mock { display: inline-block; margin-top: 1rem; background: #b02040; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.45rem 1rem; border-radius: 8px; }
+  .dir-a .orb { position: absolute; top: -40px; right: -60px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(160,20,60,0.4) 0%, transparent 70%); }
+  .dir-a .counter { position: absolute; bottom: 1.25rem; right: 1.25rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.35rem 0.6rem; }
+  .dir-a .counter span { color: #c04060; font-size: 1.2rem; font-weight: 800; display: block; line-height: 1; }
+  .dir-a .counter small { color: rgba(255,255,255,0.35); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* Direção B — Precision & Premium */
+  .dir-b .card-image {
+    background: linear-gradient(160deg, #080c14 0%, #0d1220 50%, #0a0e1a 100%);
+  }
+  .dir-b .card-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(80,100,200,0.12) 0%, transparent 65%);
+  }
+  .dir-b .eyebrow { color: #7080d0; font-size: 0.6rem; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .dir-b .headline { color: #e8edf8; font-size: 1.35rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; margin-bottom: 0.6rem; }
+  .dir-b .headline em { color: #c04060; font-style: normal; }
+  .dir-b .sub { color: rgba(232,237,248,0.4); font-size: 0.72rem; line-height: 1.4; }
+  .dir-b .data-row { display: flex; gap: 0.6rem; margin-top: 1rem; }
+  .dir-b .data-chip { background: rgba(112,128,208,0.1); border: 1px solid rgba(112,128,208,0.25); border-radius: 6px; padding: 0.3rem 0.55rem; color: #8899e0; font-size: 0.6rem; font-weight: 600; }
+  .dir-b .product-frame { position: absolute; right: -10px; bottom: -10px; width: 130px; height: 90px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+  .dir-b .product-bar { height: 3px; background: linear-gradient(90deg, #c04060, #7080d0); margin: 8px 8px 6px; border-radius: 2px; }
+  .dir-b .product-row { height: 6px; background: rgba(255,255,255,0.06); margin: 0 8px 4px; border-radius: 3px; width: 70%; }
+  .dir-b .product-row.short { width: 45%; }
+  .dir-b .product-metric { position: absolute; top: 8px; right: 8px; color: #7080d0; font-size: 0.58rem; font-weight: 700; }
+
+  /* Direção C — Human & Transformation */
+  .dir-c .card-image {
+    background: linear-gradient(150deg, #0e0810 0%, #1a0e18 45%, #0f0c14 100%);
+  }
+  .dir-c .card-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 90% 70% at 30% 50%, rgba(140,40,80,0.2) 0%, transparent 60%);
+  }
+  .dir-c .eyebrow { color: #b05070; font-size: 0.6rem; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .dir-c .headline { color: #f0eaf4; font-size: 1.3rem; font-weight: 700; line-height: 1.18; letter-spacing: -0.02em; margin-bottom: 0.6rem; }
+  .dir-c .headline em { display: block; background: linear-gradient(90deg, #d04060, #b060a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-style: normal; }
+  .dir-c .sub { color: rgba(240,234,244,0.4); font-size: 0.72rem; line-height: 1.4; }
+  .dir-c .badge { margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(180,60,100,0.12); border: 1px solid rgba(180,60,100,0.25); border-radius: 999px; padding: 0.3rem 0.7rem; color: #d07090; font-size: 0.62rem; font-weight: 600; }
+  .dir-c .dots { display: flex; gap: 3px; }
+  .dir-c .dot { width: 5px; height: 5px; border-radius: 50%; background: #c04060; opacity: 0.8; }
+  .dir-c .testimonial { position: absolute; bottom: 1rem; right: 1rem; left: 1rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.5rem 0.65rem; }
+  .dir-c .testimonial p { color: rgba(255,255,255,0.55); font-size: 0.6rem; font-style: italic; line-height: 1.4; }
+  .dir-c .testimonial small { color: rgba(255,255,255,0.3); font-size: 0.55rem; display: block; margin-top: 0.25rem; }
+
+  .card-body { padding: 1.1rem 1.25rem 1.25rem; }
+  .card-body h3 { color: #f0eaf4; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .card-body p { color: #7a6e8a; font-size: 0.8rem; line-height: 1.45; }
+
+  .card.selected .card-body h3 { color: #e05070; }
+
+  .hint { text-align: center; color: #5a4e6a; font-size: 0.78rem; margin-top: 1.5rem; }
+</style>
+
+<h2>Qual direção emocional você quer para o hero?</h2>
+<p class="subtitle">Cada opção tem uma personalidade distinta — escolha a que mais ressoa com o produto que você quer construir</p>
+
+<div class="cards">
+
+  <!-- DIREÇÃO A -->
+  <div class="card dir-a" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="orb"></div>
+      <div class="eyebrow">⚡ Residência médica</div>
+      <div class="headline">A aprovação<br><em>não espera.</em></div>
+      <div class="sub">Simulados cronometrados.<br>Resultados que definem carreiras.</div>
+      <div class="cta-mock">Entrar no próximo simulado →</div>
+      <div class="counter"><span>4.200+</span><small>aprovados</small></div>
+    </div>
+    <div class="card-body">
+      <h3>A — Power &amp; Urgência</h3>
+      <p>Dark dramático, contraste alto, senso de stakes. Hero que provoca pressão emocional e mobiliza ação. Funciona quando o produto é sério e o momento é decisivo.</p>
+    </div>
+  </div>
+
+  <!-- DIREÇÃO B -->
+  <div class="card dir-b" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="eyebrow">◈ SanarFlix Simulados</div>
+      <div class="headline">Performance com<br><em>precisão cirúrgica.</em></div>
+      <div class="sub">Análise por área, ranking em tempo real,<br>e o que exatamente revisar.</div>
+      <div class="data-row">
+        <div class="data-chip">◆ Correção por área</div>
+        <div class="data-chip">▲ Ranking live</div>
+        <div class="data-chip">✦ IA insights</div>
+      </div>
+      <div class="product-frame">
+        <div class="product-metric">+12%</div>
+        <div class="product-bar"></div>
+        <div class="product-row"></div>
+        <div class="product-row short"></div>
+        <div class="product-row"></div>
+        <div class="product-row short"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Precision &amp; Premium</h3>
+      <p>Sofisticado, data-forward, produto como herói. Transmite inteligência e confiança técnica. Para quem quer parecer um produto de nível internacional.</p>
+    </div>
+  </div>
+
+  <!-- DIREÇÃO C -->
+  <div class="card dir-c" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="eyebrow">✦ Sua jornada começa aqui</div>
+      <div class="headline">Você está mais perto<br><em>do que imagina.</em></div>
+      <div class="sub">Cada simulado revela o que falta.<br>A aprovação é uma questão de método.</div>
+      <div class="badge"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> 18.400 alunos em preparação</div>
+      <div class="testimonial">
+        <p>"Subí 18 posições no ranking em 3 semanas."</p>
+        <small>— Ana Lima, aprovada Unifesp R1 2024</small>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Human &amp; Transformação</h3>
+      <p>Warmth, aspiração, storytelling. O aluno como protagonista. Gera identificação emocional e senso de comunidade. Funciona bem com prova social forte.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="hint">Clique para selecionar · Pode selecionar mais de uma se quiser combinar direções</p>

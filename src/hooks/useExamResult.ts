@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { simuladosApi, type AttemptRow, type AnswerRow } from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 import type { ExamState, ExamAnswer } from '@/types/exam';
 
 function answersToExamState(attempt: AttemptRow, answerRows: AnswerRow[]): ExamState {
@@ -49,7 +50,15 @@ export function useExamResult(simuladoId: string | undefined) {
 
     setLoading(true);
     try {
-      const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
+      const config = await simuladosApi.getSimulado(simuladoId);
+      if (!config) {
+        setAttempt(null);
+        setExamState(null);
+        setLoading(false);
+        return;
+      }
+
+      const attempt = await simuladosApi.getAttempt(config.id, user.id);
       if (!attempt) {
         setAttempt(null);
         setExamState(null);
@@ -62,9 +71,9 @@ export function useExamResult(simuladoId: string | undefined) {
       const answerRows = await simuladosApi.getAnswers(attempt.id);
 
       setExamState(answersToExamState(attempt, answerRows));
-    } catch (err: any) {
-      console.error('[useExamResult] Error:', err);
-      setError(err.message);
+    } catch (err: unknown) {
+      logger.error('[useExamResult] Error:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar resultado');
     } finally {
       setLoading(false);
     }

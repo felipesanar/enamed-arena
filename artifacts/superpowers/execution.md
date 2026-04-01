@@ -1,11 +1,11 @@
-## Passo 1 - Reestruturar composiùùo da home
+## Passo 1 - Reestruturar composiÔøΩÔøΩo da home
 - Files changed: `src/components/premium/home/HomePagePremium.tsx`
-- Mudanùas:
-  - Removidas as seùùes `QuickActionsSection`, `InsightsSection` e `ResumeSection` da home.
+- MudanÔøΩas:
+  - Removidas as seÔøΩÔøΩes `QuickActionsSection`, `InsightsSection` e `ResumeSection` da home.
   - Ajustado ritmo vertical global para escala compacta (`space-y` e `SECTION_SPACING`).
-  - Mantida estrutura essencial: hero -> prùximo simulado -> desempenho.
-- Verificaùùo: `rg "QuickActionsSection|ResumeSection|InsightsSection" src/components/premium/home/HomePagePremium.tsx`
-- Resultado: **pass** (nenhuma ocorrùncia encontrada).
+  - Mantida estrutura essencial: hero -> prÔøΩximo simulado -> desempenho.
+- VerificaÔøΩÔøΩo: `rg "QuickActionsSection|ResumeSection|InsightsSection" src/components/premium/home/HomePagePremium.tsx`
+- Resultado: **pass** (nenhuma ocorrÔøΩncia encontrada).
 
 ## Step 1 - Estruturar checklist rastreavel do PRD
 - Files changed: `artifacts/superpowers/execution.md`
@@ -15,16 +15,16 @@
 - Verification commands:
   - `python -c "import pathlib; p=pathlib.Path('artifacts/superpowers'); print(p.exists())"`
 - Result: pass (`True`)
-## Passo 2 - Compactar hero e limpar ruùdo visual
+## Passo 2 - Compactar hero e limpar ruÔøΩdo visual
 - Files changed: `src/components/premium/home/HomeHeroSection.tsx`
-- Mudanùas:
+- MudanÔøΩas:
   - Removidos badges `MetricPill` e simplificada a narrativa do hero.
-  - Status do aluno resumido em 1 linha: nùvel + quantidade de simulados.
-  - Hero compactado (tipografia, gaps, paddings) e CTAs ajustados para 1 primùrio + 1 secundùrio.
-- Verificaùùo:
+  - Status do aluno resumido em 1 linha: nÔøΩvel + quantidade de simulados.
+  - Hero compactado (tipografia, gaps, paddings) e CTAs ajustados para 1 primÔøΩrio + 1 secundÔøΩrio.
+- VerificaÔøΩÔøΩo:
   - `rg "MetricPill" src/components/premium/home/HomeHeroSection.tsx`
   - `rg "variant=\"primary\"" src/components/premium/home --glob "*.tsx" --count`
-- Resultado: **pass** (sem `MetricPill`; 2 CTAs primùrios no total da home: hero + prùximo simulado).
+- Resultado: **pass** (sem `MetricPill`; 2 CTAs primÔøΩrios no total da home: hero + prÔøΩximo simulado).
 
 ## Step 2 - Mapear implementacao no codigo por dominio funcional
 - Files changed: `artifacts/superpowers/execution.md`
@@ -39,23 +39,23 @@
   - `rg "caderno de erros|error notebook|erro"`
   - `rg "supabase|policy|rls|profiles|answers|attempt|attempts"`
 - Result: pass (ocorrencias encontradas e mapeadas)
-## Passo 3 - Transformar card de prùximo simulado
+## Passo 3 - Transformar card de prÔøΩximo simulado
 - Files changed:
   - `src/components/premium/home/UpcomingSimulationCard.tsx`
   - `src/components/premium/home/HomePagePremium.tsx`
-- Mudanùas:
-  - Substituùda mensagem negativa por bloco positivo ùPrùximo simulado disponùvelù.
+- MudanÔøΩas:
+  - SubstituÔøΩda mensagem negativa por bloco positivo ÔøΩPrÔøΩximo simulado disponÔøΩvelÔøΩ.
   - Inserida data orientativa + frase de progresso com quantidade de simulados feitos.
-  - Card compactado e reduzido para 1 CTA primùrio: ùVer cronogramaù.
-- Verificaùùo: `rg "Prùximo simulado disponùvel|Ver cronograma" src/components/premium/home/UpcomingSimulationCard.tsx`
+  - Card compactado e reduzido para 1 CTA primÔøΩrio: ÔøΩVer cronogramaÔøΩ.
+- VerificaÔøΩÔøΩo: `rg "PrÔøΩximo simulado disponÔøΩvel|Ver cronograma" src/components/premium/home/UpcomingSimulationCard.tsx`
 - Resultado: **pass**.
-## Passo 4 - Integrar inteligùncia ao desempenho
+## Passo 4 - Integrar inteligÔøΩncia ao desempenho
 - Files changed: `src/components/premium/home/KpiGrid.tsx`
-- Mudanùas:
-  - Ajustado cabeùalho para `Desempenho` com inteligùncia integrada.
+- MudanÔøΩas:
+  - Ajustado cabeÔøΩalho para `Desempenho` com inteligÔøΩncia integrada.
   - Grid de KPIs compactado com menor gap para reduzir altura total.
-  - Adicionado mini-bloco ùInteligùncia do momentoù dentro do mesmo section de desempenho.
-- Verificaùùo: `rg "Inteligùncia|insight|Leituras" src/components/premium/home/KpiGrid.tsx`
+  - Adicionado mini-bloco ÔøΩInteligÔøΩncia do momentoÔøΩ dentro do mesmo section de desempenho.
+- VerificaÔøΩÔøΩo: `rg "InteligÔøΩncia|insight|Leituras" src/components/premium/home/KpiGrid.tsx`
 - Resultado: **pass**.
 
 ## Step 3 - Auditar Onboarding e segmentacao por plano
@@ -118,12 +118,12 @@
 - Verification commands:
   - `Get-ChildItem artifacts/superpowers`
 - Result: pass (`finish.md` e `execution.md` presentes)
-## Passo 5 - Verificaùùo final e revisùo de qualidade
+## Passo 5 - VerificaÔøΩÔøΩo final e revisÔøΩo de qualidade
 - Files changed: `src/components/premium/home/HomePagePremium.tsx`
-- Mudanùas:
+- MudanÔøΩas:
   - Ajustado dependency array do `useMemo` para incluir `summary?.avg_score` e `summary?.total_attempts`.
   - Eliminado warning de hooks no escopo alterado.
-- Verificaùùo:
+- VerificaÔøΩÔøΩo:
   - `npm run lint` -> **fail** por erros/warnings preexistentes fora do escopo da home.
   - `npx eslint "src/components/premium/home/HomePagePremium.tsx" "src/components/premium/home/HomeHeroSection.tsx" "src/components/premium/home/UpcomingSimulationCard.tsx" "src/components/premium/home/KpiGrid.tsx"` -> **pass**.
 - Resultado: **pass no escopo alterado**.
@@ -299,8 +299,8 @@
 - Files changed: `src/components/premium/DashboardLayout.tsx`, `src/components/premium/PremiumSidebar.tsx`, `src/components/premium/NavItem.tsx`, `src/components/premium/sidebar/SidebarNavSection.tsx`, `src/components/premium/TopUtilityBar.tsx`
 - What changed:
   - Sidebar recebeu acabamento premium mais coeso (largura, gradiente, divisores e profundidade) com melhor transicao visual para o main.
-  - Topbar foi refinada com superfùcies mais limpas e controles mais bem resolvidos (menu, atalho e avatar/segmento).
-  - Itens de navegacao ficaram mais claros no estado ativo/hover/focus sem mudar estrutura de navegaùùo.
+  - Topbar foi refinada com superfÔøΩcies mais limpas e controles mais bem resolvidos (menu, atalho e avatar/segmento).
+  - Itens de navegacao ficaram mais claros no estado ativo/hover/focus sem mudar estrutura de navegaÔøΩÔøΩo.
 - Verification commands:
   - `npx eslint "src/components/premium/DashboardLayout.tsx" "src/components/premium/PremiumSidebar.tsx" "src/components/premium/NavItem.tsx" "src/components/premium/sidebar/SidebarNavSection.tsx" "src/components/premium/TopUtilityBar.tsx"`
 - Result: pass

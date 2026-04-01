@@ -1,0 +1,159 @@
+<h2>Mescla B + C — refinando o equilíbrio</h2>
+<p class="subtitle">Hero banner escuro wine com score (C) + corpo editorial claro, grid semântico de áreas e drill lateral (B+C). Qual proporção de "escuro vs claro" você prefere?</p>
+
+<div class="cards">
+
+  <!-- Blend 1: Dark hero pequeno, corpo todo claro -->
+  <div class="card" data-choice="blend1" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F8F5F7;padding:0;min-height:260px;border-radius:8px 8px 0 0;overflow:hidden;font-family:system-ui,sans-serif;">
+
+      <!-- Hero banner: compacto, só score + destaques -->
+      <div style="background:linear-gradient(135deg,hsl(345,64%,22%) 0%,hsl(340,58%,14%) 100%);padding:14px 16px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:8px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px;">Simulado #1 — Fundamentos</div>
+            <div style="font-size:34px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1;">72%</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;">43 de 60 questões · 1h24min</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:8px 10px;text-align:center;">
+              <div style="font-size:13px;font-weight:800;color:#4ade80;line-height:1;">82%</div>
+              <div style="font-size:7px;color:rgba(255,255,255,0.4);margin-top:2px;">melhor</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:8px 10px;text-align:center;">
+              <div style="font-size:13px;font-weight:800;color:#f87171;line-height:1;">54%</div>
+              <div style="font-size:7px;color:rgba(255,255,255,0.4);margin-top:2px;">foco</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corpo claro: dois painéis lado a lado -->
+      <div style="padding:12px;display:flex;gap:8px;flex:1;">
+        <!-- Áreas: grid 2×2 com cores semânticas (B) -->
+        <div style="flex:1;">
+          <div style="font-size:8px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;">Grande Área</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <div style="background:#fff;border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:6px 7px;box-shadow:0 2px 6px -3px rgba(34,197,94,0.2);">
+              <div style="font-size:7px;color:rgba(0,0,0,0.4);margin-bottom:2px;">Clínica Méd.</div>
+              <div style="font-size:16px;font-weight:900;color:#15803d;letter-spacing:-0.5px;">82%</div>
+              <div style="width:100%;height:3px;background:rgba(34,197,94,0.12);border-radius:99px;margin-top:4px;"><div style="width:82%;height:100%;background:#22c55e;border-radius:99px;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:8px;padding:6px 7px;">
+              <div style="font-size:7px;color:rgba(0,0,0,0.4);margin-bottom:2px;">Cirurgia</div>
+              <div style="font-size:16px;font-weight:900;color:#2A0D1A;letter-spacing:-0.5px;">68%</div>
+              <div style="width:100%;height:3px;background:rgba(0,0,0,0.06);border-radius:99px;margin-top:4px;"><div style="width:68%;height:100%;background:#8e1f3d;border-radius:99px;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:8px;padding:6px 7px;">
+              <div style="font-size:7px;color:rgba(0,0,0,0.4);margin-bottom:2px;">Ginecologia</div>
+              <div style="font-size:16px;font-weight:900;color:#2A0D1A;letter-spacing:-0.5px;">63%</div>
+              <div style="width:100%;height:3px;background:rgba(0,0,0,0.06);border-radius:99px;margin-top:4px;"><div style="width:63%;height:100%;background:#8e1f3d;border-radius:99px;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:6px 7px;box-shadow:0 2px 6px -3px rgba(239,68,68,0.15);">
+              <div style="font-size:7px;color:rgba(0,0,0,0.4);margin-bottom:2px;">Prev. Social</div>
+              <div style="font-size:16px;font-weight:900;color:#dc2626;letter-spacing:-0.5px;">54%</div>
+              <div style="width:100%;height:3px;background:rgba(239,68,68,0.12);border-radius:99px;margin-top:4px;"><div style="width:54%;height:100%;background:#ef4444;border-radius:99px;"></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Temas: lista clean ao clicar (C) -->
+        <div style="flex:1;">
+          <div style="font-size:8px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;">Temas · Clínica Médica</div>
+          <div style="background:#fff;border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">HAS</span><span style="font-size:10px;font-weight:800;color:#15803d;">90%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">Diabetes</span><span style="font-size:10px;font-weight:800;color:#2A0D1A;">75%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(251,191,36,0.25);border-radius:8px;padding:6px 8px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">Dislipidemia</span><span style="font-size:10px;font-weight:800;color:#d97706;">60%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">Pneumologia</span><span style="font-size:10px;font-weight:800;color:#dc2626;">48%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Blend 1 — Banner Compacto</h3>
+      <p>Hero escuro pequeno (só score + melhor/pior). Corpo inteiramente claro com grid 2×2 de áreas coloridas e temas ao lado. Mais "clean report".</p>
+    </div>
+  </div>
+
+  <!-- Blend 2: Dark hero generoso + corpo misto -->
+  <div class="card" data-choice="blend2" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F8F5F7;padding:0;min-height:260px;border-radius:8px 8px 0 0;overflow:hidden;font-family:system-ui,sans-serif;">
+
+      <!-- Hero banner: mais alto, com barra de áreas embutida -->
+      <div style="background:linear-gradient(135deg,hsl(345,64%,22%) 0%,hsl(340,58%,14%) 100%);padding:14px 16px 12px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-size:8px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px;">Simulado #1 — Fundamentos</div>
+            <div style="font-size:34px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1;">72%</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;">43 de 60 questões</div>
+          </div>
+          <!-- ring radial mini (A touch) -->
+          <svg width="52" height="52" viewBox="0 0 52 52" style="margin-top:2px;">
+            <circle cx="26" cy="26" r="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/>
+            <circle cx="26" cy="26" r="20" fill="none" stroke="#e83862" stroke-width="5" stroke-dasharray="90 36" stroke-linecap="round" transform="rotate(-90 26 26)"/>
+            <text x="26" y="30" text-anchor="middle" fill="white" font-size="10" font-weight="800">72%</text>
+          </svg>
+        </div>
+        <!-- mini barras de áreas dentro do hero -->
+        <div style="display:flex;gap:3px;">
+          <div style="flex:82;height:4px;background:linear-gradient(90deg,#e83862,#a4153a);border-radius:99px;"></div>
+          <div style="flex:68;height:4px;background:rgba(255,255,255,0.25);border-radius:99px;"></div>
+          <div style="flex:63;height:4px;background:rgba(255,255,255,0.18);border-radius:99px;"></div>
+          <div style="flex:54;height:4px;background:rgba(239,68,68,0.5);border-radius:99px;"></div>
+        </div>
+        <div style="display:flex;gap:3px;margin-top:3px;">
+          <div style="flex:82;font-size:7px;color:rgba(255,255,255,0.5);overflow:hidden;white-space:nowrap;">Clínica</div>
+          <div style="flex:68;font-size:7px;color:rgba(255,255,255,0.4);overflow:hidden;white-space:nowrap;">Cirurgia</div>
+          <div style="flex:63;font-size:7px;color:rgba(255,255,255,0.4);overflow:hidden;white-space:nowrap;">Gineco</div>
+          <div style="flex:54;font-size:7px;color:rgba(239,68,68,0.8);overflow:hidden;white-space:nowrap;">Prev.</div>
+        </div>
+      </div>
+
+      <!-- Corpo claro: dois painéis -->
+      <div style="padding:10px;display:flex;gap:7px;">
+        <!-- Áreas como lista seleccionável (C-style, fundo claro) -->
+        <div style="flex:1;">
+          <div style="font-size:8px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;">Grande Área</div>
+          <div style="background:#fff;border-left:3px solid #22c55e;border-radius:0 8px 8px 0;border-top:1px solid rgba(34,197,94,0.2);border-bottom:1px solid rgba(34,197,94,0.2);border-right:1px solid rgba(34,197,94,0.1);padding:5px 8px;margin-bottom:3px;display:flex;justify-content:space-between;box-shadow:inset 0 0 0 1px rgba(34,197,94,0.08);">
+            <span style="font-size:8px;color:#1a1a1a;font-weight:600;">Clínica Médica</span><span style="font-size:10px;font-weight:800;color:#15803d;">82%</span>
+          </div>
+          <div style="background:#fff;border-left:3px solid rgba(0,0,0,0.1);border-radius:0 8px 8px 0;border:1px solid rgba(0,0,0,0.07);border-left:3px solid rgba(0,0,0,0.12);padding:5px 8px;margin-bottom:3px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:#555;">Cirurgia</span><span style="font-size:10px;font-weight:800;color:#2A0D1A;">68%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-left:3px solid rgba(0,0,0,0.1);border-radius:0 8px 8px 0;padding:5px 8px;margin-bottom:3px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:#555;">Ginecologia</span><span style="font-size:10px;font-weight:800;color:#2A0D1A;">63%</span>
+          </div>
+          <div style="background:#fff;border-left:3px solid #ef4444;border-radius:0 8px 8px 0;border:1px solid rgba(239,68,68,0.2);padding:5px 8px;display:flex;justify-content:space-between;">
+            <span style="font-size:8px;color:#555;">Prev. Social</span><span style="font-size:10px;font-weight:800;color:#dc2626;">54%</span>
+          </div>
+        </div>
+        <!-- Temas -->
+        <div style="flex:1;">
+          <div style="font-size:8px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;">Temas · Clínica Médica</div>
+          <div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:8px;padding:5px 8px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">HAS</span><span style="font-size:10px;font-weight:800;color:#15803d;">90%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:8px;padding:5px 8px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">Diabetes</span><span style="font-size:10px;font-weight:800;color:#2A0D1A;">75%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(251,191,36,0.25);border-radius:8px;padding:5px 8px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">Dislipidemia</span><span style="font-size:10px;font-weight:800;color:#d97706;">60%</span>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8px;color:#1a1a1a;">Pneumologia</span><span style="font-size:10px;font-weight:800;color:#dc2626;">48%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Blend 2 — Hero com Mini-Panorama</h3>
+      <p>Hero escuro mais alto com anel radial + barras de área em miniatura embutidas. Corpo claro com áreas em lista com borda lateral colorida (verde/vermelho) + temas ao lado. Mais "athletic dashboard".</p>
+    </div>
+  </div>
+
+</div>

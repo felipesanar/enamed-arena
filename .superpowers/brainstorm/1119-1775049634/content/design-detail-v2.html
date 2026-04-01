@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulados — v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f4f1f5;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    color: #1a0d14;
+    padding: 24px 16px 60px;
+    min-height: 100vh;
+  }
+  .page { max-width: 720px; margin: 0 auto; }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 20px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: #8e3a6a;
+    background: rgba(142,58,106,.1); border: 1px solid rgba(142,58,106,.2);
+    border-radius: 6px; padding: 3px 8px; margin-bottom: 6px;
+  }
+  .page-header h1 { font-size: 26px; font-weight: 800; letter-spacing: -.035em; color: #1a0d14; line-height: 1.1; }
+  .page-header p { font-size: 13px; color: #7a5e6e; margin-top: 4px; line-height: 1.5; }
+
+  /* COMO FUNCIONA */
+  .info-card {
+    background: #fff;
+    border: 1px solid rgba(142,31,61,.14);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex; gap: 12px; align-items: flex-start;
+    box-shadow: 0 2px 12px -6px rgba(142,31,61,.12);
+    position: relative; overflow: hidden;
+  }
+  .info-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #8e1f3d 0%, rgba(142,31,61,.2) 60%, transparent 100%);
+  }
+  .info-icon-wrap {
+    width: 34px; height: 34px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(142,31,61,.12), rgba(142,31,61,.06));
+    border: 1px solid rgba(142,31,61,.18);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #8e1f3d;
+  }
+  .info-card-body .title { font-size: 12px; font-weight: 700; color: #1a0d14; margin-bottom: 3px; }
+  .info-card-body .desc { font-size: 11px; color: #7a5e6e; line-height: 1.55; }
+  .info-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .info-pill {
+    font-size: 10px; font-weight: 600; color: #8e1f3d;
+    background: rgba(142,31,61,.07); border: 1px solid rgba(142,31,61,.14);
+    border-radius: 5px; padding: 2px 7px;
+  }
+
+  /* HERO — shared base */
+  .hero-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(142deg, #5a1530 0%, #2e0c1e 45%, #160610 100%);
+    border: 1px solid rgba(232,56,98,.28);
+    border-radius: 24px; padding: 22px; margin-bottom: 8px;
+    box-shadow: 0 20px 48px -16px rgba(90,21,48,.65), 0 4px 16px -8px rgba(0,0,0,.3);
+  }
+  .glow-1 {
+    position: absolute; pointer-events: none;
+    top: -40px; right: -30px; width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,56,98,.28) 0%, transparent 65%);
+  }
+  .glow-2 {
+    position: absolute; pointer-events: none;
+    bottom: -30px; left: -20px; width: 140px; height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,20,60,.4) 0%, transparent 65%);
+  }
+  .glow-3 {
+    position: absolute; pointer-events: none; inset: 0; border-radius: 24px;
+    background: radial-gradient(ellipse 55% 70% at 5% 50%, rgba(232,56,98,.1) 0%, transparent 60%);
+  }
+  .top-line {
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.08) 50%, transparent 100%);
+  }
+  .hero-inner { position: relative; z-index: 1; }
+  .hero-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .hero-seq {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; color: rgba(255,255,255,.85);
+  }
+  .hero-title { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 4px; }
+  .hero-meta {
+    font-size: 12px; color: rgba(255,255,255,.45); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.25); }
+  .hero-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .btn-primary {
+    background: #e83862; color: #fff; border: none;
+    border-radius: 11px; padding: 10px 20px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 6px 20px -4px rgba(232,56,98,.5), 0 2px 8px -2px rgba(0,0,0,.2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,.07); color: rgba(255,255,255,.6);
+    border: 1px solid rgba(255,255,255,.12); border-radius: 11px;
+    padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn-disabled {
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.3);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 11px;
+    padding: 10px 20px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-deadline {
+    display: flex; align-items: center; gap: 8px; margin-top: 14px;
+    padding: 8px 12px;
+    background: rgba(232,56,98,.1); border: 1px solid rgba(232,56,98,.18);
+    border-radius: 9px; font-size: 11px; color: rgba(255,255,255,.6);
+  }
+  .hero-deadline strong { color: #e83862; }
+
+  /* HERO STATE: UPCOMING — same wine palette, subdued */
+  .hero-card.upcoming-state {
+    background: linear-gradient(142deg, #3d0d22 0%, #220810 45%, #120408 100%);
+    border-color: rgba(142,31,61,.3);
+    box-shadow: 0 20px 48px -16px rgba(60,12,30,.6), 0 4px 16px -8px rgba(0,0,0,.3);
+  }
+  .hero-card.upcoming-state .glow-1 {
+    background: radial-gradient(circle, rgba(142,31,61,.22) 0%, transparent 65%);
+  }
+  .hero-card.upcoming-state .glow-2 {
+    background: radial-gradient(circle, rgba(80,10,40,.5) 0%, transparent 65%);
+  }
+  .upcoming-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(232,140,170,.75);
+  }
+  .upcoming-ring {
+    width: 8px; height: 8px; border-radius: 50%;
+    border: 2px solid rgba(232,140,170,.6);
+    background: transparent;
+  }
+  .hero-countdown { display: flex; gap: 10px; margin: 14px 0 16px; }
+  .countdown-block {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px; padding: 8px 12px; text-align: center;
+  }
+  .countdown-block .val { font-size: 22px; font-weight: 900; color: rgba(255,255,255,.85); line-height: 1; }
+  .countdown-block .lbl { font-size: 8px; color: rgba(255,255,255,.3); text-transform: uppercase; letter-spacing: .1em; margin-top: 2px; }
+  .hero-open-info {
+    display: flex; align-items: center; gap: 8px; margin-top: 14px;
+    padding: 8px 12px;
+    background: rgba(142,31,61,.1); border: 1px solid rgba(142,31,61,.18);
+    border-radius: 9px; font-size: 11px; color: rgba(255,255,255,.45);
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .12em; color: #9e7a8e;
+    margin: 24px 0 6px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, rgba(142,58,106,.15), transparent);
+  }
+  .section-note { font-size: 10px; color: #b09aa8; margin-bottom: 14px; padding-left: 2px; }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline-spine {
+    position: absolute; left: 8px; top: 4px; bottom: 4px; width: 1.5px;
+    background: linear-gradient(to bottom, rgba(142,31,61,.35) 0%, rgba(142,31,61,.15) 40%, rgba(142,31,61,.04) 100%);
+  }
+  .timeline-item { position: relative; margin-bottom: 10px; }
+  .timeline-node {
+    position: absolute; left: -21px; top: 14px;
+    width: 9px; height: 9px; border-radius: 50%;
+  }
+  .node-active   { background: #e83862; border: 2px solid #e83862; box-shadow: 0 0 8px rgba(232,56,98,.55); }
+  .node-waiting  { background: rgba(200,155,70,.3); border: 1.5px solid rgba(200,155,70,.55); }
+  .node-done     { background: rgba(240,234,245,.2); border: 1px solid rgba(240,234,245,.35); }
+  .node-treino   { width: 7px; height: 7px; top: 15px; background: rgba(240,234,245,.08); border: 1px solid rgba(240,234,245,.14); }
+  .node-upcoming { background: rgba(180,100,130,.35); border: 1.5px solid rgba(180,100,130,.5); }
+
+  .tl-card {
+    border-radius: 14px; padding: 12px 14px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .tl-card.card-active   { background: rgba(255,248,250,.9); border-color: rgba(232,56,98,.18); box-shadow: 0 2px 8px -4px rgba(232,56,98,.12); }
+  .tl-card.card-waiting  { background: rgba(252,248,238,.8); border-color: rgba(200,155,70,.2); }
+  .tl-card.card-done     { background: #fff; border-color: rgba(0,0,0,.06); box-shadow: 0 2px 8px -4px rgba(0,0,0,.07); }
+  .tl-card.card-treino   { background: rgba(244,241,245,.55); border-color: rgba(0,0,0,.04); opacity: .6; }
+  .tl-card.card-upcoming { background: rgba(60,15,32,.45); border-color: rgba(142,31,61,.2); }
+
+  .tl-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .tl-left { flex: 1; min-width: 0; }
+  .tl-status { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+  .s-active   { color: #e83862; }
+  .s-waiting  { color: #a07018; }
+  .s-done     { color: #2d8f5a; }
+  .s-treino   { color: #9e7a8e; }
+  .s-upcoming { color: rgba(220,140,170,.75); }
+
+  .tl-title { font-size: 13px; font-weight: 700; color: #1a0d14; margin-bottom: 2px; line-height: 1.2; }
+  .tl-card.card-upcoming .tl-title { color: rgba(240,234,245,.65); }
+  .tl-card.card-treino   .tl-title { color: #7a5e6e; }
+  .tl-date { font-size: 11px; color: #9e7a8e; }
+  .tl-card.card-upcoming .tl-date  { color: rgba(240,234,245,.3); }
+
+  .tl-right { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .tl-score { font-size: 20px; font-weight: 900; color: #8e1f3d; line-height: 1; letter-spacing: -.03em; }
+  .tl-cta { font-size: 10px; font-weight: 600; color: #8e1f3d; display: inline-flex; align-items: center; gap: 3px; }
+  .tl-cta-muted   { color: #a07018; }
+  .tl-cta-soft    { color: #9e7a8e; }
+  .tl-cta-dim     { color: rgba(220,140,170,.6); }
+
+  .tl-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9px; font-weight: 600; padding: 2px 6px;
+    border-radius: 4px; margin-top: 5px;
+    background: rgba(160,112,24,.1); color: #8a6010;
+    border: 1px solid rgba(160,112,24,.18);
+  }
+  .state-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* helper label */
+  .state-lbl {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .12em; color: #c4a0b4; margin: 28px 0 6px;
+  }
+  /* status dot animation */
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 5px rgba(232,56,98,.6); }
+    50%      { box-shadow: 0 0 12px rgba(232,56,98,1); }
+  }
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="badge">
+      <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg>
+      ENAMED 2026
+    </div>
+    <h1>Simulados</h1>
+    <p>100 questões inéditas no modelo ENAMED, elaboradas pelos professores do SanarFlix PRO.</p>
+  </div>
+
+  <!-- COMO FUNCIONA -->
+  <div class="info-card">
+    <div class="info-icon-wrap">
+      <!-- Lucide: info -->
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+    </div>
+    <div class="info-card-body">
+      <div class="title">Como funciona</div>
+      <div class="desc">Cada simulado tem uma janela de execução. Realize dentro da janela para entrar no ranking nacional. Após a janela, é possível fazer como treino — o resultado não entra no ranking.</div>
+      <div class="info-pills">
+        <span class="info-pill">Não é possível pausar</span>
+        <span class="info-pill">Resultado liberado após a janela</span>
+        <span class="info-pill">Ranking disponível após encerramento</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ESTADO 1: JANELA ABERTA ─── -->
+  <div class="state-lbl">Estado 1 — Janela aberta</div>
+  <div class="hero-card" style="margin-bottom:28px">
+    <div class="glow-1"></div><div class="glow-2"></div><div class="glow-3"></div><div class="top-line"></div>
+    <div class="hero-inner">
+      <div class="hero-status-row">
+        <div style="display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e83862">
+          <div style="width:7px;height:7px;border-radius:50%;background:#e83862;box-shadow:0 0 8px rgba(232,56,98,.8)" class="pulse"></div>
+          Janela aberta
+        </div>
+        <div class="hero-seq">#3</div>
+      </div>
+      <div class="hero-title">Simulado ENAMED — Março 2026</div>
+      <div class="hero-meta">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        03/04 – 06/04/2026
+        <div class="hero-meta-dot"></div>
+        100 questões
+        <div class="hero-meta-dot"></div>
+        ENAMED 2026
+      </div>
+      <div class="hero-actions">
+        <button class="btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Iniciar Simulado
+        </button>
+        <button class="btn-secondary">Como funciona</button>
+      </div>
+      <div class="hero-deadline">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#e83862;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Janela fecha em <strong>2 dias e 14h</strong> — realize agora para entrar no ranking
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ESTADO 2: SEM ATIVO — PRÓXIMO ─── -->
+  <div class="state-lbl">Estado 2 — Sem ativo, próximo em espera</div>
+  <div class="hero-card upcoming-state" style="margin-bottom:28px">
+    <div class="glow-1"></div><div class="glow-2"></div><div class="top-line"></div>
+    <div class="hero-inner">
+      <div class="hero-status-row">
+        <div class="upcoming-badge">
+          <div class="upcoming-ring"></div>
+          Em breve
+        </div>
+        <div class="hero-seq" style="border-color:rgba(255,255,255,.07)">#4</div>
+      </div>
+      <div class="hero-title" style="color:rgba(255,255,255,.8)">Simulado ENAMED — Maio 2026</div>
+      <div class="hero-meta">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Abre 01/05/2026 <div class="hero-meta-dot"></div> 100 questões
+      </div>
+      <div class="hero-countdown">
+        <div class="countdown-block"><div class="val">29</div><div class="lbl">dias</div></div>
+        <div class="countdown-block"><div class="val">14</div><div class="lbl">horas</div></div>
+        <div class="countdown-block"><div class="val">33</div><div class="lbl">min</div></div>
+      </div>
+      <div class="hero-actions">
+        <div class="btn-disabled">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Ainda não disponível
+        </div>
+      </div>
+      <div class="hero-open-info">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Liberado automaticamente em 01/05 às 00:00
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TIMELINE ─── -->
+  <div class="section-label">Histórico e próximos</div>
+  <div class="section-note">Mais recente primeiro · clique para ver detalhes</div>
+
+  <div class="timeline">
+    <div class="timeline-spine"></div>
+
+    <!-- Em andamento -->
+    <div class="timeline-item">
+      <div class="timeline-node node-active pulse"></div>
+      <div class="tl-card card-active">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status s-active">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Em andamento
+            </div>
+            <div class="tl-title">Simulado ENAMED — Março 2026</div>
+            <div class="tl-date">03/04 – 06/04 · #3</div>
+          </div>
+          <div class="tl-right">
+            <a class="tl-cta">Continuar
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aguardando resultado -->
+    <div class="timeline-item">
+      <div class="timeline-node node-waiting"></div>
+      <div class="tl-card card-waiting">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status s-waiting">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Aguardando resultado
+            </div>
+            <div class="tl-title">Simulado ENAMED — Jan/2026</div>
+            <div class="tl-date">Resultado em 15/04 · #2</div>
+          </div>
+          <div class="tl-right">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(160,112,24,.5)"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <a class="tl-cta tl-cta-muted" style="font-size:9px">Aguardando</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concluído com nota -->
+    <div class="timeline-item">
+      <div class="timeline-node node-done"></div>
+      <div class="tl-card card-done">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status s-done">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Concluído
+            </div>
+            <div class="tl-title">Simulado ENAMED — Nov/2025</div>
+            <div class="tl-date">10/11 – 13/11 · #1</div>
+          </div>
+          <div class="tl-right">
+            <div class="tl-score">78%</div>
+            <a class="tl-cta">Ver resultado
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Treino (fora da janela) -->
+    <div class="timeline-item">
+      <div class="timeline-node node-treino"></div>
+      <div class="tl-card card-treino">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status s-treino">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+              Fora da janela
+            </div>
+            <div class="tl-title">Simulado ENAMED — Set/2025</div>
+            <div class="tl-date">01/09 – 04/09 · #0</div>
+            <div class="tl-tag">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>
+              Disponível como treino · não entra no ranking
+            </div>
+          </div>
+          <div class="tl-right">
+            <a class="tl-cta tl-cta-soft">Treinar
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming na timeline -->
+    <div class="timeline-item">
+      <div class="timeline-node node-upcoming"></div>
+      <div class="tl-card card-upcoming">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status s-upcoming">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Em breve
+            </div>
+            <div class="tl-title">Simulado ENAMED — Mai/2026</div>
+            <div class="tl-date">Abre 01/05/2026 · #4</div>
+          </div>
+          <div class="tl-right">
+            <a class="tl-cta tl-cta-dim">Agenda
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="font-size:11px;color:#b09aa8;text-align:center;margin-top:18px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    Ver todos os anteriores
+  </div>
+
+</div>
+</body>
+</html>

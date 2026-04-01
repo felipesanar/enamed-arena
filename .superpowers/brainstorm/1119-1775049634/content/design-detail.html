@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulados — Mockup detalhado</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f4f1f5;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    color: #1a0d14;
+    padding: 24px 16px 60px;
+    min-height: 100vh;
+  }
+
+  /* Page shell */
+  .page { max-width: 720px; margin: 0 auto; }
+
+  /* ---------- PAGE HEADER ---------- */
+  .page-header { margin-bottom: 20px; }
+  .page-header .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: #8e3a6a;
+    background: rgba(142,58,106,.1); border: 1px solid rgba(142,58,106,.2);
+    border-radius: 6px; padding: 3px 8px; margin-bottom: 6px;
+  }
+  .page-header h1 {
+    font-size: 26px; font-weight: 800; letter-spacing: -.035em; color: #1a0d14;
+    line-height: 1.1;
+  }
+  .page-header p {
+    font-size: 13px; color: #7a5e6e; margin-top: 4px; line-height: 1.5;
+  }
+
+  /* ---------- COMO FUNCIONA (premium redesign) ---------- */
+  .info-card {
+    background: #fff;
+    border: 1px solid rgba(142,31,61,.14);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    box-shadow: 0 2px 12px -6px rgba(142,31,61,.12);
+    position: relative;
+    overflow: hidden;
+  }
+  .info-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #8e1f3d 0%, rgba(142,31,61,.2) 60%, transparent 100%);
+  }
+  .info-icon {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(142,31,61,.12), rgba(142,31,61,.06));
+    border: 1px solid rgba(142,31,61,.18);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .info-card-body .title {
+    font-size: 12px; font-weight: 700; color: #1a0d14; margin-bottom: 3px;
+  }
+  .info-card-body .desc {
+    font-size: 11px; color: #7a5e6e; line-height: 1.55;
+  }
+  .info-pills {
+    display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;
+  }
+  .info-pill {
+    font-size: 10px; font-weight: 600; color: #8e1f3d;
+    background: rgba(142,31,61,.07); border: 1px solid rgba(142,31,61,.14);
+    border-radius: 5px; padding: 2px 7px;
+  }
+
+  /* ---------- HERO CARD — ACTIVE STATE ---------- */
+  .hero-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(142deg, #5a1530 0%, #2e0c1e 45%, #160610 100%);
+    border: 1px solid rgba(232,56,98,.28);
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 8px;
+    box-shadow: 0 20px 48px -16px rgba(90,21,48,.65), 0 4px 16px -8px rgba(0,0,0,.3);
+  }
+  /* atmospheric glows */
+  .hero-card .glow-1 {
+    position: absolute; pointer-events: none;
+    top: -40px; right: -30px; width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,56,98,.28) 0%, transparent 65%);
+  }
+  .hero-card .glow-2 {
+    position: absolute; pointer-events: none;
+    bottom: -30px; left: -20px; width: 140px; height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,20,60,.4) 0%, transparent 65%);
+  }
+  .hero-card .glow-3 {
+    position: absolute; pointer-events: none; inset: 0; border-radius: 24px;
+    background: radial-gradient(ellipse 55% 70% at 5% 50%, rgba(232,56,98,.1) 0%, transparent 60%);
+  }
+  .hero-card .top-line {
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.08) 50%, transparent 100%);
+  }
+  .hero-inner { position: relative; z-index: 1; }
+
+  .hero-status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .hero-status-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: #e83862;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #e83862;
+    box-shadow: 0 0 8px rgba(232,56,98,.8);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 6px rgba(232,56,98,.7); }
+    50% { box-shadow: 0 0 14px rgba(232,56,98,1); }
+  }
+  .hero-seq {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; color: rgba(255,255,255,.85);
+  }
+
+  .hero-title {
+    font-size: 22px; font-weight: 800; color: #fff;
+    letter-spacing: -.03em; line-height: 1.1; margin-bottom: 4px;
+  }
+  .hero-meta {
+    font-size: 12px; color: rgba(255,255,255,.45); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.25); }
+
+  .hero-actions {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: #e83862;
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 10px 20px;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px -4px rgba(232,56,98,.5), 0 2px 8px -2px rgba(0,0,0,.2);
+    transition: all .2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.6);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 11px;
+    padding: 10px 16px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Deadline ticker */
+  .hero-deadline {
+    display: flex; align-items: center; gap: 6px; margin-top: 14px;
+    padding: 8px 12px;
+    background: rgba(232,56,98,.1); border: 1px solid rgba(232,56,98,.18);
+    border-radius: 9px;
+    font-size: 11px; color: rgba(255,255,255,.6);
+  }
+  .hero-deadline strong { color: #e83862; }
+
+  /* ---------- HERO ESTADO: UPCOMING (sem ativo) ---------- */
+  .hero-card.upcoming-state {
+    background: linear-gradient(142deg, #1a1a2e 0%, #0d1020 45%, #080c18 100%);
+    border-color: rgba(100,160,240,.22);
+    box-shadow: 0 20px 48px -16px rgba(10,16,40,.6), 0 4px 16px -8px rgba(0,0,0,.3);
+  }
+  .hero-card.upcoming-state .glow-1 {
+    background: radial-gradient(circle, rgba(100,160,240,.18) 0%, transparent 65%);
+  }
+  .hero-card.upcoming-state .status-badge-upcoming {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(100,160,240,.85);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .upcoming-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(100,160,240,.6); border: 1.5px solid rgba(100,160,240,.8);
+  }
+  .hero-countdown {
+    display: flex; gap: 10px; margin: 14px 0 16px;
+  }
+  .countdown-block {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px; padding: 8px 12px; text-align: center;
+  }
+  .countdown-block .val { font-size: 22px; font-weight: 900; color: #fff; line-height: 1; }
+  .countdown-block .lbl { font-size: 8px; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .1em; margin-top: 2px; }
+  .btn-disabled {
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.3);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 11px; padding: 10px 20px;
+    font-size: 13px; font-weight: 600; cursor: not-allowed;
+  }
+
+  /* ---------- SECTION LABEL ---------- */
+  .section-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .12em; color: #9e7a8e;
+    margin: 24px 0 12px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, rgba(142,58,106,.15), transparent);
+  }
+
+  /* ---------- TIMELINE ---------- */
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline-spine {
+    position: absolute; left: 8px; top: 4px; bottom: 4px;
+    width: 1.5px;
+    background: linear-gradient(to bottom,
+      rgba(142,31,61,.35) 0%,
+      rgba(142,31,61,.15) 40%,
+      rgba(142,31,61,.05) 100%);
+  }
+
+  .timeline-item {
+    position: relative; margin-bottom: 10px;
+  }
+  .timeline-node {
+    position: absolute; left: -21px;
+    top: 14px;
+    width: 9px; height: 9px; border-radius: 50%;
+  }
+  .node-upcoming {
+    background: rgba(100,160,240,.45);
+    border: 1.5px solid rgba(100,160,240,.65);
+    box-shadow: 0 0 6px rgba(100,160,240,.3);
+  }
+  .node-completed {
+    background: rgba(240,234,245,.18);
+    border: 1px solid rgba(240,234,245,.28);
+  }
+  .node-waiting {
+    background: rgba(200,160,80,.25);
+    border: 1.5px solid rgba(200,160,80,.4);
+  }
+  .node-ghost {
+    width: 7px; height: 7px; top: 15px;
+    background: rgba(240,234,245,.08);
+    border: 1px solid rgba(240,234,245,.12);
+  }
+
+  /* Timeline card */
+  .tl-card {
+    border-radius: 14px; padding: 12px 14px;
+    border: 1px solid transparent;
+    transition: all .2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .tl-card.upcoming-card {
+    background: rgba(20,30,60,.45);
+    border-color: rgba(100,160,240,.18);
+  }
+  .tl-card.completed-card {
+    background: #fff;
+    border-color: rgba(0,0,0,.06);
+    box-shadow: 0 2px 8px -4px rgba(0,0,0,.08);
+  }
+  .tl-card.waiting-card {
+    background: rgba(250,248,240,.7);
+    border-color: rgba(200,160,80,.2);
+  }
+  .tl-card.ghost-card {
+    background: rgba(244,241,245,.5);
+    border-color: rgba(0,0,0,.04);
+    opacity: .55;
+  }
+
+  .tl-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .tl-left { flex: 1; min-width: 0; }
+  .tl-status {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .09em; margin-bottom: 3px;
+  }
+  .status-upcoming { color: rgba(100,160,240,.8); }
+  .status-completed { color: #2d8f5a; }
+  .status-waiting { color: #a07820; }
+  .status-ghost { color: #9e7a8e; }
+
+  .tl-title { font-size: 13px; font-weight: 700; color: #1a0d14; margin-bottom: 2px; line-height: 1.2; }
+  .tl-card.upcoming-card .tl-title { color: rgba(240,234,245,.7); }
+  .tl-card.ghost-card .tl-title { color: #7a5e6e; }
+
+  .tl-date { font-size: 11px; color: #9e7a8e; }
+  .tl-card.upcoming-card .tl-date { color: rgba(240,234,245,.35); }
+
+  .tl-right { flex-shrink: 0; text-align: right; }
+  .tl-score { font-size: 20px; font-weight: 900; color: #8e1f3d; line-height: 1; letter-spacing: -.03em; }
+  .tl-cta {
+    font-size: 10px; font-weight: 600; color: #8e1f3d;
+    display: inline-flex; align-items: center; gap: 3px; margin-top: 4px;
+    text-decoration: none;
+  }
+  .tl-cta-muted { color: #9e7a8e; }
+  .tl-cta-blue { color: rgba(100,160,240,.7); }
+
+  /* "Em treino" tag */
+  .tl-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9px; font-weight: 600; padding: 2px 6px;
+    border-radius: 4px; margin-top: 5px;
+  }
+  .tag-treino { background: rgba(200,160,80,.12); color: #a07820; border: 1px solid rgba(200,160,80,.2); }
+
+  /* Toggle label */
+  .toggle-label {
+    font-size: 11px; color: #9e7a8e; text-align: center;
+    margin-top: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+
+  /* section note */
+  .section-note {
+    font-size: 10px; color: #b09aa8; margin-bottom: 16px; padding-left: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="badge">● ENAMED 2026</div>
+    <h1>Simulados</h1>
+    <p>100 questões inéditas no modelo ENAMED, elaboradas pelos professores do SanarFlix PRO.</p>
+  </div>
+
+  <!-- COMO FUNCIONA — premium redesign -->
+  <div class="info-card">
+    <div class="info-icon">📋</div>
+    <div class="info-card-body">
+      <div class="title">Como funciona</div>
+      <div class="desc">Cada simulado tem uma janela de execução. Realize dentro da janela para entrar no ranking nacional. Após a janela, é possível fazer como treino — o resultado não entra no ranking.</div>
+      <div class="info-pills">
+        <span class="info-pill">Não é possível pausar</span>
+        <span class="info-pill">Resultado liberado após a janela</span>
+        <span class="info-pill">Ranking disponível após encerramento</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- HERO — ESTADO ATIVO                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div style="margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9e7a8e">
+    Estado 1 — Simulado com janela aberta
+  </div>
+  <div class="hero-card" style="margin-bottom:28px">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+    <div class="glow-3"></div>
+    <div class="top-line"></div>
+    <div class="hero-inner">
+      <div class="hero-status-row">
+        <div class="hero-status-badge">
+          <div class="status-dot"></div>
+          Janela aberta
+        </div>
+        <div class="hero-seq">#3</div>
+      </div>
+      <div class="hero-title">Simulado ENAMED — Março 2026</div>
+      <div class="hero-meta">
+        100 questões <div class="hero-meta-dot"></div>
+        03/04 – 06/04/2026 <div class="hero-meta-dot"></div>
+        ENAMED 2026
+      </div>
+      <div class="hero-actions">
+        <button class="btn-primary">Iniciar Simulado →</button>
+        <button class="btn-secondary">Como funciona</button>
+      </div>
+      <div class="hero-deadline">
+        ⏱ Janela fecha em <strong>2 dias e 14h</strong> — realize agora para entrar no ranking
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- HERO — ESTADO UPCOMING (sem ativo)             -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div style="margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9e7a8e">
+    Estado 2 — Sem ativo, próximo simulado em espera
+  </div>
+  <div class="hero-card upcoming-state" style="margin-bottom:28px">
+    <div class="glow-1"></div>
+    <div class="top-line"></div>
+    <div class="hero-inner">
+      <div class="hero-status-row">
+        <div class="status-badge-upcoming">
+          <div class="upcoming-dot"></div>
+          Em breve
+        </div>
+        <div class="hero-seq" style="border-color:rgba(100,160,240,.2)">#4</div>
+      </div>
+      <div class="hero-title" style="color:rgba(255,255,255,.85)">Simulado ENAMED — Maio 2026</div>
+      <div class="hero-meta">100 questões <div class="hero-meta-dot"></div> Abre 01/05/2026</div>
+      <div class="hero-countdown">
+        <div class="countdown-block"><div class="val">29</div><div class="lbl">dias</div></div>
+        <div class="countdown-block"><div class="val">14</div><div class="lbl">horas</div></div>
+        <div class="countdown-block"><div class="val">33</div><div class="lbl">min</div></div>
+      </div>
+      <div class="hero-actions">
+        <div class="btn-disabled">Ainda não disponível</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIMELINE — abaixo do hero                       -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section-label">Histórico e próximos</div>
+  <div class="section-note">Mais recente primeiro · clique para ver detalhes</div>
+
+  <div class="timeline">
+    <div class="timeline-spine"></div>
+
+    <!-- Item: Em andamento (in_progress) -->
+    <div class="timeline-item">
+      <div class="timeline-node node-upcoming" style="background:#e83862;border-color:#e83862;box-shadow:0 0 8px rgba(232,56,98,.5)"></div>
+      <div class="tl-card completed-card" style="border-color:rgba(232,56,98,.2);background:rgba(255,248,250,.8)">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status" style="color:#e83862">Em andamento</div>
+            <div class="tl-title">Simulado ENAMED — Março 2026</div>
+            <div class="tl-date">03/04 – 06/04 · #3</div>
+          </div>
+          <div class="tl-right">
+            <a class="tl-cta">Continuar →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item: Aguardando resultado -->
+    <div class="timeline-item">
+      <div class="timeline-node node-waiting"></div>
+      <div class="tl-card waiting-card">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status status-waiting">Aguardando resultado</div>
+            <div class="tl-title">Simulado ENAMED — Jan/2026</div>
+            <div class="tl-date">Resultado liberado em 15/04 · #2</div>
+          </div>
+          <div class="tl-right">
+            <div style="font-size:16px">🔒</div>
+            <a class="tl-cta tl-cta-muted" style="margin-top:4px">Aguardando</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item: Concluído com nota -->
+    <div class="timeline-item">
+      <div class="timeline-node node-completed"></div>
+      <div class="tl-card completed-card">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status status-completed">Concluído</div>
+            <div class="tl-title">Simulado ENAMED — Nov/2025</div>
+            <div class="tl-date">10/11 – 13/11 · #1</div>
+          </div>
+          <div class="tl-right">
+            <div class="tl-score">78%</div>
+            <a class="tl-cta">Ver resultado →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item: Treino (available_late) -->
+    <div class="timeline-item">
+      <div class="timeline-node node-ghost"></div>
+      <div class="tl-card ghost-card">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status status-ghost">Fora da janela</div>
+            <div class="tl-title">Simulado ENAMED — Set/2025</div>
+            <div class="tl-date">01/09 – 04/09 · #0</div>
+            <div class="tl-tag tag-treino">🏋 Disponível como treino</div>
+          </div>
+          <div class="tl-right">
+            <a class="tl-cta tl-cta-muted">Treinar →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item: Próximo (upcoming, na timeline junto) -->
+    <div class="timeline-item">
+      <div class="timeline-node node-upcoming"></div>
+      <div class="tl-card upcoming-card">
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-status status-upcoming">Em breve</div>
+            <div class="tl-title" style="color:rgba(240,234,245,.7)">Simulado ENAMED — Mai/2026</div>
+            <div class="tl-date">Abre 01/05/2026 · #4</div>
+          </div>
+          <div class="tl-right">
+            <a class="tl-cta tl-cta-blue">Ver agenda →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toggle-label">↑ Ver menos &nbsp;/&nbsp; ↓ Carregar mais</div>
+
+</div>
+</body>
+</html>

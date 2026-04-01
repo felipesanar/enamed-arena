@@ -1,22 +1,61 @@
-import { Stethoscope } from "lucide-react";
+import { Link } from "react-router-dom";
+import { PanelLeftClose, PanelLeft } from "lucide-react";
+import { BrandIcon, BrandLogo } from "@/components/brand/BrandMark";
+import { cn } from "@/lib/utils";
 
-export function SidebarBrandBlock() {
+type SidebarBrandBlockProps = {
+  collapsed: boolean;
+  onCollapse: () => void;
+  onExpand: () => void;
+};
+
+const iconBtnClass =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[color,background-color,border-color,box-shadow] duration-200 hover:border-white/[0.12] hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
+
+export function SidebarBrandBlock({ collapsed, onCollapse, onExpand }: SidebarBrandBlockProps) {
+  if (collapsed) {
+    return (
+      <div className="flex flex-col items-center gap-3 px-0.5">
+        <button
+          type="button"
+          onClick={onExpand}
+          className={iconBtnClass}
+          aria-label="Expandir menu lateral"
+        >
+          <PanelLeft className="h-4 w-4" aria-hidden />
+        </button>
+        <Link
+          to="/"
+          className={cn(
+            iconBtnClass,
+            "h-10 w-10 border-white/[0.1] hover:border-primary/30",
+          )}
+          aria-label="Ir para início"
+        >
+          <BrandIcon size="md" alt="" className="brightness-0 invert" />
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 px-0.5 [@media(max-height:700px)]:gap-2">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.1] bg-[linear-gradient(135deg,#6A1E38_0%,#4A1528_100%)] shadow-[0_4px_12px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] [@media(max-height:700px)]:h-8 [@media(max-height:700px)]:w-8">
-        <Stethoscope className="h-[18px] w-[18px] text-white/90 [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4" aria-hidden />
+    <div className="flex items-start gap-2 px-0.5">
+      <div className="min-w-0 flex-1 pt-0.5">
+        <BrandLogo
+          tone="onDark"
+          variant="lg"
+          alt="SanarFlix PRO ENAMED"
+          className="!h-10 !max-h-10 w-full max-w-[232px] object-contain object-left [@media(max-height:700px)]:!h-8 [@media(max-height:700px)]:!max-h-8"
+        />
       </div>
-      <div className="flex flex-col min-w-0">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/40">
-          SANARFLIX
-        </span>
-        <span className="text-[14px] font-bold leading-tight tracking-[-0.02em] text-white [@media(max-height:700px)]:text-[12px]">
-          PRO: ENAMED
-        </span>
-        <span className="mt-1.5 inline-flex w-fit items-center rounded-md border border-white/[0.12] bg-[linear-gradient(135deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.06)_100%)] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] [@media(max-height:700px)]:mt-1 [@media(max-height:700px)]:px-1.5 [@media(max-height:700px)]:py-0">
-          Pro
-        </span>
-      </div>
+      <button
+        type="button"
+        onClick={onCollapse}
+        className={iconBtnClass}
+        aria-label="Recolher menu lateral"
+      >
+        <PanelLeftClose className="h-4 w-4" aria-hidden />
+      </button>
     </div>
   );
 }

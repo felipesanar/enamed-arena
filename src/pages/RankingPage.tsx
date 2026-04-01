@@ -14,16 +14,20 @@ import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useRanking } from '@/hooks/useRanking';
 import { cn } from '@/lib/utils';
 import { Trophy, Medal, Filter, Users, Stethoscope, Building, Globe, Crown } from 'lucide-react';
-import type { ComparisonFilter, SegmentFilter } from '@/services/rankingApi';
+import {
+  getAllowedRankingSegmentFilters,
+  type ComparisonFilter,
+  type SegmentFilter,
+} from '@/services/rankingApi';
 import { trackEvent } from '@/lib/analytics';
 import { useUser } from '@/contexts/UserContext';
 
 // ─── Module-scope constants ───
 
 const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.ElementType }> = [
-  { key: 'all',       label: 'Todos',          icon: Globe },
-  { key: 'sanarflix', label: 'Aluno SanarFlix', icon: Users },
-  { key: 'pro',       label: 'Aluno PRO',       icon: Crown },
+  { key: 'all',       label: 'Todos',                    icon: Globe },
+  { key: 'sanarflix', label: 'Aluno SanarFlix padrão',   icon: Users },
+  { key: 'pro',       label: 'Aluno PRO',                icon: Crown },
 ];
 
 // ─── Sub-components ───
@@ -85,11 +89,10 @@ export default function RankingPage() {
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
 
-  const allowedSegments = useMemo((): SegmentFilter[] => {
-    if (segment === 'pro') return ['all', 'pro'];
-    if (segment === 'standard') return ['all', 'sanarflix'];
-    return ['all'];
-  }, [segment]);
+  const allowedSegments = useMemo(
+    () => getAllowedRankingSegmentFilters(segment),
+    [segment],
+  );
 
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter(o => allowedSegments.includes(o.key));
 

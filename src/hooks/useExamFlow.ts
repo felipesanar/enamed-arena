@@ -17,6 +17,8 @@ import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exa
 import type { Question } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
+import { simuladosApi } from '@/services/simuladosApi';
+import { logger } from '@/lib/logger';
 
 export interface UseExamFlowReturn {
   // Data
@@ -64,6 +66,8 @@ export interface UseExamFlowReturn {
   isHighConfFlagged: boolean;
   attemptId: string | null;
   notifyResultByEmail: boolean;
+  /** Após finalizar: true se a tentativa entrou na janela oficial (ranking). */
+  isWithinWindow: boolean;
 }
 
 const emptySummary = {
@@ -77,11 +81,12 @@ const emptySummary = {
 export function useExamFlow(): UseExamFlowReturn {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isOnboardingComplete } = useUser();
+  const { isOnboardingComplete, profile } = useUser();
 
   const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
-  const storage = useExamStorageReal(id || '');
+  /** Sempre UUID do banco — rotas podem usar `slug`; RPCs e FK exigem UUID. */
+  const storage = useExamStorageReal(simulado?.id ?? '');
 
   const [state, setState] = useState<ExamState | null>(null);
   const [showNavigator, setShowNavigator] = useState(false);
@@ -90,6 +95,7 @@ export function useExamFlow(): UseExamFlowReturn {
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [notifyResultByEmail, setNotifyResultByEmailState] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
+  const [isWithinWindow, setIsWithinWindow] = useState(true);
   const hasFinalized = useRef(false);
 
   // ── Gate: redirect if not eligible ──
@@ -140,6 +146,10 @@ export function useExamFlow(): UseExamFlowReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simulado?.id, loadingSimulado, questions.length]);
 
+  useEffect(() => {
+    setIsWithinWindow(true);
+  }, [simulado?.id]);
+
   const focusControl = useFocusControl({
     onTabExit: () => storage.registerTabExit(),
     onTabReturn: () => {},
@@ -154,6 +164,20 @@ export function useExamFlow(): UseExamFlowReturn {
     try {
       await storage.submitAttempt(state);
       setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
+
+      let withinRankingWindow = true;
+      if (profile?.id) {
+        try {
+          const attempt = await simuladosApi.getAttempt(simulado.id, profile.id);
+          if (attempt && typeof attempt.is_within_window === 'boolean') {
+            withinRankingWindow = attempt.is_within_window;
+          }
+        } catch (e) {
+          logger.error('[useExamFlow] Não foi possível ler is_within_window da tentativa:', e);
+        }
+      }
+      setIsWithinWindow(withinRankingWindow);
+
       const answeredCount = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
       trackEvent('simulado_completed', {
         simuladoId: simulado.id,
@@ -168,7 +192,7 @@ export function useExamFlow(): UseExamFlowReturn {
     } finally {
       setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length]);
+  }, [state, simulado, storage, questionIds.length, profile?.id]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     setNotificationSaving(true);
@@ -405,5 +429,6 @@ export function useExamFlow(): UseExamFlowReturn {
     isHighConfFlagged: currentAnswer?.highConfidence ?? false,
     attemptId: storage.attemptId.current,
     notifyResultByEmail,
+    isWithinWindow,
   };
 }

@@ -48,9 +48,14 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
         </p>
       )}
       {simulado.status === 'available_late' && (
-        <p className="text-caption text-warning mt-2">
-          Fora da janela · Não entra no ranking
-        </p>
+        <div className="mt-2 space-y-1.5">
+          <p className="text-caption text-foreground">
+            Mesmo simulado completo — referência para sua preparação.
+          </p>
+          <span className="inline-flex text-caption font-medium px-2 py-0.5 rounded-md bg-info/10 text-info border border-info/20">
+            Não conta no ranking nacional
+          </span>
+        </div>
       )}
       {simulado.status === 'closed_waiting' && !simulado.userState?.finished && (
         <p className="text-caption text-muted-foreground mt-2">

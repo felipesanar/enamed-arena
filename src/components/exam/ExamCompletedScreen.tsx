@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { CheckCircle2, Calendar, ArrowRight, Mail, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Calendar, ArrowRight, Mail, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/simulado-helpers';
 
@@ -47,15 +47,18 @@ export function ExamCompletedScreen({
         </motion.div>
 
         <h1 className="text-heading-1 text-foreground mb-3">
-          {isWithinWindow ? 'Simulado concluído!' : 'Treino concluído!'}
+          Simulado concluído!
         </h1>
         <p className="text-body-lg text-muted-foreground mb-2">
           Você completou o <strong className="text-foreground">{simuladoTitle}</strong>.
         </p>
         {!isWithinWindow && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/10 border border-warning/20 text-warning text-body-sm font-medium mb-3">
-            <AlertTriangle className="h-4 w-4" />
-            Realizado fora da janela — não entra no ranking.
+          <div className="inline-flex items-start gap-2 px-4 py-3 rounded-xl bg-primary/[0.06] border border-primary/15 text-body-sm text-foreground text-left max-w-md mx-auto mb-3">
+            <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
+            <span>
+              <strong className="text-foreground">Esta realização não entra no ranking nacional</strong>
+              {' '}— a janela oficial já havia encerrado. Seu desempenho, gabarito e comentários seguem valendo para sua preparação.
+            </span>
           </div>
         )}
         {/* Copy de confiança */}

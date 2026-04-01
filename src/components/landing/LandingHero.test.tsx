@@ -7,8 +7,9 @@ vi.mock("framer-motion", () => ({
   motion: new Proxy({}, {
     get: (_target, tag: string) =>
       ({ children, style, initial: _i, animate: _a, whileHover: _wh, transition: _t, ...rest }) =>
-        ({ div: <div style={style} {...rest}>{children}</div>, h1: <h1 {...rest}>{children}</h1>, p: <p {...rest}>{children}</p>, section: <section style={style} {...rest}>{children}</section> }[tag] ?? <div style={style} {...rest}>{children}</div>),
+        ({ div: <div style={style} {...rest}>{children}</div>, h1: <h1 {...rest}>{children}</h1>, p: <p {...rest}>{children}</p>, span: <span style={style} {...rest}>{children}</span>, section: <section style={style} {...rest}>{children}</section> }[tag] ?? <div style={style} {...rest}>{children}</div>),
   }),
+  animate: vi.fn(() => ({ stop: vi.fn() })),
   useReducedMotion: () => false,
   useScroll: () => ({ scrollY: { get: () => 0 } }),
   useTransform: () => 0,
@@ -57,11 +58,6 @@ describe("LandingHero", () => {
     expect(trackEvent).toHaveBeenCalledWith("lead_captured", { source: "landing_hero_primary" });
   });
 
-  it("renders social proof text", () => {
-    render(<LandingHero />);
-    expect(screen.getByText(/18\.400 alunos/i)).toBeTruthy();
-  });
-
   it("renders the AI insight card", () => {
     render(<LandingHero />);
     expect(screen.getByText(/Análise SanarFlix/i)).toBeTruthy();
@@ -73,6 +69,14 @@ describe("LandingHero", () => {
     expect(screen.getByText("82%")).toBeTruthy();
     expect(screen.getByText("68%")).toBeTruthy();
     expect(screen.getByText("54%")).toBeTruthy();
+  });
+
+  it("renders hero value props with titles and supporting copy", () => {
+    render(<LandingHero />);
+    // Mobile + desktop listas (uma oculta por breakpoint); mesma copy em ambas.
+    expect(screen.getAllByText(/100 questões inéditas/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/envie o gabarito/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/INEP e DCN/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders secondary CTA linking to #como-funciona", () => {

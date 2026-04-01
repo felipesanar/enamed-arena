@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
@@ -28,16 +28,45 @@ import {
   Clock, Play, AlertTriangle,
   Wifi, Monitor, CheckCircle2, Lock, Sparkles, FileText, Square, CheckSquare,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { SimuladoWithStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
-const CHECKLIST_ITEMS = [
+const CHECKLIST_BASE = [
   { key: "duration", icon: Clock, title: "Duração da prova", getDesc: (s: { estimatedDuration: string; questionsCount: number }) => `${s.estimatedDuration} · ${s.questionsCount} questões` },
   { key: "noPause", icon: AlertTriangle, title: "Sem pausa", getDesc: () => "O cronômetro não pode ser pausado após iniciar." },
   { key: "connection", icon: Wifi, title: "Conexão estável", getDesc: () => "Respostas salvas automaticamente. Mantenha conexão ativa." },
   { key: "environment", icon: Monitor, title: "Ambiente adequado", getDesc: () => "Local tranquilo, sem interrupções." },
 ] as const;
 
-type ChecklistKey = typeof CHECKLIST_ITEMS[number]["key"];
+type BaseChecklistKey = (typeof CHECKLIST_BASE)[number]["key"];
+type ChecklistKey = BaseChecklistKey | "rankingNational";
+
+type ChecklistItem = {
+  key: ChecklistKey;
+  icon: LucideIcon;
+  title: string;
+  getDesc: (s: SimuladoWithStatus) => string;
+};
+
+function buildChecklistItems(simulado: SimuladoWithStatus): ChecklistItem[] {
+  const base: ChecklistItem[] = CHECKLIST_BASE.map((item) => ({
+    key: item.key,
+    icon: item.icon,
+    title: item.title,
+    getDesc: item.getDesc,
+  }));
+  if (simulado.status === "available_late") {
+    base.push({
+      key: "rankingNational",
+      icon: CheckCircle2,
+      title: "Entendi sobre o ranking nacional",
+      getDesc: () =>
+        "Confirmo que esta realização não conta para o ranking nacional, pois a janela oficial encerrou.",
+    });
+  }
+  return base;
+}
 
 export default function SimuladoDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +78,15 @@ export default function SimuladoDetailPage() {
 
   const { simulado, loading, error, refetch } = useSimuladoDetail(id);
 
+  const checklistItems = useMemo(
+    () => (simulado ? buildChecklistItems(simulado) : []),
+    [simulado]
+  );
+
+  useEffect(() => {
+    setCheckedItems(new Set());
+  }, [simulado?.id, simulado?.status]);
+
   const toggleCheck = (key: ChecklistKey) => {
     setCheckedItems((prev) => {
       const next = new Set(prev);
@@ -58,7 +96,8 @@ export default function SimuladoDetailPage() {
     });
   };
 
-  const allChecked = checkedItems.size === CHECKLIST_ITEMS.length;
+  const allChecked =
+    checklistItems.length > 0 && checkedItems.size === checklistItems.length;
 
   if (loading) {
     return (
@@ -153,12 +192,16 @@ export default function SimuladoDetailPage() {
                   <Play className="h-7 w-7 text-primary" />
                 </div>
                 <h2 className="text-heading-2 text-foreground mb-2">
-                  {simulado.status === "available_late" ? "Modo Treino" : "Pronto para começar?"}
+                  Pronto para começar?
                 </h2>
                 {simulado.status === "available_late" && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/10 border border-warning/20 text-warning text-body-sm font-medium mb-4">
-                    <AlertTriangle className="h-4 w-4" />
-                    Fora da janela de execução — resultado não entra no ranking.
+                  <div className="inline-flex items-start gap-2 px-4 py-3 rounded-xl bg-primary/[0.06] border border-primary/15 text-left text-body-sm text-foreground max-w-lg mx-auto mb-4">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                    <span>
+                      Você faz agora o mesmo simulado completo da preparação nacional.{" "}
+                      <strong className="text-foreground">Sua nota não entra no ranking nacional</strong>{" "}
+                      porque a janela oficial encerrou — resultado e gabarito seguem valendo para o seu estudo.
+                    </span>
                   </div>
                 )}
                 <p className="text-body text-muted-foreground max-w-lg mx-auto">
@@ -168,7 +211,7 @@ export default function SimuladoDetailPage() {
 
               {/* Clickable Checklist */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mb-8">
-                {CHECKLIST_ITEMS.map((item) => {
+                {checklistItems.map((item) => {
                   const checked = checkedItems.has(item.key);
                   const CheckIcon = checked ? CheckSquare : Square;
                   return (
@@ -214,7 +257,7 @@ export default function SimuladoDetailPage() {
                   )}
                 >
                   <Play className="h-5 w-5" />
-                  {simulado.status === "available_late" ? "Iniciar Treino" : "Iniciar Simulado"}
+                  Iniciar Simulado
                 </button>
                 {!allChecked && (
                   <p className="text-caption text-muted-foreground mt-3">
@@ -271,11 +314,9 @@ export default function SimuladoDetailPage() {
                 </DialogContent>
               </Dialog>
 
-              {simulado.status !== "available_late" && (
-                <p className="text-caption text-muted-foreground text-center mt-6">
-                  Resultado em {formatDate(simulado.resultsReleaseAt)}.
-                </p>
-              )}
+              <p className="text-caption text-muted-foreground text-center mt-6">
+                Resultado em {formatDate(simulado.resultsReleaseAt)}.
+              </p>
             </PremiumCard>
           )}
         </motion.div>

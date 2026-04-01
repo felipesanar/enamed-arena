@@ -16,10 +16,14 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       className
     )}>
       {(status === 'available' || status === 'available_late' || status === 'in_progress') && (
-        <span className={cn(
-          "h-1.5 w-1.5 rounded-full mr-1.5",
-          status === 'available' ? 'bg-success animate-pulse' : 'bg-warning animate-pulse'
-        )} />
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse",
+            status === 'available' && "bg-success",
+            status === 'available_late' && "bg-info",
+            status === 'in_progress' && "bg-warning",
+          )}
+        />
       )}
       {config.label}
     </span>

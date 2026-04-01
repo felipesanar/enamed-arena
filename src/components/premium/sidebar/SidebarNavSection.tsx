@@ -6,6 +6,7 @@ import {
   GitCompareArrows,
 } from "lucide-react";
 import { NavItem } from "@/components/premium/NavItem";
+import { cn } from "@/lib/utils";
 
 const mainNav = [
   { title: "Início", url: "/", icon: LayoutDashboard },
@@ -15,9 +16,15 @@ const mainNav = [
   { title: "Comparativo", url: "/comparativo", icon: GitCompareArrows },
 ];
 
-export function SidebarNavSection() {
+export function SidebarNavSection({ collapsed }: { collapsed?: boolean }) {
   return (
-    <nav aria-label="Links principais" className="space-y-1.5 [@media(max-height:700px)]:space-y-0.5">
+    <nav
+      aria-label="Links principais"
+      className={cn(
+        "space-y-1.5 [@media(max-height:700px)]:space-y-0.5",
+        collapsed && "space-y-1",
+      )}
+    >
       {mainNav.map((item) => (
         <NavItem
           key={item.title}
@@ -25,6 +32,7 @@ export function SidebarNavSection() {
           end={item.url === "/"}
           icon={item.icon}
           label={item.title}
+          collapsed={collapsed}
         />
       ))}
     </nav>

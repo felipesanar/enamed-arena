@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Clock, GraduationCap, Lock, Mail, RefreshCw, ShieldCheck, Stethoscope, Trophy, User } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Lock, Mail, RefreshCw, ShieldCheck, Stethoscope, Trophy, User } from "lucide-react";
+import { BrandIcon, BrandLogo } from "@/components/brand/BrandMark";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/auth/TextField";
@@ -16,8 +17,11 @@ type FlowState = "idle" | "sending" | "sent";
 
 export default function LoginPage() {
   const { user, loading, signInWithPassword, signUpWithPassword, sendLoginLink } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(() =>
+    searchParams.get("mode") === "signup" ? "signup" : "login",
+  );
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -217,10 +221,10 @@ export default function LoginPage() {
             type="button"
             onClick={() => switchMode(tab)}
             className={cn(
-              "flex-1 rounded-md px-3 py-2 text-body-sm font-semibold transition-all lg:rounded-[6px] lg:px-2.5 lg:py-1 lg:text-[12px]",
+              "flex-1 rounded-md px-3 py-2 text-body-sm transition-all duration-200 ease-out lg:rounded-[6px] lg:px-2.5 lg:py-1 lg:text-[12px]",
               mode === tab
-                ? "bg-auth-input text-auth-text-primary shadow-[inset_0_1px_0_0_hsl(var(--auth-text-primary)/0.12)]"
-                : "text-[hsl(var(--auth-text-primary)/0.72)] hover:text-auth-text-primary"
+                ? "relative z-[1] font-semibold bg-auth-input text-auth-text-primary shadow-[0_2px_14px_-4px_rgba(0,0,0,0.55),inset_0_1px_0_hsl(var(--auth-text-primary)/0.16)] ring-1 ring-inset ring-primary/40"
+                : "relative z-0 font-medium text-[hsl(var(--auth-text-primary)/0.52)] hover:bg-white/[0.045] hover:text-[hsl(var(--auth-text-primary)/0.88)]"
             )}
           >
             {tab === "login" ? "Entrar" : "Criar conta"}
@@ -409,15 +413,11 @@ export default function LoginPage() {
 function LogoPro() {
   return (
     <div className="text-center">
-      <div className="mx-auto inline-flex items-center gap-2.5 rounded-xl border border-auth-border-subtle bg-auth-surface-soft px-4 py-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#a855f7]">
-          <span className="text-[14px] font-black text-white">P</span>
-        </div>
-        <div className="text-left">
-          <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#c4b5fd]">SanarFlix</div>
-          <div className="text-[15px] font-bold leading-tight text-auth-text-primary">PRO ENAMED</div>
-        </div>
-      </div>
+      <BrandLogo
+        variant="md"
+        tone="onDark"
+        className="mx-auto max-h-8 w-auto object-center sm:max-h-9"
+      />
     </div>
   );
 }
@@ -428,8 +428,8 @@ function MobileHeaderAndHero({ compact = false }: { compact?: boolean }) {
       <div className="rounded-2xl border border-auth-border-subtle bg-auth-surface-soft px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <GraduationCap className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 ring-1 ring-primary/20">
+              <BrandIcon size="sm" className="h-6 w-6" alt="" />
             </div>
             <span className="text-body font-semibold text-auth-hero-headline">SANARFLIX PRO</span>
           </div>

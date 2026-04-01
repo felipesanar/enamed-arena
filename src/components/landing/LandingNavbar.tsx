@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { BrandLogo } from "@/components/brand/BrandMark";
 
 const NAV_SECTIONS = [
   { id: "diferenciais", label: "Diferenciais" },
@@ -12,7 +13,6 @@ const NAV_SECTIONS = [
   { id: "experiencia", label: "Experiência" },
   { id: "performance", label: "Performance" },
   { id: "pro", label: "SanarFlix PRO" },
-  { id: "prova-social", label: "Prova social" },
   { id: "cta-final", label: "Participar" },
 ] as const;
 
@@ -101,22 +101,20 @@ export function LandingNavbar() {
             >
               <Link
                 to="/landing"
-                className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5 xl:gap-3"
+                className="flex min-w-0 shrink-0 items-center"
                 aria-label="SanarFlix Simulados — início"
               >
                 <motion.div
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
-                  className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary shadow-[0_4px_20px_hsl(var(--primary)_/_0.35)]",
-                    "2xl:h-10 2xl:w-10"
-                  )}
+                  className="flex min-w-0 max-w-[11rem] items-center sm:max-w-[13rem] md:max-w-[15rem] xl:max-w-[17rem] 2xl:max-w-[19rem]"
                 >
-                  <span className="text-xs font-bold text-primary-foreground xl:text-sm">S</span>
+                  <BrandLogo
+                    variant="md"
+                    tone="onDark"
+                    className="max-h-8 w-auto sm:max-h-9 2xl:max-h-10"
+                  />
                 </motion.div>
-                <span className="hidden min-w-0 truncate font-semibold tracking-tight text-foreground sm:inline sm:max-w-[9.5rem] md:max-w-[12rem] xl:max-w-none xl:text-body">
-                  SanarFlix Simulados
-                </span>
               </Link>
 
               <nav
@@ -139,7 +137,7 @@ export function LandingNavbar() {
                         "px-2 py-2 text-[0.8125rem] leading-tight xl:px-2.5 xl:py-2 xl:text-body-sm",
                         "2xl:px-3 2xl:py-2.5 2xl:text-[0.9375rem]",
                         activeId === item.id
-                          ? "text-primary"
+                          ? "text-landing-accent"
                           : "text-muted-foreground hover:text-foreground"
                       )}
                     >
@@ -166,7 +164,7 @@ export function LandingNavbar() {
                   variant="ghost"
                   size="default"
                   className={cn(
-                    "hidden rounded-xl border-0 text-foreground hover:bg-primary/10 hover:text-primary sm:inline-flex",
+                    "hidden rounded-xl border-0 text-foreground hover:bg-primary/10 hover:text-landing-accent sm:inline-flex",
                     "h-9 min-h-0 px-3 text-[0.8125rem] xl:h-9 xl:px-3.5 xl:text-body-sm",
                     "2xl:h-10 2xl:px-4"
                   )}
@@ -234,7 +232,7 @@ export function LandingNavbar() {
                   onClick={() => scrollTo(item.id)}
                   className={cn(
                     "px-4 py-3 rounded-xl text-left text-body font-medium transition-colors duration-200",
-                    activeId === item.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    activeId === item.id ? "text-landing-accent bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   {item.label}

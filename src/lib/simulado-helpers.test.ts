@@ -118,7 +118,7 @@ describe('canViewResults', () => {
 describe('getSimuladoCTA', () => {
   it('returns correct CTA for each status', () => {
     expect(getSimuladoCTA('available')).toEqual({ label: 'Iniciar Simulado', variant: 'primary' });
-    expect(getSimuladoCTA('available_late')).toEqual({ label: 'Iniciar Treino', variant: 'primary' });
+    expect(getSimuladoCTA('available_late')).toEqual({ label: 'Iniciar Simulado', variant: 'primary' });
     expect(getSimuladoCTA('in_progress')).toEqual({ label: 'Continuar Simulado', variant: 'primary' });
     expect(getSimuladoCTA('results_available').label).toBe('Ver Resultado');
     expect(getSimuladoCTA('completed').label).toBe('Ver Resultado');
