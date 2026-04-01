@@ -27,11 +27,20 @@ import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
+// Admin
+import AdminLoginPage from "./admin/AdminLoginPage";
+import { AdminGuard } from "./admin/AdminGuard";
+import { AdminApp } from "./admin/AdminApp";
+import AdminDashboard from "./admin/pages/AdminDashboard";
+import AdminSimulados from "./admin/pages/AdminSimulados";
+import AdminSimuladoForm from "./admin/pages/AdminSimuladoForm";
+import AdminUploadQuestions from "./admin/pages/AdminUploadQuestions";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 min — avoid unnecessary refetches on tab return
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -52,6 +61,18 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+              {/* Admin — isolated */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin" element={<AdminGuard />}>
+                <Route element={<AdminApp />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="simulados" element={<AdminSimulados />} />
+                  <Route path="simulados/novo" element={<AdminSimuladoForm />} />
+                  <Route path="simulados/:id" element={<AdminSimuladoForm />} />
+                  <Route path="simulados/:id/questoes" element={<AdminUploadQuestions />} />
+                </Route>
+              </Route>
 
               {/* Protected — premium shell */}
               <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
