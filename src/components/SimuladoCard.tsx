@@ -3,7 +3,8 @@ import { PremiumCard } from "./PremiumCard";
 import { StatusBadge } from "./StatusBadge";
 import type { SimuladoWithStatus } from "@/types";
 import { Link } from "react-router-dom";
-import { getSimuladoCTA, formatDateShort } from "@/lib/simulado-helpers";
+import { getSimuladoCTA, formatDateShort, buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
+import { CalendarPlus } from "lucide-react";
 
 interface SimuladoCardProps {
   simulado: SimuladoWithStatus;
@@ -43,9 +44,22 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
 
       {/* Window info */}
       {simulado.status === 'upcoming' && (
-        <p className="text-caption text-info mt-2">
-          Abre em {formatDateShort(simulado.executionWindowStart)}
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-caption text-info">
+            Abre em {formatDateShort(simulado.executionWindowStart)}
+          </p>
+          <a
+            href={buildGoogleCalendarUrl(simulado)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-caption text-primary hover:text-wine-hover transition-colors"
+            title="Adicionar ao Google Agenda"
+          >
+            <CalendarPlus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Agenda</span>
+          </a>
+        </div>
       )}
       {simulado.status === 'available_late' && (
         <div className="mt-2 space-y-1.5">
