@@ -466,12 +466,23 @@ export default function LoginPage() {
 
             {error && <FormFeedback tone="error" message={error} />}
 
+            {signupRetryIn > 0 && (
+              <FormFeedback
+                tone="error"
+                message={`Por segurança anti-spam, novo cadastro disponível em ${formatCountdown(signupRetryIn)}.`}
+              />
+            )}
+
             <button
               type="submit"
-              disabled={flowState === "sending"}
+              disabled={flowState === "sending" || signupRetryIn > 0}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
             >
-              {flowState === "sending" ? <Spinner /> : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
+              {flowState === "sending"
+                ? <Spinner />
+                : signupRetryIn > 0
+                  ? <>Aguarde {formatCountdown(signupRetryIn)} <Clock className="h-4 w-4" /></>
+                  : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
             </button>
           </motion.form>
         )}
