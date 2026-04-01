@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar } from "lucide-react";
+import { Play, Lock, Clock, Calendar, CalendarPlus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageHeader } from "@/components/PageHeader";
