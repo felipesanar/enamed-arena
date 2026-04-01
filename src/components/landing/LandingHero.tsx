@@ -23,6 +23,7 @@ export function LandingHero() {
   const prefersReducedMotion = useReducedMotion();
 
   /** Enable 3D hover only on real pointer devices ≥ lg */
+  /** Used in Task 3/4: enables 3D hover tilt on the AI insight card */
   const [finePointerHoverDesktop, setFinePointerHoverDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px) and (hover: hover)");

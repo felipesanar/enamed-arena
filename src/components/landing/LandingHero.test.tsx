@@ -6,8 +6,8 @@ import { LandingHero } from "./LandingHero";
 vi.mock("framer-motion", () => ({
   motion: new Proxy({}, {
     get: (_target, tag: string) =>
-      ({ children, style: _s, initial: _i, animate: _a, whileHover: _wh, transition: _t, ...rest }) =>
-        ({ div: <div {...rest}>{children}</div>, h1: <h1 {...rest}>{children}</h1>, p: <p {...rest}>{children}</p>, section: <section {...rest}>{children}</section> }[tag] ?? <div {...rest}>{children}</div>),
+      ({ children, style, initial: _i, animate: _a, whileHover: _wh, transition: _t, ...rest }) =>
+        ({ div: <div style={style} {...rest}>{children}</div>, h1: <h1 {...rest}>{children}</h1>, p: <p {...rest}>{children}</p>, section: <section style={style} {...rest}>{children}</section> }[tag] ?? <div style={style} {...rest}>{children}</div>),
   }),
   useReducedMotion: () => false,
   useScroll: () => ({ scrollY: { get: () => 0 } }),
