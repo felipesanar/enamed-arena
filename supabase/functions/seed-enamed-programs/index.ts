@@ -23,73 +23,78 @@ Deno.serve(async (req) => {
 
     const programs: { spec: string; inst: string; uf: string; vagas: number; cenario: string }[] = await req.json();
 
-    // Delete all existing programs
+    // ── Clean slate ──
     await supabase.from("enamed_programs").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("enamed_institutions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("enamed_specialties").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-    // Gather unique institutions from programs
-    const instKeys = new Map<string, { name: string; uf: string }>();
+    // ── Extract unique specialties ──
+    const specSet = new Map<string, string>();
     for (const p of programs) {
-      const key = `${p.inst.trim()}||${p.uf.trim()}`;
-      if (!instKeys.has(key)) instKeys.set(key, { name: p.inst.trim(), uf: p.uf.trim() });
+      const name = p.spec.trim();
+      if (name && !specSet.has(name)) specSet.set(name, slugify(name));
     }
 
-    // Insert missing institutions
-    const { data: existingInsts } = await supabase.from("enamed_institutions").select("id, name, uf");
-    const existingKeys = new Set(existingInsts!.map((i: any) => `${i.name.trim()}||${i.uf.trim()}`));
-    
-    const missingInsts: { name: string; uf: string; slug: string }[] = [];
-    const usedSlugs = new Set(existingInsts!.map((i: any) => i.slug));
-    
-    for (const [key, info] of instKeys) {
-      if (!existingKeys.has(key)) {
-        let slug = `${slugify(info.name)}-${info.uf.toLowerCase()}`;
-        let counter = 1;
-        while (usedSlugs.has(slug)) { slug = `${slugify(info.name)}-${info.uf.toLowerCase()}-${counter++}`; }
+    const specRows = [...specSet.entries()].map(([name, slug]) => ({ name, slug }));
+    const { error: specErr } = await supabase.from("enamed_specialties").insert(specRows);
+    if (specErr) throw new Error(`Spec insert: ${specErr.message}`);
+
+    // ── Extract unique institutions ──
+    const instSet = new Map<string, { name: string; uf: string; slug: string }>();
+    const usedSlugs = new Set<string>();
+    for (const p of programs) {
+      const name = p.inst.trim();
+      const uf = p.uf.trim();
+      const key = `${name}||${uf}`;
+      if (name && !instSet.has(key)) {
+        let slug = `${slugify(name)}-${uf.toLowerCase()}`;
+        let c = 1;
+        while (usedSlugs.has(slug)) slug = `${slugify(name)}-${uf.toLowerCase()}-${c++}`;
         usedSlugs.add(slug);
-        missingInsts.push({ name: info.name, uf: info.uf, slug });
+        instSet.set(key, { name, uf, slug });
       }
     }
 
-    if (missingInsts.length > 0) {
-      const { error: insErr } = await supabase.from("enamed_institutions").insert(missingInsts);
-      if (insErr) throw new Error(`Insert institutions: ${insErr.message}`);
+    const instRows = [...instSet.values()];
+    // Insert in batches
+    for (let i = 0; i < instRows.length; i += 200) {
+      const { error } = await supabase.from("enamed_institutions").insert(instRows.slice(i, i + 200));
+      if (error) throw new Error(`Inst insert batch ${i}: ${error.message}`);
     }
 
-    // Re-fetch all institutions and specialties
-    const { data: allInsts } = await supabase.from("enamed_institutions").select("id, name, uf");
+    // ── Re-fetch IDs ──
     const { data: allSpecs } = await supabase.from("enamed_specialties").select("id, name");
+    const { data: allInsts } = await supabase.from("enamed_institutions").select("id, name, uf");
 
     const specMap = new Map(allSpecs!.map((s: any) => [s.name.trim(), s.id]));
     const instMap = new Map(allInsts!.map((i: any) => [`${i.name.trim()}||${i.uf.trim()}`, i.id]));
 
+    // ── Insert programs ──
     const rows = [];
     const errors: string[] = [];
 
     for (const p of programs) {
       const specId = specMap.get(p.spec.trim());
-      const instKey = `${p.inst.trim()}||${p.uf.trim()}`;
-      const instId = instMap.get(instKey);
-
+      const instId = instMap.get(`${p.inst.trim()}||${p.uf.trim()}`);
       if (!specId) { errors.push(`Missing spec: ${p.spec}`); continue; }
-      if (!instId) { errors.push(`Missing inst: ${instKey}`); continue; }
-
+      if (!instId) { errors.push(`Missing inst: ${p.inst}||${p.uf}`); continue; }
       rows.push({ specialty_id: specId, institution_id: instId, vagas: p.vagas, cenario_pratica: p.cenario });
     }
 
     let inserted = 0;
     for (let i = 0; i < rows.length; i += 200) {
-      const batch = rows.slice(i, i + 200);
-      const { error } = await supabase.from("enamed_programs").insert(batch);
-      if (error) throw new Error(`Insert batch ${i}: ${error.message}`);
+      const { error } = await supabase.from("enamed_programs").insert(rows.slice(i, i + 200));
+      if (error) throw new Error(`Prog insert batch ${i}: ${error.message}`);
       inserted += batch.length;
     }
 
     return new Response(JSON.stringify({
       ok: true,
-      inserted,
+      specialties: specRows.length,
+      institutions: instRows.length,
+      programs: inserted,
       total: programs.length,
-      newInstitutions: missingInsts.length,
-      errors: [...new Set(errors)].slice(0, 20),
+      errors: [...new Set(errors)].slice(0, 10),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
