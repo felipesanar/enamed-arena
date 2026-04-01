@@ -108,7 +108,7 @@ function TimelineItem({
 
   const hoverMotion = reduced
     ? undefined
-    : { y: -1, transition: { type: "spring", stiffness: 520, damping: 28 } };
+    : { y: -1, transition: { type: "spring" as const, stiffness: 520, damping: 28 } };
 
   const linkClass =
     "inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";

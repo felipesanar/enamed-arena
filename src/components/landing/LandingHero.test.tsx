@@ -18,7 +18,7 @@ vi.mock("framer-motion", () => ({
 
 // Mock react-router-dom Link
 vi.mock("react-router-dom", () => ({
-  Link: ({ children, to, onClick, ...rest }) => (
+  Link: ({ children, to, onClick, ...rest }: any) => (
     <a href={to} onClick={onClick} {...rest}>{children}</a>
   ),
 }));

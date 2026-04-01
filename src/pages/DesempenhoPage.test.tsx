@@ -34,7 +34,7 @@ vi.mock("@/hooks/useSimulados", () => ({
 }));
 
 vi.mock("@/hooks/useUserPerformance", () => ({
-  useUserPerformance: () => ({ history: [], summary: null, loading: false }),
+  useUserPerformance: () => ({ history: [] as any[], summary: null as any, loading: false }),
 }));
 
 const mockQuestions = [
