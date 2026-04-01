@@ -615,6 +615,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       ranking_simulado: {
@@ -743,6 +761,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       process_attempt_reprocessing_queue: {
         Args: { p_limit?: number }
         Returns: {
@@ -765,6 +790,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin"
       attempt_processing_status:
         | "pending"
         | "processing"
@@ -906,6 +932,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin"],
       attempt_processing_status: [
         "pending",
         "processing",
