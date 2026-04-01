@@ -16,6 +16,26 @@ type AuthMode = "login" | "signup";
 type LoginMethod = "password" | "magic-link";
 type FlowState = "idle" | "sending" | "sent";
 
+const SIGNUP_RATE_LIMIT_LOCK_KEY = "signup-rate-limit-until";
+const SIGNUP_RATE_LIMIT_MS = 3 * 60 * 1000;
+
+function isRateLimitError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("email rate limit exceeded") ||
+    lower.includes("over_email_send_rate_limit") ||
+    lower.includes("rate limit exceeded") ||
+    lower.includes("too many requests")
+  );
+}
+
+function formatCountdown(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins <= 0) return `${secs}s`;
+  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+}
+
 function translateError(msg: string): string {
   const lower = msg.toLowerCase();
   const map: Array<[string, string]> = [
@@ -23,11 +43,11 @@ function translateError(msg: string): string {
     ["email not confirmed", "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (inclusive spam)."],
     ["user already registered", "Este e-mail já está cadastrado. Tente fazer login."],
     ["password should be at least 6 characters", "A senha deve ter pelo menos 6 caracteres."],
-    ["email rate limit exceeded", "Você tentou criar a conta várias vezes seguidas. Aguarde 2–3 minutos antes de tentar novamente."],
-    ["rate limit exceeded", "Muitas tentativas seguidas. Aguarde 2–3 minutos e tente novamente."],
-    ["over_email_send_rate_limit", "Limite de envio de e-mails atingido. Aguarde alguns minutos antes de tentar novamente."],
+    ["email rate limit exceeded", "Muitas tentativas de cadastro em pouco tempo. Aguarde alguns minutos e tente novamente."],
+    ["rate limit exceeded", "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente."],
+    ["over_email_send_rate_limit", "Limite temporário de envio de confirmação atingido. Aguarde alguns minutos e tente novamente."],
     ["for security purposes, you can only request this after", "Por segurança, aguarde alguns segundos antes de tentar novamente."],
-    ["too many requests", "Muitas tentativas seguidas. Aguarde 2–3 minutos e tente novamente."],
+    ["too many requests", "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente."],
     ["network", "Erro de conexão. Verifique sua internet e tente novamente."],
     ["fetch", "Erro de conexão. Verifique sua internet e tente novamente."],
   ];
