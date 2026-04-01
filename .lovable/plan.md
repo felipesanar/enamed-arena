@@ -1,52 +1,55 @@
 
 
-## Plan: CTA "Continuar" no modal HubSpot + revisão do fluxo completo
+## Diagnóstico: Login/Auth não funciona
 
-### Problema atual
+### Problemas encontrados
 
-O modal HubSpot é obrigatório mas não tem saída clara. Após o envio do formulário HubSpot, o usuário fica preso -- não há CTA para prosseguir à tela de "Verifique seu e-mail". O `onOpenChange` nunca é chamado porque o modal bloqueia fechamento.
+**Problema 1 (CRÍTICO) — LoginPage não redireciona após login bem-sucedido**
 
-### Fluxo corrigido
+O componente `LoginPage` extrai `user` do `useAuth()` na linha 61 mas **nunca o utiliza para redirecionar**. Após `signInWithPassword` retornar sucesso:
+- `result.error` é `null` → não entra no bloco de erro
+- O código só faz algo especial para `mode === "signup"` (abre o modal HubSpot)
+- Para login, `flowState` fica preso em `"sending"` → o spinner roda para sempre
+- O `onAuthStateChange` no `AuthContext` atualiza `user`, mas o `LoginPage` nunca verifica `if (user) return <Navigate to="/" />`
 
-```text
-[Preenche nome, email, senha] → [Clica "Criar minha conta"]
-     ↓
-Supabase signup (email disparado) + Modal HubSpot abre
-     ↓
-[Preenche telefone + etapa] → [Envia formulário HubSpot]
-     ↓
-HubSpot mostra "Obrigada!" → Aparece botão "Continuar →"
-     ↓
-[Clica "Continuar"] → Modal fecha → Tela "Verifique seu e-mail"
+Isso explica exatamente o que está na screenshot: o botão fica com spinner infinito.
+
+**Problema 2 (EMAILS) — Novu retornando 402 Payment Required**
+
+Os logs da Edge Function `auth-email-hook` mostram:
 ```
+Novu error [402]: "You have exceeded the number of allowed requests..."
+```
+Os emails de confirmação de signup **não estão sendo enviados**. Isso é um problema de billing do Novu, não de código. Mas o fluxo de signup também não trata esse cenário — o usuário vê "verifique seu email" mas o email nunca chega.
 
-### Alterações
+### Correções planejadas
 
-#### 1. HubSpotFormModal — adicionar callback `onFormSubmitted` + botão "Continuar"
-
-**Arquivo:** `src/components/auth/HubSpotFormModal.tsx`
-
-- Adicionar prop `onComplete: () => void`
-- No `hbspt.forms.create`, usar callback `onFormSubmitted` do HubSpot SDK para detectar envio
-- Quando o formulário é enviado, mostrar um estado de sucesso interno com:
-  - Icone de check verde
-  - Mensagem "Cadastro completo! Agora verifique seu e-mail para ativar sua conta."
-  - Botão CTA primário: **"Continuar →"** que chama `onComplete()`
-- Estado interno: `submitted: boolean` (useState)
-- O botão "Continuar" aparece **dentro** do modal, substituindo o formulário
-
-#### 2. LoginPage — conectar `onComplete` ao fluxo
+#### 1. Adicionar redirect ao LoginPage quando `user` existe
 
 **Arquivo:** `src/pages/LoginPage.tsx`
 
-- Trocar o `onOpenChange` atual do `HubSpotFormModal` por um `onComplete` que:
-  - Fecha o modal (`setHubspotModalOpen(false)`)
-  - Transiciona para `flowState = "sent"` (tela de verificação de email)
-- A tela "sent" já existe e está funcional -- apenas precisa ser ativada corretamente
+Após o check de `loading` (linha ~106), adicionar:
+```typescript
+if (user) {
+  return <Navigate to="/" replace />;
+}
+```
+
+Isso garante que:
+- Após login com senha → `onAuthStateChange` seta `user` → componente re-renderiza → redireciona
+- Se o usuário já está logado e acessa `/login` → redireciona direto
+
+#### 2. Resetar `flowState` após login com senha bem-sucedido
+
+No `handlePasswordSubmit`, após o check de signup (linha ~160), adicionar um branch para login que reseta o `flowState` para `"idle"`. Na prática o redirect via `user` vai ocorrer antes, mas é boa prática não deixar o estado pendurado.
+
+#### 3. Informar sobre o problema do Novu
+
+O erro 402 do Novu é externo — precisa ser resolvido no dashboard do Novu (upgrade do plano ou reset do limite). Não é correção de código, mas vou documentar.
 
 ### Detalhes técnicos
 
-- O HubSpot embed SDK v2 suporta `onFormSubmitted: (form, data) => {}` -- é chamado após submit com sucesso
-- O estado `submitted` controla a renderização condicional dentro do DialogContent
-- O modal continua não-fechável até o usuário clicar "Continuar" (mantém `onPointerDownOutside` e `onEscapeKeyDown` preventDefault)
+- A correção principal é 1 linha: `if (user) return <Navigate to="/" replace />;`
+- Sem alterações no backend, edge functions, ou banco de dados
+- Arquivo editado: apenas `src/pages/LoginPage.tsx`
 
