@@ -105,6 +105,10 @@ export default function LoginPage() {
     );
   }
 
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
   const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
@@ -157,6 +161,8 @@ export default function LoginPage() {
         localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
         setSignupRetryIn(0);
         setHubspotModalOpen(true);
+      } else {
+        setFlowState("idle");
       }
     } catch {
       setError("Erro inesperado. Tente novamente.");
