@@ -1,142 +1,122 @@
 
 
-## Plan: Central de Admin (`/admin`) — Arquitetura Completa
+## Plan: Importar dados ENAMED/ENARE e redesenhar onboarding com instituições reais
 
-### Visão geral
+### Objetivo
 
-Criar um painel administrativo totalmente isolado do fluxo de usuários, com autenticação própria baseada em roles (tabela `user_roles`), contendo dashboard, CRUD de simulados e upload de planilha XLSX para popular questões.
+Criar tabelas no banco para armazenar programas e instituições do ENAMED/ENARE a partir da planilha CSV (~1050 linhas), substituir os dados mock estáticos, e redesenhar o Step 2 do onboarding para que o ENARE apareça como primeira opção e, ao selecioná-lo, exiba as instituições correlacionadas.
 
-### Arquitetura de segurança
+### Dados da planilha
 
-O admin usa a mesma autenticação Supabase (email+senha), mas com uma camada de autorização via tabela `user_roles`. Não é um login separado — é o mesmo auth, com gate de role `admin`.
+| Coluna | Uso |
+|---|---|
+| `Programa` | Especialidades (usadas em toda a plataforma) |
+| `Instituição` | Instituições que ofertam no ENAMED/ENARE |
+| `UF` | Estado da instituição |
+| `Vagas` | Total de vagas ofertadas |
+| `Cenário de prática` | Local de prática (informativo) |
 
-```text
-/admin/login  →  Login normal (email+senha via Supabase Auth)
-                  ↓
-              Verifica role 'admin' na tabela user_roles
-                  ↓
-              Se admin → /admin (dashboard)
-              Se não   → "Acesso negado"
-```
-
-### Banco de dados (migrações)
-
-**1. Criar enum `app_role` e tabela `user_roles`**
-
-```sql
-CREATE TYPE public.app_role AS ENUM ('admin');
-
-CREATE TABLE public.user_roles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  role app_role NOT NULL,
-  UNIQUE (user_id, role)
-);
-
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-```
-
-**2. Criar função `has_role` (SECURITY DEFINER)**
-
-```sql
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id AND role = _role
-  )
-$$;
-```
-
-**3. RLS policies para `user_roles`**
-
-```sql
-CREATE POLICY "Admins can read roles"
-  ON public.user_roles FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-```
-
-**4. RLS policies para tabelas de admin** (simulados, questions, question_options)
-
-Adicionar policies de INSERT/UPDATE/DELETE para admins nas tabelas `simulados`, `questions`, `question_options` usando `has_role(auth.uid(), 'admin')`.
-
-**5. Inserir o primeiro admin manualmente**
-
-Após a migração, inserir o user_id do admin via SQL Editor do Supabase.
-
-### Estrutura de arquivos
+### Arquitetura
 
 ```text
-src/
-├── admin/
-│   ├── AdminApp.tsx              # Layout + rotas do admin
-│   ├── AdminGuard.tsx            # Verifica role admin, redireciona se não
-│   ├── AdminLoginPage.tsx        # Tela de login do admin
-│   ├── hooks/
-│   │   └── useAdminAuth.ts       # Hook: verifica has_role + loading
-│   ├── pages/
-│   │   ├── AdminDashboard.tsx    # Dashboard com KPIs
-│   │   ├── AdminSimulados.tsx    # Lista de simulados + CRUD
-│   │   ├── AdminSimuladoForm.tsx # Criar/editar simulado (config)
-│   │   └── AdminUploadQuestions.tsx # Upload XLSX + preview + associar
-│   ├── components/
-│   │   ├── AdminSidebar.tsx      # Navegação lateral
-│   │   ├── AdminHeader.tsx       # Header com user info
-│   │   ├── SimuladoTable.tsx     # Tabela de simulados
-│   │   └── UploadPreview.tsx     # Preview da planilha antes de salvar
-│   └── services/
-│       └── adminApi.ts           # Queries admin (CRUD simulados, questions)
+┌─────────────────────────┐
+│  enamed_specialties     │  ~40 especialidades distintas
+│  id, name, slug         │
+└─────────────────────────┘
+          │ 1:N
+┌─────────────────────────────────────────┐
+│  enamed_institutions                     │
+│  id, name, uf, slug                      │  ~300 instituições distintas
+└─────────────────────────────────────────┘
+          │ N:M
+┌─────────────────────────────────────────┐
+│  enamed_programs                         │  ~1050 linhas (CSV completo)
+│  id, specialty_id, institution_id,       │
+│  vagas, cenario_pratica                  │
+└─────────────────────────────────────────┘
 ```
 
-### Rotas (em App.tsx)
+### Plano de implementação
+
+**1. Migração: criar tabelas `enamed_specialties`, `enamed_institutions`, `enamed_programs`**
+- Tabelas públicas, RLS com SELECT para qualquer authenticated (dados de referência)
+- `enamed_specialties`: `id uuid PK`, `name text UNIQUE`, `slug text UNIQUE`
+- `enamed_institutions`: `id uuid PK`, `name text`, `uf text`, `slug text UNIQUE`
+- `enamed_programs`: `id uuid PK`, `specialty_id FK`, `institution_id FK`, `vagas int`, `cenario_pratica text`
+- Índices em `specialty_id` e `institution_id` para queries rápidas
+
+**2. Script de seed: popular tabelas com dados da planilha**
+- Ler o CSV, extrair especialidades e instituições distintas, gerar slugs
+- Inserir via `psql` usando INSERT statements
+- ~40 especialidades, ~300 instituições, ~1050 programas
+
+**3. Criar hooks de dados: `useEnamedData`**
+- Arquivo: `src/hooks/useEnamedData.ts`
+- Query via React Query para buscar especialidades e instituições do banco
+- Função `getInstitutionsBySpecialty(specialtyName)` para filtrar no Step 2
+- Cache com staleTime longo (dados de referência, raramente mudam)
+
+**4. Redesenhar onboarding Step 2 (Instituições)**
+- Arquivo: `src/pages/OnboardingPage.tsx`
+- Primeiro item da lista: **"ENARE"** como opção principal (tipo toggle)
+- Ao selecionar ENARE, exibe as instituições que ofertam a especialidade escolhida no Step 1
+- Instituições agrupadas por UF com contagem de vagas
+- Manter "Ainda não sei" como opção
+- Máximo de 3 instituições selecionadas (mantém regra atual)
+
+**5. Atualizar Step 1 (Especialidade) para usar dados reais**
+- Substituir `SPECIALTIES` do mock por dados do banco (`enamed_specialties`)
+- Manter UX idêntica, só troca a fonte de dados
+
+**6. Remover dados mock obsoletos**
+- Arquivo: `src/data/mock.ts` — remover `SPECIALTIES` e `INSTITUTIONS`
+- Atualizar imports em qualquer arquivo que reference esses arrays
+
+**7. Admin: adicionar página para re-importar dados ENAMED**
+- Arquivo: `src/admin/pages/AdminEnamedImport.tsx`
+- Upload de CSV com validação de colunas
+- Preview dos dados antes de confirmar
+- Truncate + re-insert atômico (via edge function ou RPC admin)
+- Isso garante que dados possam ser atualizados a cada edital
+
+### Fluxo do onboarding redesenhado
 
 ```text
-/admin/login   → AdminLoginPage (público)
-/admin         → AdminGuard → AdminApp (layout com sidebar)
-  /admin/          → AdminDashboard
-  /admin/simulados → AdminSimulados (lista)
-  /admin/simulados/novo → AdminSimuladoForm (criar)
-  /admin/simulados/:id  → AdminSimuladoForm (editar)
-  /admin/simulados/:id/questoes → AdminUploadQuestions
+Step 1: Escolher especialidade (dados reais do banco)
+         ↓
+Step 2: Escolher instituições
+         ├── [ENARE] ← primeiro, sempre visível
+         │     └── ao clicar: mostra instituições que ofertam
+         │         a especialidade do Step 1, agrupadas por UF
+         ├── [Ainda não sei]
+         └── Busca por nome de instituição
+         ↓
+Step 3: Confirmação (igual atual)
 ```
-
-### Funcionalidades do Admin
-
-**Dashboard**
-- Total de simulados cadastrados
-- Total de usuários (count de profiles)
-- Total de tentativas (attempts)
-- Simulados ativos (janela aberta)
-- Próximo simulado
-
-**CRUD de Simulados**
-- Formulário com: título, slug, sequence_number, description, duration_minutes, execution_window_start/end, results_release_at, theme_tags, questions_count
-- Status: draft/published (o campo já existe como enum)
-- Criar simulado "vazio" (sem questões) para reservar a data
-
-**Upload de Questões (XLSX)**
-- Aceita planilha com colunas: `numero`, `texto`, `area`, `tema`, `dificuldade`, `explicacao`, `alternativa_a`, `alternativa_b`, `alternativa_c`, `alternativa_d`, `alternativa_e`, `correta`
-- Preview em tabela antes de confirmar
-- Parsing client-side com `xlsx` (SheetJS)
-- Ao confirmar: chama Edge Function que faz bulk insert de questions + question_options (admin precisa de INSERT nessas tabelas)
-- Associa ao simulado selecionado e atualiza `questions_count`
 
 ### Detalhes técnicos
 
-- **Lib XLSX**: instalar `xlsx` (SheetJS) para parsing client-side da planilha
-- **Edge Function `admin-upload-questions`**: recebe JSON com array de questões parseadas + simulado_id, valida role admin via JWT, faz bulk insert usando service_role_key
-- **AdminGuard**: chama RPC `has_role(auth.uid(), 'admin')` e redireciona para `/admin/login` se false
-- **Login do admin**: mesma tela de login simplificada, mas após auth verifica role e redireciona para `/admin` ou mostra erro
-- **Sem interferência no fluxo normal**: rotas `/admin/*` são completamente separadas, sem compartilhar layout/providers do dashboard premium
+- **RLS**: SELECT para `authenticated`, INSERT/UPDATE/DELETE apenas para `admin` (via `has_role`)
+- **Slug**: gerado como `slugify(name)` para evitar duplicatas e facilitar lookups
+- **Normalização**: nomes de instituições com case inconsistente no CSV serão normalizados (trim, title case)
+- **Fallback**: se a query falhar, o onboarding mostra mensagem de erro e botão de retry (sem crashar)
+- **onboarding_profiles**: continua salvando `specialty` e `target_institutions` como strings (nomes), sem FK — mantém compatibilidade com dados existentes
 
-### Arquivos editados/criados
+### Arquivos criados/editados
 
-- `src/App.tsx` — adicionar rotas `/admin/*`
-- `src/admin/**` — todos os arquivos novos (~15 arquivos)
-- `supabase/migrations/` — migração para user_roles + RLS policies de admin
-- `supabase/functions/admin-upload-questions/index.ts` — edge function para bulk insert
-- `package.json` — adicionar dependência `xlsx`
+| Arquivo | Ação |
+|---|---|
+| `supabase/migrations/` | Nova migração com 3 tabelas + RLS |
+| Script seed (psql) | Popular dados do CSV |
+| `src/hooks/useEnamedData.ts` | Novo hook para consultar dados |
+| `src/pages/OnboardingPage.tsx` | Redesenhar Steps 1 e 2 |
+| `src/data/mock.ts` | Remover SPECIALTIES e INSTITUTIONS |
+| `src/admin/pages/AdminEnamedImport.tsx` | Página admin para re-importação |
+| `src/admin/AdminApp.tsx` | Adicionar rota de importação ENAMED |
+
+### Riscos e mitigações
+
+- **CSV com nomes inconsistentes**: normalização com trim + uppercase para matching
+- **Dados existentes em `onboarding_profiles`**: sem impacto, campos são strings livres
+- **Performance**: ~1050 linhas no total, query leve; cache de 30min via React Query
 
