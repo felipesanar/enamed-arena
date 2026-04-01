@@ -23,6 +23,7 @@ import {
   formatDateTime,
   canAccessSimulado,
   canViewResults,
+  buildGoogleCalendarUrl,
 } from "@/lib/simulado-helpers";
 import {
   Clock, Play, AlertTriangle,
