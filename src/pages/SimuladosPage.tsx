@@ -1,16 +1,18 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  Info, Play, Lock, CheckCircle2, Clock, Coffee, Calendar,
-  ChevronDown, ArrowRight,
-} from "lucide-react";
+import { Play, Lock, Clock, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format, intervalToDuration, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { useSimulados } from "@/hooks/useSimulados";
 import type { SimuladoWithStatus } from "@/types";
+import {
+  COMO_FUNCIONA_MODAL_OPEN_EVENT,
+  ComoFuncionaSimuladosTrigger,
+} from "@/components/simulados/ComoFuncionaTutorial";
+import { SimuladosTimelineSection } from "@/components/simulados/SimuladosTimelineSection";
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -94,7 +96,7 @@ export default function SimuladosPage() {
         transition={{ duration: prefersReducedMotion ? 0 : 0.4, delay: prefersReducedMotion ? 0 : 0.05 }}
         className="mb-6"
       >
-        <HowItWorksCard />
+        <ComoFuncionaSimuladosTrigger />
       </motion.div>
 
       {heroSimulado ? (
@@ -118,70 +120,13 @@ export default function SimuladosPage() {
       )}
 
       {timelineItems.length > 0 && (
-        <TimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
+        <SimuladosTimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
       )}
     </>
   );
 }
 
 // ─── Sub-component stubs (replaced in subsequent tasks) ──────────────────────
-
-function HowItWorksCard() {
-  return (
-    <div
-      className="relative rounded-xl bg-white overflow-hidden"
-      style={{
-        boxShadow: "0 2px 12px rgba(142,31,61,.08), 0 1px 3px rgba(142,31,61,.06)",
-      }}
-    >
-      {/* Wine top border */}
-      <div
-        className="absolute inset-x-0 top-0 h-[2px]"
-        style={{ background: "linear-gradient(90deg, #8e1f3d 0%, transparent 100%)" }}
-      />
-      <div className="p-4 md:p-5">
-        <div className="flex items-start gap-3">
-          {/* Icon box */}
-          <div
-            className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5"
-            style={{
-              background: "rgba(142,31,61,.12)",
-              border: "1px solid rgba(142,31,61,.18)",
-            }}
-          >
-            <Info className="w-4 h-4" style={{ color: "#8e1f3d" }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm text-foreground mb-1">Como funciona</p>
-            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-              Cada simulado tem uma janela oficial para participar do ranking nacional. Depois dela, o mesmo simulado continua disponível com a mesma experiência e correção — ideal para se preparar com referência (nessa modalidade a realização não entra no ranking). Resultado, gabarito e ranking da prova são liberados após o encerramento.
-            </p>
-            {/* Pills */}
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                "Não é possível pausar",
-                "Resultado liberado após a janela",
-                "Ranking disponível após encerramento",
-              ].map(pill => (
-                <span
-                  key={pill}
-                  className="text-[11px] font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    background: "rgba(142,31,61,.08)",
-                    color: "#8e1f3d",
-                    border: "1px solid rgba(142,31,61,.14)",
-                  }}
-                >
-                  {pill}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function formatDeadlineTicker(windowEnd: string): string {
   const end = parseISO(windowEnd);
@@ -310,13 +255,14 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
             {ctaLabel}
           </Link>
           <button
+            type="button"
             className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
             style={{
               background: "rgba(255,255,255,.08)",
               border: "1px solid rgba(255,255,255,.12)",
               color: "rgba(255,255,255,.75)",
             }}
-            onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => window.dispatchEvent(new CustomEvent(COMO_FUNCIONA_MODAL_OPEN_EVENT))}
           >
             Como funciona
           </button>
@@ -450,212 +396,3 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
     </div>
   );
 }
-
-function TimelineSection({ items, reduced }: { items: SimuladoWithStatus[]; reduced: boolean }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? items : items.slice(0, 5);
-
-  return (
-    <section className="mb-8">
-      {/* Section header */}
-      <div className="flex items-center gap-3 mb-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-          Histórico e próximos
-        </span>
-        <div className="flex-1 h-px" style={{ background: "rgba(142,31,61,.15)" }} />
-      </div>
-      <p className="text-[11px] text-muted-foreground mb-5">
-        Mais recente primeiro · clique para ver detalhes
-      </p>
-
-      {/* Spine + items */}
-      <div className="relative">
-        <div
-          className="absolute left-3 top-2 bottom-0 w-[1.5px]"
-          style={{
-            background: "linear-gradient(to bottom, rgba(142,31,61,.35), rgba(142,31,61,.04))",
-          }}
-        />
-        <div className="space-y-3 pl-8">
-          {visible.map((sim, index) => (
-            <TimelineItem key={sim.id} sim={sim} index={index} reduced={reduced} />
-          ))}
-        </div>
-      </div>
-
-      {/* Show more */}
-      {items.length > 5 && (
-        <button
-          onClick={() => setExpanded(v => !v)}
-          className="mt-4 ml-8 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronDown
-            className="w-4 h-4 transition-transform"
-            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-          />
-          {expanded ? "Ver menos" : `Ver todos os anteriores (${items.length - 5} a mais)`}
-        </button>
-      )}
-    </section>
-  );
-}
-
-const STATUS_CONFIG = {
-  in_progress: {
-    dotClass: "sim-dot-pulse",
-    dotStyle: { background: "#e83862", width: 10, height: 10 } as React.CSSProperties,
-    cardBg: "rgba(255,248,250,.9)",
-    cardBorder: "rgba(232,56,98,.2)",
-    labelColor: "#e83862",
-    Icon: Play,
-    label: "Em andamento",
-  },
-  closed_waiting: {
-    dotClass: "",
-    dotStyle: { background: "#d4a017", width: 10, height: 10 } as React.CSSProperties,
-    cardBg: "rgba(252,248,238,.8)",
-    cardBorder: "rgba(212,160,23,.22)",
-    labelColor: "#a07018",
-    Icon: Lock,
-    label: "Aguardando",
-  },
-  completed: {
-    dotClass: "",
-    dotStyle: { background: "rgba(255,255,255,.7)", width: 10, height: 10, border: "1.5px solid rgba(0,0,0,.15)" } as React.CSSProperties,
-    cardBg: "#fff",
-    cardBorder: "rgba(0,0,0,.08)",
-    labelColor: "#2d8f5a",
-    Icon: CheckCircle2,
-    label: "Concluído",
-  },
-  available_late: {
-    dotClass: "",
-    dotStyle: { background: "transparent", width: 7, height: 7, border: "1.5px solid rgba(158,122,142,.4)" } as React.CSSProperties,
-    cardBg: "rgba(244,241,245,.55)",
-    cardBorder: "rgba(158,122,142,.18)",
-    labelColor: "#9e7a8e",
-    Icon: Coffee,
-    label: "Fora da janela",
-  },
-  upcoming: {
-    dotClass: "",
-    dotStyle: { background: "rgba(220,140,170,.4)", width: 10, height: 10 } as React.CSSProperties,
-    cardBg: "rgba(60,15,32,.45)",
-    cardBorder: "rgba(142,31,61,.2)",
-    labelColor: "rgba(220,140,170,.75)",
-    Icon: Clock,
-    label: "Em breve",
-  },
-} as const;
-
-function TimelineItem({ sim, index, reduced }: { sim: SimuladoWithStatus; index: number; reduced: boolean }) {
-  const cfg = STATUS_CONFIG[sim.status as keyof typeof STATUS_CONFIG];
-  if (!cfg) return null;
-
-  const isUpcoming = sim.status === "upcoming";
-  const isCompleted = sim.status === "completed";
-  const isInProgress = sim.status === "in_progress";
-  const isClosedWaiting = sim.status === "closed_waiting";
-  const isAvailableLate = sim.status === "available_late";
-
-  return (
-    <motion.div
-      initial={reduced ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reduced ? 0 : 0.4, delay: reduced ? 0 : index * 0.04 }}
-      className="relative"
-      style={{ opacity: isAvailableLate ? 0.6 : 1 }}
-    >
-      {/* Timeline dot */}
-      <div
-        className={`absolute -left-[21px] top-4 rounded-full ${cfg.dotClass}`}
-        style={cfg.dotStyle}
-      />
-
-      {/* Card */}
-      <div
-        className="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
-        style={{
-          background: cfg.cardBg,
-          border: `1px solid ${cfg.cardBorder}`,
-        }}
-      >
-        {/* Left side */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-1">
-            <cfg.Icon className="w-3 h-3 shrink-0" style={{ color: cfg.labelColor }} />
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: cfg.labelColor }}
-            >
-              {cfg.label}
-            </span>
-          </div>
-          <p className="text-sm font-semibold text-foreground truncate">{sim.title}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {format(parseISO(sim.executionWindowStart), "dd/MM/yyyy", { locale: ptBR })} · #{sim.sequenceNumber}
-          </p>
-        </div>
-
-        {/* Right side */}
-        <div className="shrink-0 flex flex-col items-end gap-1.5">
-          {isCompleted && (
-            <>
-              <span
-                className="font-black leading-none"
-                style={{ fontSize: 20, color: "#8e1f3d" }}
-              >
-                {sim.userState?.score ?? "–"}%
-              </span>
-              <Link
-                to={`/simulados/${sim.slug}/resultado`}
-                className="text-xs font-medium flex items-center gap-1 hover:opacity-80"
-                style={{ color: "#8e1f3d" }}
-              >
-                Ver resultado <ArrowRight className="w-3 h-3" />
-              </Link>
-            </>
-          )}
-          {isInProgress && (
-            <Link
-              to={`/simulados/${sim.slug}/prova`}
-              className="text-xs font-medium flex items-center gap-1 hover:opacity-80"
-              style={{ color: "#e83862" }}
-            >
-              Continuar <ArrowRight className="w-3 h-3" />
-            </Link>
-          )}
-          {isClosedWaiting && (
-            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: "#a07018" }}>
-              <Lock className="w-3 h-3" />
-              Aguardando
-            </span>
-          )}
-          {isAvailableLate && (
-            <div className="flex flex-col items-end gap-1">
-              <Link
-                to={`/simulados/${sim.slug}/start`}
-                className="text-xs font-medium flex items-center gap-1 hover:opacity-80"
-                style={{ color: "#9e7a8e" }}
-              >
-                Treinar <ArrowRight className="w-3 h-3" />
-              </Link>
-              <span className="text-[10px] text-muted-foreground text-right leading-tight max-w-[120px]">
-                Disponível como treino · não entra no ranking
-              </span>
-            </div>
-          )}
-          {isUpcoming && (
-            <button
-              className="text-xs font-medium flex items-center gap-1 hover:opacity-80"
-              style={{ color: "rgba(220,140,170,.8)" }}
-            >
-              Agenda <ArrowRight className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
