@@ -128,8 +128,57 @@ export default function SimuladosPage() {
 
 function HowItWorksCard() {
   return (
-    <div className="h-20 rounded-xl bg-muted/20 flex items-center justify-center text-muted-foreground text-sm">
-      HowItWorksCard — stub
+    <div
+      className="relative rounded-xl bg-white overflow-hidden"
+      style={{
+        boxShadow: "0 2px 12px rgba(142,31,61,.08), 0 1px 3px rgba(142,31,61,.06)",
+      }}
+    >
+      {/* Wine top border */}
+      <div
+        className="absolute inset-x-0 top-0 h-[2px]"
+        style={{ background: "linear-gradient(90deg, #8e1f3d 0%, transparent 100%)" }}
+      />
+      <div className="p-4 md:p-5">
+        <div className="flex items-start gap-3">
+          {/* Icon box */}
+          <div
+            className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5"
+            style={{
+              background: "rgba(142,31,61,.12)",
+              border: "1px solid rgba(142,31,61,.18)",
+            }}
+          >
+            <Info className="w-4 h-4" style={{ color: "#8e1f3d" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-foreground mb-1">Como funciona</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+              Cada simulado tem uma janela oficial para participar do ranking nacional. Depois dela, o mesmo simulado continua disponível com a mesma experiência e correção — ideal para se preparar com referência (nessa modalidade a realização não entra no ranking). Resultado, gabarito e ranking da prova são liberados após o encerramento.
+            </p>
+            {/* Pills */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "Não é possível pausar",
+                "Resultado liberado após a janela",
+                "Ranking disponível após encerramento",
+              ].map(pill => (
+                <span
+                  key={pill}
+                  className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(142,31,61,.08)",
+                    color: "#8e1f3d",
+                    border: "1px solid rgba(142,31,61,.14)",
+                  }}
+                >
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
