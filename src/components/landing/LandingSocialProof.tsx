@@ -41,25 +41,21 @@ export function LandingSocialProof() {
           viewport={VIEWPORT_HEADER}
           className="mb-12 text-center"
         >
-          <motion.div
-            variants={headerItemReveal}
-            className="flex items-center justify-center gap-1 mb-4"
-            aria-label="5 estrelas"
-          >
+          <div className="flex items-center justify-center gap-1 mb-4" aria-label="5 estrelas">
             {[0, 1, 2, 3, 4].map((i) => (
               <motion.span
                 key={i}
                 initial={{ opacity: 0, scale: 0.5 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: i * 0.08, ease: [0.32, 0.72, 0.2, 1] }}
+                transition={{ duration: 0.3, delay: i * 0.08, ease: EASE }}
                 className="text-[1.25rem] text-primary"
                 aria-hidden
               >
                 ★
               </motion.span>
             ))}
-          </motion.div>
+          </div>
           <motion.p
             variants={headerItemReveal}
             className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3"

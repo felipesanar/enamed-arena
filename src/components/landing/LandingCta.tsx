@@ -55,6 +55,7 @@ export function LandingCta() {
             <motion.p
               variants={headerItemReveal}
               className="mt-2 text-overline uppercase tracking-[0.12em] text-muted-foreground/70"
+              aria-hidden
             >
               Próximo passo
             </motion.p>
