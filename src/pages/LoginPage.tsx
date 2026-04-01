@@ -47,6 +47,7 @@ export default function LoginPage() {
   const [flowState, setFlowState] = useState<FlowState>("idle");
   const [cooldown, setCooldown] = useState(false);
   const [resending, setResending] = useState(false);
+  const [hubspotModalOpen, setHubspotModalOpen] = useState(false);
 
   if (!loading && user) return <Navigate to="/" replace />;
 
