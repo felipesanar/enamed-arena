@@ -183,10 +183,154 @@ function HowItWorksCard() {
   );
 }
 
+function formatDeadlineTicker(windowEnd: string): string {
+  const end = parseISO(windowEnd);
+  const diff = end.getTime() - Date.now();
+  const days = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+  if (days > 0) return `Janela fecha em ${days} dia${days > 1 ? "s" : ""} e ${hours}h`;
+  if (hours > 0) {
+    const mins = Math.floor((diff % 3_600_000) / 60_000);
+    return `Janela fecha em ${hours}h${mins ? ` e ${mins}min` : ""}`;
+  }
+  return `Janela fecha em breve`;
+}
+
 function HeroCard({ sim }: { sim: SimuladoWithStatus }) {
+  if (sim.status === "available" || sim.status === "in_progress") {
+    return <HeroCardActive sim={sim} />;
+  }
+  if (sim.status === "upcoming") {
+    return <HeroCardUpcoming sim={sim} />;
+  }
+  return null;
+}
+
+function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
+  const isInProgress = sim.status === "in_progress";
+  const alreadyStarted = sim.userState?.started && !sim.userState.finished;
+  const ctaHref = alreadyStarted
+    ? `/simulados/${sim.slug}/prova`
+    : `/simulados/${sim.slug}/start`;
+  const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
+
+  return (
+    <div
+      className="relative w-full rounded-[24px] overflow-hidden p-5 md:p-6"
+      style={{
+        background: "linear-gradient(142deg, #5a1530 0%, #2e0c1e 55%, #160610 100%)",
+        border: "1px solid rgba(232,56,98,.28)",
+      }}
+    >
+      {/* White top thread */}
+      <div
+        className="absolute inset-x-0 top-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.12) 40%, transparent)" }}
+      />
+      {/* Glow 1 */}
+      <div
+        className="pointer-events-none absolute -top-12 -left-12 w-64 h-64 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(232,56,98,.2) 0%, transparent 70%)" }}
+      />
+      {/* Glow 2 */}
+      <div
+        className="pointer-events-none absolute -bottom-16 -right-8 w-72 h-72 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(142,31,61,.18) 0%, transparent 65%)" }}
+      />
+      {/* Lateral overlay */}
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-1/2"
+        style={{ background: "radial-gradient(ellipse at right, rgba(90,21,48,.4) 0%, transparent 70%)" }}
+      />
+
+      <div className="relative z-10">
+        {/* Top row */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span
+              className="sim-dot-pulse w-2 h-2 rounded-full"
+              style={{ background: "#e83862" }}
+            />
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
+              {isInProgress ? "Em andamento" : "Janela aberta"}
+            </span>
+          </div>
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-lg"
+            style={{
+              background: "rgba(255,255,255,.08)",
+              border: "1px solid rgba(255,255,255,.12)",
+              color: "rgba(255,255,255,.7)",
+            }}
+          >
+            #{sim.sequenceNumber}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h2
+          className="font-bold text-white mb-3"
+          style={{ fontSize: "clamp(18px, 3.5vw, 22px)" }}
+        >
+          {sim.title}
+        </h2>
+
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-3 mb-5 text-white/60 text-xs">
+          <span className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            {format(parseISO(sim.executionWindowStart), "dd/MM", { locale: ptBR })}
+            {" – "}
+            {format(parseISO(sim.executionWindowEnd), "dd/MM", { locale: ptBR })}
+          </span>
+          <span>{sim.questionsCount} questões</span>
+        </div>
+
+        {/* Deadline ticker */}
+        <div
+          className="flex items-center gap-2 rounded-lg px-3 py-2 mb-5 text-xs font-medium"
+          style={{
+            background: "rgba(232,56,98,.1)",
+            border: "1px solid rgba(232,56,98,.18)",
+            color: "rgba(255,255,255,.75)",
+          }}
+        >
+          <Clock className="w-3.5 h-3.5 shrink-0 text-[#e83862]" />
+          {formatDeadlineTicker(sim.executionWindowEnd)} — realize agora para entrar no ranking
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={ctaHref}
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ background: "#e83862", color: "#fff" }}
+          >
+            <Play className="w-4 h-4" />
+            {ctaLabel}
+          </Link>
+          <button
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
+            style={{
+              background: "rgba(255,255,255,.08)",
+              border: "1px solid rgba(255,255,255,.12)",
+              color: "rgba(255,255,255,.75)",
+            }}
+            onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            Como funciona
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
+  // Stub — implemented in Task 5
   return (
     <div className="h-[220px] rounded-[24px] bg-muted/20 flex items-center justify-center text-muted-foreground text-sm">
-      HeroCard stub — {sim.title}
+      HeroCardUpcoming stub — {sim.title}
     </div>
   );
 }

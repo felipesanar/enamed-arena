@@ -263,20 +263,18 @@ function HeroSection({
           <p className="text-[40px] font-black tracking-[-2px] text-white leading-none">{overall.percentageScore}%</p>
           <p className="text-[10px] text-white/40 mt-1">{overall.totalCorrect} de {overall.totalQuestions} questões</p>
         </div>
-        <div className="flex gap-2 mb-1">
-          {bestArea && (
+        {bestArea && worstArea && bestArea.area !== worstArea.area && (
+          <div className="flex gap-2 mb-1">
             <div className="bg-white/[0.08] border border-white/[0.12] rounded-[10px] px-3 py-1.5 text-center">
               <p className="text-[14px] font-extrabold text-green-400 leading-none">{bestArea.score}%</p>
               <p className="text-[7px] text-white/40 mt-1">melhor área</p>
             </div>
-          )}
-          {worstArea && bestArea?.area !== worstArea.area && (
             <div className="bg-white/[0.08] border border-white/[0.12] rounded-[10px] px-3 py-1.5 text-center">
               <p className="text-[14px] font-extrabold text-red-400 leading-none">{worstArea.score}%</p>
               <p className="text-[7px] text-white/40 mt-1">foco</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
