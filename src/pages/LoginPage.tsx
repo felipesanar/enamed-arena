@@ -10,10 +10,26 @@ import { PasswordField } from "@/components/auth/PasswordField";
 import { FormFeedback } from "@/components/auth/FormFeedback";
 import { RankingClimbWidget } from "@/components/auth/RankingClimbWidget";
 import { cn } from "@/lib/utils";
+import { HubSpotFormModal } from "@/components/auth/HubSpotFormModal";
 
 type AuthMode = "login" | "signup";
 type LoginMethod = "password" | "magic-link";
 type FlowState = "idle" | "sending" | "sent";
+
+function translateError(msg: string): string {
+  const map: Record<string, string> = {
+    "Invalid login credentials": "Email ou senha incorretos.",
+    "Email not confirmed": "E-mail ainda não confirmado. Verifique sua caixa de entrada.",
+    "User already registered": "Este e-mail já está cadastrado. Tente fazer login.",
+    "Password should be at least 6 characters": "A senha deve ter pelo menos 6 caracteres.",
+    "Email rate limit exceeded": "Muitas tentativas. Aguarde alguns minutos.",
+    "For security purposes, you can only request this after": "Aguarde alguns segundos antes de tentar novamente.",
+  };
+  for (const [key, value] of Object.entries(map)) {
+    if (msg.includes(key)) return value;
+  }
+  return msg;
+}
 
 export default function LoginPage() {
   const { user, loading, signInWithPassword, signUpWithPassword, sendLoginLink } = useAuth();
