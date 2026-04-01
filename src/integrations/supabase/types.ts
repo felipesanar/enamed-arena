@@ -249,6 +249,93 @@ export type Database = {
           },
         ]
       }
+      enamed_institutions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          uf: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          uf: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          uf?: string
+        }
+        Relationships: []
+      }
+      enamed_programs: {
+        Row: {
+          cenario_pratica: string | null
+          created_at: string
+          id: string
+          institution_id: string
+          specialty_id: string
+          vagas: number
+        }
+        Insert: {
+          cenario_pratica?: string | null
+          created_at?: string
+          id?: string
+          institution_id: string
+          specialty_id: string
+          vagas?: number
+        }
+        Update: {
+          cenario_pratica?: string | null
+          created_at?: string
+          id?: string
+          institution_id?: string
+          specialty_id?: string
+          vagas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enamed_programs_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "enamed_institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enamed_programs_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "enamed_specialties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enamed_specialties: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       error_notebook: {
         Row: {
           area: string | null
