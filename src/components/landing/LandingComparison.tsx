@@ -33,28 +33,36 @@ export function LandingComparison() {
           initial="hidden"
           whileInView="show"
           viewport={VIEWPORT_HEADER}
-          className="mb-14"
+          className="mb-12 text-center"
         >
           <motion.p
             variants={headerItemReveal}
-            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center gap-2"
+            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3"
           >
-            <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
             Performance
           </motion.p>
           <motion.h2
             variants={headerItemReveal}
             id="comparison-heading"
-            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground max-w-[14ch] leading-tight tracking-tight"
+            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
           >
-            Você não só responde. Você entende sua performance.
+            Rankings que mostram onde você está.
           </motion.h2>
           <motion.p
             variants={headerItemReveal}
-            className="mt-4 text-body-lg text-muted-foreground max-w-[32rem] leading-relaxed"
+            className="mt-4 text-body-lg text-muted-foreground max-w-[36rem] mx-auto leading-relaxed"
           >
-            Ranking, comparação entre simulados, desempenho por tema e visão estratégica do estudo em um só lugar.
+            Compare-se com alunos da sua especialidade ou do geral. Posição, percentil e evolução ao longo do tempo.
           </motion.p>
+          <motion.div
+            variants={headerItemReveal}
+            className="mt-8 flex items-center justify-center gap-3"
+            aria-hidden
+          >
+            <span className="h-px w-16 bg-gradient-to-r from-transparent to-primary/40" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+            <span className="h-px w-16 bg-gradient-to-l from-transparent to-primary/40" />
+          </motion.div>
         </motion.header>
 
         <motion.div

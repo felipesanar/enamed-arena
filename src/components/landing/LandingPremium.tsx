@@ -13,7 +13,6 @@ import {
   DURATION_NORMAL,
   DURATION_FAST,
 } from "@/lib/landingMotion";
-import { LIVE_FEEDBACK_LINES } from "@/lib/landingMockData";
 
 const PRO_FEATURES = [
   { icon: BookMarked, title: "Caderno de erros", desc: "Revisão focada no que você errou, com contexto e material relacionado." },
@@ -27,7 +26,7 @@ export function LandingPremium() {
     <section
       id="pro"
       className="relative py-16 md:py-20 px-4 md:px-6"
-      aria-labelledby="pro-heading"
+      aria-labelledby="premium-heading"
     >
       <div className="max-w-[1280px] mx-auto">
         <motion.header
@@ -35,33 +34,30 @@ export function LandingPremium() {
           initial="hidden"
           whileInView="show"
           viewport={VIEWPORT_HEADER}
-          className="text-center mb-14"
+          className="mb-12 text-center"
         >
           <motion.p
             variants={headerItemReveal}
             className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center justify-center gap-2"
           >
             <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
-            Camada premium
+            SanarFlix PRO
+            <span className="w-6 h-px bg-gradient-to-l from-transparent via-primary to-wine-glow" />
           </motion.p>
           <motion.h2
             variants={headerItemReveal}
-            id="pro-heading"
-            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground max-w-[16ch] mx-auto leading-tight tracking-tight"
+            id="premium-heading"
+            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
           >
-            Mais inteligência de estudo com SanarFlix PRO.
+            A preparação mais{" "}
+            <span className="text-gradient-wine">completa</span>{" "}
+            do mercado.
           </motion.h2>
           <motion.p
             variants={headerItemReveal}
-            className="mt-4 text-body-lg text-muted-foreground max-w-[28rem] mx-auto leading-relaxed"
+            className="mt-4 text-body-lg text-muted-foreground max-w-[36rem] mx-auto leading-relaxed"
           >
-            Caderno de erros, aprofundamento e integração total com o ecossistema Sanar para quem quer o máximo da preparação.
-          </motion.p>
-          <motion.p
-            variants={headerItemReveal}
-            className="mt-4 text-body-sm text-primary/90 font-medium"
-          >
-            {LIVE_FEEDBACK_LINES[1]}
+            Recursos exclusivos para quem quer extrair o máximo de cada simulado.
           </motion.p>
         </motion.header>
 

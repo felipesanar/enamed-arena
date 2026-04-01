@@ -39,22 +39,46 @@ export function LandingSocialProof() {
           initial="hidden"
           whileInView="show"
           viewport={VIEWPORT_HEADER}
-          className="mb-14"
+          className="mb-12 text-center"
         >
+          <motion.div
+            variants={headerItemReveal}
+            className="flex items-center justify-center gap-1 mb-4"
+            aria-label="5 estrelas"
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, scale: 0.5 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: i * 0.08, ease: [0.32, 0.72, 0.2, 1] }}
+                className="text-[1.25rem] text-primary"
+                aria-hidden
+              >
+                ★
+              </motion.span>
+            ))}
+          </motion.div>
           <motion.p
             variants={headerItemReveal}
-            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center gap-2"
+            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3"
           >
-            <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
-            Prova social
+            Prova Social
           </motion.p>
           <motion.h2
             variants={headerItemReveal}
             id="social-proof-heading"
-            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground max-w-[14ch] leading-tight tracking-tight"
+            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
           >
-            Quem usa, sente a diferença.
+            Quem já usou não volta atrás.
           </motion.h2>
+          <motion.p
+            variants={headerItemReveal}
+            className="mt-4 text-body-lg text-muted-foreground max-w-[36rem] mx-auto leading-relaxed"
+          >
+            Alunos que testaram a plataforma relatam mais confiança e clareza na preparação.
+          </motion.p>
         </motion.header>
 
         <div className="space-y-8">
