@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { authItemReveal, authStaggerContainer } from "@/components/auth/motion";
+import { RankingClimbWidget } from "@/components/auth/RankingClimbWidget";
 
 interface BrandHeroProps {
   eyebrow?: string;
@@ -55,6 +56,10 @@ export function BrandHero({
           {subtitle}
         </motion.p>
       </div>
+
+      <motion.div variants={authItemReveal} className="mt-6">
+        <RankingClimbWidget />
+      </motion.div>
     </motion.div>
   );
 }
