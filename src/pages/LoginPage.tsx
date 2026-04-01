@@ -98,7 +98,9 @@ export default function LoginPage() {
         return;
       }
 
-      if (mode === "signup") setFlowState("sent");
+      if (mode === "signup") {
+        setHubspotModalOpen(true);
+      }
     } catch {
       setError("Erro inesperado. Tente novamente.");
       setFlowState("idle");
