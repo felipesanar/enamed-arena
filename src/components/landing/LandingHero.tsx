@@ -22,8 +22,7 @@ const DELAY = {
 export function LandingHero() {
   const prefersReducedMotion = useReducedMotion();
 
-  /** Enable 3D hover only on real pointer devices ≥ lg */
-  /** Used in Task 3/4: enables 3D hover tilt on the AI insight card */
+  /** Enable 3D hover only on real pointer devices ≥ lg. Used in Task 3/4 for the AI insight card tilt. */
   const [finePointerHoverDesktop, setFinePointerHoverDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px) and (hover: hover)");
@@ -50,6 +49,7 @@ export function LandingHero() {
   return (
     <section
       id="hero"
+      aria-labelledby="hero-heading"
       className="relative min-h-[100svh] flex flex-col justify-center overflow-x-hidden overflow-y-visible pb-16 pt-[max(env(safe-area-inset-top,0px),clamp(4rem,2.25vw+3rem,5.25rem))]"
     >
       {/* ── Background ── */}
@@ -109,7 +109,7 @@ export function LandingHero() {
           {/* Left column — Task 2 */}
           <div className="space-y-6 lg:space-y-7">
             {/* Eyebrow badge */}
-            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full border border-primary/[0.28] bg-primary/10 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/[0.28] bg-primary/10 backdrop-blur-sm">
               <span
                 className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.6)]"
                 aria-hidden
@@ -120,7 +120,8 @@ export function LandingHero() {
             </div>
 
             {/* Headline */}
-            <h1 className="text-[3.2rem] sm:text-[3.5rem] lg:text-[3.2rem] xl:text-[3.6rem] font-extrabold leading-[1.05] tracking-[-0.04em] text-foreground max-w-[14ch]">
+            {/* headline shrinks at lg because the two-column layout narrows the left cell */}
+            <h1 id="hero-heading" className="text-[3.2rem] sm:text-[3.5rem] lg:text-[3.2rem] xl:text-[3.6rem] font-extrabold leading-[1.05] tracking-[-0.04em] text-foreground max-w-[14ch]">
               Performance com{" "}
               <em className="not-italic bg-gradient-to-r from-[#d8405e] to-primary bg-clip-text text-transparent block mt-1 leading-[1.1] pb-0.5">
                 precisão cirúrgica.
@@ -144,12 +145,12 @@ export function LandingHero() {
                   to="/login"
                   onClick={() => trackEvent("lead_captured", { source: "landing_hero_primary" })}
                 >
-                  Entrar no próximo simulado →
+                  Entrar no próximo simulado <span aria-hidden="true">→</span>
                 </Link>
               </Button>
               <a
                 href="#como-funciona"
-                className="text-body text-muted-foreground/60 font-medium border-b border-muted-foreground/20 hover:text-muted-foreground transition-colors duration-200 pb-px"
+                className="text-body text-muted-foreground/60 font-medium border-b border-muted-foreground/20 hover:text-muted-foreground transition-colors duration-200 pb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 Ver como funciona
               </a>
