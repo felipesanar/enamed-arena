@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < rows.length; i += 200) {
       const { error } = await supabase.from("enamed_programs").insert(rows.slice(i, i + 200));
       if (error) throw new Error(`Prog insert batch ${i}: ${error.message}`);
-      inserted += batch.length;
+      inserted += rows.slice(i, i + 200).length;
     }
 
     return new Response(JSON.stringify({
