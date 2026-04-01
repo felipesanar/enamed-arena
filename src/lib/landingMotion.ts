@@ -80,8 +80,8 @@ export const headerItemReveal = {
 };
 
 /** Spring para movimentos orgânicos */
-export const SPRING_GENTLE = { type: "spring", stiffness: 120, damping: 20 };
-export const SPRING_SNAPPY = { type: "spring", stiffness: 200, damping: 22 };
+export const SPRING_GENTLE = { type: "spring", stiffness: 120, damping: 20 } as const;
+export const SPRING_SNAPPY = { type: "spring", stiffness: 200, damping: 22 } as const;
 
 /** Duração para hero-level */
 export const DURATION_CINEMATIC = 0.75;
