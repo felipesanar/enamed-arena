@@ -6,7 +6,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowRight, X } from "lucide-react";
 
 declare global {
   interface Window {
@@ -23,6 +22,28 @@ interface HubSpotFormModalProps {
   onOpenChange: (open: boolean) => void;
   prefillEmail: string;
   prefillName: string;
+}
+
+function prefillField($form: any, fieldNames: string[], value: string) {
+  if (!value) return;
+  for (const name of fieldNames) {
+    // jQuery-style (HubSpot v2 uses jQuery)
+    if ($form.find) {
+      const $el = $form.find(`input[name="${name}"]`);
+      if ($el.length) {
+        $el.val(value).change();
+        return;
+      }
+    }
+    // Native DOM fallback
+    const el = $form.querySelector?.(`input[name="${name}"]`);
+    if (el) {
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+  }
 }
 
 export function HubSpotFormModal({
@@ -51,26 +72,8 @@ export function HubSpotFormModal({
         target: "#hubspot-form-container",
         onFormReady: ($form: any) => {
           if (!$form) return;
-          const emailInput = $form.find
-            ? $form.find('input[name="email"]')
-            : $form.querySelector?.('input[name="email"]');
-          const nameInput = $form.find
-            ? $form.find('input[name="firstname"]')
-            : $form.querySelector?.('input[name="firstname"]');
-
-          if (emailInput?.val) {
-            emailInput.val(prefillEmail).change();
-          } else if (emailInput) {
-            emailInput.value = prefillEmail;
-            emailInput.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-
-          if (nameInput?.val) {
-            nameInput.val(prefillName).change();
-          } else if (nameInput) {
-            nameInput.value = prefillName;
-            nameInput.dispatchEvent(new Event("input", { bubbles: true }));
-          }
+          prefillField($form, ["email"], prefillEmail);
+          prefillField($form, ["firstname", "name", "nome", "full_name", "fullname"], prefillName);
         },
       });
     };
@@ -101,48 +104,39 @@ export function HubSpotFormModal({
   }, [open, prefillEmail, prefillName]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={() => { /* mandatory — don't allow close via overlay */ }}>
       <DialogContent
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
         className={[
           "max-h-[90vh] overflow-y-auto sm:max-w-[460px] rounded-2xl p-0",
-          /* Auth dark surface */
           "border border-[hsl(var(--auth-border-subtle))]",
           "bg-[hsl(var(--auth-bg-soft))]",
           "shadow-[var(--auth-shadow-card)]",
           "text-[hsl(var(--auth-text-primary))]",
-          /* Remove default close button — we render our own */
           "[&>button.absolute]:hidden",
         ].join(" ")}
       >
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          className="absolute right-3.5 top-3.5 z-10 flex h-7 w-7 items-center justify-center rounded-lg border border-[hsl(var(--auth-border-subtle))] bg-[hsl(var(--auth-surface-soft))] text-[hsl(var(--auth-text-muted))] transition-colors hover:border-[hsl(var(--auth-border-strong))] hover:text-[hsl(var(--auth-text-primary))]"
-          aria-label="Fechar"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-[hsl(var(--auth-border-subtle))]">
-          <DialogHeader className="space-y-1.5">
+          <DialogHeader className="space-y-1.5 text-center">
             <DialogTitle className="text-heading-3 font-semibold text-[hsl(var(--auth-text-primary))]">
               Complete seu cadastro
             </DialogTitle>
             <DialogDescription className="text-body-sm text-[hsl(var(--auth-text-muted))]">
-              Preencha os campos restantes. Seu nome e e-mail já foram preenchidos.
+              Preencha os campos restantes para finalizar. Seu nome e e-mail já foram preenchidos.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        {/* HubSpot form container with auth-themed overrides */}
+        {/* HubSpot form */}
         <div className="px-6 py-5">
           <div
             id="hubspot-form-container"
             ref={containerRef}
             className={[
-              "min-h-[200px]",
+              "min-h-[200px] mx-auto max-w-[380px]",
 
               /* Form layout */
               "[&_form]:space-y-4",
@@ -166,7 +160,7 @@ export function HubSpotFormModal({
               "[&_input:focus]:outline-none [&_input:focus]:ring-2 [&_input:focus]:ring-primary/40",
               "[&_input:focus]:border-primary/50",
 
-              /* Select (Etapa da carreira) */
+              /* Select */
               "[&_select]:h-11 [&_select]:w-full [&_select]:rounded-xl [&_select]:appearance-none",
               "[&_select]:border [&_select]:border-[hsl(var(--auth-border-subtle))]",
               "[&_select]:bg-[hsl(var(--auth-input))]",
@@ -176,12 +170,11 @@ export function HubSpotFormModal({
               "[&_select]:transition-all [&_select]:duration-200",
               "[&_select:focus]:outline-none [&_select:focus]:ring-2 [&_select:focus]:ring-primary/40",
               "[&_select:focus]:border-primary/50",
-              /* Select option styling */
               "[&_select_option]:bg-[hsl(var(--auth-bg-soft))] [&_select_option]:text-[hsl(var(--auth-text-primary))]",
 
               /* Submit button */
-              "[&_.hs-submit]:mt-5",
-              "[&_.hs-button]:flex [&_.hs-button]:w-full [&_.hs-button]:items-center [&_.hs-button]:justify-center",
+              "[&_.hs-submit]:mt-5 [&_.hs-submit]:text-center",
+              "[&_.hs-button]:inline-flex [&_.hs-button]:w-full [&_.hs-button]:items-center [&_.hs-button]:justify-center",
               "[&_.hs-button]:h-11 [&_.hs-button]:rounded-xl",
               "[&_.hs-button]:bg-primary [&_.hs-button]:hover:bg-[hsl(var(--wine-hover))]",
               "[&_.hs-button]:text-body-sm [&_.hs-button]:font-semibold [&_.hs-button]:uppercase [&_.hs-button]:tracking-[0.02em]",
@@ -197,24 +190,13 @@ export function HubSpotFormModal({
               "[&_.hs-error-msg]:text-[11px] [&_.hs-error-msg]:text-destructive",
 
               /* Legal consent */
-              "[&_.legal-consent-container]:text-[11px] [&_.legal-consent-container]:text-[hsl(var(--auth-text-muted)/0.7)]",
+              "[&_.legal-consent-container]:mt-3 [&_.legal-consent-container]:text-center [&_.legal-consent-container]:text-[11px] [&_.legal-consent-container]:text-[hsl(var(--auth-text-muted)/0.7)]",
               "[&_.legal-consent-container_a]:text-primary [&_.legal-consent-container_a]:hover:underline",
 
               /* Hide form title if HubSpot renders one */
               "[&_.hs-form-title]:hidden",
             ].join(" ")}
           />
-        </div>
-
-        {/* Skip button */}
-        <div className="px-6 pb-5 pt-0">
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="flex h-10 w-full items-center justify-center rounded-xl border border-[hsl(var(--auth-border-subtle))] bg-[hsl(var(--auth-surface-soft))] text-body-sm font-semibold text-[hsl(var(--auth-text-muted))] transition-all duration-200 hover:border-[hsl(var(--auth-border-strong))] hover:text-[hsl(var(--auth-text-primary))] hover:-translate-y-0.5"
-          >
-            Pular por enquanto
-          </button>
         </div>
       </DialogContent>
     </Dialog>
