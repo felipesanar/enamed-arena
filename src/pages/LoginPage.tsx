@@ -76,7 +76,26 @@ export default function LoginPage() {
   const [hubspotModalOpen, setHubspotModalOpen] = useState(false);
   const [signupRetryIn, setSignupRetryIn] = useState(0);
 
-  if (!loading && user) return <Navigate to="/" replace />;
+  useEffect(() => {
+    const storedUntil = Number(localStorage.getItem(SIGNUP_RATE_LIMIT_LOCK_KEY) ?? "0");
+    if (!storedUntil || Number.isNaN(storedUntil)) return;
+
+    const tick = () => {
+      const now = Date.now();
+      const remainingMs = storedUntil - now;
+      if (remainingMs <= 0) {
+        setSignupRetryIn(0);
+        localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
+        return;
+      }
+      setSignupRetryIn(Math.ceil(remainingMs / 1000));
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
 
   if (loading) {
     return (
