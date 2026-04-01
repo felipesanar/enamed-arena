@@ -8,7 +8,6 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/auth/TextField";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { FormFeedback } from "@/components/auth/FormFeedback";
-import { RankingClimbWidget } from "@/components/auth/RankingClimbWidget";
 import { cn } from "@/lib/utils";
 import { HubSpotFormModal } from "@/components/auth/HubSpotFormModal";
 
@@ -286,9 +285,9 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      heroEyebrow="PRO ENAMED"
-      heroTitle="Simulados para o ENAMED, com direção"
-      heroSubtitle="Entre, realize os simulados e compare seu desempenho no ranking nacional."
+      heroEyebrow="SIMULADOS ENAMED"
+      heroTitle="Estude com direção"
+      heroSubtitle="Realize simulados e compare seu desempenho no ranking nacional."
       mobileHero={<MobileHeaderAndHero />}
       mobileFooter={<MobileTrustFooter />}
     >
@@ -544,25 +543,16 @@ function MobileHeaderAndHero({ compact = false }: { compact?: boolean }) {
 
       {!compact && (
         <div className="rounded-2xl border border-auth-border-subtle bg-auth-hero-surface px-4 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-2">
-              <h2 className="max-w-[14ch] text-heading-1 leading-[1.02] tracking-tight text-auth-hero-headline">
-                Simulados para o ENAMED, com direção
-              </h2>
-              <p className="text-body text-auth-hero-subtitle">Compare seu desempenho no ranking nacional.</p>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.86 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-1 inline-flex h-16 w-16 items-center justify-center rounded-full border border-primary/40 text-caption font-semibold text-primary-foreground"
-            >
-              +94.2%
-            </motion.div>
-          </div>
-
-          <div className="mt-4">
-            <RankingClimbWidget compact />
-          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.20em] text-[hsl(var(--auth-text-primary)/0.42)] mb-3">
+            SIMULADOS ENAMED
+          </p>
+          <h2 className="text-heading-1 leading-[0.95] tracking-tight text-auth-hero-headline mb-2.5">
+            Estude com{" "}
+            <span className="text-auth-hero-keyword">direção</span>
+          </h2>
+          <p className="text-body text-auth-hero-subtitle">
+            Realize simulados e compare seu desempenho no ranking nacional.
+          </p>
         </div>
       )}
     </div>
