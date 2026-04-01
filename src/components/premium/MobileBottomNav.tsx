@@ -36,11 +36,7 @@ function NavIconButton({
   to: string;
   end?: boolean;
   label: string;
-  icon: ComponentType<{
-    className?: string;
-    strokeWidth?: number;
-    "aria-hidden"?: boolean;
-  }>;
+  icon: ComponentType<any>;
   className?: string;
 }) {
   return (

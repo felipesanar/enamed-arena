@@ -210,7 +210,7 @@ function HubLink({
   label,
 }: {
   onClick: () => void;
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  icon: React.ComponentType<any>;
   label: string;
 }) {
   return (

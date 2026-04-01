@@ -143,7 +143,7 @@ export function RankingClimbWidget({ compact = false }: RankingClimbWidgetProps)
                           }
                         : undefined
                     }
-                    transitionEnd={{ boxShadow: "none" }}
+                    onAnimationComplete={() => { /* boxShadow resets naturally */ }}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-primary-foreground">Você</span>
