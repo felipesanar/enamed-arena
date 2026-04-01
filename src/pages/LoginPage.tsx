@@ -17,18 +17,24 @@ type LoginMethod = "password" | "magic-link";
 type FlowState = "idle" | "sending" | "sent";
 
 function translateError(msg: string): string {
-  const map: Record<string, string> = {
-    "Invalid login credentials": "Email ou senha incorretos.",
-    "Email not confirmed": "E-mail ainda não confirmado. Verifique sua caixa de entrada.",
-    "User already registered": "Este e-mail já está cadastrado. Tente fazer login.",
-    "Password should be at least 6 characters": "A senha deve ter pelo menos 6 caracteres.",
-    "Email rate limit exceeded": "Muitas tentativas. Aguarde alguns minutos.",
-    "For security purposes, you can only request this after": "Aguarde alguns segundos antes de tentar novamente.",
-  };
-  for (const [key, value] of Object.entries(map)) {
-    if (msg.includes(key)) return value;
+  const lower = msg.toLowerCase();
+  const map: Array<[string, string]> = [
+    ["invalid login credentials", "Email ou senha incorretos. Verifique e tente novamente."],
+    ["email not confirmed", "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (inclusive spam)."],
+    ["user already registered", "Este e-mail já está cadastrado. Tente fazer login."],
+    ["password should be at least 6 characters", "A senha deve ter pelo menos 6 caracteres."],
+    ["email rate limit exceeded", "Você tentou criar a conta várias vezes seguidas. Aguarde 2–3 minutos antes de tentar novamente."],
+    ["rate limit exceeded", "Muitas tentativas seguidas. Aguarde 2–3 minutos e tente novamente."],
+    ["over_email_send_rate_limit", "Limite de envio de e-mails atingido. Aguarde alguns minutos antes de tentar novamente."],
+    ["for security purposes, you can only request this after", "Por segurança, aguarde alguns segundos antes de tentar novamente."],
+    ["too many requests", "Muitas tentativas seguidas. Aguarde 2–3 minutos e tente novamente."],
+    ["network", "Erro de conexão. Verifique sua internet e tente novamente."],
+    ["fetch", "Erro de conexão. Verifique sua internet e tente novamente."],
+  ];
+  for (const [key, value] of map) {
+    if (lower.includes(key)) return value;
   }
-  return msg;
+  return "Ocorreu um erro inesperado. Tente novamente em alguns instantes.";
 }
 
 export default function LoginPage() {
