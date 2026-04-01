@@ -76,7 +76,7 @@ export function LandingValueProps() {
   return (
     <section
       id="diferenciais"
-      className="relative py-16 md:py-20 px-4 md:px-6"
+      className="relative py-14 md:py-18 px-4 md:px-6"
       aria-labelledby="value-props-heading"
     >
       <div className="max-w-[1280px] mx-auto">
@@ -85,28 +85,32 @@ export function LandingValueProps() {
           initial="hidden"
           whileInView="show"
           viewport={VIEWPORT_HEADER}
-          className="mb-12"
+          className="mb-12 flex flex-col lg:flex-row lg:items-end lg:gap-12"
         >
-          <motion.p
-            variants={headerItemReveal}
-            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center gap-2"
-          >
-            <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
-            Diferenciais
-          </motion.p>
-          <motion.h2
-            variants={headerItemReveal}
-            id="value-props-heading"
-            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground max-w-[14ch] leading-tight tracking-tight"
-          >
-            Muito além de um simulado comum.
-          </motion.h2>
-          <motion.p
-            variants={headerItemReveal}
-            className="mt-4 text-body-lg text-muted-foreground max-w-[32rem] leading-relaxed"
-          >
-            Cada recurso foi desenhado para quem leva preparação a sério e quer performance de alto nível.
-          </motion.p>
+          <div className="flex-1">
+            <motion.p
+              variants={headerItemReveal}
+              className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center gap-2"
+            >
+              <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
+              Diferenciais
+            </motion.p>
+            <motion.h2
+              variants={headerItemReveal}
+              id="value-props-heading"
+              className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
+            >
+              Muito além de um simulado comum.
+            </motion.h2>
+          </div>
+          <div className="lg:w-[320px] lg:shrink-0 lg:border-l lg:border-border/50 lg:pl-8 mt-4 lg:mt-0 lg:pb-1">
+            <motion.p
+              variants={headerItemReveal}
+              className="text-body-lg text-muted-foreground leading-relaxed"
+            >
+              Cada recurso foi desenhado para quem leva preparação a sério e quer performance de alto nível.
+            </motion.p>
+          </div>
         </motion.header>
 
         <motion.p

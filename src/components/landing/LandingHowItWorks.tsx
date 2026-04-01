@@ -24,38 +24,47 @@ export function LandingHowItWorks() {
   return (
     <section
       id="como-funciona"
-      className="relative py-16 md:py-20 px-4 md:px-6"
+      className="relative py-14 md:py-18 px-4 md:px-6"
       aria-labelledby="how-it-works-heading"
     >
       <div className="max-w-[1280px] mx-auto">
-        <motion.header
-          variants={headerReveal}
-          initial="hidden"
-          whileInView="show"
-          viewport={VIEWPORT_HEADER}
-          className="mb-14"
-        >
-          <motion.p
-            variants={headerItemReveal}
-            className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center gap-2"
+        <div className="relative mb-14">
+          {/* Número decorativo de fundo */}
+          <span
+            className="absolute -top-4 -left-2 text-[8rem] sm:text-[10rem] font-black text-foreground/[0.04] leading-none select-none pointer-events-none tabular-nums"
+            aria-hidden
           >
-            <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
-            Jornada
-          </motion.p>
-          <motion.h2
-            variants={headerItemReveal}
-            id="how-it-works-heading"
-            className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground max-w-[14ch] leading-tight tracking-tight"
+            06
+          </span>
+          <motion.header
+            variants={headerReveal}
+            initial="hidden"
+            whileInView="show"
+            viewport={VIEWPORT_HEADER}
+            className="relative z-10"
           >
-            Do cadastro à evolução contínua.
-          </motion.h2>
-          <motion.p
-            variants={headerItemReveal}
-            className="mt-4 text-body-lg text-muted-foreground max-w-[32rem] leading-relaxed"
-          >
-            Uma jornada pensada para você medir, comparar e subir de nível a cada simulado.
-          </motion.p>
-        </motion.header>
+            <motion.p
+              variants={headerItemReveal}
+              className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3 flex items-center gap-2"
+            >
+              <span className="w-6 h-px bg-gradient-to-r from-transparent via-primary to-wine-glow" />
+              Jornada
+            </motion.p>
+            <motion.h2
+              variants={headerItemReveal}
+              id="how-it-works-heading"
+              className="text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground max-w-[14ch] leading-tight tracking-tight"
+            >
+              Do cadastro à evolução contínua.
+            </motion.h2>
+            <motion.p
+              variants={headerItemReveal}
+              className="mt-4 text-body-lg text-muted-foreground max-w-[32rem] leading-relaxed"
+            >
+              Uma jornada pensada para você medir, comparar e subir de nível a cada simulado.
+            </motion.p>
+          </motion.header>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start">
           <div className="space-y-4">
