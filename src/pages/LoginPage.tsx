@@ -425,6 +425,18 @@ export default function LoginPage() {
           Ao continuar, você concorda com nossos termos e política de privacidade.
         </p>
       </div>
+
+      <HubSpotFormModal
+        open={hubspotModalOpen}
+        onOpenChange={(open) => {
+          setHubspotModalOpen(open);
+          if (!open && mode === "signup") {
+            setFlowState("sent");
+          }
+        }}
+        prefillEmail={email}
+        prefillName={fullName}
+      />
     </AuthShell>
   );
 }
