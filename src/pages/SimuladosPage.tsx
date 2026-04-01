@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar } from "lucide-react";
+import { Play, Lock, Clock, Calendar, CalendarPlus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageHeader } from "@/components/PageHeader";
@@ -370,7 +371,7 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
           <CountdownBlock label="min" value={String(mins).padStart(2, "0")} />
         </div>
 
-        {/* Disabled CTA */}
+        {/* CTAs */}
         <div className="flex flex-wrap gap-2 items-center">
           <button
             disabled
@@ -384,6 +385,20 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
             <Lock className="w-4 h-4" />
             Ainda não disponível
           </button>
+          <a
+            href={buildGoogleCalendarUrl(sim)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
+            style={{
+              background: "rgba(255,255,255,.08)",
+              border: "1px solid rgba(255,255,255,.12)",
+              color: "rgba(255,255,255,.75)",
+            }}
+          >
+            <CalendarPlus className="w-4 h-4" />
+            Adicionar ao Google Agenda
+          </a>
         </div>
 
         {/* Info row */}
