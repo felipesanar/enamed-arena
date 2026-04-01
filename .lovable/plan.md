@@ -1,55 +1,42 @@
 
 
-## Diagnóstico: Login/Auth não funciona
+## Plan: "Adicionar ao Google Agenda" para simulados futuros
 
-### Problemas encontrados
+### Abordagem
 
-**Problema 1 (CRÍTICO) — LoginPage não redireciona após login bem-sucedido**
+Usar a URL pública do Google Calendar para criar eventos — **não requer OAuth, API key, nem backend**. É um link que abre o Google Calendar com os dados pré-preenchidos.
 
-O componente `LoginPage` extrai `user` do `useAuth()` na linha 61 mas **nunca o utiliza para redirecionar**. Após `signInWithPassword` retornar sucesso:
-- `result.error` é `null` → não entra no bloco de erro
-- O código só faz algo especial para `mode === "signup"` (abre o modal HubSpot)
-- Para login, `flowState` fica preso em `"sending"` → o spinner roda para sempre
-- O `onAuthStateChange` no `AuthContext` atualiza `user`, mas o `LoginPage` nunca verifica `if (user) return <Navigate to="/" />`
+Formato: `https://calendar.google.com/calendar/event?action=TEMPLATE&text=...&dates=START/END&details=...`
 
-Isso explica exatamente o que está na screenshot: o botão fica com spinner infinito.
+### Alterações
 
-**Problema 2 (EMAILS) — Novu retornando 402 Payment Required**
+#### 1. Criar helper `buildGoogleCalendarUrl` em `src/lib/simulado-helpers.ts`
 
-Os logs da Edge Function `auth-email-hook` mostram:
-```
-Novu error [402]: "You have exceeded the number of allowed requests..."
-```
-Os emails de confirmação de signup **não estão sendo enviados**. Isso é um problema de billing do Novu, não de código. Mas o fluxo de signup também não trata esse cenário — o usuário vê "verifique seu email" mas o email nunca chega.
+- Recebe um `SimuladoWithStatus`
+- Gera URL com título, janela de execução (start/end em formato `YYYYMMDDTHHmmssZ`), e descrição com link para a plataforma
 
-### Correções planejadas
+#### 2. Adicionar botão "Adicionar ao Google Agenda" no `SimuladoDetailPage.tsx`
 
-#### 1. Adicionar redirect ao LoginPage quando `user` existe
+- Visível apenas quando `status === 'upcoming'`
+- Ícone de calendário + texto
+- Abre a URL em nova aba (`window.open`)
+- Posicionado na seção de informações do simulado, abaixo das datas
 
-**Arquivo:** `src/pages/LoginPage.tsx`
+#### 3. (Opcional) Adicionar ícone no `SimuladoCard.tsx`
 
-Após o check de `loading` (linha ~106), adicionar:
-```typescript
-if (user) {
-  return <Navigate to="/" replace />;
-}
-```
-
-Isso garante que:
-- Após login com senha → `onAuthStateChange` seta `user` → componente re-renderiza → redireciona
-- Se o usuário já está logado e acessa `/login` → redireciona direto
-
-#### 2. Resetar `flowState` após login com senha bem-sucedido
-
-No `handlePasswordSubmit`, após o check de signup (linha ~160), adicionar um branch para login que reseta o `flowState` para `"idle"`. Na prática o redirect via `user` vai ocorrer antes, mas é boa prática não deixar o estado pendurado.
-
-#### 3. Informar sobre o problema do Novu
-
-O erro 402 do Novu é externo — precisa ser resolvido no dashboard do Novu (upgrade do plano ou reset do limite). Não é correção de código, mas vou documentar.
+- Pequeno ícone de calendário ao lado da data para simulados `upcoming`
+- Ao clicar, abre o Google Calendar link (com `e.preventDefault()` para não navegar ao card)
 
 ### Detalhes técnicos
 
-- A correção principal é 1 linha: `if (user) return <Navigate to="/" replace />;`
-- Sem alterações no backend, edge functions, ou banco de dados
-- Arquivo editado: apenas `src/pages/LoginPage.tsx`
+- Zero dependências externas
+- Nenhuma alteração no banco de dados
+- A URL do Google Calendar é pública e funciona sem autenticação da API
+- O evento será adicionado à conta Google do usuário logado no navegador
+
+### Arquivos editados
+
+- `src/lib/simulado-helpers.ts` — novo helper
+- `src/pages/SimuladoDetailPage.tsx` — botão CTA
+- `src/components/SimuladoCard.tsx` — ícone opcional
 
