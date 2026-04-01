@@ -156,9 +156,18 @@ export default function SimuladoDetailPage() {
           <p className="text-body text-muted-foreground mb-2 max-w-md mx-auto">
             A janela de execução abrirá em <strong>{formatDate(simulado.executionWindowStart)}</strong>.
           </p>
-          <p className="text-body-sm text-muted-foreground max-w-md mx-auto">
+          <p className="text-body-sm text-muted-foreground max-w-md mx-auto mb-6">
             Prepare-se para {simulado.questionsCount} questões em {simulado.estimatedDuration} de prova.
           </p>
+          <a
+            href={buildGoogleCalendarUrl(simulado)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-accent/50 text-body font-medium text-foreground hover:bg-accent transition-colors"
+          >
+            <CalendarPlus className="h-4 w-4 text-primary" />
+            Adicionar ao Google Agenda
+          </a>
         </PremiumCard>
       )}
 

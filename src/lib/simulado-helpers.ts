@@ -157,3 +157,20 @@ export function canAccessSimulado(status: SimuladoStatus): boolean {
 export function canViewResults(status: SimuladoStatus): boolean {
   return status === 'results_available' || status === 'completed';
 }
+
+/**
+ * Build a Google Calendar event URL for a simulado.
+ */
+export function buildGoogleCalendarUrl(simulado: SimuladoWithStatus): string {
+  const toGCalDate = (iso: string) =>
+    parseISO(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Simulado #${simulado.sequenceNumber} — ${simulado.title}`,
+    dates: `${toGCalDate(simulado.executionWindowStart)}/${toGCalDate(simulado.executionWindowEnd)}`,
+    details: `${simulado.description}\n\n${simulado.questionsCount} questões · ${simulado.estimatedDuration}\n\nAcesse: ${window.location.origin}/simulados/${simulado.id}`,
+  });
+
+  return `https://calendar.google.com/calendar/event?${params.toString()}`;
+}
