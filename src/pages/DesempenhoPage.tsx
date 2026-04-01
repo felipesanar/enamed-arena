@@ -263,18 +263,20 @@ function HeroSection({
           <p className="text-[40px] font-black tracking-[-2px] text-white leading-none">{overall.percentageScore}%</p>
           <p className="text-[10px] text-white/40 mt-1">{overall.totalCorrect} de {overall.totalQuestions} questões</p>
         </div>
-        {bestArea && worstArea && bestArea.area !== worstArea.area && (
-          <div className="flex gap-2 mb-1">
+        <div className="flex gap-2 mb-1">
+          {bestArea && (
             <div className="bg-white/[0.08] border border-white/[0.12] rounded-[10px] px-3 py-1.5 text-center">
               <p className="text-[14px] font-extrabold text-green-400 leading-none">{bestArea.score}%</p>
               <p className="text-[7px] text-white/40 mt-1">melhor área</p>
             </div>
+          )}
+          {worstArea && bestArea?.area !== worstArea.area && (
             <div className="bg-white/[0.08] border border-white/[0.12] rounded-[10px] px-3 py-1.5 text-center">
               <p className="text-[14px] font-extrabold text-red-400 leading-none">{worstArea.score}%</p>
               <p className="text-[7px] text-white/40 mt-1">foco</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -440,11 +442,13 @@ function EvoBars({
           return (
             <div key={area.area}>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2 text-[12px] font-medium text-foreground">
+                <div className="flex items-center gap-2">
                   <Stethoscope className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" aria-hidden />
-                  <span>{area.area}: {area.score}%</span>
+                  <span className="text-[12px] font-medium text-foreground">{area.area}</span>
                 </div>
-                <span className="text-[10px] font-normal text-muted-foreground tabular-nums">{area.correct}/{area.questions}</span>
+                <span className="text-[12px] font-bold text-foreground tabular-nums">
+                  {area.score}% <span className="text-[10px] font-normal text-muted-foreground">· {area.correct}/{area.questions}</span>
+                </span>
               </div>
               <div className="h-[6px] bg-primary/[0.08] rounded-full overflow-hidden">
                 <motion.div

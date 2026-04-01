@@ -96,8 +96,8 @@ describe("DesempenhoPage", () => {
 
   it("renders area cards", () => {
     renderPage();
-    expect(screen.getByText("Clínica Médica")).toBeTruthy();
-    expect(screen.getByText("Cirurgia")).toBeTruthy();
+    expect(screen.getAllByText("Clínica Médica").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Cirurgia").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows 'Selecione uma Grande Área' placeholder when no area selected", () => {
@@ -107,20 +107,21 @@ describe("DesempenhoPage", () => {
 
   it("clicking an area shows its themes", () => {
     renderPage();
-    fireEvent.click(screen.getByText("Clínica Médica"));
+    // Click the first occurrence (area card in the grid, before evo bars)
+    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
     expect(screen.getByText("HAS")).toBeTruthy();
   });
 
   it("clicking a theme expands its questions", () => {
     renderPage();
-    fireEvent.click(screen.getByText("Clínica Médica"));
+    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
     fireEvent.click(screen.getByText("HAS"));
     expect(screen.getByText(/Q1 texto/i)).toBeTruthy();
   });
 
   it("question rows link to correcao with correct q param", () => {
     renderPage();
-    fireEvent.click(screen.getByText("Clínica Médica"));
+    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
     fireEvent.click(screen.getByText("HAS"));
     const link = screen.getByRole("link", { name: /Q1 texto/i });
     expect(link.getAttribute("href")).toContain("correcao?q=1");
@@ -140,8 +141,8 @@ describe("DesempenhoPage", () => {
 
   it("clicking selected area again deselects it", () => {
     renderPage();
-    fireEvent.click(screen.getByText("Clínica Médica"));
-    fireEvent.click(screen.getByText("Clínica Médica"));
+    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
+    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
     expect(screen.getByText(/selecione uma grande área/i)).toBeTruthy();
   });
 });
