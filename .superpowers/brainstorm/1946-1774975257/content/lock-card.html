@@ -1,0 +1,91 @@
+<h2>Bloqueio no card de simulado — qual estilo?</h2>
+<p class="subtitle">Para usuários não-PRO (guest e SanarFlix), o card deve indicar que o simulado é exclusivo PRO. Qual abordagem visual você prefere?</p>
+
+<div class="cards">
+
+  <!-- Opção A: Overlay semitransparente com cadeado central -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="card-image" style="padding:0;background:#0f172a;border-radius:10px;overflow:hidden;position:relative;">
+      <!-- Card mockup -->
+      <div style="padding:20px;filter:blur(2px);opacity:0.35;pointer-events:none;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div style="width:36px;height:36px;background:#7c3aed22;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#7c3aed;font-size:13px;">#3</div>
+          <div style="padding:3px 10px;border-radius:999px;background:#16a34a18;color:#4ade80;font-size:11px;font-weight:600;">Disponível</div>
+        </div>
+        <div style="font-weight:600;color:#f1f5f9;font-size:15px;margin-bottom:8px;">Simulado ENAMED 26/03</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">📅 26/03 - 28/03</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Grande área: Clínica Médica</div>
+        <div style="background:#7c3aed;border-radius:10px;padding:10px;text-align:center;color:white;font-weight:600;font-size:13px;">Iniciar Simulado →</div>
+      </div>
+      <!-- Overlay -->
+      <div style="position:absolute;inset:0;background:rgba(10,10,20,0.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+        <div style="width:48px;height:48px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;">🔒</div>
+        <div style="color:white;font-weight:700;font-size:13px;">Exclusivo PRO</div>
+        <div style="color:#c4b5fd;font-size:11px;">Assine o PRO ENAMED →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Overlay escuro com cadeado central</h3>
+      <p>Sobrepõe o card com fundo semitransparente. Card original fica desfocado. Cadeado + CTA de upgrade no centro. Clique em qualquer lugar redireciona.</p>
+    </div>
+  </div>
+
+  <!-- Opção B: Card levemente opaco, badge PRO no canto, botão bloqueado -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="card-image" style="padding:0;background:#0f172a;border-radius:10px;overflow:hidden;">
+      <div style="padding:20px;opacity:0.6;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div style="width:36px;height:36px;background:#7c3aed22;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#7c3aed;font-size:13px;">#3</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="padding:3px 10px;border-radius:999px;background:#16a34a18;color:#4ade80;font-size:11px;font-weight:600;">Disponível</div>
+            <div style="padding:3px 8px;border-radius:999px;background:#7c3aed33;color:#c4b5fd;font-size:11px;font-weight:700;display:flex;align-items:center;gap:3px;">🔒 PRO</div>
+          </div>
+        </div>
+        <div style="font-weight:600;color:#f1f5f9;font-size:15px;margin-bottom:8px;">Simulado ENAMED 26/03</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">📅 26/03 - 28/03</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Grande área: Clínica Médica</div>
+        <div style="background:#334155;border-radius:10px;padding:10px;text-align:center;color:#94a3b8;font-weight:600;font-size:13px;">🔒 Disponível apenas para PRO</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Badge "PRO" + botão bloqueado</h3>
+      <p>Card fica levemente opaco. Badge "🔒 PRO" aparece no cabeçalho ao lado do status. Botão de CTA vira um aviso de acesso restrito. Clique redireciona ao site PRO.</p>
+    </div>
+  </div>
+
+  <!-- Opção C: Card normal, mas com banner na base -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="card-image" style="padding:0;background:#0f172a;border-radius:10px;overflow:hidden;">
+      <div style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div style="width:36px;height:36px;background:#7c3aed22;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#7c3aed;font-size:13px;">#3</div>
+          <div style="padding:3px 10px;border-radius:999px;background:#16a34a18;color:#4ade80;font-size:11px;font-weight:600;">Disponível</div>
+        </div>
+        <div style="font-weight:600;color:#f1f5f9;font-size:15px;margin-bottom:8px;">Simulado ENAMED 26/03</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">📅 26/03 - 28/03</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:0;">Grande área: Clínica Médica</div>
+      </div>
+      <!-- Banner na base -->
+      <div style="background:linear-gradient(135deg,#4c1d95,#7c3aed);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">🔒</span>
+          <div>
+            <div style="color:white;font-weight:700;font-size:12px;">Exclusivo Aluno PRO</div>
+            <div style="color:#ddd6fe;font-size:11px;">Assine para desbloquear</div>
+          </div>
+        </div>
+        <div style="color:#c4b5fd;font-size:12px;font-weight:600;">Ver planos →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Card completo + banner PRO na base</h3>
+      <p>O card aparece normalmente (sem opacidade). Um banner roxo/gradiente é adicionado na parte inferior com CTA de upgrade. O usuário vê o conteúdo mas não pode acessar.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;font-size:12px;">Clique para selecionar e responda no terminal se quiser ajustar algum detalhe.</p>

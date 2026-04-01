@@ -1,28 +1,30 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
-import { GraduationCap, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { PasswordField } from "@/components/auth/PasswordField";
+import { FormFeedback } from "@/components/auth/FormFeedback";
 
-type FlowState = 'idle' | 'saving' | 'done' | 'error';
+type FlowState = "idle" | "saving" | "done" | "error";
 
 function getRecoveryParam(key: string) {
   const searchParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   return searchParams.get(key) || hashParams.get(key);
 }
 
 function clearRecoveryParams() {
-  window.history.replaceState({}, document.title, '/reset-password');
+  window.history.replaceState({}, document.title, "/reset-password");
 }
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [show, setShow] = useState(false);
-  const [error, setError] = useState('');
-  const [flowState, setFlowState] = useState<FlowState>('idle');
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [flowState, setFlowState] = useState<FlowState>("idle");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -31,19 +33,19 @@ export default function ResetPasswordPage() {
     const failRecovery = (message: string) => {
       if (!mounted) return;
       setError(message);
-      setFlowState('error');
+      setFlowState("error");
       setReady(false);
     };
 
     const prepareRecoverySession = async () => {
-      const accessToken = getRecoveryParam('access_token');
-      const refreshToken = getRecoveryParam('refresh_token');
-      const tokenHash = getRecoveryParam('token_hash') || getRecoveryParam('token');
-      const recoveryType = getRecoveryParam('type');
-      const providerError = getRecoveryParam('error_description') || getRecoveryParam('error');
+      const accessToken = getRecoveryParam("access_token");
+      const refreshToken = getRecoveryParam("refresh_token");
+      const tokenHash = getRecoveryParam("token_hash") || getRecoveryParam("token");
+      const recoveryType = getRecoveryParam("type");
+      const providerError = getRecoveryParam("error_description") || getRecoveryParam("error");
 
       if (providerError) {
-        failRecovery(decodeURIComponent(providerError).replace(/\+/g, ' '));
+        failRecovery(decodeURIComponent(providerError).replace(/\+/g, " "));
         return;
       }
 
@@ -54,33 +56,33 @@ export default function ResetPasswordPage() {
         });
 
         if (sessionError) {
-          failRecovery('Link inválido ou expirado. Solicite um novo email.');
+          failRecovery("Link invalido ou expirado. Solicite um novo email.");
           return;
         }
 
         clearRecoveryParams();
         if (mounted) {
           setReady(true);
-          setFlowState('idle');
+          setFlowState("idle");
         }
         return;
       }
 
-      if (tokenHash && recoveryType === 'recovery') {
+      if (tokenHash && recoveryType === "recovery") {
         const { error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
-          type: 'recovery',
+          type: "recovery",
         });
 
         if (verifyError) {
-          failRecovery('Link inválido ou expirado. Solicite um novo email.');
+          failRecovery("Link invalido ou expirado. Solicite um novo email.");
           return;
         }
 
         clearRecoveryParams();
         if (mounted) {
           setReady(true);
-          setFlowState('idle');
+          setFlowState("idle");
         }
         return;
       }
@@ -89,19 +91,19 @@ export default function ResetPasswordPage() {
       if (session) {
         if (mounted) {
           setReady(true);
-          setFlowState('idle');
+          setFlowState("idle");
         }
         return;
       }
 
-      failRecovery('Link inválido ou expirado. Solicite um novo email.');
+      failRecovery("Link invalido ou expirado. Solicite um novo email.");
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         setReady(true);
-        setFlowState('idle');
+        setFlowState("idle");
       }
     });
 
@@ -113,152 +115,114 @@ export default function ResetPasswordPage() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
 
-    if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return; }
-    if (password !== confirm) { setError('As senhas não coincidem.'); return; }
+    if (password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("As senhas nao coincidem.");
+      return;
+    }
 
-    setFlowState('saving');
+    setFlowState("saving");
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
         setError(updateError.message);
-        setFlowState('idle');
-      } else {
-        setFlowState('done');
-        setTimeout(() => navigate('/', { replace: true }), 2500);
+        setFlowState("idle");
+        return;
       }
+
+      setFlowState("done");
+      setTimeout(() => navigate("/", { replace: true }), 2500);
     } catch {
-      setError('Erro inesperado. Tente novamente.');
-      setFlowState('idle');
+      setError("Erro inesperado. Tente novamente.");
+      setFlowState("idle");
     }
   };
 
-  if (flowState === 'done') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
-          <Brand />
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm text-center space-y-4">
-            <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="h-7 w-7 text-success" />
-            </div>
-            <h2 className="text-heading-3 text-foreground">Senha atualizada!</h2>
-            <p className="text-body-sm text-muted-foreground">
-              Sua senha foi redefinida com sucesso. Redirecionando...
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (flowState === 'error') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
-          <Brand />
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm text-center space-y-4">
-            <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-              <AlertCircle className="h-7 w-7 text-destructive" />
-            </div>
-            <h2 className="text-heading-3 text-foreground">Não foi possível validar o link</h2>
-            <p className="text-body-sm text-muted-foreground">{error}</p>
-            <Link to="/forgot-password" className="inline-block text-body-sm text-primary font-semibold hover:underline mt-2">
-              Solicitar novo email
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
-          <Brand />
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm text-center space-y-4">
-            <div className="h-10 w-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-            <p className="text-body-sm text-muted-foreground">Verificando link de redefinição...</p>
-            <Link to="/login" className="inline-block text-body-sm text-primary font-semibold hover:underline mt-2">
-              Voltar para login
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 p-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
-        <Brand />
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-heading-3 text-foreground mb-2">Nova senha</h2>
-          <p className="text-body-sm text-muted-foreground mb-6">Defina uma nova senha para sua conta.</p>
+    <AuthShell
+      heroEyebrow="Recuperacao premium"
+      heroTitle="Defina uma nova senha com seguranca total."
+      heroSubtitle="Quando o link estiver valido, a troca da senha leva apenas alguns segundos."
+    >
+      <div className="space-y-1 text-center">
+        <h1 className="text-heading-2 text-auth-text-primary">Nova senha</h1>
+        <p className="text-body-sm text-auth-text-muted">Fluxo protegido para recuperar o acesso da sua conta.</p>
+      </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <PasswordField label="Nova senha" placeholder="Mínimo 6 caracteres" value={password} onChange={setPassword} show={show} onToggle={() => setShow(!show)} />
-            <PasswordField label="Confirmar senha" placeholder="Repita a senha" value={confirm} onChange={(v) => setConfirm(v)} show={show} onToggle={() => setShow(!show)} />
-
-            {error && (
-              <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                className="text-body-sm text-destructive font-medium bg-destructive/10 rounded-lg p-3">
-                {error}
-              </motion.p>
-            )}
-
-            <button
-              type="submit"
-              disabled={flowState === 'saving'}
-              className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {flowState === 'saving'
-                ? <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                : 'Salvar nova senha'}
-            </button>
-          </form>
+      {flowState === "done" && (
+        <div className="mt-6 space-y-4 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
+            <CheckCircle2 className="h-7 w-7 text-success" />
+          </div>
+          <h2 className="text-heading-3 text-auth-text-primary">Senha atualizada</h2>
+          <p className="text-body-sm text-auth-text-muted">Sua senha foi redefinida com sucesso. Redirecionando...</p>
         </div>
-      </motion.div>
-    </div>
+      )}
+
+      {flowState === "error" && (
+        <div className="mt-6 space-y-4 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/15">
+            <AlertCircle className="h-7 w-7 text-destructive" />
+          </div>
+          <h2 className="text-heading-3 text-auth-text-primary">Nao foi possivel validar o link</h2>
+          <p className="text-body-sm text-auth-text-muted">{error}</p>
+          <Link to="/forgot-password" className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-auth-border-subtle bg-auth-surface-soft text-body-sm font-semibold text-auth-text-primary transition-all hover:border-auth-border-strong">
+            Solicitar novo email
+          </Link>
+        </div>
+      )}
+
+      {flowState !== "done" && flowState !== "error" && !ready && (
+        <div className="mt-6 space-y-4 text-center">
+          <div className="mx-auto h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <p className="text-body-sm text-auth-text-muted">Verificando link de redefinicao...</p>
+          <Link to="/login" className="inline-block text-body-sm font-semibold text-primary hover:text-primary/80">
+            Voltar para login
+          </Link>
+        </div>
+      )}
+
+      {flowState !== "done" && flowState !== "error" && ready && (
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <PasswordField
+            label="Nova senha"
+            value={password}
+            onChange={setPassword}
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((value) => !value)}
+            placeholder="Minimo 6 caracteres"
+          />
+          <PasswordField
+            label="Confirmar senha"
+            value={confirm}
+            onChange={setConfirm}
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((value) => !value)}
+            placeholder="Repita a senha"
+          />
+
+          {error && <FormFeedback tone="error" message={error} />}
+
+          <button
+            type="submit"
+            disabled={flowState === "saving"}
+            className="flex h-11 w-full items-center justify-center rounded-xl bg-primary text-body font-semibold text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {flowState === "saving" ? <Spinner /> : "Salvar nova senha"}
+          </button>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 
-function Brand() {
-  return (
-    <div className="text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mx-auto mb-4">
-        <GraduationCap className="h-7 w-7 text-primary-foreground" />
-      </div>
-      <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">sanarflix</span>
-      <h1 className="text-heading-2 text-foreground mt-0.5">PRO: ENAMED</h1>
-    </div>
-  );
-}
-
-function PasswordField({ label, placeholder, value, onChange, show, onToggle }: {
-  label: string; placeholder: string; value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void;
-}) {
-  return (
-    <div>
-      <label className="text-body-sm font-medium text-foreground mb-1.5 block">{label}</label>
-      <div className="relative">
-        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full h-11 pl-10 pr-11 rounded-xl border border-border bg-background text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
-          required
-        />
-        <button type="button" onClick={onToggle} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-    </div>
-  );
+function Spinner() {
+  return <span className="h-4 w-4 rounded-full border-2 border-primary-foreground/35 border-t-primary-foreground animate-spin" />;
 }

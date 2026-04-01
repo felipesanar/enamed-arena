@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SEGMENT_LABELS } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { SANARFLIX_PRO_ENAMED_URL } from "@/lib/sanarflix";
 import {
   Shield, User, GraduationCap, Building2, Edit3, LogOut,
   Save, X, Camera,
@@ -136,7 +137,7 @@ export default function ConfiguracoesPage() {
           </div>
           {segment === 'guest' && (
             <a
-              href="https://sanarflix.com.br/sanarflix-pro-enamed"
+              href={SANARFLIX_PRO_ENAMED_URL}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-body-sm font-semibold hover:bg-wine-hover transition-colors shrink-0"

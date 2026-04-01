@@ -1,0 +1,89 @@
+<h2>Design — Card de Simulado</h2>
+<p class="subtitle">Três estados do card: PRO (normal), bloqueado (badge + CTA travado), e sem dados de área ainda.</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;">
+
+  <!-- Card PRO (acesso normal) -->
+  <div>
+    <p class="label" style="margin-bottom:8px;">✅ Aluno PRO — acesso normal</p>
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:20px;font-family:system-ui;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div style="width:36px;height:36px;background:#7c3aed18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#a78bfa;font-size:13px;">#3</div>
+        <div style="padding:3px 10px;border-radius:999px;background:#16a34a15;color:#4ade80;font-size:11px;font-weight:600;border:1px solid #16a34a30;">Disponível</div>
+      </div>
+      <div style="font-weight:600;color:#f1f5f9;font-size:14px;margin-bottom:8px;">Simulado ENAMED 26/03</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px;">📅 26/03 – 28/03</div>
+      <!-- Grande área -->
+      <div style="display:inline-flex;align-items:center;gap:5px;background:#ef444415;border:1px solid #ef444430;border-radius:6px;padding:3px 8px;margin-top:6px;margin-bottom:14px;">
+        <span style="font-size:10px;">📌</span>
+        <span style="color:#fca5a5;font-size:11px;font-weight:600;">Foco: Clínica Médica</span>
+      </div>
+      <div style="background:#7c3aed;border-radius:10px;padding:9px;text-align:center;color:white;font-weight:600;font-size:12px;">Iniciar Simulado →</div>
+    </div>
+  </div>
+
+  <!-- Card bloqueado (guest ou SanarFlix) -->
+  <div>
+    <p class="label" style="margin-bottom:8px;">🔒 Não-aluno / SanarFlix — bloqueado</p>
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:20px;font-family:system-ui;opacity:0.65;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div style="width:36px;height:36px;background:#7c3aed18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#a78bfa;font-size:13px;">#3</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div style="padding:3px 10px;border-radius:999px;background:#16a34a15;color:#4ade80;font-size:11px;font-weight:600;border:1px solid #16a34a30;">Disponível</div>
+          <div style="padding:3px 8px;border-radius:999px;background:#7c3aed25;color:#c4b5fd;font-size:11px;font-weight:700;border:1px solid #7c3aed40;">🔒 PRO</div>
+        </div>
+      </div>
+      <div style="font-weight:600;color:#f1f5f9;font-size:14px;margin-bottom:8px;">Simulado ENAMED 26/03</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:18px;">📅 26/03 – 28/03</div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:9px;text-align:center;cursor:pointer;">
+        <span style="color:#94a3b8;font-size:12px;font-weight:600;">🔒 Disponível apenas para Aluno PRO</span>
+      </div>
+    </div>
+    <p style="color:#64748b;font-size:11px;margin-top:6px;">Clique em qualquer parte do card → redireciona para sanarflix.com.br/sanarflix-pro-enamed</p>
+  </div>
+
+  <!-- Card PRO sem dados de área ainda -->
+  <div>
+    <p class="label" style="margin-bottom:8px;">📊 PRO sem histórico de desempenho</p>
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:20px;font-family:system-ui;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div style="width:36px;height:36px;background:#7c3aed18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#a78bfa;font-size:13px;">#3</div>
+        <div style="padding:3px 10px;border-radius:999px;background:#16a34a15;color:#4ade80;font-size:11px;font-weight:600;border:1px solid #16a34a30;">Disponível</div>
+      </div>
+      <div style="font-weight:600;color:#f1f5f9;font-size:14px;margin-bottom:8px;">Simulado ENAMED 26/03</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:18px;">📅 26/03 – 28/03</div>
+      <!-- Sem badge de área (sem histórico) -->
+      <div style="background:#7c3aed;border-radius:10px;padding:9px;text-align:center;color:white;font-weight:600;font-size:12px;">Iniciar Simulado →</div>
+    </div>
+    <p style="color:#64748b;font-size:11px;margin-top:6px;">Sem simulado concluído anterior → badge de área não aparece</p>
+  </div>
+
+</div>
+
+<div class="section">
+  <h3>Ordenação — mais recente primeiro</h3>
+  <p style="color:#94a3b8;font-size:13px;line-height:1.7;">
+    A API já ordena por <code>sequence_number ASC</code>. Invertemos para <strong style="color:#f1f5f9;">DESC</strong> na query do Supabase em <code>simuladosApi.listSimulados()</code>. Simulado #3 aparece antes do #1 na listagem.
+  </p>
+</div>
+
+<div class="section">
+  <h3>Onde fica cada dado — grande área</h3>
+  <ul style="color:#94a3b8;font-size:13px;line-height:2;">
+    <li><strong style="color:#f1f5f9;">SimuladosPage</strong> — usa <code>useUserPerformance()</code> para pegar <code>summary.last_simulado_id</code>, carrega <code>useSimuladoDetail</code> + <code>useExamResult</code> para esse simulado, computa <code>computePerformanceBreakdown</code>, extrai <code>worstArea.area</code></li>
+    <li><strong style="color:#f1f5f9;">SimuladoCard</strong> — recebe <code>worstArea?: string | null</code> como nova prop. Renderiza o badge vermelho só se o valor existir</li>
+    <li>Cálculo acontece <strong style="color:#f1f5f9;">uma vez</strong> em SimuladosPage, passado para todos os cards</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>O que muda no código</h3>
+  <ul style="color:#94a3b8;font-size:13px;line-height:2;">
+    <li><code>simuladosApi.listSimulados()</code> → <code>.order('sequence_number', { ascending: false })</code></li>
+    <li><code>SimuladoCard</code> → nova prop <code>isLocked: boolean</code> + <code>worstArea?: string | null</code></li>
+    <li><code>SimuladosPage</code> → computa <code>isLocked = segment !== 'pro'</code>, passa worstArea para todos os cards</li>
+    <li>Card bloqueado → <code>div</code> clicável em vez de <code>Link</code>, onClick abre <code>PRO_ENAMED_URL</code> em nova aba</li>
+  </ul>
+</div>
+
+<p class="subtitle">Esse design está ok? Responda no terminal.</p>

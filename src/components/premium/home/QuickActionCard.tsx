@@ -25,18 +25,18 @@ export function QuickActionCard({
       className={cn("block h-full group no-underline", className)}
       aria-label={`${title}: ${ctaLabel}`}
     >
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/90 backdrop-blur-sm p-6 md:p-7 h-full flex flex-col shadow-[0_2px_12px_-4px_hsl(220_20%_10%/0.06),0_1px_2px_hsl(220_20%_10%/0.03)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:shadow-[0_8px_28px_-8px_hsl(220_20%_10%/0.1),0_2px_6px_hsl(220_20%_10%/0.04)] hover:border-primary/20">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[22px] border border-[#E9E1E6] bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFAFB_100%)] p-6 shadow-[0_14px_28px_-24px_rgba(58,22,34,0.5),0_2px_8px_rgba(58,22,34,0.05)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:border-primary/24 hover:shadow-[0_20px_34px_-24px_rgba(58,22,34,0.62),0_6px_14px_-10px_rgba(58,22,34,0.14)] md:p-7">
         {/* Hover gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
         <div className="relative z-10 flex flex-col flex-1">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary/[0.08] to-primary/[0.14] border border-primary/15 mb-5 shadow-[0_2px_6px_-2px_hsl(345_65%_30%/0.12)]">
+          <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-primary/18 bg-gradient-to-br from-primary/[0.1] to-primary/[0.16] shadow-[0_8px_16px_-10px_hsl(345_65%_30%/0.42)]">
             <Icon className="h-5 w-5 text-primary" aria-hidden />
           </div>
-          <h3 className="text-[16px] font-semibold text-foreground mb-1.5 leading-tight">
+          <h3 className="mb-1.5 text-[17px] font-semibold leading-tight tracking-[-0.012em] text-foreground">
             {title}
           </h3>
-          <p className="text-[13px] text-muted-foreground leading-relaxed flex-1 mb-5">
+          <p className="mb-5 flex-1 text-[13px] leading-relaxed text-muted-foreground">
             {copy}
           </p>
           <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-primary group-hover:gap-2.5 transition-all duration-200">

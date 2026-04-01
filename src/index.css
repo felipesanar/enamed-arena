@@ -77,6 +77,12 @@
     --shadow-lg: 0 12px 32px -4px hsl(220 20% 10% / 0.08), 0 4px 8px -2px hsl(220 20% 10% / 0.04);
     --shadow-premium: 0 8px 24px -4px hsl(345 65% 30% / 0.12), 0 2px 8px -2px hsl(345 65% 30% / 0.06);
 
+    /* Dashboard premium surfaces */
+    --dashboard-bg: 330 8% 96%;
+    --dashboard-surface: 0 0% 100%;
+    --glow-wine: 345 65% 42% / 0.18;
+    --glow-wine-soft: 345 50% 36% / 0.08;
+
     /* Fase A — Hero e respiro */
     --hero-gradient: linear-gradient(135deg, hsl(345 65% 30%), hsl(345 65% 22%));
     --section-breathe: 2.5rem;
@@ -89,6 +95,21 @@
     --landing-border: 0 0% 100% / 0.08;
     --landing-glow-primary: 345 65% 40% / 0.28;
     --landing-glow-soft: 345 50% 30% / 0.15;
+
+    /* Auth premium */
+    --auth-bg-base: 220 22% 7%;
+    --auth-bg-soft: 220 18% 10%;
+    --auth-surface: 220 16% 12% / 0.84;
+    --auth-surface-soft: 220 16% 14% / 0.72;
+    --auth-hero-surface: 220 16% 13% / 0.58;
+    --auth-input: 220 15% 15% / 0.76;
+    --auth-border-subtle: 0 0% 100% / 0.12;
+    --auth-border-strong: 0 0% 100% / 0.2;
+    --auth-text-primary: 220 16% 95%;
+    --auth-text-muted: 220 10% 72%;
+    --auth-accent-glow: 345 70% 50%;
+    --auth-shadow-card: 0 30px 80px -28px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+    --auth-shadow-ambient: 0 28px 84px -32px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
   }
 
   .dark {
@@ -129,6 +150,20 @@
     --sidebar-border: 220 18% 12%;
     --sidebar-ring: 345 55% 50%;
     --sidebar-muted: 220 10% 35%;
+
+    --auth-bg-base: 220 22% 7%;
+    --auth-bg-soft: 220 18% 10%;
+    --auth-surface: 220 16% 12% / 0.84;
+    --auth-surface-soft: 220 16% 14% / 0.72;
+    --auth-hero-surface: 220 16% 13% / 0.58;
+    --auth-input: 220 15% 15% / 0.76;
+    --auth-border-subtle: 0 0% 100% / 0.14;
+    --auth-border-strong: 0 0% 100% / 0.26;
+    --auth-text-primary: 220 16% 95%;
+    --auth-text-muted: 220 10% 72%;
+    --auth-accent-glow: 345 70% 50%;
+    --auth-shadow-card: 0 30px 80px -28px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+    --auth-shadow-ambient: 0 28px 84px -32px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
   }
 }
 
@@ -219,6 +254,116 @@
     background-color: hsl(var(--surface-sunken));
   }
 
+  .bg-auth-base {
+    background-color: hsl(var(--auth-bg-base));
+  }
+
+  .bg-auth-surface {
+    background-color: hsl(var(--auth-surface));
+  }
+
+  .bg-auth-surface-soft {
+    background-color: hsl(var(--auth-surface-soft));
+  }
+
+  .bg-auth-hero-surface {
+    background-color: hsl(var(--auth-hero-surface));
+  }
+
+  .bg-auth-input {
+    background-color: hsl(var(--auth-input));
+  }
+
+  .border-auth-border-subtle {
+    border-color: hsl(var(--auth-border-subtle));
+  }
+
+  .border-auth-border-strong {
+    border-color: hsl(var(--auth-border-strong));
+  }
+
+  .text-auth-text-primary {
+    color: hsl(var(--auth-text-primary));
+  }
+
+  .text-auth-text-muted {
+    color: hsl(var(--auth-text-muted));
+  }
+
+  .text-auth-hero-headline {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      112deg,
+      hsl(var(--auth-text-primary)) 0%,
+      hsl(var(--auth-text-primary) / 0.96) 46%,
+      hsl(var(--primary-foreground) / 0.9) 100%
+    );
+    text-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  }
+
+  .text-auth-hero-keyword {
+    @apply bg-clip-text font-semibold text-transparent;
+    background-image: linear-gradient(108deg, hsl(var(--primary) / 0.94) 0%, hsl(var(--primary-foreground)) 100%);
+    text-shadow: 0 0 22px hsl(var(--primary) / 0.22);
+  }
+
+  .text-auth-hero-subtitle {
+    color: hsl(var(--auth-text-primary) / 0.94);
+  }
+
+  .text-auth-hero-support {
+    color: hsl(var(--auth-text-muted) / 0.97);
+  }
+
+  .text-auth-form-label {
+    @apply text-[12px] font-semibold;
+    letter-spacing: 0.01em;
+    color: hsl(var(--auth-text-primary) / 0.76);
+  }
+
+  .text-auth-form-micro {
+    @apply text-[10px] font-semibold uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--auth-text-muted) / 0.9);
+  }
+
+  .text-auth-link-subtle {
+    color: hsl(var(--auth-text-muted) / 0.92);
+    text-underline-offset: 4px;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
+  }
+
+  .text-auth-link-subtle:hover {
+    color: hsl(var(--auth-text-primary));
+    text-decoration-color: hsl(var(--auth-text-primary) / 0.7);
+  }
+
+  .text-auth-link-accent {
+    color: hsl(var(--primary-foreground) / 0.86);
+    text-underline-offset: 4px;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
+  }
+
+  .text-auth-link-accent:hover {
+    color: hsl(var(--primary-foreground));
+    text-decoration-color: hsl(var(--primary-foreground) / 0.75);
+  }
+
+  @media (min-width: 1024px) {
+    .text-auth-form-label {
+      font-size: 10px;
+      letter-spacing: 0.03em;
+    }
+  }
+
+  .shadow-auth-card {
+    box-shadow: var(--auth-shadow-card);
+  }
+
+  .shadow-auth-ambient {
+    box-shadow: var(--auth-shadow-ambient);
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;
   }
@@ -229,6 +374,10 @@
 
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Premium divider */

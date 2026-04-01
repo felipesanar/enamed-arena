@@ -102,6 +102,14 @@ export default {
         "body-sm": ["0.8125rem", { lineHeight: "1.5", fontWeight: "400" }],
         "caption": ["0.75rem", { lineHeight: "1.4", fontWeight: "500" }],
         "overline": ["0.6875rem", { lineHeight: "1.3", letterSpacing: "0.08em", fontWeight: "600" }],
+        "kpi": ["2.5rem", { lineHeight: "1", letterSpacing: "-0.03em", fontWeight: "800" }],
+        "kpi-sm": ["1.75rem", { lineHeight: "1", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "hero-headline": ["2.75rem", { lineHeight: "1.06", letterSpacing: "-0.04em", fontWeight: "700" }],
+        "micro-label": ["0.5625rem", { lineHeight: "1.2", letterSpacing: "0.14em", fontWeight: "600" }],
+      },
+      boxShadow: {
+        "glow-wine": "0 0 24px -4px hsl(345 65% 42% / 0.18)",
+        "glow-wine-lg": "0 0 40px -6px hsl(345 65% 42% / 0.24)",
       },
       keyframes: {
         "accordion-down": {
@@ -112,10 +120,15 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "glow-pulse": {
+          "0%, 100%": { opacity: "0.12" },
+          "50%": { opacity: "0.18" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "glow-pulse": "glow-pulse 6s ease-in-out infinite",
       },
     },
   },

@@ -15,7 +15,7 @@ export function LandingExperience() {
   return (
     <section
       id="experiencia"
-      className="relative py-14 md:py-18 px-4 md:px-6"
+      className="relative py-14 md:py-[4.5rem] px-4 md:px-6"
       aria-labelledby="experience-heading"
     >
       <div className="max-w-[1280px] mx-auto">
@@ -27,7 +27,7 @@ export function LandingExperience() {
           className="mb-14"
         >
           <motion.div variants={headerItemReveal} className="mb-4">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-overline uppercase tracking-[0.12em] font-semibold text-primary">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/25 bg-primary/10 text-overline uppercase tracking-[0.12em] font-semibold text-primary">
               <span className="w-1.5 h-1.5 rounded-full bg-primary/70" aria-hidden />
               Experiência de Prova
             </span>

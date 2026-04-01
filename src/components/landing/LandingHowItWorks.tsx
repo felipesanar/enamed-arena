@@ -24,7 +24,7 @@ export function LandingHowItWorks() {
   return (
     <section
       id="como-funciona"
-      className="relative py-14 md:py-18 px-4 md:px-6"
+      className="relative py-14 md:py-[4.5rem] px-4 md:px-6"
       aria-labelledby="how-it-works-heading"
     >
       <div className="max-w-[1280px] mx-auto">

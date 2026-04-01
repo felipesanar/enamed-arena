@@ -1,11 +1,11 @@
-## Passo 1 - Reestruturar composiÁ„o da home
+## Passo 1 - Reestruturar composiùùo da home
 - Files changed: `src/components/premium/home/HomePagePremium.tsx`
-- MudanÁas:
-  - Removidas as seÁıes `QuickActionsSection`, `InsightsSection` e `ResumeSection` da home.
+- Mudanùas:
+  - Removidas as seùùes `QuickActionsSection`, `InsightsSection` e `ResumeSection` da home.
   - Ajustado ritmo vertical global para escala compacta (`space-y` e `SECTION_SPACING`).
-  - Mantida estrutura essencial: hero -> prÛximo simulado -> desempenho.
-- VerificaÁ„o: `rg "QuickActionsSection|ResumeSection|InsightsSection" src/components/premium/home/HomePagePremium.tsx`
-- Resultado: **pass** (nenhuma ocorrÍncia encontrada).
+  - Mantida estrutura essencial: hero -> prùximo simulado -> desempenho.
+- Verificaùùo: `rg "QuickActionsSection|ResumeSection|InsightsSection" src/components/premium/home/HomePagePremium.tsx`
+- Resultado: **pass** (nenhuma ocorrùncia encontrada).
 
 ## Step 1 - Estruturar checklist rastreavel do PRD
 - Files changed: `artifacts/superpowers/execution.md`
@@ -15,16 +15,16 @@
 - Verification commands:
   - `python -c "import pathlib; p=pathlib.Path('artifacts/superpowers'); print(p.exists())"`
 - Result: pass (`True`)
-## Passo 2 - Compactar hero e limpar ruÌdo visual
+## Passo 2 - Compactar hero e limpar ruùdo visual
 - Files changed: `src/components/premium/home/HomeHeroSection.tsx`
-- MudanÁas:
+- Mudanùas:
   - Removidos badges `MetricPill` e simplificada a narrativa do hero.
-  - Status do aluno resumido em 1 linha: nÌvel + quantidade de simulados.
-  - Hero compactado (tipografia, gaps, paddings) e CTAs ajustados para 1 prim·rio + 1 secund·rio.
-- VerificaÁ„o:
+  - Status do aluno resumido em 1 linha: nùvel + quantidade de simulados.
+  - Hero compactado (tipografia, gaps, paddings) e CTAs ajustados para 1 primùrio + 1 secundùrio.
+- Verificaùùo:
   - `rg "MetricPill" src/components/premium/home/HomeHeroSection.tsx`
   - `rg "variant=\"primary\"" src/components/premium/home --glob "*.tsx" --count`
-- Resultado: **pass** (sem `MetricPill`; 2 CTAs prim·rios no total da home: hero + prÛximo simulado).
+- Resultado: **pass** (sem `MetricPill`; 2 CTAs primùrios no total da home: hero + prùximo simulado).
 
 ## Step 2 - Mapear implementacao no codigo por dominio funcional
 - Files changed: `artifacts/superpowers/execution.md`
@@ -39,23 +39,23 @@
   - `rg "caderno de erros|error notebook|erro"`
   - `rg "supabase|policy|rls|profiles|answers|attempt|attempts"`
 - Result: pass (ocorrencias encontradas e mapeadas)
-## Passo 3 - Transformar card de prÛximo simulado
+## Passo 3 - Transformar card de prùximo simulado
 - Files changed:
   - `src/components/premium/home/UpcomingSimulationCard.tsx`
   - `src/components/premium/home/HomePagePremium.tsx`
-- MudanÁas:
-  - SubstituÌda mensagem negativa por bloco positivo ìPrÛximo simulado disponÌvelî.
+- Mudanùas:
+  - Substituùda mensagem negativa por bloco positivo ùPrùximo simulado disponùvelù.
   - Inserida data orientativa + frase de progresso com quantidade de simulados feitos.
-  - Card compactado e reduzido para 1 CTA prim·rio: ìVer cronogramaî.
-- VerificaÁ„o: `rg "PrÛximo simulado disponÌvel|Ver cronograma" src/components/premium/home/UpcomingSimulationCard.tsx`
+  - Card compactado e reduzido para 1 CTA primùrio: ùVer cronogramaù.
+- Verificaùùo: `rg "Prùximo simulado disponùvel|Ver cronograma" src/components/premium/home/UpcomingSimulationCard.tsx`
 - Resultado: **pass**.
-## Passo 4 - Integrar inteligÍncia ao desempenho
+## Passo 4 - Integrar inteligùncia ao desempenho
 - Files changed: `src/components/premium/home/KpiGrid.tsx`
-- MudanÁas:
-  - Ajustado cabeÁalho para `Desempenho` com inteligÍncia integrada.
+- Mudanùas:
+  - Ajustado cabeùalho para `Desempenho` com inteligùncia integrada.
   - Grid de KPIs compactado com menor gap para reduzir altura total.
-  - Adicionado mini-bloco ìInteligÍncia do momentoî dentro do mesmo section de desempenho.
-- VerificaÁ„o: `rg "InteligÍncia|insight|Leituras" src/components/premium/home/KpiGrid.tsx`
+  - Adicionado mini-bloco ùInteligùncia do momentoù dentro do mesmo section de desempenho.
+- Verificaùùo: `rg "Inteligùncia|insight|Leituras" src/components/premium/home/KpiGrid.tsx`
 - Resultado: **pass**.
 
 ## Step 3 - Auditar Onboarding e segmentacao por plano
@@ -118,12 +118,12 @@
 - Verification commands:
   - `Get-ChildItem artifacts/superpowers`
 - Result: pass (`finish.md` e `execution.md` presentes)
-## Passo 5 - VerificaÁ„o final e revis„o de qualidade
+## Passo 5 - Verificaùùo final e revisùo de qualidade
 - Files changed: `src/components/premium/home/HomePagePremium.tsx`
-- MudanÁas:
+- Mudanùas:
   - Ajustado dependency array do `useMemo` para incluir `summary?.avg_score` e `summary?.total_attempts`.
   - Eliminado warning de hooks no escopo alterado.
-- VerificaÁ„o:
+- Verificaùùo:
   - `npm run lint` -> **fail** por erros/warnings preexistentes fora do escopo da home.
   - `npx eslint "src/components/premium/home/HomePagePremium.tsx" "src/components/premium/home/HomeHeroSection.tsx" "src/components/premium/home/UpcomingSimulationCard.tsx" "src/components/premium/home/KpiGrid.tsx"` -> **pass**.
 - Resultado: **pass no escopo alterado**.
@@ -241,3 +241,163 @@
   - `npm run test -- --run`
   - `ReadLints` (src)
 - Result: pass
+
+## Step 1 - Sistema textual auth (login visual)
+- Files changed: `src/index.css`
+- What changed:
+  - Criados utilitarios semanticos para headline premium, palavra-chave em gradiente, subtitulo legivel e supporting text.
+  - Criadas classes padrao para labels/microcopy de formulario e links textuais em fundo escuro.
+  - Ajustado padrao para evitar gradiente/transparencia em textos longos.
+- Verification commands:
+  - `npm run lint`
+  - `ReadLints src/index.css`
+- Result: `npm run lint` fail por erros preexistentes fora do escopo; `ReadLints` no arquivo alterado sem novos erros (pass no escopo)
+
+## Step 2 - Aplicar padrao textual no hero desktop/mobile
+- Files changed: `src/components/auth/BrandHero.tsx`, `src/pages/LoginPage.tsx`
+- What changed:
+  - Hero desktop atualizado para usar gradiente semantico apenas na headline e palavra-chave.
+  - Subtitulo e texto de apoio passaram para cores solidas de alto contraste, removendo gradientes em paragrafos longos.
+  - Hero mobile atualizado para manter mesma hierarquia visual e contraste do desktop.
+- Verification commands:
+  - `npm run lint`
+  - `ReadLints src/components/auth/BrandHero.tsx src/pages/LoginPage.tsx`
+- Result: `npm run lint` fail por erros preexistentes fora do escopo; `ReadLints` sem novos erros nos arquivos alterados (pass no escopo)
+
+## Step 3 - Refinar textos do card de autenticacao
+- Files changed: `src/pages/LoginPage.tsx`
+- What changed:
+  - Labels, microcopy e hierarquia textual do formulario foram padronizados com classes semanticas.
+  - Links secundarios/CTA textual receberam contraste e hover/focus mais claros para fundo escuro.
+  - Brand lockup e disclaimer ganharam acabamento tipografico consistente com o hero.
+- Verification commands:
+  - `npm run lint`
+  - `ReadLints src/pages/LoginPage.tsx`
+- Result: `npm run lint` fail por erros preexistentes fora do escopo; `ReadLints` sem novos erros no arquivo alterado (pass no escopo)
+
+## Step 4 - Verificacao final tecnica e visual
+- Files changed: `src/index.css`, `src/components/auth/BrandHero.tsx`, `src/pages/LoginPage.tsx`
+- What changed:
+  - Revisao final de consistencia tipografica entre hero desktop, hero mobile e card de autenticacao.
+  - Confirmado uso de gradiente restrito a destaque/headline e contraste alto para textos corridos.
+- Verification commands:
+  - `npm run build`
+  - `npm run dev` + validacao visual manual em `/login` (desktop e mobile)
+- Result: `npm run build` pass; validacao manual em dev server nao executada nesta sessao (pendente de checagem visual local)
+
+## Home Redesign Step 1 - Auditoria tecnica final e baseline visual
+- Files changed: nenhum arquivo de codigo (somente registro de execucao)
+- What changed:
+  - Consolidado baseline visual da Home premium por area: sidebar, topbar, hero, banner e cards.
+  - Confirmado escopo restrito a redesign visual sem alteracao de logica, dados, rotas ou copy funcional.
+  - Definida linguagem alvo para implementacao: hierarquia forte, materialidade consistente e premium feel controlado.
+- Verification commands:
+  - Checklist de escopo manual (sem nova feature, sem backend, sem mudanca de fluxo)
+- Result: pass
+
+## Home Redesign Step 2 - Refinar shell (sidebar + topbar)
+- Files changed: `src/components/premium/DashboardLayout.tsx`, `src/components/premium/PremiumSidebar.tsx`, `src/components/premium/NavItem.tsx`, `src/components/premium/sidebar/SidebarNavSection.tsx`, `src/components/premium/TopUtilityBar.tsx`
+- What changed:
+  - Sidebar recebeu acabamento premium mais coeso (largura, gradiente, divisores e profundidade) com melhor transicao visual para o main.
+  - Topbar foi refinada com superfùcies mais limpas e controles mais bem resolvidos (menu, atalho e avatar/segmento).
+  - Itens de navegacao ficaram mais claros no estado ativo/hover/focus sem mudar estrutura de navegaùùo.
+- Verification commands:
+  - `npx eslint "src/components/premium/DashboardLayout.tsx" "src/components/premium/PremiumSidebar.tsx" "src/components/premium/NavItem.tsx" "src/components/premium/sidebar/SidebarNavSection.tsx" "src/components/premium/TopUtilityBar.tsx"`
+- Result: pass
+
+## Home Redesign Step 3 - Reestruturar hero e banner
+- Files changed: `src/components/premium/home/HomeHeroSection.tsx`, `src/components/premium/home/NextSimuladoBanner.tsx`, `src/components/premium/home/HomePagePremium.tsx`
+- What changed:
+  - Hero foi reforcado com hierarquia tipografica mais forte, profundidade premium e bloco de metricas (simulados e media atual) usando dados ja existentes.
+  - Banner ganhou variacao visual por estado (forte, neutro, calmo) para melhorar prioridade de leitura e CTA sem alterar logica.
+  - Grid da Home foi ajustado para melhor ritmo e proporcao entre blocos mantendo a mesma estrutura funcional.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx" "src/components/premium/home/NextSimuladoBanner.tsx" "src/components/premium/home/HomePagePremium.tsx"`
+- Result: pass
+
+## Home Redesign Step 4 - Redesenhar sistema de cards (quick actions + ranking)
+- Files changed: `src/components/premium/home/QuickActionCard.tsx`, `src/components/premium/home/RankingExpressCard.tsx`, `src/components/premium/home/HomePagePremium.tsx`
+- What changed:
+  - Quick actions receberam materialidade premium mais consistente (superficie, borda, sombra e tipografia) com melhor legibilidade.
+  - Card de ranking foi fortalecido com composicao aspiracional controlada e leitura de metricas mais clara.
+  - Contraste de importancia entre cards foi calibrado sem criar novos modulos ou alterar dados/comportamento.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/QuickActionCard.tsx" "src/components/premium/home/RankingExpressCard.tsx" "src/components/premium/home/HomePagePremium.tsx"`
+- Result: pass
+
+## Home Redesign Step 5 - Ajuste fino de tipografia e superficies
+- Files changed: `src/components/premium/home/HomeHeroSection.tsx`, `src/components/premium/home/NextSimuladoBanner.tsx`, `src/components/premium/home/QuickActionCard.tsx`, `src/components/premium/home/RankingExpressCard.tsx`, `src/components/premium/home/HomePagePremium.tsx`, `src/components/premium/DashboardLayout.tsx`, `src/components/premium/PremiumSidebar.tsx`, `src/components/premium/NavItem.tsx`, `src/components/premium/sidebar/SidebarNavSection.tsx`, `src/components/premium/TopUtilityBar.tsx`
+- What changed:
+  - Escala visual foi harmonizada (tracking/labels/metricas) para melhorar leitura rapida e consistencia premium.
+  - CTAs principais do banner passaram a respeitar area de toque minima com `min-h-10`.
+  - Superficies e profundidade ficaram mais coesas entre shell, hero e cards.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx" "src/components/premium/home/NextSimuladoBanner.tsx" "src/components/premium/home/QuickActionCard.tsx" "src/components/premium/home/RankingExpressCard.tsx" "src/components/premium/home/HomePagePremium.tsx" "src/components/premium/DashboardLayout.tsx" "src/components/premium/PremiumSidebar.tsx" "src/components/premium/NavItem.tsx" "src/components/premium/sidebar/SidebarNavSection.tsx" "src/components/premium/TopUtilityBar.tsx"`
+  - `ReadLints` nos arquivos alterados
+- Result: pass
+
+## Home Redesign Step 6 - Revisao final e validacoes tecnicas
+- Files changed: `src/components/premium/home/HomePagePremium.tsx`, `src/components/premium/home/HomeHeroSection.tsx`, `artifacts/superpowers/execution.md`
+- What changed:
+  - Executadas validacoes completas de lint/build do projeto.
+  - Corrigidos dois pontos major de acabamento encontrados na revisao: espacamento vertical duplicado e animacao em camada dupla no hero.
+  - Realizada revisao por severidade para fechamento com riscos residuais mapeados.
+- Verification commands:
+  - `npm run lint`
+  - `npm run build`
+  - `npx eslint "src/components/premium/home/HomePagePremium.tsx" "src/components/premium/home/HomeHeroSection.tsx"`
+- Result:
+  - `npm run lint`: fail por erros/warnings preexistentes fora do escopo da Home.
+  - `npm run build`: pass.
+  - `npx eslint` dos arquivos ajustados no fechamento: pass.
+
+## Last Simulado Card Step 1 - Preparar dados de barras no container
+- Files changed: `src/components/premium/home/HomePagePremium.tsx`
+- What changed:
+  - Derivado `recentScores` (ultimas 6 tentativas, normalizadas para 0-100 e em ordem cronologica visual).
+  - Prop `recentScores` foi conectada ao `HomeHeroSection`.
+  - Corrigido detalhe de classe no estado de onboarding (`SECTION_SPACING` indefinido) para evitar regressao.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomePagePremium.tsx"`
+- Result: pass
+
+## Last Simulado Card Step 2 - Expandir contrato para estados visuais
+- Files changed: `src/components/premium/home/HomeHeroSection.tsx`
+- What changed:
+  - Interface de props expandida com `recentScores: number[]`.
+  - Regra de historico do card passou a considerar serie real (`recentScores`) em vez de inferencia indireta.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx"`
+- Result: pass
+
+## Last Simulado Card Step 3 - Implementar redesign premium inspirado na referencia
+- Files changed: `src/components/premium/home/HomeHeroSection.tsx`
+- What changed:
+  - Card de `Ultimo simulado` foi redesenhado para superficie dark premium com gradiente, profundidade e glow controlado.
+  - Score principal virou protagonista com badge de variacao (`delta`) e microcontexto visual.
+  - Mini chart de barras foi implementado com foco na ultima tentativa e barras adjacentes para outros simulados.
+  - Bloco inferior estilo ranking/meta foi adicionado com barra de progresso e contexto de evolucao.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx"`
+- Result: pass (validacao visual manual pendente local)
+
+## Last Simulado Card Step 4 - Tratar estados 0 e 1 tentativa
+- Files changed: `src/components/premium/home/HomeHeroSection.tsx`
+- What changed:
+  - Estado sem historico passou a mostrar composicao premium orientativa (sem parecer erro).
+  - Estado com 1 tentativa recebeu narrativa e barras contextuais para manter a qualidade visual do bloco.
+  - CTA final adapta o texto para jornada inicial quando nao ha tentativas.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx"`
+- Result: pass (simulacao manual de cenarios pendente local)
+
+## Last Simulado Card Step 5 - Polimento final e responsividade
+- Files changed: `src/components/premium/home/HomeHeroSection.tsx`, `src/components/premium/home/HomePagePremium.tsx`
+- What changed:
+  - Ajustado acabamento final do card para manter equilibrio com o hero principal.
+  - Mantido comportamento responsivo da composicao com barras e painel inferior.
+  - Fechado o pacote tecnico com verificacao de lint no escopo e build de producao.
+- Verification commands:
+  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx" "src/components/premium/home/HomePagePremium.tsx"`
+  - `npm run build`
+- Result: pass (build concluido; apenas warnings gerais de bundle/tailwind preexistentes)

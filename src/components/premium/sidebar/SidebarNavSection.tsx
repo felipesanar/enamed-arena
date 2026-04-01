@@ -17,7 +17,7 @@ const mainNav = [
 
 export function SidebarNavSection() {
   return (
-    <nav aria-label="Navegação principal" className="space-y-1 [@media(max-height:700px)]:space-y-0.5">
+    <nav aria-label="Links principais" className="space-y-1.5 [@media(max-height:700px)]:space-y-0.5">
       {mainNav.map((item) => (
         <NavItem
           key={item.title}

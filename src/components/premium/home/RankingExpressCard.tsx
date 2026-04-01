@@ -20,14 +20,14 @@ export function RankingExpressCard() {
       className="block h-full group no-underline"
       aria-label="Ver ranking completo"
     >
-      <div className="relative overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.03] via-card to-card h-full flex flex-col shadow-[0_2px_16px_-4px_hsl(345_60%_30%/0.08),0_1px_3px_hsl(220_20%_10%/0.04)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:shadow-[0_12px_36px_-8px_hsl(345_60%_30%/0.14),0_4px_8px_hsl(220_20%_10%/0.05)] hover:border-primary/30">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 via-primary/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[22px] border border-primary/24 bg-[linear-gradient(165deg,rgba(142,31,61,0.08)_0%,#FFFFFF_42%,#FBF7F9_100%)] shadow-[0_16px_34px_-24px_hsl(345_60%_30%/0.5),0_2px_8px_hsl(220_20%_10%/0.05)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_24px_40px_-24px_hsl(345_60%_30%/0.62),0_8px_16px_-12px_hsl(345_60%_30%/0.2)]">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100" />
 
-        <div className="relative z-10 flex flex-col flex-1 p-6 md:p-7 pt-7 md:pt-8">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/[0.10] to-primary/[0.18] border border-primary/15 shadow-[0_4px_12px_-4px_hsl(345_65%_30%/0.15)]">
-              <Trophy className="h-5.5 w-5.5 text-primary" aria-hidden />
+        <div className="relative z-10 flex flex-1 flex-col p-6 pt-7 md:p-7 md:pt-8">
+          <div className="mb-4 flex items-start justify-between">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/18 bg-gradient-to-br from-primary/[0.12] to-primary/[0.2] shadow-[0_10px_20px_-14px_hsl(345_65%_30%/0.6)]">
+              <Trophy className="h-5 w-5 text-primary" aria-hidden />
             </div>
             {hasRanking && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/[0.08] border border-primary/15 px-2.5 py-1 text-[11px] font-semibold text-primary tracking-wide uppercase">
@@ -36,7 +36,7 @@ export function RankingExpressCard() {
             )}
           </div>
 
-          <h3 className="text-[17px] font-bold text-foreground mb-1 leading-tight tracking-tight">
+          <h3 className="mb-1 text-[17px] font-bold leading-tight tracking-[-0.015em] text-foreground">
             Ranking
           </h3>
           {simuladoTitle && hasRanking && (
@@ -44,13 +44,13 @@ export function RankingExpressCard() {
           )}
 
           {loading ? (
-            <div className="flex-1 mb-5 space-y-3">
+            <div className="mb-5 flex-1 space-y-3">
               <div className="h-8 w-20 rounded-lg bg-muted animate-pulse" />
               <div className="h-4 w-28 rounded bg-muted animate-pulse" />
             </div>
           ) : hasRanking ? (
-            <div className="flex-1 mb-5 space-y-3">
-              <div className="flex items-end gap-4">
+            <div className="mb-5 flex-1 space-y-3">
+              <div className="flex items-end gap-4 rounded-xl border border-[#E8DEE3] bg-white/88 px-3 py-2.5">
                 <div>
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Posição</p>
                   <span className="text-3xl font-extrabold text-primary tabular-nums leading-none">

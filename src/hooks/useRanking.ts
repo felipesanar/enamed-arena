@@ -58,7 +58,7 @@ export function useRanking(): UseRankingReturn {
   const [simuladosWithResults, setSimuladosWithResults] = useState<
     Array<{ id: string; title: string; sequence_number: number }>
   >([]);
-  const [selectedSimuladoId, setSelectedSimuladoId] = useState<string | null>(null);
+  const [selectedSimuladoId, setSelectedSimuladoId] = usePersistedState<string | null>('ranking:simuladoId', null);
   const [rawRanking, setRawRanking] = useState<RankingRow[]>([]);
   const [comparisonFilter, setComparisonFilter] = usePersistedState<ComparisonFilter>('ranking:comparison', 'all');
   const [segmentFilter, setSegmentFilter] = usePersistedState<SegmentFilter>('ranking:segment', 'all');

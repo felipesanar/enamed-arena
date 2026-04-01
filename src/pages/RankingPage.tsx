@@ -86,7 +86,7 @@ export default function RankingPage() {
   const segment = profile?.segment ?? 'guest';
 
   const allowedSegments = useMemo((): SegmentFilter[] => {
-    if (segment === 'pro') return ['all', 'sanarflix', 'pro'];
+    if (segment === 'pro') return ['all', 'pro'];
     if (segment === 'standard') return ['all', 'sanarflix'];
     return ['all'];
   }, [segment]);
@@ -97,8 +97,7 @@ export default function RankingPage() {
     if (!allowedSegments.includes(segmentFilter)) {
       setSegmentFilter('all');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowedSegments, setSegmentFilter]);
+  }, [allowedSegments, segmentFilter, setSegmentFilter]);
 
   useEffect(() => {
     trackEvent('ranking_viewed', {

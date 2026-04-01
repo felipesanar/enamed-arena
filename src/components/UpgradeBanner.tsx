@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { SANARFLIX_PRO_ENAMED_URL } from "@/lib/sanarflix";
 
 interface UpgradeBannerProps {
   title?: string;
@@ -13,7 +14,7 @@ export function UpgradeBanner({
   title = "Desbloqueie o acesso completo",
   description = "Com o PRO: ENAMED, você tem acesso ao Caderno de Erros, comparativos entre simulados e muito mais.",
   ctaText = "Conhecer o PRO: ENAMED",
-  ctaTo = "https://sanarflix.com.br/sanarflix-pro-enamed",
+  ctaTo = SANARFLIX_PRO_ENAMED_URL,
 }: UpgradeBannerProps) {
   const prefersReducedMotion = useReducedMotion();
 

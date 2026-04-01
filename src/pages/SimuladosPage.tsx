@@ -9,44 +9,25 @@ import { Link } from "react-router-dom";
 import { useSimulados } from "@/hooks/useSimulados";
 import { Info } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { useSegment } from "@/contexts/UserContext";
-import { useUserPerformance } from "@/hooks/useUserPerformance";
-import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
-import { useExamResult } from "@/hooks/useExamResult";
-import { computePerformanceBreakdown } from "@/lib/resultHelpers";
 
 export default function SimuladosPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
 
-  const segment = useSegment();
-  const isLocked = segment !== 'pro';
-
-  const { summary } = useUserPerformance();
-  const lastSimuladoId = !isLocked ? (summary?.last_simulado_id ?? null) : null;
-
-  const { questions } = useSimuladoDetail(lastSimuladoId ?? undefined);
-  const { examState } = useExamResult(lastSimuladoId ?? undefined);
-
-  const worstArea = useMemo(() => {
-    if (!examState || !questions.length) return null;
-    if (examState.status !== 'submitted' && examState.status !== 'expired') return null;
-    const breakdown = computePerformanceBreakdown(examState, questions);
-    const byArea = breakdown.byArea;
-    return byArea.length > 0 ? byArea[byArea.length - 1].area : null;
-  }, [examState, questions]);
+  const byDateDesc = (a: { executionWindowStart: string }, b: { executionWindowStart: string }) =>
+    Date.parse(b.executionWindowStart) - Date.parse(a.executionWindowStart);
 
   // Sections
   const active = useMemo(
-    () => simulados.filter(s => s.status === "available" || s.status === "available_late" || s.status === "in_progress"),
+    () => simulados.filter(s => s.status === "available" || s.status === "available_late" || s.status === "in_progress").sort(byDateDesc),
     [simulados]
   );
   const upcoming = useMemo(
-    () => simulados.filter(s => s.status === "upcoming"),
+    () => simulados.filter(s => s.status === "upcoming").sort(byDateDesc),
     [simulados]
   );
   const past = useMemo(
-    () => simulados.filter(s => s.status === "completed" || s.status === "results_available" || s.status === "closed_waiting"),
+    () => simulados.filter(s => s.status === "completed" || s.status === "results_available" || s.status === "closed_waiting").sort(byDateDesc),
     [simulados]
   );
 
@@ -109,7 +90,7 @@ export default function SimuladosPage() {
       {active.length > 0 && (
         <Section title="Simulados ativos" delay={0.05} reduced={prefersReducedMotion}>
           {active.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} isLocked={isLocked} worstArea={worstArea} />
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
           ))}
         </Section>
       )}
@@ -118,7 +99,7 @@ export default function SimuladosPage() {
       {upcoming.length > 0 && (
         <Section title="Próximos" delay={0.1} reduced={prefersReducedMotion}>
           {upcoming.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} isLocked={isLocked} worstArea={worstArea} />
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
           ))}
         </Section>
       )}
@@ -127,15 +108,15 @@ export default function SimuladosPage() {
       {past.length > 0 && (
         <Section title="Anteriores" delay={0.15} reduced={prefersReducedMotion}>
           {past.map((sim, i) => (
-            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} isLocked={isLocked} worstArea={worstArea} />
+            <SimuladoCard key={sim.id} simulado={sim} delay={i * 0.06} />
           ))}
         </Section>
       )}
 
       {simulados.length === 0 && (
         <EmptyState
-          title="Nenhum simulado disponível"
-          description="Fique atento — novos simulados serão publicados em breve."
+          title="Nenhum simulado disponível no momento"
+          description="Fique de olho, em breve novos simulados serão publicados!"
           backHref="/"
           backLabel="Voltar ao início"
         />

@@ -1,0 +1,146 @@
+<h2>Design — Filtros do Ranking</h2>
+<p class="subtitle">Duas mudanças: (3a) visibilidade do filtro de segmento por tipo de usuário; (3b) instituição como sub-filtro de especialidade.</p>
+
+<!-- 3a: Segment filter -->
+<div class="section">
+  <h3>3a — Segmento: visibilidade por tipo de usuário</h3>
+  <p style="color:#94a3b8;font-size:13px;margin-bottom:16px;">Cada usuário só vê os segmentos que fazem sentido para ele. Não há estado "bloqueado" — o botão simplesmente não aparece.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+
+    <div>
+      <p class="label" style="margin-bottom:8px;">guest — Visitante</p>
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;font-family:system-ui;">
+        <p style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Segmento</p>
+        <div style="display:flex;gap:6px;">
+          <button style="padding:6px 12px;border-radius:8px;background:#7c3aed;color:white;font-size:12px;font-weight:600;border:none;">Todos</button>
+        </div>
+      </div>
+      <p style="color:#64748b;font-size:11px;margin-top:6px;">Apenas "Todos" visível</p>
+    </div>
+
+    <div>
+      <p class="label" style="margin-bottom:8px;">standard — Aluno SanarFlix</p>
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;font-family:system-ui;">
+        <p style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Segmento</p>
+        <div style="display:flex;gap:6px;">
+          <button style="padding:6px 12px;border-radius:8px;background:#7c3aed;color:white;font-size:12px;font-weight:600;border:none;">Todos</button>
+          <button style="padding:6px 12px;border-radius:8px;background:#1e293b;color:#94a3b8;font-size:12px;font-weight:600;border:none;">Aluno SanarFlix</button>
+        </div>
+      </div>
+      <p style="color:#64748b;font-size:11px;margin-top:6px;">"Todos" + "Aluno SanarFlix"</p>
+    </div>
+
+    <div>
+      <p class="label" style="margin-bottom:8px;">pro — Aluno PRO</p>
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;font-family:system-ui;">
+        <p style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Segmento</p>
+        <div style="display:flex;gap:6px;">
+          <button style="padding:6px 12px;border-radius:8px;background:#7c3aed;color:white;font-size:12px;font-weight:600;border:none;">Todos</button>
+          <button style="padding:6px 12px;border-radius:8px;background:#1e293b;color:#94a3b8;font-size:12px;font-weight:600;border:none;">Aluno SanarFlix</button>
+          <button style="padding:6px 12px;border-radius:8px;background:#1e293b;color:#94a3b8;font-size:12px;font-weight:600;border:none;">Aluno PRO</button>
+        </div>
+      </div>
+      <p style="color:#64748b;font-size:11px;margin-top:6px;">Todos os três segmentos</p>
+    </div>
+
+  </div>
+
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:12px;margin-top:14px;">
+    <p style="color:#94a3b8;font-size:12px;line-height:1.8;">
+      <strong style="color:#f1f5f9;">Implementação:</strong> filter inline no array de opções de segmento:<br>
+      <code style="color:#a78bfa;">segment === 'guest'</code> → só <code>'all'</code><br>
+      <code style="color:#a78bfa;">segment === 'standard'</code> → <code>'all'</code> + <code>'sanarflix'</code><br>
+      <code style="color:#a78bfa;">segment === 'pro'</code> → todos os três<br>
+      Se o <code>segmentFilter</code> persistido não está na lista permitida → reset para <code>'all'</code> com um <code>useEffect</code>.
+    </p>
+  </div>
+</div>
+
+<!-- 3b: Institution as sub-filter -->
+<div class="section">
+  <h3>3b — Instituição como sub-filtro de Especialidade</h3>
+  <p style="color:#94a3b8;font-size:13px;margin-bottom:16px;">Filtrar por instituição só faz sentido quando já filtrado por especialidade. O botão "Instituição" deixa de ser opção independente e passa a aparecer como sub-filtro dentro de "Especialidade".</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <!-- Estado: comparar com Todos -->
+    <div>
+      <p class="label" style="margin-bottom:8px;">comparisonFilter = 'all'</p>
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;font-family:system-ui;">
+        <p style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Comparar com</p>
+        <div style="display:flex;gap:6px;">
+          <button style="padding:6px 12px;border-radius:8px;background:#7c3aed;color:white;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>👥</span> Todos
+          </button>
+          <button style="padding:6px 12px;border-radius:8px;background:#1e293b;color:#94a3b8;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>🩺</span> Especialidade
+          </button>
+        </div>
+        <!-- Sem sub-filtro de instituição aqui -->
+      </div>
+      <p style="color:#64748b;font-size:11px;margin-top:6px;">Botão "Instituição" não aparece</p>
+    </div>
+
+    <!-- Estado: Especialidade ativo -->
+    <div>
+      <p class="label" style="margin-bottom:8px;">comparisonFilter = 'same_specialty'</p>
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;font-family:system-ui;">
+        <p style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Comparar com</p>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button style="padding:6px 12px;border-radius:8px;background:#1e293b;color:#94a3b8;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>👥</span> Todos
+          </button>
+          <button style="padding:6px 12px;border-radius:8px;background:#7c3aed;color:white;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>🩺</span> Especialidade
+          </button>
+        </div>
+        <!-- Sub-filtro aparece -->
+        <div style="border-top:1px solid #1e293b;padding-top:10px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:#64748b;">Restringir à instituição:</span>
+          <button style="padding:4px 10px;border-radius:6px;background:#1e293b;color:#94a3b8;font-size:11px;font-weight:600;border:1px solid #334155;display:flex;align-items:center;gap:4px;">
+            <span>🏥</span> Santa Casa SP
+          </button>
+        </div>
+      </div>
+      <p style="color:#64748b;font-size:11px;margin-top:6px;">Sub-filtro aparece abaixo dos botões principais</p>
+    </div>
+
+    <!-- Estado: Instituição ativo (sub-filtro selecionado) -->
+    <div style="grid-column:span 2;">
+      <p class="label" style="margin-bottom:8px;">comparisonFilter = 'same_institution' (sub-filtro ativo)</p>
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;font-family:system-ui;">
+        <p style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Comparar com</p>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button style="padding:6px 12px;border-radius:8px;background:#1e293b;color:#94a3b8;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>👥</span> Todos
+          </button>
+          <!-- Especialidade aparece ativo (pois same_institution implica same_specialty) -->
+          <button style="padding:6px 12px;border-radius:8px;background:#7c3aed;color:white;font-size:12px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>🩺</span> Especialidade
+          </button>
+        </div>
+        <div style="border-top:1px solid #1e293b;padding-top:10px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:#64748b;">Restringir à instituição:</span>
+          <button style="padding:4px 10px;border-radius:6px;background:#7c3aed;color:white;font-size:11px;font-weight:600;border:none;display:flex;align-items:center;gap:4px;">
+            <span>🏥</span> Santa Casa SP
+          </button>
+        </div>
+      </div>
+      <p style="color:#64748b;font-size:11px;margin-top:6px;">Botão de especialidade permanece ativo (visual). Clicar em "Todos" reset para 'all'. Clicar em "Especialidade" vai para 'same_specialty'.</p>
+    </div>
+
+  </div>
+
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:12px;margin-top:14px;">
+    <p style="color:#94a3b8;font-size:12px;line-height:1.8;">
+      <strong style="color:#f1f5f9;">Implementação:</strong> sem mudança de tipo nem hook.<br>
+      • Row principal: só botões <code>'all'</code> e <code>'same_specialty'</code> — botão ativo = <code>comparisonFilter === 'same_specialty' || comparisonFilter === 'same_institution'</code><br>
+      • Sub-filtro (só quando <code>comparisonFilter !== 'all'</code>): botão de instituição toggle — clique alterna entre <code>'same_specialty'</code> e <code>'same_institution'</code><br>
+      • Clicar em "Todos" → seta <code>'all'</code> (sem mudar lógica de reset de instituição)<br>
+      • <code>ComparisonFilter</code> type e hook ficam intactos
+    </p>
+  </div>
+</div>
+
+<p class="subtitle">Esse design está ok? Responda no terminal.</p>

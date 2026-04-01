@@ -1,11 +1,14 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { SegmentFilter } from '@/services/rankingApi';
+import type { ComparisonFilter, SegmentFilter } from '@/services/rankingApi';
 import { motion, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
 import { useSimulados } from "@/hooks/useSimulados";
 import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { useRanking } from "@/hooks/useRanking";
+import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
+import { useExamResult } from "@/hooks/useExamResult";
+import { computePerformanceBreakdown } from "@/lib/resultHelpers";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
@@ -35,6 +38,38 @@ function formatDateShort(dateIso: string): string {
   }).format(d);
 }
 
+const SEGMENT_LABEL: Record<SegmentFilter, string> = {
+  all: 'Geral',
+  sanarflix: 'Alunos SanarFlix',
+  pro: 'Alunos PRO',
+};
+
+function buildRankingLabel(
+  segmentFilter: SegmentFilter,
+  comparisonFilter: ComparisonFilter,
+  userSpecialty: string,
+  userInstitutions: string[],
+): string {
+  const isGeneral = segmentFilter === 'all' && comparisonFilter === 'all';
+  if (isGeneral) return 'Ranking Nacional Geral';
+
+  const base =
+    segmentFilter === 'all'
+      ? 'Ranking Geral'
+      : `Ranking de ${SEGMENT_LABEL[segmentFilter]}`;
+
+  if (comparisonFilter === 'same_specialty' && userSpecialty) {
+    return `${base} – ${userSpecialty}`;
+  }
+  if (comparisonFilter === 'same_institution' && userInstitutions.length > 0) {
+    const institution = userInstitutions[0];
+    const prefix = userSpecialty ? `${userSpecialty} ` : '';
+    return `${base} – ${prefix}${institution}`;
+  }
+
+  return base;
+}
+
 export function HomePagePremium() {
   const prefersReducedMotion = useReducedMotion();
   const [skipHomeStagger] = useState(() => hasHomeStaggerBeenSeen());
@@ -48,7 +83,23 @@ export function HomePagePremium() {
     simuladosWithResults,
     selectedSimuladoId,
     segmentFilter,
+    comparisonFilter,
+    userSpecialty,
+    userInstitutions,
   } = useRanking();
+
+  // Compute worstArea from last simulado
+  const lastSimuladoId = summary?.last_simulado_id ?? null;
+  const { questions: lastQuestions } = useSimuladoDetail(lastSimuladoId ?? undefined);
+  const { examState: lastExamState } = useExamResult(lastSimuladoId ?? undefined);
+
+  const worstArea = useMemo(() => {
+    if (!lastExamState || !lastQuestions.length) return null;
+    if (lastExamState.status !== 'submitted' && lastExamState.status !== 'expired') return null;
+    const breakdown = computePerformanceBreakdown(lastExamState, lastQuestions);
+    const byArea = breakdown.byArea;
+    return byArea.length > 0 ? byArea[byArea.length - 1].area : null;
+  }, [lastExamState, lastQuestions]);
 
   useEffect(() => {
     return () => {
@@ -135,6 +186,11 @@ export function HomePagePremium() {
     );
   }, [selectedSimuladoId, simuladosWithResults]);
 
+  const rankingLabel = useMemo(
+    () => buildRankingLabel(segmentFilter, comparisonFilter, userSpecialty, userInstitutions),
+    [segmentFilter, comparisonFilter, userSpecialty, userInstitutions]
+  );
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: prefersReducedMotion
@@ -217,10 +273,12 @@ export function HomePagePremium() {
           recentScores={recentScores}
           nextWindowDate={nextWindowDate}
           pendingErrors={null}
+          worstArea={worstArea}
+          segment={segment}
         />
       </motion.div>
 
-      {/* Layer 2: Card de performance (diagonal abaixo da hero) */}
+      {/* Layer 2: "Seu caminho até aqui" card */}
       <motion.div variants={itemVariants}>
         <HeroPerformanceCard
           lastScore={lastScore}
@@ -229,7 +287,8 @@ export function HomePagePremium() {
           rankTotal={rankTotal}
           recentScores={recentScores}
           rankingTitle={selectedRankingTitle}
-          segmentFilter={segmentFilter}
+          rankingLabel={rankingLabel}
+          hasRankingConfig={simuladosWithResults.length > 0}
         />
       </motion.div>
 
@@ -242,12 +301,6 @@ export function HomePagePremium() {
   );
 }
 
-const SEGMENT_LABEL: Record<SegmentFilter, string> = {
-  all: 'Geral',
-  sanarflix: 'Aluno SanarFlix',
-  pro: 'Aluno PRO',
-};
-
 function HeroPerformanceCard({
   lastScore,
   scoreDelta,
@@ -255,7 +308,8 @@ function HeroPerformanceCard({
   rankTotal,
   recentScores,
   rankingTitle,
-  segmentFilter,
+  rankingLabel,
+  hasRankingConfig,
 }: {
   lastScore: number | null;
   scoreDelta: number | null;
@@ -263,7 +317,8 @@ function HeroPerformanceCard({
   rankTotal: number | null;
   recentScores: number[];
   rankingTitle: string | null;
-  segmentFilter: SegmentFilter;
+  rankingLabel: string;
+  hasRankingConfig: boolean;
 }) {
   const hasScore = lastScore !== null;
   const safeScore = lastScore ?? 0;
@@ -451,7 +506,24 @@ function HeroPerformanceCard({
             </div>
 
             {/* Ranking snapshot */}
-            {rankPosition === null ? (
+            {!hasRankingConfig ? (
+              /* Empty state: no simulados with released results yet */
+              <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-4 text-center">
+                <p className="text-[13px] font-semibold text-[rgba(245,241,238,0.85)] mb-1">
+                  Você ainda não configurou seu ranking
+                </p>
+                <p className="text-[11px] text-[rgba(245,241,238,0.55)] leading-relaxed mb-3">
+                  Escolha um ranking para acompanhar sua evolução e ver sua posição entre os participantes.
+                </p>
+                <Link
+                  to="/ranking"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[rgba(232,56,98,0.3)] bg-[rgba(232,56,98,0.15)] px-3.5 py-1.5 text-[12px] font-semibold text-[#e83862] no-underline transition-colors hover:bg-[rgba(232,56,98,0.22)]"
+                >
+                  Ir para o Ranking →
+                </Link>
+              </div>
+            ) : rankPosition === null ? (
+              /* Has results but user not yet ranked */
               <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-4 text-center">
                 <p className="text-[13px] font-semibold text-[rgba(245,241,238,0.85)] mb-1">
                   Veja como você está no ranking
@@ -467,6 +539,7 @@ function HeroPerformanceCard({
                 </Link>
               </div>
             ) : (
+              /* Ranked: show position with descriptive label */
               <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-3 backdrop-blur-sm text-[rgba(245,241,238,0.92)]">
                 <div className="mb-1 flex items-start justify-between gap-3">
                   <p className="min-w-0 flex-1 text-[12px] leading-snug text-[rgba(245,241,238,0.96)]">
@@ -485,11 +558,11 @@ function HeroPerformanceCard({
                 </div>
 
                 <div className="space-y-1">
-                  {rankingTitle && (
-                    <p className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] truncate">
-                      {`${rankingTitle} · ${SEGMENT_LABEL[segmentFilter]}`}
-                    </p>
-                  )}
+                  <p className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] truncate">
+                    {rankingTitle
+                      ? `${rankingTitle} · ${rankingLabel}`
+                      : rankingLabel}
+                  </p>
                   <p className="text-[9px] leading-snug text-[rgba(245,241,238,0.68)]">
                     {variationState.helper}
                   </p>
