@@ -5,17 +5,18 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Trophy, BarChart3, ChevronRight, Zap, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { SPRING_GENTLE } from "@/lib/landingMotion";
 
 const EASE = [0.32, 0.72, 0.2, 1] as const;
 
 const STAGGER = {
-  eyebrow: 0.08,
-  headline: 0.18,
-  subhead: 0.32,
-  ctas: 0.44,
-  cards: 0.56,
-  visual: 0.2,
-  panel: 0.35,
+  eyebrow: 0.05,
+  headline: 0.12,
+  subhead: 0.24,
+  ctas: 0.35,
+  cards: 0.48,
+  visual: 0.15,
+  panel: 0.28,
   float1: 0.5,
   float2: 0.6,
 };
@@ -52,6 +53,7 @@ function HeroAiInsight({ compact = false, cinematic = false }: { compact?: boole
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.8, ease: EASE }}
+      whileHover={cinematic && compact ? { rotateX: -3, rotateY: 4, z: 20, transition: SPRING_GENTLE } : undefined}
       className={cn(
         "relative w-full overflow-hidden",
         cinematic &&
@@ -173,13 +175,22 @@ export function LandingHero() {
       {/* Background — camadas de profundidade, tokens da marca */}
       <div className="absolute inset-0 pointer-events-none -z-10" aria-hidden>
         <div className="absolute top-0 left-0 w-full h-[75%] bg-gradient-to-b from-primary/10 via-primary/4 to-transparent" />
-        <div className="absolute top-[8%] left-[-6%] w-[480px] h-[480px] rounded-full bg-primary/14 blur-[90px]" />
-        <div className="absolute bottom-[12%] right-[-4%] w-[360px] h-[360px] rounded-full bg-wine-glow/10 blur-[80px]" />
-        <div className="absolute top-[40%] right-[8%] w-[220px] h-[220px] rounded-full bg-primary/8 blur-[60px]" />
-        {/* Leve movimento atmosférico */}
+        {/* Orb principal — top-left, primary */}
         <motion.div
-          className="absolute top-[20%] right-[15%] w-[180px] h-[180px] rounded-full bg-wine-glow/6 blur-[70px]"
-          animate={{ opacity: [0.6, 1, 0.6] }}
+          className="absolute top-[8%] left-[-6%] w-[480px] h-[480px] rounded-full bg-primary/14 blur-[90px]"
+          animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Orb secundário — bottom-right, wine-glow */}
+        <motion.div
+          className="absolute bottom-[12%] right-[-4%] w-[360px] h-[360px] rounded-full bg-wine-glow/10 blur-[80px]"
+          animate={{ x: [0, -25, 0], y: [0, 35, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Orb sutil — top-right, primary */}
+        <motion.div
+          className="absolute top-[40%] right-[8%] w-[220px] h-[220px] rounded-full bg-primary/8 blur-[60px]"
+          animate={{ opacity: [0.4, 0.9, 0.4] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
@@ -271,9 +282,16 @@ export function LandingHero() {
                   value: "Evolução entre provas",
                   label: "Curva de desempenho e próximos passos",
                 },
-              ].map((item) => (
+              ].map((item, index) => (
                 <motion.div
                   key={item.value}
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{
+                    duration: 3.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.4,
+                  }}
                   whileHover={{ y: -3, transition: { duration: 0.2, ease: EASE } }}
                   className="group p-4 rounded-2xl border border-border bg-card/60 hover:bg-card/90 hover:border-primary/25 transition-all duration-300 cursor-default"
                 >
@@ -296,7 +314,7 @@ export function LandingHero() {
             {/*
               Coluna usa largura total da célula (sem max-w que prendia o card). Card sem w-full para self-end + translate-x funcionarem.
             */}
-            <div className="relative ml-auto w-full min-w-0 max-w-none overflow-visible pb-12 pt-5 sm:pt-6 lg:pt-7">
+            <div className="relative ml-auto w-full min-w-0 max-w-none overflow-visible pb-12 pt-5 sm:pt-6 lg:pt-7" style={{ perspective: "1200px" }}>
               <div className="flex flex-col items-end gap-0">
                 {/* lg estreito: foto mais larga + mais altura; xl+ equilibra com o card */}
                 <div className="relative z-0 w-[min(118%,26rem)] shrink-0 bg-transparent shadow-none ring-0 sm:w-[min(118%,28rem)] lg:w-full lg:max-w-[min(100%,38rem)] xl:max-w-[min(118%,34rem)] 2xl:max-w-[min(118%,31rem)]">
