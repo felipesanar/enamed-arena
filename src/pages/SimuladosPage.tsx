@@ -326,11 +326,127 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
   );
 }
 
-function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
-  // Stub — implemented in Task 5
+function useCountdown(targetISO: string) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const target = parseISO(targetISO);
+  const diff = Math.max(0, target.getTime() - now.getTime());
+  const days = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+  const mins = Math.floor((diff % 3_600_000) / 60_000);
+  return { days, hours, mins };
+}
+
+function CountdownBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="h-[220px] rounded-[24px] bg-muted/20 flex items-center justify-center text-muted-foreground text-sm">
-      HeroCardUpcoming stub — {sim.title}
+    <div
+      className="flex flex-col items-center min-w-[52px] rounded-lg px-3 py-2"
+      style={{
+        background: "rgba(255,255,255,.06)",
+        border: "1px solid rgba(255,255,255,.08)",
+      }}
+    >
+      <span className="text-xl font-bold text-white tabular-nums leading-none">{value}</span>
+      <span className="text-[10px] font-medium uppercase tracking-wider text-white/40 mt-1">{label}</span>
+    </div>
+  );
+}
+
+function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
+  const { days, hours, mins } = useCountdown(sim.executionWindowStart);
+
+  return (
+    <div
+      className="relative w-full rounded-[24px] overflow-hidden p-5 md:p-6"
+      style={{
+        background: "linear-gradient(142deg, #3d0d22 0%, #220810 55%, #120408 100%)",
+        border: "1px solid rgba(142,31,61,.3)",
+      }}
+    >
+      {/* White top thread */}
+      <div
+        className="absolute inset-x-0 top-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.08) 40%, transparent)" }}
+      />
+      {/* Glow subdued */}
+      <div
+        className="pointer-events-none absolute -top-12 -left-12 w-64 h-64 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(142,31,61,.15) 0%, transparent 70%)" }}
+      />
+
+      <div className="relative z-10">
+        {/* Status badge + sequence */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2.5 h-2.5 rounded-full border-2"
+              style={{ borderColor: "rgba(220,140,170,.6)", background: "transparent" }}
+            />
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
+              Em breve
+            </span>
+          </div>
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-lg"
+            style={{
+              background: "rgba(255,255,255,.05)",
+              border: "1px solid rgba(255,255,255,.08)",
+              color: "rgba(255,255,255,.4)",
+            }}
+          >
+            #{sim.sequenceNumber}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h2
+          className="font-bold mb-3"
+          style={{ color: "rgba(255,255,255,.65)", fontSize: "clamp(18px, 3.5vw, 22px)" }}
+        >
+          {sim.title}
+        </h2>
+
+        {/* Meta row */}
+        <div className="flex items-center gap-3 mb-5 text-white/40 text-xs">
+          <span className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            Abre em {format(parseISO(sim.executionWindowStart), "dd/MM", { locale: ptBR })}
+          </span>
+        </div>
+
+        {/* Countdown blocks */}
+        <div className="flex items-center gap-2 mb-5 flex-wrap">
+          <CountdownBlock label="dias" value={String(days).padStart(2, "0")} />
+          <CountdownBlock label="horas" value={String(hours).padStart(2, "0")} />
+          <CountdownBlock label="min" value={String(mins).padStart(2, "0")} />
+        </div>
+
+        {/* Disabled CTA */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <button
+            disabled
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-not-allowed opacity-50"
+            style={{
+              background: "rgba(255,255,255,.06)",
+              border: "1px solid rgba(255,255,255,.08)",
+              color: "rgba(255,255,255,.5)",
+            }}
+          >
+            <Lock className="w-4 h-4" />
+            Ainda não disponível
+          </button>
+        </div>
+
+        {/* Info row */}
+        <div className="mt-3 flex items-center gap-1.5 text-xs text-white/35">
+          <Clock className="w-3 h-3" />
+          Liberado automaticamente em{" "}
+          {format(parseISO(sim.executionWindowStart), "dd/MM 'às' HH:mm", { locale: ptBR })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -348,7 +464,3 @@ function TimelineItem({ sim, index, reduced }: { sim: SimuladoWithStatus; index:
   return null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CountdownBlock({ label, value }: { label: string; value: string }) {
-  return null;
-}
