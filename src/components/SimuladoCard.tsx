@@ -3,7 +3,8 @@ import { PremiumCard } from "./PremiumCard";
 import { StatusBadge } from "./StatusBadge";
 import type { SimuladoWithStatus } from "@/types";
 import { Link } from "react-router-dom";
-import { getSimuladoCTA, formatDateShort } from "@/lib/simulado-helpers";
+import { getSimuladoCTA, formatDateShort, buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
+import { CalendarPlus } from "lucide-react";
 
 interface SimuladoCardProps {
   simulado: SimuladoWithStatus;
