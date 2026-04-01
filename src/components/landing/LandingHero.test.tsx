@@ -5,15 +5,15 @@ import { LandingHero } from "./LandingHero";
 // Mock framer-motion so tests don't break on animation APIs
 vi.mock("framer-motion", () => ({
   motion: new Proxy({}, {
-    get: (_target, tag: string) =>
-      ({ children, style, initial: _i, animate: _a, whileHover: _wh, transition: _t, ...rest }) =>
+    get: (_target: any, tag: string) =>
+      ({ children, style, initial: _i, animate: _a, whileHover: _wh, transition: _t, ...rest }: any) =>
         ({ div: <div style={style} {...rest}>{children}</div>, h1: <h1 {...rest}>{children}</h1>, p: <p {...rest}>{children}</p>, span: <span style={style} {...rest}>{children}</span>, section: <section style={style} {...rest}>{children}</section> }[tag] ?? <div style={style} {...rest}>{children}</div>),
   }),
   animate: vi.fn(() => ({ stop: vi.fn() })),
   useReducedMotion: () => false,
   useScroll: () => ({ scrollY: { get: () => 0 } }),
   useTransform: () => 0,
-  AnimatePresence: ({ children }) => children,
+  AnimatePresence: ({ children }: any) => children,
 }));
 
 // Mock react-router-dom Link
