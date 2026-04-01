@@ -105,6 +105,10 @@ export default function LoginPage() {
     );
   }
 
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
   const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
