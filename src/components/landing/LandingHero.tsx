@@ -54,6 +54,7 @@ function HeroAiInsight({ compact = false, cinematic = false }: { compact?: boole
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.8, ease: EASE }}
       whileHover={cinematic && compact ? { rotateX: -3, rotateY: 4, z: 20, transition: SPRING_GENTLE } : undefined}
+      style={{ transformStyle: "preserve-3d" }}
       className={cn(
         "relative w-full overflow-hidden",
         cinematic &&
