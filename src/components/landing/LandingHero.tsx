@@ -107,7 +107,83 @@ export function LandingHero() {
       <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-14 xl:gap-16 items-center">
           {/* Left column — Task 2 */}
-          <div className="space-y-6 lg:space-y-7" />
+          <div className="space-y-6 lg:space-y-7">
+            {/* Eyebrow badge */}
+            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full border border-primary/[0.28] bg-primary/10 backdrop-blur-sm">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.6)]"
+                aria-hidden
+              />
+              <span className="text-overline uppercase tracking-[0.13em] text-primary/95">
+                SanarFlix Simulados
+              </span>
+            </div>
+
+            {/* Headline */}
+            <h1 className="text-[3.2rem] sm:text-[3.5rem] lg:text-[3.2rem] xl:text-[3.6rem] font-extrabold leading-[1.05] tracking-[-0.04em] text-foreground max-w-[14ch]">
+              Performance com{" "}
+              <em className="not-italic bg-gradient-to-r from-[#d8405e] to-primary bg-clip-text text-transparent block mt-1 leading-[1.1] pb-0.5">
+                precisão cirúrgica.
+              </em>
+            </h1>
+
+            {/* Subhead */}
+            <p className="text-body-lg text-muted-foreground max-w-[34ch] leading-relaxed">
+              Análise por área, ranking em tempo real e IA que define exatamente
+              o que revisar antes da próxima prova.
+            </p>
+
+            {/* CTA row */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <Button
+                size="lg"
+                className="min-h-[52px] px-7 rounded-xl font-bold text-base bg-primary text-primary-foreground shadow-[0_6px_28px_hsl(var(--primary)/0.45),0_2px_8px_hsl(var(--primary)/0.25)] hover:bg-wine-hover hover:shadow-[0_10px_40px_hsl(var(--primary)/0.55)] hover:-translate-y-0.5 transition-all duration-300 active:translate-y-0"
+                asChild
+              >
+                <Link
+                  to="/login"
+                  onClick={() => trackEvent("lead_captured", { source: "landing_hero_primary" })}
+                >
+                  Entrar no próximo simulado →
+                </Link>
+              </Button>
+              <a
+                href="#como-funciona"
+                className="text-body text-muted-foreground/60 font-medium border-b border-muted-foreground/20 hover:text-muted-foreground transition-colors duration-200 pb-px"
+              >
+                Ver como funciona
+              </a>
+            </div>
+
+            {/* Social proof */}
+            <div className="flex items-center gap-3">
+              <div className="flex" aria-hidden>
+                {[
+                  { bg: "bg-purple-700", initial: "A" },
+                  { bg: "bg-blue-700",   initial: "B" },
+                  { bg: "bg-primary",    initial: "C" },
+                  { bg: "bg-cyan-800",   initial: "D" },
+                  { bg: "bg-green-700",  initial: "E" },
+                ].map((av, i) => (
+                  <span
+                    key={av.initial}
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 border-background flex items-center justify-center",
+                      "text-[0.5rem] font-bold text-white",
+                      av.bg,
+                      i > 0 && "-ml-1.5",
+                    )}
+                  >
+                    {av.initial}
+                  </span>
+                ))}
+              </div>
+              <p className="text-body-sm text-muted-foreground/55">
+                <strong className="text-muted-foreground/80 font-semibold">18.400 alunos</strong>{" "}
+                em preparação agora
+              </p>
+            </div>
+          </div>
 
           {/* Right column — Task 3 */}
           <div className="hidden lg:block" />
