@@ -14,24 +14,43 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const programs: { spec_slug: string; inst_slug: string; vagas: number; cenario: string }[] = await req.json();
+    const programs: { spec: string; inst: string; uf: string; vagas: number; cenario: string }[] = await req.json();
 
-    // Fetch all specialties and institutions for slug->id mapping
-    const { data: specs } = await supabase.from("enamed_specialties").select("id, slug");
-    const { data: insts } = await supabase.from("enamed_institutions").select("id, slug");
+    // Delete existing programs first (clean re-insert)
+    await supabase.from("enamed_programs").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-    const specMap = new Map(specs!.map((s: any) => [s.slug, s.id]));
-    const instMap = new Map(insts!.map((i: any) => [i.slug, i.id]));
+    // Fetch all specialties and institutions
+    const { data: specs } = await supabase.from("enamed_specialties").select("id, name");
+    const { data: insts } = await supabase.from("enamed_institutions").select("id, name, uf");
 
-    // Build rows
-    const rows = programs.map((p) => ({
-      specialty_id: specMap.get(p.spec_slug),
-      institution_id: instMap.get(p.inst_slug),
-      vagas: p.vagas,
-      cenario_pratica: p.cenario,
-    })).filter(r => r.specialty_id && r.institution_id);
+    const specMap = new Map(specs!.map((s: any) => [s.name.toUpperCase().trim(), s.id]));
+    const instMap = new Map(insts!.map((i: any) => [`${i.name.trim()}||${i.uf.trim()}`, i.id]));
 
-    // Insert in batches of 200
+    // Also try case-insensitive matching for institutions
+    const instMapUpper = new Map(insts!.map((i: any) => [`${i.name.toUpperCase().trim()}||${i.uf.trim()}`, i.id]));
+
+    const rows = [];
+    const missingInsts = new Set<string>();
+    const missingSpecs = new Set<string>();
+
+    for (const p of programs) {
+      const specId = specMap.get(p.spec.toUpperCase().trim());
+      const instKey = `${p.inst.trim()}||${p.uf.trim()}`;
+      const instKeyUpper = `${p.inst.toUpperCase().trim()}||${p.uf.trim()}`;
+      const instId = instMap.get(instKey) || instMapUpper.get(instKeyUpper);
+
+      if (!specId) { missingSpecs.add(p.spec); continue; }
+      if (!instId) { missingInsts.add(instKey); continue; }
+
+      rows.push({
+        specialty_id: specId,
+        institution_id: instId,
+        vagas: p.vagas,
+        cenario_pratica: p.cenario,
+      });
+    }
+
+    // Insert in batches
     let inserted = 0;
     const batchSize = 200;
     for (let i = 0; i < rows.length; i += batchSize) {
@@ -41,7 +60,13 @@ Deno.serve(async (req) => {
       inserted += batch.length;
     }
 
-    return new Response(JSON.stringify({ ok: true, inserted, total: programs.length }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      inserted,
+      total: programs.length,
+      missingSpecs: [...missingSpecs],
+      missingInsts: [...missingInsts].slice(0, 20),
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
