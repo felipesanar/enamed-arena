@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Clock, Lock, Mail, RefreshCw, ShieldCheck, Stethoscope, Trophy, User } from "lucide-react";
@@ -16,6 +16,26 @@ type AuthMode = "login" | "signup";
 type LoginMethod = "password" | "magic-link";
 type FlowState = "idle" | "sending" | "sent";
 
+const SIGNUP_RATE_LIMIT_LOCK_KEY = "signup-rate-limit-until";
+const SIGNUP_RATE_LIMIT_MS = 3 * 60 * 1000;
+
+function isRateLimitError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("email rate limit exceeded") ||
+    lower.includes("over_email_send_rate_limit") ||
+    lower.includes("rate limit exceeded") ||
+    lower.includes("too many requests")
+  );
+}
+
+function formatCountdown(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins <= 0) return `${secs}s`;
+  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+}
+
 function translateError(msg: string): string {
   const lower = msg.toLowerCase();
   const map: Array<[string, string]> = [
@@ -23,11 +43,11 @@ function translateError(msg: string): string {
     ["email not confirmed", "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (inclusive spam)."],
     ["user already registered", "Este e-mail já está cadastrado. Tente fazer login."],
     ["password should be at least 6 characters", "A senha deve ter pelo menos 6 caracteres."],
-    ["email rate limit exceeded", "Você tentou criar a conta várias vezes seguidas. Aguarde 2–3 minutos antes de tentar novamente."],
-    ["rate limit exceeded", "Muitas tentativas seguidas. Aguarde 2–3 minutos e tente novamente."],
-    ["over_email_send_rate_limit", "Limite de envio de e-mails atingido. Aguarde alguns minutos antes de tentar novamente."],
+    ["email rate limit exceeded", "Muitas tentativas de cadastro em pouco tempo. Aguarde alguns minutos e tente novamente."],
+    ["rate limit exceeded", "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente."],
+    ["over_email_send_rate_limit", "Limite temporário de envio de confirmação atingido. Aguarde alguns minutos e tente novamente."],
     ["for security purposes, you can only request this after", "Por segurança, aguarde alguns segundos antes de tentar novamente."],
-    ["too many requests", "Muitas tentativas seguidas. Aguarde 2–3 minutos e tente novamente."],
+    ["too many requests", "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente."],
     ["network", "Erro de conexão. Verifique sua internet e tente novamente."],
     ["fetch", "Erro de conexão. Verifique sua internet e tente novamente."],
   ];
@@ -54,8 +74,28 @@ export default function LoginPage() {
   const [cooldown, setCooldown] = useState(false);
   const [resending, setResending] = useState(false);
   const [hubspotModalOpen, setHubspotModalOpen] = useState(false);
+  const [signupRetryIn, setSignupRetryIn] = useState(0);
 
-  if (!loading && user) return <Navigate to="/" replace />;
+  useEffect(() => {
+    const storedUntil = Number(localStorage.getItem(SIGNUP_RATE_LIMIT_LOCK_KEY) ?? "0");
+    if (!storedUntil || Number.isNaN(storedUntil)) return;
+
+    const tick = () => {
+      const now = Date.now();
+      const remainingMs = storedUntil - now;
+      if (remainingMs <= 0) {
+        setSignupRetryIn(0);
+        localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
+        return;
+      }
+      setSignupRetryIn(Math.ceil(remainingMs / 1000));
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
 
   if (loading) {
     return (
@@ -80,6 +120,10 @@ export default function LoginPage() {
     }
 
     if (mode === "signup") {
+      if (signupRetryIn > 0) {
+        setError(`Aguarde ${formatCountdown(signupRetryIn)} para tentar novo cadastro.`);
+        return;
+      }
       if (!fullName.trim()) {
         setError("Informe seu nome completo.");
         return;
@@ -99,12 +143,19 @@ export default function LoginPage() {
           : await signUpWithPassword(trimmedEmail, password, fullName.trim());
 
       if (result.error) {
+        if (mode === "signup" && isRateLimitError(result.error)) {
+          const lockUntil = Date.now() + SIGNUP_RATE_LIMIT_MS;
+          localStorage.setItem(SIGNUP_RATE_LIMIT_LOCK_KEY, String(lockUntil));
+          setSignupRetryIn(Math.ceil(SIGNUP_RATE_LIMIT_MS / 1000));
+        }
         setError(translateError(result.error));
         setFlowState("idle");
         return;
       }
 
       if (mode === "signup") {
+        localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
+        setSignupRetryIn(0);
         setHubspotModalOpen(true);
       }
     } catch {
@@ -415,12 +466,23 @@ export default function LoginPage() {
 
             {error && <FormFeedback tone="error" message={error} />}
 
+            {signupRetryIn > 0 && (
+              <FormFeedback
+                tone="error"
+                message={`Por segurança anti-spam, novo cadastro disponível em ${formatCountdown(signupRetryIn)}.`}
+              />
+            )}
+
             <button
               type="submit"
-              disabled={flowState === "sending"}
+              disabled={flowState === "sending" || signupRetryIn > 0}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
             >
-              {flowState === "sending" ? <Spinner /> : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
+              {flowState === "sending"
+                ? <Spinner />
+                : signupRetryIn > 0
+                  ? <>Aguarde {formatCountdown(signupRetryIn)} <Clock className="h-4 w-4" /></>
+                  : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
             </button>
           </motion.form>
         )}
