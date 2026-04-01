@@ -79,9 +79,7 @@ export function DashboardLayout() {
               )
           )}
         >
-          <div className={cn("mx-auto max-w-[1280px]")}>
-            <DashboardOutlet />
-          </div>
+          <DashboardOutlet />
         </main>
       </div>
     </div>

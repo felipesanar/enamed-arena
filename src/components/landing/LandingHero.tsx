@@ -54,8 +54,8 @@ const HERO_VALUE_PROPS: readonly {
   },
   {
     id: "offline-upload",
-    title: "Offline e gabarito",
-    description: "Estude sem conexão e envie o gabarito quando estiver online.",
+    title: "Opção online e offline",
+    description: "Faça direto na plataforma ou gere um PDF e envie respostas.",
     Icon: WifiOff,
   },
 ];
@@ -114,7 +114,7 @@ function HeroRankingChip({ prefersReducedMotion }: { prefersReducedMotion: boole
       initial={reduced ? {} : { opacity: 0, x: 16 }}
       animate={reduced ? {} : { opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay: DELAY.chipRight, ease: EASE }}
-      className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-xl border border-white/10 bg-card/[0.92] p-3 backdrop-blur-xl"
+      className="absolute -right-2 top-1/2 z-10 -translate-y-1/2 rounded-2xl border border-white/10 bg-card/[0.95] p-3.5 backdrop-blur-xl ring-1 ring-primary/25 xl:-right-5 2xl:-right-7"
       style={{
         boxShadow: chipShadow,
         borderColor:
@@ -122,8 +122,8 @@ function HeroRankingChip({ prefersReducedMotion }: { prefersReducedMotion: boole
       }}
       aria-label="Demonstração: posição no ranking melhora do 42º para o 1º lugar"
     >
-      <p className="flex items-baseline gap-0.5 text-xl font-extrabold leading-none">
-        <span className="text-lg text-landing-accent" aria-hidden>
+      <p className="flex items-baseline gap-0.5 text-[1.55rem] font-black leading-none">
+        <span className="text-xl text-landing-accent" aria-hidden>
           #
         </span>
         <motion.span
@@ -151,7 +151,7 @@ function HeroRankingChip({ prefersReducedMotion }: { prefersReducedMotion: boole
           </AnimatePresence>
         </motion.span>
       </p>
-      <p className="mt-1 text-[0.55rem] uppercase tracking-[0.1em] text-muted-foreground/50">
+      <p className="mt-1 text-[0.58rem] uppercase tracking-[0.12em] text-muted-foreground/65">
         Ranking
       </p>
     </motion.div>
@@ -416,22 +416,22 @@ export function LandingHero() {
               <HeroRankingChip prefersReducedMotion={prefersReducedMotion} />
 
               {/* Main AI insight card */}
-              <div style={{ perspective: "1000px" }}>
+              <div style={{ perspective: "760px" }}>
                 <motion.div
                   initial={{ rotateX: 0, rotateY: 0 }}
-                  animate={{ rotateX: 2.5, rotateY: -2 }}
+                  animate={{ rotateX: 4.5, rotateY: -3.2 }}
                   transition={{ duration: 0.8, delay: DELAY.visual, ease: EASE }}
                   whileHover={
                     prefersReducedMotion || !finePointerHoverDesktop
                       ? undefined
                       : {
-                          rotateX: -1,
-                          rotateY: 1.5,
+                          rotateX: -3.2,
+                          rotateY: 3.8,
                           transition: { type: "spring", stiffness: 300, damping: 35 },
                         }
                   }
                   style={{ transformStyle: "preserve-3d" }}
-                  className="relative w-full rounded-[22px] border border-primary/[0.32] bg-[linear-gradient(165deg,rgba(18,14,30,0.97)_0%,rgba(11,8,20,0.99)_100%)] p-7 shadow-[0_36px_88px_-18px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_hsl(var(--primary)/0.08)] xl:rounded-3xl xl:p-8 2xl:p-9"
+                  className="relative w-full rounded-[22px] border border-primary/[0.32] bg-[linear-gradient(165deg,rgba(18,14,30,0.97)_0%,rgba(11,8,20,0.99)_100%)] p-7 shadow-[0_54px_120px_-24px_rgba(0,0,0,0.82),0_18px_48px_-26px_hsl(var(--primary)/0.45),inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_hsl(var(--primary)/0.08)] xl:rounded-3xl xl:p-8 2xl:p-9"
                 >
                   {/* Inner radial glow */}
                   <div
@@ -443,18 +443,18 @@ export function LandingHero() {
                     aria-hidden
                   />
 
-                  <div className="relative z-[1]">
+                  <div className="relative z-[1]" style={{ transform: "translateZ(28px)" }}>
                     {/* Card eyebrow */}
                     <p className="text-overline uppercase tracking-[0.14em] text-landing-accent flex items-center gap-2 mb-2.5">
-                      <span aria-hidden>✦</span> Análise SanarFlix
+                      <span aria-hidden>✦</span> Vaga desejada
                     </p>
 
                     {/* Card headline + desc */}
                     <p className="text-[1.45rem] font-extrabold leading-[1.12] tracking-tight text-foreground xl:text-[1.58rem] 2xl:text-[1.68rem] mb-1.5">
-                      Unifesp + 3 instituições
+                      Clínica Médica na USP-SP
                     </p>
                     <p className="mb-4 w-full max-w-none text-[0.875rem] leading-relaxed text-muted-foreground/58 xl:text-body-sm">
-                      você seria aprovado nestas instituições com o desempenho atual
+                      Você seria aprovada nesta instituição com o desempenho atual
                     </p>
 
                     <div className="h-px bg-white/[0.07] mb-3.5" />

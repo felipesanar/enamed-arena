@@ -30,7 +30,7 @@ export const NEXT_SIMULADO = {
 } as const;
 
 export const LIVE_FEEDBACK_LINES = [
-  "Resultado liberado para 1.203 alunos no último simulado.",
+  "Experiência online e offline disponível para o seu ritmo de estudo.",
   "Ranking atualizado há 2 horas.",
   "2.847 inscritos no próximo simulado.",
 ] as const;

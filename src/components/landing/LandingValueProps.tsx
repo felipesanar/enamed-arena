@@ -18,7 +18,6 @@ import {
   headerItemReveal,
   DURATION_NORMAL,
 } from "@/lib/landingMotion";
-import { LIVE_FEEDBACK_LINES } from "@/lib/landingMockData";
 
 const ITEMS = [
   {
@@ -120,7 +119,8 @@ export function LandingValueProps() {
           transition={{ duration: DURATION_NORMAL, ease: EASE }}
           className="mb-8 px-4 py-3 rounded-xl border border-primary/20 bg-primary/5 text-body-sm text-muted-foreground text-center"
         >
-          {LIVE_FEEDBACK_LINES[0]}
+          Experiência online e offline: faça a prova na plataforma ou em PDF, no formato que
+          melhor se adapta à sua rotina.
         </motion.p>
 
         <motion.div

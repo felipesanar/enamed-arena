@@ -30,14 +30,16 @@ const STEPS: JourneyStep[] = [
   {
     step: 2,
     icon: BookOpen,
-    title: "Escolha o simulado",
-    description: "Veja o calendário, datas e número de questões. Escolha o simulado que faz sentido para sua etapa de preparação.",
+    title: "Fique atento às janelas de execução",
+    description:
+      "Veja o calendário, data e número de questões. Realize o simulado entre as datas indicadas para que sua nota entre no ranking nacional.",
   },
   {
     step: 3,
     icon: PenLine,
     title: "Realize a prova",
-    description: "Ambiente de prova realista: tempo cronometrado, marcação de questões e navegação clara.",
+    description:
+      "Escolha o modo online ou offline, conforme o seu conforto. Ambiente de prova realista e adaptado para o que faz sentido para você.",
   },
   {
     step: 4,
@@ -59,11 +61,45 @@ const STEPS: JourneyStep[] = [
   },
 ];
 
+type JourneyScheduleItem = {
+  id: string;
+  simulado: string;
+  windowLabel: string;
+};
+
+const JOURNEY_SCHEDULE: JourneyScheduleItem[] = [
+  {
+    id: "simulado-2",
+    simulado: "Simulado #2 — Cirurgia e Emergência",
+    windowLabel: "Janela de execução: 28/03/2026 até 30/03/2026",
+  },
+  {
+    id: "simulado-1",
+    simulado: "Simulado #1 — Fundamentos Clínicos",
+    windowLabel: "Janela de execução: 24/03/2026 até 26/03/2026",
+  },
+  {
+    id: "simulado-4",
+    simulado: "Simulado #4 — Medicina Preventiva e Saúde Coletiva",
+    windowLabel: "Janela de execução: 14/04/2026 até 16/04/2026",
+  },
+  {
+    id: "simulado-5",
+    simulado: "Simulado #5 — Clínica Médica Avançada",
+    windowLabel: "Janela de execução: 21/04/2026 até 23/04/2026",
+  },
+  {
+    id: "simulado-6",
+    simulado: "Simulado #6 — Revisão Geral ENAMED",
+    windowLabel: "Janela de execução: 28/04/2026 até 30/04/2026",
+  },
+];
+
 function LandingJourneyTimelineIllustration({
-  steps,
+  items,
   reduced,
 }: {
-  steps: JourneyStep[];
+  items: JourneyScheduleItem[];
   reduced: boolean;
 }) {
   const headingId = useId();
@@ -72,24 +108,23 @@ function LandingJourneyTimelineIllustration({
     <div role="region" aria-labelledby={headingId} className="mb-0">
       <div className="mb-1 flex items-center gap-3">
         <h3 id={headingId} className="whitespace-nowrap text-sm font-semibold tracking-tight text-foreground">
-          Linha do tempo da jornada
+          Histórico e próximos
         </h3>
         <div className="h-px flex-1 rounded-full bg-border" />
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">Etapas 1 a 6, na ordem — do cadastro à revisão.</p>
+      <p className="mb-4 text-xs text-muted-foreground">Ordenado do mais recente para o mais antigo.</p>
 
-      <div className="relative pl-1">
+      <div className="relative pl-2">
         <div
-          className="pointer-events-none absolute bottom-4 left-[17px] top-4 w-px -translate-x-1/2 rounded-full bg-gradient-to-b from-primary/35 via-primary/15 to-border"
+          className="pointer-events-none absolute bottom-4 left-[16px] top-3 w-px -translate-x-1/2 rounded-full bg-gradient-to-b from-border via-primary/15 to-border"
           aria-hidden
         />
 
-        <div className="space-y-2 pl-[2.75rem] sm:pl-12">
-          {steps.map((s, index) => {
-            const Icon = s.icon;
+        <div className="space-y-2.5 pl-8">
+          {items.map((item, index) => {
             return (
               <motion.div
-                key={s.step}
+                key={item.id}
                 initial={reduced ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
@@ -97,38 +132,30 @@ function LandingJourneyTimelineIllustration({
                   delay: reduced ? 0 : index * 0.05,
                   ease: [0.22, 1, 0.36, 1],
                 }}
-                className="relative"
+                className="relative min-h-[88px]"
               >
                 <div
-                  className="pointer-events-none absolute left-[calc(27px-2.75rem)] top-[21px] z-0 h-px w-[calc(2.75rem-27px)] bg-border sm:left-[calc(27px-3rem)] sm:top-[22px] sm:w-[calc(3rem-27px)]"
+                  className="pointer-events-none absolute left-[-16px] top-[24px] z-0 h-px w-[18px] bg-border"
                   aria-hidden
                 />
                 <div
-                  className="absolute left-[calc(17px-2.75rem)] top-[17px] z-[1] -translate-x-1/2 sm:left-[calc(17px-3rem)]"
+                  className="absolute left-[-24px] top-[20px] z-[1] -translate-x-1/2"
                   aria-hidden
                 >
-                  <div className="h-2.5 w-2.5 rounded-full border-2 border-background bg-primary/25 shadow-sm ring-1 ring-primary/35 sm:h-3 sm:w-3" />
+                  <div className="h-3 w-3 rounded-full border-2 border-background bg-primary/40 shadow-sm ring-1 ring-primary/45" />
                 </div>
 
                 <div
                   className={cn(
-                    "flex gap-3 rounded-xl border border-border/90 bg-card/95 px-3 py-2.5 shadow-sm transition-shadow sm:gap-4 sm:px-4 sm:py-3",
+                    "flex min-w-0 items-start gap-3 rounded-xl border border-border/90 bg-card/95 px-3 py-3 shadow-sm transition-shadow sm:px-4",
                     !reduced && "hover:border-border hover:shadow-md",
                   )}
                 >
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold tabular-nums text-primary"
-                    aria-hidden
-                  >
-                    {s.step}
-                  </div>
                   <div className="min-w-0 flex-1">
-                    <div className="mb-0.5 flex items-center gap-2">
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-landing-accent sm:h-4 sm:w-4" aria-hidden />
-                      <span className="text-xs font-medium text-muted-foreground">Passo {s.step}</span>
-                    </div>
-                    <p className="text-sm font-semibold leading-snug text-foreground">{s.title}</p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{s.description}</p>
+                    <p className="text-sm font-semibold leading-snug text-foreground">{item.simulado}</p>
+                    <p className="mt-2 rounded-lg border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-[0.76rem] font-semibold leading-relaxed text-landing-accent">
+                      {item.windowLabel}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -225,7 +252,7 @@ export function LandingHowItWorks() {
               <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
             </div>
             <div className="relative z-10">
-              <LandingJourneyTimelineIllustration steps={STEPS} reduced={reducedMotion} />
+              <LandingJourneyTimelineIllustration items={JOURNEY_SCHEDULE} reduced={reducedMotion} />
             </div>
           </motion.div>
         </div>
