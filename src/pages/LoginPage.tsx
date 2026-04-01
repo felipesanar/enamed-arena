@@ -161,6 +161,8 @@ export default function LoginPage() {
         localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
         setSignupRetryIn(0);
         setHubspotModalOpen(true);
+      } else {
+        setFlowState("idle");
       }
     } catch {
       setError("Erro inesperado. Tente novamente.");
