@@ -97,9 +97,9 @@ export default function DesempenhoPage() {
 
       {/* Unified card: dark hero (top) + white body (bottom) */}
       <motion.div
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="rounded-[22px] overflow-hidden border border-white/[0.07] shadow-[0_20px_40px_-16px_rgba(142,31,61,0.25),0_6px_16px_-8px_rgba(0,0,0,0.08)]"
       >
         {/* ── Hero ── */}
@@ -176,7 +176,7 @@ export default function DesempenhoPage() {
                         isOpen={selectedTheme === theme.theme}
                         onToggle={() => setSelectedTheme(prev => prev === theme.theme ? null : theme.theme)}
                         questionResults={selectedTheme === theme.theme ? questionResultsForTheme : []}
-                        simuladoId={selectedSimuladoId!}
+                        simuladoId={selectedSimuladoId ?? ''}
                         prefersReducedMotion={!!prefersReducedMotion}
                       />
                     ))}
@@ -196,9 +196,6 @@ export default function DesempenhoPage() {
               bestScore={bestArea.score}
               worstArea={worstArea.area}
               worstScore={worstArea.score}
-              totalCorrect={overall.totalCorrect}
-              totalQuestions={overall.totalQuestions}
-              percentageScore={overall.percentageScore}
             />
           )}
 
@@ -335,7 +332,7 @@ function ThemeAccordionRow({
   return (
     <div
       className={cn(
-        'rounded-[9px] overflow-hidden cursor-pointer border transition-colors duration-200',
+        'rounded-[9px] overflow-hidden border transition-colors duration-200',
         isOpen ? 'border-primary/30 bg-white' : 'border-border/40 bg-[#fafafa]',
       )}
     >
@@ -354,7 +351,7 @@ function ThemeAccordionRow({
         {isOpen && (
           <motion.div
             key="content"
-            initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
+            initial={prefersReducedMotion ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -372,7 +369,6 @@ function ThemeAccordionRow({
                   <Link
                     key={q.questionId}
                     to={`/simulados/${simuladoId}/correcao?q=${q.number ?? idx + 1}`}
-                    aria-label={q.text || `Questão ${q.number ?? idx + 1}`}
                     className="flex items-center justify-between gap-2 py-1.5 border-b border-border/[0.06] last:border-b-0 no-underline hover:bg-accent/20 rounded px-1 transition-colors"
                   >
                     <span className="text-[10px] text-foreground truncate flex-1">
@@ -393,10 +389,9 @@ function ThemeAccordionRow({
 }
 
 function SummarySection({
-  bestArea, bestScore, worstArea, worstScore, totalCorrect, totalQuestions, percentageScore,
+  bestArea, bestScore, worstArea, worstScore,
 }: {
   bestArea: string; bestScore: number; worstArea: string; worstScore: number;
-  totalCorrect: number; totalQuestions: number; percentageScore: number;
 }) {
   return (
     <div>
@@ -453,7 +448,7 @@ function EvoBars({
               <div className="h-[6px] bg-primary/[0.08] rounded-full overflow-hidden">
                 <motion.div
                   className={cn('h-full rounded-full', fillClass)}
-                  initial={prefersReducedMotion ? false : { width: 0 }}
+                  initial={{ width: prefersReducedMotion ? `${area.score}%` : '0%' }}
                   animate={{ width: `${area.score}%` }}
                   transition={{ duration: prefersReducedMotion ? 0 : 0.7, delay: prefersReducedMotion ? 0 : i * 0.06 }}
                 />
