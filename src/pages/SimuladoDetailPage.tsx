@@ -28,6 +28,7 @@ import {
 import {
   Clock, Play, AlertTriangle,
   Wifi, Monitor, CheckCircle2, Lock, Sparkles, FileText, Square, CheckSquare,
+  CalendarPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SimuladoWithStatus } from "@/types";
