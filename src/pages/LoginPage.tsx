@@ -496,11 +496,9 @@ export default function LoginPage() {
 
       <HubSpotFormModal
         open={hubspotModalOpen}
-        onOpenChange={(open) => {
-          setHubspotModalOpen(open);
-          if (!open && mode === "signup") {
-            setFlowState("sent");
-          }
+        onComplete={() => {
+          setHubspotModalOpen(false);
+          setFlowState("sent");
         }}
         prefillEmail={email}
         prefillName={fullName}
