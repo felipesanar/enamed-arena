@@ -44,18 +44,19 @@ export default function SimuladosPage() {
   }, [simulados]);
 
   const timelineItems = useMemo(() => {
-    const heroId = heroSimulado?.id;
+    const active = simulados
+      .filter(s => s.status === "available" || s.status === "in_progress")
+      .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
     const finished = simulados
       .filter(s =>
-        (s.status === "closed_waiting" || s.status === "completed" || s.status === "available_late") &&
-        s.id !== heroId
+        s.status === "closed_waiting" || s.status === "completed" || s.status === "available_late"
       )
       .sort((a, b) => Date.parse(b.executionWindowStart) - Date.parse(a.executionWindowStart));
-    const upcomingRest = simulados
-      .filter(s => s.status === "upcoming" && s.id !== heroId)
+    const upcoming = simulados
+      .filter(s => s.status === "upcoming")
       .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
-    return [...finished, ...upcomingRest];
-  }, [simulados, heroSimulado]);
+    return [...active, ...finished, ...upcoming];
+  }, [simulados]);
 
   if (loading) {
     return (
