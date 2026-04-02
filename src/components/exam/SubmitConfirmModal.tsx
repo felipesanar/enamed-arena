@@ -72,7 +72,7 @@ export function SubmitConfirmModal({
               <Zap className="h-3.5 w-3.5 text-success" aria-hidden />
               <p className="text-heading-3 text-success">{summary.highConfidence}</p>
             </div>
-            <p className="text-caption text-muted-foreground">Tenho certeza</p>
+            <p className="text-caption text-muted-foreground">Alta certeza</p>
           </div>
         </div>
 

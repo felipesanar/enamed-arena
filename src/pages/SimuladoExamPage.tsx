@@ -241,7 +241,7 @@ export default function SimuladoExamPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded bg-success" />
-              Tenho certeza
+              Alta certeza
             </div>
           </div>
         </aside>
