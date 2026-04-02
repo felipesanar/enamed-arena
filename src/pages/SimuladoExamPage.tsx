@@ -158,7 +158,7 @@ export default function SimuladoExamPage() {
                 )}
               >
                 <Flag className="h-3.5 w-3.5" />
-                {flow.isReviewFlagged ? 'Marcada para revisão' : 'Revisar depois'}
+                {flow.isReviewFlagged ? 'Marcada p/ revisão' : 'Marcar p/ revisar'}
               </button>
               <button
                 onClick={flow.toggleHighConfidence}
@@ -170,9 +170,13 @@ export default function SimuladoExamPage() {
                 )}
               >
                 <Zap className="h-3.5 w-3.5" />
-                {flow.isHighConfFlagged ? 'Tenho certeza' : 'Tenho certeza'}
+                {flow.isHighConfFlagged ? 'Alta certeza ✓' : 'Alta certeza'}
               </button>
             </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground/60 leading-snug">
+              <strong className="text-muted-foreground/70">Marcar p/ revisar:</strong> volta nessa questão antes de finalizar.{' '}
+              <strong className="text-muted-foreground/70">Alta certeza:</strong> indica confiança na resposta — útil na análise pós-prova.
+            </p>
 
             <div className="mt-6 flex items-center justify-between pb-8">
               <button
@@ -237,7 +241,7 @@ export default function SimuladoExamPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded bg-success" />
-              Tenho certeza
+              Alta certeza
             </div>
           </div>
         </aside>

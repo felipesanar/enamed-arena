@@ -55,8 +55,8 @@ export function ExamHeader({
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-caption">
                     <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">1-5</kbd> Alternativas</span>
                     <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">← →</kbd> Navegação</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">R</kbd> Revisar depois</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">H</kbd> Tenho certeza</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">R</kbd> Marcar p/ revisar</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">H</kbd> Alta certeza</span>
                     <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Esc</kbd> Finalizar</span>
                   </div>
                 </div>
