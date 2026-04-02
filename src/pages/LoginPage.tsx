@@ -118,19 +118,12 @@ export default function LoginPage() {
           : await signUpWithPassword(trimmedEmail, password, fullName.trim());
 
       if (result.error) {
-        if (mode === "signup" && isRateLimitError(result.error)) {
-          const lockUntil = Date.now() + SIGNUP_RATE_LIMIT_MS;
-          localStorage.setItem(SIGNUP_RATE_LIMIT_LOCK_KEY, String(lockUntil));
-          setSignupRetryIn(Math.ceil(SIGNUP_RATE_LIMIT_MS / 1000));
-        }
         setError(translateError(result.error));
         setFlowState("idle");
         return;
       }
 
       if (mode === "signup") {
-        localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
-        setSignupRetryIn(0);
         setHubspotModalOpen(true);
       } else {
         setFlowState("idle");
