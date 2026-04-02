@@ -577,7 +577,7 @@ function ChoiceCard({
     >
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-colors",
           accent ? "bg-primary/15" : "bg-auth-surface-soft ring-1 ring-auth-border-subtle",
         )}
       >
