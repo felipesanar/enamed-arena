@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
   }
 
   // --- Generate magic link (create user if needed) ---
-  const redirectTo = "https://simulados.sanaflix.com.br/auth/callback";
+  const redirectTo = "https://simulados.sanar.com.br/auth/callback";
 
   let linkResult = await supabase.auth.admin.generateLink({
     type: "magiclink",
