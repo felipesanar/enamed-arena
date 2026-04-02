@@ -341,7 +341,7 @@ export default function LoginPage() {
                 onClick={() => setUserType("guest")}
               />
               <ChoiceCard
-                icon={<img src={SANARFLIX_MARK_SRC} alt="" className="h-6 w-6 object-contain" />}
+                icon={<img src={SANARFLIX_MARK_SRC} alt="" className="h-full w-full object-cover" />}
                 title="Sou aluno SanarFlix"
                 description="Possui SanarFlix ou SanarFlix Pro ativa? Acesse por aqui."
                 onClick={() => setUserType("sanarflix")}
@@ -577,15 +577,15 @@ function ChoiceCard({
     >
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-colors",
           accent ? "bg-primary/15" : "bg-auth-surface-soft ring-1 ring-auth-border-subtle",
         )}
       >
         {icon}
       </div>
       <div className="space-y-1">
-        <h3 className="text-body-sm font-semibold text-white">{title}</h3>
-        <p className="text-caption text-auth-text-primary/70 leading-snug">{description}</p>
+        <h3 className="text-body-sm font-semibold" style={{ color: "white" }}>{title}</h3>
+        <p className="text-caption leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>{description}</p>
       </div>
     </button>
   );
