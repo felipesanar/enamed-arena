@@ -79,7 +79,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
             >
               {segmentLabel}
             </p>
-            <p className="mt-2 text-[11px]" style={{ color: "rgba(255,255,255,.36)" }}>
+            <p className="mt-2 text-[11px]" style={{ color: "rgba(255,255,255,.55)" }}>
               Definido pela sua assinatura atual.
             </p>
           </div>
