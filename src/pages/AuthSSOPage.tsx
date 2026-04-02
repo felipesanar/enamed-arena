@@ -16,6 +16,7 @@ export default function AuthSSOPage() {
   const calledRef = useRef(false);
 
   const email = searchParams.get('email')?.trim().toLowerCase() || '';
+  const name = searchParams.get('name')?.trim() || '';
 
   // noindex
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function AuthSSOPage() {
               'Content-Type': 'application/json',
               'apikey': anonKey,
             },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email, name }),
           }
         );
 
