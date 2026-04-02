@@ -35,9 +35,12 @@ export function NavItem({ to, end, icon: Icon, label, className, collapsed }: Na
     >
       <Icon
         className={cn(
-          "shrink-0 opacity-85 transition-opacity duration-300",
-          collapsed ? "h-5 w-5 opacity-100" : "h-[18px] w-[18px] [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4",
+          "shrink-0 transition-opacity duration-300",
+          collapsed
+            ? "h-[20px] w-[20px] text-white/80"
+            : "h-[18px] w-[18px] opacity-85 [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4",
         )}
+        strokeWidth={1.8}
         aria-hidden
       />
       {collapsed ? (
