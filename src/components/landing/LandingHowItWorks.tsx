@@ -189,6 +189,7 @@ function LandingJourneyTimelineIllustration({
 export function LandingHowItWorks() {
   const reducedMotion = !!useReducedMotion();
   const [showExecutionCalendar, setShowExecutionCalendar] = useState(false);
+  const realSimulados = useRealSimulados();
 
   return (
     <section
