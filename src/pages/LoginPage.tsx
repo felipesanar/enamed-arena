@@ -584,8 +584,8 @@ function ChoiceCard({
         {icon}
       </div>
       <div className="space-y-1">
-        <h3 className="text-body-sm font-semibold text-white">{title}</h3>
-        <p className="text-caption text-auth-text-primary/70 leading-snug">{description}</p>
+        <h3 className="text-body-sm font-semibold" style={{ color: "white" }}>{title}</h3>
+        <p className="text-caption leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>{description}</p>
       </div>
     </button>
   );
