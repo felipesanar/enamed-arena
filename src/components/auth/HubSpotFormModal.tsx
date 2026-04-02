@@ -134,8 +134,11 @@ export function HubSpotFormModal({
     };
     document.body.appendChild(script);
 
+    const skipTimer = setTimeout(() => setShowSkip(true), 8000);
+
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearTimeout(skipTimer);
     };
   }, [open, prefillEmail, prefillName]);
 
