@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Clock,
   Coffee,
-  ChevronDown,
   ArrowRight,
   CalendarPlus,
 } from "lucide-react";
@@ -154,10 +153,12 @@ function TimelineItem({
 
       <motion.div whileHover={hoverMotion} className="relative">
         <div
-          className={cn(
-            "flex items-center justify-between gap-3 rounded-xl border border-border/90 bg-card/95 shadow-sm transition-shadow sm:gap-4",
+         className={cn(
+            "flex items-center justify-between gap-3 rounded-xl border bg-card/95 shadow-sm transition-shadow sm:gap-4",
             compact ? "px-3 py-2.5 sm:px-4 sm:py-3" : "px-4 py-3.5 sm:px-5 sm:py-4",
             !reduced && "hover:border-border hover:shadow-md",
+            (isAvailable || isInProgress) && "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10 shadow-md",
+            !(isAvailable || isInProgress) && "border-border/90",
           )}
         >
           <div className="min-w-0 flex-1">
@@ -252,8 +253,6 @@ export function SimuladosTimelineSection({
   embedded = false,
   compact = false,
 }: SimuladosTimelineSectionProps) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? items : items.slice(0, 5);
   const headingId = useId();
 
   const headingClass =
@@ -290,7 +289,7 @@ export function SimuladosTimelineSection({
         />
 
         <div className={cn("pl-[2.75rem] sm:pl-12", compact ? "space-y-2" : "space-y-3")}>
-          {visible.map((sim, index) => (
+          {items.map((sim, index) => (
             <TimelineItem
               key={sim.id}
               sim={sim}
@@ -302,22 +301,6 @@ export function SimuladosTimelineSection({
         </div>
       </div>
 
-      {items.length > 5 && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className={cn(
-            "group ml-[2.75rem] flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-primary/25 hover:bg-muted/30 sm:ml-12",
-            compact ? "mt-3" : "mt-4",
-          )}
-        >
-          <ChevronDown
-            className="h-4 w-4 transition-transform duration-300"
-            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-          />
-          {expanded ? "Ver menos" : `Ver todos os anteriores (${items.length - 5} a mais)`}
-        </button>
-      )}
     </>
   );
 
