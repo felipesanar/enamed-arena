@@ -73,7 +73,7 @@ function DesktopTips({ step }: { step: number }) {
           />
           <span
             className="text-[10.5px] leading-relaxed"
-            style={{ color: "rgba(255,255,255,.38)" }}
+            style={{ color: "rgba(255,255,255,.6)" }}
           >
             {tip}
           </span>
@@ -408,7 +408,7 @@ export default function OnboardingPage() {
                 {/* Step title */}
                 <p
                   className="text-[17px] font-extrabold leading-snug"
-                  style={{ color: "rgba(255,255,255,.88)" }}
+                  style={{ color: "rgba(255,255,255,.95)" }}
                 >
                   {STEP_META[step].title}
                 </p>
@@ -416,7 +416,7 @@ export default function OnboardingPage() {
                 {/* Step description */}
                 <p
                   className="text-[12px] leading-relaxed"
-                  style={{ color: "rgba(255,255,255,.38)" }}
+                  style={{ color: "rgba(255,255,255,.6)" }}
                 >
                   {STEP_META[step].description}
                 </p>
@@ -505,7 +505,7 @@ export default function OnboardingPage() {
             style={{
               background: "rgba(255,255,255,.055)",
               border: "1px solid rgba(255,255,255,.08)",
-              color: "rgba(255,255,255,.45)",
+              color: "rgba(255,255,255,.65)",
             }}
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden />

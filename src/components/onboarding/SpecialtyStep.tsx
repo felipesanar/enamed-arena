@@ -28,7 +28,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-5">
-        <p className="text-[13px]" style={{ color: "rgba(255,255,255,.5)" }}>
+        <p className="text-[13px]" style={{ color: "rgba(255,255,255,.7)" }}>
           Erro ao carregar especialidades.
         </p>
         <button
@@ -76,7 +76,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
         </h2>
         <p
           className="text-[12.5px] text-center leading-relaxed mb-5"
-          style={{ color: "rgba(255,255,255,.45)" }}
+          style={{ color: "rgba(255,255,255,.65)" }}
         >
           Usaremos essa informação para comparar seu desempenho com candidatos
           da mesma área.
@@ -164,8 +164,8 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
                         color: isSelected
                           ? "#e83862"
                           : isUndecided
-                          ? "rgba(255,255,255,.3)"
-                          : "rgba(255,255,255,.6)",
+                          ? "rgba(255,255,255,.5)"
+                          : "rgba(255,255,255,.82)",
                         fontWeight: isSelected ? 600 : 400,
                       }}
                     >
@@ -188,7 +188,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
               {filtered.length === 0 && (
                 <p
                   className="col-span-2 text-center text-[12px] py-8"
-                  style={{ color: "rgba(255,255,255,.35)" }}
+                  style={{ color: "rgba(255,255,255,.55)" }}
                 >
                   Nenhuma especialidade encontrada para &quot;{search}&quot;
                 </p>

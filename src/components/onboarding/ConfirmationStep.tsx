@@ -46,7 +46,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
         </h2>
         <p
           className="text-[12.5px] text-center leading-relaxed mb-5"
-          style={{ color: "rgba(255,255,255,.45)" }}
+          style={{ color: "rgba(255,255,255,.65)" }}
         >
           Confira suas informações antes de começar. Você poderá editar esses
           dados entre as janelas de simulado.
@@ -69,7 +69,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
           >
             <p
               className="text-[9px] font-bold uppercase tracking-[.12em]"
-              style={{ color: "rgba(255,255,255,.32)" }}
+              style={{ color: "rgba(255,255,255,.5)" }}
             >
               Seu plano
             </p>
@@ -79,7 +79,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
             >
               {segmentLabel}
             </p>
-            <p className="mt-2 text-[11px]" style={{ color: "rgba(255,255,255,.36)" }}>
+            <p className="mt-2 text-[11px]" style={{ color: "rgba(255,255,255,.55)" }}>
               Definido pela sua assinatura atual.
             </p>
           </div>
@@ -96,7 +96,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
           >
             <p
               className="text-[9px] font-bold uppercase tracking-[.12em]"
-              style={{ color: "rgba(255,255,255,.36)" }}
+              style={{ color: "rgba(255,255,255,.5)" }}
             >
               Especialidade desejada
             </p>
@@ -119,7 +119,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
         >
           <p
             className="text-[9px] font-bold uppercase tracking-[.12em]"
-            style={{ color: "rgba(255,255,255,.32)" }}
+            style={{ color: "rgba(255,255,255,.5)" }}
           >
             Instituições desejadas
           </p>
@@ -133,10 +133,10 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
                   border: "1px solid rgba(255,255,255,.1)",
                 }}
               >
-                <p className="text-[10px] uppercase tracking-[.1em]" style={{ color: "rgba(255,255,255,.3)" }}>
+                <p className="text-[10px] uppercase tracking-[.1em]" style={{ color: "rgba(255,255,255,.5)" }}>
                   Instituição
                 </p>
-                <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.78)" }}>
+                <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.92)" }}>
                   {inst}
                 </p>
               </div>

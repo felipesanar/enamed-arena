@@ -115,7 +115,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
         </h2>
         <p
           className="text-[12.5px] text-center leading-relaxed mb-4"
-          style={{ color: "rgba(255,255,255,.45)" }}
+          style={{ color: "rgba(255,255,255,.65)" }}
         >
           Selecione até {MAX_INSTITUTIONS} instituições do ENARE onde pretende
           prestar residência.
@@ -144,7 +144,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
           <span
             className="text-[12px] italic"
             style={{
-              color: isUndecided ? "#e83862" : "rgba(255,255,255,.3)",
+              color: isUndecided ? "#e83862" : "rgba(255,255,255,.5)",
               fontWeight: isUndecided ? 600 : 400,
             }}
           >
@@ -175,13 +175,13 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                 <div>
                   <span
                     className="text-[13.5px] font-bold"
-                    style={{ color: "rgba(255,255,255,.75)" }}
+                    style={{ color: "rgba(255,255,255,.9)" }}
                   >
                     ENARE
                   </span>
                   <span
                     className="text-[10.5px] ml-2"
-                    style={{ color: "rgba(255,255,255,.35)" }}
+                    style={{ color: "rgba(255,255,255,.55)" }}
                   >
                     {totalInstitutions} inst. · {totalVagas} vagas
                   </span>
@@ -323,13 +323,13 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                 />
                                 <span
                                   className="text-[11.5px] font-bold"
-                                  style={{ color: "rgba(255,255,255,.6)" }}
+                                   style={{ color: "rgba(255,255,255,.82)" }}
                                 >
                                   {uf}
                                 </span>
                                 <span
                                   className="text-[10px]"
-                                  style={{ color: "rgba(255,255,255,.28)" }}
+                                  style={{ color: "rgba(255,255,255,.5)" }}
                                 >
                                   {insts.length} inst. · {ufVagas} vagas
                                 </span>
@@ -383,7 +383,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                           style={{
                                             color: isSelected
                                               ? "#e83862"
-                                              : "rgba(255,255,255,.65)",
+                                              : "rgba(255,255,255,.82)",
                                             fontWeight: isSelected ? 600 : 400,
                                           }}
                                         >
@@ -392,7 +392,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                         <p
                                           className="text-[10px]"
                                           style={{
-                                            color: "rgba(255,255,255,.28)",
+                                            color: "rgba(255,255,255,.5)",
                                           }}
                                         >
                                           {inst.vagas} vaga
@@ -419,7 +419,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                   ) : (
                     <p
                       className="text-center text-[12px] py-8"
-                      style={{ color: "rgba(255,255,255,.35)" }}
+                      style={{ color: "rgba(255,255,255,.55)" }}
                     >
                       {search
                         ? `Nenhuma instituição encontrada para "${search}"`
