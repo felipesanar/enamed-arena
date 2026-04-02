@@ -60,6 +60,8 @@ export function HubSpotFormModal({
   useEffect(() => {
     if (!open) {
       setSubmitted(false);
+      setLoadFailed(false);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return;
     }
 
@@ -67,8 +69,20 @@ export function HubSpotFormModal({
       containerRef.current.innerHTML = "";
     }
 
+    const startFailTimeout = () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        setLoadFailed(true);
+      }, 5000);
+    };
+
     const createForm = () => {
-      if (!window.hbspt || !containerRef.current) return;
+      if (!window.hbspt || !containerRef.current) {
+        startFailTimeout();
+        return;
+      }
+
+      startFailTimeout();
 
       window.hbspt.forms.create({
         portalId: "9321751",
@@ -76,6 +90,8 @@ export function HubSpotFormModal({
         region: "na1",
         target: "#hubspot-form-container",
         onFormReady: ($form: any) => {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          setLoadFailed(false);
           if (!$form) return;
           prefillField($form, ["email"], prefillEmail);
           prefillField($form, ["firstname", "name", "nome", "full_name", "fullname"], prefillName);
@@ -100,6 +116,8 @@ export function HubSpotFormModal({
       return;
     }
 
+    startFailTimeout();
+
     const script = document.createElement("script");
     script.src = "//js.hsforms.net/forms/embed/v2.js";
     script.charset = "utf-8";
@@ -108,7 +126,15 @@ export function HubSpotFormModal({
       scriptLoadedRef.current = true;
       setTimeout(createForm, 100);
     };
+    script.onerror = () => {
+      setLoadFailed(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
     document.body.appendChild(script);
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, [open, prefillEmail, prefillName]);
 
   return (
