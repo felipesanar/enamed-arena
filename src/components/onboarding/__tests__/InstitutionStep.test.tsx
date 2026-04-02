@@ -63,3 +63,11 @@ it("shows selected institution chip when selected", () => {
   const chips = screen.getAllByText("USP — Faculdade de Medicina");
   expect(chips.length).toBeGreaterThanOrEqual(1);
 });
+
+it("glyph area has lg:hidden class", () => {
+  render(
+    <InstitutionStep selected={[]} onToggle={vi.fn()} selectedSpecialty="Clínica Médica" />
+  );
+  const glyphArea = document.querySelector(".shrink-0.lg\\:hidden");
+  expect(glyphArea).toBeInTheDocument();
+});

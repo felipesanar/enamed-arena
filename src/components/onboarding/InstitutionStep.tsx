@@ -82,9 +82,9 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
   const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden lg:pt-4">
       {/* Glyph area */}
-      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0">
+      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0 lg:hidden">
         <div className="relative mb-4">
           <div
             className="pointer-events-none absolute inset-[-10px] rounded-full onboarding-glyph-glow"
