@@ -69,7 +69,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
           >
             <p
               className="text-[9px] font-bold uppercase tracking-[.12em]"
-              style={{ color: "rgba(255,255,255,.32)" }}
+              style={{ color: "rgba(255,255,255,.5)" }}
             >
               Seu plano
             </p>
