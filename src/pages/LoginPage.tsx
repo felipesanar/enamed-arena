@@ -450,15 +450,10 @@ export default function LoginPage() {
                   <TextField label="Seu e-mail" icon={Mail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" labelClassName="text-auth-form-label" />
                   <PasswordField label="Crie uma senha" value={password} onChange={setPassword} showPassword={showPassword} onTogglePassword={() => setShowPassword((s) => !s)} placeholder="Mínimo de 6 caracteres" labelClassName="text-auth-form-label" />
                   {error && <FormFeedback tone="error" message={error} />}
-                  {signupRetryIn > 0 && (
-                    <FormFeedback tone="error" message={`Por segurança anti-spam, novo cadastro disponível em ${formatCountdown(signupRetryIn)}.`} />
-                  )}
-                  <button type="submit" disabled={flowState === "sending" || signupRetryIn > 0} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
+                  <button type="submit" disabled={flowState === "sending"} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
                     {flowState === "sending"
                       ? <Spinner />
-                      : signupRetryIn > 0
-                        ? <>Aguarde {formatCountdown(signupRetryIn)} <Clock className="h-4 w-4" /></>
-                        : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
+                      : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </motion.form>
               )}
