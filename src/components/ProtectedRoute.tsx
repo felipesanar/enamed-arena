@@ -24,7 +24,21 @@ export function ProtectedRoute({ children, skipOnboardingCheck = false }: Protec
   }
 
   if (!user) {
+    // SSO handoff: if root has email param, redirect to /auth/sso preserving query params
     if (location.pathname === "/") {
+      const params = new URLSearchParams(location.search);
+      if (params.get("email")) {
+        // Translate isFromSanarflix/isFromPro to segment param
+        let segment = "";
+        if (params.get("isFromPro") === "true") segment = "pro";
+        else if (params.get("isFromSanarflix") === "true") segment = "standard";
+
+        const ssoParams = new URLSearchParams();
+        ssoParams.set("email", params.get("email")!);
+        if (params.get("name")) ssoParams.set("name", params.get("name")!);
+        if (segment) ssoParams.set("segment", segment);
+        return <Navigate to={`/auth/sso?${ssoParams.toString()}`} replace />;
+      }
       return <Navigate to="/landing" replace />;
     }
     return <Navigate to="/login" replace />;

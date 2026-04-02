@@ -55,10 +55,12 @@ Deno.serve(async (req) => {
 
   let email: string;
   let fullName: string;
+  let segment: string;
   try {
     const body = await req.json();
     email = (body.email || "").trim().toLowerCase();
     fullName = (body.name || "").trim();
+    segment = (body.segment || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {
       return new Response(JSON.stringify({ error: "Email inválido" }), { status: 400, headers });
     }
@@ -159,6 +161,23 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Erro ao gerar link de acesso." }),
         { status: 500, headers }
       );
+    }
+  }
+
+  // --- Update segment on profile if provided ---
+  const validSegments = ["standard", "pro"];
+  if (segment && validSegments.includes(segment)) {
+    const userId = linkResult.data?.user?.id;
+    if (userId) {
+      const { error: segErr } = await supabase
+        .from("profiles")
+        .update({ segment })
+        .eq("id", userId);
+      if (segErr) {
+        console.error("[sso-magic-link] Failed to update segment:", segErr.message);
+      } else {
+        console.log(`[sso-magic-link] Segment set to '${segment}' for user ${userId}`);
+      }
     }
   }
 
