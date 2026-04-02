@@ -10,7 +10,7 @@ vi.mock("@/contexts/UserContext", () => ({
     isOnboardingComplete: false,
     saveOnboarding: vi.fn(),
     onboardingEditLocked: false,
-    onboardingNextEditableAt: null,
+    onboardingNextEditableAt: null as any,
   }),
 }));
 vi.mock("@/components/onboarding/SpecialtyStep", () => ({
