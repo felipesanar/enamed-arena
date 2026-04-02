@@ -22,10 +22,10 @@ export function SidebarBrandBlock({ collapsed, onCollapse, onExpand }: SidebarBr
           <TooltipTrigger asChild>
             <Link
               to="/"
-              className="group relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.1)] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.15)] hover:scale-105 active:scale-95"
+              className="group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95"
               aria-label="Ir para início"
             >
-              <BrandIcon size="md" alt="" className="h-6 w-6" />
+              <BrandIcon size="xl" alt="" className="h-11 w-11 rounded-2xl" />
             </Link>
           </TooltipTrigger>
           <TooltipContent
