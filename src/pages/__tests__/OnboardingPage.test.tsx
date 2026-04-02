@@ -45,3 +45,22 @@ it("renders Continuar button on step 0", () => {
   render(<OnboardingPage />, { wrapper: Wrapper });
   expect(screen.getByRole("button", { name: /continuar/i })).toBeInTheDocument();
 });
+
+describe("desktop left column", () => {
+  it("renders step 0 title text in the DOM (left column)", () => {
+    render(<OnboardingPage />, { wrapper: Wrapper });
+    // STEP_META[0].title is rendered by the left column — always in DOM even if hidden via CSS
+    const els = screen.getAllByText("Qual sua especialidade desejada?");
+    expect(els.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders step 0 desktop tips in the DOM", () => {
+    render(<OnboardingPage />, { wrapper: Wrapper });
+    expect(
+      screen.getByText("Aparece no seu ranking e comparativos")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Editável entre janelas de prova")
+    ).toBeInTheDocument();
+  });
+});

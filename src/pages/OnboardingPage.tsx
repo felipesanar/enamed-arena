@@ -8,7 +8,7 @@ import { BrandIcon } from "@/components/brand/BrandMark";
 import { SpecialtyStep } from "@/components/onboarding/SpecialtyStep";
 import { InstitutionStep } from "@/components/onboarding/InstitutionStep";
 import { ConfirmationStep } from "@/components/onboarding/ConfirmationStep";
-import { ChevronRight, ChevronLeft, Sparkles, CheckCircle2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Sparkles, CheckCircle2, GraduationCap, Building2 } from "lucide-react";
 
 const STEPS = ["Especialidade", "Instituições", "Confirmação"] as const;
 
@@ -26,6 +26,62 @@ const STEP_GLOWS: Array<Array<React.CSSProperties>> = [
     { bottom: -30, left: "50%", width: 240, height: 180, transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(90,21,48,.1) 0%, transparent 65%)" },
   ],
 ];
+
+const STEP_META = [
+  {
+    icon: GraduationCap,
+    title: "Qual sua especialidade desejada?",
+    description:
+      "Usaremos essa informação para comparar seu desempenho com candidatos da mesma área.",
+  },
+  {
+    icon: Building2,
+    title: "Quais instituições você deseja?",
+    description:
+      "Selecione até 3 instituições do ENARE onde pretende prestar residência.",
+  },
+  {
+    icon: Sparkles,
+    title: "Tudo pronto!",
+    description:
+      "Confira suas informações antes de começar. Editável entre janelas de simulado.",
+  },
+] as const;
+
+const DESKTOP_TIPS: Record<number, string[]> = {
+  0: ["Aparece no seu ranking e comparativos", "Editável entre janelas de prova"],
+  1: ["Comparativo com inscritos nessas vagas", "Máximo 3 instituições do ENARE"],
+};
+
+function DesktopTips({ step }: { step: number }) {
+  const tips = DESKTOP_TIPS[step];
+  if (!tips) return null;
+  return (
+    <div className="flex flex-col gap-2 mt-2">
+      {tips.map((tip) => (
+        <div
+          key={tip}
+          className="rounded-[9px] px-3 py-2 flex items-start gap-2"
+          style={{
+            background: "rgba(255,255,255,.028)",
+            border: "1px solid rgba(255,255,255,.06)",
+          }}
+        >
+          <div
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[5px]"
+            style={{ background: "rgba(232,56,98,.5)" }}
+          />
+          <span
+            className="text-[10.5px] leading-relaxed"
+            style={{ color: "rgba(255,255,255,.38)" }}
+          >
+            {tip}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function OnboardingPage() {
   const prefersReducedMotion = useReducedMotion();
@@ -131,6 +187,8 @@ export default function OnboardingPage() {
     if (dx < 0 && canProceed() && step < STEPS.length - 1) handleNext();
     if (dx > 0 && step > 0) handleBack();
   };
+
+  const StepIcon = STEP_META[step].icon;
 
   return (
     <div
@@ -292,7 +350,7 @@ export default function OnboardingPage() {
 
       {/* Glass panel */}
       <div
-        className="relative z-10 mx-3.5 mt-4 mb-4 flex flex-col flex-1"
+        className="relative z-10 mx-3.5 mt-4 mb-4 lg:mx-auto lg:mt-5 lg:mb-8 lg:max-w-[900px] lg:w-full flex flex-col flex-1"
         style={{
           borderRadius: 28,
           background: "rgba(255,255,255,.022)",
@@ -304,42 +362,131 @@ export default function OnboardingPage() {
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
       >
-        {/* Step content */}
-        <div className="flex-1 overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={step}
-              initial={prefersReducedMotion ? false : { opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, x: -40 }}
-              transition={{
-                duration: prefersReducedMotion ? 0 : 0.28,
-                ease: [0.22, 1, 0.36, 1],
+        {/* Card body: 2-column on desktop */}
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+          {/* Left column — desktop only */}
+          <div
+            className="hidden lg:flex lg:w-[280px] lg:flex-shrink-0 flex-col relative lg:border-r lg:border-white/[.055] lg:px-6 lg:py-7"
+            style={{ background: "rgba(255,255,255,.012)" }}
+          >
+            {/* Subtle radial glow */}
+            <div
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(232,56,98,.07) 0%, transparent 65%)",
               }}
-              className="h-full"
-            >
-              {step === 0 && (
-                <SpecialtyStep
-                  specialty={selectedSpecialty}
-                  onSelect={setSelectedSpecialty}
+              aria-hidden
+            />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={step}
+                initial={prefersReducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+                transition={{
+                  duration: prefersReducedMotion ? 0 : 0.35,
+                  ease: "easeInOut",
+                }}
+                className="flex flex-col gap-4 relative z-10"
+              >
+                {/* Glyph box */}
+                <div className="relative" style={{ width: 56, height: 56 }}>
+                  <div
+                    className="pointer-events-none absolute inset-[-8px] rounded-full onboarding-glyph-glow"
+                    style={{
+                      background:
+                        "radial-gradient(circle, rgba(232,56,98,.12) 0%, transparent 65%)",
+                    }}
+                    aria-hidden
+                  />
+                  <div
+                    className="relative flex items-center justify-center rounded-[16px] onboarding-glyph-box"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      background:
+                        "linear-gradient(145deg, rgba(232,56,98,.22) 0%, rgba(90,21,48,.42) 100%)",
+                      border: "1px solid rgba(232,56,98,.32)",
+                      boxShadow: "0 6px 24px rgba(232,56,98,.22)",
+                    }}
+                  >
+                    <StepIcon
+                      className="w-[26px] h-[26px]"
+                      style={{ color: "#e83862" }}
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                </div>
+
+                {/* Wine accent rule */}
+                <div
+                  className="w-7 h-0.5 rounded-full"
+                  style={{ background: "rgba(232,56,98,.45)" }}
                 />
-              )}
-              {step === 1 && (
-                <InstitutionStep
-                  selected={selectedInstitutions}
-                  onToggle={toggleInstitution}
-                  selectedSpecialty={selectedSpecialty}
-                />
-              )}
-              {step === 2 && (
-                <ConfirmationStep
-                  segment={segment}
-                  specialty={selectedSpecialty}
-                  institutions={selectedInstitutions}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+
+                {/* Step title */}
+                <p
+                  className="text-[17px] font-extrabold leading-snug"
+                  style={{ color: "rgba(255,255,255,.88)" }}
+                >
+                  {STEP_META[step].title}
+                </p>
+
+                {/* Step description */}
+                <p
+                  className="text-[12px] leading-relaxed"
+                  style={{ color: "rgba(255,255,255,.38)" }}
+                >
+                  {STEP_META[step].description}
+                </p>
+
+                {/* Contextual tips */}
+                <DesktopTips step={step} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Right column */}
+          <div className="flex-1 overflow-hidden flex flex-col lg:px-6 lg:py-5 lg:pb-0">
+            {/* Step content */}
+            <div className="flex-1 overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={step}
+                  initial={prefersReducedMotion ? false : { opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, x: -40 }}
+                  transition={{
+                    duration: prefersReducedMotion ? 0 : 0.28,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="h-full"
+                >
+                  {step === 0 && (
+                    <SpecialtyStep
+                      specialty={selectedSpecialty}
+                      onSelect={setSelectedSpecialty}
+                    />
+                  )}
+                  {step === 1 && (
+                    <InstitutionStep
+                      selected={selectedInstitutions}
+                      onToggle={toggleInstitution}
+                      selectedSpecialty={selectedSpecialty}
+                    />
+                  )}
+                  {step === 2 && (
+                    <ConfirmationStep
+                      segment={segment}
+                      specialty={selectedSpecialty}
+                      institutions={selectedInstitutions}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
 
         {/* Error */}
@@ -363,7 +510,7 @@ export default function OnboardingPage() {
 
         {/* Bottom nav */}
         <div
-          className="flex items-center gap-2.5 px-4 pb-7 pt-3.5 flex-shrink-0"
+          className="flex items-center gap-2.5 px-4 lg:px-6 pb-7 pt-3.5 flex-shrink-0"
           style={{
             background:
               "linear-gradient(to top, rgba(10,5,8,.96) 0%, rgba(10,5,8,.65) 100%)",
