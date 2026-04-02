@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
 
 const railIconBtn =
-  "flex h-12 w-12 items-center justify-center rounded-xl text-white/65 transition-all duration-200 hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
+  "flex h-11 w-11 items-center justify-center rounded-xl text-white/70 transition-all duration-200 hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
 
 const segmentColors: Record<string, string> = {
   pro: "#e83862",
@@ -30,7 +30,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
 
   if (collapsed) {
     return (
-      <div className="mt-auto flex flex-col items-center gap-1.5">
+      <div className="mt-auto flex flex-col items-center gap-2">
         {/* Avatar with online-style segment dot */}
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
@@ -67,7 +67,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <Link to="/configuracoes" className={railIconBtn} aria-label="Configurações">
-              <Settings className="h-5 w-5" aria-hidden />
+              <Settings className="h-[20px] w-[20px] text-white/70" strokeWidth={1.8} aria-hidden />
             </Link>
           </TooltipTrigger>
           <TooltipContent
@@ -83,7 +83,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <button type="button" onClick={signOut} className={railIconBtn} aria-label="Sair">
-              <LogOut className="h-5 w-5" aria-hidden />
+              <LogOut className="h-[20px] w-[20px] text-white/70" strokeWidth={1.8} aria-hidden />
             </button>
           </TooltipTrigger>
           <TooltipContent
