@@ -228,7 +228,7 @@ export const simuladosApi = {
       throw optionsError;
     }
 
-    const options = (optionsData || []) as QuestionOptionRow[];
+    const options = (optionsData || []) as unknown as QuestionOptionRow[];
     return questions.map(q => rowsToQuestion(q, options, includeCorrectAnswers));
   },
 
