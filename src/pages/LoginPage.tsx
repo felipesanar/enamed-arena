@@ -341,7 +341,7 @@ export default function LoginPage() {
                 onClick={() => setUserType("guest")}
               />
               <ChoiceCard
-                icon={<img src={SANARFLIX_MARK_SRC} alt="" className="h-6 w-6 object-contain" />}
+                icon={<img src={SANARFLIX_MARK_SRC} alt="" className="h-full w-full object-cover" />}
                 title="Sou aluno SanarFlix"
                 description="Possui SanarFlix ou SanarFlix Pro ativa? Acesse por aqui."
                 onClick={() => setUserType("sanarflix")}
