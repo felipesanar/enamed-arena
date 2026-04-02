@@ -115,7 +115,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
         </h2>
         <p
           className="text-[12.5px] text-center leading-relaxed mb-4"
-          style={{ color: "rgba(255,255,255,.45)" }}
+          style={{ color: "rgba(255,255,255,.65)" }}
         >
           Selecione até {MAX_INSTITUTIONS} instituições do ENARE onde pretende
           prestar residência.
