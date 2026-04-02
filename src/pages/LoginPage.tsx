@@ -16,7 +16,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { BrandIcon, BrandLogo } from "@/components/brand/BrandMark";
+import { BrandIcon, BrandLogo, SANARFLIX_MARK_SRC } from "@/components/brand/BrandMark";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/auth/TextField";
@@ -329,7 +329,7 @@ export default function LoginPage() {
             transition={{ duration: 0.22 }}
             className="mt-4 space-y-3"
           >
-            <p className="text-center text-body-sm text-auth-text-muted">
+            <p className="text-center text-body-sm text-auth-text-primary/80">
               Como você quer acessar?
             </p>
 
@@ -341,7 +341,7 @@ export default function LoginPage() {
                 onClick={() => setUserType("guest")}
               />
               <ChoiceCard
-                icon={<Stethoscope className="h-5 w-5 text-primary" />}
+                icon={<img src={SANARFLIX_MARK_SRC} alt="" className="h-6 w-6 object-contain" />}
                 title="Sou aluno SanarFlix"
                 description="Possui SanarFlix ou SanarFlix Pro ativa? Acesse por aqui."
                 onClick={() => setUserType("sanarflix")}
@@ -584,8 +584,8 @@ function ChoiceCard({
         {icon}
       </div>
       <div className="space-y-1">
-        <h3 className="text-body-sm font-semibold text-auth-text-primary">{title}</h3>
-        <p className="text-caption text-auth-text-muted leading-snug">{description}</p>
+        <h3 className="text-body-sm font-semibold text-white">{title}</h3>
+        <p className="text-caption text-auth-text-primary/70 leading-snug">{description}</p>
       </div>
     </button>
   );
