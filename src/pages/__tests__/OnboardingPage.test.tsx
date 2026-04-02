@@ -6,7 +6,7 @@ import OnboardingPage from "../OnboardingPage";
 vi.mock("@/contexts/UserContext", () => ({
   useUser: () => ({
     profile: { segment: "pro" },
-    onboarding: null,
+    onboarding: null as any,
     isOnboardingComplete: false,
     saveOnboarding: vi.fn(),
     onboardingEditLocked: false,
