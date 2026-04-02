@@ -62,6 +62,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/auth/sso" element={<AuthSSOPage />} />
 
               {/* Admin — isolated */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
