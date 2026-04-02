@@ -11,7 +11,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
@@ -21,49 +20,49 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify user with anon client
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const userId = claimsData.claims.sub as string;
-
-    // Use service role to check admin and insert data
+    const userId = user.id;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check admin role
     const { data: isAdmin } = await adminClient.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    // Parse body
     const { simulado_id, questions } = await req.json();
     if (!simulado_id || !Array.isArray(questions) || questions.length === 0) {
       return new Response(JSON.stringify({ error: "simulado_id and questions array required" }), { status: 400, headers: corsHeaders });
     }
 
-    const labelMap: Record<string, string> = { A: "alternativa_a", B: "alternativa_b", C: "alternativa_c", D: "alternativa_d", E: "alternativa_e" };
+    const labelMap: Record<string, string> = {
+      A: "alternativa_a",
+      B: "alternativa_b",
+      C: "alternativa_c",
+      D: "alternativa_d",
+    };
 
     let inserted = 0;
 
     for (const q of questions) {
-      // Insert question
       const { data: question, error: qErr } = await adminClient
         .from("questions")
         .insert({
           simulado_id,
           question_number: Number(q.numero),
-          text: q.texto,
-          area: q.area,
-          theme: q.tema,
+          text: q.texto || "",
+          area: q.area || "",
+          theme: q.tema || "",
           difficulty: q.dificuldade || "medium",
           explanation: q.explicacao || null,
+          image_url: q.image_url || null,
         })
         .select("id")
         .single();
@@ -73,8 +72,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Insert options
-      const options = ["A", "B", "C", "D", "E"].map((label) => ({
+      const options = Object.keys(labelMap).map((label) => ({
         question_id: question.id,
         label,
         text: q[labelMap[label]] || "",
@@ -90,7 +88,6 @@ Deno.serve(async (req) => {
       inserted++;
     }
 
-    // Update questions_count
     await adminClient
       .from("simulados")
       .update({ questions_count: inserted })

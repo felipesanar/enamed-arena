@@ -866,6 +866,25 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      save_onboarding_guarded: {
+        Args: { p_specialty: string; p_target_institutions: string[] }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          specialty: string
+          status: Database["public"]["Enums"]["onboarding_status"]
+          target_institutions: string[]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "onboarding_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_attempt_progress_guarded: {
         Args: {
           p_attempt_id: string

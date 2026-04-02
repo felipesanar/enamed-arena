@@ -6,11 +6,11 @@ import OnboardingPage from "../OnboardingPage";
 vi.mock("@/contexts/UserContext", () => ({
   useUser: () => ({
     profile: { segment: "pro" },
-    onboarding: null,
+    onboarding: null as any,
     isOnboardingComplete: false,
     saveOnboarding: vi.fn(),
     onboardingEditLocked: false,
-    onboardingNextEditableAt: null,
+    onboardingNextEditableAt: null as any,
   }),
 }));
 vi.mock("@/components/onboarding/SpecialtyStep", () => ({

@@ -21,7 +21,7 @@ vi.mock("@/hooks/useEnamedData", () => ({
         name: "USP — Faculdade de Medicina",
         uf: "SP",
         vagas: 12,
-        cenario_pratica: null,
+        cenario_pratica: null as string | null,
       },
     ],
   }),

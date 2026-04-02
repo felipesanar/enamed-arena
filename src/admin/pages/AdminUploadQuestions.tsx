@@ -10,19 +10,58 @@ import { adminApi } from '../services/adminApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-interface ParsedQuestion {
+interface ParsedRow {
+  numero: number;
+  'Grande Área': string;
+  Especialidade: string;
+  Tema: string;
+  Enunciado: string;
+  'Imagem do Enunciado': string;
+  'Alternativa A': string;
+  'Alternativa B': string;
+  'Alternativa C': string;
+  'Alternativa D': string;
+  Gabarito: string;
+  'Comentário': string;
+  'Imagem do Comentário': string;
+}
+
+interface NormalizedQuestion {
   numero: number;
   texto: string;
   area: string;
   tema: string;
   dificuldade: string;
   explicacao: string;
+  image_url: string;
   alternativa_a: string;
   alternativa_b: string;
   alternativa_c: string;
   alternativa_d: string;
-  alternativa_e: string;
-  correta: string; // A, B, C, D ou E
+  correta: string;
+}
+
+function normalizeRow(row: ParsedRow): NormalizedQuestion {
+  const especialidade = row.Especialidade || '';
+  const tema = row.Tema || '';
+  const composedTheme = especialidade && tema
+    ? `${especialidade} > ${tema}`
+    : especialidade || tema || '';
+
+  return {
+    numero: Number(row.numero),
+    texto: row.Enunciado || '',
+    area: row['Grande Área'] || '',
+    tema: composedTheme,
+    dificuldade: 'medium',
+    explicacao: row['Comentário'] || '',
+    image_url: row['Imagem do Enunciado'] || '',
+    alternativa_a: row['Alternativa A'] || '',
+    alternativa_b: row['Alternativa B'] || '',
+    alternativa_c: row['Alternativa C'] || '',
+    alternativa_d: row['Alternativa D'] || '',
+    correta: (row.Gabarito || '').toUpperCase(),
+  };
 }
 
 export default function AdminUploadQuestions() {
@@ -30,7 +69,7 @@ export default function AdminUploadQuestions() {
   const navigate = useNavigate();
   const [simulado, setSimulado] = useState<any>(null);
   const [existingCount, setExistingCount] = useState(0);
-  const [parsed, setParsed] = useState<ParsedQuestion[]>([]);
+  const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const [fileName, setFileName] = useState('');
 
@@ -49,20 +88,21 @@ export default function AdminUploadQuestions() {
     reader.onload = (ev) => {
       const wb = XLSX.read(ev.target?.result, { type: 'array' });
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<ParsedQuestion>(sheet);
-      setParsed(rows);
+      const rows = XLSX.utils.sheet_to_json<ParsedRow>(sheet);
+      setParsedRows(rows);
     };
     reader.readAsArrayBuffer(file);
   }, []);
 
   const handleUpload = async () => {
-    if (!simuladoId || parsed.length === 0) return;
+    if (!simuladoId || parsedRows.length === 0) return;
     setUploading(true);
 
     try {
-      // Get session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
+
+      const normalized = parsedRows.map(normalizeRow);
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/admin-upload-questions`, {
@@ -71,14 +111,14 @@ export default function AdminUploadQuestions() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ simulado_id: simuladoId, questions: parsed }),
+        body: JSON.stringify({ simulado_id: simuladoId, questions: normalized }),
       });
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro no upload');
 
       toast({ title: `${result.inserted} questões inseridas com sucesso!` });
-      setParsed([]);
+      setParsedRows([]);
       setFileName('');
       setExistingCount(result.inserted);
     } catch (err: any) {
@@ -114,7 +154,6 @@ export default function AdminUploadQuestions() {
         <Button variant="outline" onClick={() => navigate('/admin/simulados')}>Voltar</Button>
       </div>
 
-      {/* Existing questions info */}
       <Card>
         <CardContent className="flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
@@ -129,7 +168,6 @@ export default function AdminUploadQuestions() {
         </CardContent>
       </Card>
 
-      {/* Upload area */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -139,7 +177,7 @@ export default function AdminUploadQuestions() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Colunas esperadas: <code className="text-xs bg-muted px-1 rounded">numero, texto, area, tema, dificuldade, explicacao, alternativa_a, alternativa_b, alternativa_c, alternativa_d, alternativa_e, correta</code>
+            Colunas esperadas: <code className="text-xs bg-muted px-1 rounded">numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário</code>
           </p>
 
           <div className="flex items-center gap-4">
@@ -151,20 +189,19 @@ export default function AdminUploadQuestions() {
               </div>
             </label>
 
-            {parsed.length > 0 && (
+            {parsedRows.length > 0 && (
               <Button onClick={handleUpload} disabled={uploading}>
-                {uploading ? 'Enviando...' : `Enviar ${parsed.length} questões`}
+                {uploading ? 'Enviando...' : `Enviar ${parsedRows.length} questões`}
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Preview */}
-      {parsed.length > 0 && (
+      {parsedRows.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Preview — {parsed.length} questões</CardTitle>
+            <CardTitle className="text-base">Preview — {parsedRows.length} questões</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg overflow-auto max-h-[500px]">
@@ -172,20 +209,20 @@ export default function AdminUploadQuestions() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
-                    <TableHead className="min-w-[300px]">Texto</TableHead>
-                    <TableHead>Área</TableHead>
-                    <TableHead>Tema</TableHead>
-                    <TableHead>Correta</TableHead>
+                    <TableHead className="min-w-[300px]">Enunciado</TableHead>
+                    <TableHead>Grande Área</TableHead>
+                    <TableHead>Especialidade</TableHead>
+                    <TableHead>Gabarito</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsed.map((q, i) => (
+                  {parsedRows.map((q, i) => (
                     <TableRow key={i}>
                       <TableCell>{q.numero}</TableCell>
-                      <TableCell className="text-xs max-w-[400px] truncate">{q.texto}</TableCell>
-                      <TableCell><Badge variant="secondary" className="text-xs">{q.area}</Badge></TableCell>
-                      <TableCell className="text-xs">{q.tema}</TableCell>
-                      <TableCell><Badge>{q.correta}</Badge></TableCell>
+                      <TableCell className="text-xs max-w-[400px] truncate">{q.Enunciado}</TableCell>
+                      <TableCell><Badge variant="secondary" className="text-xs">{q['Grande Área']}</Badge></TableCell>
+                      <TableCell className="text-xs">{q.Especialidade}</TableCell>
+                      <TableCell><Badge>{q.Gabarito}</Badge></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
