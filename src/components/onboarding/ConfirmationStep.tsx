@@ -136,7 +136,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
                 <p className="text-[10px] uppercase tracking-[.1em]" style={{ color: "rgba(255,255,255,.5)" }}>
                   Instituição
                 </p>
-                <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.78)" }}>
+                <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.92)" }}>
                   {inst}
                 </p>
               </div>

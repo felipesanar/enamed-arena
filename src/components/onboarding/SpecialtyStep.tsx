@@ -188,7 +188,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
               {filtered.length === 0 && (
                 <p
                   className="col-span-2 text-center text-[12px] py-8"
-                  style={{ color: "rgba(255,255,255,.35)" }}
+                  style={{ color: "rgba(255,255,255,.55)" }}
                 >
                   Nenhuma especialidade encontrada para &quot;{search}&quot;
                 </p>

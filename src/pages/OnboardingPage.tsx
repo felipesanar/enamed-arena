@@ -505,7 +505,7 @@ export default function OnboardingPage() {
             style={{
               background: "rgba(255,255,255,.055)",
               border: "1px solid rgba(255,255,255,.08)",
-              color: "rgba(255,255,255,.45)",
+              color: "rgba(255,255,255,.65)",
             }}
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden />

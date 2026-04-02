@@ -419,7 +419,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                   ) : (
                     <p
                       className="text-center text-[12px] py-8"
-                      style={{ color: "rgba(255,255,255,.35)" }}
+                      style={{ color: "rgba(255,255,255,.55)" }}
                     >
                       {search
                         ? `Nenhuma instituição encontrada para "${search}"`
