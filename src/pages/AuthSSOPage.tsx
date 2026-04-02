@@ -61,7 +61,7 @@ export default function AuthSSOPage() {
               'Content-Type': 'application/json',
               'apikey': anonKey,
             },
-            body: JSON.stringify({ email, name }),
+            body: JSON.stringify({ email, name, segment }),
           }
         );
 

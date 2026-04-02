@@ -55,10 +55,12 @@ Deno.serve(async (req) => {
 
   let email: string;
   let fullName: string;
+  let segment: string;
   try {
     const body = await req.json();
     email = (body.email || "").trim().toLowerCase();
     fullName = (body.name || "").trim();
+    segment = (body.segment || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {
       return new Response(JSON.stringify({ error: "Email inválido" }), { status: 400, headers });
     }
