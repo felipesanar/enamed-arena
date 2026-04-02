@@ -84,7 +84,7 @@ export function ProGate({
               ctaTo,
             })
           }
-          className={cn("inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]")}
+          className={cn("inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-primary text-[hsl(0_0%_100%)] text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]")}
         >
           <Sparkles className="h-5 w-5" aria-hidden />
           Conhecer o {upgradeLabel}
