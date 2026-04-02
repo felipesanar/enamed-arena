@@ -43,9 +43,9 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden lg:pt-4">
       {/* Glyph area */}
-      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0">
+      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0 lg:hidden">
         <div className="relative mb-4">
           <div
             className="pointer-events-none absolute inset-[-10px] rounded-full onboarding-glyph-glow"
@@ -116,7 +116,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
 
         {/* Chips grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
@@ -126,7 +126,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto pr-0.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto pr-0.5">
             {filtered.map((spec) => {
               const isSelected = specialty === spec;
               const isUndecided = spec === AINDA_NAO_SEI;

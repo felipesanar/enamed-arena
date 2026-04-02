@@ -32,3 +32,9 @@ it("calls onSelect when a specialty is clicked", async () => {
   screen.getByText("Clínica Médica").click();
   expect(onSelect).toHaveBeenCalledWith("Clínica Médica");
 });
+
+it("glyph area has lg:hidden class", () => {
+  render(<SpecialtyStep specialty="" onSelect={vi.fn()} />);
+  const glyphArea = document.querySelector(".shrink-0.lg\\:hidden");
+  expect(glyphArea).toBeInTheDocument();
+});
