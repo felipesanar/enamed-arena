@@ -164,21 +164,45 @@ Deno.serve(async (req) => {
     }
   }
 
-  // --- Update segment on profile if provided ---
-  const validSegments = ["standard", "pro"];
-  if (segment && validSegments.includes(segment)) {
-    const userId = linkResult.data?.user?.id;
-    if (userId) {
-      const { error: segErr } = await supabase
-        .from("profiles")
-        .update({ segment })
-        .eq("id", userId);
-      if (segErr) {
-        console.error("[sso-magic-link] Failed to update segment:", segErr.message);
-      } else {
-        console.log(`[sso-magic-link] Segment set to '${segment}' for user ${userId}`);
-      }
+  const userId = linkResult.data?.user?.id;
+
+  // --- Update segment and/or name on profile if provided ---
+  if (userId) {
+    const profileUpdates: Record<string, string> = {};
+    const validSegments = ["standard", "pro"];
+
+    if (segment && validSegments.includes(segment)) {
+      profileUpdates.segment = segment;
     }
+    if (fullName) {
+      profileUpdates.full_name = fullName;
+    }
+
+    const promises: Promise<unknown>[] = [];
+
+    // Update profiles table (segment + name)
+    if (Object.keys(profileUpdates).length > 0) {
+      promises.push(
+        supabase.from("profiles").update(profileUpdates).eq("id", userId)
+          .then(({ error }) => {
+            if (error) console.error("[sso-magic-link] Failed to update profile:", error.message);
+            else console.log(`[sso-magic-link] Profile updated for ${userId}:`, Object.keys(profileUpdates).join(", "));
+          })
+      );
+    }
+
+    // Update auth metadata (name)
+    if (fullName) {
+      promises.push(
+        supabase.auth.admin.updateUserById(userId, { user_metadata: { full_name: fullName } })
+          .then(({ error }) => {
+            if (error) console.error("[sso-magic-link] Failed to update auth metadata:", error.message);
+            else console.log(`[sso-magic-link] Auth metadata updated for ${userId}`);
+          })
+      );
+    }
+
+    await Promise.all(promises);
   }
 
   const actionLink = linkResult.data?.properties?.action_link;
