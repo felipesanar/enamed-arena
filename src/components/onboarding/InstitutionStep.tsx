@@ -175,7 +175,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                 <div>
                   <span
                     className="text-[13.5px] font-bold"
-                    style={{ color: "rgba(255,255,255,.75)" }}
+                    style={{ color: "rgba(255,255,255,.9)" }}
                   >
                     ENARE
                   </span>
