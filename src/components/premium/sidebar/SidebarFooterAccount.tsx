@@ -83,7 +83,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <button type="button" onClick={signOut} className={railIconBtn} aria-label="Sair">
-              <LogOut className="h-[20px] w-[20px] text-white/70" strokeWidth={1.8} aria-hidden />
+              <LogOut className="h-[20px] w-[20px] text-white" strokeWidth={1.8} aria-hidden />
             </button>
           </TooltipTrigger>
           <TooltipContent

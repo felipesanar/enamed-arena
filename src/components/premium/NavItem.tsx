@@ -36,7 +36,7 @@ export function NavItem({ to, end, icon: Icon, label, className, collapsed }: Na
           cn(collapsedBase, isActive && collapsedActive, className)
         }
       >
-        <Icon className="h-5 w-5" strokeWidth={1.8} aria-hidden />
+        <Icon className="h-5 w-5 text-white" strokeWidth={1.8} aria-hidden />
         <span className="sr-only">{label}</span>
       </NavLink>
     );
