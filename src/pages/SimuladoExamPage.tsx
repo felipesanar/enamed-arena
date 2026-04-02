@@ -158,7 +158,7 @@ export default function SimuladoExamPage() {
                 )}
               >
                 <Flag className="h-3.5 w-3.5" />
-                {flow.isReviewFlagged ? 'Marcada para revisão' : 'Revisar'}
+                {flow.isReviewFlagged ? 'Marcada para revisão' : 'Revisar depois'}
               </button>
               <button
                 onClick={flow.toggleHighConfidence}
@@ -170,7 +170,7 @@ export default function SimuladoExamPage() {
                 )}
               >
                 <Zap className="h-3.5 w-3.5" />
-                {flow.isHighConfFlagged ? 'Alta certeza' : 'Alta certeza'}
+                {flow.isHighConfFlagged ? 'Tenho certeza' : 'Tenho certeza'}
               </button>
             </div>
 
@@ -237,7 +237,7 @@ export default function SimuladoExamPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded bg-success" />
-              Alta certeza
+              Tenho certeza
             </div>
           </div>
         </aside>
