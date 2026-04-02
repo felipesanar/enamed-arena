@@ -17,7 +17,6 @@ function isAllowedOrigin(origin: string | null): boolean {
     const hostname = url.hostname;
     if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com")) return true;
     if (ALLOWED_ORIGINS.includes(origin)) return true;
-    // Allow Lovable preview URLs
     if (hostname.endsWith(".lovable.app")) return true;
     return false;
   } catch {
@@ -47,7 +46,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers });
   }
 
-  // Validate origin
   if (!isAllowedOrigin(origin)) {
     console.error("[sso-magic-link] Blocked origin:", origin);
     return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers });
@@ -82,11 +80,9 @@ Deno.serve(async (req) => {
     const now = Date.now();
 
     if (rl) {
-      const windowStart = new Date(rl.window_start).getTime();
-      const windowExpired = now - windowStart > WINDOW_MS;
+      const windowExpired = now - new Date(rl.window_start).getTime() > WINDOW_MS;
 
       if (windowExpired) {
-        // Reset window
         await supabase
           .from("sso_rate_limit")
           .update({ attempts: 1, window_start: new Date().toISOString() })
@@ -110,28 +106,10 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     console.error("[sso-magic-link] Rate limit check error:", err);
-    // Don't block on rate limit errors — continue
   }
 
-  // --- Check if user exists, create if not ---
-  try {
-    const { data: listData } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-
-    // listUsers doesn't support filter by email directly, use getUserByEmail pattern
-    const { data: userData, error: getUserErr } = await supabase.auth.admin.getUserById(
-      "" // placeholder — we need a different approach
-    );
-
-    // Actually, use the admin API to list and filter
-  } catch {
-    // fallback
-  }
-
-  // Better approach: try generateLink directly — if user doesn't exist, create then retry
-  const redirectTo = `${supabaseUrl.replace(".supabase.co", "").includes("localhost") ? "http://localhost:8080" : "https://enamed-arena.lovable.app"}/auth/callback`;
+  // --- Generate magic link (create user if needed) ---
+  const redirectTo = "https://enamed-arena.lovable.app/auth/callback";
 
   let linkResult = await supabase.auth.admin.generateLink({
     type: "magiclink",
@@ -139,12 +117,10 @@ Deno.serve(async (req) => {
     options: { redirectTo },
   });
 
+  // If user doesn't exist, create and retry
   if (linkResult.error) {
-    // If user doesn't exist, create and retry
-    if (
-      linkResult.error.message?.includes("User not found") ||
-      linkResult.error.message?.includes("Unable to find user")
-    ) {
+    const msg = linkResult.error.message || "";
+    if (msg.includes("not found") || msg.includes("Unable") || msg.includes("does not exist")) {
       console.log("[sso-magic-link] User not found, creating:", email);
       const { error: createErr } = await supabase.auth.admin.createUser({
         email,
@@ -160,7 +136,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Retry magic link generation
       linkResult = await supabase.auth.admin.generateLink({
         type: "magiclink",
         email,
@@ -175,7 +150,7 @@ Deno.serve(async (req) => {
         );
       }
     } else {
-      console.error("[sso-magic-link] generateLink error:", linkResult.error.message);
+      console.error("[sso-magic-link] generateLink error:", msg);
       return new Response(
         JSON.stringify({ error: "Erro ao gerar link de acesso." }),
         { status: 500, headers }
@@ -193,6 +168,5 @@ Deno.serve(async (req) => {
   }
 
   console.log("[sso-magic-link] Magic link generated for:", email);
-
   return new Response(JSON.stringify({ url: actionLink }), { status: 200, headers });
 });
