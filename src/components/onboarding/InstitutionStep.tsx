@@ -21,12 +21,15 @@ interface Props {
 
 export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props) {
   const [search, setSearch] = useState("");
-  const [enareExpanded, setEnareExpanded] = useState(false);
+  const [enareExpanded, setEnareExpanded] = useState(() =>
+    selected.filter((s) => s !== AINDA_NAO_SEI).length > 0
+  );
   const [expandedUfs, setExpandedUfs] = useState<Set<string>>(new Set());
 
   const isUndecided = selected.includes(AINDA_NAO_SEI);
   const { grouped, flat } = useInstitutionsBySpecialty(selectedSpecialty);
-  const isLoading = !grouped && selectedSpecialty && selectedSpecialty !== AINDA_NAO_SEI;
+  const isLoading =
+    !grouped && selectedSpecialty && selectedSpecialty !== AINDA_NAO_SEI;
 
   const filteredGrouped = useMemo(() => {
     if (!grouped) return null;
@@ -60,9 +63,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
   };
 
   const handleToggleInstitution = (instName: string) => {
-    if (isUndecided) {
-      onToggle(AINDA_NAO_SEI);
-    }
+    if (isUndecided) onToggle(AINDA_NAO_SEI);
     const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
     const alreadySelected = realSelected.includes(instName);
     if (!alreadySelected && realSelected.length >= MAX_INSTITUTIONS) return;
@@ -81,41 +82,76 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
   const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
 
   return (
-    <div>
-      <div className="text-center mb-8">
-        <div className="h-14 w-14 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">
-          <Building2 className="h-7 w-7 text-primary" />
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Glyph area */}
+      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0">
+        <div className="relative mb-4">
+          <div
+            className="pointer-events-none absolute inset-[-10px] rounded-full onboarding-glyph-glow"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(232,56,98,.12) 0%, transparent 65%)",
+            }}
+            aria-hidden
+          />
+          <div
+            className="relative w-16 h-16 rounded-[20px] flex items-center justify-center onboarding-glyph-box"
+            style={{
+              background:
+                "linear-gradient(145deg, rgba(232,56,98,.22) 0%, rgba(90,21,48,.42) 100%)",
+              border: "1px solid rgba(232,56,98,.32)",
+              boxShadow: "0 6px 24px rgba(232,56,98,.22)",
+            }}
+          >
+            <Building2
+              className="w-[30px] h-[30px]"
+              style={{ color: "#e83862" }}
+              strokeWidth={1.75}
+            />
+          </div>
         </div>
-        <h2 className="text-heading-2 text-foreground mb-2">
+        <h2 className="text-[19px] font-extrabold text-center leading-tight tracking-tight text-white mb-1.5">
           Quais instituições você deseja?
         </h2>
-        <p className="text-body text-muted-foreground max-w-md mx-auto">
+        <p
+          className="text-[12.5px] text-center leading-relaxed mb-4"
+          style={{ color: "rgba(255,255,255,.45)" }}
+        >
           Selecione até {MAX_INSTITUTIONS} instituições do ENARE onde pretende
           prestar residência.
         </p>
       </div>
 
-      <div className="max-w-lg mx-auto">
-        {/* "Ainda não sei" option */}
+      {/* Content */}
+      <div className="flex-1 overflow-hidden flex flex-col px-4 pb-2 gap-2.5">
+        {/* "Ainda não sei" */}
         <button
+          type="button"
           onClick={handleToggleUndecided}
-          className={`w-full mb-4 p-3.5 rounded-xl border transition-all duration-150 text-left flex items-center justify-between ${
+          className="w-full p-3.5 rounded-[13px] text-left flex items-center justify-between shrink-0 transition-all duration-150"
+          style={
             isUndecided
-              ? "border-primary bg-accent"
-              : "border-dashed border-border bg-muted/30 hover:border-primary/30 hover:bg-accent/30"
-          }`}
+              ? {
+                  background: "rgba(232,56,98,.12)",
+                  border: "1px solid rgba(232,56,98,.38)",
+                }
+              : {
+                  background: "rgba(255,255,255,.025)",
+                  border: "1px dashed rgba(255,255,255,.1)",
+                }
+          }
         >
           <span
-            className={`text-body transition-colors ${
-              isUndecided
-                ? "text-primary font-medium"
-                : "text-muted-foreground italic"
-            }`}
+            className="text-[12px] italic"
+            style={{
+              color: isUndecided ? "#e83862" : "rgba(255,255,255,.3)",
+              fontWeight: isUndecided ? 600 : 400,
+            }}
           >
             {AINDA_NAO_SEI}
           </span>
           {isUndecided && (
-            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+            <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: "#e83862" }} />
           )}
         </button>
 
@@ -123,32 +159,54 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
           <>
             {/* ENARE toggle */}
             <button
+              type="button"
               onClick={() => setEnareExpanded(!enareExpanded)}
-              className={`w-full mb-4 p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                enareExpanded
-                  ? "border-primary bg-accent/50"
-                  : "border-primary/30 bg-card hover:border-primary/50"
-              }`}
+              className="w-full p-4 rounded-[15px] text-left transition-all duration-200 shrink-0"
+              style={{
+                border: enareExpanded
+                  ? "1.5px solid rgba(232,56,98,.35)"
+                  : "1.5px solid rgba(232,56,98,.22)",
+                background: enareExpanded
+                  ? "rgba(232,56,98,.07)"
+                  : "rgba(232,56,98,.04)",
+              }}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-body font-semibold text-foreground">
+                  <span
+                    className="text-[13.5px] font-bold"
+                    style={{ color: "rgba(255,255,255,.75)" }}
+                  >
                     ENARE
                   </span>
-                  <span className="text-caption text-muted-foreground ml-2">
-                    {totalInstitutions} instituições · {totalVagas} vagas
+                  <span
+                    className="text-[10.5px] ml-2"
+                    style={{ color: "rgba(255,255,255,.35)" }}
+                  >
+                    {totalInstitutions} inst. · {totalVagas} vagas
                   </span>
                 </div>
                 {enareExpanded ? (
-                  <ChevronUp className="h-5 w-5 text-primary" />
+                  <ChevronUp
+                    className="h-5 w-5"
+                    style={{ color: "rgba(232,56,98,.7)" }}
+                  />
                 ) : (
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  <ChevronDown
+                    className="h-5 w-5"
+                    style={{ color: "rgba(255,255,255,.3)" }}
+                  />
                 )}
               </div>
               {!enareExpanded && (
-                <p className="text-caption text-muted-foreground mt-1">
-                  Clique para ver as instituições que ofertam{" "}
-                  <strong className="text-foreground">{selectedSpecialty}</strong>
+                <p
+                  className="text-[11px] mt-1"
+                  style={{ color: "rgba(255,255,255,.3)" }}
+                >
+                  Clique para ver as instituições de{" "}
+                  <strong style={{ color: "rgba(255,255,255,.45)" }}>
+                    {selectedSpecialty}
+                  </strong>
                 </p>
               )}
             </button>
@@ -157,12 +215,18 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
               <>
                 {/* Selected chips */}
                 {realSelected.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-1.5 shrink-0">
                     {realSelected.map((inst) => (
                       <button
                         key={inst}
+                        type="button"
                         onClick={() => onToggle(inst)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-body-sm font-medium hover:bg-primary/20 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[9px] text-[11px] font-semibold transition-opacity hover:opacity-80"
+                        style={{
+                          background: "rgba(232,56,98,.12)",
+                          border: "1px solid rgba(232,56,98,.25)",
+                          color: "#e83862",
+                        }}
                       >
                         {inst}
                         <X className="h-3 w-3" />
@@ -172,107 +236,175 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                 )}
 
                 {/* Search + counter */}
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4"
+                      style={{ color: "rgba(255,255,255,.3)" }}
+                    />
                     <input
                       type="text"
                       placeholder="Buscar instituição..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all"
+                      className="w-full h-[42px] pl-10 pr-4 rounded-[13px] text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#e83862]/35 transition-all"
+                      style={{
+                        background: "rgba(255,255,255,.05)",
+                        border: "1px solid rgba(255,255,255,.09)",
+                        color: "rgba(255,255,255,.85)",
+                      }}
                     />
                     {search && (
                       <button
                         onClick={() => setSearch("")}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                        style={{ color: "rgba(255,255,255,.3)" }}
                       >
                         <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
                   <div
-                    className={`text-caption font-semibold px-3 py-2 rounded-lg shrink-0 ${
+                    className="text-[11px] font-semibold px-3 py-2 rounded-[10px] shrink-0 tabular-nums"
+                    style={
                       realSelected.length > 0
-                        ? "bg-success/10 text-success"
-                        : "bg-warning/10 text-warning"
-                    }`}
+                        ? {
+                            background: "rgba(74,222,128,.1)",
+                            color: "rgba(74,222,128,.9)",
+                          }
+                        : {
+                            background: "rgba(251,191,36,.1)",
+                            color: "rgba(251,191,36,.8)",
+                          }
+                    }
                   >
                     {realSelected.length}/{MAX_INSTITUTIONS}
                   </div>
                 </div>
 
-                {/* Institutions grouped by UF */}
+                {/* UF groups */}
                 {isLoading ? (
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-2">
                     {Array.from({ length: 4 }).map((_, i) => (
                       <div
                         key={i}
-                        className="h-10 rounded-xl bg-muted animate-pulse"
+                        className="h-10 rounded-[13px] animate-pulse"
+                        style={{ background: "rgba(255,255,255,.05)" }}
                       />
                     ))}
                   </div>
-                ) : filteredGrouped && Object.keys(filteredGrouped).length > 0 ? (
-                  <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2">
+                ) : filteredGrouped &&
+                  Object.keys(filteredGrouped).length > 0 ? (
+                  <div className="overflow-y-auto flex flex-col gap-1.5 pr-0.5">
                     {Object.entries(filteredGrouped).map(([uf, insts]) => {
-                      const isExpanded = expandedUfs.has(uf) || !!search.trim();
-                      const ufVagas = insts.reduce((s, i) => s + i.vagas, 0);
+                      const isExpanded =
+                        expandedUfs.has(uf) || !!search.trim();
+                      const ufVagas = insts.reduce(
+                        (s, i) => s + i.vagas,
+                        0
+                      );
                       return (
-                        <div key={uf} className="border border-border rounded-xl overflow-hidden">
+                        <div
+                          key={uf}
+                          className="rounded-[13px] overflow-hidden"
+                          style={{ border: "1px solid rgba(255,255,255,.06)" }}
+                        >
                           <button
+                            type="button"
                             onClick={() => toggleUf(uf)}
-                            className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                            className="w-full flex items-center justify-between p-3 transition-colors"
+                            style={{ background: "rgba(255,255,255,.03)" }}
                           >
                             <div className="flex items-center gap-2">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-body-sm font-semibold text-foreground">
+                              <MapPin
+                                className="h-3.5 w-3.5"
+                                style={{ color: "rgba(255,255,255,.3)" }}
+                              />
+                              <span
+                                className="text-[11.5px] font-bold"
+                                style={{ color: "rgba(255,255,255,.6)" }}
+                              >
                                 {uf}
                               </span>
-                              <span className="text-caption text-muted-foreground">
+                              <span
+                                className="text-[10px]"
+                                style={{ color: "rgba(255,255,255,.28)" }}
+                              >
                                 {insts.length} inst. · {ufVagas} vagas
                               </span>
                             </div>
                             {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                              <ChevronUp
+                                className="h-4 w-4"
+                                style={{ color: "rgba(255,255,255,.28)" }}
+                              />
                             ) : (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              <ChevronDown
+                                className="h-4 w-4"
+                                style={{ color: "rgba(255,255,255,.28)" }}
+                              />
                             )}
                           </button>
                           {isExpanded && (
-                            <div className="p-2 space-y-1">
+                            <div className="p-1.5 flex flex-col gap-0.5">
                               {insts.map((inst) => {
-                                const isSelected = realSelected.includes(inst.name);
+                                const isSelected = realSelected.includes(
+                                  inst.name
+                                );
                                 const isMaxReached =
-                                  !isSelected && realSelected.length >= MAX_INSTITUTIONS;
+                                  !isSelected &&
+                                  realSelected.length >= MAX_INSTITUTIONS;
                                 return (
                                   <button
                                     key={inst.id}
-                                    onClick={() => handleToggleInstitution(inst.name)}
+                                    type="button"
+                                    onClick={() =>
+                                      handleToggleInstitution(inst.name)
+                                    }
                                     disabled={isMaxReached}
-                                    className={`w-full flex items-center justify-between p-2.5 rounded-lg transition-all text-left ${
+                                    className="w-full flex items-center justify-between p-2.5 rounded-[10px] transition-all text-left disabled:cursor-not-allowed"
+                                    style={
                                       isSelected
-                                        ? "bg-accent border border-primary text-primary"
+                                        ? {
+                                            background:
+                                              "rgba(232,56,98,.07)",
+                                            border:
+                                              "1px solid rgba(232,56,98,.1)",
+                                          }
                                         : isMaxReached
-                                        ? "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
-                                        : "hover:bg-accent/30 text-foreground"
-                                    }`}
+                                        ? { opacity: 0.35 }
+                                        : {}
+                                    }
                                   >
                                     <div className="flex-1 min-w-0">
                                       <p
-                                        className={`text-body-sm truncate ${
-                                          isSelected ? "font-medium" : ""
-                                        }`}
+                                        className="text-[11.5px] truncate"
+                                        style={{
+                                          color: isSelected
+                                            ? "#e83862"
+                                            : "rgba(255,255,255,.65)",
+                                          fontWeight: isSelected ? 600 : 400,
+                                        }}
                                       >
                                         {inst.name}
                                       </p>
-                                      <p className="text-micro-label text-muted-foreground">
-                                        {inst.vagas} vaga{inst.vagas !== 1 ? "s" : ""}
+                                      <p
+                                        className="text-[10px]"
+                                        style={{
+                                          color: "rgba(255,255,255,.28)",
+                                        }}
+                                      >
+                                        {inst.vagas} vaga
+                                        {inst.vagas !== 1 ? "s" : ""}
                                         {inst.cenario_pratica &&
                                           ` · ${inst.cenario_pratica}`}
                                       </p>
                                     </div>
                                     {isSelected && (
-                                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0 ml-2" />
+                                      <CheckCircle2
+                                        className="h-4 w-4 shrink-0 ml-2"
+                                        style={{ color: "#e83862" }}
+                                      />
                                     )}
                                   </button>
                                 );
@@ -284,7 +416,10 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                     })}
                   </div>
                 ) : (
-                  <p className="text-center text-body-sm text-muted-foreground py-8">
+                  <p
+                    className="text-center text-[12px] py-8"
+                    style={{ color: "rgba(255,255,255,.35)" }}
+                  >
                     {search
                       ? `Nenhuma instituição encontrada para "${search}"`
                       : "Nenhuma instituição oferta esta especialidade no ENARE."}
