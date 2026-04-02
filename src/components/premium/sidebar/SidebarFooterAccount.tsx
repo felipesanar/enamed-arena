@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
 
 const railIconBtn =
-  "flex h-10 w-10 items-center justify-center rounded-xl text-white/45 transition-all duration-200 hover:bg-white/[0.06] hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
+  "flex h-12 w-12 items-center justify-center rounded-xl text-white/65 transition-all duration-200 hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
 
 const segmentColors: Record<string, string> = {
   pro: "#e83862",
