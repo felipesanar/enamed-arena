@@ -35,25 +35,6 @@ type UserType = "undecided" | "guest" | "sanarflix";
 
 /* ─── Helpers ─── */
 
-const SIGNUP_RATE_LIMIT_LOCK_KEY = "signup-rate-limit-until";
-const SIGNUP_RATE_LIMIT_MS = 3 * 60 * 1000;
-
-function isRateLimitError(msg: string): boolean {
-  const lower = msg.toLowerCase();
-  return (
-    lower.includes("email rate limit exceeded") ||
-    lower.includes("over_email_send_rate_limit") ||
-    lower.includes("rate limit exceeded") ||
-    lower.includes("too many requests")
-  );
-}
-
-function formatCountdown(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins <= 0) return `${secs}s`;
-  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
-}
 
 function translateError(msg: string): string {
   const lower = msg.toLowerCase();
