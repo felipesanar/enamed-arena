@@ -265,6 +265,17 @@ export function HubSpotFormModal({
                   "[&_.hs-form-title]:hidden",
                 ].join(" ")}
               />
+              {showSkip && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={onComplete}
+                    className="text-body-sm font-medium text-[hsl(var(--auth-text-muted))] hover:text-[hsl(var(--auth-text-primary))] transition-colors underline underline-offset-2"
+                  >
+                    Pular e continuar
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
