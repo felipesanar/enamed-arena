@@ -416,7 +416,7 @@ export default function OnboardingPage() {
                 {/* Step description */}
                 <p
                   className="text-[12px] leading-relaxed"
-                  style={{ color: "rgba(255,255,255,.38)" }}
+                  style={{ color: "rgba(255,255,255,.6)" }}
                 >
                   {STEP_META[step].description}
                 </p>
