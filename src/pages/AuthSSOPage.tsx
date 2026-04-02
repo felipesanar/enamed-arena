@@ -17,6 +17,7 @@ export default function AuthSSOPage() {
 
   const email = searchParams.get('email')?.trim().toLowerCase() || '';
   const name = searchParams.get('name')?.trim() || '';
+  const segment = searchParams.get('segment') || '';
 
   // noindex
   useEffect(() => {
