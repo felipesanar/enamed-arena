@@ -68,10 +68,10 @@ export function LandingExperience() {
             aria-label="Recursos da plataforma"
           >
             {[
-              { icon: BarChart3, title: "Desempenho por área", desc: "Gráficos e percentuais por disciplina e tema." },
-              { icon: Trophy, title: "Ranking", desc: "Sua posição e evolução em relação aos outros." },
-              { icon: BookOpen, title: "Correção comentada", desc: "Justificativas e estatísticas por questão." },
-              { icon: LayoutGrid, title: "Comparativo entre provas", desc: "Curva de evolução entre simulados." },
+              { icon: BarChart3, title: "Desempenho por área", desc: "Gráficos e percentuais detalhados por disciplina e tema." },
+              { icon: Trophy, title: "Ranking nacional", desc: "Sua posição e evolução comparada aos demais candidatos." },
+              { icon: BookOpen, title: "Correção comentada", desc: "Justificativas detalhadas e estatísticas por questão." },
+              { icon: LayoutGrid, title: "Comparativo entre provas", desc: "Curva de evolução e progresso entre os simulados." },
             ].map((card, i) => (
               <motion.div
                 key={card.title}
