@@ -23,11 +23,11 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
         className={({ isActive }) =>
           cn(
             linkClass({ isActive }),
-            "mx-auto h-11 w-11 justify-center gap-0 px-0 py-0 before:left-0 before:h-6",
+            "mx-auto h-12 w-12 justify-center gap-0 px-0 py-0 before:left-0 before:h-6",
           )
         }
       >
-        <BookOpen className="h-[18px] w-[18px] shrink-0 opacity-85" aria-hidden />
+        <BookOpen className="h-5 w-5 shrink-0" aria-hidden />
         <span className="sr-only">Caderno de Erros, recurso PRO</span>
       </NavLink>
     );

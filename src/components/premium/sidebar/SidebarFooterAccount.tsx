@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
 
 const railIconBtn =
-  "flex h-10 w-10 items-center justify-center rounded-xl text-white/45 transition-all duration-200 hover:bg-white/[0.06] hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
+  "flex h-12 w-12 items-center justify-center rounded-xl text-white/65 transition-all duration-200 hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
 
 const segmentColors: Record<string, string> = {
   pro: "#e83862",
@@ -38,7 +38,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
               to="/configuracoes"
               className="group relative flex h-11 w-11 items-center justify-center"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4A1528_0%,#361019_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08] transition-all duration-200 group-hover:ring-white/[0.16] group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4A1528_0%,#361019_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08] transition-all duration-200 group-hover:ring-white/[0.16] group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
                 <Avatar className="h-9 w-9 rounded-lg bg-transparent shadow-none ring-0">
                   <AvatarFallback className="rounded-lg bg-transparent text-[12px] font-bold text-white/90">
                     {initial}
@@ -67,7 +67,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <Link to="/configuracoes" className={railIconBtn} aria-label="Configurações">
-              <Settings className="h-[18px] w-[18px]" aria-hidden />
+              <Settings className="h-5 w-5" aria-hidden />
             </Link>
           </TooltipTrigger>
           <TooltipContent
@@ -83,7 +83,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <button type="button" onClick={signOut} className={railIconBtn} aria-label="Sair">
-              <LogOut className="h-[18px] w-[18px]" aria-hidden />
+              <LogOut className="h-5 w-5" aria-hidden />
             </button>
           </TooltipTrigger>
           <TooltipContent
