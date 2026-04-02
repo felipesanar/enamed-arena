@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
 
       const lower = error.message.toLowerCase();
       if (lower.includes("already been registered") || lower.includes("already registered") || lower.includes("unique_email_address")) {
-        return json({ error: "Este e-mail já está cadastrado. Tente fazer login." }, 409, cors);
+        return json({ error: "Este e-mail já está cadastrado. Tente fazer login." }, 200, cors);
       }
 
       return json({ error: error.message }, 400, cors);
