@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sso-magic-link]
 verify_jwt = false
+
+[functions.hubspot-contact-sync]
+verify_jwt = false
