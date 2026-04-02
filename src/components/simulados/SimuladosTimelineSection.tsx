@@ -11,7 +11,9 @@ import {
   Coffee,
   ChevronDown,
   ArrowRight,
+  CalendarPlus,
 } from "lucide-react";
+import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { cn } from "@/lib/utils";
 import type { SimuladoWithStatus } from "@/types";
 
@@ -226,7 +228,15 @@ function TimelineItem({
               </div>
             )}
             {isUpcoming && (
-              <span className="text-xs font-medium text-muted-foreground">Na agenda</span>
+              <a
+                href={buildGoogleCalendarUrl(sim)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={linkClass}
+              >
+                <CalendarPlus className="h-3.5 w-3.5 opacity-80" />
+                Adicionar ao Google Agenda
+              </a>
             )}
           </div>
         </div>
