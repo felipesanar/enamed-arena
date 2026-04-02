@@ -11,7 +11,9 @@ import {
   Coffee,
   ChevronDown,
   ArrowRight,
+  CalendarPlus,
 } from "lucide-react";
+import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { cn } from "@/lib/utils";
 import type { SimuladoWithStatus } from "@/types";
 
