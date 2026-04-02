@@ -90,7 +90,7 @@ export default function LoginPage() {
     );
   }
 
-  if (user) {
+  if (user && !hubspotModalOpen) {
     return <Navigate to="/" replace />;
   }
 
