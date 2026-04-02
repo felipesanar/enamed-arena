@@ -166,7 +166,7 @@ export default function CorrecaoPage() {
                     )}
                     {answer?.highConfidence && (
                       <span className="inline-flex items-center gap-1 text-caption text-success bg-success/10 px-2 py-0.5 rounded-md font-medium">
-                        <Zap className="h-3 w-3" /> Alta certeza
+                        <Zap className="h-3 w-3" /> Tinha certeza
                       </span>
                     )}
                     {result.isCorrect ? (
