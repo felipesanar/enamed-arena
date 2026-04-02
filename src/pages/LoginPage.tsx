@@ -90,7 +90,7 @@ export default function LoginPage() {
     );
   }
 
-  if (user) {
+  if (user && !hubspotModalOpen) {
     return <Navigate to="/" replace />;
   }
 
@@ -483,7 +483,7 @@ export default function LoginPage() {
         open={hubspotModalOpen}
         onComplete={() => {
           setHubspotModalOpen(false);
-          setFlowState("sent");
+          // user is already signed in — closing modal triggers redirect via Navigate
         }}
         prefillEmail={email}
         prefillName={fullName}
