@@ -42,6 +42,7 @@ function translateError(msg: string): string {
     ["invalid login credentials", "Email ou senha incorretos. Verifique e tente novamente."],
     ["email not confirmed", "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (inclusive spam)."],
     ["user already registered", "Este e-mail já está cadastrado. Tente fazer login."],
+    ["já está cadastrado", "Este e-mail já está cadastrado. Tente fazer login."],
     ["password should be at least 6 characters", "A senha deve ter pelo menos 6 caracteres."],
     ["email rate limit exceeded", "Muitas tentativas de cadastro em pouco tempo. Aguarde alguns minutos e tente novamente."],
     ["rate limit exceeded", "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente."],
@@ -124,6 +125,7 @@ export default function LoginPage() {
       }
 
       if (mode === "signup") {
+        setFlowState("idle");
         setHubspotModalOpen(true);
       } else {
         setFlowState("idle");

@@ -163,7 +163,7 @@ export function HubSpotFormModal({
                 Cadastro completo!
               </h2>
               <p className="text-body-sm text-[hsl(var(--auth-text-muted))] max-w-[32ch] mx-auto leading-relaxed">
-                Agora verifique seu e-mail para ativar sua conta e acessar a plataforma.
+                Vamos configurar seu perfil agora para personalizar sua experiência.
               </p>
             </div>
             <button
@@ -171,7 +171,7 @@ export function HubSpotFormModal({
               onClick={onComplete}
               className="inline-flex h-11 w-full max-w-[280px] items-center justify-center gap-2 rounded-xl bg-primary text-body-sm font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-[hsl(var(--wine-hover))] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] shadow-[0_4px_16px_-4px_hsl(var(--primary)/0.4)]"
             >
-              Continuar <ArrowRight className="h-4 w-4" />
+              Configurar perfil <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         ) : loadFailed ? (
