@@ -1,40 +1,26 @@
 
 
-# Fix crítico: Signup quebrado pelo trigger do HubSpot
+# Fallback do HubSpot — permitir continuar se bloqueado
 
 ## Problema
 
-O trigger `on_profile_created_hubspot` que criamos está quebrando **todo cadastro de usuário** com erro 500. Os logs mostram:
-
-```
-ERROR: function extensions.http_post(url => text, body => jsonb, headers => jsonb) does not exist (SQLSTATE 42883)
-```
-
-A migration usou `extensions.http_post()` mas a função correta do `pg_net` é `net.http_post()` com assinatura diferente. Como o trigger roda dentro da transação de signup, o erro aborta a criação do usuário inteiro.
+Bloqueadores de rastreamento (Brave, Edge Tracking Prevention, uBlock) impedem o carregamento do formulário HubSpot embed. Como o modal é obrigatório e não tem botão de fechar, o usuário fica preso após o cadastro.
 
 ## Solução
 
-Uma única migration SQL que:
+Adicionar detecção de falha no `HubSpotFormModal` com timeout + fallback visual.
 
-1. **Remove o trigger quebrado** (`on_profile_created_hubspot`)
-2. **Remove a function quebrada** (`notify_hubspot_new_user`)
-3. **Recria a function** usando `net.http_post()` com a assinatura correta do pg_net
-4. **Recria o trigger** na tabela `profiles`
+## Alterações
 
-A function corrigida usará:
-```sql
-PERFORM net.http_post(
-  url := '...',
-  body := '...'::jsonb,
-  headers := '{"Content-Type": "application/json", "Authorization": "Bearer ..."}'::jsonb
-);
-```
+### `src/components/auth/HubSpotFormModal.tsx`
 
-`net.http_post` do pg_net é **assíncrono** — não bloqueia a transação e não causa rollback se o HTTP falhar, eliminando o risco de quebrar signups futuros.
+1. Novo estado `loadFailed` (boolean, default false)
+2. Após o script carregar, iniciar um timer de ~5s. Se `onFormReady` não disparar nesse intervalo, setar `loadFailed = true`
+3. Quando `loadFailed === true`, renderizar um estado alternativo no modal:
+   - Ícone de aviso sutil
+   - Texto: "Não foi possível carregar o formulário complementar. Você pode continuar normalmente."
+   - Botão "Continuar" que chama `onComplete()`
+4. O timer é limpo se `onFormReady` disparar antes do timeout
 
-## Arquivos alterados
-
-- 1 nova migration SQL (drop + recreate trigger e function)
-
-Nenhuma alteração no frontend ou edge functions.
+Nenhum outro arquivo é alterado. O fluxo normal (sem bloqueador) permanece idêntico.
 
