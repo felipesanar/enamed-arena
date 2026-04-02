@@ -73,7 +73,7 @@ function DesktopTips({ step }: { step: number }) {
           />
           <span
             className="text-[10.5px] leading-relaxed"
-            style={{ color: "rgba(255,255,255,.38)" }}
+            style={{ color: "rgba(255,255,255,.6)" }}
           >
             {tip}
           </span>

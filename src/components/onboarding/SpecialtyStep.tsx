@@ -164,8 +164,8 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
                         color: isSelected
                           ? "#e83862"
                           : isUndecided
-                          ? "rgba(255,255,255,.3)"
-                          : "rgba(255,255,255,.6)",
+                          ? "rgba(255,255,255,.5)"
+                          : "rgba(255,255,255,.82)",
                         fontWeight: isSelected ? 600 : 400,
                       }}
                     >

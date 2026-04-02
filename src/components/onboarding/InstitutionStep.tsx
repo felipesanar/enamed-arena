@@ -383,7 +383,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                           style={{
                                             color: isSelected
                                               ? "#e83862"
-                                              : "rgba(255,255,255,.65)",
+                                              : "rgba(255,255,255,.82)",
                                             fontWeight: isSelected ? 600 : 400,
                                           }}
                                         >
