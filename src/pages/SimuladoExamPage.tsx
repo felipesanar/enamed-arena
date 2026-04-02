@@ -158,7 +158,7 @@ export default function SimuladoExamPage() {
                 )}
               >
                 <Flag className="h-3.5 w-3.5" />
-                {flow.isReviewFlagged ? 'Marcada para revisão' : 'Revisar'}
+                {flow.isReviewFlagged ? 'Marcada para revisão' : 'Revisar depois'}
               </button>
               <button
                 onClick={flow.toggleHighConfidence}
