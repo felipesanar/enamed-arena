@@ -28,7 +28,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-5">
-        <p className="text-[13px]" style={{ color: "rgba(255,255,255,.5)" }}>
+        <p className="text-[13px]" style={{ color: "rgba(255,255,255,.7)" }}>
           Erro ao carregar especialidades.
         </p>
         <button
