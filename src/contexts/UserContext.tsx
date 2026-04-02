@@ -37,9 +37,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [onboardingEditReason, setOnboardingEditReason] = useState<string | null>(null);
   const [onboardingNextEditableAt, setOnboardingNextEditableAt] = useState<string | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabaseRpc = (name: string, params?: Record<string, unknown>) => (supabase.rpc as any)(name, params);
+
   const fetchOnboardingEditGuard = useCallback(async () => {
     if (!authUser) return;
-    const { data, error } = await (supabase.rpc as any)('get_onboarding_edit_guard_state');
+    const { data, error } = await supabaseRpc('get_onboarding_edit_guard_state');
     if (error) {
       logger.error('[UserContext] Onboarding edit guard fetch error:', error);
       setOnboardingEditLocked(false);
@@ -160,7 +163,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
     if (!authUser) throw new Error('Not authenticated');
-    const { data: savedRow, error } = await (supabase.rpc as any)('save_onboarding_guarded', {
+    const { data: savedRow, error } = await supabaseRpc('save_onboarding_guarded', {
       p_specialty: data.specialty,
       p_target_institutions: data.targetInstitutions,
     });
@@ -183,7 +186,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(async (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => {
     if (!authUser) return;
 
-    setProfile(prev => prev ? { ...prev, ...data } : prev);
+    // Capture previous state for rollback on error
+    let previousProfile: UserProfile | null = null;
+    setProfile(prev => {
+      previousProfile = prev;
+      return prev ? { ...prev, ...data } : prev;
+    });
 
     const updates: Record<string, string | undefined> = {};
     if (data.name !== undefined) updates.full_name = data.name;
@@ -195,7 +203,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .update(updates)
         .eq('id', authUser.id);
 
-      if (error) logger.error('[UserContext] Profile update error:', error);
+      if (error) {
+        logger.error('[UserContext] Profile update error:', error);
+        // Rollback optimistic update
+        if (previousProfile) setProfile(previousProfile);
+      }
     }
   }, [authUser]);
 

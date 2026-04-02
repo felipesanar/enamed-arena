@@ -83,7 +83,7 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
       )}
 
       {/* Options — inspired by Academy's AlternativaProva, elevated visually */}
-      <div className="space-y-3">
+      <div className="space-y-3" role="radiogroup" aria-label={`Alternativas da questão ${question.number}`}>
         {question.options.map((opt) => {
           const isSelected = selectedId === opt.id;
           const isEliminated = eliminated.includes(opt.id);
@@ -91,6 +91,8 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
           return (
             <div key={opt.id} className="group relative">
               <button
+                role="radio"
+                aria-checked={isSelected}
                 onClick={() => {
                   if (isEliminated) {
                     onEliminateOption(opt.id); // restore first

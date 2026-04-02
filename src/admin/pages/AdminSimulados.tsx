@@ -7,9 +7,19 @@ import { Plus, Pencil, Upload, Trash2 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { toast } from '@/hooks/use-toast';
 
+interface SimuladoListItem {
+  id: string;
+  title: string;
+  sequence_number: number;
+  status: string;
+  questions_count: number;
+  execution_window_start: string;
+  execution_window_end: string;
+}
+
 export default function AdminSimulados() {
   const navigate = useNavigate();
-  const [simulados, setSimulados] = useState<any[]>([]);
+  const [simulados, setSimulados] = useState<SimuladoListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = () => {
@@ -20,7 +30,9 @@ export default function AdminSimulados() {
   useEffect(load, []);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Deletar simulado "${title}"? Esta ação é irreversível.`)) return;
+    // Admin-only destructive action — use native confirm to keep the admin panel simple
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Deletar simulado "${title}"? Esta ação é irreversível.`)) return;
     try {
       await adminApi.deleteQuestionsForSimulado(id);
       await adminApi.deleteSimulado(id);

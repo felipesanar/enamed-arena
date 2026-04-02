@@ -563,9 +563,7 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(0.85); }
 }
-.sim-dot-pulse {
-  animation: sim-pulse 1.8s ease-in-out infinite;
-}
+/* .sim-dot-pulse animation moved to @media (prefers-reduced-motion: no-preference) block below */
 
 /* ── Onboarding animations ───────────────────────────────────────── */
 @keyframes onboarding-glyph-breathe {
@@ -587,14 +585,31 @@
   }
 }
 
-.onboarding-glyph-box {
-  animation: onboarding-glyph-breathe 3.5s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .onboarding-glyph-box {
+    animation: onboarding-glyph-breathe 3.5s ease-in-out infinite;
+  }
+
+  .onboarding-glyph-glow {
+    animation: onboarding-glyph-glow 3.5s ease-in-out infinite;
+  }
+
+  .onboarding-dot-active {
+    animation: onboarding-dot-pulse 2.5s ease-in-out infinite;
+  }
+
+  .sim-dot-pulse {
+    animation: sim-pulse 1.8s ease-in-out infinite;
+  }
 }
 
-.onboarding-glyph-glow {
-  animation: onboarding-glyph-glow 3.5s ease-in-out infinite;
-}
-
-.onboarding-dot-active {
-  animation: onboarding-dot-pulse 2.5s ease-in-out infinite;
+/* Respect prefers-reduced-motion for utility animation classes */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

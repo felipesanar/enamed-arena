@@ -216,9 +216,18 @@ export function useExamFlow(): UseExamFlowReturn {
     }
   }, [storage]);
 
+  const timeUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup the time-up delay timer on unmount to avoid calling finalize after unmount
+  useEffect(() => {
+    return () => {
+      if (timeUpTimerRef.current) clearTimeout(timeUpTimerRef.current);
+    };
+  }, []);
+
   const handleTimeUp = useCallback(() => {
     toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
-    setTimeout(() => finalize(), 2000);
+    timeUpTimerRef.current = setTimeout(() => finalize(), 2000);
   }, [finalize]);
 
   const timeRemaining = useExamTimer({
@@ -250,8 +259,19 @@ export function useExamFlow(): UseExamFlowReturn {
             }));
             if (rows.length > 0) {
               const url = `${supabaseUrl}/rest/v1/answers?on_conflict=attempt_id,question_id`;
-              const blob = new Blob([JSON.stringify(rows)], { type: 'application/json' });
-              navigator.sendBeacon(url + `&apikey=${supabaseKey}`, blob);
+              // Use fetch+keepalive instead of sendBeacon so we can set headers
+              // (sendBeacon appends the apikey to the URL, exposing it in server logs)
+              fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Prefer': 'resolution=merge-duplicates',
+                },
+                body: JSON.stringify(rows),
+                keepalive: true,
+              }).catch(() => {});
             }
           }
         } catch {

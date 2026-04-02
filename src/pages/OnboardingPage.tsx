@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import { trackEvent } from "@/lib/analytics";
+import { logger } from "@/lib/logger";
 import { BrandLogo } from "@/components/brand/BrandMark";
 import { SpecialtyStep } from "@/components/onboarding/SpecialtyStep";
 import { InstitutionStep } from "@/components/onboarding/InstitutionStep";
@@ -154,7 +155,7 @@ export default function OnboardingPage() {
       clearPersistedStateByPrefix("onboarding:");
       navigate("/");
     } catch (e) {
-      console.error("[OnboardingPage] Error saving onboarding:", e);
+      logger.error("[OnboardingPage] Error saving onboarding:", e);
       setError("Erro ao salvar seus dados. Tente novamente.");
     } finally {
       setIsSaving(false);
@@ -180,7 +181,7 @@ export default function OnboardingPage() {
   const handlePointerUp = (e: React.PointerEvent) => {
     const start = swipeStart.current;
     swipeStart.current = null;
-    if (!start) return;
+    if (!start || isEditingBlocked) return;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
@@ -469,24 +470,27 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Error */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mx-4 mb-1 px-3 py-2.5 rounded-xl text-[12.5px] font-medium text-center"
-              style={{
-                background: "rgba(232,56,98,.1)",
-                border: "1px solid rgba(232,56,98,.2)",
-                color: "rgba(255,255,255,.8)",
-              }}
-            >
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Error — aria-live ensures screen readers announce validation messages */}
+        <div aria-live="polite" aria-atomic="true">
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                role="alert"
+                className="mx-4 mb-1 px-3 py-2.5 rounded-xl text-[12.5px] font-medium text-center"
+                style={{
+                  background: "rgba(232,56,98,.1)",
+                  border: "1px solid rgba(232,56,98,.2)",
+                  color: "rgba(255,255,255,.8)",
+                }}
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Bottom nav */}
         <div

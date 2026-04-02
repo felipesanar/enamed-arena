@@ -42,7 +42,8 @@ export interface QuestionOptionRow {
   question_id: string;
   label: string;
   text: string;
-  is_correct: boolean;
+  /** Only present when fetched with includeCorrectAnswers=true (correction/review pages). */
+  is_correct?: boolean;
 }
 
 export interface AttemptRow {
@@ -130,7 +131,7 @@ function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
   };
 }
 
-function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[]): Question {
+function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], includeCorrectAnswers = false): Question {
   return {
     id: qRow.id,
     number: qRow.question_number,
@@ -143,10 +144,20 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[]): Que
       .filter(o => o.question_id === qRow.id)
       .sort((a, b) => a.label.localeCompare(b.label))
       .map(o => ({ id: o.id, label: o.label, text: o.text })),
-    correctOptionId: optionRows.find(o => o.question_id === qRow.id && o.is_correct)?.id || '',
+    // correctOptionId is only populated for correction/review pages — never during active exams
+    correctOptionId: includeCorrectAnswers
+      ? (optionRows.find(o => o.question_id === qRow.id && o.is_correct === true)?.id || '')
+      : '',
     explanation: qRow.explanation || undefined,
   };
 }
+
+// ─── RPC helper ───
+// Custom RPCs not present in the auto-generated Supabase types require a cast.
+// Centralise it here so individual call-sites stay clean.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const rpc = (name: string, params?: Record<string, unknown>) =>
+  (supabase.rpc as any)(name, params) as ReturnType<typeof supabase.rpc>;
 
 // ─── API ───
 
@@ -185,12 +196,13 @@ export const simuladosApi = {
     return data ? rowToSimuladoConfig(data as SimuladoRow) : null;
   },
 
-  async getQuestions(simuladoId: string): Promise<Question[]> {
+  async getQuestions(simuladoId: string, includeCorrectAnswers = false): Promise<Question[]> {
     const { data: questionsData, error: questionsError } = await supabase
       .from('questions')
       .select('*')
       .eq('simulado_id', simuladoId)
-      .order('question_number', { ascending: true });
+      .order('question_number', { ascending: true })
+      .limit(300);
 
     if (questionsError) {
       logger.error('[SimuladosApi] Error fetching questions:', questionsError);
@@ -201,9 +213,14 @@ export const simuladosApi = {
     if (questions.length === 0) return [];
 
     const questionIds = questions.map(q => q.id);
+    // Only request is_correct for correction/review pages — never expose answers during active exams
+    const optionsSelect = includeCorrectAnswers
+      ? 'id, question_id, label, text, is_correct'
+      : 'id, question_id, label, text';
+
     const { data: optionsData, error: optionsError } = await supabase
       .from('question_options')
-      .select('*')
+      .select(optionsSelect)
       .in('question_id', questionIds);
 
     if (optionsError) {
@@ -212,7 +229,7 @@ export const simuladosApi = {
     }
 
     const options = (optionsData || []) as QuestionOptionRow[];
-    return questions.map(q => rowsToQuestion(q, options));
+    return questions.map(q => rowsToQuestion(q, options, includeCorrectAnswers));
   },
 
   async getAttempt(simuladoId: string, userId: string): Promise<AttemptRow | null> {
@@ -248,7 +265,7 @@ export const simuladosApi = {
     _effectiveDeadline: string,
   ): Promise<AttemptRow> {
     logger.log('[SimuladosApi] Creating guarded attempt for simulado');
-    const { data, error } = await (supabase.rpc as any)('create_attempt_guarded', {
+    const { data, error } = await rpc('create_attempt_guarded', {
       p_simulado_id: simuladoId,
     });
 
@@ -275,7 +292,7 @@ export const simuladosApi = {
       updates.fullscreen_exit_count !== undefined;
 
     if (isProgressOnlyUpdate) {
-      const { error } = await (supabase.rpc as any)('update_attempt_progress_guarded', {
+      const { error } = await rpc('update_attempt_progress_guarded', {
         p_attempt_id: attemptId,
         p_current_question_index: updates.current_question_index ?? 0,
         p_tab_exit_count: updates.tab_exit_count ?? 0,
@@ -387,7 +404,7 @@ export const simuladosApi = {
   },
 
   async setAttemptResultNotification(attemptId: string, enabled: boolean): Promise<void> {
-    const { error } = await (supabase.rpc as any)('set_attempt_result_notification', {
+    const { error } = await rpc('set_attempt_result_notification', {
       p_attempt_id: attemptId,
       p_enabled: enabled,
     });
@@ -398,7 +415,7 @@ export const simuladosApi = {
   },
 
   async enqueueAttemptReprocessing(attemptId: string, reason?: string): Promise<void> {
-    const { error } = await (supabase.rpc as any)('enqueue_attempt_reprocessing', {
+    const { error } = await rpc('enqueue_attempt_reprocessing', {
       p_attempt_id: attemptId,
       p_reason: reason ?? null,
     });
@@ -409,7 +426,7 @@ export const simuladosApi = {
   },
 
   async getAttemptQuestionResults(attemptId: string): Promise<AttemptQuestionResultRow[]> {
-    const { data, error } = await (supabase.rpc as any)('get_attempt_question_results', {
+    const { data, error } = await rpc('get_attempt_question_results', {
       p_attempt_id: attemptId,
     });
     if (error) {

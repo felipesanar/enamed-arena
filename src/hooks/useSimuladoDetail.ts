@@ -17,7 +17,7 @@ interface UseSimuladoDetailReturn {
   refetch: () => void;
 }
 
-async function fetchSimuladoDetail(routeRef: string, userId: string | undefined) {
+async function fetchSimuladoDetail(routeRef: string, userId: string | undefined, includeCorrectAnswers = false) {
   const config = await simuladosApi.getSimulado(routeRef);
   if (!config) {
     return { simulado: null, questions: [] as Question[] };
@@ -25,7 +25,7 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined)
 
   const canonicalId = config.id;
   const [questionData, attempt] = await Promise.all([
-    simuladosApi.getQuestions(canonicalId),
+    simuladosApi.getQuestions(canonicalId, includeCorrectAnswers),
     userId ? simuladosApi.getAttempt(canonicalId, userId) : Promise.resolve(null),
   ]);
 
@@ -44,12 +44,12 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined)
   return { simulado: enrichSimulado(config, userState), questions: questionData };
 }
 
-export function useSimuladoDetail(simuladoId: string | undefined): UseSimuladoDetailReturn {
+export function useSimuladoDetail(simuladoId: string | undefined, includeCorrectAnswers = false): UseSimuladoDetailReturn {
   const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['simulado', simuladoId, user?.id],
-    queryFn: () => fetchSimuladoDetail(simuladoId!, user?.id),
+    queryKey: ['simulado', simuladoId, user?.id, includeCorrectAnswers],
+    queryFn: () => fetchSimuladoDetail(simuladoId!, user?.id, includeCorrectAnswers),
     enabled: !!simuladoId,
     staleTime: 5 * 60 * 1000,
   });

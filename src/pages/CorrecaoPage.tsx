@@ -31,7 +31,7 @@ export default function CorrecaoPage() {
   const segment = profile?.segment ?? 'guest';
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
 
-  const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
+  const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id, true);
   const { examState, attempt, loading: loadingExam } = useExamResult(id);
 
   const initialQuestionParam = Number(searchParams.get('q') || '1');

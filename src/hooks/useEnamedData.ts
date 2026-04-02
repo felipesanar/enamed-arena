@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -90,36 +91,38 @@ export function useInstitutionsBySpecialty(specialtyName: string) {
   const { data: institutions } = useEnamedInstitutions();
   const { data: programs } = useEnamedPrograms();
 
-  if (!specialties || !institutions || !programs) return { grouped: null, flat: null };
+  return useMemo(() => {
+    if (!specialties || !institutions || !programs) return { grouped: null, flat: null };
 
-  const specialty = specialties.find(
-    (s) => s.name.toUpperCase() === specialtyName.toUpperCase()
-  );
-  if (!specialty) return { grouped: null, flat: null };
+    const specialty = specialties.find(
+      (s) => s.name.toUpperCase() === specialtyName.toUpperCase()
+    );
+    if (!specialty) return { grouped: null, flat: null };
 
-  const relevantPrograms = programs.filter((p) => p.specialty_id === specialty.id);
-  const instMap = new Map(institutions.map((i) => [i.id, i]));
+    const relevantPrograms = programs.filter((p) => p.specialty_id === specialty.id);
+    const instMap = new Map(institutions.map((i) => [i.id, i]));
 
-  const flat: InstitutionWithProgram[] = relevantPrograms
-    .map((p) => {
-      const inst = instMap.get(p.institution_id);
-      if (!inst) return null;
-      return { ...inst, vagas: p.vagas, cenario_pratica: p.cenario_pratica };
-    })
-    .filter(Boolean) as InstitutionWithProgram[];
+    const flat: InstitutionWithProgram[] = relevantPrograms
+      .map((p) => {
+        const inst = instMap.get(p.institution_id);
+        if (!inst) return null;
+        return { ...inst, vagas: p.vagas, cenario_pratica: p.cenario_pratica };
+      })
+      .filter(Boolean) as InstitutionWithProgram[];
 
-  // Group by UF
-  const grouped: Record<string, InstitutionWithProgram[]> = {};
-  for (const inst of flat) {
-    if (!grouped[inst.uf]) grouped[inst.uf] = [];
-    grouped[inst.uf].push(inst);
-  }
+    // Group by UF
+    const grouped: Record<string, InstitutionWithProgram[]> = {};
+    for (const inst of flat) {
+      if (!grouped[inst.uf]) grouped[inst.uf] = [];
+      grouped[inst.uf].push(inst);
+    }
 
-  // Sort UFs alphabetically, sort institutions within each UF
-  const sortedGrouped: Record<string, InstitutionWithProgram[]> = {};
-  for (const uf of Object.keys(grouped).sort()) {
-    sortedGrouped[uf] = grouped[uf].sort((a, b) => a.name.localeCompare(b.name));
-  }
+    // Sort UFs alphabetically, sort institutions within each UF
+    const sortedGrouped: Record<string, InstitutionWithProgram[]> = {};
+    for (const uf of Object.keys(grouped).sort()) {
+      sortedGrouped[uf] = grouped[uf].sort((a, b) => a.name.localeCompare(b.name));
+    }
 
-  return { grouped: sortedGrouped, flat };
+    return { grouped: sortedGrouped, flat };
+  }, [specialties, institutions, programs, specialtyName]);
 }

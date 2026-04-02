@@ -60,8 +60,8 @@ describe("LandingHero", () => {
 
   it("renders the AI insight card", () => {
     render(<LandingHero />);
-    expect(screen.getByText(/Análise SanarFlix/i)).toBeTruthy();
-    expect(screen.getByText(/Unifesp \+ 3/i)).toBeTruthy();
+    expect(screen.getByText(/Vaga desejada/i)).toBeTruthy();
+    expect(screen.getByText(/Clínica Médica na USP-SP/i)).toBeTruthy();
   });
 
   it("renders all three area scores", () => {
@@ -75,7 +75,7 @@ describe("LandingHero", () => {
     render(<LandingHero />);
     // Mobile + desktop listas (uma oculta por breakpoint); mesma copy em ambas.
     expect(screen.getAllByText(/100 questões inéditas/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/envie o gabarito/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/envie respostas/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/INEP e DCN/i).length).toBeGreaterThanOrEqual(1);
   });
 

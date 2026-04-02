@@ -69,8 +69,11 @@ export function ExamHeader({
             <Save className="h-3 w-3" />
           </div>
 
-          {/* Timer */}
+          {/* Timer — aria-live="off" during normal countdown; screen readers pick up urgent alerts separately */}
           <div
+            role="timer"
+            aria-label={`Tempo restante: ${formatTimer(timeRemaining)}`}
+            aria-live={timeRemaining < 120 ? 'polite' : 'off'}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-body font-semibold',
               getTimerBgClass(timeRemaining),
@@ -78,7 +81,7 @@ export function ExamHeader({
               timeRemaining < 60 && 'animate-pulse',
             )}
           >
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4" aria-hidden />
             {formatTimer(timeRemaining)}
           </div>
 

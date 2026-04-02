@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertCircle, RefreshCw } from 'lucide-react';
@@ -14,7 +15,7 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
-      console.log('[AuthCallback] Processing callback, URL hash:', window.location.hash ? '(present)' : '(none)');
+      logger.log('[AuthCallback] Processing callback, URL hash:', window.location.hash ? '(present)' : '(none)');
 
       try {
         // Supabase JS client automatically picks up the token from the URL hash/query
@@ -22,14 +23,15 @@ export default function AuthCallbackPage() {
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('[AuthCallback] Session error:', error.message);
+          logger.error('[AuthCallback] Session error:', error.message);
           setState('error');
           setErrorMessage(translateCallbackError(error.message));
           return;
         }
 
         if (data.session) {
-          console.log('[AuthCallback] Session established for user:', data.session.user.id);
+          // Log only that a session was established — do not log user ID to avoid PII in logs
+          logger.log('[AuthCallback] Session established successfully');
           setState('success');
           // Short delay for visual feedback, then redirect
           setTimeout(() => navigate('/', { replace: true }), 600);
@@ -44,21 +46,21 @@ export default function AuthCallbackPage() {
           const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
 
           if (errorParam) {
-            console.error('[AuthCallback] Auth error from URL:', errorParam, errorDescription);
+            logger.error('[AuthCallback] Auth error from URL:', errorParam, errorDescription);
             setState('error');
             setErrorMessage(translateCallbackError(errorDescription || errorParam));
             return;
           }
 
           if (accessToken && refreshToken) {
-            console.log('[AuthCallback] Setting session from URL tokens');
+            logger.log('[AuthCallback] Setting session from URL tokens');
             const { error: setError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
             if (setError) {
-              console.error('[AuthCallback] setSession error:', setError.message);
+              logger.error('[AuthCallback] setSession error:', setError.message);
               setState('error');
               setErrorMessage(translateCallbackError(setError.message));
               return;
@@ -68,13 +70,13 @@ export default function AuthCallbackPage() {
             setTimeout(() => navigate('/', { replace: true }), 600);
           } else {
             // No session and no tokens — likely expired or invalid link
-            console.warn('[AuthCallback] No session or tokens found');
+            logger.warn('[AuthCallback] No session or tokens found');
             setState('error');
             setErrorMessage('Link de acesso expirado ou inválido. Solicite um novo link.');
           }
         }
       } catch (err) {
-        console.error('[AuthCallback] Unexpected error:', err);
+        logger.error('[AuthCallback] Unexpected error:', err);
         setState('error');
         setErrorMessage('Erro inesperado ao verificar o link. Tente novamente.');
       }

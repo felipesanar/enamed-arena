@@ -54,12 +54,11 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
       </div>
 
       {/* Confirmation cards */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2 lg:px-0 lg:pb-0">
-        <div
-          className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4"
-        >
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2 lg:px-0 lg:pb-0 lg:overflow-y-visible">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4 lg:content-start lg:h-full">
+          {/* Plano card */}
           <div
-            className="rounded-2xl p-4 lg:col-span-4"
+            className="rounded-2xl p-4 lg:h-fit"
             style={{
               background:
                 "linear-gradient(165deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.02) 100%)",
@@ -84,8 +83,9 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
             </p>
           </div>
 
+          {/* Especialidade card */}
           <div
-            className="rounded-2xl p-4 lg:col-span-8"
+            className="rounded-2xl p-4 lg:h-fit"
             style={{
               background:
                 "linear-gradient(165deg, rgba(232,56,98,.11) 0%, rgba(232,56,98,.04) 100%)",
@@ -107,40 +107,41 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
               {specialty}
             </p>
           </div>
-        </div>
 
-        <div
-          className="mt-3 rounded-2xl p-4"
-          style={{
-            background:
-              "linear-gradient(165deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.018) 100%)",
-            border: "1px solid rgba(255,255,255,.08)",
-          }}
-        >
-          <p
-            className="text-[9px] font-bold uppercase tracking-[.12em]"
-            style={{ color: "rgba(255,255,255,.5)" }}
+          {/* Instituições card */}
+          <div
+            className="rounded-2xl p-4 lg:h-fit"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.018) 100%)",
+              border: "1px solid rgba(255,255,255,.08)",
+            }}
           >
-            Instituições desejadas
-          </p>
-          <div className="mt-2 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-            {safeInstitutions.map((inst) => (
-              <div
-                key={inst}
-                className="rounded-xl px-3 py-2.5"
-                style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.1)",
-                }}
-              >
-                <p className="text-[10px] uppercase tracking-[.1em]" style={{ color: "rgba(255,255,255,.5)" }}>
-                  Instituição
-                </p>
-                <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.92)" }}>
-                  {inst}
-                </p>
-              </div>
-            ))}
+            <p
+              className="text-[9px] font-bold uppercase tracking-[.12em]"
+              style={{ color: "rgba(255,255,255,.32)" }}
+            >
+              Instituições desejadas
+            </p>
+            <div className="mt-2 flex flex-col gap-2">
+              {safeInstitutions.map((inst) => (
+                <div
+                  key={inst}
+                  className="rounded-xl px-3 py-2.5"
+                  style={{
+                    background: "rgba(255,255,255,.04)",
+                    border: "1px solid rgba(255,255,255,.1)",
+                  }}
+                >
+                  <p className="text-[10px] uppercase tracking-[.1em]" style={{ color: "rgba(255,255,255,.3)" }}>
+                    Instituição
+                  </p>
+                  <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.78)" }}>
+                    {inst}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

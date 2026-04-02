@@ -3,7 +3,7 @@
  * Maintains localStorage as fast write-through cache for UX (debounced sync to DB).
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { simuladosApi } from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
@@ -27,6 +27,13 @@ export function useExamStorageReal(simuladoId: string) {
   const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptIdRef = useRef<string | null>(null);
   const pendingAnswersRef = useRef<Record<string, ExamAnswer>>({});
+
+  // Clear pending debounced save on unmount to avoid writing to an unmounted component
+  useEffect(() => {
+    return () => {
+      if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
+    };
+  }, []);
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
