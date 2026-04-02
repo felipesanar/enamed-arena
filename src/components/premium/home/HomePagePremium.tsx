@@ -743,12 +743,16 @@ function KpiGridSection({
             <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             {kpi.locked && (
-              <div className="absolute inset-0 z-20 rounded-[16px] bg-background/55 backdrop-blur-[2px] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-primary/20 bg-white/90 px-3 py-2 shadow-sm">
+              <div className="group/lock absolute inset-0 z-20 rounded-[16px] bg-background/40 backdrop-blur-[1px] flex items-center justify-center cursor-pointer">
+                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-primary/20 bg-white/90 px-3 py-2 shadow-sm transition-all duration-200 group-hover/lock:scale-105 group-hover/lock:shadow-md">
                   <Lock className="h-4 w-4 text-primary" aria-hidden />
                   <span className="text-[9px] font-bold text-primary/75 uppercase tracking-[0.14em]">
                     PRO
                   </span>
+                </div>
+                <div className="pointer-events-none absolute inset-x-2 bottom-2 rounded-lg border border-primary/15 bg-white/95 px-2.5 py-2 opacity-0 shadow-lg transition-all duration-200 group-hover/lock:opacity-100 group-hover/lock:translate-y-0 translate-y-1">
+                  <p className="text-[10px] font-semibold text-foreground leading-tight mb-0.5">Exclusivo para assinantes PRO</p>
+                  <p className="text-[9px] text-muted-foreground leading-snug">Assine o SanarFlix Pro e desbloqueie o Caderno de Erros e recursos avançados.</p>
                 </div>
               </div>
             )}
