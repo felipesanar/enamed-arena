@@ -104,7 +104,7 @@ export default function AuthSSOPage() {
             <BrandIcon size="lg" className="h-10 w-10" alt="" />
           </div>
           <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">
-            sanarflix
+            SanarFlix
           </span>
           <h1 className="text-heading-2 text-foreground mt-0.5">PRO: ENAMED</h1>
         </div>

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 const ALLOWED_ORIGINS = [
   "https://sanaflix.com",
   "https://app.sanaflix.com",
-  "https://simulados.sanaflix.com.br",
+  "https://simulados.sanar.com.br",
   "https://enamed-arena.lovable.app",
   "https://id-preview--389ede2e-db02-48e3-8d83-80bfead9e2f1.lovable.app",
 ];
@@ -16,7 +16,7 @@ function isAllowedOrigin(origin: string | null): boolean {
   try {
     const url = new URL(origin);
     const hostname = url.hostname;
-    if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com") || hostname === "sanaflix.com.br" || hostname.endsWith(".sanaflix.com.br")) return true;
+    if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com") || hostname === "sanar.com.br" || hostname.endsWith(".sanar.com.br")) return true;
     if (ALLOWED_ORIGINS.includes(origin)) return true;
     if (hostname.endsWith(".lovable.app")) return true;
     return false;
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
   }
 
   // --- Generate magic link (create user if needed) ---
-  const redirectTo = "https://simulados.sanaflix.com.br/auth/callback";
+  const redirectTo = "https://simulados.sanar.com.br/auth/callback";
 
   let linkResult = await supabase.auth.admin.generateLink({
     type: "magiclink",
