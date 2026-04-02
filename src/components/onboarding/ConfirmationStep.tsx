@@ -46,7 +46,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
         </h2>
         <p
           className="text-[12.5px] text-center leading-relaxed mb-5"
-          style={{ color: "rgba(255,255,255,.45)" }}
+          style={{ color: "rgba(255,255,255,.65)" }}
         >
           Confira suas informações antes de começar. Você poderá editar esses
           dados entre as janelas de simulado.
