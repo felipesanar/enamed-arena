@@ -525,3 +525,35 @@
 .sim-dot-pulse {
   animation: sim-pulse 1.8s ease-in-out infinite;
 }
+
+/* ── Onboarding animations ───────────────────────────────────────── */
+@keyframes onboarding-glyph-breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.025); }
+}
+
+@keyframes onboarding-glyph-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+@keyframes onboarding-dot-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(232, 56, 98, 0.4), 0 0 4px rgba(232, 56, 98, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(232, 56, 98, 0.6), 0 0 8px rgba(232, 56, 98, 0.65);
+  }
+}
+
+.onboarding-glyph-box {
+  animation: onboarding-glyph-breathe 3.5s ease-in-out infinite;
+}
+
+.onboarding-glyph-glow {
+  animation: onboarding-glyph-glow 3.5s ease-in-out infinite;
+}
+
+.onboarding-dot-active {
+  animation: onboarding-dot-pulse 2.5s ease-in-out infinite;
+}
