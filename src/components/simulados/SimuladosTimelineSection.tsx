@@ -154,10 +154,12 @@ function TimelineItem({
 
       <motion.div whileHover={hoverMotion} className="relative">
         <div
-          className={cn(
-            "flex items-center justify-between gap-3 rounded-xl border border-border/90 bg-card/95 shadow-sm transition-shadow sm:gap-4",
+         className={cn(
+            "flex items-center justify-between gap-3 rounded-xl border bg-card/95 shadow-sm transition-shadow sm:gap-4",
             compact ? "px-3 py-2.5 sm:px-4 sm:py-3" : "px-4 py-3.5 sm:px-5 sm:py-4",
             !reduced && "hover:border-border hover:shadow-md",
+            (isAvailable || isInProgress) && "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10 shadow-md",
+            !(isAvailable || isInProgress) && "border-border/90",
           )}
         >
           <div className="min-w-0 flex-1">
