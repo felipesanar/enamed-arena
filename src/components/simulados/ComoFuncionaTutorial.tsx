@@ -337,7 +337,7 @@ function TutorialPanel({
                 onClick={onClose}
                 className="gap-1 bg-[#e83862] font-semibold text-white shadow-[0_4px_20px_rgba(232,56,98,0.35)] hover:bg-[#f04d72]"
               >
-                Entendi — jogar!
+                Entendi
               </Button>
             )}
           </div>
