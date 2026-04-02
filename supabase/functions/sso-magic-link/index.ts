@@ -16,7 +16,7 @@ function isAllowedOrigin(origin: string | null): boolean {
   try {
     const url = new URL(origin);
     const hostname = url.hostname;
-    if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com")) return true;
+    if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com") || hostname === "sanaflix.com.br" || hostname.endsWith(".sanaflix.com.br")) return true;
     if (ALLOWED_ORIGINS.includes(origin)) return true;
     if (hostname.endsWith(".lovable.app")) return true;
     return false;
