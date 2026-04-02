@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { SEGMENT_LABELS } from "@/types";
 import type { UserSegment } from "@/types";
 
@@ -9,49 +9,119 @@ interface Props {
 }
 
 export function ConfirmationStep({ segment, specialty, institutions }: Props) {
-  const segmentLabel =
-    SEGMENT_LABELS[segment as UserSegment] ?? segment;
+  const segmentLabel = SEGMENT_LABELS[segment as UserSegment] ?? segment;
 
   return (
-    <div>
-      <div className="text-center mb-8">
-        <div className="h-14 w-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="h-7 w-7 text-success" />
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Glyph area */}
+      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0">
+        <div className="relative mb-4">
+          <div
+            className="pointer-events-none absolute inset-[-10px] rounded-full onboarding-glyph-glow"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(232,56,98,.12) 0%, transparent 65%)",
+            }}
+            aria-hidden
+          />
+          <div
+            className="relative w-16 h-16 rounded-[20px] flex items-center justify-center onboarding-glyph-box"
+            style={{
+              background:
+                "linear-gradient(145deg, rgba(232,56,98,.22) 0%, rgba(90,21,48,.42) 100%)",
+              border: "1px solid rgba(232,56,98,.32)",
+              boxShadow: "0 6px 24px rgba(232,56,98,.22)",
+            }}
+          >
+            <Sparkles
+              className="w-[30px] h-[30px]"
+              style={{ color: "#e83862" }}
+              strokeWidth={1.75}
+            />
+          </div>
         </div>
-        <h2 className="text-heading-2 text-foreground mb-2">Tudo pronto!</h2>
-        <p className="text-body text-muted-foreground max-w-md mx-auto">
+        <h2 className="text-[19px] font-extrabold text-center leading-tight tracking-tight text-white mb-1.5">
+          Tudo pronto!
+        </h2>
+        <p
+          className="text-[12.5px] text-center leading-relaxed mb-5"
+          style={{ color: "rgba(255,255,255,.45)" }}
+        >
           Confira suas informações antes de começar. Você poderá editar esses
           dados entre as janelas de simulado.
         </p>
       </div>
 
-      <div className="max-w-lg mx-auto space-y-4">
-        <div className="p-5 rounded-xl border border-border bg-card">
-          <p className="text-overline uppercase text-muted-foreground mb-1">
+      {/* Confirmation cards */}
+      <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-3">
+        <div
+          className="p-4 rounded-[15px] flex flex-col gap-1"
+          style={{
+            background: "rgba(255,255,255,.028)",
+            border: "1px solid rgba(255,255,255,.07)",
+          }}
+        >
+          <p
+            className="text-[9px] font-bold uppercase tracking-[.1em]"
+            style={{ color: "rgba(255,255,255,.28)" }}
+          >
             Seu plano
           </p>
-          <p className="text-body font-semibold text-foreground">
+          <p
+            className="text-[13.5px] font-semibold"
+            style={{ color: "rgba(255,255,255,.82)" }}
+          >
             {segmentLabel}
           </p>
-          <p className="text-caption text-muted-foreground mt-1">
+          <p className="text-[10.5px]" style={{ color: "rgba(255,255,255,.28)" }}>
             Definido pela sua assinatura
           </p>
         </div>
-        <div className="p-5 rounded-xl border border-border bg-card">
-          <p className="text-overline uppercase text-muted-foreground mb-1">
+
+        <div
+          className="p-4 rounded-[15px] flex flex-col gap-1"
+          style={{
+            background: "rgba(255,255,255,.028)",
+            border: "1px solid rgba(255,255,255,.07)",
+          }}
+        >
+          <p
+            className="text-[9px] font-bold uppercase tracking-[.1em]"
+            style={{ color: "rgba(255,255,255,.28)" }}
+          >
             Especialidade desejada
           </p>
-          <p className="text-body font-semibold text-foreground">{specialty}</p>
+          <p
+            className="text-[13.5px] font-semibold"
+            style={{ color: "rgba(255,255,255,.82)" }}
+          >
+            {specialty}
+          </p>
         </div>
-        <div className="p-5 rounded-xl border border-border bg-card">
-          <p className="text-overline uppercase text-muted-foreground mb-1">
+
+        <div
+          className="p-4 rounded-[15px] flex flex-col gap-2"
+          style={{
+            background: "rgba(255,255,255,.028)",
+            border: "1px solid rgba(255,255,255,.07)",
+          }}
+        >
+          <p
+            className="text-[9px] font-bold uppercase tracking-[.1em]"
+            style={{ color: "rgba(255,255,255,.28)" }}
+          >
             Instituições desejadas
           </p>
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex flex-wrap gap-1.5">
             {institutions.map((inst) => (
               <span
                 key={inst}
-                className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-body-sm font-medium"
+                className="px-2.5 py-1.5 rounded-[8px] text-[11px] font-medium"
+                style={{
+                  background: "rgba(255,255,255,.055)",
+                  border: "1px solid rgba(255,255,255,.09)",
+                  color: "rgba(255,255,255,.55)",
+                }}
               >
                 {inst}
               </span>
