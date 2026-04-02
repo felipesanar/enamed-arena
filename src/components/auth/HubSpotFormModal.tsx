@@ -55,6 +55,7 @@ export function HubSpotFormModal({
   const scriptLoadedRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [showSkip, setShowSkip] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
