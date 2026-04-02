@@ -4,11 +4,11 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import { trackEvent } from "@/lib/analytics";
-import { BrandIcon } from "@/components/brand/BrandMark";
+import { BrandLogo } from "@/components/brand/BrandMark";
 import { SpecialtyStep } from "@/components/onboarding/SpecialtyStep";
 import { InstitutionStep } from "@/components/onboarding/InstitutionStep";
 import { ConfirmationStep } from "@/components/onboarding/ConfirmationStep";
-import { ChevronRight, ChevronLeft, Sparkles, CheckCircle2, GraduationCap, Building2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, CheckCircle2, GraduationCap, Building2 } from "lucide-react";
 
 const STEPS = ["Especialidade", "Instituições", "Confirmação"] as const;
 
@@ -41,7 +41,7 @@ const STEP_META = [
       "Selecione até 3 instituições do ENARE onde pretende prestar residência.",
   },
   {
-    icon: Sparkles,
+    icon: CheckCircle2,
     title: "Tudo pronto!",
     description:
       "Confira suas informações antes de começar. Editável entre janelas de simulado.",
@@ -234,32 +234,12 @@ export default function OnboardingPage() {
       />
 
       {/* Brand header */}
-      <div className="relative z-10 flex flex-col items-center pt-9 pb-0 gap-1.5">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(145deg, rgba(232,56,98,.22) 0%, rgba(90,21,48,.35) 100%)",
-            border: "1px solid rgba(232,56,98,.28)",
-            boxShadow:
-              "0 3px 12px rgba(232,56,98,.18), inset 0 1px 0 rgba(255,255,255,.08)",
-          }}
-        >
-          <BrandIcon size="sm" className="h-8 w-8" alt="" />
-        </div>
-        <span
-          className="text-[9px] uppercase tracking-[.18em] font-bold"
-          style={{ color: "rgba(255,255,255,.28)" }}
-        >
-          sanarflix
-        </span>
-        <p className="text-sm font-bold" style={{ color: "rgba(255,255,255,.65)" }}>
-          PRO: ENAMED
-        </p>
+      <div className="relative z-10 flex items-center justify-center pt-6 pb-0">
+        <BrandLogo variant="md" tone="onDark" className="h-8 w-auto opacity-95" />
       </div>
 
       {/* Progress dots */}
-      <div className="relative z-10 flex items-center justify-center px-14 pt-5">
+      <div className="relative z-10 flex items-center justify-center px-14 pt-3.5">
         {([0, 1, 2] as const).map((i) => (
           <Fragment key={i}>
             {i > 0 && (
@@ -306,7 +286,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step labels */}
-      <div className="relative z-10 flex justify-between px-7 pt-1.5">
+      <div className="relative z-10 flex justify-between px-7 pt-1">
         {STEPS.map((label, i) => (
           <span
             key={label}
@@ -350,7 +330,7 @@ export default function OnboardingPage() {
 
       {/* Glass panel */}
       <div
-        className="relative z-10 mx-3.5 mt-4 mb-4 lg:mx-auto lg:mt-5 lg:mb-8 lg:max-w-[900px] lg:w-full flex flex-col flex-1"
+        className="relative z-10 mx-3.5 mt-2.5 mb-3.5 lg:mx-auto lg:mt-3 lg:mb-4 lg:max-w-[900px] lg:w-full flex flex-col flex-1 min-h-0"
         style={{
           borderRadius: 28,
           background: "rgba(255,255,255,.022)",
@@ -366,7 +346,7 @@ export default function OnboardingPage() {
         <div className="flex flex-col lg:flex-row flex-1 min-h-0">
           {/* Left column — desktop only */}
           <div
-            className="hidden lg:flex lg:w-[280px] lg:flex-shrink-0 flex-col relative lg:border-r lg:border-white/[.055] lg:px-6 lg:py-7"
+            className="hidden lg:flex lg:w-[280px] lg:flex-shrink-0 flex-col relative lg:border-r lg:border-white/[.055] lg:px-6 lg:py-5 lg:overflow-y-auto"
             style={{ background: "rgba(255,255,255,.012)" }}
           >
             {/* Subtle radial glow */}
@@ -448,9 +428,9 @@ export default function OnboardingPage() {
           </div>
 
           {/* Right column */}
-          <div className="flex-1 overflow-hidden flex flex-col lg:px-6 lg:py-5 lg:pb-0">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col lg:px-6 lg:py-4 lg:pb-0">
             {/* Step content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={step}
@@ -510,7 +490,7 @@ export default function OnboardingPage() {
 
         {/* Bottom nav */}
         <div
-          className="flex items-center gap-2.5 px-4 lg:px-6 pb-7 pt-3.5 flex-shrink-0"
+          className="flex items-center gap-2.5 px-4 lg:px-6 pb-4 pt-2.5 flex-shrink-0"
           style={{
             background:
               "linear-gradient(to top, rgba(10,5,8,.96) 0%, rgba(10,5,8,.65) 100%)",
@@ -566,10 +546,7 @@ export default function OnboardingPage() {
                   Salvando...
                 </>
               ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                  Começar
-                </>
+                "Começar"
               )}
             </button>
           )}

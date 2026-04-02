@@ -10,9 +10,10 @@ interface Props {
 
 export function ConfirmationStep({ segment, specialty, institutions }: Props) {
   const segmentLabel = SEGMENT_LABELS[segment as UserSegment] ?? segment;
+  const safeInstitutions = institutions.length > 0 ? institutions : ["Ainda não definido"];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden lg:pt-4">
+    <div className="flex flex-col h-full overflow-hidden lg:pt-2">
       {/* Glyph area */}
       <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0 lg:hidden">
         <div className="relative mb-4">
@@ -53,78 +54,92 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
       </div>
 
       {/* Confirmation cards */}
-      <div className="flex-1 overflow-y-auto px-4 pb-2 lg:px-0 lg:pb-0 flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:content-start">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2 lg:px-0 lg:pb-0">
         <div
-          className="p-4 rounded-[15px] flex flex-col gap-1 lg:h-fit"
-          style={{
-            background: "rgba(255,255,255,.028)",
-            border: "1px solid rgba(255,255,255,.07)",
-          }}
+          className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4"
         >
-          <p
-            className="text-[9px] font-bold uppercase tracking-[.1em]"
-            style={{ color: "rgba(255,255,255,.28)" }}
+          <div
+            className="rounded-2xl p-4 lg:col-span-4"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.02) 100%)",
+              border: "1px solid rgba(255,255,255,.09)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
+            }}
           >
-            Seu plano
-          </p>
-          <p
-            className="text-[13.5px] font-semibold"
-            style={{ color: "rgba(255,255,255,.82)" }}
+            <p
+              className="text-[9px] font-bold uppercase tracking-[.12em]"
+              style={{ color: "rgba(255,255,255,.32)" }}
+            >
+              Seu plano
+            </p>
+            <p
+              className="mt-1 text-[22px] font-extrabold leading-none"
+              style={{ color: "rgba(255,255,255,.9)" }}
+            >
+              {segmentLabel}
+            </p>
+            <p className="mt-2 text-[11px]" style={{ color: "rgba(255,255,255,.36)" }}>
+              Definido pela sua assinatura atual.
+            </p>
+          </div>
+
+          <div
+            className="rounded-2xl p-4 lg:col-span-8"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(232,56,98,.11) 0%, rgba(232,56,98,.04) 100%)",
+              border: "1px solid rgba(232,56,98,.22)",
+              boxShadow:
+                "inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -18px rgba(232,56,98,.45)",
+            }}
           >
-            {segmentLabel}
-          </p>
-          <p className="text-[10.5px]" style={{ color: "rgba(255,255,255,.28)" }}>
-            Definido pela sua assinatura
-          </p>
+            <p
+              className="text-[9px] font-bold uppercase tracking-[.12em]"
+              style={{ color: "rgba(255,255,255,.36)" }}
+            >
+              Especialidade desejada
+            </p>
+            <p
+              className="mt-1 text-[20px] font-extrabold leading-tight"
+              style={{ color: "#f6f2f4" }}
+            >
+              {specialty}
+            </p>
+          </div>
         </div>
 
         <div
-          className="p-4 rounded-[15px] flex flex-col gap-1 lg:h-fit"
+          className="mt-3 rounded-2xl p-4"
           style={{
-            background: "rgba(255,255,255,.028)",
-            border: "1px solid rgba(255,255,255,.07)",
+            background:
+              "linear-gradient(165deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.018) 100%)",
+            border: "1px solid rgba(255,255,255,.08)",
           }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-[.1em]"
-            style={{ color: "rgba(255,255,255,.28)" }}
-          >
-            Especialidade desejada
-          </p>
-          <p
-            className="text-[13.5px] font-semibold"
-            style={{ color: "rgba(255,255,255,.82)" }}
-          >
-            {specialty}
-          </p>
-        </div>
-
-        <div
-          className="p-4 rounded-[15px] flex flex-col gap-2 lg:h-fit"
-          style={{
-            background: "rgba(255,255,255,.028)",
-            border: "1px solid rgba(255,255,255,.07)",
-          }}
-        >
-          <p
-            className="text-[9px] font-bold uppercase tracking-[.1em]"
-            style={{ color: "rgba(255,255,255,.28)" }}
+            className="text-[9px] font-bold uppercase tracking-[.12em]"
+            style={{ color: "rgba(255,255,255,.32)" }}
           >
             Instituições desejadas
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {institutions.map((inst) => (
-              <span
+          <div className="mt-2 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+            {safeInstitutions.map((inst) => (
+              <div
                 key={inst}
-                className="px-2.5 py-1.5 rounded-[8px] text-[11px] font-medium"
+                className="rounded-xl px-3 py-2.5"
                 style={{
-                  background: "rgba(255,255,255,.055)",
-                  border: "1px solid rgba(255,255,255,.09)",
-                  color: "rgba(255,255,255,.55)",
+                  background: "rgba(255,255,255,.04)",
+                  border: "1px solid rgba(255,255,255,.1)",
                 }}
               >
-                {inst}
-              </span>
+                <p className="text-[10px] uppercase tracking-[.1em]" style={{ color: "rgba(255,255,255,.3)" }}>
+                  Instituição
+                </p>
+                <p className="mt-0.5 text-[13px] font-semibold leading-snug" style={{ color: "rgba(255,255,255,.78)" }}>
+                  {inst}
+                </p>
+              </div>
             ))}
           </div>
         </div>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desktop Onboarding — Layout</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0609;
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    padding: 32px 24px 48px;
+    min-height: 100vh;
+  }
+
+  h1 { font-size: 18px; font-weight: 700; color: rgba(255,255,255,.85); margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,.4); margin-bottom: 32px; }
+
+  .options { display: flex; flex-direction: column; gap: 20px; }
+
+  .option {
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    background: rgba(255,255,255,.025);
+  }
+  .option:hover { border-color: rgba(232,56,98,.4); }
+  .option.selected { border-color: #e83862; box-shadow: 0 0 0 1px #e83862, 0 8px 32px rgba(232,56,98,.2); }
+
+  .option-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .letter {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(232,56,98,.15); border: 1px solid rgba(232,56,98,.3);
+    color: #e83862; font-weight: 800; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .option-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,.85); }
+  .option-desc { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 2px; }
+
+  .mockup-wrap { padding: 16px 18px 18px; }
+
+  /* ── MOCKUP A: Split left/right ── */
+  .mock-a {
+    display: flex; height: 200px; border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .mock-a-left {
+    width: 38%; background: linear-gradient(160deg, rgba(232,56,98,.1) 0%, rgba(90,21,48,.18) 100%);
+    border-right: 1px solid rgba(255,255,255,.06);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 16px;
+  }
+  .mock-brand { width: 32px; height: 32px; border-radius: 8px; background: rgba(232,56,98,.25); border: 1px solid rgba(232,56,98,.4); }
+  .mock-brand-text { width: 48px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.15); }
+  .mock-steps { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
+  .mock-step { display: flex; align-items: center; gap: 8px; }
+  .mock-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; }
+  .mock-dot.done { background: rgba(74,222,128,.15); border: 1.5px solid rgba(74,222,128,.5); }
+  .mock-dot.active { background: rgba(232,56,98,.2); border: 1.5px solid #e83862; }
+  .mock-dot.pending { background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,255,255,.12); }
+  .mock-step-label { height: 6px; border-radius: 3px; background: rgba(255,255,255,.15); }
+
+  .mock-a-right {
+    flex: 1; background: rgba(255,255,255,.015);
+    display: flex; flex-direction: column; padding: 16px; gap: 10px;
+  }
+  .mock-glyph { width: 40px; height: 40px; border-radius: 10px; background: rgba(232,56,98,.2); border: 1px solid rgba(232,56,98,.3); margin-bottom: 2px; }
+  .mock-title { height: 10px; width: 70%; border-radius: 4px; background: rgba(255,255,255,.2); }
+  .mock-sub { height: 7px; width: 55%; border-radius: 3px; background: rgba(255,255,255,.08); }
+  .mock-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .mock-chip { height: 26px; border-radius: 7px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
+  .mock-chip.w1 { width: 70px; }
+  .mock-chip.w2 { width: 90px; }
+  .mock-chip.w3 { width: 60px; }
+  .mock-chip.w4 { width: 80px; }
+  .mock-chip.selected { background: rgba(232,56,98,.12); border-color: rgba(232,56,98,.35); }
+  .mock-btn { margin-top: auto; height: 32px; border-radius: 8px; background: #e83862; width: 100%; }
+
+  /* ── MOCKUP B: Centered wide card ── */
+  .mock-b {
+    height: 200px; border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.015);
+    display: flex; flex-direction: column; align-items: center; padding: 14px 16px;
+    position: relative;
+  }
+  .mock-b-dots { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+  .mock-b-dot { width: 18px; height: 18px; border-radius: 50%; }
+  .mock-b-dot.done { background: rgba(74,222,128,.15); border: 1.5px solid rgba(74,222,128,.5); }
+  .mock-b-dot.active { background: rgba(232,56,98,.2); border: 1.5px solid #e83862; }
+  .mock-b-dot.pending { background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,255,255,.12); }
+  .mock-b-line { width: 32px; height: 1px; background: rgba(255,255,255,.1); }
+
+  .mock-b-body { display: flex; gap: 24px; width: 100%; flex: 1; }
+  .mock-b-left { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 4px; }
+  .mock-b-glyph { width: 44px; height: 44px; border-radius: 12px; background: rgba(232,56,98,.2); border: 1px solid rgba(232,56,98,.3); }
+  .mock-b-title { height: 9px; width: 120px; border-radius: 3px; background: rgba(255,255,255,.2); }
+  .mock-b-desc { height: 6px; width: 100px; border-radius: 3px; background: rgba(255,255,255,.08); }
+  .mock-b-right { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .mock-input { height: 28px; border-radius: 7px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); width: 100%; }
+  .mock-b-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .mock-b-btn { margin-top: auto; height: 28px; border-radius: 7px; background: #e83862; align-self: flex-end; width: 120px; }
+
+  /* ── MOCKUP C: Cinematic full ── */
+  .mock-c {
+    height: 200px; border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.015);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .mock-c-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .mock-c-brand { display: flex; align-items: center; gap: 6px; }
+  .mock-c-logo { width: 22px; height: 22px; border-radius: 5px; background: rgba(232,56,98,.25); border: 1px solid rgba(232,56,98,.3); }
+  .mock-c-name { height: 6px; width: 60px; border-radius: 2px; background: rgba(255,255,255,.2); }
+  .mock-c-dots-row { display: flex; gap: 5px; align-items: center; }
+
+  .mock-c-body { flex: 1; display: flex; }
+  .mock-c-sidebar {
+    width: 140px; border-right: 1px solid rgba(255,255,255,.06);
+    background: rgba(232,56,98,.04);
+    display: flex; flex-direction: column; padding: 16px 12px; gap: 14px;
+  }
+  .mock-c-glyph2 { width: 40px; height: 40px; border-radius: 10px; background: rgba(232,56,98,.2); border: 1px solid rgba(232,56,98,.3); }
+  .mock-c-step-title { height: 8px; width: 80%; border-radius: 3px; background: rgba(255,255,255,.18); }
+  .mock-c-step-sub { height: 5px; width: 60%; border-radius: 3px; background: rgba(255,255,255,.07); }
+  .mock-c-progress { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .mock-c-prog-item { display: flex; align-items: center; gap: 5px; }
+  .mock-c-prog-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .mock-c-content { flex: 1; display: flex; flex-direction: column; padding: 14px; gap: 8px; }
+  .mock-c-search { height: 26px; border-radius: 6px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); }
+  .mock-c-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; flex: 1; }
+  .mock-c-cell { height: 28px; border-radius: 6px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); }
+  .mock-c-cell.sel { background: rgba(232,56,98,.1); border-color: rgba(232,56,98,.3); }
+
+  /* Selected indicator */
+  .option.selected .option-header { border-bottom-color: rgba(232,56,98,.2); }
+  .checkmark { display: none; margin-left: auto; color: #e83862; font-size: 16px; font-weight: 700; }
+  .option.selected .checkmark { display: block; }
+</style>
+</head>
+<body>
+
+<h1>Qual estrutura de layout para o desktop?</h1>
+<p class="subtitle">O mobile usa glass panel full-height. No desktop queremos algo projetado para telas maiores.</p>
+
+<div class="options">
+
+  <!-- A: Split -->
+  <div class="option" onclick="select(this, 'A')">
+    <div class="option-header">
+      <div class="letter">A</div>
+      <div>
+        <div class="option-title">Split — Branding à esquerda, form à direita</div>
+        <div class="option-desc">Painel esquerdo com logo, steps e descrição do passo. Painel direito com o formulário.</div>
+      </div>
+      <div class="checkmark">✓</div>
+    </div>
+    <div class="mockup-wrap">
+      <div class="mock-a">
+        <div class="mock-a-left">
+          <div class="mock-brand"></div>
+          <div class="mock-brand-text"></div>
+          <div class="mock-steps">
+            <div class="mock-step">
+              <div class="mock-dot done"></div>
+              <div class="mock-step-label" style="width:70%"></div>
+            </div>
+            <div class="mock-step">
+              <div class="mock-dot active"></div>
+              <div class="mock-step-label" style="width:80%;background:rgba(232,56,98,.35)"></div>
+            </div>
+            <div class="mock-step">
+              <div class="mock-dot pending"></div>
+              <div class="mock-step-label" style="width:60%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-a-right">
+          <div class="mock-glyph"></div>
+          <div class="mock-title"></div>
+          <div class="mock-sub"></div>
+          <div class="mock-chips">
+            <div class="mock-chip w1"></div>
+            <div class="mock-chip w2 selected"></div>
+            <div class="mock-chip w3"></div>
+            <div class="mock-chip w4"></div>
+            <div class="mock-chip w1"></div>
+            <div class="mock-chip w3"></div>
+          </div>
+          <div class="mock-btn"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: Wide card 2-col -->
+  <div class="option" onclick="select(this, 'B')">
+    <div class="option-header">
+      <div class="letter">B</div>
+      <div>
+        <div class="option-title">Card amplo — Glyph + título à esquerda, form à direita</div>
+        <div class="option-desc">Mantém o card centralizado mas 2 colunas internas: glyph/descrição do step na esquerda, formulário na direita.</div>
+      </div>
+      <div class="checkmark">✓</div>
+    </div>
+    <div class="mockup-wrap">
+      <div class="mock-b">
+        <div class="mock-b-dots">
+          <div class="mock-b-dot done"></div>
+          <div class="mock-b-line"></div>
+          <div class="mock-b-dot active"></div>
+          <div class="mock-b-line"></div>
+          <div class="mock-b-dot pending"></div>
+        </div>
+        <div class="mock-b-body">
+          <div class="mock-b-left">
+            <div class="mock-b-glyph"></div>
+            <div class="mock-b-title"></div>
+            <div class="mock-b-desc"></div>
+            <div class="mock-b-desc" style="margin-top:2px;width:80px"></div>
+          </div>
+          <div class="mock-b-right">
+            <div class="mock-input"></div>
+            <div class="mock-b-chips">
+              <div class="mock-chip w1"></div>
+              <div class="mock-chip w2 selected"></div>
+              <div class="mock-chip w3"></div>
+              <div class="mock-chip w4"></div>
+            </div>
+            <div class="mock-b-btn"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: Topbar + sidebar -->
+  <div class="option" onclick="select(this, 'C')">
+    <div class="option-header">
+      <div class="letter">C</div>
+      <div>
+        <div class="option-title">App shell — Topbar + sidebar + conteúdo principal</div>
+        <div class="option-desc">Topbar com brand + steps. Sidebar esquerda com glyph e descrição do step atual. Área principal com o formulário.</div>
+      </div>
+      <div class="checkmark">✓</div>
+    </div>
+    <div class="mockup-wrap">
+      <div class="mock-c">
+        <div class="mock-c-top">
+          <div class="mock-c-brand">
+            <div class="mock-c-logo"></div>
+            <div class="mock-c-name"></div>
+          </div>
+          <div class="mock-c-dots-row">
+            <div class="mock-b-dot done"></div>
+            <div class="mock-b-line" style="width:20px"></div>
+            <div class="mock-b-dot active"></div>
+            <div class="mock-b-line" style="width:20px"></div>
+            <div class="mock-b-dot pending"></div>
+          </div>
+        </div>
+        <div class="mock-c-body">
+          <div class="mock-c-sidebar">
+            <div class="mock-c-glyph2"></div>
+            <div class="mock-c-step-title"></div>
+            <div class="mock-c-step-sub"></div>
+            <div class="mock-c-progress">
+              <div class="mock-c-prog-item">
+                <div class="mock-c-prog-dot" style="background:rgba(74,222,128,.5)"></div>
+                <div style="height:5px;width:60px;border-radius:2px;background:rgba(255,255,255,.12)"></div>
+              </div>
+              <div class="mock-c-prog-item">
+                <div class="mock-c-prog-dot" style="background:#e83862"></div>
+                <div style="height:5px;width:75px;border-radius:2px;background:rgba(232,56,98,.3)"></div>
+              </div>
+              <div class="mock-c-prog-item">
+                <div class="mock-c-prog-dot" style="background:rgba(255,255,255,.12)"></div>
+                <div style="height:5px;width:55px;border-radius:2px;background:rgba(255,255,255,.08)"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-c-content">
+            <div class="mock-c-search"></div>
+            <div class="mock-c-grid">
+              <div class="mock-c-cell"></div>
+              <div class="mock-c-cell sel"></div>
+              <div class="mock-c-cell"></div>
+              <div class="mock-c-cell"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let selected = null;
+  function select(el, choice) {
+    document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selected = choice;
+    if (window.__superpowers_record) window.__superpowers_record({ type: 'click', choice, text: el.querySelector('.option-title').textContent });
+  }
+</script>
+</body>
+</html>

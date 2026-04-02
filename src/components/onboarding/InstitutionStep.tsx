@@ -82,7 +82,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
   const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden lg:pt-4">
+    <div className="flex flex-col h-full overflow-hidden lg:pt-2">
       {/* Glyph area */}
       <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0 lg:hidden">
         <div className="relative mb-4">
@@ -123,7 +123,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex flex-col px-4 pb-2 gap-2.5">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 pb-2 gap-2.5">
         {/* "Ainda não sei" */}
         <button
           type="button"
@@ -283,148 +283,150 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                 </div>
 
                 {/* UF groups */}
-                {isLoading ? (
-                  <div className="flex flex-col gap-2">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="h-10 rounded-[13px] animate-pulse"
-                        style={{ background: "rgba(255,255,255,.05)" }}
-                      />
-                    ))}
-                  </div>
-                ) : filteredGrouped &&
-                  Object.keys(filteredGrouped).length > 0 ? (
-                  <div className="overflow-y-auto flex flex-col gap-1.5 pr-0.5">
-                    {Object.entries(filteredGrouped).map(([uf, insts]) => {
-                      const isExpanded =
-                        expandedUfs.has(uf) || !!search.trim();
-                      const ufVagas = insts.reduce(
-                        (s, i) => s + i.vagas,
-                        0
-                      );
-                      return (
+                <div className="flex-1 min-h-0">
+                  {isLoading ? (
+                    <div className="flex h-full flex-col gap-2 overflow-y-auto pr-0.5">
+                      {Array.from({ length: 4 }).map((_, i) => (
                         <div
-                          key={uf}
-                          className="rounded-[13px] overflow-hidden"
-                          style={{ border: "1px solid rgba(255,255,255,.06)" }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => toggleUf(uf)}
-                            className="w-full flex items-center justify-between p-3 transition-colors"
-                            style={{ background: "rgba(255,255,255,.03)" }}
+                          key={i}
+                          className="h-10 rounded-[13px] animate-pulse"
+                          style={{ background: "rgba(255,255,255,.05)" }}
+                        />
+                      ))}
+                    </div>
+                  ) : filteredGrouped &&
+                    Object.keys(filteredGrouped).length > 0 ? (
+                    <div className="h-full overflow-y-auto flex flex-col gap-1.5 pr-0.5">
+                      {Object.entries(filteredGrouped).map(([uf, insts]) => {
+                        const isExpanded =
+                          expandedUfs.has(uf) || !!search.trim();
+                        const ufVagas = insts.reduce(
+                          (s, i) => s + i.vagas,
+                          0
+                        );
+                        return (
+                          <div
+                            key={uf}
+                            className="rounded-[13px] overflow-hidden"
+                            style={{ border: "1px solid rgba(255,255,255,.06)" }}
                           >
-                            <div className="flex items-center gap-2">
-                              <MapPin
-                                className="h-3.5 w-3.5"
-                                style={{ color: "rgba(255,255,255,.3)" }}
-                              />
-                              <span
-                                className="text-[11.5px] font-bold"
-                                style={{ color: "rgba(255,255,255,.6)" }}
-                              >
-                                {uf}
-                              </span>
-                              <span
-                                className="text-[10px]"
-                                style={{ color: "rgba(255,255,255,.28)" }}
-                              >
-                                {insts.length} inst. · {ufVagas} vagas
-                              </span>
-                            </div>
-                            {isExpanded ? (
-                              <ChevronUp
-                                className="h-4 w-4"
-                                style={{ color: "rgba(255,255,255,.28)" }}
-                              />
-                            ) : (
-                              <ChevronDown
-                                className="h-4 w-4"
-                                style={{ color: "rgba(255,255,255,.28)" }}
-                              />
+                            <button
+                              type="button"
+                              onClick={() => toggleUf(uf)}
+                              className="w-full flex items-center justify-between p-3 transition-colors"
+                              style={{ background: "rgba(255,255,255,.03)" }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <MapPin
+                                  className="h-3.5 w-3.5"
+                                  style={{ color: "rgba(255,255,255,.3)" }}
+                                />
+                                <span
+                                  className="text-[11.5px] font-bold"
+                                  style={{ color: "rgba(255,255,255,.6)" }}
+                                >
+                                  {uf}
+                                </span>
+                                <span
+                                  className="text-[10px]"
+                                  style={{ color: "rgba(255,255,255,.28)" }}
+                                >
+                                  {insts.length} inst. · {ufVagas} vagas
+                                </span>
+                              </div>
+                              {isExpanded ? (
+                                <ChevronUp
+                                  className="h-4 w-4"
+                                  style={{ color: "rgba(255,255,255,.28)" }}
+                                />
+                              ) : (
+                                <ChevronDown
+                                  className="h-4 w-4"
+                                  style={{ color: "rgba(255,255,255,.28)" }}
+                                />
+                              )}
+                            </button>
+                            {isExpanded && (
+                              <div className="p-1.5 flex flex-col gap-0.5">
+                                {insts.map((inst) => {
+                                  const isSelected = realSelected.includes(
+                                    inst.name
+                                  );
+                                  const isMaxReached =
+                                    !isSelected &&
+                                    realSelected.length >= MAX_INSTITUTIONS;
+                                  return (
+                                    <button
+                                      key={inst.id}
+                                      type="button"
+                                      onClick={() =>
+                                        handleToggleInstitution(inst.name)
+                                      }
+                                      disabled={isMaxReached}
+                                      className="w-full flex items-center justify-between p-2.5 rounded-[10px] transition-all text-left disabled:cursor-not-allowed"
+                                      style={
+                                        isSelected
+                                          ? {
+                                              background:
+                                                "rgba(232,56,98,.07)",
+                                              border:
+                                                "1px solid rgba(232,56,98,.1)",
+                                            }
+                                          : isMaxReached
+                                          ? { opacity: 0.35 }
+                                          : {}
+                                      }
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <p
+                                          className="text-[11.5px] truncate"
+                                          style={{
+                                            color: isSelected
+                                              ? "#e83862"
+                                              : "rgba(255,255,255,.65)",
+                                            fontWeight: isSelected ? 600 : 400,
+                                          }}
+                                        >
+                                          {inst.name}
+                                        </p>
+                                        <p
+                                          className="text-[10px]"
+                                          style={{
+                                            color: "rgba(255,255,255,.28)",
+                                          }}
+                                        >
+                                          {inst.vagas} vaga
+                                          {inst.vagas !== 1 ? "s" : ""}
+                                          {inst.cenario_pratica &&
+                                            ` · ${inst.cenario_pratica}`}
+                                        </p>
+                                      </div>
+                                      {isSelected && (
+                                        <CheckCircle2
+                                          className="h-4 w-4 shrink-0 ml-2"
+                                          style={{ color: "#e83862" }}
+                                        />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             )}
-                          </button>
-                          {isExpanded && (
-                            <div className="p-1.5 flex flex-col gap-0.5">
-                              {insts.map((inst) => {
-                                const isSelected = realSelected.includes(
-                                  inst.name
-                                );
-                                const isMaxReached =
-                                  !isSelected &&
-                                  realSelected.length >= MAX_INSTITUTIONS;
-                                return (
-                                  <button
-                                    key={inst.id}
-                                    type="button"
-                                    onClick={() =>
-                                      handleToggleInstitution(inst.name)
-                                    }
-                                    disabled={isMaxReached}
-                                    className="w-full flex items-center justify-between p-2.5 rounded-[10px] transition-all text-left disabled:cursor-not-allowed"
-                                    style={
-                                      isSelected
-                                        ? {
-                                            background:
-                                              "rgba(232,56,98,.07)",
-                                            border:
-                                              "1px solid rgba(232,56,98,.1)",
-                                          }
-                                        : isMaxReached
-                                        ? { opacity: 0.35 }
-                                        : {}
-                                    }
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <p
-                                        className="text-[11.5px] truncate"
-                                        style={{
-                                          color: isSelected
-                                            ? "#e83862"
-                                            : "rgba(255,255,255,.65)",
-                                          fontWeight: isSelected ? 600 : 400,
-                                        }}
-                                      >
-                                        {inst.name}
-                                      </p>
-                                      <p
-                                        className="text-[10px]"
-                                        style={{
-                                          color: "rgba(255,255,255,.28)",
-                                        }}
-                                      >
-                                        {inst.vagas} vaga
-                                        {inst.vagas !== 1 ? "s" : ""}
-                                        {inst.cenario_pratica &&
-                                          ` · ${inst.cenario_pratica}`}
-                                      </p>
-                                    </div>
-                                    {isSelected && (
-                                      <CheckCircle2
-                                        className="h-4 w-4 shrink-0 ml-2"
-                                        style={{ color: "#e83862" }}
-                                      />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p
-                    className="text-center text-[12px] py-8"
-                    style={{ color: "rgba(255,255,255,.35)" }}
-                  >
-                    {search
-                      ? `Nenhuma instituição encontrada para "${search}"`
-                      : "Nenhuma instituição oferta esta especialidade no ENARE."}
-                  </p>
-                )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p
+                      className="text-center text-[12px] py-8"
+                      style={{ color: "rgba(255,255,255,.35)" }}
+                    >
+                      {search
+                        ? `Nenhuma instituição encontrada para "${search}"`
+                        : "Nenhuma instituição oferta esta especialidade no ENARE."}
+                    </p>
+                  )}
+                </div>
               </>
             )}
           </>

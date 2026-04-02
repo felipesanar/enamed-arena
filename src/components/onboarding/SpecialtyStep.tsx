@@ -43,7 +43,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden lg:pt-4">
+    <div className="flex flex-col h-full overflow-hidden lg:pt-2">
       {/* Glyph area */}
       <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0 lg:hidden">
         <div className="relative mb-4">
@@ -84,7 +84,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
       </div>
 
       {/* Search + chips */}
-      <div className="flex-1 overflow-hidden flex flex-col px-4 pb-2">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 pb-2">
         {/* Search input */}
         <div className="relative mb-3 shrink-0">
           <Search
@@ -115,85 +115,87 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
         </div>
 
         {/* Chips grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-11 rounded-[13px] animate-pulse"
-                style={{ background: "rgba(255,255,255,.06)" }}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto pr-0.5">
-            {filtered.map((spec) => {
-              const isSelected = specialty === spec;
-              const isUndecided = spec === AINDA_NAO_SEI;
-              return (
-                <button
-                  key={spec}
-                  type="button"
-                  onClick={() => onSelect(spec)}
-                  className={`flex items-center justify-between p-3.5 rounded-[13px] transition-all duration-150 text-left group${
-                    isUndecided ? " sm:col-span-2" : ""
-                  }`}
-                  style={
-                    isSelected
-                      ? {
-                          background: "rgba(232,56,98,.12)",
-                          border: "1px solid rgba(232,56,98,.38)",
-                        }
-                      : isUndecided
-                      ? {
-                          background: "rgba(255,255,255,.025)",
-                          border: "1px dashed rgba(255,255,255,.1)",
-                        }
-                      : {
-                          background: "rgba(255,255,255,.035)",
-                          border: "1px solid rgba(255,255,255,.07)",
-                        }
-                  }
-                >
-                  <span
-                    className={`text-[12px] transition-colors${
-                      isUndecided ? " italic" : ""
+        <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-11 rounded-[13px] animate-pulse"
+                  style={{ background: "rgba(255,255,255,.06)" }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {filtered.map((spec) => {
+                const isSelected = specialty === spec;
+                const isUndecided = spec === AINDA_NAO_SEI;
+                return (
+                  <button
+                    key={spec}
+                    type="button"
+                    onClick={() => onSelect(spec)}
+                    className={`flex items-center justify-between p-3.5 rounded-[13px] transition-all duration-150 text-left group${
+                      isUndecided ? " sm:col-span-2" : ""
                     }`}
-                    style={{
-                      color: isSelected
-                        ? "#e83862"
+                    style={
+                      isSelected
+                        ? {
+                            background: "rgba(232,56,98,.12)",
+                            border: "1px solid rgba(232,56,98,.38)",
+                          }
                         : isUndecided
-                        ? "rgba(255,255,255,.3)"
-                        : "rgba(255,255,255,.6)",
-                      fontWeight: isSelected ? 600 : 400,
-                    }}
+                        ? {
+                            background: "rgba(255,255,255,.025)",
+                            border: "1px dashed rgba(255,255,255,.1)",
+                          }
+                        : {
+                            background: "rgba(255,255,255,.035)",
+                            border: "1px solid rgba(255,255,255,.07)",
+                          }
+                    }
                   >
-                    {spec}
-                  </span>
-                  {isSelected ? (
-                    <CheckCircle2
-                      className="h-4 w-4 shrink-0"
-                      style={{ color: "#e83862" }}
-                    />
-                  ) : (
-                    <ChevronRight
-                      className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ color: "rgba(255,255,255,.3)" }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-            {filtered.length === 0 && (
-              <p
-                className="col-span-2 text-center text-[12px] py-8"
-                style={{ color: "rgba(255,255,255,.35)" }}
-              >
-                Nenhuma especialidade encontrada para &quot;{search}&quot;
-              </p>
-            )}
-          </div>
-        )}
+                    <span
+                      className={`text-[12px] transition-colors${
+                        isUndecided ? " italic" : ""
+                      }`}
+                      style={{
+                        color: isSelected
+                          ? "#e83862"
+                          : isUndecided
+                          ? "rgba(255,255,255,.3)"
+                          : "rgba(255,255,255,.6)",
+                        fontWeight: isSelected ? 600 : 400,
+                      }}
+                    >
+                      {spec}
+                    </span>
+                    {isSelected ? (
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: "#e83862" }}
+                      />
+                    ) : (
+                      <ChevronRight
+                        className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: "rgba(255,255,255,.3)" }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <p
+                  className="col-span-2 text-center text-[12px] py-8"
+                  style={{ color: "rgba(255,255,255,.35)" }}
+                >
+                  Nenhuma especialidade encontrada para &quot;{search}&quot;
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

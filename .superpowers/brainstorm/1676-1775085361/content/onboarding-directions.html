@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding Design Directions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0e0810; color: #fff; min-height: 100vh; padding: 32px 24px; }
+
+  .page-header { text-align: center; margin-bottom: 40px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .page-header p { font-size: 14px; color: rgba(255,255,255,.5); }
+
+  .directions { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
+
+  .direction { border-radius: 20px; overflow: hidden; cursor: pointer; transition: transform .2s, box-shadow .2s; border: 2px solid transparent; }
+  .direction:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .direction.selected { border-color: #e83862; box-shadow: 0 0 0 4px rgba(232,56,98,.2), 0 20px 60px rgba(0,0,0,.5); }
+
+  .dir-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: 14px 18px 10px; display: flex; align-items: center; gap: 8px; }
+  .dir-label .badge { background: rgba(255,255,255,.08); border-radius: 20px; padding: 3px 10px; font-size: 10px; }
+  .dir-label .rec { background: #e83862; border-radius: 20px; padding: 3px 10px; font-size: 10px; }
+
+  .mockup { padding: 0 18px 18px; }
+  .mockup-frame { border-radius: 14px; overflow: hidden; height: 340px; position: relative; }
+
+  /* ─── Direction A: Dark Immersion ─── */
+  .dir-a .dir-label { color: rgba(255,255,255,.6); background: #1a0912; }
+  .dir-a .mockup-frame {
+    background: linear-gradient(142deg, #3d0d22 0%, #1a0810 55%, #0a0408 100%);
+    display: flex; flex-direction: column;
+  }
+  .dir-a .glow-top { position: absolute; top: -60px; left: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(232,56,98,.25) 0%, transparent 70%); pointer-events: none; }
+  .dir-a .glow-bot { position: absolute; bottom: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(142,31,61,.2) 0%, transparent 70%); pointer-events: none; }
+  .dir-a .content { position: relative; z-index: 1; padding: 28px 24px; flex: 1; display: flex; flex-direction: column; }
+  .dir-a .step-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(232,56,98,.12); border: 1px solid rgba(232,56,98,.25); border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 600; color: #e83862; margin-bottom: 20px; width: fit-content; }
+  .dir-a .step-dot { width: 6px; height: 6px; border-radius: 50%; background: #e83862; animation: pulse-a 1.8s ease-in-out infinite; }
+  @keyframes pulse-a { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  .dir-a .big-title { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 8px; letter-spacing: -.02em; }
+  .dir-a .subtitle { font-size: 12px; color: rgba(255,255,255,.45); line-height: 1.5; margin-bottom: 20px; }
+  .dir-a .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .dir-a .chip { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 8px 14px; font-size: 12px; color: rgba(255,255,255,.7); cursor: pointer; transition: all .15s; }
+  .dir-a .chip.sel { background: rgba(232,56,98,.15); border-color: rgba(232,56,98,.4); color: #e83862; }
+  .dir-a .progress-bar { height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; margin-top: auto; }
+  .dir-a .progress-fill { height: 100%; width: 33%; background: linear-gradient(90deg, #8e1f3d, #e83862); border-radius: 2px; }
+  .dir-a .nav-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+  .dir-a .btn-next { background: #e83862; color: #fff; border: none; border-radius: 12px; padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .dir-a .step-dots { display: flex; gap: 5px; }
+  .dir-a .sdot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.2); }
+  .dir-a .sdot.act { background: #e83862; width: 18px; border-radius: 3px; }
+
+  /* ─── Direction B: Split Canvas ─── */
+  .dir-b .dir-label { color: rgba(255,255,255,.6); background: #111; }
+  .dir-b .mockup-frame { display: flex; background: #fff; }
+  .dir-b .left-panel { width: 42%; background: linear-gradient(168deg, #3d0d22 0%, #1a0810 60%, #0a0408 100%); padding: 20px 18px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .dir-b .left-glow { position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(232,56,98,.3) 0%, transparent 70%); }
+  .dir-b .brand-row { display: flex; align-items: center; gap: 8px; margin-bottom: auto; position: relative; z-index:1; }
+  .dir-b .brand-dot { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(145deg, rgba(232,56,98,.4), rgba(142,31,61,.3)); border: 1px solid rgba(232,56,98,.3); display: flex; align-items: center; justify-content: center; }
+  .dir-b .brand-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.7); }
+  .dir-b .left-content { position: relative; z-index: 1; }
+  .dir-b .step-num { font-size: 48px; font-weight: 900; color: rgba(232,56,98,.2); line-height: 1; margin-bottom: 6px; }
+  .dir-b .left-title { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.3; margin-bottom: 6px; }
+  .dir-b .left-body { font-size: 11px; color: rgba(255,255,255,.45); line-height: 1.5; }
+  .dir-b .left-pills { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .dir-b .lpill { background: rgba(255,255,255,.06); border-radius: 8px; padding: 7px 10px; font-size: 10px; color: rgba(255,255,255,.6); display: flex; align-items: center; gap: 6px; }
+  .dir-b .lpill-dot { width: 5px; height: 5px; border-radius: 50%; background: #e83862; flex-shrink: 0; }
+  .dir-b .right-panel { flex: 1; padding: 18px 16px; display: flex; flex-direction: column; background: #faf9fb; }
+  .dir-b .right-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #9e7a8e; margin-bottom: 12px; }
+  .dir-b .right-title { font-size: 16px; font-weight: 700; color: #1a0912; margin-bottom: 6px; }
+  .dir-b .right-sub { font-size: 11px; color: #9e7a8e; margin-bottom: 14px; }
+  .dir-b .search-box { height: 34px; border: 1.5px solid #e8e0ec; border-radius: 9px; background: #fff; display: flex; align-items: center; padding: 0 10px; gap: 6px; margin-bottom: 10px; }
+  .dir-b .search-icon { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #c0a8cc; flex-shrink: 0; }
+  .dir-b .search-text { font-size: 11px; color: #bbb; }
+  .dir-b .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; flex: 1; }
+  .dir-b .spec-item { background: #fff; border: 1.5px solid #ede8f2; border-radius: 9px; padding: 7px 9px; font-size: 10px; color: #3d1a2e; font-weight: 500; cursor: pointer; }
+  .dir-b .spec-item.sel { background: rgba(142,31,61,.07); border-color: rgba(142,31,61,.3); color: #8e1f3d; font-weight: 600; }
+  .dir-b .right-btn { margin-top: 10px; background: #8e1f3d; color: #fff; border: none; border-radius: 10px; padding: 9px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; }
+
+  /* ─── Direction C: Cinematic Light ─── */
+  .dir-c .dir-label { color: rgba(255,255,255,.6); background: #111; }
+  .dir-c .mockup-frame { background: #faf7fc; display: flex; flex-direction: column; }
+  .dir-c .cin-header { background: #fff; border-bottom: 1px solid #f0e8f4; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .dir-c .cin-brand { display: flex; align-items: center; gap: 8px; }
+  .dir-c .cin-logo { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(145deg, #8e1f3d, #5a1530); }
+  .dir-c .cin-logo-name { font-size: 11px; font-weight: 700; color: #8e1f3d; letter-spacing: .05em; }
+  .dir-c .cin-steps { display: flex; gap: 6px; align-items: center; }
+  .dir-c .cin-step { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+  .dir-c .cin-step.done { background: #2d8f5a; color: #fff; }
+  .dir-c .cin-step.act { background: #8e1f3d; color: #fff; }
+  .dir-c .cin-step.todo { background: #f0e8f4; color: #9e7a8e; }
+  .dir-c .cin-step-line { width: 20px; height: 2px; border-radius: 1px; }
+  .dir-c .cin-step-line.done { background: #2d8f5a; }
+  .dir-c .cin-step-line.todo { background: #e8e0ee; }
+  .dir-c .cin-body { flex: 1; padding: 22px 24px; display: flex; flex-direction: column; }
+  .dir-c .cin-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: #8e1f3d; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .dir-c .cin-eyebrow::before { content:''; display:inline-block; width:16px; height:2px; background:#8e1f3d; border-radius:1px; }
+  .dir-c .cin-big { font-size: 22px; font-weight: 800; color: #1a0912; line-height: 1.15; margin-bottom: 6px; letter-spacing: -.02em; }
+  .dir-c .cin-big span { color: #8e1f3d; }
+  .dir-c .cin-sub { font-size: 12px; color: #7a5e8a; line-height: 1.5; margin-bottom: 16px; }
+  .dir-c .spec-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .dir-c .sitem { background: #fff; border: 1.5px solid #e8e0ee; border-radius: 10px; padding: 9px 12px; font-size: 11px; color: #3d1a2e; font-weight: 500; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .dir-c .sitem.sel { border-color: #8e1f3d; background: rgba(142,31,61,.04); color: #8e1f3d; font-weight: 600; }
+  .dir-c .sitem-check { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #d0c0d8; flex-shrink: 0; }
+  .dir-c .sitem.sel .sitem-check { background: #8e1f3d; border-color: #8e1f3d; }
+  .dir-c .cin-footer { padding: 14px 24px; background: #fff; border-top: 1px solid #f0e8f4; display: flex; justify-content: space-between; align-items: center; }
+  .dir-c .cin-back { font-size: 12px; color: #9e7a8e; background: none; border: none; cursor: pointer; }
+  .dir-c .cin-next { background: #8e1f3d; color: #fff; border: none; border-radius: 10px; padding: 9px 22px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
+  .desc { padding: 16px 18px; }
+  .desc h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .desc p { font-size: 12px; opacity: .6; line-height: 1.5; }
+
+  .select-hint { text-align: center; margin-top: 32px; font-size: 13px; color: rgba(255,255,255,.35); }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <h1>Onboarding — Direções de Design</h1>
+  <p>Clique na direção que mais ressoa com a visão do produto</p>
+</div>
+
+<div class="directions">
+
+  <!-- A: Dark Immersion -->
+  <div class="direction dir-a" onclick="select(this,'a')">
+    <div class="dir-label">
+      Direção A
+      <span class="badge">Full Dark</span>
+    </div>
+    <div class="mockup">
+      <div class="mockup-frame">
+        <div class="glow-top"></div>
+        <div class="glow-bot"></div>
+        <div class="content">
+          <div class="step-badge">
+            <div class="step-dot"></div>
+            Passo 1 de 3
+          </div>
+          <div class="big-title">Qual sua<br>especialidade?</div>
+          <div class="subtitle">Vamos calibrar seu desempenho com candidatos da mesma área de atuação.</div>
+          <div class="chips">
+            <div class="chip sel">Clínica Médica ✓</div>
+            <div class="chip">Cirurgia Geral</div>
+            <div class="chip">Pediatria</div>
+            <div class="chip">Cardiologia</div>
+            <div class="chip">Neurologia</div>
+            <div class="chip">Ortopedia</div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill"></div></div>
+        </div>
+        <div class="nav-row" style="padding: 0 24px 18px;">
+          <div class="step-dots">
+            <div class="sdot act"></div>
+            <div class="sdot"></div>
+            <div class="sdot"></div>
+          </div>
+          <button class="btn-next">Continuar →</button>
+        </div>
+      </div>
+    </div>
+    <div class="desc">
+      <h3>Imersão escura total</h3>
+      <p>Ambiente dark premium do início ao fim. Glows atmosféricos, tipografia bold, chips selecionáveis em glass. Consistente com a hero card dos simulados. Sinal de produto caro e focado.</p>
+    </div>
+  </div>
+
+  <!-- B: Split Canvas -->
+  <div class="direction dir-b" onclick="select(this,'b')">
+    <div class="dir-label">
+      Direção B
+      <span class="badge">Split Canvas</span>
+      <span class="rec">★ Recomendado</span>
+    </div>
+    <div class="mockup">
+      <div class="mockup-frame">
+        <div class="left-panel">
+          <div class="left-glow"></div>
+          <div class="brand-row">
+            <div class="brand-dot">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="#e83862" stroke-width="1.5"/></svg>
+            </div>
+            <span class="brand-name">SanarFlix PRO</span>
+          </div>
+          <div class="left-content">
+            <div class="step-num">01</div>
+            <div class="left-title">Sua<br>especialidade</div>
+            <div class="left-body">Comparativo de desempenho calibrado por área.</div>
+            <div class="left-pills">
+              <div class="lpill"><div class="lpill-dot"></div>15 especialidades disponíveis</div>
+              <div class="lpill"><div class="lpill-dot"></div>Ranking por especialidade</div>
+              <div class="lpill"><div class="lpill-dot"></div>Análise personalizada</div>
+            </div>
+          </div>
+        </div>
+        <div class="right-panel">
+          <div class="right-label">Passo 1 de 3 · Especialidade</div>
+          <div class="right-title">Qual sua área?</div>
+          <div class="right-sub">Selecione uma especialidade</div>
+          <div class="search-box">
+            <div class="search-icon"></div>
+            <div class="search-text">Buscar especialidade...</div>
+          </div>
+          <div class="spec-grid">
+            <div class="spec-item sel">Clínica Médica</div>
+            <div class="spec-item">Cirurgia Geral</div>
+            <div class="spec-item">Pediatria</div>
+            <div class="spec-item">Cardiologia</div>
+            <div class="spec-item">Neurologia</div>
+            <div class="spec-item">Ortopedia</div>
+          </div>
+          <button class="right-btn">Continuar →</button>
+        </div>
+      </div>
+    </div>
+    <div class="desc">
+      <h3>Tela dividida: contexto + ação</h3>
+      <p>Painel esquerdo escuro com narrativa motivacional que evolui a cada passo. Painel direito claro para a ação. Equilíbrio entre imersão e usabilidade. Escalável para mobile (stack vertical).</p>
+    </div>
+  </div>
+
+  <!-- C: Cinematic Light -->
+  <div class="direction dir-c" onclick="select(this,'c')">
+    <div class="dir-label">
+      Direção C
+      <span class="badge">Cinematic Light</span>
+    </div>
+    <div class="mockup">
+      <div class="mockup-frame">
+        <div class="cin-header">
+          <div class="cin-brand">
+            <div class="cin-logo"></div>
+            <span class="cin-logo-name">ENAMED</span>
+          </div>
+          <div class="cin-steps">
+            <div class="cin-step act">1</div>
+            <div class="cin-step-line todo"></div>
+            <div class="cin-step todo">2</div>
+            <div class="cin-step-line todo"></div>
+            <div class="cin-step todo">3</div>
+          </div>
+        </div>
+        <div class="cin-body">
+          <div class="cin-eyebrow">Especialidade</div>
+          <div class="cin-big">Qual sua<br><span>área de foco</span>?</div>
+          <div class="cin-sub">Calibramos seu ranking com candidatos da mesma especialidade.</div>
+          <div class="spec-list">
+            <div class="sitem sel">Clínica Médica <div class="sitem-check"></div></div>
+            <div class="sitem">Cirurgia Geral <div class="sitem-check"></div></div>
+            <div class="sitem">Pediatria <div class="sitem-check"></div></div>
+            <div class="sitem">Cardiologia <div class="sitem-check"></div></div>
+          </div>
+        </div>
+        <div class="cin-footer">
+          <button class="cin-back">← Voltar</button>
+          <button class="cin-next">Continuar →</button>
+        </div>
+      </div>
+    </div>
+    <div class="desc">
+      <h3>Cinematográfico claro</h3>
+      <p>Fundo claro com acentos wine fortes. Header fixo com steps, tipografia grande e expressiva, lista de opções elegante. Visual mais acessível mas igualmente premium.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="select-hint">Clique numa direção para selecioná-la · pode combinar elementos depois</p>
+
+<script>
+function select(el, choice) {
+  document.querySelectorAll('.direction').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.__sendChoice) window.__sendChoice(choice, el.querySelector('h3')?.textContent || choice);
+}
+</script>
+</body>
+</html>
