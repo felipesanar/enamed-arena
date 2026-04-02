@@ -174,6 +174,28 @@ export function HubSpotFormModal({
               Continuar <ArrowRight className="h-4 w-4" />
             </button>
           </div>
+        ) : loadFailed ? (
+          /* ── Fallback state — bloqueador detectado ── */
+          <div className="px-6 py-10 text-center space-y-5">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-warning/15">
+              <AlertTriangle className="h-7 w-7 text-warning" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-heading-3 font-semibold text-[hsl(var(--auth-text-primary))]">
+                Formulário indisponível
+              </h2>
+              <p className="text-body-sm text-[hsl(var(--auth-text-muted))] max-w-[34ch] mx-auto leading-relaxed">
+                Não foi possível carregar o formulário complementar. Você pode continuar normalmente.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onComplete}
+              className="inline-flex h-11 w-full max-w-[280px] items-center justify-center gap-2 rounded-xl bg-primary text-body-sm font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-[hsl(var(--wine-hover))] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] shadow-[0_4px_16px_-4px_hsl(var(--primary)/0.4)]"
+            >
+              Continuar <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         ) : (
           /* ── Form state ── */
           <>
