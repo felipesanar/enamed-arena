@@ -163,7 +163,7 @@ export function HubSpotFormModal({
                 Cadastro completo!
               </h2>
               <p className="text-body-sm text-[hsl(var(--auth-text-muted))] max-w-[32ch] mx-auto leading-relaxed">
-                Agora verifique seu e-mail para ativar sua conta e acessar a plataforma.
+                Vamos configurar seu perfil agora para personalizar sua experiência.
               </p>
             </div>
             <button
