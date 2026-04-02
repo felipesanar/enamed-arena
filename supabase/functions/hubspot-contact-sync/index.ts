@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
       email,
       full_name: full_name || "",
       segment: segment || "guest",
+      subscriber_type: subscriberType(segment),
       registered_at: created_at || new Date().toISOString(),
       source: "enamed-arena",
     };
