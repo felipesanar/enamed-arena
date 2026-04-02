@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -54,10 +54,14 @@ export function HubSpotFormModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!open) {
       setSubmitted(false);
+      setLoadFailed(false);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return;
     }
 
@@ -65,8 +69,20 @@ export function HubSpotFormModal({
       containerRef.current.innerHTML = "";
     }
 
+    const startFailTimeout = () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        setLoadFailed(true);
+      }, 5000);
+    };
+
     const createForm = () => {
-      if (!window.hbspt || !containerRef.current) return;
+      if (!window.hbspt || !containerRef.current) {
+        startFailTimeout();
+        return;
+      }
+
+      startFailTimeout();
 
       window.hbspt.forms.create({
         portalId: "9321751",
@@ -74,6 +90,8 @@ export function HubSpotFormModal({
         region: "na1",
         target: "#hubspot-form-container",
         onFormReady: ($form: any) => {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          setLoadFailed(false);
           if (!$form) return;
           prefillField($form, ["email"], prefillEmail);
           prefillField($form, ["firstname", "name", "nome", "full_name", "fullname"], prefillName);
@@ -98,6 +116,8 @@ export function HubSpotFormModal({
       return;
     }
 
+    startFailTimeout();
+
     const script = document.createElement("script");
     script.src = "//js.hsforms.net/forms/embed/v2.js";
     script.charset = "utf-8";
@@ -106,7 +126,15 @@ export function HubSpotFormModal({
       scriptLoadedRef.current = true;
       setTimeout(createForm, 100);
     };
+    script.onerror = () => {
+      setLoadFailed(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
     document.body.appendChild(script);
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, [open, prefillEmail, prefillName]);
 
   return (
@@ -136,6 +164,28 @@ export function HubSpotFormModal({
               </h2>
               <p className="text-body-sm text-[hsl(var(--auth-text-muted))] max-w-[32ch] mx-auto leading-relaxed">
                 Agora verifique seu e-mail para ativar sua conta e acessar a plataforma.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onComplete}
+              className="inline-flex h-11 w-full max-w-[280px] items-center justify-center gap-2 rounded-xl bg-primary text-body-sm font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-[hsl(var(--wine-hover))] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] shadow-[0_4px_16px_-4px_hsl(var(--primary)/0.4)]"
+            >
+              Continuar <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : loadFailed ? (
+          /* ── Fallback state — bloqueador detectado ── */
+          <div className="px-6 py-10 text-center space-y-5">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-warning/15">
+              <AlertTriangle className="h-7 w-7 text-warning" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-heading-3 font-semibold text-[hsl(var(--auth-text-primary))]">
+                Formulário indisponível
+              </h2>
+              <p className="text-body-sm text-[hsl(var(--auth-text-muted))] max-w-[34ch] mx-auto leading-relaxed">
+                Não foi possível carregar o formulário complementar. Você pode continuar normalmente.
               </p>
             </div>
             <button
