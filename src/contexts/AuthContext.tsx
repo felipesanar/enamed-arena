@@ -79,23 +79,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithPassword = useCallback(async (email: string, password: string, fullName: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    logger.log('[AuthContext] Signing up with password');
+    logger.log('[AuthContext] Signing up via edge function (admin API)');
 
-    const { error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        emailRedirectTo: getRedirectUrl(),
-        data: { full_name: fullName },
-      },
-    });
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('create-guest-account', {
+        body: {
+          email: normalizedEmail,
+          password,
+          fullName,
+        },
+      });
 
-    if (error) {
-      logger.log('[AuthContext] Password sign-up error:', error.message);
-      return { error: error.message };
+      if (fnError) {
+        logger.log('[AuthContext] Edge function invocation error:', fnError.message);
+        return { error: fnError.message };
+      }
+
+      if (data?.error) {
+        logger.log('[AuthContext] Signup error from edge function:', data.error);
+        return { error: data.error };
+      }
+
+      // User created and auto-confirmed — sign in immediately
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (signInError) {
+        logger.log('[AuthContext] Post-signup sign-in error:', signInError.message);
+        return { error: signInError.message };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      logger.log('[AuthContext] Signup unexpected error:', err?.message);
+      return { error: 'Erro inesperado ao criar conta. Tente novamente.' };
     }
-
-    return { error: null };
   }, []);
 
   const sendLoginLink = useCallback(async (email: string) => {
