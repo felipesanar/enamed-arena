@@ -58,9 +58,9 @@ Deno.serve(async (req) => {
     const password = typeof body?.password === "string" ? body.password : "";
     const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
 
-    if (!email) return json({ error: "Email é obrigatório" }, 400, cors);
-    if (!password || password.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 400, cors);
-    if (!fullName) return json({ error: "Nome é obrigatório" }, 400, cors);
+    if (!email) return json({ error: "Email é obrigatório" }, 200, cors);
+    if (!password || password.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 200, cors);
+    if (!fullName) return json({ error: "Nome é obrigatório" }, 200, cors);
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
