@@ -329,7 +329,7 @@ export default function LoginPage() {
             transition={{ duration: 0.22 }}
             className="mt-4 space-y-3"
           >
-            <p className="text-center text-body-sm text-auth-text-primary/80">
+            <p className="text-center text-body-sm" style={{ color: "white" }}>
               Como você quer acessar?
             </p>
 
