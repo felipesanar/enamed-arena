@@ -30,7 +30,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
 
   if (collapsed) {
     return (
-      <div className="mt-auto flex flex-col items-center gap-2">
+      <div className="mt-auto flex flex-col items-center gap-3">
         {/* Avatar with online-style segment dot */}
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
