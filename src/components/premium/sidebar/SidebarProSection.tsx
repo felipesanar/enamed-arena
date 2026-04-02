@@ -27,7 +27,7 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
           )
         }
       >
-        <BookOpen className="h-[18px] w-[18px] shrink-0 opacity-85" aria-hidden />
+        <BookOpen className="h-5 w-5 shrink-0" aria-hidden />
         <span className="sr-only">Caderno de Erros, recurso PRO</span>
       </NavLink>
     );

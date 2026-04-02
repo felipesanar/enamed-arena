@@ -36,7 +36,7 @@ export function NavItem({ to, end, icon: Icon, label, className, collapsed }: Na
       <Icon
         className={cn(
           "shrink-0 opacity-85 transition-opacity duration-300",
-          collapsed ? "h-[18px] w-[18px]" : "h-[18px] w-[18px] [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4",
+          collapsed ? "h-5 w-5 opacity-100" : "h-[18px] w-[18px] [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4",
         )}
         aria-hidden
       />
