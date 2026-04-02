@@ -170,7 +170,7 @@ export default function SimuladoExamPage() {
                 )}
               >
                 <Zap className="h-3.5 w-3.5" />
-                {flow.isHighConfFlagged ? 'Alta certeza' : 'Alta certeza'}
+                {flow.isHighConfFlagged ? 'Tenho certeza' : 'Tenho certeza'}
               </button>
             </div>
 
