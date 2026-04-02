@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Clock,
   Coffee,
-  ChevronDown,
   ArrowRight,
   CalendarPlus,
 } from "lucide-react";
