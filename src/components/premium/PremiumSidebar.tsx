@@ -24,30 +24,38 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
         className={cn(
           "flex h-full min-h-0 flex-col",
           collapsed
-            ? "px-2 py-4"
+            ? "items-center px-2 py-4"
             : "px-4 py-5 [@media(max-height:820px)]:px-3.5 [@media(max-height:820px)]:py-4 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3",
         )}
       >
         <div
           className={cn(
-            "shrink-0 border-b border-white/[0.06]",
-            collapsed ? "pb-3" : "pb-4 [@media(max-height:700px)]:pb-3",
+            "shrink-0",
+            collapsed
+              ? "pb-3 mb-1"
+              : "border-b border-white/[0.06] pb-4 [@media(max-height:700px)]:pb-3",
           )}
         >
           <SidebarBrandBlock collapsed={collapsed} onCollapse={onCollapse} onExpand={onExpand} />
         </div>
 
+        {/* Thin separator for collapsed */}
+        {collapsed && (
+          <div className="w-8 h-px bg-white/[0.06] mb-2" />
+        )}
+
         <div
           className={cn(
             "flex min-h-0 flex-1 flex-col",
-            collapsed ? "gap-3 pt-3" : "gap-5 pt-5 [@media(max-height:700px)]:gap-3 [@media(max-height:700px)]:pt-3",
+            collapsed ? "w-full items-center gap-1 pt-1" : "gap-5 pt-5 [@media(max-height:700px)]:gap-3 [@media(max-height:700px)]:pt-3",
           )}
         >
           <SidebarNavSection collapsed={collapsed} />
           <div
             className={cn(
-              "border-t border-white/[0.05]",
-              collapsed ? "pt-2" : "pt-3 [@media(max-height:700px)]:pt-2",
+              collapsed
+                ? "w-8 border-t border-white/[0.05] pt-1"
+                : "border-t border-white/[0.05] pt-3 [@media(max-height:700px)]:pt-2",
             )}
           >
             <SidebarProSection collapsed={collapsed} />
@@ -56,10 +64,16 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
 
         <div
           className={cn(
-            "mt-auto border-t border-white/[0.06]",
-            collapsed ? "pt-3" : "pt-4 [@media(max-height:700px)]:pt-3",
+            "mt-auto",
+            collapsed
+              ? "pt-2"
+              : "border-t border-white/[0.06] pt-4 [@media(max-height:700px)]:pt-3",
           )}
         >
+          {/* Thin separator for collapsed */}
+          {collapsed && (
+            <div className="w-8 h-px bg-white/[0.06] mb-2 mx-auto" />
+          )}
           <SidebarFooterAccount collapsed={collapsed} />
         </div>
       </div>
