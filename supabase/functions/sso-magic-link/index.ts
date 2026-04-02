@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 const ALLOWED_ORIGINS = [
   "https://sanaflix.com",
   "https://app.sanaflix.com",
-  "https://simulados.sanaflix.com.br",
+  "https://simulados.sanar.com.br",
   "https://enamed-arena.lovable.app",
   "https://id-preview--389ede2e-db02-48e3-8d83-80bfead9e2f1.lovable.app",
 ];
