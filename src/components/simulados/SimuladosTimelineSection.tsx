@@ -291,7 +291,7 @@ export function SimuladosTimelineSection({
         />
 
         <div className={cn("pl-[2.75rem] sm:pl-12", compact ? "space-y-2" : "space-y-3")}>
-          {visible.map((sim, index) => (
+          {items.map((sim, index) => (
             <TimelineItem
               key={sim.id}
               sim={sim}
