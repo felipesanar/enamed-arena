@@ -1,5 +1,6 @@
-import { useId, useState } from "react";
+import { useId, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 import type { LucideIcon } from "lucide-react";
 import {
   UserPlus,
@@ -83,38 +84,35 @@ type JourneyScheduleItem = {
   endDate: string;
 };
 
-const JOURNEY_SCHEDULE: JourneyScheduleItem[] = [
-  {
-    id: "simulado-2",
-    simulado: "Simulado #2 — Cirurgia e Emergência",
-    startDate: "28/03/2026",
-    endDate: "30/03/2026",
-  },
-  {
-    id: "simulado-1",
-    simulado: "Simulado #1 — Fundamentos Clínicos",
-    startDate: "24/03/2026",
-    endDate: "26/03/2026",
-  },
-  {
-    id: "simulado-4",
-    simulado: "Simulado #4 — Medicina Preventiva e Saúde Coletiva",
-    startDate: "14/04/2026",
-    endDate: "16/04/2026",
-  },
-  {
-    id: "simulado-5",
-    simulado: "Simulado #5 — Clínica Médica Avançada",
-    startDate: "21/04/2026",
-    endDate: "23/04/2026",
-  },
-  {
-    id: "simulado-6",
-    simulado: "Simulado #6 — Revisão Geral ENAMED",
-    startDate: "28/04/2026",
-    endDate: "30/04/2026",
-  },
-];
+function formatDateBR(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" });
+}
+
+function useRealSimulados() {
+  const [items, setItems] = useState<JourneyScheduleItem[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("simulados")
+      .select("id, title, sequence_number, execution_window_start, execution_window_end")
+      .in("status", ["published", "archived"])
+      .order("execution_window_start", { ascending: false })
+      .then(({ data }) => {
+        if (!data?.length) return;
+        setItems(
+          data.map((s) => ({
+            id: s.id,
+            simulado: `Simulado #${s.sequence_number} — ${s.title}`,
+            startDate: formatDateBR(s.execution_window_start),
+            endDate: formatDateBR(s.execution_window_end),
+          }))
+        );
+      });
+  }, []);
+
+  return items;
+}
 
 function LandingJourneyTimelineIllustration({
   items,
@@ -191,6 +189,7 @@ function LandingJourneyTimelineIllustration({
 export function LandingHowItWorks() {
   const reducedMotion = !!useReducedMotion();
   const [showExecutionCalendar, setShowExecutionCalendar] = useState(false);
+  const realSimulados = useRealSimulados();
 
   return (
     <section
@@ -305,7 +304,7 @@ export function LandingHowItWorks() {
               </div>
               <div className="relative z-10 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
                 <LandingJourneyTimelineIllustration
-                  items={JOURNEY_SCHEDULE}
+                  items={realSimulados}
                   reduced={reducedMotion}
                 />
               </div>
