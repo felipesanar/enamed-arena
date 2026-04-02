@@ -303,22 +303,6 @@ export function SimuladosTimelineSection({
         </div>
       </div>
 
-      {items.length > 5 && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className={cn(
-            "group ml-[2.75rem] flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-primary/25 hover:bg-muted/30 sm:ml-12",
-            compact ? "mt-3" : "mt-4",
-          )}
-        >
-          <ChevronDown
-            className="h-4 w-4 transition-transform duration-300"
-            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-          />
-          {expanded ? "Ver menos" : `Ver todos os anteriores (${items.length - 5} a mais)`}
-        </button>
-      )}
     </>
   );
 
