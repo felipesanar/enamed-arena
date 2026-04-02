@@ -323,13 +323,13 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                 />
                                 <span
                                   className="text-[11.5px] font-bold"
-                                  style={{ color: "rgba(255,255,255,.6)" }}
+                                   style={{ color: "rgba(255,255,255,.82)" }}
                                 >
                                   {uf}
                                 </span>
                                 <span
                                   className="text-[10px]"
-                                  style={{ color: "rgba(255,255,255,.28)" }}
+                                  style={{ color: "rgba(255,255,255,.5)" }}
                                 >
                                   {insts.length} inst. · {ufVagas} vagas
                                 </span>
