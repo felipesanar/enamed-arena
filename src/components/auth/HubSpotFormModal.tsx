@@ -62,6 +62,7 @@ export function HubSpotFormModal({
     if (!open) {
       setSubmitted(false);
       setLoadFailed(false);
+      setShowSkip(false);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return;
     }
