@@ -254,8 +254,7 @@ export function SimuladosTimelineSection({
   embedded = false,
   compact = false,
 }: SimuladosTimelineSectionProps) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? items : items.slice(0, 5);
+  const headingId = useId();
   const headingId = useId();
 
   const headingClass =
