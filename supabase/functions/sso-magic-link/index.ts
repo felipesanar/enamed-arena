@@ -19,6 +19,7 @@ function isAllowedOrigin(origin: string | null): boolean {
     if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com") || hostname === "sanar.com.br" || hostname.endsWith(".sanar.com.br")) return true;
     if (ALLOWED_ORIGINS.includes(origin)) return true;
     if (hostname.endsWith(".lovable.app")) return true;
+    if (hostname.endsWith(".lovableproject.com")) return true;
     return false;
   } catch {
     return false;

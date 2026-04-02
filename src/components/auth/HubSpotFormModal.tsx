@@ -55,12 +55,14 @@ export function HubSpotFormModal({
   const scriptLoadedRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [showSkip, setShowSkip] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!open) {
       setSubmitted(false);
       setLoadFailed(false);
+      setShowSkip(false);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return;
     }
@@ -132,8 +134,11 @@ export function HubSpotFormModal({
     };
     document.body.appendChild(script);
 
+    const skipTimer = setTimeout(() => setShowSkip(true), 8000);
+
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearTimeout(skipTimer);
     };
   }, [open, prefillEmail, prefillName]);
 
@@ -260,6 +265,17 @@ export function HubSpotFormModal({
                   "[&_.hs-form-title]:hidden",
                 ].join(" ")}
               />
+              {showSkip && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={onComplete}
+                    className="text-body-sm font-medium text-[hsl(var(--auth-text-muted))] hover:text-[hsl(var(--auth-text-primary))] transition-colors underline underline-offset-2"
+                  >
+                    Pular e continuar
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

@@ -12,7 +12,10 @@ function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.has(origin)) return true;
   try {
     const url = new URL(origin);
-    return /^id-preview--[a-z0-9-]+\.lovable\.app$/i.test(url.hostname);
+    return (
+      /^id-preview--[a-z0-9-]+\.lovable\.app$/i.test(url.hostname) ||
+      /^[a-z0-9-]+\.lovableproject\.com$/i.test(url.hostname)
+    );
   } catch {
     return false;
   }
@@ -55,9 +58,9 @@ Deno.serve(async (req) => {
     const password = typeof body?.password === "string" ? body.password : "";
     const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
 
-    if (!email) return json({ error: "Email é obrigatório" }, 400, cors);
-    if (!password || password.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 400, cors);
-    if (!fullName) return json({ error: "Nome é obrigatório" }, 400, cors);
+    if (!email) return json({ error: "Email é obrigatório" }, 200, cors);
+    if (!password || password.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 200, cors);
+    if (!fullName) return json({ error: "Nome é obrigatório" }, 200, cors);
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -76,10 +79,10 @@ Deno.serve(async (req) => {
 
       const lower = error.message.toLowerCase();
       if (lower.includes("already been registered") || lower.includes("already registered") || lower.includes("unique_email_address")) {
-        return json({ error: "Este e-mail já está cadastrado. Tente fazer login." }, 409, cors);
+        return json({ error: "Este e-mail já está cadastrado. Tente fazer login." }, 200, cors);
       }
 
-      return json({ error: error.message }, 400, cors);
+      return json({ error: error.message }, 200, cors);
     }
 
     console.log(`[create-guest-account] User created: ${data.user?.id} (${email})`);
