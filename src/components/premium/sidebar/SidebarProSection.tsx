@@ -23,7 +23,7 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
         className={({ isActive }) =>
           cn(
             linkClass({ isActive }),
-            "mx-auto h-11 w-11 justify-center gap-0 px-0 py-0 before:left-0 before:h-6",
+            "mx-auto h-12 w-12 justify-center gap-0 px-0 py-0 before:left-0 before:h-6",
           )
         }
       >
