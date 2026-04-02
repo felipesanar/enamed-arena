@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
+import AuthSSOPage from "./pages/AuthSSOPage";
 import { DashboardLayout } from "@/components/premium/DashboardLayout";
 import { HomePagePremium } from "@/components/premium/home/HomePagePremium";
 import SimuladosPage from "./pages/SimuladosPage";
