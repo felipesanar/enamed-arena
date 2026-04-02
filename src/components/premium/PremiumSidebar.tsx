@@ -47,7 +47,7 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
         <div
           className={cn(
             "flex min-h-0 flex-1 flex-col",
-            collapsed ? "w-full items-center gap-1.5 pt-1" : "gap-5 pt-5 [@media(max-height:700px)]:gap-3 [@media(max-height:700px)]:pt-3",
+            collapsed ? "w-full items-center gap-3 pt-2" : "gap-5 pt-5 [@media(max-height:700px)]:gap-3 [@media(max-height:700px)]:pt-3",
           )}
         >
           <SidebarNavSection collapsed={collapsed} />
