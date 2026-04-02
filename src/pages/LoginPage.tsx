@@ -105,10 +105,6 @@ export default function LoginPage() {
     if (!password) { setError("Informe sua senha."); return; }
 
     if (mode === "signup") {
-      if (signupRetryIn > 0) {
-        setError(`Aguarde ${formatCountdown(signupRetryIn)} para tentar novo cadastro.`);
-        return;
-      }
       if (!fullName.trim()) { setError("Informe seu nome completo."); return; }
       if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
     }
