@@ -16,7 +16,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { BrandIcon, BrandLogo } from "@/components/brand/BrandMark";
+import { BrandIcon, BrandLogo, SANARFLIX_MARK_SRC } from "@/components/brand/BrandMark";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/auth/TextField";
