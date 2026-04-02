@@ -152,7 +152,7 @@ function HeroRankingChip({ prefersReducedMotion }: { prefersReducedMotion: boole
         </motion.span>
       </p>
       <p className="mt-1 text-[0.58rem] uppercase tracking-[0.12em] text-muted-foreground/65">
-        Ranking
+        Sua posição
       </p>
     </motion.div>
   );
@@ -350,7 +350,7 @@ export function LandingHero() {
               className="w-full max-w-none text-body-lg text-muted-foreground leading-relaxed"
             >
               Realize simulados com correção por área, ranking em tempo real e
-              análise que mostra exatamente onde você está — e o que revisar antes
+              análise que mostra exatamente onde você está e o que revisar antes
               da próxima prova.
             </motion.p>
 
@@ -365,7 +365,20 @@ export function LandingHero() {
                   to="/login"
                   onClick={() => trackEvent("lead_captured", { source: "landing_hero_primary" })}
                 >
-                  Entrar no próximo simulado <span aria-hidden="true">→</span>
+                  Entrar no próximo simulado{" "}
+                  <motion.span
+                    aria-hidden="true"
+                    animate={prefersReducedMotion ? undefined : { x: [0, 4, 0] }}
+                    transition={{
+                      duration: 1.15,
+                      repeat: prefersReducedMotion ? 0 : Infinity,
+                      repeatDelay: 0.35,
+                      ease: EASE,
+                    }}
+                    className="inline-flex"
+                  >
+                    →
+                  </motion.span>
                 </Link>
               </Button>
               <a
@@ -396,21 +409,6 @@ export function LandingHero() {
             className="relative hidden min-w-0 w-full lg:-ml-3 lg:flex lg:flex-col lg:items-stretch xl:-ml-6 2xl:-ml-8"
           >
             <div className="relative w-full min-w-0 pl-0 pr-1 xl:pr-4 2xl:pr-6">
-
-              {/* Chip left — Evolução */}
-              <motion.div
-                initial={prefersReducedMotion ? {} : { opacity: 0, x: -16 }}
-                animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: DELAY.chipLeft, ease: EASE }}
-                className="absolute left-[-10px] top-1/2 z-10 -translate-y-1/2 bg-card/[0.92] backdrop-blur-xl border border-white/10 rounded-xl p-3 shadow-[0_10px_32px_-4px_rgba(0,0,0,0.6)] xl:left-[-18px] 2xl:left-[-22px]"
-              >
-                <p className="text-xl font-extrabold text-foreground leading-none">
-                  <span className="text-landing-accent text-lg" aria-hidden>▲</span> +12%
-                </p>
-                <p className="text-[0.55rem] text-muted-foreground/50 uppercase tracking-[0.1em] mt-1">
-                  Evolução
-                </p>
-              </motion.div>
 
               {/* Chip right — Ranking (demo animada) */}
               <HeroRankingChip prefersReducedMotion={prefersReducedMotion} />

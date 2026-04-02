@@ -45,6 +45,11 @@ export function LandingExperience() {
           >
             Ambiente de prova, resultado, ranking e insights — tudo com a mesma qualidade e clareza.
           </motion.p>
+          <motion.div variants={headerItemReveal} className="mt-5 flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center rounded-full border border-primary/70 bg-primary/35 px-3 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-white shadow-[0_10px_24px_-12px_hsl(var(--primary)/0.65)]">
+              Ambiente real de simulado • teste abaixo
+            </span>
+          </motion.div>
         </motion.header>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,14rem)] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,16rem)] xl:gap-10">

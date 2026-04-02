@@ -500,12 +500,53 @@
 
 /* Hero — ênfase: só stops com luminância suficiente no fundo escuro (evita “sumir” à esquerda) */
 .landing-dark .text-gradient-hero-em {
-  background-image: linear-gradient(
-    105deg,
-    hsl(var(--landing-accent-mid)) 0%,
-    hsl(var(--brand-sanar-light)) 44%,
-    hsl(var(--landing-accent-text)) 100%
-  );
+  /* Base vinho + highlight perolado + reflexo metálico sutil */
+  background-image:
+    linear-gradient(
+      112deg,
+      hsl(var(--landing-accent-mid)) 0%,
+      hsl(var(--brand-sanar-light)) 40%,
+      hsl(var(--landing-accent-text)) 78%,
+      hsl(0 0% 100% / 0.92) 100%
+    ),
+    linear-gradient(
+      98deg,
+      hsl(0 0% 86% / 0.18) 0%,
+      hsl(0 0% 100% / 0.34) 32%,
+      hsl(0 0% 84% / 0.16) 58%,
+      hsl(0 0% 100% / 0.28) 100%
+    ),
+    radial-gradient(
+      120% 90% at 18% 40%,
+      hsl(0 0% 100% / 0.48) 0%,
+      hsl(0 0% 100% / 0.08) 34%,
+      transparent 62%
+    );
+  background-size: 220% 140%, 240% 125%, 175% 170%;
+  background-position: 6% 46%, 10% 52%, 0% 50%;
+  background-repeat: no-repeat;
+  text-shadow: 0 1px 3px hsl(0 0% 100% / 0.08);
+  filter:
+    drop-shadow(0 0 10px hsl(var(--primary) / 0.16))
+    drop-shadow(0 0 18px hsl(0 0% 100% / 0.09));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-dark .text-gradient-hero-em {
+    animation: hero-pearl-shift 12s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes hero-pearl-shift {
+  0% {
+    background-position: 5% 44%, 8% 52%, 6% 48%;
+  }
+  50% {
+    background-position: 52% 58%, 56% 46%, 56% 42%;
+  }
+  100% {
+    background-position: 94% 45%, 94% 52%, 92% 58%;
+  }
 }
 
 .landing-dark .bg-gradient-brand-progress {

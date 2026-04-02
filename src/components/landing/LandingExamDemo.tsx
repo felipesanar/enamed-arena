@@ -179,7 +179,7 @@ export function LandingExamDemo() {
                     className={cn(
                       "w-full text-left p-3 rounded-xl border-2 transition-all duration-200",
                       isSelected
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                        ? "border-blue-300/70 bg-blue-500/15 ring-2 ring-blue-400/35"
                         : "border-border bg-card/50 hover:border-primary/30 hover:bg-muted/20",
                     )}
                   >
@@ -187,7 +187,7 @@ export function LandingExamDemo() {
                       <span
                         className={cn(
                           "flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-caption font-bold",
-                          isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                          isSelected ? "bg-blue-500/80 text-blue-50" : "bg-muted text-muted-foreground",
                         )}
                       >
                         {opt.label}
@@ -204,7 +204,9 @@ export function LandingExamDemo() {
               onClick={toggleReview}
               className={cn(
                 "mt-4 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all",
-                isMarked ? "bg-info/10 text-info border border-info/30" : "bg-muted/50 text-muted-foreground hover:bg-muted border border-transparent",
+                isMarked
+                  ? "bg-warning/20 text-warning border border-warning/45"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted border border-transparent",
               )}
             >
               <Flag className="h-3.5 w-3.5" aria-hidden />
@@ -253,6 +255,11 @@ export function LandingExamDemo() {
               const isCurrent = i === currentIndex;
               const isAnswered = !!answers[DEMO_QUESTIONS[i].id];
               const isReview = markedForReview.has(i);
+              const navStateClass = isReview
+                ? "border border-warning/45 bg-warning/20 text-warning"
+                : isAnswered
+                ? "border border-[hsl(var(--landing-accent-mid)/0.35)] bg-[hsl(var(--primary)/0.2)] text-landing-accent"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted";
               return (
                 <button
                   key={DEMO_QUESTIONS[i].id}
@@ -260,12 +267,9 @@ export function LandingExamDemo() {
                   onClick={() => setCurrentIndex(i)}
                   className={cn(
                     "h-9 w-full rounded-lg text-caption font-semibold transition-all",
-                    isCurrent && "ring-2 ring-primary ring-offset-1 ring-offset-card",
-                    isAnswered &&
-                      !isReview &&
-                      "border border-[hsl(var(--landing-accent-mid)/0.35)] bg-[hsl(var(--primary)/0.2)] text-landing-accent",
-                    isReview && "bg-info/20 text-info",
-                    !isAnswered && !isReview && "bg-muted/50 text-muted-foreground hover:bg-muted",
+                    navStateClass,
+                    isCurrent &&
+                      "ring-2 ring-blue-400/80 ring-offset-1 ring-offset-card border-blue-300/60 bg-blue-500/20 text-blue-100",
                   )}
                 >
                   {DEMO_QUESTIONS[i].number}
@@ -275,11 +279,11 @@ export function LandingExamDemo() {
           </div>
           <div className="mt-auto pt-4 border-t border-border space-y-2 text-caption text-muted-foreground">
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded border border-[hsl(var(--landing-accent-mid)/0.5)] bg-[hsl(var(--primary)/0.35)]" />
-              Respondida
+              <span className="h-3 w-3 rounded border border-blue-300/70 bg-blue-500/35" />
+              Selecionada
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded bg-info/20" />
+              <span className="h-3 w-3 rounded border border-warning/45 bg-warning/25" />
               Para revisão
             </div>
           </div>
