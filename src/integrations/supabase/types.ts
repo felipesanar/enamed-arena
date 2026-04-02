@@ -604,6 +604,24 @@ export type Database = {
         }
         Relationships: []
       }
+      sso_rate_limit: {
+        Row: {
+          attempts: number | null
+          email: string
+          window_start: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          email: string
+          window_start?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          email?: string
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       user_performance_history: {
         Row: {
           attempt_id: string
