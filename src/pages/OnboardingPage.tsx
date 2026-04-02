@@ -408,7 +408,7 @@ export default function OnboardingPage() {
                 {/* Step title */}
                 <p
                   className="text-[17px] font-extrabold leading-snug"
-                  style={{ color: "rgba(255,255,255,.88)" }}
+                  style={{ color: "rgba(255,255,255,.95)" }}
                 >
                   {STEP_META[step].title}
                 </p>
