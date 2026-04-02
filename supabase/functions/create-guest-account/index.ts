@@ -12,7 +12,10 @@ function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.has(origin)) return true;
   try {
     const url = new URL(origin);
-    return /^id-preview--[a-z0-9-]+\.lovable\.app$/i.test(url.hostname);
+    return (
+      /^id-preview--[a-z0-9-]+\.lovable\.app$/i.test(url.hostname) ||
+      /^[a-z0-9-]+\.lovableproject\.com$/i.test(url.hostname)
+    );
   } catch {
     return false;
   }
