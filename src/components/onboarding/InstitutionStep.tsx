@@ -392,7 +392,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                         <p
                                           className="text-[10px]"
                                           style={{
-                                            color: "rgba(255,255,255,.28)",
+                                            color: "rgba(255,255,255,.5)",
                                           }}
                                         >
                                           {inst.vagas} vaga
