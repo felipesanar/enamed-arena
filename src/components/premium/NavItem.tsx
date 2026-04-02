@@ -19,7 +19,7 @@ const navLinkBase =
 const barExpanded =
   "gap-2.5 px-3 py-2.5 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:px-2 [@media(max-height:700px)]:py-1.5 [@media(max-height:700px)]:text-[12px] before:left-1.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2";
 const barCollapsed =
-  "mx-auto h-12 w-12 shrink-0 justify-center px-0 py-0 before:left-0 before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2";
+  "mx-auto h-11 w-11 shrink-0 justify-center px-0 py-0 before:left-0 before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2";
 
 const activeBar =
   "border-white/[0.14] bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_10px_-4px_rgba(0,0,0,0.4)] before:opacity-100 before:scale-y-100";
