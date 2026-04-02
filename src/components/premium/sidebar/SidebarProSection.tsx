@@ -17,17 +17,17 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
   if (collapsed) {
-    const rail = (
+    const link = (
       <NavLink
         to="/caderno-erros"
         className={({ isActive }) =>
           cn(
-            linkClass({ isActive }),
-            "mx-auto h-11 w-11 justify-center gap-0 px-0 py-0 before:left-0 before:h-6",
+            "flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/[0.08] hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25",
+            isActive && "bg-white/[0.12] text-white ring-1 ring-white/[0.12]",
           )
         }
       >
-        <BookOpen className="h-[20px] w-[20px] shrink-0 text-white/80" strokeWidth={1.8} aria-hidden />
+        <BookOpen className="h-5 w-5" strokeWidth={1.8} aria-hidden />
         <span className="sr-only">Caderno de Erros, recurso PRO</span>
       </NavLink>
     );
