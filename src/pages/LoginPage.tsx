@@ -35,25 +35,6 @@ type UserType = "undecided" | "guest" | "sanarflix";
 
 /* ─── Helpers ─── */
 
-const SIGNUP_RATE_LIMIT_LOCK_KEY = "signup-rate-limit-until";
-const SIGNUP_RATE_LIMIT_MS = 3 * 60 * 1000;
-
-function isRateLimitError(msg: string): boolean {
-  const lower = msg.toLowerCase();
-  return (
-    lower.includes("email rate limit exceeded") ||
-    lower.includes("over_email_send_rate_limit") ||
-    lower.includes("rate limit exceeded") ||
-    lower.includes("too many requests")
-  );
-}
-
-function formatCountdown(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins <= 0) return `${secs}s`;
-  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
-}
 
 function translateError(msg: string): string {
   const lower = msg.toLowerCase();
@@ -100,27 +81,6 @@ export default function LoginPage() {
   const [cooldown, setCooldown] = useState(false);
   const [resending, setResending] = useState(false);
   const [hubspotModalOpen, setHubspotModalOpen] = useState(false);
-  const [signupRetryIn, setSignupRetryIn] = useState(0);
-
-  useEffect(() => {
-    const storedUntil = Number(localStorage.getItem(SIGNUP_RATE_LIMIT_LOCK_KEY) ?? "0");
-    if (!storedUntil || Number.isNaN(storedUntil)) return;
-
-    const tick = () => {
-      const now = Date.now();
-      const remainingMs = storedUntil - now;
-      if (remainingMs <= 0) {
-        setSignupRetryIn(0);
-        localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
-        return;
-      }
-      setSignupRetryIn(Math.ceil(remainingMs / 1000));
-    };
-
-    tick();
-    const interval = window.setInterval(tick, 1000);
-    return () => window.clearInterval(interval);
-  }, []);
 
   if (loading) {
     return (
@@ -145,10 +105,6 @@ export default function LoginPage() {
     if (!password) { setError("Informe sua senha."); return; }
 
     if (mode === "signup") {
-      if (signupRetryIn > 0) {
-        setError(`Aguarde ${formatCountdown(signupRetryIn)} para tentar novo cadastro.`);
-        return;
-      }
       if (!fullName.trim()) { setError("Informe seu nome completo."); return; }
       if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
     }
@@ -162,19 +118,12 @@ export default function LoginPage() {
           : await signUpWithPassword(trimmedEmail, password, fullName.trim());
 
       if (result.error) {
-        if (mode === "signup" && isRateLimitError(result.error)) {
-          const lockUntil = Date.now() + SIGNUP_RATE_LIMIT_MS;
-          localStorage.setItem(SIGNUP_RATE_LIMIT_LOCK_KEY, String(lockUntil));
-          setSignupRetryIn(Math.ceil(SIGNUP_RATE_LIMIT_MS / 1000));
-        }
         setError(translateError(result.error));
         setFlowState("idle");
         return;
       }
 
       if (mode === "signup") {
-        localStorage.removeItem(SIGNUP_RATE_LIMIT_LOCK_KEY);
-        setSignupRetryIn(0);
         setHubspotModalOpen(true);
       } else {
         setFlowState("idle");
@@ -501,15 +450,10 @@ export default function LoginPage() {
                   <TextField label="Seu e-mail" icon={Mail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" labelClassName="text-auth-form-label" />
                   <PasswordField label="Crie uma senha" value={password} onChange={setPassword} showPassword={showPassword} onTogglePassword={() => setShowPassword((s) => !s)} placeholder="Mínimo de 6 caracteres" labelClassName="text-auth-form-label" />
                   {error && <FormFeedback tone="error" message={error} />}
-                  {signupRetryIn > 0 && (
-                    <FormFeedback tone="error" message={`Por segurança anti-spam, novo cadastro disponível em ${formatCountdown(signupRetryIn)}.`} />
-                  )}
-                  <button type="submit" disabled={flowState === "sending" || signupRetryIn > 0} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
+                  <button type="submit" disabled={flowState === "sending"} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
                     {flowState === "sending"
                       ? <Spinner />
-                      : signupRetryIn > 0
-                        ? <>Aguarde {formatCountdown(signupRetryIn)} <Clock className="h-4 w-4" /></>
-                        : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
+                      : <>Criar minha conta <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </motion.form>
               )}
