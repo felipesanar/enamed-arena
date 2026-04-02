@@ -181,7 +181,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                   </span>
                   <span
                     className="text-[10.5px] ml-2"
-                    style={{ color: "rgba(255,255,255,.35)" }}
+                    style={{ color: "rgba(255,255,255,.55)" }}
                   >
                     {totalInstitutions} inst. · {totalVagas} vagas
                   </span>
