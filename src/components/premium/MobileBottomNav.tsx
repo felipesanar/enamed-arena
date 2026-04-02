@@ -109,10 +109,10 @@ export function MobileBottomNav() {
               type="button"
               onClick={() => setRankingOpen(true)}
               className={cn(
-                "group flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-semibold leading-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121827] sm:text-[11px]",
+                "group flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-semibold leading-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:text-[11px]",
                 rankingActive
                   ? "text-primary"
-                  : "text-[#D3D9E4] hover:text-white"
+                  : "text-primary/40 hover:text-primary/70"
               )}
               aria-current={rankingActive ? "page" : undefined}
               aria-label="Ranking e comparativo"
