@@ -737,7 +737,7 @@ function KpiGridSection({
         const isCount = kpi.valueKind === "count";
 
         const cardInner = (
-          <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-primary/20 bg-[linear-gradient(165deg,rgba(142,31,61,0.06)_0%,#FFFFFF_44%,#FAF5F7_100%)] p-2.5 sm:p-3 shadow-[0_8px_18px_-14px_hsl(345_60%_30%/0.35),0_2px_6px_hsl(220_20%_10%/0.04)] transition-all duration-[240ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/28 hover:shadow-[0_12px_22px_-16px_hsl(345_60%_30%/0.42),0_4px_10px_-8px_hsl(345_60%_30%/0.12)]">
+          <div className="relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-primary/20 bg-[linear-gradient(165deg,rgba(142,31,61,0.06)_0%,#FFFFFF_44%,#FAF5F7_100%)] p-2.5 sm:p-3 shadow-[0_8px_18px_-14px_hsl(345_60%_30%/0.35),0_2px_6px_hsl(220_20%_10%/0.04)] transition-all duration-[240ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/28 hover:shadow-[0_12px_22px_-16px_hsl(345_60%_30%/0.42),0_4px_10px_-8px_hsl(345_60%_30%/0.12)]">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
             <div className="pointer-events-none absolute -right-5 -top-5 h-16 w-16 rounded-full bg-primary/[0.05] blur-xl" />
             <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
