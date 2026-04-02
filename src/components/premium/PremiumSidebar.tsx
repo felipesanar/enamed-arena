@@ -24,7 +24,7 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
         className={cn(
           "flex h-full min-h-0 flex-col",
           collapsed
-            ? "items-center px-2 py-4"
+            ? "items-center px-2.5 py-5"
             : "px-4 py-5 [@media(max-height:820px)]:px-3.5 [@media(max-height:820px)]:py-4 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3",
         )}
       >
