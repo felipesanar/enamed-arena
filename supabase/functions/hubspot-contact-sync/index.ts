@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
               email: user.email,
               full_name: user.full_name || "",
               segment: user.segment || "guest",
+              subscriber_type: subscriberType(user.segment),
               registered_at: user.created_at || new Date().toISOString(),
               source: "enamed-arena",
             }),
