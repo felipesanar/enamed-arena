@@ -124,6 +124,7 @@ export default function LoginPage() {
       }
 
       if (mode === "signup") {
+        setFlowState("idle");
         setHubspotModalOpen(true);
       } else {
         setFlowState("idle");
