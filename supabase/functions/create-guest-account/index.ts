@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         return json({ error: "Este e-mail já está cadastrado. Tente fazer login." }, 200, cors);
       }
 
-      return json({ error: error.message }, 400, cors);
+      return json({ error: error.message }, 200, cors);
     }
 
     console.log(`[create-guest-account] User created: ${data.user?.id} (${email})`);
