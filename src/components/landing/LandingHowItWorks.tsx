@@ -304,7 +304,7 @@ export function LandingHowItWorks() {
               </div>
               <div className="relative z-10 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
                 <LandingJourneyTimelineIllustration
-                  items={JOURNEY_SCHEDULE}
+                  items={realSimulados}
                   reduced={reducedMotion}
                 />
               </div>
