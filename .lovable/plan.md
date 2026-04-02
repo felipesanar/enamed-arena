@@ -1,31 +1,16 @@
 
 
-# Problem: SSO not saving the user's name
+# Fix: Force all collapsed sidebar icons to be white
 
-## Root Cause
-
-The `sso-magic-link` edge function only sets the name in one scenario: **when creating a new user** (via `createUser` with `user_metadata: { full_name: fullName }`).
-
-For **existing users** (like `washington.conceicao@sanar.com`), the flow goes straight to `generateLink` which succeeds immediately, and the `fullName` parameter is completely ignored. The name is never written to `profiles.full_name` or `auth.users.raw_user_meta_data`.
-
-Even for new users, there's a secondary issue: the `handle_new_user` trigger correctly reads `raw_user_meta_data->>'full_name'`, but if the user was originally created without a name (e.g., via normal signup), subsequent SSO calls never update it.
+## Problem
+The collapsed sidebar icons appear dark/burgundy instead of white. Despite `text-white/70` on the parent NavLink, the icons are not inheriting the white color properly — likely due to Lucide icons' `currentColor` not picking up the Tailwind text color in this context.
 
 ## Fix
+Add explicit `text-white` class directly on every `<Icon>` element in the collapsed state across three files:
 
-Modify `supabase/functions/sso-magic-link/index.ts` to **always update the name** when a name is provided, regardless of whether the user is new or existing:
+1. **`src/components/premium/NavItem.tsx`** (line 39) — add `text-white` to the collapsed icon className
+2. **`src/components/premium/sidebar/SidebarProSection.tsx`** (line 30) — add `text-white` to the BookOpen icon
+3. **`src/components/premium/sidebar/SidebarFooterAccount.tsx`** (lines 70, 86) — change `text-white/70` to `text-white` on Settings and LogOut icons
 
-1. After successfully generating the magic link and obtaining the `userId`, add logic to:
-   - Update `auth.users` metadata via `supabase.auth.admin.updateUserById(userId, { user_metadata: { full_name: fullName } })`
-   - Update `profiles.full_name` via `supabase.from('profiles').update({ full_name: fullName }).eq('id', userId)`
-
-2. Only do this when `fullName` is non-empty, to avoid overwriting with blank values.
-
-This ensures:
-- Existing users get their name updated on every SSO login
-- New users also get the profile name set (as a safety net beyond the trigger)
-- No name is overwritten if the SSO URL doesn't include a `name` param
-
-## Technical Detail
-
-The update block will be placed right after the segment update block (around line 155), before the `actionLink` extraction. Both the auth metadata and profiles table will be updated in parallel since they're independent operations.
+This ensures icons are always rendered white regardless of CSS inheritance.
 
