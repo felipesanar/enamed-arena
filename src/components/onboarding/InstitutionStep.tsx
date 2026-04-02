@@ -144,7 +144,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
           <span
             className="text-[12px] italic"
             style={{
-              color: isUndecided ? "#e83862" : "rgba(255,255,255,.3)",
+              color: isUndecided ? "#e83862" : "rgba(255,255,255,.5)",
               fontWeight: isUndecided ? 600 : 400,
             }}
           >
