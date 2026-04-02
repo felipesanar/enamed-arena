@@ -459,9 +459,8 @@ export default function LoginPage() {
                   <button type="submit" disabled={flowState === "sending"} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
                     {flowState === "sending" ? <Spinner /> : <>Entrar na plataforma <ArrowRight className="h-4 w-4" /></>}
                   </button>
-                  <div className="flex items-center justify-between text-[12px] pt-2">
+                  <div className="flex items-center justify-center text-[12px] pt-2">
                     <Link to="/forgot-password" className="text-auth-link-subtle hover:underline">Esqueceu sua senha?</Link>
-                    <button type="button" onClick={() => { setLoginMethod("magic-link"); setError(""); }} className="text-auth-link-accent font-semibold hover:underline">Usar magic link</button>
                   </div>
                 </motion.form>
               )}
