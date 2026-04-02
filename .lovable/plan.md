@@ -1,45 +1,28 @@
 
 
-# Add subscriber type info to HubSpot sync + fix build error
+# Bug: Simulado mostrando "Em andamento" antes da janela abrir
 
-## Problem
-The HubSpot payload already sends the raw `segment` value (`guest`/`standard`/`pro`), but the user wants a human-readable subscriber type label so HubSpot can clearly distinguish between "Aluno PRO", "Aluno SanarFlix", and "Não assinante".
+## Causa raiz
 
-There's also a pre-existing build error in `simuladosApi.ts` line 231 (type cast issue).
+Na função `deriveSimuladoStatus` (linha 35), o check de `in_progress` verifica apenas se estamos **antes do fim da janela** (`isBefore(now, windowEnd)`), mas **não verifica se já passamos do início** (`isAfter(now, windowStart)`).
 
-## Changes
+Resultado: se existe um attempt não finalizado no banco (mesmo que as respostas tenham sido apagadas), qualquer momento antes do `windowEnd` — incluindo **antes do `windowStart`** — retorna `in_progress`.
 
-### 1. Edge Function: `hubspot-contact-sync/index.ts`
-Add a `subscriber_type` field to the HubSpot payload that maps:
-- `pro` → `"Aluno PRO"`
-- `standard` → `"Aluno SanarFlix"`
-- `guest` (or anything else) → `"Não assinante"`
+## Correção
 
-Apply this mapping in both **single** and **bulk** modes.
+### 1. `src/lib/simulado-helpers.ts` — linha 35
 
-### 2. DB Trigger: new migration
-Update the `notify_hubspot_new_user()` function to also pass `segment` in the payload (it already does — no change needed here, the edge function handles the mapping).
+Adicionar `isAfter(now, windowStart)` à condição de `in_progress`:
 
-No trigger changes needed since `segment` is already sent from the trigger. The edge function will derive `subscriber_type` from it.
-
-### 3. Build error fix: `src/services/simuladosApi.ts` line 231
-Change the cast from `as QuestionOptionRow[]` to `as unknown as QuestionOptionRow[]` to satisfy TypeScript when `is_correct` is not in the select.
-
-## Technical Detail
-
-**Mapping function (in edge function):**
 ```typescript
-function subscriberType(segment?: string): string {
-  if (segment === "pro") return "Aluno PRO";
-  if (segment === "standard") return "Aluno SanarFlix";
-  return "Não assinante";
+if (userState?.started && !userState.finished && isAfter(now, windowStart) && isBefore(now, windowEnd)) {
+  return 'in_progress';
 }
 ```
 
-**Payload addition:**
-```typescript
-subscriber_type: subscriberType(user.segment),
-```
+Isso garante que, se estivermos antes da janela, o simulado aparece como `upcoming` mesmo com attempt existente.
 
-This adds `subscriber_type` alongside the existing `segment` field so HubSpot workflows can use either.
+### 2. `src/lib/simulado-helpers.test.ts` — novo teste
+
+Adicionar caso de teste: attempt existente + now antes do windowStart → deve retornar `upcoming`.
 
