@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
