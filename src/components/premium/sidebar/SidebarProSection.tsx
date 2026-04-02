@@ -35,7 +35,7 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
     return (
       <div className="space-y-1">
         <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>{rail}</TooltipTrigger>
+          <TooltipTrigger asChild>{link}</TooltipTrigger>
           <TooltipContent
             side="right"
             sideOffset={10}

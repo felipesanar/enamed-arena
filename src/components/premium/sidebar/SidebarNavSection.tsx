@@ -22,7 +22,7 @@ export function SidebarNavSection({ collapsed }: { collapsed?: boolean }) {
       aria-label="Links principais"
       className={cn(
         "space-y-1.5 [@media(max-height:700px)]:space-y-0.5",
-        collapsed && "space-y-4",
+        collapsed && "flex flex-col items-center gap-3 space-y-0",
       )}
     >
       {mainNav.map((item) => (
