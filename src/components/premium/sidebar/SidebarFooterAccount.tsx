@@ -38,7 +38,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
               to="/configuracoes"
               className="group relative flex h-11 w-11 items-center justify-center"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4A1528_0%,#361019_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08] transition-all duration-200 group-hover:ring-white/[0.16] group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4A1528_0%,#361019_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08] transition-all duration-200 group-hover:ring-white/[0.16] group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
                 <Avatar className="h-9 w-9 rounded-lg bg-transparent shadow-none ring-0">
                   <AvatarFallback className="rounded-lg bg-transparent text-[12px] font-bold text-white/90">
                     {initial}
