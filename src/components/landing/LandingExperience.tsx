@@ -68,10 +68,10 @@ export function LandingExperience() {
             aria-label="Recursos da plataforma"
           >
             {[
-              { icon: BarChart3, title: "Desempenho por área", desc: "Gráficos e percentuais por disciplina e tema." },
-              { icon: Trophy, title: "Ranking", desc: "Sua posição e evolução em relação aos outros." },
-              { icon: BookOpen, title: "Correção comentada", desc: "Justificativas e estatísticas por questão." },
-              { icon: LayoutGrid, title: "Comparativo entre provas", desc: "Curva de evolução entre simulados." },
+              { icon: BarChart3, title: "Desempenho por área", desc: "Gráficos e percentuais detalhados por disciplina e tema." },
+              { icon: Trophy, title: "Ranking nacional", desc: "Sua posição e evolução comparada aos demais candidatos." },
+              { icon: BookOpen, title: "Correção comentada", desc: "Justificativas detalhadas e estatísticas por questão." },
+              { icon: LayoutGrid, title: "Comparativo entre provas", desc: "Curva de evolução e progresso entre os simulados." },
             ].map((card, i) => (
               <motion.div
                 key={card.title}
@@ -80,16 +80,16 @@ export function LandingExperience() {
                 viewport={VIEWPORT_REVEAL}
                 transition={{ delay: i * 0.06, duration: DURATION_NORMAL, ease: EASE }}
                 whileHover={{ y: -2, transition: { duration: DURATION_FAST, ease: EASE } }}
-                className="rounded-xl border border-border/80 bg-card/40 p-3 shadow-sm hover:border-primary/25 hover:bg-card/60 transition-all duration-300 sm:p-3.5 lg:rounded-lg lg:p-2.5"
+                className="rounded-xl border border-border/80 bg-card/40 p-4 shadow-sm hover:border-primary/25 hover:bg-card/60 transition-all duration-300 sm:p-4.5 lg:rounded-lg lg:p-3.5"
               >
                 <card.icon
-                  className="mb-2 h-5 w-5 text-landing-accent lg:mb-1.5 lg:h-4 lg:w-4"
+                  className="mb-2.5 h-5 w-5 text-landing-accent lg:mb-2 lg:h-[18px] lg:w-[18px]"
                   aria-hidden
                 />
-                <h3 className="mb-0.5 text-[0.8125rem] font-semibold leading-snug text-foreground sm:text-sm lg:text-[0.75rem] lg:leading-tight">
+                <h3 className="mb-1 text-sm font-semibold leading-snug text-foreground sm:text-[0.9rem] lg:text-[0.8125rem] lg:leading-tight">
                   {card.title}
                 </h3>
-                <p className="text-[0.6875rem] leading-snug text-muted-foreground sm:text-xs lg:text-[0.625rem] lg:leading-snug">
+                <p className="text-xs leading-relaxed text-muted-foreground sm:text-[0.8125rem] lg:text-[0.6875rem] lg:leading-relaxed">
                   {card.desc}
                 </p>
               </motion.div>
