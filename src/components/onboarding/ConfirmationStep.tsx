@@ -12,9 +12,9 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
   const segmentLabel = SEGMENT_LABELS[segment as UserSegment] ?? segment;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden lg:pt-4">
       {/* Glyph area */}
-      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0">
+      <div className="flex flex-col items-center pt-7 pb-0 px-5 shrink-0 lg:hidden">
         <div className="relative mb-4">
           <div
             className="pointer-events-none absolute inset-[-10px] rounded-full onboarding-glyph-glow"
@@ -53,9 +53,9 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
       </div>
 
       {/* Confirmation cards */}
-      <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto px-4 pb-2 lg:px-0 lg:pb-0 flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:content-start">
         <div
-          className="p-4 rounded-[15px] flex flex-col gap-1"
+          className="p-4 rounded-[15px] flex flex-col gap-1 lg:h-fit"
           style={{
             background: "rgba(255,255,255,.028)",
             border: "1px solid rgba(255,255,255,.07)",
@@ -79,7 +79,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
         </div>
 
         <div
-          className="p-4 rounded-[15px] flex flex-col gap-1"
+          className="p-4 rounded-[15px] flex flex-col gap-1 lg:h-fit"
           style={{
             background: "rgba(255,255,255,.028)",
             border: "1px solid rgba(255,255,255,.07)",
@@ -100,7 +100,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
         </div>
 
         <div
-          className="p-4 rounded-[15px] flex flex-col gap-2"
+          className="p-4 rounded-[15px] flex flex-col gap-2 lg:h-fit"
           style={{
             background: "rgba(255,255,255,.028)",
             border: "1px solid rgba(255,255,255,.07)",

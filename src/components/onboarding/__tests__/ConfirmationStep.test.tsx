@@ -24,3 +24,19 @@ it("shows specialty and institutions", () => {
   expect(screen.getByText("USP")).toBeInTheDocument();
   expect(screen.getByText("UNIFESP")).toBeInTheDocument();
 });
+
+it("glyph area has lg:hidden class", () => {
+  render(
+    <ConfirmationStep segment="standard" specialty="Clínica Médica" institutions={["USP"]} />
+  );
+  const glyphArea = document.querySelector(".shrink-0.lg\\:hidden");
+  expect(glyphArea).toBeInTheDocument();
+});
+
+it("cards container has lg:grid-cols-3 class", () => {
+  render(
+    <ConfirmationStep segment="standard" specialty="Clínica Médica" institutions={["USP"]} />
+  );
+  const cardsContainer = document.querySelector(".lg\\:grid-cols-3");
+  expect(cardsContainer).toBeInTheDocument();
+});
