@@ -363,8 +363,8 @@ export default function LoginPage() {
           >
             <div className="rounded-xl border border-primary/20 bg-primary/[0.06] p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-                  <Stethoscope className="h-4.5 w-4.5 text-primary" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/15">
+                  <img src={SANARFLIX_MARK_SRC} alt="" className="h-full w-full object-cover" />
                 </div>
                 <h3 className="text-body font-semibold text-auth-text-primary">
                   Acesso via SanarFlix
