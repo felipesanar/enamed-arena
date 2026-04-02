@@ -82,7 +82,7 @@ export function MobileBottomNav() {
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.14)_0%,rgba(18,24,39,0.88)_42%,rgba(10,14,24,0.94)_100%)] backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-10px_rgba(8,12,20,0.58),inset_0_1px_0_rgba(255,255,255,0.08)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/10 bg-white pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_16px_-6px_rgba(0,0,0,0.1)] md:hidden"
         aria-label="Navegação principal"
       >
         <div className="mx-auto flex max-w-[1280px] items-stretch justify-between gap-0.5 px-1 pt-1.5">
