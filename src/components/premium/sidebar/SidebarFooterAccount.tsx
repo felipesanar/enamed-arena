@@ -67,7 +67,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <Link to="/configuracoes" className={railIconBtn} aria-label="Configurações">
-              <Settings className="h-[18px] w-[18px]" aria-hidden />
+              <Settings className="h-5 w-5" aria-hidden />
             </Link>
           </TooltipTrigger>
           <TooltipContent
