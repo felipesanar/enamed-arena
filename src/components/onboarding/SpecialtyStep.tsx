@@ -76,7 +76,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
         </h2>
         <p
           className="text-[12.5px] text-center leading-relaxed mb-5"
-          style={{ color: "rgba(255,255,255,.45)" }}
+          style={{ color: "rgba(255,255,255,.65)" }}
         >
           Usaremos essa informação para comparar seu desempenho com candidatos
           da mesma área.
