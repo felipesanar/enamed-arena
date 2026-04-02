@@ -7,6 +7,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 const HUBSPOT_WEBHOOK_URL =
   "https://api-na1.hubapi.com/automation/v4/webhook-triggers/9321751/E0lS7db";
 
+function subscriberType(segment?: string): string {
+  if (segment === "pro") return "Aluno PRO";
+  if (segment === "standard") return "Aluno SanarFlix";
+  return "Não assinante";
+}
+
 interface UserPayload {
   email: string;
   full_name?: string;
