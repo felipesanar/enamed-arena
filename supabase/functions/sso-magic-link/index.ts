@@ -164,6 +164,23 @@ Deno.serve(async (req) => {
     }
   }
 
+  // --- Update segment on profile if provided ---
+  const validSegments = ["standard", "pro"];
+  if (segment && validSegments.includes(segment)) {
+    const userId = linkResult.data?.user?.id;
+    if (userId) {
+      const { error: segErr } = await supabase
+        .from("profiles")
+        .update({ segment })
+        .eq("id", userId);
+      if (segErr) {
+        console.error("[sso-magic-link] Failed to update segment:", segErr.message);
+      } else {
+        console.log(`[sso-magic-link] Segment set to '${segment}' for user ${userId}`);
+      }
+    }
+  }
+
   const actionLink = linkResult.data?.properties?.action_link;
   if (!actionLink) {
     console.error("[sso-magic-link] No action_link in response");
