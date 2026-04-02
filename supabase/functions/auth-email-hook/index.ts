@@ -9,7 +9,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
  * pointing to this edge function.
  */
 
-const NOVU_TRIGGER_URL = "https://kong.app-prod.sanar.cloud/novu/v1/events/trigger";
+const NOVU_TRIGGER_URL = "https://kong.app-prod.sanar.cloud/novu/fallback/v1/events/trigger";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
