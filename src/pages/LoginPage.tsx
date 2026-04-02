@@ -584,8 +584,8 @@ function ChoiceCard({
         {icon}
       </div>
       <div className="space-y-1">
-        <h3 className="text-body-sm font-semibold text-auth-text-primary">{title}</h3>
-        <p className="text-caption text-auth-text-muted leading-snug">{description}</p>
+        <h3 className="text-body-sm font-semibold text-white">{title}</h3>
+        <p className="text-caption text-auth-text-primary/70 leading-snug">{description}</p>
       </div>
     </button>
   );
