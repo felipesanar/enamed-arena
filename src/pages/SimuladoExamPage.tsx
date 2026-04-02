@@ -173,6 +173,10 @@ export default function SimuladoExamPage() {
                 {flow.isHighConfFlagged ? 'Alta certeza ✓' : 'Alta certeza'}
               </button>
             </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground/60 leading-snug">
+              <strong className="text-muted-foreground/70">Marcar p/ revisar:</strong> volta nessa questão antes de finalizar.{' '}
+              <strong className="text-muted-foreground/70">Alta certeza:</strong> indica confiança na resposta — útil na análise pós-prova.
+            </p>
 
             <div className="mt-6 flex items-center justify-between pb-8">
               <button
