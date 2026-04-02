@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       const { error: createErr } = await supabase.auth.admin.createUser({
         email,
         email_confirm: true,
-        user_metadata: { full_name: "" },
+        user_metadata: { full_name: fullName },
       });
 
       if (createErr) {
