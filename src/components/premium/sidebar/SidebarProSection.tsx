@@ -22,12 +22,14 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
         to="/caderno-erros"
         className={({ isActive }) =>
           cn(
-            "flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/[0.08] hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25",
-            isActive && "bg-white/[0.12] text-white ring-1 ring-white/[0.12]",
+            linkClass({ isActive }),
+            "w-full h-11 justify-center gap-0 px-0 py-0 before:left-0 before:top-1/2 before:h-[22px] before:w-[3px] before:-translate-y-1/2",
+            isActive &&
+              "bg-[linear-gradient(135deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.06)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_14px_rgba(232,56,98,0.18)]",
           )
         }
       >
-        <BookOpen className="h-5 w-5 text-white" strokeWidth={1.8} aria-hidden />
+        <BookOpen className="h-[22px] w-[22px] shrink-0" aria-hidden />
         <span className="sr-only">Caderno de Erros, recurso PRO</span>
       </NavLink>
     );

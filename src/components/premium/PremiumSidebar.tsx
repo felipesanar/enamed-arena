@@ -24,7 +24,7 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
         className={cn(
           "flex h-full min-h-0 flex-col",
           collapsed
-            ? "items-center px-2.5 py-5"
+            ? "items-center px-2 py-5"
             : "px-4 py-5 [@media(max-height:820px)]:px-3.5 [@media(max-height:820px)]:py-4 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3",
         )}
       >
@@ -40,8 +40,9 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
           <SidebarBrandBlock collapsed={collapsed} onCollapse={onCollapse} onExpand={onExpand} />
         </div>
 
-        {/* Separator */}
-        {collapsed && <div className="w-8 h-px bg-white/10 mb-4" />}
+        {collapsed && (
+          <div className="w-full h-px bg-white/[0.06] mb-2" />
+        )}
 
         {/* Nav + Pro */}
         <div
@@ -53,15 +54,15 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
           )}
         >
           <SidebarNavSection collapsed={collapsed} />
-
-          {/* Separator before Pro section */}
-          {collapsed && <div className="w-8 h-px bg-white/10 my-4" />}
-          {!collapsed && (
-            <div className="border-t border-white/[0.05] pt-3 [@media(max-height:700px)]:pt-2">
-              <SidebarProSection collapsed={collapsed} />
-            </div>
-          )}
-          {collapsed && <SidebarProSection collapsed={collapsed} />}
+          <div
+            className={cn(
+              collapsed
+                ? "w-full border-t border-white/[0.05] pt-1.5"
+                : "border-t border-white/[0.05] pt-3 [@media(max-height:700px)]:pt-2",
+            )}
+          >
+            <SidebarProSection collapsed={collapsed} />
+          </div>
         </div>
 
         {/* Footer */}
@@ -73,7 +74,9 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
               : "border-t border-white/[0.06] pt-4 [@media(max-height:700px)]:pt-3",
           )}
         >
-          {collapsed && <div className="w-8 h-px bg-white/10 mb-4 mx-auto" />}
+          {collapsed && (
+            <div className="w-full h-px bg-white/[0.06] mb-2" />
+          )}
           <SidebarFooterAccount collapsed={collapsed} />
         </div>
       </div>
