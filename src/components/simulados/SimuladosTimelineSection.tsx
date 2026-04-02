@@ -255,7 +255,6 @@ export function SimuladosTimelineSection({
   compact = false,
 }: SimuladosTimelineSectionProps) {
   const headingId = useId();
-  const headingId = useId();
 
   const headingClass =
     "whitespace-nowrap text-sm font-semibold tracking-tight text-foreground";
