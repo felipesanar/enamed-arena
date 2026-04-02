@@ -44,6 +44,17 @@ describe('deriveSimuladoStatus', () => {
     expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('in_progress');
   });
 
+  it('returns upcoming when user has unfinished attempt but now is before window start', () => {
+    const now = new Date('2025-05-31T12:00:00Z');
+    const userState: SimuladoUserState = {
+      simuladoId: 's1',
+      started: true,
+      startedAt: '2025-05-30T10:00:00Z',
+      finished: false,
+    };
+    expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('upcoming');
+  });
+
   it('returns available_late when now is after window end and user did not finish', () => {
     const now = new Date('2025-06-01T15:00:00Z');
     expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('available_late');

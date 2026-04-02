@@ -32,7 +32,7 @@ export function deriveSimuladoStatus(
   }
 
   // User started but hasn't finished (within window)
-  if (userState?.started && !userState.finished && isBefore(now, windowEnd)) {
+  if (userState?.started && !userState.finished && isAfter(now, windowStart) && isBefore(now, windowEnd)) {
     return 'in_progress';
   }
 
