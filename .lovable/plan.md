@@ -1,51 +1,82 @@
 
 
-## Plan: Tela de escolha "Sou / Nao sou aluno SanarFlix" antes do login
+# Redesign completo dos emails HTML
 
-### Fluxo
+## Contexto
 
-```text
-/login
-  ┌─────────────────────────┐
-  │  Logo                    │
-  │                          │
-  │  ┌─────────┐ ┌─────────┐│
-  │  │ Nao sou │ │  Sou    ││
-  │  │ aluno   │ │ aluno   ││
-  │  │SanarFlix│ │SanarFlix││
-  │  └─────────┘ └─────────┘│
-  └─────────────────────────┘
-         │              │
-         ▼              ▼
-   Fluxo atual     Tela com instrucoes
-   (Entrar/Criar)  "Acesse seu SanarFlix
-                    e clique em Simulados"
-```
+Os emails atuais (welcome, recovery, magic_link) existem em **dois arquivos** com templates duplicados:
+- `supabase/functions/novu-email/index.ts` (3 templates)
+- `supabase/functions/auth-email-hook/index.ts` (4 templates incluindo fallback)
 
-### What changes
+Ambos usam a mesma estrutura CSS inline com visual genérico: header com gradiente wine, emojis (🎉, ⏱, 🔒), border-radius arredondado demais, tom infantil na comunicação.
 
-**File: `src/pages/LoginPage.tsx`**
+## Problemas identificados
 
-1. Add a new state: `userType: "undecided" | "guest" | "sanarflix"` (starts as `"undecided"`)
-2. When `userType === "undecided"`, render a **choice screen** inside the same `AuthShell` with two styled cards side by side:
-   - **"Nao sou aluno SanarFlix"** -- subtitle: "Nao possui assinatura ativa do SanarFlix? Clique aqui para criar sua conta ou entrar." -- clicking sets `userType = "guest"` which reveals the existing login/signup tabs
-   - **"Sou aluno SanarFlix"** -- subtitle: "Possui assinatura SanarFlix ou SanarFlix Pro ativa? Clique aqui." -- clicking sets `userType = "sanarflix"` which shows instruction screen
-3. When `userType === "sanarflix"`, render an **instruction panel** inside the same card:
-   - Friendly message explaining: "Acesse sua conta no SanarFlix ou SanarFlix Pro. La voce vai encontrar o botao Simulados -- e so clicar que voce sera redirecionado automaticamente com seu login."
-   - A link/button to `SANARFLIX_PRO_ENAMED_URL` (from `src/lib/sanarflix.ts`) opening in new tab
-   - A "Voltar" button to go back to `undecided`
-4. When `userType === "guest"`, render the **existing flow** exactly as it is today (tabs, forms, etc), plus a small "Voltar" link to go back to `undecided`
-5. Both cards use the existing auth design tokens (`auth-surface-soft`, `auth-border-subtle`, `primary`, etc.) with Framer Motion `AnimatePresence` transitions consistent with the current page
-6. The `?mode=signup` query param still works -- if present, auto-set `userType = "guest"` and `mode = "signup"`
+1. **Emojis no corpo** — parecem informais demais para uma plataforma médica
+2. **Header só com texto** — sem logo, sem identidade visual forte
+3. **Comunicação genérica** — tom jovial demais, pouco profissional
+4. **Design flat** — sem hierarquia visual sofisticada, sem separação clara
+5. **Footer fraco** — sem informações institucionais
+6. **Logo ausente** — o SVG `/logo.svg` existe mas não é usado nos emails
 
-### Design details
+## Plano
 
-- Two cards displayed as a responsive grid (side by side on desktop, stacked on mobile)
-- Each card: rounded border, icon at top (e.g. `UserPlus` for guest, `Stethoscope` or `BrandIcon` for SanarFlix), title, short description, hover lift effect
-- SanarFlix instruction screen: clean layout with numbered steps, external link button styled as primary CTA
-- "Voltar" link on both sub-screens to return to the choice
+### 1. Hospedar logo para emails
 
-### No other files change
+O logo SVG local não funciona em emails (clientes de email bloqueiam SVG). Vou converter o logo para uma versão PNG branca hospedada publicamente via URL do app publicado (`https://enamed-arena.lovable.app/logo.svg`). Como alternativa mais segura, usarei SVG inline codificado em base64 data URI no header do email, ou referenciarei a URL pública diretamente (muitos clientes suportam SVG via `<img>`).
 
-All modifications are contained in `LoginPage.tsx`. The `AuthShell`, `SANARFLIX_PRO_ENAMED_URL`, and all existing form logic remain untouched.
+A abordagem mais confiável: usar a URL pública do app para o logo (`https://enamed-arena.lovable.app/logo.svg`) com filtro CSS `filter: brightness(0) invert(1)` para torná-lo branco no header escuro.
+
+### 2. Redesign do `baseLayout` (ambos arquivos)
+
+Novo design premium com identidade médica-acadêmica:
+- **Background**: `#f7f5f3` (warm off-white) em vez de `#f5f5f5`
+- **Container**: sombra mais sutil, border-radius `12px` (menos bolha)
+- **Header**: gradiente mais profundo (`#3D0F1E` → `#6B1730`), logo SVG via URL pública, subtítulo "PRO: ENAMED" com tipografia refinada
+- **Tipografia**: hierarquia mais clara, font-size do body `16px`, line-height `1.7`
+- **CTA**: botão com `border-radius: 8px` (menos arredondado), padding mais generoso, letter-spacing
+- **Note boxes**: sem borda, background mais sutil, ícone textual em vez de emoji
+- **Footer**: mais informações, links de suporte, tom institucional
+- **Dividers**: mais espaçamento, cor mais suave
+
+### 3. Reescrever copy de cada template
+
+**Welcome (signup):**
+- Remover emoji 🎉
+- Tom: "Sua conta foi criada. Confirme seu endereço de email para começar a usar a plataforma."
+- CTA: "Confirmar email"
+- Nota: "Este link expira em 1 hora. Após esse prazo, solicite um novo na página de login."
+
+**Recovery:**
+- Remover emoji 🔒
+- Tom direto e seguro: "Recebemos uma solicitação de redefinição de senha para sua conta."
+- CTA: "Redefinir senha"
+- Nota: "Este link expira em 1 hora. Se você não fez essa solicitação, nenhuma ação é necessária."
+
+**Magic Link:**
+- Remover emoji ⏱
+- Tom: "Use o link abaixo para acessar sua conta de forma segura."
+- CTA: "Acessar plataforma"
+- Nota: "Link de uso único, válido por 1 hora."
+
+### 4. Atualizar ambos os arquivos
+
+Ambos `novu-email/index.ts` e `auth-email-hook/index.ts` serão atualizados com:
+- Novo `baseLayout` compartilhando o mesmo design
+- Novos templates com copy profissional
+- Logo no header via URL pública
+
+### 5. Deploy das edge functions
+
+Deploy de ambas as functions atualizadas:
+- `novu-email`
+- `auth-email-hook`
+
+## Detalhes Técnicos
+
+- Logo no email via `<img src="https://enamed-arena.lovable.app/logo.svg" style="filter:brightness(0) invert(1);height:32px">` — funciona na maioria dos clientes; fallback para texto "SanarFlix PRO: ENAMED"
+- CSS custom properties (`--wine`, `--primary`) convertidas para valores HEX inline nos emails
+- Cores: header `#3D0F1E`→`#5A1A2E`, CTA `#6B1730`, texto `#1a1a2e`, muted `#6b7280`
+- Sem emojis em nenhum template
+- Dois arquivos editados, mesma identidade visual
 
