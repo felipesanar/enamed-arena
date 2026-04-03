@@ -167,7 +167,7 @@ export const simuladosApi = {
     const { data, error } = await supabase
       .from('simulados')
       .select('*')
-      .eq('status', 'published')
+      .in('status', ['published', 'test'])
       .order('sequence_number', { ascending: false });
 
     if (error) {
