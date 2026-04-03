@@ -42,7 +42,7 @@ export default function AdminSimuladoForm() {
         execution_window_end: s.execution_window_end.slice(0, 16),
         results_release_at: s.results_release_at.slice(0, 16),
         theme_tags: s.theme_tags.join(', '),
-        status: s.status as 'draft' | 'published',
+        status: s.status as 'draft' | 'published' | 'test',
       });
     });
   }, [id, isEdit]);
