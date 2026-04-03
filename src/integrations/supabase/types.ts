@@ -927,7 +927,7 @@ export type Database = {
         | "did_not_understand"
         | "guessed_correctly"
       onboarding_status: "pending" | "completed"
-      simulado_status: "draft" | "published" | "archived"
+      simulado_status: "draft" | "published" | "archived" | "test"
       user_segment: "guest" | "standard" | "pro"
     }
     CompositeTypes: {
@@ -1071,7 +1071,7 @@ export const Constants = {
         "guessed_correctly",
       ],
       onboarding_status: ["pending", "completed"],
-      simulado_status: ["draft", "published", "archived"],
+      simulado_status: ["draft", "published", "archived", "test"],
       user_segment: ["guest", "standard", "pro"],
     },
   },

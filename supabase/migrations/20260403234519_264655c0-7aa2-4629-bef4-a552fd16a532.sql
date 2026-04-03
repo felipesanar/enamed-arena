@@ -1,0 +1,1 @@
+ALTER TYPE simulado_status ADD VALUE IF NOT EXISTS 'test';
