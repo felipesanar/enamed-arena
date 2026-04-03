@@ -18,7 +18,7 @@ const empty = {
   execution_window_end: '',
   results_release_at: '',
   theme_tags: '' as string,
-  status: 'draft' as 'draft' | 'published',
+  status: 'draft' as 'draft' | 'published' | 'test',
 };
 
 export default function AdminSimuladoForm() {
