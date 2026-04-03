@@ -180,7 +180,14 @@ function TimelineItem({
                 {variant.label}
               </span>
             </div>
-            <p className="truncate text-sm font-semibold leading-snug text-foreground">{sim.title}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold leading-snug text-foreground">{sim.title}</p>
+              {sim.dbStatus === 'test' && (
+                <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-warning/15 text-warning border border-warning/30 uppercase tracking-wide">
+                  Teste
+                </span>
+              )}
+            </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {format(parseISO(sim.executionWindowStart), "dd/MM/yyyy", { locale: ptBR })} · #
               {sim.sequenceNumber}

@@ -49,6 +49,8 @@ export interface SimuladoConfig {
   executionWindowEnd: string;   // ISO
   resultsReleaseAt: string;     // ISO
   themeTags: string[];
+  /** Original DB status — used to show test badge. */
+  dbStatus?: 'draft' | 'published' | 'test' | 'archived';
 }
 
 export interface SimuladoUserState {

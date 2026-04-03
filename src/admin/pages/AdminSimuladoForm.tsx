@@ -18,7 +18,7 @@ const empty = {
   execution_window_end: '',
   results_release_at: '',
   theme_tags: '' as string,
-  status: 'draft' as 'draft' | 'published',
+  status: 'draft' as 'draft' | 'published' | 'test',
 };
 
 export default function AdminSimuladoForm() {
@@ -42,7 +42,7 @@ export default function AdminSimuladoForm() {
         execution_window_end: s.execution_window_end.slice(0, 16),
         results_release_at: s.results_release_at.slice(0, 16),
         theme_tags: s.theme_tags.join(', '),
-        status: s.status as 'draft' | 'published',
+        status: s.status as 'draft' | 'published' | 'test',
       });
     });
   }, [id, isEdit]);
@@ -64,7 +64,7 @@ export default function AdminSimuladoForm() {
       execution_window_end: new Date(form.execution_window_end).toISOString(),
       results_release_at: new Date(form.results_release_at).toISOString(),
       theme_tags: (form.theme_tags as string).split(',').map(t => t.trim()).filter(Boolean),
-      status: form.status as 'draft' | 'published',
+      status: form.status as 'draft' | 'published' | 'test',
     };
 
     try {
@@ -151,6 +151,7 @@ export default function AdminSimuladoForm() {
               >
                 <option value="draft">Rascunho</option>
                 <option value="published">Publicado</option>
+                <option value="test">Teste (só admins)</option>
               </select>
             </div>
 
