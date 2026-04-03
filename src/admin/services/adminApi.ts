@@ -52,7 +52,7 @@ export const adminApi = {
     execution_window_end: string;
     results_release_at: string;
     theme_tags: string[];
-    status: 'draft' | 'published';
+    status: 'draft' | 'published' | 'test';
   }) {
     const { data, error } = await supabase.from('simulados').insert(values).select().single();
     if (error) throw error;
