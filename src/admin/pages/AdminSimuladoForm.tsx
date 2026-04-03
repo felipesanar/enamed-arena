@@ -151,6 +151,7 @@ export default function AdminSimuladoForm() {
               >
                 <option value="draft">Rascunho</option>
                 <option value="published">Publicado</option>
+                <option value="test">Teste (só admins)</option>
               </select>
             </div>
 

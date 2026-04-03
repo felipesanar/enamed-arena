@@ -115,7 +115,7 @@ export interface AttemptQuestionResultRow {
 // ─── Converters ───
 
 function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
-  return {
+    return {
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -128,6 +128,7 @@ function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
     executionWindowEnd: row.execution_window_end,
     resultsReleaseAt: row.results_release_at,
     themeTags: row.theme_tags || [],
+    dbStatus: row.status as SimuladoConfig['dbStatus'],
   };
 }
 

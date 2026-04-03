@@ -18,8 +18,15 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
   const cardContent = (
     <PremiumCard interactive delay={delay} className="flex flex-col p-5 md:p-6">
       <div className="flex items-start justify-between mb-3">
-        <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-          <span className="text-body font-bold text-primary">#{simulado.sequenceNumber}</span>
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
+            <span className="text-body font-bold text-primary">#{simulado.sequenceNumber}</span>
+          </div>
+          {simulado.dbStatus === 'test' && (
+            <span className="px-2 py-0.5 rounded-md text-micro-label font-semibold bg-warning/15 text-warning border border-warning/30 uppercase tracking-wide">
+              Teste
+            </span>
+          )}
         </div>
         <StatusBadge status={simulado.status} />
       </div>
