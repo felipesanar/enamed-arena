@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardLayout } from "@/components/premium/DashboardLayout";
 import { FloatingOfflineTimer } from "@/components/FloatingOfflineTimer";
+import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
 
 // Page lazy imports — default exports
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -63,6 +64,7 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Lightweight shell shown while public/admin route chunks load */
 function PageShell() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
 }
@@ -77,29 +79,28 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
             <FloatingOfflineTimer />
-            <Suspense fallback={<PageShell />}>
             <Routes>
-              {/* Public */}
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              <Route path="/auth/sso" element={<AuthSSOPage />} />
+              {/* Public — own Suspense boundary */}
+              <Route path="/landing" element={<Suspense fallback={<PageShell />}><LandingPage /></Suspense>} />
+              <Route path="/login" element={<Suspense fallback={<PageShell />}><LoginPage /></Suspense>} />
+              <Route path="/forgot-password" element={<Suspense fallback={<PageShell />}><ForgotPasswordPage /></Suspense>} />
+              <Route path="/reset-password" element={<Suspense fallback={<PageShell />}><ResetPasswordPage /></Suspense>} />
+              <Route path="/auth/callback" element={<Suspense fallback={<PageShell />}><AuthCallbackPage /></Suspense>} />
+              <Route path="/auth/sso" element={<Suspense fallback={<PageShell />}><AuthSSOPage /></Suspense>} />
 
-              {/* Admin — isolated */}
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/admin" element={<AdminGuard />}>
-                <Route element={<AdminApp />}>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="simulados" element={<AdminSimulados />} />
-                  <Route path="simulados/novo" element={<AdminSimuladoForm />} />
-                  <Route path="simulados/:id" element={<AdminSimuladoForm />} />
-                  <Route path="simulados/:id/questoes" element={<AdminUploadQuestions />} />
+              {/* Admin — own Suspense boundary */}
+              <Route path="/admin/login" element={<Suspense fallback={<PageShell />}><AdminLoginPage /></Suspense>} />
+              <Route path="/admin" element={<Suspense fallback={<PageShell />}><AdminGuard /></Suspense>}>
+                <Route element={<Suspense fallback={<PageLoadingSkeleton />}><AdminApp /></Suspense>}>
+                  <Route index element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDashboard /></Suspense>} />
+                  <Route path="simulados" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimulados /></Suspense>} />
+                  <Route path="simulados/novo" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
+                  <Route path="simulados/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
+                  <Route path="simulados/:id/questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUploadQuestions /></Suspense>} />
                 </Route>
               </Route>
 
-              {/* Protected — premium shell */}
+              {/* Protected — DashboardLayout stays mounted, Suspense is inside DashboardOutlet */}
               <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<HomePagePremium />} />
                 <Route path="simulados" element={<SimuladosPage />} />
@@ -115,10 +116,9 @@ const App = () => (
                 <Route path="caderno-erros" element={<CadernoErrosPage />} />
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />
               </Route>
-              <Route path="/onboarding" element={<ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />
+              <Route path="*" element={<Suspense fallback={<PageShell />}><NotFound /></Suspense>} />
             </Routes>
-            </Suspense>
             </BrowserRouter>
           </UserProvider>
         </AuthProvider>
