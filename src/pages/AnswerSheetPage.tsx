@@ -222,7 +222,7 @@ export default function AnswerSheetPage() {
             }}
           >
             <AlertCircle className="h-4 w-4 shrink-0" />
-            {gridQuestions.length - answeredCount} questão(ões) sem resposta. Você pode enviar mesmo assim.
+            Faltam {gridQuestions.length - answeredCount} questão(ões) sem resposta. Responda todas para enviar.
           </div>
         )}
 
@@ -259,9 +259,9 @@ export default function AnswerSheetPage() {
               {allAnswered ? (
                 'Todas as questões foram respondidas. Após enviar, o gabarito não pode ser alterado.'
               ) : (
-                <>
+              <>
                   <strong>{gridQuestions.length - answeredCount} questão(ões)</strong> sem resposta.
-                  Questões em branco serão registradas como não respondidas.
+                  Responda todas as questões antes de enviar o gabarito.
                 </>
               )}
             </DialogDescription>
