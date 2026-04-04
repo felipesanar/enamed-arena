@@ -298,15 +298,15 @@ export default function SimuladoDetailPage() {
                     })}
                   </div>
 
-                  {!isVeteran && (
+                  {(!isVeteran || showFullChecklist) && (
                     <div className="text-center">
                       <button
                         type="button"
                         onClick={() => navigate(`/simulados/${id}/prova`)}
-                        disabled={!allChecked}
+                        disabled={!isVeteran && !allChecked}
                         className={cn(
                           "inline-flex items-center gap-2 px-10 py-4 rounded-xl text-body-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]",
-                          allChecked
+                          (isVeteran || allChecked)
                             ? "bg-primary text-primary-foreground hover:bg-wine-hover shadow-sm hover:shadow-md"
                             : "bg-muted text-muted-foreground cursor-not-allowed"
                         )}
@@ -314,7 +314,7 @@ export default function SimuladoDetailPage() {
                         <Play className="h-5 w-5" />
                         Iniciar Simulado
                       </button>
-                      {!allChecked && (
+                      {!isVeteran && !allChecked && (
                         <p className="text-caption text-muted-foreground mt-3">
                           Confirme todos os itens acima para prosseguir.
                         </p>
