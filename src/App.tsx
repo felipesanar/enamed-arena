@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,37 +8,51 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import LoginPage from "./pages/LoginPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import AuthCallbackPage from "./pages/AuthCallbackPage";
-import AuthSSOPage from "./pages/AuthSSOPage";
 import { DashboardLayout } from "@/components/premium/DashboardLayout";
-import { HomePagePremium } from "@/components/premium/home/HomePagePremium";
-import SimuladosPage from "./pages/SimuladosPage";
-import SimuladoDetailPage from "./pages/SimuladoDetailPage";
-import SimuladoExamPage from "./pages/SimuladoExamPage";
-import ResultadoPage from "./pages/ResultadoPage";
-import DesempenhoPage from "./pages/DesempenhoPage";
-import RankingPage from "./pages/RankingPage";
-import CorrecaoPage from "./pages/CorrecaoPage";
-import ComparativoPage from "./pages/ComparativoPage";
-import CadernoErrosPage from "./pages/CadernoErrosPage";
-import ConfiguracoesPage from "./pages/ConfiguracoesPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import NotFound from "./pages/NotFound";
-import LandingPage from "./pages/LandingPage";
-import AnswerSheetPage from "./pages/AnswerSheetPage";
 import { FloatingOfflineTimer } from "@/components/FloatingOfflineTimer";
 
-// Admin
-import AdminLoginPage from "./admin/AdminLoginPage";
-import { AdminGuard } from "./admin/AdminGuard";
-import { AdminApp } from "./admin/AdminApp";
-import AdminDashboard from "./admin/pages/AdminDashboard";
-import AdminSimulados from "./admin/pages/AdminSimulados";
-import AdminSimuladoForm from "./admin/pages/AdminSimuladoForm";
-import AdminUploadQuestions from "./admin/pages/AdminUploadQuestions";
+// Page lazy imports — default exports
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage"));
+const AuthSSOPage = lazy(() => import("./pages/AuthSSOPage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
+const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
+const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
+const ResultadoPage = lazy(() => import("./pages/ResultadoPage"));
+const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
+const CorrecaoPage = lazy(() => import("./pages/CorrecaoPage"));
+const DesempenhoPage = lazy(() => import("./pages/DesempenhoPage"));
+const RankingPage = lazy(() => import("./pages/RankingPage"));
+const ComparativoPage = lazy(() => import("./pages/ComparativoPage"));
+const CadernoErrosPage = lazy(() => import("./pages/CadernoErrosPage"));
+const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
+
+// Page lazy imports — named exports
+const HomePagePremium = lazy(() =>
+  import("@/components/premium/home/HomePagePremium").then((m) => ({
+    default: m.HomePagePremium,
+  }))
+);
+
+// Admin lazy imports — default exports
+const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage"));
+const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
+const AdminSimulados = lazy(() => import("./admin/pages/AdminSimulados"));
+const AdminSimuladoForm = lazy(() => import("./admin/pages/AdminSimuladoForm"));
+const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestions"));
+
+// Admin lazy imports — named exports
+const AdminGuard = lazy(() =>
+  import("./admin/AdminGuard").then((m) => ({ default: m.AdminGuard }))
+);
+const AdminApp = lazy(() =>
+  import("./admin/AdminApp").then((m) => ({ default: m.AdminApp }))
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +62,10 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function PageShell() {
+  return <div className="min-h-screen bg-background" aria-hidden="true" />;
+}
 
 const App = () => (
   <ErrorBoundary>
@@ -58,6 +77,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
             <FloatingOfflineTimer />
+            <Suspense fallback={<PageShell />}>
             <Routes>
               {/* Public */}
               <Route path="/landing" element={<LandingPage />} />
@@ -98,6 +118,7 @@ const App = () => (
               <Route path="/onboarding" element={<ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
             </BrowserRouter>
           </UserProvider>
         </AuthProvider>
