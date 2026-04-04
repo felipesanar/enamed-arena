@@ -121,7 +121,7 @@ export function useExamFlow(): UseExamFlowReturn {
 
         if (existing && existing.status === 'in_progress') {
           // Guard: if deadline already passed, finalize instead of resuming with 0 timer
-          if (existing.windowDeadline && new Date(existing.windowDeadline) <= new Date()) {
+          if (existing.effectiveDeadline && new Date(existing.effectiveDeadline) <= new Date()) {
             logger.log('[useExamFlow] Deadline already passed, finalizing attempt');
             setState(existing);
             // Will be finalized by handleTimeUp
