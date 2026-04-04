@@ -248,8 +248,8 @@ async function generatePdf(
 
     const colTop = pageH - headerH - marginTop;
 
-    renderColumn(page, leftQs,  marginX,                 colTop, colW, fontBold, fontRegular, fontOblique);
-    renderColumn(page, rightQs, marginX + colW + colGap, colTop, colW, fontBold, fontRegular, fontOblique);
+    renderColumn(page, leftQs,  marginX,                 colTop, colW, fontBold, fontRegular, fontOblique, embeddedImages);
+    renderColumn(page, rightQs, marginX + colW + colGap, colTop, colW, fontBold, fontRegular, fontOblique, embeddedImages);
   }
 
   // ─── Answer sheet page ───────────────────────────────────────────────────────
