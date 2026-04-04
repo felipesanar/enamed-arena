@@ -200,8 +200,8 @@ export default function CorrecaoPage() {
 
                     return (
                       <div key={opt.id} className={cn(
-                        'flex items-start gap-3 p-4 rounded-xl border transition-colors',
-                        isCorrect ? 'bg-success/5 border-success/30' : isWrongSelection ? 'bg-destructive/5 border-destructive/30' : 'bg-card border-border/40',
+                        'flex items-start gap-3 p-4 rounded-xl border-2 transition-colors',
+                        isCorrect ? 'bg-success/5 border-success/30' : isWrongSelection ? 'bg-destructive/5 border-destructive/30' : 'bg-card border-transparent',
                       )}>
                         <span className={cn(
                           'flex items-center justify-center w-8 h-8 rounded-lg text-caption font-bold shrink-0',
