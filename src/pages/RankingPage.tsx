@@ -137,7 +137,7 @@ export default function RankingPage() {
   }
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Ranking ENAMED"
         subtitle="Compare seu desempenho com milhares de candidatos."
