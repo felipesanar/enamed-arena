@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Final v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: hsl(330, 8%, 96%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 32px 60px;
+}
+
+.page-context {
+  width: 100%;
+  max-width: 900px;
+}
+
+.breadcrumb {
+  font-size: 12px; color: #aaa; margin-bottom: 10px;
+  display: flex; gap: 6px; align-items: center;
+}
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.page-header-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: hsl(345, 65%, 30%); margin-bottom: 5px;
+}
+.page-header-title {
+  font-size: 28px; font-weight: 800; color: #1a0a10; letter-spacing: -0.03em;
+}
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #edfaf3; border: 1px solid rgba(40,160,90,0.25);
+  color: #1a7a45; font-size: 11px; font-weight: 700;
+  padding: 6px 12px; border-radius: 99px;
+}
+.status-dot {
+  width: 6px; height: 6px; background: #28a05a; border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+/* ===================== ARENA CARD ===================== */
+.arena-card {
+  width: 100%;
+  border-radius: 22px;
+  padding: 56px 64px 48px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 0 100px -24px rgba(140,32,64,0.4),
+    0 32px 80px -16px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+  background:
+    radial-gradient(ellipse 400px 320px at 96% 12%, rgba(140,32,64,0.22) 0%, transparent 68%),
+    radial-gradient(ellipse 300px 300px at 4% 88%, rgba(100,18,44,0.14) 0%, transparent 65%),
+    linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%);
+}
+
+/* Texture grain */
+.grain {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+.arena-card > *:not(.grain) { position: relative; z-index: 1; }
+
+/* ---- Top Section ---- */
+.arena-top {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.arena-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: rgba(255,255,255,0.28); margin-bottom: 18px;
+}
+.eyebrow-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: hsl(345,65%,62%);
+  animation: blink 2s ease-in-out infinite;
+}
+.arena-headline {
+  font-size: 52px; font-weight: 800; color: #fff;
+  letter-spacing: -0.045em; line-height: 0.95;
+  margin-bottom: 14px;
+}
+.arena-headline em {
+  font-style: normal;
+  color: hsl(345, 62%, 65%);
+}
+.arena-desc {
+  font-size: 15px; color: rgba(255,255,255,0.38);
+  max-width: 480px; margin: 0 auto 24px; line-height: 1.6;
+}
+.arena-chips {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; flex-wrap: wrap;
+}
+.arena-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.62);
+  font-size: 12px; font-weight: 600;
+  padding: 7px 14px; border-radius: 9px;
+}
+.chip-icon { display: flex; align-items: center; opacity: 0.8; }
+
+/* ---- Divider ---- */
+.arena-divider {
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent);
+  margin-bottom: 28px;
+}
+
+/* ---- Progress ---- */
+.progress-section { margin-bottom: 22px; }
+.progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.progress-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+.progress-count {
+  font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.4);
+  font-variant-numeric: tabular-nums;
+}
+.progress-count span { color: hsl(345, 65%, 65%); }
+.progress-track {
+  height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, hsl(345,60%,38%), hsl(345,65%,58%));
+  border-radius: 99px;
+  box-shadow: 0 0 10px hsl(345,65%,52% / 0.55);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- Checklist Grid ---- */
+.checklist-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 36px;
+}
+/* 5th item: centered single column */
+.check-item:nth-child(5) {
+  grid-column: 1 / -1;
+  max-width: 50%;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.check-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 20px; border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  user-select: none;
+}
+.check-item:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.13);
+  transform: translateY(-1px);
+}
+.check-item.checked {
+  background: rgba(196,90,114,0.09);
+  border-color: rgba(196,90,114,0.3);
+}
+
+.check-icon-wrap {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: background 0.2s, border-color 0.2s;
+  color: rgba(255,255,255,0.5);
+}
+.check-item.checked .check-icon-wrap {
+  background: rgba(196,90,114,0.16);
+  border-color: rgba(196,90,114,0.36);
+  color: hsl(345,65%,72%);
+}
+.check-icon-wrap svg { width: 18px; height: 18px; stroke-width: 1.6; }
+
+.check-text-wrap { flex: 1; min-width: 0; }
+.check-title {
+  font-size: 13.5px; font-weight: 700; color: rgba(255,255,255,0.72);
+  margin-bottom: 3px; line-height: 1.2;
+  transition: color 0.2s;
+}
+.check-item.checked .check-title { color: #fff; }
+.check-desc {
+  font-size: 12px; color: rgba(255,255,255,0.3); line-height: 1.4;
+  transition: color 0.2s;
+}
+.check-item.checked .check-desc { color: rgba(255,255,255,0.48); }
+
+.check-box {
+  width: 18px; height: 18px; border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.check-item.checked .check-box {
+  background: hsl(345, 65%, 55%);
+  border-color: hsl(345, 65%, 55%);
+}
+.check-box svg {
+  width: 10px; height: 10px; stroke: #fff; stroke-width: 3;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.2s;
+}
+.check-item.checked .check-box svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---- CTA ---- */
+.cta-section { text-align: center; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 17px 56px; border-radius: 14px;
+  font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
+  font-family: inherit;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  cursor: not-allowed;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.25);
+}
+.cta-btn svg { width: 18px; height: 18px; stroke-width: 2; transition: transform 0.2s; }
+.cta-btn.active {
+  background: linear-gradient(135deg, hsl(345,65%,38%) 0%, hsl(345,65%,26%) 100%);
+  border-color: hsl(345,65%,42% / 0.4);
+  color: #fff;
+  cursor: pointer;
+  box-shadow:
+    0 10px 40px hsl(345,65%,32% / 0.6),
+    0 2px 10px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.cta-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 48px hsl(345,65%,32% / 0.7),
+    0 4px 14px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.cta-btn.active:hover svg { transform: translateX(2px); }
+
+.cta-hint {
+  font-size: 11.5px; color: rgba(255,255,255,0.2);
+  margin-top: 12px; letter-spacing: 0.02em;
+  transition: color 0.3s;
+}
+.cta-hint.ready { color: rgba(255,255,255,0.48); }
+
+.arena-footer {
+  text-align: center; margin-top: 24px;
+  font-size: 11px; color: rgba(255,255,255,0.18);
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="page-context">
+  <div class="breadcrumb">
+    <span style="color:#bbb">Simulados</span>
+    <span style="color:#ccc">›</span>
+    <span style="color:#777">Simulado Teste</span>
+  </div>
+
+  <div class="page-header">
+    <div>
+      <div class="page-header-badge">Simulado #8</div>
+      <div class="page-header-title">Simulado Teste</div>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div> Disponível
+    </div>
+  </div>
+
+  <!-- ARENA CARD -->
+  <div class="arena-card">
+    <div class="grain"></div>
+
+    <!-- Top -->
+    <div class="arena-top">
+      <div class="arena-eyebrow">
+        <div class="eyebrow-dot"></div>
+        Simulado #8 · ENAMED 2026
+      </div>
+      <div class="arena-headline">Pronto para<br><em>começar?</em></div>
+      <div class="arena-desc">
+        Confirme os itens abaixo antes de entrar. A prova não pode ser pausada.
+      </div>
+      <div class="arena-chips">
+        <div class="arena-chip">
+          <span class="chip-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+          </span>
+          5 horas
+        </div>
+        <div class="arena-chip">
+          <span class="chip-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </span>
+          100 questões
+        </div>
+        <div class="arena-chip">
+          <span class="chip-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </span>
+          Conta no ranking nacional
+        </div>
+      </div>
+    </div>
+
+    <div class="arena-divider"></div>
+
+    <!-- Progress -->
+    <div class="progress-section">
+      <div class="progress-header">
+        <div class="progress-label">Checklist de confirmação</div>
+        <div class="progress-count"><span id="checkedCount">0</span> de 5 itens confirmados</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Checklist -->
+    <div class="checklist-grid">
+
+      <div class="check-item" onclick="toggle(this)">
+        <div class="check-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+        </div>
+        <div class="check-text-wrap">
+          <div class="check-title">Duração da prova</div>
+          <div class="check-desc">5 horas · 100 questões</div>
+        </div>
+        <div class="check-box">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><polyline points="2 6 5 9 10 3"/></svg>
+        </div>
+      </div>
+
+      <div class="check-item" onclick="toggle(this)">
+        <div class="check-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <div class="check-text-wrap">
+          <div class="check-title">Sem pausa</div>
+          <div class="check-desc">O cronômetro não pode ser pausado após iniciar</div>
+        </div>
+        <div class="check-box">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><polyline points="2 6 5 9 10 3"/></svg>
+        </div>
+      </div>
+
+      <div class="check-item" onclick="toggle(this)">
+        <div class="check-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
+        </div>
+        <div class="check-text-wrap">
+          <div class="check-title">Conexão estável</div>
+          <div class="check-desc">Respostas salvas automaticamente. Mantenha conexão ativa.</div>
+        </div>
+        <div class="check-box">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><polyline points="2 6 5 9 10 3"/></svg>
+        </div>
+      </div>
+
+      <div class="check-item" onclick="toggle(this)">
+        <div class="check-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="check-text-wrap">
+          <div class="check-title">Ambiente adequado</div>
+          <div class="check-desc">Local tranquilo, sem interrupções</div>
+        </div>
+        <div class="check-box">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><polyline points="2 6 5 9 10 3"/></svg>
+        </div>
+      </div>
+
+      <div class="check-item" onclick="toggle(this)">
+        <div class="check-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </div>
+        <div class="check-text-wrap">
+          <div class="check-title">Prova em tela cheia</div>
+          <div class="check-desc">A prova abre em fullscreen. Sair do fullscreen é registrado.</div>
+        </div>
+        <div class="check-box">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><polyline points="2 6 5 9 10 3"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <button class="cta-btn" id="ctaBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
+        Iniciar Simulado
+      </button>
+      <div class="cta-hint" id="ctaHint">Confirme todos os itens acima para continuar</div>
+    </div>
+
+    <div class="arena-footer">Resultado liberado em 15 de abril de 2026</div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 5;
+let checked = new Set();
+function toggle(el) {
+  const idx = Array.from(document.querySelectorAll('.check-item')).indexOf(el);
+  if (checked.has(idx)) { checked.delete(idx); el.classList.remove('checked'); }
+  else { checked.add(idx); el.classList.add('checked'); }
+  const n = checked.size;
+  document.getElementById('checkedCount').textContent = n;
+  document.getElementById('progressFill').style.width = (n / TOTAL * 100) + '%';
+  const btn = document.getElementById('ctaBtn');
+  const hint = document.getElementById('ctaHint');
+  if (n === TOTAL) {
+    btn.classList.add('active');
+    hint.classList.add('ready');
+    hint.textContent = 'Tudo certo — boa prova! 🎯';
+  } else {
+    btn.classList.remove('active');
+    hint.classList.remove('ready');
+    hint.textContent = 'Confirme todos os itens acima para continuar';
+  }
+}
+</script>
+</body>
+</html>

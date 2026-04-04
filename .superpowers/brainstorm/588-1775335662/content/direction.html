@@ -1,0 +1,260 @@
+<style>
+  .dir-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 24px;
+  }
+  .dir-card {
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: all 0.22s ease;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+  .dir-card:hover { transform: translateY(-3px); box-shadow: 0 10px 36px rgba(0,0,0,0.15); }
+  .dir-card.selected { border-color: #7c1d36 !important; box-shadow: 0 0 0 4px rgba(124,29,54,0.14), 0 10px 36px rgba(0,0,0,0.15); }
+  .dir-preview {
+    height: 260px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .dir-meta {
+    padding: 14px 16px;
+    background: #fff;
+    border-top: 1px solid #eee;
+  }
+  .dir-meta h3 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .dir-meta p { margin: 0; font-size: 12px; color: #666; line-height: 1.4; }
+
+  /* === DIRECTION A: Cinematic Dark Arena === */
+  .preview-a {
+    background: linear-gradient(160deg, #0d0d14 0%, #1a0a10 60%, #2a0d18 100%);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 24px 20px;
+  }
+  .preview-a .arena-badge {
+    font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4); margin-bottom: 8px;
+  }
+  .preview-a .arena-headline {
+    font-size: 22px; font-weight: 800; color: #fff;
+    letter-spacing: -0.03em; text-align: center; line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .preview-a .arena-sub {
+    font-size: 11px; color: rgba(255,255,255,0.45); text-align: center; margin-bottom: 18px;
+  }
+  .preview-a .arena-stats {
+    display: flex; gap: 12px; margin-bottom: 18px;
+  }
+  .preview-a .stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 8px 12px; text-align: center; flex: 1;
+  }
+  .preview-a .stat-val { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+  .preview-a .stat-label { font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.1em; }
+  .preview-a .arena-cta {
+    background: linear-gradient(135deg, #7c1d36, #5a0f26);
+    color: #fff; border: none; border-radius: 10px;
+    padding: 10px 24px; font-size: 13px; font-weight: 700;
+    width: 100%; cursor: pointer; letter-spacing: 0.02em;
+    box-shadow: 0 4px 20px rgba(124,29,54,0.5);
+  }
+  .preview-a .glow-orb {
+    position: absolute; width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(124,29,54,0.3) 0%, transparent 70%);
+    top: -40px; right: -40px; pointer-events: none;
+  }
+
+  /* === DIRECTION B: Ritual de Voo === */
+  .preview-b {
+    background: #f8f7f6;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 20px 18px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .preview-b .ritual-title {
+    font-size: 16px; font-weight: 700; color: #1a0a10;
+    text-align: center; margin-bottom: 4px; letter-spacing: -0.02em;
+  }
+  .preview-b .ritual-sub {
+    font-size: 10px; color: #888; text-align: center; margin-bottom: 16px; letter-spacing: 0.04em;
+  }
+  .preview-b .check-list { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .preview-b .check-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 1px solid #ebe9e7;
+    border-radius: 8px; padding: 7px 10px;
+    transition: all 0.15s;
+  }
+  .preview-b .check-row.done { background: #fdf0f3; border-color: rgba(124,29,54,0.2); }
+  .preview-b .check-dot {
+    width: 16px; height: 16px; border-radius: 5px;
+    border: 1.5px solid #d0ccc8; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .preview-b .check-dot.done { background: #7c1d36; border-color: #7c1d36; }
+  .preview-b .check-dot.done::after { content: '✓'; color: white; font-size: 9px; font-weight: 700; }
+  .preview-b .check-text { font-size: 10px; font-weight: 600; color: #333; }
+  .preview-b .ritual-progress {
+    width: 100%; height: 3px; background: #ebe9e7; border-radius: 99px; margin-bottom: 12px;
+  }
+  .preview-b .ritual-progress-bar {
+    height: 100%; width: 60%; background: linear-gradient(90deg, #7c1d36, #a02d4a); border-radius: 99px;
+  }
+  .preview-b .ritual-cta {
+    background: #7c1d36; color: #fff; border: none; border-radius: 8px;
+    padding: 9px 20px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%;
+    opacity: 0.5;
+  }
+
+  /* === DIRECTION C: Split Imersivo === */
+  .preview-c {
+    display: flex; height: 100%; font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .preview-c .split-left {
+    width: 45%; background: linear-gradient(160deg, #1a0a10, #2d0f1f);
+    padding: 20px 16px; display: flex; flex-direction: column; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .preview-c .split-left::before {
+    content: ''; position: absolute;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(124,29,54,0.4) 0%, transparent 70%);
+    bottom: -20px; right: -20px;
+  }
+  .preview-c .left-seq { font-size: 9px; color: rgba(255,255,255,0.3); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; }
+  .preview-c .left-title { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 10px; }
+  .preview-c .left-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(124,29,54,0.35); border: 1px solid rgba(124,29,54,0.5);
+    border-radius: 99px; padding: 4px 10px; font-size: 9px; color: rgba(255,255,255,0.7);
+    margin-bottom: 6px;
+  }
+  .preview-c .left-kpi { margin-top: 12px; }
+  .preview-c .kpi-row { display: flex; flex-direction: column; margin-bottom: 6px; }
+  .preview-c .kpi-num { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.03em; line-height: 1; }
+  .preview-c .kpi-desc { font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 0.06em; }
+  .preview-c .split-right {
+    flex: 1; background: #fff; padding: 16px 14px;
+    display: flex; flex-direction: column;
+  }
+  .preview-c .right-title { font-size: 11px; font-weight: 700; color: #1a0a10; margin-bottom: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .preview-c .mini-check { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .preview-c .mini-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 7px; border-radius: 6px; background: #f9f8f7;
+  }
+  .preview-c .mini-icon { width: 18px; height: 18px; border-radius: 5px; background: #f0ecea; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+  .preview-c .mini-text { font-size: 9px; color: #444; font-weight: 600; }
+  .preview-c .right-cta {
+    background: #7c1d36; color: #fff; border: none; border-radius: 7px;
+    padding: 8px; font-size: 11px; font-weight: 700; cursor: pointer; margin-top: 10px;
+    opacity: 0.45;
+  }
+</style>
+
+<h2>Qual direção visual faz você dizer "isso é o que eu queria"?</h2>
+<p class="subtitle">Cada direção tem uma personalidade diferente. Clique para selecionar.</p>
+
+<div class="dir-cards">
+
+  <!-- A: Cinematic Dark Arena -->
+  <div class="dir-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="dir-preview preview-a">
+      <div class="glow-orb"></div>
+      <div class="arena-badge">Simulado #8 · ENAMED 2026</div>
+      <div class="arena-headline">Entre na<br>Arena</div>
+      <div class="arena-sub">100 questões · 5 horas</div>
+      <div class="arena-stats">
+        <div class="stat">
+          <div class="stat-val">100</div>
+          <div class="stat-label">Questões</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">5h</div>
+          <div class="stat-label">Duração</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">3min</div>
+          <div class="stat-label">Por questão</div>
+        </div>
+      </div>
+      <button class="arena-cta">⚑ Iniciar Simulado</button>
+    </div>
+    <div class="dir-meta">
+      <h3>A — Cinematic Dark Arena</h3>
+      <p>Background escuro dramático, glow wine, tipografia grande. Sente que você está entrando numa batalha. Alto impacto emocional.</p>
+    </div>
+  </div>
+
+  <!-- B: Ritual de Voo -->
+  <div class="dir-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="dir-preview preview-b">
+      <div class="ritual-title">Pré-voo: Simulado Teste</div>
+      <div class="ritual-sub">Confirme cada item antes de decolar</div>
+      <div class="check-list">
+        <div class="check-row done">
+          <div class="check-dot done"></div>
+          <span class="check-text">5h · 100 questões</span>
+        </div>
+        <div class="check-row done">
+          <div class="check-dot done"></div>
+          <span class="check-text">Sem pausa — cronômetro contínuo</span>
+        </div>
+        <div class="check-row">
+          <div class="check-dot"></div>
+          <span class="check-text">Conexão estável</span>
+        </div>
+        <div class="check-row">
+          <div class="check-dot"></div>
+          <span class="check-text">Ambiente sem interrupções</span>
+        </div>
+      </div>
+      <div class="ritual-progress"><div class="ritual-progress-bar"></div></div>
+      <button class="ritual-cta">Iniciar — confirme todos os itens</button>
+    </div>
+    <div class="dir-meta">
+      <h3>B — Ritual de Pré-voo</h3>
+      <p>Metáfora de checklist de piloto. Fundo claro e limpo, cada item checked desbloqueia o próximo. Sensação de preparação profissional.</p>
+    </div>
+  </div>
+
+  <!-- C: Split Imersivo -->
+  <div class="dir-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="dir-preview preview-c">
+      <div class="split-left">
+        <div class="left-seq">Simulado #8</div>
+        <div class="left-title">Simulado<br>Teste</div>
+        <div class="left-pill">● Disponível agora</div>
+        <div class="left-kpi">
+          <div class="kpi-row"><span class="kpi-num">100</span><span class="kpi-desc">QUESTÕES</span></div>
+          <div class="kpi-row"><span class="kpi-num">5h</span><span class="kpi-desc">DURAÇÃO</span></div>
+        </div>
+      </div>
+      <div class="split-right">
+        <div class="right-title">Antes de começar</div>
+        <div class="mini-check">
+          <div class="mini-row"><div class="mini-icon">⏱</div><div class="mini-text">5h · 100 questões</div></div>
+          <div class="mini-row"><div class="mini-icon">⚡</div><div class="mini-text">Sem pausa</div></div>
+          <div class="mini-row"><div class="mini-icon">📶</div><div class="mini-text">Conexão estável</div></div>
+          <div class="mini-row"><div class="mini-icon">🖥</div><div class="mini-text">Tela cheia</div></div>
+          <div class="mini-row"><div class="mini-icon">🤫</div><div class="mini-text">Ambiente tranquilo</div></div>
+        </div>
+        <button class="right-cta">Iniciar Simulado →</button>
+      </div>
+    </div>
+    <div class="dir-meta">
+      <h3>C — Split Imersivo</h3>
+      <p>Painel esquerdo escuro com identidade do simulado, painel direito claro com checklist. Equilíbrio entre drama e funcionalidade.</p>
+    </div>
+  </div>
+
+</div>

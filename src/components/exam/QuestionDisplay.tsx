@@ -54,7 +54,18 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
       )}
 
       {/* Options — uniform border-2 to prevent layout shift */}
-      <div id="exam-options" className="space-y-2.5" role="radiogroup" aria-label={`Alternativas da questão ${question.number}`}>
+      <div id="exam-options" className="space-y-2.5">
+        {question.options.length === 0 ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-body-sm text-destructive"
+          >
+            As alternativas desta questão não puderam ser carregadas. Atualize a página. Se o problema continuar,
+            avise o suporte.
+          </p>
+        ) : (
+          <div role="radiogroup" aria-label={`Alternativas da questão ${question.number}`} className="space-y-2.5">
         {question.options.map((opt) => {
           const isSelected = selectedId === opt.id;
           const isEliminated = eliminated.includes(opt.id);
@@ -126,6 +137,8 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
             </div>
           );
         })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direções de Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #f0eeec;
+    color: #1a1a1a;
+    padding: 32px 24px 48px;
+    min-height: 100vh;
+  }
+
+  .page-title {
+    font-size: 22px; font-weight: 800; color: #1a0a10;
+    letter-spacing: -0.03em; margin-bottom: 6px; text-align: center;
+  }
+  .page-sub {
+    font-size: 14px; color: #777; text-align: center; margin-bottom: 32px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .card {
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: all 0.22s ease;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    background: #fff;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.14); }
+  .card.selected {
+    border-color: #7c1d36 !important;
+    box-shadow: 0 0 0 5px rgba(124,29,54,0.15), 0 12px 40px rgba(0,0,0,0.14);
+  }
+  .card.selected .card-label { background: #7c1d36; color: #fff; }
+
+  .card-preview {
+    height: 360px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-label {
+    position: absolute; top: 14px; left: 14px; z-index: 10;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 99px;
+    transition: all 0.22s;
+  }
+  .card-label.dark-label {
+    background: rgba(0,0,0,0.1);
+    border-color: rgba(0,0,0,0.12);
+    color: #555;
+  }
+
+  .card-meta {
+    padding: 18px 20px 20px;
+    border-top: 1px solid #f0ecea;
+  }
+  .card-meta h3 { font-size: 15px; font-weight: 800; color: #1a0a10; margin-bottom: 6px; letter-spacing: -0.01em; }
+  .card-meta p { font-size: 12.5px; color: #666; line-height: 1.5; }
+
+  /* ===================== A: DARK ARENA ===================== */
+  .preview-a {
+    background: linear-gradient(150deg, #0e0810 0%, #1e0a14 55%, #2e1020 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 28px 24px; gap: 0;
+  }
+  .a-eyebrow {
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(255,255,255,0.35); margin-bottom: 10px;
+  }
+  .a-title {
+    font-size: 42px; font-weight: 800; color: #fff;
+    letter-spacing: -0.04em; text-align: center; line-height: 0.95;
+    margin-bottom: 4px;
+  }
+  .a-title span { color: #c45a72; }
+  .a-subtitle {
+    font-size: 12px; color: rgba(255,255,255,0.4);
+    text-align: center; margin-bottom: 22px; letter-spacing: 0.04em;
+  }
+  .a-divider {
+    width: 40px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(196,90,114,0.6), transparent);
+    margin-bottom: 22px;
+  }
+  .a-stats {
+    display: flex; gap: 10px; margin-bottom: 22px; width: 100%;
+  }
+  .a-stat {
+    flex: 1; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 10px 8px; text-align: center;
+  }
+  .a-stat-val { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.03em; line-height: 1; }
+  .a-stat-unit { font-size: 9px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+  .a-cta {
+    background: linear-gradient(135deg, #8c2040 0%, #5c1228 100%);
+    color: #fff; border: none; border-radius: 10px;
+    padding: 12px 0; font-size: 13px; font-weight: 700;
+    width: 100%; cursor: pointer; letter-spacing: 0.04em;
+    box-shadow: 0 6px 24px rgba(140,32,64,0.5);
+  }
+  .a-glow {
+    position: absolute; pointer-events: none;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(140,32,64,0.25) 0%, transparent 68%);
+    top: -60px; right: -60px;
+  }
+  .a-glow2 {
+    position: absolute; pointer-events: none;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(100,20,48,0.2) 0%, transparent 68%);
+    bottom: -40px; left: -40px;
+  }
+
+  /* ===================== B: RITUAL DE PRÉ-VOO ===================== */
+  .preview-b {
+    background: #fafaf8;
+    display: flex; flex-direction: column;
+    padding: 28px 24px;
+  }
+  .b-header { margin-bottom: 20px; }
+  .b-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fdf0f3; border: 1px solid rgba(124,29,54,0.15);
+    color: #7c1d36; font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 99px; margin-bottom: 8px;
+  }
+  .b-title { font-size: 24px; font-weight: 800; color: #1a0a10; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 4px; }
+  .b-meta { font-size: 11px; color: #888; }
+  .b-progress-wrap { margin-bottom: 18px; }
+  .b-progress-track { height: 4px; background: #ebe8e5; border-radius: 99px; overflow: hidden; margin-bottom: 6px; }
+  .b-progress-fill { height: 100%; width: 40%; background: linear-gradient(90deg, #7c1d36, #a8304e); border-radius: 99px; }
+  .b-progress-label { font-size: 10px; color: #999; font-weight: 600; }
+  .b-items { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .b-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px;
+    border: 1.5px solid #ebe8e5; background: #fff;
+    transition: all 0.15s;
+  }
+  .b-item.checked { background: #fdf5f7; border-color: rgba(124,29,54,0.2); }
+  .b-check {
+    width: 18px; height: 18px; border-radius: 6px;
+    border: 2px solid #d5d0cc; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .b-item.checked .b-check { background: #7c1d36; border-color: #7c1d36; color: #fff; font-weight: 800; }
+  .b-item-text { font-size: 12px; font-weight: 600; color: #333; }
+  .b-item-sub { font-size: 10px; color: #999; }
+  .b-cta-wrap { margin-top: 16px; }
+  .b-cta {
+    background: #7c1d36; color: #fff; border: none; border-radius: 10px;
+    padding: 12px; font-size: 13px; font-weight: 700; cursor: pointer; width: 100%;
+    opacity: 0.45;
+  }
+  .b-cta-hint { font-size: 10px; color: #aaa; text-align: center; margin-top: 6px; }
+
+  /* ===================== C: EDITORIAL PREMIUM ===================== */
+  .preview-c {
+    background: #fff;
+    display: flex; flex-direction: column;
+    padding: 0; overflow: hidden;
+  }
+  .c-hero {
+    background: linear-gradient(135deg, #1e0a14 0%, #3d1525 100%);
+    padding: 24px 24px 20px;
+    position: relative; overflow: hidden;
+  }
+  .c-hero-glow {
+    position: absolute; pointer-events: none;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(196,90,114,0.2) 0%, transparent 65%);
+    top: -60px; right: -40px;
+  }
+  .c-seq { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
+  .c-name { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 10px; }
+  .c-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .c-chip {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px; padding: 4px 9px;
+  }
+  .c-body { padding: 18px 22px; flex: 1; display: flex; flex-direction: column; }
+  .c-section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #aaa; margin-bottom: 12px; }
+  .c-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 16px; }
+  .c-item {
+    background: #f9f7f6; border-radius: 9px; padding: 10px 12px;
+    border: 1.5px solid transparent; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .c-item:nth-child(1), .c-item:nth-child(2) { border-color: rgba(124,29,54,0.2); background: #fdf4f6; }
+  .c-item-icon { font-size: 16px; margin-bottom: 4px; }
+  .c-item-title { font-size: 11px; font-weight: 700; color: #1a0a10; }
+  .c-item-desc { font-size: 10px; color: #888; line-height: 1.3; }
+  .c-cta {
+    background: #7c1d36; color: #fff; border: none; border-radius: 10px;
+    padding: 12px; font-size: 13px; font-weight: 700; cursor: pointer; width: 100%;
+    margin-top: auto; opacity: 0.4;
+  }
+  .c-hint { font-size: 10px; color: #bbb; text-align: center; margin-top: 6px; }
+
+  /* Selected state badge */
+  .selected-badge {
+    display: none;
+    position: absolute; bottom: 14px; right: 14px; z-index: 10;
+    background: #7c1d36; color: #fff;
+    font-size: 11px; font-weight: 700;
+    width: 28px; height: 28px; border-radius: 50%;
+    align-items: center; justify-content: center;
+  }
+  .card.selected .selected-badge { display: flex; }
+
+  .footer-hint {
+    text-align: center; margin-top: 28px;
+    font-size: 13px; color: #888;
+  }
+  .footer-hint strong { color: #1a0a10; }
+</style>
+
+<div class="page-title">Qual direção faz você dizer "é exatamente isso"?</div>
+<p class="page-sub">Mini-mockups fiéis ao sistema de design atual. Clique para selecionar.</p>
+
+<div class="grid">
+
+  <!-- A: Dark Arena -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-preview preview-a">
+      <div class="a-glow"></div>
+      <div class="a-glow2"></div>
+      <span class="card-label">A</span>
+      <div class="selected-badge">✓</div>
+      <div class="a-eyebrow">Simulado #8 · ENAMED 2026</div>
+      <div class="a-title">Entre na<br><span>Arena</span></div>
+      <div class="a-subtitle">100 questões · 5 horas sem pausa</div>
+      <div class="a-divider"></div>
+      <div class="a-stats">
+        <div class="a-stat">
+          <div class="a-stat-val">100</div>
+          <div class="a-stat-unit">questões</div>
+        </div>
+        <div class="a-stat">
+          <div class="a-stat-val">5h</div>
+          <div class="a-stat-unit">duração</div>
+        </div>
+        <div class="a-stat">
+          <div class="a-stat-val">3'</div>
+          <div class="a-stat-unit">por questão</div>
+        </div>
+      </div>
+      <button class="a-cta">▶  Iniciar Simulado</button>
+    </div>
+    <div class="card-meta">
+      <h3>A — Dark Arena</h3>
+      <p>Fundo escuro imersivo, glow wine, tipografia grande e dramática. Você está prestes a entrar em algo sério. Alto impacto emocional — transmite gravidade e prestígio.</p>
+    </div>
+  </div>
+
+  <!-- B: Ritual de Pré-voo -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-preview preview-b">
+      <span class="card-label dark-label">B</span>
+      <div class="selected-badge">✓</div>
+      <div class="b-header">
+        <div class="b-tag">● Disponível</div>
+        <div class="b-title">Simulado Teste</div>
+        <div class="b-meta">Simulado #8 · Resultado em 15 abr</div>
+      </div>
+      <div class="b-progress-wrap">
+        <div class="b-progress-track"><div class="b-progress-fill"></div></div>
+        <div class="b-progress-label">2 de 5 itens confirmados</div>
+      </div>
+      <div class="b-items">
+        <div class="b-item checked">
+          <div class="b-check">✓</div>
+          <div><div class="b-item-text">Duração: 5h · 100 questões</div></div>
+        </div>
+        <div class="b-item checked">
+          <div class="b-check">✓</div>
+          <div><div class="b-item-text">Sem pausa — cronômetro contínuo</div></div>
+        </div>
+        <div class="b-item">
+          <div class="b-check"></div>
+          <div><div class="b-item-text">Conexão estável</div></div>
+        </div>
+        <div class="b-item">
+          <div class="b-check"></div>
+          <div><div class="b-item-text">Ambiente sem interrupções</div></div>
+        </div>
+      </div>
+      <div class="b-cta-wrap">
+        <button class="b-cta">Iniciar Simulado</button>
+        <div class="b-cta-hint">Confirme todos os itens para continuar</div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <h3>B — Ritual de Pré-voo</h3>
+      <p>Tema claro premium com checklist progressivo estilo lista de verificação de piloto. Barra de progresso que desbloqueia o botão. Sensação de preparação séria e profissional.</p>
+    </div>
+  </div>
+
+  <!-- C: Editorial com Hero Banner -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-preview preview-c">
+      <div class="c-hero">
+        <div class="c-hero-glow"></div>
+        <span class="card-label">C</span>
+        <div class="selected-badge">✓</div>
+        <div class="c-seq">Simulado #8 · ENAMED 2026</div>
+        <div class="c-name">Simulado Teste</div>
+        <div class="c-chips">
+          <div class="c-chip">⏱ 5 horas</div>
+          <div class="c-chip">📝 100 questões</div>
+          <div class="c-chip">🏆 Conta no ranking</div>
+        </div>
+      </div>
+      <div class="c-body">
+        <div class="c-section-label">Confirme antes de iniciar</div>
+        <div class="c-grid">
+          <div class="c-item">
+            <div class="c-item-icon">✅</div>
+            <div class="c-item-title">Duração da prova</div>
+            <div class="c-item-desc">5h · 100 questões</div>
+          </div>
+          <div class="c-item">
+            <div class="c-item-icon">✅</div>
+            <div class="c-item-title">Sem pausa</div>
+            <div class="c-item-desc">Cronômetro não para</div>
+          </div>
+          <div class="c-item">
+            <div class="c-item-icon">📶</div>
+            <div class="c-item-title">Conexão estável</div>
+            <div class="c-item-desc">Salvo automaticamente</div>
+          </div>
+          <div class="c-item">
+            <div class="c-item-icon">🖥</div>
+            <div class="c-item-title">Tela cheia</div>
+            <div class="c-item-desc">Saída é registrada</div>
+          </div>
+        </div>
+        <button class="c-cta">▶  Iniciar Simulado</button>
+        <div class="c-hint">Confirme todos os itens acima para continuar</div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <h3>C — Hero Banner + Cards</h3>
+      <p>Header escuro com identidade do simulado (nome, duração, ranking). Parte de baixo clara com cards de checklist que acendem ao clicar. Híbrido premium: drama no topo, clareza embaixo.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-hint">
+  Clique numa direção para selecionar · <strong>Pode selecionar mais de uma</strong> se quiser misturar elementos
+</div>
+
+<script>
+function toggleSelect(el) {
+  el.classList.toggle('selected');
+  // fire the built-in selection event if helper.js is loaded
+  if (typeof window.__recordChoice === 'function') {
+    window.__recordChoice(el.dataset.choice, el.querySelector('h3')?.textContent || el.dataset.choice);
+  }
+}
+</script>

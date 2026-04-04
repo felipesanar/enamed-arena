@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(bash \"C:/Users/Felipe Souza/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/Felipe Souza/Documents/enamed-arena\")"
     ]
   }
 }

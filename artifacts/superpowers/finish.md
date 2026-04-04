@@ -1,47 +1,41 @@
+# Finish - Execucao do plano de teste de prova (2026-04-04)
+
 ### Verification
 - Commands run:
-  - `npx eslint "src/components/premium/home/HomePagePremium.tsx"`
-  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx"`
-  - `npx eslint "src/components/premium/home/HomeHeroSection.tsx" "src/components/premium/home/HomePagePremium.tsx"`
-  - `npm run build`
+  - `node -v` -> pass (`v24.11.0`)
+  - `npm -v` -> pass (`11.6.1`)
+  - `npm run lint` -> pass apos saneamento (`0 errors, 25 warnings`)
+  - `npm run test` -> pass (`14 files, 73 tests`)
+  - `npm run build` -> pass (warnings nao bloqueantes)
+  - Browser E2E (producao): login/cadastro + onboarding + acesso a `/simulados`
 - Results:
-  - ESLint dos arquivos alterados: **pass**.
-  - Build de producao: **pass**.
-  - Warnings de bundle/Tailwind vistos no build sao gerais e preexistentes (fora do escopo deste card).
+  - Base tecnica: aprovada
+  - Fluxo completo de prova: bloqueado por regra de janela de execucao (sem simulado disponivel na data do teste).
+
+### Review pass (severidade)
+- Blocker
+  - Nao ha janela ativa para iniciar prova em producao no momento do teste (`Ainda nao disponivel` em `/simulados`).
+  - Sem entrada na prova, nao e possivel validar etapas obrigatorias: responder questoes, marcar revisao, finalizar, tela pos-finalizacao, cenarios de foco/fullscreen dentro da prova.
+- Major
+  - Ambiente local apresentou erro de runtime do Vite ao carregar rota (`Failed to resolve import "jszip"`) durante tentativa inicial de validacao local.
+- Minor
+  - Baseline de lint exigiu ajuste de configuracao para remover bloqueio global e permitir a bateria de verificacao.
+- Nit
+  - Warnings remanescentes de lint/build (nao bloqueantes) podem ser limpos em hardening futuro.
 
 ### Summary of changes
-- `src/components/premium/home/HomePagePremium.tsx`
-  - Derivacao de `recentScores` (ultimas 6 tentativas) com normalizacao e ordem cronologica para visualizacao no card.
-  - Envio de `recentScores` para `HomeHeroSection`.
-  - Ajuste de classe no bloco de onboarding para evitar referencia indefinida.
-- `src/components/premium/home/HomeHeroSection.tsx`
-  - Card de `Ultimo simulado` foi totalmente redesenhado para visual premium inspirado na referencia anexada.
-  - Score principal em destaque, badge de variacao e mini chart de barras com foco na ultima tentativa.
-  - Bloco inferior de contexto (ranking/meta) com progress bar e informacoes de progresso.
-  - Implementacao de estados completos:
-    - **0 simulados**: composicao premium orientativa com CTA de inicio.
-    - **1 simulado**: barra principal em foco + barras contextuais neutras.
-    - **2+ simulados**: barras reais baseadas no historico com destaque da ultima prova.
-
-### Review pass (Blocker/Major/Minor/Nit)
-- **Blocker**
-  - Nenhum.
-- **Major**
-  - Nenhum identificado no escopo alterado.
-- **Minor**
-  - A calibracao fina de opacidade/cor das barras pode ser ajustada apos validacao visual lado a lado com a referencia em diferentes monitores.
-- **Nit**
-  - Possivel microajuste de copy do painel inferior para ficar ainda mais aspiracional, mantendo o mesmo conteudo funcional.
+- `eslint.config.js` ajustado para remover erros bloqueantes de baseline no lint global.
+- `artifacts/superpowers/plan.md` atualizado com etapa explicita de saneamento de lint aprovada pelo usuario.
+- `artifacts/superpowers/execution.md` atualizado com trilha completa de execucao e debug dos bloqueios.
 
 ### Follow-ups
-- Fazer validacao visual manual em conta com 0, 1 e 2+ simulados para confirmar a narrativa de cada estado em ambiente real.
-- Se desejar, posso fazer uma segunda passada de micro-polimento com base em screenshot comparativo direto.
+- Liberar um simulado em janela ativa para conta de teste (ou fornecer conta com tentativa em andamento) e rerodar os passos 4-6 do plano.
+- Opcional: corrigir o erro de runtime local do Vite relacionado a `jszip` para recuperar validacao local da rota de prova.
 
-### How to validate manually
-1. Rodar `npm run dev`.
-2. Acessar Home autenticado e verificar o card `Ultimo simulado`.
-3. Confirmar comportamento por estado:
-   - sem historico: card premium orientativo;
-   - uma tentativa: barra final em foco com contexto;
-   - varias tentativas: barras comparativas com ultima em destaque.
-4. Validar responsividade (desktop/tablet/mobile) e legibilidade de contraste.
+### Manual validation steps (quando janela estiver ativa)
+1. Acessar `https://simulados.sanar.com.br/simulados` com conta autenticada.
+2. Iniciar simulado disponivel.
+3. Responder multiplas questoes, usar navegacao, marcar revisao e alta confianca.
+4. Simular saida de aba e saida de fullscreen; confirmar avisos/penalidades.
+5. Finalizar tentativa e validar tela de conclusao e disponibilidade de resultado.
+6. Reabrir fluxo e confirmar retomada/estado persistido conforme esperado.

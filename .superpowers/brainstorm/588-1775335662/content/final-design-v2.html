@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Final v2 — Sidebar Merge</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Sidebar color from CSS var: --sidebar-background: 345 55% 15% */
+:root {
+  --sidebar-bg: hsl(345, 55%, 15%);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #e8e4e0;
+  min-height: 100vh;
+}
+
+/* ===== FULL LAYOUT SIMULATION ===== */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Simulated sidebar */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-logo {
+  font-size: 15px; font-weight: 800; color: #fff;
+  letter-spacing: -0.02em; margin-bottom: 28px; padding: 0 8px;
+}
+.sidebar-logo span {
+  font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+  background: rgba(255,255,255,0.15); border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; color: rgba(255,255,255,0.8);
+}
+.sidebar-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255,255,255,0.25); padding: 0 10px; margin-bottom: 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55);
+  cursor: pointer;
+}
+.nav-item.active {
+  background: rgba(255,255,255,0.1); color: #fff;
+}
+.nav-item svg { opacity: 0.7; flex-shrink: 0; }
+.nav-item.active svg { opacity: 1; }
+.nav-icon { width: 16px; height: 16px; background: rgba(255,255,255,0.3); border-radius: 3px; flex-shrink: 0; }
+
+/* Main content */
+.main {
+  flex: 1;
+  background: hsl(330, 8%, 96%);
+  padding: 28px 32px;
+  overflow: auto;
+}
+
+.breadcrumb {
+  font-size: 12px; color: #999; margin-bottom: 10px;
+  display: flex; gap: 6px; align-items: center;
+}
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-header-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: hsl(345, 65%, 30%); margin-bottom: 4px;
+}
+.page-header-title {
+  font-size: 26px; font-weight: 800; color: #1a0a10; letter-spacing: -0.03em;
+}
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #edfaf3; border: 1px solid rgba(40,160,90,0.25);
+  color: #1a7a45; font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 99px;
+}
+.status-dot { width: 6px; height: 6px; background: #28a05a; border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ===== THE ARENA CARD ===== */
+/*
+  Key effect: gradient goes LEFT→RIGHT
+  LEFT edge = exact sidebar color hsl(345, 55%, 15%)
+  CENTER/RIGHT = deep dark #0e0810 tones
+  This makes left edge dissolve into sidebar visually.
+*/
+.arena-card {
+  border-radius: 18px;
+  padding: 36px 40px 30px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow:
+    0 0 80px -20px rgba(140,32,64,0.3),
+    0 20px 60px -12px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  background:
+    /* Top-right glow accent */
+    radial-gradient(ellipse 280px 220px at 92% 15%, rgba(140,32,64,0.18) 0%, transparent 70%),
+    /* Bottom-left subtle warm */
+    radial-gradient(ellipse 200px 200px at 8% 90%, rgba(100,20,40,0.12) 0%, transparent 65%),
+    /* Base: LEFT = sidebar hsl(345,55%,15%), RIGHT = deep dark */
+    linear-gradient(
+      to right,
+      hsl(345, 55%, 15%) 0%,
+      hsl(345, 52%, 12%) 18%,
+      hsl(340, 48%, 9%) 40%,
+      hsl(335, 45%, 6%) 70%,
+      hsl(330, 40%, 5%) 100%
+    );
+}
+
+/* Subtle noise texture */
+.grain {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* Content above grain */
+.arena-card > *:not(.grain) { position: relative; z-index: 1; }
+
+/* Top */
+.arena-top { text-align: center; margin-bottom: 26px; }
+.arena-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3); margin-bottom: 12px;
+}
+.eyebrow-dot { width: 5px; height: 5px; background: hsl(345, 70%, 60%); border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+.arena-headline {
+  font-size: 38px; font-weight: 800; color: #fff;
+  letter-spacing: -0.04em; line-height: 1.0; margin-bottom: 8px;
+}
+.arena-headline em { font-style: normal; color: hsl(345, 65%, 68%); }
+.arena-desc {
+  font-size: 13px; color: rgba(255,255,255,0.38);
+  margin-bottom: 18px;
+}
+.arena-chips {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; flex-wrap: wrap;
+}
+.arena-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.6);
+  font-size: 11px; font-weight: 600;
+  padding: 5px 11px; border-radius: 8px;
+}
+
+/* Progress */
+.progress-section { margin-bottom: 18px; }
+.progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.progress-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+.progress-count {
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.45);
+}
+.progress-count span { color: hsl(345, 65%, 68%); }
+.progress-track {
+  height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, hsl(345,60%,40%), hsl(345,65%,60%));
+  border-radius: 99px;
+  box-shadow: 0 0 8px hsl(345,65%,55% / 0.5);
+  transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Grid */
+.checklist-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 9px; margin-bottom: 26px;
+}
+.check-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 15px; border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.check-item:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+}
+.check-item.checked {
+  background: rgba(196,90,114,0.1);
+  border-color: rgba(196,90,114,0.32);
+}
+.check-icon-wrap {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: all 0.2s;
+}
+.check-item.checked .check-icon-wrap {
+  background: rgba(196,90,114,0.18);
+  border-color: rgba(196,90,114,0.38);
+}
+.check-text-wrap { flex: 1; min-width: 0; }
+.check-title { font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.75); margin-bottom: 2px; }
+.check-item.checked .check-title { color: #fff; }
+.check-desc { font-size: 11px; color: rgba(255,255,255,0.32); line-height: 1.4; }
+.check-item.checked .check-desc { color: rgba(255,255,255,0.48); }
+.check-box {
+  width: 16px; height: 16px; border-radius: 5px;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.check-item.checked .check-box {
+  background: hsl(345, 65%, 55%);
+  border-color: hsl(345, 65%, 55%);
+}
+.check-item.checked .check-box::after {
+  content: '✓'; color: #fff; font-size: 9px; font-weight: 800;
+}
+
+/* CTA */
+.cta-section { text-align: center; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 44px; border-radius: 12px;
+  font-size: 15px; font-weight: 700; letter-spacing: 0.01em;
+  font-family: inherit;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  cursor: not-allowed;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.28);
+}
+.cta-btn.active {
+  background: linear-gradient(135deg, hsl(345,65%,38%) 0%, hsl(345,65%,26%) 100%);
+  border-color: transparent;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 32px hsl(345,65%,35% / 0.55), 0 2px 8px rgba(0,0,0,0.3);
+}
+.cta-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px hsl(345,65%,35% / 0.65), 0 4px 12px rgba(0,0,0,0.3);
+}
+.cta-hint {
+  font-size: 11px; color: rgba(255,255,255,0.22);
+  margin-top: 10px;
+}
+.cta-hint.ready { color: rgba(255,255,255,0.45); }
+
+.arena-footer {
+  text-align: center; margin-top: 20px;
+  font-size: 11px; color: rgba(255,255,255,0.18);
+  letter-spacing: 0.04em;
+}
+
+/* Annotation bar */
+.annotation-bar {
+  margin-top: 16px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid rgba(255,255,255,0.9);
+  font-size: 12px; color: #555;
+}
+.annotation-bar strong { color: #1a0a10; }
+.ann-swatch {
+  width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+  background: hsl(345, 55%, 15%);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">sanarflix <span>PRO</span></div>
+    <div class="sidebar-label">Menu</div>
+    <div class="nav-item"><div class="nav-icon"></div> Início</div>
+    <div class="nav-item active"><div class="nav-icon"></div> Simulados</div>
+    <div class="nav-item"><div class="nav-icon"></div> Desempenho</div>
+    <div class="nav-item"><div class="nav-icon"></div> Ranking</div>
+    <div class="nav-item"><div class="nav-icon"></div> Comparativo</div>
+    <div style="margin-top:auto">
+      <div class="nav-item"><div class="nav-icon"></div> Caderno de Erros</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="breadcrumb">
+      <span style="color:#aaa">Simulados</span>
+      <span style="color:#ccc">›</span>
+      <span style="color:#666">Simulado Teste</span>
+    </div>
+    <div class="page-header">
+      <div>
+        <div class="page-header-badge">Simulado #8</div>
+        <div class="page-header-title">Simulado Teste</div>
+      </div>
+      <div class="status-badge"><div class="status-dot"></div> Disponível</div>
+    </div>
+
+    <!-- ARENA CARD -->
+    <div class="arena-card" id="arenaCard">
+      <div class="grain"></div>
+
+      <div class="arena-top">
+        <div class="arena-eyebrow">
+          <div class="eyebrow-dot"></div>
+          Simulado #8 · ENAMED 2026
+        </div>
+        <div class="arena-headline">Pronto para<br><em>começar?</em></div>
+        <div class="arena-desc">Confirme os itens abaixo antes de entrar. A prova não pode ser pausada.</div>
+        <div class="arena-chips">
+          <div class="arena-chip">⏱ 5 horas</div>
+          <div class="arena-chip">📝 100 questões</div>
+          <div class="arena-chip">🏆 Conta no ranking</div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-header">
+          <div class="progress-label">Checklist de confirmação</div>
+          <div class="progress-count"><span id="checkedCount">0</span> de 5 itens</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <div class="checklist-grid">
+        <div class="check-item" onclick="toggle(this)">
+          <div class="check-icon-wrap">⏱</div>
+          <div class="check-text-wrap">
+            <div class="check-title">Duração da prova</div>
+            <div class="check-desc">5h · 100 questões</div>
+          </div>
+          <div class="check-box"></div>
+        </div>
+        <div class="check-item" onclick="toggle(this)">
+          <div class="check-icon-wrap">⚡</div>
+          <div class="check-text-wrap">
+            <div class="check-title">Sem pausa</div>
+            <div class="check-desc">Cronômetro não pode ser pausado</div>
+          </div>
+          <div class="check-box"></div>
+        </div>
+        <div class="check-item" onclick="toggle(this)">
+          <div class="check-icon-wrap">📶</div>
+          <div class="check-text-wrap">
+            <div class="check-title">Conexão estável</div>
+            <div class="check-desc">Respostas salvas automaticamente</div>
+          </div>
+          <div class="check-box"></div>
+        </div>
+        <div class="check-item" onclick="toggle(this)">
+          <div class="check-icon-wrap">🤫</div>
+          <div class="check-text-wrap">
+            <div class="check-title">Ambiente adequado</div>
+            <div class="check-desc">Local tranquilo, sem interrupções</div>
+          </div>
+          <div class="check-box"></div>
+        </div>
+        <div class="check-item" onclick="toggle(this)">
+          <div class="check-icon-wrap">🖥</div>
+          <div class="check-text-wrap">
+            <div class="check-title">Prova em tela cheia</div>
+            <div class="check-desc">Sair do fullscreen é registrado</div>
+          </div>
+          <div class="check-box"></div>
+        </div>
+      </div>
+
+      <div class="cta-section">
+        <button class="cta-btn" id="ctaBtn">▶&nbsp; Iniciar Simulado</button>
+        <div class="cta-hint" id="ctaHint">Confirme todos os itens acima para continuar</div>
+      </div>
+
+      <div class="arena-footer">Resultado liberado em 15 de abril de 2026</div>
+    </div>
+
+    <!-- Annotation -->
+    <div class="annotation-bar">
+      <div class="ann-swatch"></div>
+      <span>Borda esquerda do card usa o tom exato da sidebar <strong>hsl(345, 55%, 15%)</strong> e vai escurecendo para <strong>hsl(330, 40%, 5%)</strong> à direita — sem seam.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 5;
+let checked = new Set();
+function toggle(el) {
+  const idx = Array.from(document.querySelectorAll('.check-item')).indexOf(el);
+  if (checked.has(idx)) { checked.delete(idx); el.classList.remove('checked'); }
+  else { checked.add(idx); el.classList.add('checked'); }
+  const n = checked.size;
+  document.getElementById('checkedCount').textContent = n;
+  document.getElementById('progressFill').style.width = (n / TOTAL * 100) + '%';
+  const btn = document.getElementById('ctaBtn');
+  const hint = document.getElementById('ctaHint');
+  if (n === TOTAL) {
+    btn.classList.add('active');
+    hint.classList.add('ready');
+    hint.textContent = 'Tudo certo — boa prova! 🎯';
+  } else {
+    btn.classList.remove('active');
+    hint.classList.remove('ready');
+    hint.textContent = 'Confirme todos os itens acima para continuar';
+  }
+}
+</script>
+</body>
+</html>

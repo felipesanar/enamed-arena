@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Final — Dark Arena + Checklist</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #e8e4e0;
+  padding: 40px 32px 60px;
+  min-height: 100vh;
+}
+.page-label {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #888; text-align: center; margin-bottom: 8px;
+}
+.page-title {
+  font-size: 20px; font-weight: 800; color: #1a0a10;
+  text-align: center; margin-bottom: 4px; letter-spacing: -0.02em;
+}
+.page-sub {
+  font-size: 13px; color: #999; text-align: center; margin-bottom: 40px;
+}
+
+/* ===== SIMULADO DETAIL PAGE CONTEXT ===== */
+.page-context {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.breadcrumb {
+  font-size: 12px; color: #999; margin-bottom: 10px;
+  display: flex; gap: 6px; align-items: center;
+}
+.breadcrumb a { color: #999; text-decoration: none; }
+.breadcrumb span { color: #bbb; }
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.page-header-left {}
+.page-header-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #7c1d36; margin-bottom: 4px;
+}
+.page-header-title {
+  font-size: 28px; font-weight: 800; color: #1a0a10; letter-spacing: -0.03em;
+}
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #edfaf3; border: 1px solid rgba(40,160,90,0.25);
+  color: #1a7a45; font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 99px;
+}
+.status-dot { width: 6px; height: 6px; background: #28a05a; border-radius: 50%; }
+
+/* ===== DARK ARENA CARD ===== */
+.arena-card {
+  background: linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%);
+  border-radius: 20px;
+  padding: 36px 40px 32px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 0 80px -20px rgba(140,32,64,0.35),
+    0 24px 60px -12px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* Glow orbs */
+.glow-tl {
+  position: absolute; pointer-events: none;
+  width: 360px; height: 360px;
+  background: radial-gradient(circle, rgba(140,32,64,0.18) 0%, transparent 65%);
+  top: -120px; left: -80px;
+}
+.glow-br {
+  position: absolute; pointer-events: none;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(100,18,42,0.15) 0%, transparent 65%);
+  bottom: -100px; right: -60px;
+}
+.grain {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* Top section */
+.arena-top {
+  position: relative; z-index: 2;
+  text-align: center; margin-bottom: 28px;
+}
+.arena-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.35); margin-bottom: 14px;
+}
+.arena-eyebrow-dot { width: 5px; height: 5px; background: #c45a72; border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.arena-headline {
+  font-size: 38px; font-weight: 800; color: #fff;
+  letter-spacing: -0.04em; line-height: 1.0;
+  margin-bottom: 8px;
+}
+.arena-headline em { font-style: normal; color: #c45a72; }
+
+.arena-desc {
+  font-size: 13px; color: rgba(255,255,255,0.4);
+  letter-spacing: 0.01em; margin-bottom: 20px;
+}
+
+/* Meta chips */
+.arena-chips {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; flex-wrap: wrap; margin-bottom: 28px;
+}
+.arena-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.65);
+  font-size: 11px; font-weight: 600;
+  padding: 5px 11px; border-radius: 8px;
+}
+.arena-chip-icon { font-size: 12px; }
+
+/* Progress bar */
+.progress-section {
+  position: relative; z-index: 2; margin-bottom: 20px;
+}
+.progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.progress-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
+.progress-count {
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.55);
+}
+.progress-count span { color: #c45a72; }
+.progress-track {
+  height: 3px; background: rgba(255,255,255,0.08);
+  border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; width: 40%;
+  background: linear-gradient(90deg, #8c2040, #c45a72);
+  border-radius: 99px;
+  box-shadow: 0 0 8px rgba(196,90,114,0.5);
+  transition: width 0.4s ease;
+}
+
+/* Checklist grid */
+.checklist-grid {
+  position: relative; z-index: 2;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 28px;
+}
+.check-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.check-item:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+}
+.check-item.checked {
+  background: rgba(196,90,114,0.1);
+  border-color: rgba(196,90,114,0.35);
+}
+.check-icon-wrap {
+  width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 15px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.2s;
+}
+.check-item.checked .check-icon-wrap {
+  background: rgba(196,90,114,0.2);
+  border-color: rgba(196,90,114,0.4);
+}
+.check-text-wrap { flex: 1; min-width: 0; }
+.check-title {
+  font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.8);
+  margin-bottom: 2px; line-height: 1.2;
+}
+.check-item.checked .check-title { color: #fff; }
+.check-desc {
+  font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.4;
+}
+.check-item.checked .check-desc { color: rgba(255,255,255,0.5); }
+.check-box {
+  width: 16px; height: 16px; border-radius: 5px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.check-item.checked .check-box {
+  background: #c45a72;
+  border-color: #c45a72;
+}
+.check-item.checked .check-box::after {
+  content: '✓'; color: #fff; font-size: 9px; font-weight: 800;
+}
+
+/* CTA */
+.cta-section {
+  position: relative; z-index: 2; text-align: center;
+}
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 40px; border-radius: 12px;
+  font-size: 15px; font-weight: 700; letter-spacing: 0.01em;
+  border: none; cursor: pointer;
+  transition: all 0.25s ease;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.3);
+}
+.cta-btn.active {
+  background: linear-gradient(135deg, #8c2040 0%, #5c1228 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 32px rgba(140,32,64,0.55), 0 2px 8px rgba(0,0,0,0.3);
+}
+.cta-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(140,32,64,0.65), 0 4px 12px rgba(0,0,0,0.3);
+}
+.cta-hint {
+  font-size: 11px; color: rgba(255,255,255,0.25);
+  margin-top: 10px; letter-spacing: 0.02em;
+}
+.cta-hint.ready { color: rgba(255,255,255,0.4); }
+
+.arena-footer {
+  position: relative; z-index: 2;
+  text-align: center; margin-top: 20px;
+  font-size: 11px; color: rgba(255,255,255,0.2);
+  letter-spacing: 0.04em;
+}
+
+/* ===== ANNOTATION MARKERS ===== */
+.annotations {
+  max-width: 860px; margin: 28px auto 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.ann {
+  background: #fff; border-radius: 10px; padding: 12px 14px;
+  border-left: 3px solid #c45a72;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.ann-title { font-size: 11px; font-weight: 800; color: #1a0a10; margin-bottom: 3px; letter-spacing: -0.01em; }
+.ann-desc { font-size: 11px; color: #777; line-height: 1.4; }
+
+/* Interactive demo */
+.demo-hint {
+  text-align: center; margin-bottom: 16px;
+  font-size: 12px; color: #888;
+  background: rgba(255,255,255,0.6); border-radius: 8px; padding: 8px 16px;
+  display: inline-block;
+  position: relative; left: 50%; transform: translateX(-50%);
+}
+</style>
+</head>
+<body>
+
+<div class="page-label">Design Proposto · Dark Arena + Checklist Progressivo</div>
+<div class="page-title">Mockup interativo — clique nos itens para testar</div>
+<p class="page-sub">Exatamente como ficaria na página de detalhe do simulado</p>
+
+<div class="page-context">
+
+  <!-- Simulating the page chrome -->
+  <div class="breadcrumb">
+    <a href="#">Simulados</a>
+    <span>›</span>
+    <span style="color:#555">Simulado Teste</span>
+  </div>
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-header-badge">Simulado #8</div>
+      <div class="page-header-title">Simulado Teste</div>
+    </div>
+    <div class="status-badge"><div class="status-dot"></div> Disponível</div>
+  </div>
+
+  <!-- THE REDESIGNED CARD -->
+  <div class="arena-card" id="arenaCard">
+    <div class="glow-tl"></div>
+    <div class="glow-br"></div>
+    <div class="grain"></div>
+
+    <!-- Top -->
+    <div class="arena-top">
+      <div class="arena-eyebrow">
+        <div class="arena-eyebrow-dot"></div>
+        Simulado #8 · ENAMED 2026
+      </div>
+      <div class="arena-headline">Pronto para<br><em>começar?</em></div>
+      <div class="arena-desc">Confirme os itens abaixo antes de entrar. A prova não pode ser pausada.</div>
+      <div class="arena-chips">
+        <div class="arena-chip"><span class="arena-chip-icon">⏱</span> 5 horas</div>
+        <div class="arena-chip"><span class="arena-chip-icon">📝</span> 100 questões</div>
+        <div class="arena-chip"><span class="arena-chip-icon">🏆</span> Conta no ranking nacional</div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section">
+      <div class="progress-header">
+        <div class="progress-label">Checklist de confirmação</div>
+        <div class="progress-count"><span id="checkedCount">0</span> de 5 itens</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Checklist -->
+    <div class="checklist-grid">
+      <div class="check-item" onclick="toggle(this)" data-idx="0">
+        <div class="check-icon-wrap">⏱</div>
+        <div class="check-text-wrap">
+          <div class="check-title">Duração da prova</div>
+          <div class="check-desc">5h · 100 questões</div>
+        </div>
+        <div class="check-box"></div>
+      </div>
+      <div class="check-item" onclick="toggle(this)" data-idx="1">
+        <div class="check-icon-wrap">⚡</div>
+        <div class="check-text-wrap">
+          <div class="check-title">Sem pausa</div>
+          <div class="check-desc">Cronômetro não pode ser pausado após iniciar</div>
+        </div>
+        <div class="check-box"></div>
+      </div>
+      <div class="check-item" onclick="toggle(this)" data-idx="2">
+        <div class="check-icon-wrap">📶</div>
+        <div class="check-text-wrap">
+          <div class="check-title">Conexão estável</div>
+          <div class="check-desc">Respostas salvas automaticamente</div>
+        </div>
+        <div class="check-box"></div>
+      </div>
+      <div class="check-item" onclick="toggle(this)" data-idx="3">
+        <div class="check-icon-wrap">🤫</div>
+        <div class="check-text-wrap">
+          <div class="check-title">Ambiente adequado</div>
+          <div class="check-desc">Local tranquilo, sem interrupções</div>
+        </div>
+        <div class="check-box"></div>
+      </div>
+      <div class="check-item" onclick="toggle(this)" data-idx="4">
+        <div class="check-icon-wrap">🖥</div>
+        <div class="check-text-wrap">
+          <div class="check-title">Prova em tela cheia</div>
+          <div class="check-desc">Sair do fullscreen é registrado</div>
+        </div>
+        <div class="check-box"></div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <button class="cta-btn" id="ctaBtn" disabled>
+        ▶&nbsp; Iniciar Simulado
+      </button>
+      <div class="cta-hint" id="ctaHint">Confirme todos os itens acima para continuar</div>
+    </div>
+
+    <div class="arena-footer">Resultado liberado em 15 de abril de 2026</div>
+  </div>
+
+  <!-- Annotations -->
+  <div class="annotations">
+    <div class="ann">
+      <div class="ann-title">Fundo dark imersivo</div>
+      <div class="ann-desc">Gradiente escuro wine + glow orbs radiais. Sensação de arena / sala de prova.</div>
+    </div>
+    <div class="ann">
+      <div class="ann-title">Chips de meta</div>
+      <div class="ann-desc">Duração, questões e status de ranking visíveis de imediato, sem precisar ler o checklist.</div>
+    </div>
+    <div class="ann">
+      <div class="ann-title">Progresso visual</div>
+      <div class="ann-desc">Barra wine que avança a cada item confirmado. Contador "X de 5" ao lado.</div>
+    </div>
+    <div class="ann">
+      <div class="ann-title">CTA que "acende"</div>
+      <div class="ann-desc">Botão desabilitado (acinzentado) até 5/5 confirmados — aí ganha o glow wine e fica clicável.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TOTAL = 5;
+let checked = new Set();
+
+function toggle(el) {
+  const idx = el.dataset.idx;
+  if (checked.has(idx)) {
+    checked.delete(idx);
+    el.classList.remove('checked');
+  } else {
+    checked.add(idx);
+    el.classList.add('checked');
+  }
+  update();
+}
+
+function update() {
+  const n = checked.size;
+  document.getElementById('checkedCount').textContent = n;
+  document.getElementById('progressFill').style.width = (n / TOTAL * 100) + '%';
+  const btn = document.getElementById('ctaBtn');
+  const hint = document.getElementById('ctaHint');
+  if (n === TOTAL) {
+    btn.classList.add('active');
+    btn.disabled = false;
+    hint.classList.add('ready');
+    hint.textContent = 'Tudo certo — boa prova! 🎯';
+  } else {
+    btn.classList.remove('active');
+    btn.disabled = true;
+    hint.classList.remove('ready');
+    hint.textContent = 'Confirme todos os itens acima para continuar';
+  }
+}
+</script>
+</body>
+</html>
