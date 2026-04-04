@@ -120,9 +120,22 @@ export function useExamFlow(): UseExamFlowReturn {
         const existing = result.state;
 
         if (existing && existing.status === 'in_progress') {
-          setState(existing);
-          toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
+          // Guard: if deadline already passed, finalize instead of resuming with 0 timer
+          if (existing.windowDeadline && new Date(existing.windowDeadline) <= new Date()) {
+            logger.log('[useExamFlow] Deadline already passed, finalizing attempt');
+            setState(existing);
+            // Will be finalized by handleTimeUp
+          } else {
+            setState(existing);
+            toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
+          }
         } else if (!existing || existing.status === 'not_started') {
+          // Guard: don't start if window already closed
+          if (simulado.executionWindowEnd && new Date(simulado.executionWindowEnd) <= new Date()) {
+            logger.log('[useExamFlow] Window already closed, cannot start exam');
+            navigate(`/simulados/${id}`, { replace: true });
+            return;
+          }
           const fresh = await storage.initializeState(
             questions.length,
             simulado.estimatedDurationMinutes,

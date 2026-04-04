@@ -1,10 +1,7 @@
 /**
  * generate-exam-pdf — Optimized for Edge Function CPU limits
  *
- * Key optimizations vs original:
- *  1. Character-width cache for text wrapping (avoids O(n) widthOfTextAtSize per test)
- *  2. No image embedding (too CPU-heavy; images shown online only)
- *  3. Simplified option rendering (no circles — text-only "A)" format)
+ * Includes image embedding with safeguards (timeout, max count, size limit).
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -12,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   PDFDocument,
   PDFFont,
+  PDFImage,
   rgb,
   StandardFonts,
   PageSizes,
@@ -24,6 +22,9 @@ const corsHeaders = {
 
 const BUCKET = "exam-pdfs";
 const SIGNED_URL_EXPIRY = 3600;
+const MAX_IMAGES = 30;
+const IMAGE_FETCH_TIMEOUT = 8000;
+const MAX_IMAGE_BYTES = 800_000;
 
 const WINE_DARK  = rgb(0.35, 0.07, 0.19);
 const WINE_MID   = rgb(0.42, 0.11, 0.24);
@@ -36,7 +37,6 @@ const GRAY_MID   = rgb(0.55, 0.55, 0.55);
 
 function sanitizeForWinAnsi(text: string): string {
   let out = text;
-  // Subscript/superscript digits
   const subs = "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
   const sups = "\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";
   for (let i = 0; i < 10; i++) {
@@ -65,7 +65,6 @@ class FontMetrics {
     let m = this.cache.get(size);
     if (m) return m;
     m = new Map();
-    // Pre-compute widths for printable ASCII + Latin-1
     for (let c = 32; c <= 255; c++) {
       try {
         m.set(c, this.font.widthOfTextAtSize(String.fromCharCode(c), size));
@@ -82,7 +81,7 @@ class FontMetrics {
     let w = 0;
     for (let i = 0; i < text.length; i++) {
       const code = text.charCodeAt(i);
-      w += widths.get(code) ?? widths.get(63)!; // '?' fallback
+      w += widths.get(code) ?? widths.get(63)!;
     }
     return w;
   }
@@ -130,9 +129,43 @@ interface OptionRow {
 interface Question {
   number: number; text: string;
   options: Array<{ label: string; text: string }>;
+  image?: { pdfImage: PDFImage; width: number; height: number };
 }
 
-// ─── PDF generation (optimized) ──────────────────────────────────────────────
+// ─── Image fetching ──────────────────────────────────────────────────────────
+
+async function fetchImageWithTimeout(url: string): Promise<Uint8Array | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), IMAGE_FETCH_TIMEOUT);
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!resp.ok) return null;
+    const buf = await resp.arrayBuffer();
+    if (buf.byteLength > MAX_IMAGE_BYTES) return null;
+    return new Uint8Array(buf);
+  } catch {
+    return null;
+  }
+}
+
+async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string): Promise<PDFImage | null> {
+  try {
+    const lower = url.toLowerCase();
+    if (lower.includes(".png")) {
+      return await pdfDoc.embedPng(bytes);
+    }
+    // Default to JPEG for jpg/jpeg/webp or unknown
+    return await pdfDoc.embedJpg(bytes);
+  } catch {
+    // If JPEG fails, try PNG and vice versa
+    try { return await pdfDoc.embedPng(bytes); } catch { /* ignore */ }
+    try { return await pdfDoc.embedJpg(bytes); } catch { /* ignore */ }
+    return null;
+  }
+}
+
+// ─── PDF generation ──────────────────────────────────────────────────────────
 
 async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
@@ -147,12 +180,12 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
   const colGap = 20;
   const colW = (pageW - marginX * 2 - colGap) / 2;
   const maxTextW = colW - 8;
+  const maxImgW = maxTextW - 4;
 
   const durationH = Math.round(simulado.duration_minutes / 60);
   const examLabel = sanitizeForWinAnsi(`${simulado.title} - ${simulado.questions_count} questoes - ${durationH}h`);
   const footerLabel = sanitizeForWinAnsi(`${simulado.title} - SanarFlix PRO - Modo Offline`);
 
-  // ── Helper: draw header ──
   const drawHeader = (page: ReturnType<typeof pdfDoc.addPage>) => {
     const pH = page.getHeight();
     page.drawRectangle({ x: 0, y: pH - headerH, width: pageW, height: headerH, color: WINE_DARK });
@@ -162,7 +195,6 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
     page.drawText(examLabel, { x: pageW - 24 - lw, y: pH - headerH + 30, size: 10, font: fontRegular, color: rgb(1, 0.85, 0.9) });
   };
 
-  // ── Helper: draw footer ──
   const drawFooter = (page: ReturnType<typeof pdfDoc.addPage>, rightText: string) => {
     const y = marginBot - 16;
     page.drawLine({ start: { x: 40, y: y + 18 }, end: { x: pageW - 40, y: y + 18 }, thickness: 0.5, color: GRAY_LIGHT });
@@ -197,25 +229,28 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
   }
   drawFooter(cover, "Capa");
 
-  // ── Pre-compute question layout to assign to pages ──
-  // Measure each question height to pack them into columns dynamically
+  // ── Layout: measure and pack into columns ──
   const colTop = pageH - headerH - 60;
   const colBottom = marginBot + 20;
   const colHeight = colTop - colBottom;
 
-  // Measure a question's height
   function measureQuestion(q: Question): number {
     let h = 14; // question number line
     h += metricsRegular.wrap(q.text, 9, maxTextW).length * 13 + 4;
+    // Image height
+    if (q.image) {
+      const scale = Math.min(maxImgW / q.image.width, 1);
+      const imgH = q.image.height * scale;
+      h += imgH + 8; // 8px padding
+    }
     for (const opt of q.options) {
       const optLines = metricsRegular.wrap(`${opt.label}) ${opt.text}`, 8, maxTextW - 12);
       h += optLines.length * 11 + 2;
     }
-    h += 12; // spacing
+    h += 12;
     return h;
   }
 
-  // Pack questions into pages with 2 columns
   type PageLayout = { left: Question[]; right: Question[] };
   const pages: PageLayout[] = [];
   let curPage: PageLayout = { left: [], right: [] };
@@ -223,7 +258,6 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
 
   for (const q of questions) {
     const qh = measureQuestion(q);
-    // Try left column first
     if (leftH + qh <= colHeight) {
       curPage.left.push(q);
       leftH += qh;
@@ -231,7 +265,6 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
       curPage.right.push(q);
       rightH += qh;
     } else {
-      // New page
       pages.push(curPage);
       curPage = { left: [q], right: [] };
       leftH = qh;
@@ -246,27 +279,16 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
     drawHeader(page);
     drawFooter(page, `Pagina ${i + 1} de ${pages.length}`);
 
-    renderColumn(page, pages[i].left, marginX, colTop, maxTextW, fontBold, fontRegular, metricsRegular);
-    renderColumn(page, pages[i].right, marginX + colW + colGap, colTop, maxTextW, fontBold, fontRegular, metricsRegular);
+    renderColumn(page, pages[i].left, marginX, colTop, maxTextW, maxImgW, fontBold, fontRegular, metricsRegular);
+    renderColumn(page, pages[i].right, marginX + colW + colGap, colTop, maxTextW, maxImgW, fontBold, fontRegular, metricsRegular);
   }
-
-  // ── Answer sheet ──
-  const ansPage = pdfDoc.addPage(PageSizes.A4);
-  drawHeader(ansPage);
-  drawFooter(ansPage, "Folha de Respostas");
-  let ay = pageH - headerH - 40;
-  ansPage.drawText("FOLHA DE RESPOSTAS", { x: marginX, y: ay, size: 14, font: fontBold, color: WINE_DARK });
-  ay -= 30;
-  const ansHalf = Math.ceil(questions.length / 2);
-  renderAnswerCol(ansPage, questions.slice(0, ansHalf), marginX, ay, fontRegular, fontBold);
-  renderAnswerCol(ansPage, questions.slice(ansHalf), marginX + colW + colGap, ay, fontRegular, fontBold);
 
   return pdfDoc.save();
 }
 
 function renderColumn(
   page: ReturnType<PDFDocument["addPage"]>,
-  qs: Question[], x: number, topY: number, maxTextW: number,
+  qs: Question[], x: number, topY: number, maxTextW: number, maxImgW: number,
   fontBold: PDFFont, fontRegular: PDFFont, metrics: FontMetrics,
 ): void {
   let y = topY;
@@ -278,6 +300,17 @@ function renderColumn(
       y -= 13;
     }
     y -= 4;
+
+    // Draw image if present
+    if (q.image) {
+      const scale = Math.min(maxImgW / q.image.width, 1);
+      const drawW = q.image.width * scale;
+      const drawH = q.image.height * scale;
+      y -= drawH;
+      page.drawImage(q.image.pdfImage, { x: x + 2, y, width: drawW, height: drawH });
+      y -= 8;
+    }
+
     for (const opt of q.options) {
       const optLines = metrics.wrap(`${opt.label}) ${opt.text}`, 8, maxTextW - 12);
       for (const line of optLines) {
@@ -287,25 +320,6 @@ function renderColumn(
       y -= 2;
     }
     y -= 12;
-  }
-}
-
-function renderAnswerCol(
-  page: ReturnType<PDFDocument["addPage"]>,
-  qs: Question[], x: number, topY: number,
-  fontRegular: PDFFont, fontBold: PDFFont,
-): void {
-  let y = topY;
-  const labels = ["A", "B", "C", "D"];
-  for (const q of qs) {
-    page.drawText(`${q.number}.`, { x, y, size: 9, font: fontBold, color: BLACK });
-    let cx = x + 24;
-    for (const label of labels) {
-      page.drawCircle({ x: cx + 6, y: y + 4, size: 7, borderColor: GRAY_MID, borderWidth: 0.8, color: WHITE });
-      page.drawText(label, { x: cx + 3, y, size: 7, font: fontRegular, color: GRAY_MID });
-      cx += 20;
-    }
-    y -= 16;
   }
 }
 
@@ -340,7 +354,7 @@ serve(async (req) => {
 
     const supabase = getAdminClient();
 
-    // Cache check with updated_at-based path
+    // Cache check
     const { data: simMeta, error: simMetaErr } = await supabase.from("simulados").select("updated_at").eq("id", simulado_id).single();
     if (simMetaErr || !simMeta) {
       return new Response(JSON.stringify({ error: "Simulado not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -377,7 +391,40 @@ serve(async (req) => {
       .in("question_id", questionIds).in("label", ["A", "B", "C", "D"]);
     if (optErr) throw optErr;
 
-    const questions: Question[] = (questionRows as QuestionRow[]).map(q => ({
+    // Fetch and embed images
+    const pdfDoc_temp = await PDFDocument.create(); // temp doc for embedding
+    const qRows = questionRows as QuestionRow[];
+    const imageMap = new Map<string, { pdfImage: PDFImage; width: number; height: number }>();
+
+    const imageQuestions = qRows.filter(q => q.image_url).slice(0, MAX_IMAGES);
+    if (imageQuestions.length > 0) {
+      console.log(`[generate-exam-pdf] Fetching ${imageQuestions.length} images...`);
+      const imageResults = await Promise.allSettled(
+        imageQuestions.map(async (q) => {
+          const bytes = await fetchImageWithTimeout(q.image_url!);
+          if (!bytes) return null;
+          return { questionId: q.id, bytes, url: q.image_url! };
+        })
+      );
+
+      // We'll embed in the actual pdfDoc later, just collect bytes for now
+      const successfulImages: Array<{ questionId: string; bytes: Uint8Array; url: string }> = [];
+      for (const r of imageResults) {
+        if (r.status === 'fulfilled' && r.value) {
+          successfulImages.push(r.value);
+        }
+      }
+      console.log(`[generate-exam-pdf] Successfully fetched ${successfulImages.length} images`);
+
+      // Store for later embedding (will be done inside generatePdf)
+      for (const img of successfulImages) {
+        // Store raw data to embed later
+        imageMap.set(img.questionId, { pdfImage: null as unknown as PDFImage, width: 0, height: 0, ...img } as any);
+      }
+    }
+
+    // Build questions array
+    const questions: Question[] = qRows.map(q => ({
       number: q.question_number,
       text: q.text,
       options: ((optionRows as OptionRow[]) ?? [])
@@ -386,8 +433,32 @@ serve(async (req) => {
         .map(o => ({ label: o.label, text: o.text })),
     }));
 
-    // Generate PDF
-    const pdfBytes = await generatePdf(simuladoRow as SimuladoRow, questions);
+    // Generate PDF with image embedding inside
+    const pdfDoc = await PDFDocument.create();
+
+    // Embed images into the actual PDF doc
+    for (const q of qRows) {
+      const imgData = imageMap.get(q.id) as any;
+      if (!imgData?.bytes) continue;
+      try {
+        const embedded = await embedImage(pdfDoc, imgData.bytes, imgData.url);
+        if (embedded) {
+          const qObj = questions.find(qq => qq.number === q.question_number);
+          if (qObj) {
+            qObj.image = {
+              pdfImage: embedded,
+              width: embedded.width,
+              height: embedded.height,
+            };
+          }
+        }
+      } catch (e) {
+        console.error(`[generate-exam-pdf] Failed to embed image for Q${q.question_number}:`, e);
+      }
+    }
+
+    // Now generate using the shared pdfDoc
+    const pdfBytes = await generatePdfWithDoc(pdfDoc, simuladoRow as SimuladoRow, questions);
 
     // Upload
     const { error: uploadError } = await supabase.storage.from(BUCKET).upload(pdfPath, pdfBytes, { contentType: "application/pdf", upsert: true });
@@ -402,3 +473,117 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: (err as Error)?.message ?? "Internal error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
+
+// Same as generatePdf but accepts pre-created pdfDoc with embedded images
+async function generatePdfWithDoc(pdfDoc: PDFDocument, simulado: SimuladoRow, questions: Question[]): Promise<Uint8Array> {
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const metricsRegular = new FontMetrics(fontRegular);
+
+  const [pageW, pageH] = PageSizes.A4;
+  const marginX = 40, marginBot = 50, headerH = 72;
+  const colGap = 20;
+  const colW = (pageW - marginX * 2 - colGap) / 2;
+  const maxTextW = colW - 8;
+  const maxImgW = maxTextW - 4;
+
+  const durationH = Math.round(simulado.duration_minutes / 60);
+  const examLabel = sanitizeForWinAnsi(`${simulado.title} - ${simulado.questions_count} questoes - ${durationH}h`);
+  const footerLabel = sanitizeForWinAnsi(`${simulado.title} - SanarFlix PRO - Modo Offline`);
+
+  const drawHeader = (page: ReturnType<typeof pdfDoc.addPage>) => {
+    const pH = page.getHeight();
+    page.drawRectangle({ x: 0, y: pH - headerH, width: pageW, height: headerH, color: WINE_DARK });
+    page.drawText("SanarFlix PRO", { x: 24, y: pH - headerH + 26, size: 14, font: fontBold, color: WHITE });
+    page.drawText("ENAMED", { x: 24, y: pH - headerH + 10, size: 10, font: fontRegular, color: rgb(1, 0.75, 0.8) });
+    const lw = metricsRegular.textWidth(examLabel, 10);
+    page.drawText(examLabel, { x: pageW - 24 - lw, y: pH - headerH + 30, size: 10, font: fontRegular, color: rgb(1, 0.85, 0.9) });
+  };
+
+  const drawFooter = (page: ReturnType<typeof pdfDoc.addPage>, rightText: string) => {
+    const y = marginBot - 16;
+    page.drawLine({ start: { x: 40, y: y + 18 }, end: { x: pageW - 40, y: y + 18 }, thickness: 0.5, color: GRAY_LIGHT });
+    page.drawText(footerLabel, { x: 40, y, size: 7, font: fontRegular, color: GRAY_MID });
+    const rw = metricsRegular.textWidth(rightText, 7);
+    page.drawText(rightText, { x: pageW - 40 - rw, y, size: 7, font: fontRegular, color: GRAY_MID });
+  };
+
+  // ── Cover page ──
+  const cover = pdfDoc.addPage(PageSizes.A4);
+  drawHeader(cover);
+  let cy = pageH - headerH - 60;
+  cover.drawText("PROVA OFFLINE", { x: marginX, y: cy, size: 28, font: fontBold, color: WINE_DARK });
+  cy -= 24;
+  cover.drawText(sanitizeForWinAnsi(simulado.title), { x: marginX, y: cy, size: 16, font: fontRegular, color: BLACK });
+  cy -= 40;
+  const instructions = [
+    `Esta prova contem ${simulado.questions_count} questoes de multipla escolha (A, B, C ou D).`,
+    `Tempo disponivel: ${durationH} hora${durationH > 1 ? "s" : ""}.`,
+    "Leia cada questao com atencao antes de marcar sua resposta.",
+    "Ao terminar, volte a plataforma e preencha o gabarito digital para entrar no ranking.",
+    "Para entrar no ranking, envie o gabarito digital dentro do tempo de prova.",
+  ];
+  for (const line of instructions) {
+    const wrapped = metricsRegular.wrap("- " + line, 12, pageW - marginX * 2);
+    for (const l of wrapped) {
+      cover.drawText(l, { x: marginX, y: cy, size: 12, font: fontRegular, color: BLACK });
+      cy -= 18;
+    }
+    cy -= 4;
+  }
+  drawFooter(cover, "Capa");
+
+  // ── Layout ──
+  const colTop = pageH - headerH - 60;
+  const colBottom = marginBot + 20;
+  const colHeight = colTop - colBottom;
+
+  function measureQuestion(q: Question): number {
+    let h = 14;
+    h += metricsRegular.wrap(q.text, 9, maxTextW).length * 13 + 4;
+    if (q.image) {
+      const scale = Math.min(maxImgW / q.image.width, 1);
+      h += q.image.height * scale + 8;
+    }
+    for (const opt of q.options) {
+      const optLines = metricsRegular.wrap(`${opt.label}) ${opt.text}`, 8, maxTextW - 12);
+      h += optLines.length * 11 + 2;
+    }
+    h += 12;
+    return h;
+  }
+
+  type PageLayout = { left: Question[]; right: Question[] };
+  const pages: PageLayout[] = [];
+  let curPage: PageLayout = { left: [], right: [] };
+  let leftH = 0, rightH = 0;
+
+  for (const q of questions) {
+    const qh = measureQuestion(q);
+    if (leftH + qh <= colHeight) {
+      curPage.left.push(q);
+      leftH += qh;
+    } else if (rightH + qh <= colHeight) {
+      curPage.right.push(q);
+      rightH += qh;
+    } else {
+      pages.push(curPage);
+      curPage = { left: [q], right: [] };
+      leftH = qh;
+      rightH = 0;
+    }
+  }
+  if (curPage.left.length || curPage.right.length) pages.push(curPage);
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pdfDoc.addPage(PageSizes.A4);
+    drawHeader(page);
+    drawFooter(page, `Pagina ${i + 1} de ${pages.length}`);
+
+    renderColumn(page, pages[i].left, marginX, colTop, maxTextW, maxImgW, fontBold, fontRegular, metricsRegular);
+    renderColumn(page, pages[i].right, marginX + colW + colGap, colTop, maxTextW, maxImgW, fontBold, fontRegular, metricsRegular);
+  }
+
+  return pdfDoc.save();
+}
