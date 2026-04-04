@@ -240,6 +240,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
       });
     } finally {
       setOfflineLoading(false);
+      setOfflineStep('');
     }
   }, [sim]);
 
