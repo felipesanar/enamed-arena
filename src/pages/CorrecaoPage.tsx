@@ -184,9 +184,15 @@ export default function CorrecaoPage() {
                   </div>
                 </div>
 
-                <p className="text-body-lg leading-relaxed text-foreground whitespace-pre-wrap mb-6">{question.text}</p>
+                <p className="text-body-lg leading-relaxed text-foreground whitespace-pre-wrap mb-5">{question.text}</p>
 
-                <div className="space-y-3">
+                {question.imageUrl && (
+                  <div className="mb-6">
+                    <QuestionImage src={question.imageUrl} alt={`Imagem da questão ${question.number}`} />
+                  </div>
+                )}
+
+                <div className="space-y-2.5">
                   {question.options.map(opt => {
                     const isCorrect = opt.id === question.correctOptionId;
                     const isUserSelection = opt.id === result.selectedOptionId;
