@@ -216,13 +216,20 @@ export default function CorrecaoPage() {
                 </div>
               </PremiumCard>
 
-              {question.explanation && (
+              {(question.explanation || question.explanationImageUrl) && (
                 <PremiumCard className="p-5 md:p-6 mb-4 border-primary/10 bg-primary/[0.02]">
                   <div className="flex items-center gap-2 mb-3">
                     <BookOpen className="h-4 w-4 text-primary" />
                     <h3 className="text-body font-bold text-primary">Comentário do Professor</h3>
                   </div>
-                  <p className="text-body text-muted-foreground leading-relaxed whitespace-pre-wrap">{question.explanation}</p>
+                  {question.explanation && (
+                    <p className="text-body text-muted-foreground leading-relaxed whitespace-pre-wrap">{question.explanation}</p>
+                  )}
+                  {question.explanationImageUrl && (
+                    <div className="mt-4">
+                      <QuestionImage src={question.explanationImageUrl} alt={`Imagem do comentário da questão ${question.number}`} />
+                    </div>
+                  )}
                 </PremiumCard>
               )}
 

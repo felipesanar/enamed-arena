@@ -162,6 +162,7 @@ export default function AdminUploadQuestions() {
       toast({ title: 'Erro no upload', description: err.message, variant: 'destructive' });
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
