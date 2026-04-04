@@ -168,7 +168,7 @@ export default function SimuladosPage() {
       {timelineItems.length > 0 && (
         <SimuladosTimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
       )}
-    </>
+    </PageTransition>
   );
 }
 
