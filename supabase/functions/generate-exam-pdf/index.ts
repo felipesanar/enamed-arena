@@ -644,6 +644,7 @@ serve(async (req) => {
     const questions: Question[] = (questionRows as QuestionRow[]).map(q => ({
       number: q.question_number,
       text:   q.text,
+      imageUrl: q.image_url || null,
       options: ((optionRows as OptionRow[]) ?? [])
         .filter(o => o.question_id === q.id)
         .sort((a, b) => a.label.localeCompare(b.label))
