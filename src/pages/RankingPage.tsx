@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useRef, useMemo } from 'react';
+import { PageTransition } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
