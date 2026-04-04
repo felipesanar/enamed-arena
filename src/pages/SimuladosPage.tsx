@@ -196,11 +196,12 @@ function HeroCard({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiv
   return null;
 }
 
-function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
+function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
   const navigate = useNavigate();
   const isInProgress = sim.status === "in_progress";
   const alreadyStarted = sim.userState?.started && !sim.userState.finished;
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
+  const isBlocked = hasActiveAttempt && !alreadyStarted;
   const [showModeModal, setShowModeModal] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [offlineStep, setOfflineStep] = useState('');
