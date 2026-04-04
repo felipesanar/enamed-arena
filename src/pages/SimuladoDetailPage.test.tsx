@@ -102,7 +102,7 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
   it("shows progress counter starting at 0", () => {
     renderPage();
     // The dark arena card should show a "0 / 5 itens confirmados" counter
-    expect(screen.getByText(/5 itens confirmados/)).toBeInTheDocument();
+    expect(screen.getByText(/0.*5 itens confirmados/i)).toBeInTheDocument();
   });
 
   it("CTA button is disabled with 0/5 items checked", () => {
