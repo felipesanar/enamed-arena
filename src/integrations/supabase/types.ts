@@ -518,6 +518,7 @@ export type Database = {
           created_at: string
           difficulty: string | null
           explanation: string | null
+          explanation_image_url: string | null
           id: string
           image_url: string | null
           question_number: number
@@ -530,6 +531,7 @@ export type Database = {
           created_at?: string
           difficulty?: string | null
           explanation?: string | null
+          explanation_image_url?: string | null
           id?: string
           image_url?: string | null
           question_number: number
@@ -542,6 +544,7 @@ export type Database = {
           created_at?: string
           difficulty?: string | null
           explanation?: string | null
+          explanation_image_url?: string | null
           id?: string
           image_url?: string | null
           question_number?: number

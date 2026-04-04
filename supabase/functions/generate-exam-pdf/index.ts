@@ -110,6 +110,7 @@ interface QuestionRow {
   id: string;
   question_number: number;
   text: string;
+  image_url: string | null;
 }
 
 interface OptionRow {
@@ -121,6 +122,9 @@ interface OptionRow {
 interface Question {
   number: number;
   text: string;
+  imageUrl: string | null;
+  imageBytes?: Uint8Array;
+  imageMimeType?: string;
   options: Array<{ label: string; text: string }>;
 }
 
@@ -131,6 +135,25 @@ async function generatePdf(
   questions: Question[],
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
+
+  // Embed images for questions that have image_url
+  const embeddedImages = new Map<number, Awaited<ReturnType<typeof pdfDoc.embedPng>>>();
+  for (const q of questions) {
+    if (!q.imageUrl) continue;
+    try {
+      const imgResp = await fetch(q.imageUrl);
+      if (!imgResp.ok) continue;
+      const imgBytes = new Uint8Array(await imgResp.arrayBuffer());
+      const mime = imgResp.headers.get("content-type") || "";
+      const embedded = mime.includes("jpeg") || mime.includes("jpg")
+        ? await pdfDoc.embedJpg(imgBytes)
+        : await pdfDoc.embedPng(imgBytes);
+      embeddedImages.set(q.number, embedded);
+    } catch (e) {
+      console.error(`[generate-exam-pdf] Failed to embed image for Q${q.number}:`, e);
+    }
+  }
+
   const fontRegular  = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold     = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontOblique  = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
@@ -225,8 +248,8 @@ async function generatePdf(
 
     const colTop = pageH - headerH - marginTop;
 
-    renderColumn(page, leftQs,  marginX,                 colTop, colW, fontBold, fontRegular, fontOblique);
-    renderColumn(page, rightQs, marginX + colW + colGap, colTop, colW, fontBold, fontRegular, fontOblique);
+    renderColumn(page, leftQs,  marginX,                 colTop, colW, fontBold, fontRegular, fontOblique, embeddedImages);
+    renderColumn(page, rightQs, marginX + colW + colGap, colTop, colW, fontBold, fontRegular, fontOblique, embeddedImages);
   }
 
   // ─── Answer sheet page ───────────────────────────────────────────────────────
@@ -349,6 +372,7 @@ function renderColumn(
   fontBold: PDFFont,
   fontRegular: PDFFont,
   _fontOblique: PDFFont,
+  embeddedImages: Map<number, ReturnType<PDFDocument["embedPng"]> extends Promise<infer T> ? T : never>,
 ): void {
   let y = topY;
   const maxTextW = colW - 8;
@@ -371,6 +395,28 @@ function renderColumn(
       y -= 13;
     }
     y -= 4;
+
+    // Embedded image (if any)
+    const embImg = embeddedImages.get(q.number);
+    if (embImg) {
+      const origW = embImg.width;
+      const origH = embImg.height;
+      const maxImgW = maxTextW;
+      const maxImgH = 120;
+      const scale = Math.min(maxImgW / origW, maxImgH / origH, 1);
+      const drawW = origW * scale;
+      const drawH = origH * scale;
+
+      if (y - drawH > 50) {
+        page.drawImage(embImg, {
+          x,
+          y: y - drawH,
+          width: drawW,
+          height: drawH,
+        });
+        y -= drawH + 8;
+      }
+    }
 
     // Options
     for (const opt of q.options) {
@@ -578,7 +624,7 @@ serve(async (req) => {
     // ── Fetch questions + options ─────────────────────────────────────────────
     const { data: questionRows, error: qErr } = await supabase
       .from("questions")
-      .select("id, question_number, text")
+      .select("id, question_number, text, image_url")
       .eq("simulado_id", simulado_id)
       .order("question_number", { ascending: true })
       .limit(300);
@@ -598,6 +644,7 @@ serve(async (req) => {
     const questions: Question[] = (questionRows as QuestionRow[]).map(q => ({
       number: q.question_number,
       text:   q.text,
+      imageUrl: q.image_url || null,
       options: ((optionRows as OptionRow[]) ?? [])
         .filter(o => o.question_id === q.id)
         .sort((a, b) => a.label.localeCompare(b.label))
