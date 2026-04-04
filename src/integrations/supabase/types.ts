@@ -616,17 +616,17 @@ export type Database = {
       sso_rate_limit: {
         Row: {
           attempts: number | null
-          email: string
+          email_hash: string
           window_start: string | null
         }
         Insert: {
           attempts?: number | null
-          email: string
+          email_hash: string
           window_start?: string | null
         }
         Update: {
           attempts?: number | null
-          email?: string
+          email_hash?: string
           window_start?: string | null
         }
         Relationships: []
