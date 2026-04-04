@@ -348,11 +348,14 @@ serve(async (req) => {
 
     const pdfPath = `${simulado_id}_${new Date(simMeta.updated_at).getTime()}.pdf`;
 
-    const { data: existing } = await supabase.storage.from(BUCKET).list("", { search: pdfPath });
-    if (existing?.some(f => f.name === pdfPath)) {
-      const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET).createSignedUrl(pdfPath, SIGNED_URL_EXPIRY);
-      if (signedError) throw signedError;
-      return new Response(JSON.stringify({ url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const forceRegenerate = body?.force === true;
+    if (!forceRegenerate) {
+      const { data: existing } = await supabase.storage.from(BUCKET).list("", { search: pdfPath });
+      if (existing?.some(f => f.name === pdfPath)) {
+        const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET).createSignedUrl(pdfPath, SIGNED_URL_EXPIRY);
+        if (signedError) throw signedError;
+        return new Response(JSON.stringify({ url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Fetch simulado
