@@ -426,7 +426,7 @@ export default function SimuladoDetailPage() {
                           onClick={() => toggleCheck(item.key)}
                           className={cn(
                             "flex items-start gap-3.5 text-left transition-all duration-200 rounded-[14px]",
-                            "hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            "hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(345,65%,62%)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e0810]",
                             isLastOdd && "sm:col-span-2 sm:mx-auto sm:w-1/2"
                           )}
                           style={{
@@ -487,7 +487,7 @@ export default function SimuladoDetailPage() {
                       disabled={!ctaActive}
                       className={cn(
                         "inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(345,65%,62%)] focus-visible:ring-offset-2",
                         ctaActive ? "hover:-translate-y-0.5 group" : "cursor-not-allowed"
                       )}
                       onMouseEnter={(e) => {
