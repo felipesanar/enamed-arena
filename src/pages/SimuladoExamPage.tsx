@@ -85,9 +85,12 @@ export default function SimuladoExamPage() {
         resultsReleaseAt={flow.simulado.resultsReleaseAt}
         answeredCount={flow.summary.answered}
         totalCount={flow.summary.total}
+        highConfidenceCount={flow.summary.highConfidence}
+        markedForReviewCount={flow.summary.markedForReview}
         notifyResultByEmail={flow.notifyResultByEmail}
         notificationSaving={flow.notificationSaving}
         isWithinWindow={flow.isWithinWindow}
+        resultsAvailable={flow.simulado.status === 'completed'}
         onToggleNotifyResultByEmail={flow.setNotifyResultByEmail}
       />
     );
