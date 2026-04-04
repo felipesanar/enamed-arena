@@ -235,15 +235,13 @@ export const simuladosApi = {
     return questions.map(q => rowsToQuestion(q, options, includeCorrectAnswers));
   },
 
-  async getAttempt(simuladoId: string, userId: string): Promise<AttemptRow | null> {
-    // Order by status priority: in_progress > offline_pending > submitted > expired
-    // Then by most recent, and take only the first row to avoid maybeSingle() errors
-    // when a user has multiple attempts (e.g. online + offline).
+  async getAttempt(simuladoId: string, userId: string, attemptType: 'online' | 'offline' = 'online'): Promise<AttemptRow | null> {
     const { data, error } = await supabase
       .from('attempts')
       .select('*')
       .eq('simulado_id', simuladoId)
       .eq('user_id', userId)
+      .eq('attempt_type', attemptType)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -256,11 +254,12 @@ export const simuladosApi = {
     return data as AttemptRow | null;
   },
 
-  async getUserAttempts(userId: string): Promise<AttemptRow[]> {
+  async getUserAttempts(userId: string, attemptType: 'online' | 'offline' = 'online'): Promise<AttemptRow[]> {
     const { data, error } = await supabase
       .from('attempts')
       .select('*')
       .eq('user_id', userId)
+      .eq('attempt_type', attemptType)
       .order('started_at', { ascending: false });
 
     if (error) throw error;

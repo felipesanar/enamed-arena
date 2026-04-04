@@ -58,7 +58,7 @@ export function useExamResult(simuladoId: string | undefined) {
         return;
       }
 
-      const attempt = await simuladosApi.getAttempt(config.id, user.id);
+      const attempt = await simuladosApi.getAttempt(config.id, user.id, 'online');
       if (!attempt) {
         setAttempt(null);
         setExamState(null);

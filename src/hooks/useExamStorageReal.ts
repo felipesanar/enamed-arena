@@ -88,8 +88,12 @@ export function useExamStorageReal(simuladoId: string) {
     if (!user) return { state: loadLocalState(), fromCache: true };
 
     try {
-      const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
-      if (!attempt) return { state: loadLocalState(), fromCache: false };
+      const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
+      if (!attempt) {
+        // No online attempt in DB — clear any orphan local cache
+        localStorage.removeItem(getLocalKey(simuladoId));
+        return { state: null, fromCache: false };
+      }
 
       attemptIdRef.current = attempt.id;
 
@@ -162,6 +166,9 @@ export function useExamStorageReal(simuladoId: string) {
           effectiveDeadline.toISOString(),
         );
         attemptIdRef.current = attempt.id;
+        // Use server deadline (authoritative)
+        state.effectiveDeadline = attempt.effective_deadline;
+        state.startedAt = attempt.started_at;
         trackEvent('simulado_started', {
           simuladoId,
           attemptId: attempt.id,
@@ -171,9 +178,11 @@ export function useExamStorageReal(simuladoId: string) {
         logger.error('[ExamStorageReal] Failed to create DB attempt:', err);
         toast({
           title: 'Erro ao criar tentativa',
-          description: 'Não foi possível registrar sua prova no servidor. Suas respostas serão salvas localmente.',
+          description: 'Não foi possível registrar sua prova no servidor. Tente novamente.',
           variant: 'destructive',
         });
+        // Abort: do NOT save local state without a valid DB attempt
+        throw err;
       }
     }
 
@@ -337,7 +346,7 @@ export function useExamStorageReal(simuladoId: string) {
 
   const getResultNotificationPreference = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
-    const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
+    const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
     return Boolean(attempt?.notify_result_email);
   }, [simuladoId, user]);
 

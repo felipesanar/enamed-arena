@@ -13,7 +13,7 @@ import { enrichSimulado } from '@/lib/simulado-helpers';
 async function fetchSimuladosData(userId: string | undefined) {
   const [simuladoConfigs, userAttempts] = await Promise.all([
     simuladosApi.listSimulados(),
-    userId ? simuladosApi.getUserAttempts(userId) : Promise.resolve([]),
+    userId ? simuladosApi.getUserAttempts(userId, 'online') : Promise.resolve([]),
   ]);
   logger.log('[useSimulados] Loaded', simuladoConfigs.length, 'simulados,', userAttempts.length, 'attempts');
   return { configs: simuladoConfigs, attempts: userAttempts };
