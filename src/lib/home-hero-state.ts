@@ -110,8 +110,8 @@ export function deriveHomeHeroState({
       scenario: "in_progress",
       tone: "focus",
       eyebrow: "Em andamento",
-      headline: "Seu simulado ja foi iniciado",
-      description: `Retome "${inProgress.title}" de onde parou para manter consistencia no seu ritmo de estudo.`,
+      headline: "Seu simulado já foi iniciado",
+      description: `Retome "${inProgress.title}" de onde parou para manter consistência no seu ritmo de estudo.`,
       ctaLabel: "Retomar simulado",
       ctaTo: `/simulados/${inProgress.id}`,
     };
@@ -127,8 +127,8 @@ export function deriveHomeHeroState({
       scenario: "window_open",
       tone: "focus",
       eyebrow: "Janela ativa",
-      headline: "Seu proximo passo esta disponivel",
-      description: `"${available.title}" esta aberto agora e conta para ranking quando concluido dentro da janela oficial.`,
+      headline: "Seu próximo passo está disponível",
+      description: `"${available.title}" está aberto agora e conta para ranking quando concluído dentro da janela oficial.`,
       ctaLabel: "Realizar simulado",
       ctaTo: `/simulados/${available.id}`,
     };
@@ -145,8 +145,8 @@ export function deriveHomeHeroState({
       scenario: "awaiting_results",
       tone: "calm",
       eyebrow: "Aguardando resultado",
-      headline: "Sua tentativa ja foi enviada",
-      description: `Resultado previsto para ${resultsDate}. Enquanto isso, acompanhe seu historico de evolucao.`,
+      headline: "Sua tentativa já foi enviada",
+      description: `Resultado previsto para ${resultsDate}. Enquanto isso, acompanhe seu histórico de evolução.`,
       ctaLabel: "Ver desempenho",
       ctaTo: "/desempenho",
     };
@@ -165,13 +165,13 @@ export function deriveHomeHeroState({
     const scoreText =
       safeLastScore === null
         ? "Resultado pronto para consulta."
-        : `Sua ultima nota foi ${safeLastScore}%.`;
+        : `Sua última nota foi ${safeLastScore}%.`;
     return {
       scenario: "results_ready",
       tone: "progress",
       eyebrow: "Resultado liberado",
       headline: "Hora de transformar dados em progresso",
-      description: `${scoreText} Revise os detalhes e direcione melhor os proximos estudos.`,
+      description: `${scoreText} Revise os detalhes e direcione melhor os próximos estudos.`,
       ctaLabel: "Ver resultado",
       ctaTo: `/simulados/${completed.id}/resultado`,
     };
@@ -187,8 +187,8 @@ export function deriveHomeHeroState({
       scenario: "late_training",
       tone: "calm",
       eyebrow: "Modo treino",
-      headline: "Treino extra para manter tracao",
-      description: `"${availableLate.title}" segue aberto para pratica. Nao entra no ranking, mas fortalece sua preparacao.`,
+      headline: "Treino extra para manter tração",
+      description: `"${availableLate.title}" segue aberto para prática. Não entra no ranking, mas fortalece sua preparação.`,
       ctaLabel: "Treinar agora",
       ctaTo: `/simulados/${availableLate.id}`,
     };
@@ -199,10 +199,10 @@ export function deriveHomeHeroState({
     return {
       scenario: "first_simulado",
       tone: "default",
-      eyebrow: "Inicio da jornada",
-      headline: `Comece sua preparacao, ${displayName}`,
+      eyebrow: "Início da jornada",
+      headline: `Comece sua preparação, ${displayName}`,
       description:
-        "Seu primeiro simulado cria a linha de base para comparativos, ranking e plano de evolucao.",
+        "Seu primeiro simulado cria a linha de base para comparativos, ranking e plano de evolução.",
       ctaLabel: "Iniciar primeiro simulado",
       ctaTo: "/simulados",
     };
@@ -218,10 +218,10 @@ export function deriveHomeHeroState({
     return {
       scenario: "upcoming",
       tone: "calm",
-      eyebrow: "Proxima janela",
-      headline: "Preparacao inteligente ate a proxima prova",
-      description: `Proximo simulado previsto para ${startDate}. Mantenha revisao ativa para chegar mais forte na abertura da janela.`,
-      ctaLabel: "Ver calendario",
+      eyebrow: "Próxima janela",
+      headline: "Preparação inteligente até a próxima prova",
+      description: `Próximo simulado previsto para ${startDate}. Mantenha revisão ativa para chegar mais forte na abertura da janela.`,
+      ctaLabel: "Ver calendário",
       ctaTo: "/simulados",
     };
   }
@@ -234,17 +234,17 @@ export function deriveHomeHeroState({
 
   const headline =
     delta !== null && delta > 0
-      ? "Sua performance esta em ascensao"
+      ? "Sua performance está em ascensão"
       : simuladosRealizados >= 5
-        ? "Construindo consistencia de alto nivel"
-        : "Evoluindo com constancia";
+        ? "Construindo consistência de alto nível"
+        : "Evoluindo com constância";
 
   return {
     scenario: "steady_progress",
     tone: "progress",
     eyebrow: "Resumo do ciclo",
     headline,
-    description: `${simuladosRealizados} simulado${simuladosRealizados === 1 ? "" : "s"} concluido${simuladosRealizados === 1 ? "" : "s"} com media atual de ${safeMedia}%.`,
+    description: `${simuladosRealizados} simulado${simuladosRealizados === 1 ? "" : "s"} concluído${simuladosRealizados === 1 ? "" : "s"} com média atual de ${safeMedia}%.`,
     ctaLabel: "Ver desempenho completo",
     ctaTo: "/desempenho",
   };

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gabarito Offline — Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f3ff; min-height: 100vh; padding: 0; }
+
+  .page-header {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .page-header h1 { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .page-header p { font-size: 12px; color: #888; }
+
+  .progress-bar-wrap { margin-top: 10px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-bottom: 4px; }
+  .progress-bar { height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 18%; background: linear-gradient(90deg, #7c3aed, #a855f7); border-radius: 99px; transition: width 0.4s ease; }
+
+  .sheet {
+    padding: 16px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    margin: 16px 0 8px;
+  }
+
+  .question-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    background: #fff;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+    cursor: default;
+  }
+  .question-row.answered {
+    background: #faf5ff;
+    border-color: #ede9fe;
+  }
+  .question-row.current {
+    background: #fff;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+  }
+  .question-row.current .q-num { color: #7c3aed; }
+
+  .q-num {
+    width: 28px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #9ca3af;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .question-row.answered .q-num { color: #7c3aed; }
+
+  .bubbles {
+    display: flex;
+    gap: 7px;
+    flex: 1;
+  }
+
+  .bubble {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    flex-shrink: 0;
+  }
+  .bubble:hover { border-color: #a855f7; color: #7c3aed; background: #f5f3ff; }
+  .bubble.selected {
+    background: #7c3aed;
+    border-color: #7c3aed;
+    color: #fff;
+    transform: scale(1.08);
+  }
+  .question-row.current .bubble { border-color: #d8b4fe; color: #7c3aed; }
+  .question-row.current .bubble:hover { background: #ede9fe; }
+  .question-row.current .bubble.selected { background: #7c3aed; color: #fff; }
+
+  .check-icon {
+    width: 20px;
+    font-size: 14px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* Next arrow indicator */
+  .next-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #7c3aed;
+    font-weight: 600;
+    margin: 8px 14px;
+  }
+  .next-indicator::before {
+    content: '↓';
+    font-size: 14px;
+  }
+
+  .submit-area {
+    padding: 20px 16px 40px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: #e5e7eb;
+    color: #9ca3af;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    cursor: not-allowed;
+    transition: all 0.2s;
+  }
+  .submit-btn.ready {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+  }
+  .hint { font-size: 11px; color: #aaa; text-align: center; margin-top: 8px; }
+
+  /* Responsive: smaller bubbles on narrow screens */
+  @media (max-width: 380px) {
+    .bubble { width: 30px; height: 30px; font-size: 11px; }
+    .q-num { width: 22px; font-size: 11px; }
+    .bubbles { gap: 5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>ENAMED 2025 — Gabarito</h1>
+  <p>Preencha suas respostas abaixo. Você pode alterar qualquer resposta antes de enviar.</p>
+  <div class="progress-bar-wrap">
+    <div class="progress-label">
+      <span>18 de 100 questões preenchidas</span>
+      <span style="color:#7c3aed;font-weight:600;">18%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+  </div>
+</div>
+
+<div class="sheet">
+  <div class="section-label">Questões 1–20</div>
+
+  <!-- Questões respondidas -->
+  <div class="question-row answered">
+    <div class="q-num">1</div>
+    <div class="bubbles">
+      <div class="bubble selected">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon">✓</div>
+  </div>
+
+  <div class="question-row answered">
+    <div class="q-num">2</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble selected">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon">✓</div>
+  </div>
+
+  <div class="question-row answered">
+    <div class="q-num">3</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble selected">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon">✓</div>
+  </div>
+
+  <!-- Questão atual (próxima em branco, com destaque) -->
+  <div class="next-indicator">Próxima sem resposta — questão 4</div>
+
+  <div class="question-row current">
+    <div class="q-num">4</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon" style="color:#d1d5db;">○</div>
+  </div>
+
+  <!-- Mais questões em branco -->
+  <div class="question-row">
+    <div class="q-num">5</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon" style="color:#e5e7eb;">○</div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-num">6</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon" style="color:#e5e7eb;">○</div>
+  </div>
+
+  <div class="question-row answered">
+    <div class="q-num">7</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble selected">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon">✓</div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-num">8</div>
+    <div class="bubbles">
+      <div class="bubble">A</div>
+      <div class="bubble">B</div>
+      <div class="bubble">C</div>
+      <div class="bubble">D</div>
+      <div class="bubble">E</div>
+    </div>
+    <div class="check-icon" style="color:#e5e7eb;">○</div>
+  </div>
+
+  <p style="font-size:11px;color:#bbb;text-align:center;margin:12px 0 4px;">… continua até a questão 100 …</p>
+
+</div>
+
+<div class="submit-area">
+  <button class="submit-btn">Enviar gabarito — 18 de 100 preenchidas</button>
+  <p class="hint">Preencha todas as 100 questões para enviar. Você pode pular e voltar.</p>
+</div>
+
+<script>
+  // Make bubbles interactive for demo
+  document.querySelectorAll('.bubble').forEach(b => {
+    b.addEventListener('click', function() {
+      const row = this.closest('.question-row');
+      row.querySelectorAll('.bubble').forEach(x => x.classList.remove('selected'));
+      this.classList.add('selected');
+      row.classList.add('answered');
+      row.classList.remove('current');
+      const check = row.querySelector('.check-icon');
+      if (check) { check.textContent = '✓'; check.style.color = ''; }
+      // highlight next empty
+      const allRows = document.querySelectorAll('.question-row');
+      document.querySelectorAll('.question-row.current').forEach(r => r.classList.remove('current'));
+      document.querySelector('.next-indicator')?.remove();
+      for (let r of allRows) {
+        if (!r.classList.contains('answered')) {
+          r.classList.add('current');
+          const indicator = document.createElement('div');
+          indicator.className = 'next-indicator';
+          indicator.textContent = 'Próxima sem resposta — questão ' + r.querySelector('.q-num').textContent.trim();
+          r.parentNode.insertBefore(indicator, r);
+          r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          break;
+        }
+      }
+      // update progress
+      const answered = document.querySelectorAll('.question-row.answered').length;
+      const total = document.querySelectorAll('.question-row').length;
+      const pct = Math.round(answered/total*100);
+      document.querySelector('.progress-fill').style.width = pct+'%';
+      document.querySelector('.progress-label span').textContent = answered + ' de ' + total + ' questões preenchidas';
+      document.querySelectorAll('.progress-label span')[1].textContent = pct+'%';
+      const btn = document.querySelector('.submit-btn');
+      if (answered === total) {
+        btn.classList.add('ready');
+        btn.textContent = 'Enviar gabarito ✓';
+      } else {
+        btn.textContent = 'Enviar gabarito — ' + answered + ' de ' + total + ' preenchidas';
+      }
+    });
+  });
+</script>
+</body>
+</html>

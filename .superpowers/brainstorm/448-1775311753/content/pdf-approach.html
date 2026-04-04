@@ -1,0 +1,40 @@
+<h2>Como gerar o PDF da prova?</h2>
+<p class="subtitle">Essa escolha afeta layout, velocidade de download e complexidade técnica</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Client-side (no browser do aluno)</h3>
+      <p>Gerado em tempo real com <code>@react-pdf/renderer</code>. Sem custo de servidor, funciona sempre. Layout mais limitado — fontes e imagens precisam de CORS.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Prós</h4><ul><li>Zero custo por geração</li><li>Funciona offline</li><li>Sem latência de servidor</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Layout menos sofisticado</li><li>Imagens dependem de CORS</li><li>Bundle maior</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Server-side (Edge Function)</h3>
+      <p>Edge Function no Supabase gera o PDF sob demanda por usuário. Controle total de tipografia, imagens e layout. Cada download gera um novo PDF.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Prós</h4><ul><li>Layout perfeito com qualquer fonte</li><li>Imagens sem problemas de CORS</li><li>Pode incluir nome do aluno</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Custo por requisição</li><li>Latência de 2–5s por geração</li><li>Depende de servidor online</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Híbrido — PDF pré-gerado por simulado</h3>
+      <p>Edge Function gera o PDF uma vez por simulado (não por aluno) e armazena no Supabase Storage. Download instantâneo para todos. O nome do aluno vai no gabarito digital, não no PDF.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Prós</h4><ul><li>Download instantâneo</li><li>Layout perfeito</li><li>Gerado só uma vez</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>PDF sem nome do aluno</li><li>Precisa regenerar se questão mudar</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -16,6 +16,27 @@ const toneStyles: Record<HomeHeroState["tone"], string> = {
     "bg-[linear-gradient(142deg,hsl(345,62%,27%)_0%,hsl(330,58%,20%)_50%,hsl(220,34%,18%)_100%)] shadow-[0_24px_48px_-20px_hsl(330_54%_16%/0.75),0_8px_20px_-12px_hsl(330_54%_16%/0.42)]",
 };
 
+const scenarioEyebrowStyles: Record<HomeHeroState["scenario"], string> = {
+  onboarding_pending:
+    "border-violet-200/50 bg-[linear-gradient(180deg,rgba(196,181,253,0.3)_0%,rgba(196,181,253,0.16)_100%)] text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]",
+  in_progress:
+    "border-amber-200/55 bg-[linear-gradient(180deg,rgba(251,191,36,0.34)_0%,rgba(251,191,36,0.18)_100%)] text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  window_open:
+    "border-emerald-200/55 bg-[linear-gradient(180deg,rgba(16,185,129,0.34)_0%,rgba(16,185,129,0.18)_100%)] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  awaiting_results:
+    "border-sky-200/55 bg-[linear-gradient(180deg,rgba(56,189,248,0.34)_0%,rgba(56,189,248,0.18)_100%)] text-sky-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  results_ready:
+    "border-fuchsia-200/55 bg-[linear-gradient(180deg,rgba(217,70,239,0.34)_0%,rgba(217,70,239,0.18)_100%)] text-fuchsia-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  late_training:
+    "border-cyan-200/55 bg-[linear-gradient(180deg,rgba(34,211,238,0.34)_0%,rgba(34,211,238,0.18)_100%)] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  first_simulado:
+    "border-rose-200/55 bg-[linear-gradient(180deg,rgba(251,113,133,0.34)_0%,rgba(251,113,133,0.18)_100%)] text-rose-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  upcoming:
+    "border-indigo-200/55 bg-[linear-gradient(180deg,rgba(129,140,248,0.34)_0%,rgba(129,140,248,0.18)_100%)] text-indigo-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+  steady_progress:
+    "border-pink-200/55 bg-[linear-gradient(180deg,rgba(244,114,182,0.34)_0%,rgba(244,114,182,0.18)_100%)] text-pink-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
+};
+
 export function HomeHeroSection({ heroState }: HomeHeroSectionProps) {
   const titleParts = heroState.headline.split(",");
   const hasCommaBreak = titleParts.length > 1;
@@ -35,7 +56,9 @@ export function HomeHeroSection({ heroState }: HomeHeroSectionProps) {
 
         <div className="relative z-10 flex h-full flex-col justify-between">
           <div className="max-w-xl space-y-4">
-            <p className="inline-flex w-fit items-center rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/78">
+            <p
+              className={`inline-flex w-fit items-center rounded-full border px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.09em] backdrop-blur-md ${scenarioEyebrowStyles[heroState.scenario]}`}
+            >
               {heroState.eyebrow}
             </p>
             <h1 className="text-[28px] font-bold leading-[1.08] tracking-[-0.035em] text-white md:text-[34px] lg:text-[38px]">

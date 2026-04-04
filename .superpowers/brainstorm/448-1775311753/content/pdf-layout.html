@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Layout Options</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f3ff; padding: 20px; }
+h2 { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 6px; text-align: center; }
+.subtitle { font-size: 13px; color: #888; text-align: center; margin-bottom: 24px; }
+
+.layouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto 32px; }
+
+.layout-card {
+  border: 2.5px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.layout-card:hover { border-color: #a855f7; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,0.12); }
+.layout-card.selected { border-color: #7c3aed; box-shadow: 0 0 0 4px rgba(124,58,237,0.15); }
+
+.card-tag {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+  background: #7c3aed;
+  color: #fff;
+}
+.card-tag.b { background: #0ea5e9; }
+.card-tag.c { background: #10b981; }
+
+/* PDF preview mockup */
+.pdf-preview {
+  background: #fff;
+  margin: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: Georgia, serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* LAYOUT A — Clássico clean */
+.pdf-a .pdf-header {
+  background: #1e0a3c;
+  color: #fff;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pdf-a .pdf-header .logo { font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.pdf-a .pdf-header .meta { font-size: 9px; opacity: 0.7; text-align: right; }
+.pdf-a .pdf-body { padding: 12px 14px; }
+.pdf-a .q-block { margin-bottom: 14px; }
+.pdf-a .q-num { font-size: 9px; font-weight: 700; color: #888; letter-spacing: 1px; margin-bottom: 4px; }
+.pdf-a .q-text { font-size: 10px; color: #1a1a1a; line-height: 1.5; margin-bottom: 8px; }
+.pdf-a .q-option { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px; }
+.pdf-a .q-option .letter { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #333; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.pdf-a .q-option .text { font-size: 9px; color: #333; line-height: 1.4; }
+.pdf-a .q-tag { display: inline-block; font-size: 8px; padding: 1px 6px; border-radius: 4px; background: #f3f0ff; color: #7c3aed; margin-bottom: 4px; font-family: 'Segoe UI', sans-serif; }
+.pdf-a .divider { border: none; border-top: 1px dashed #e5e7eb; margin: 10px 0; }
+
+/* LAYOUT B — Duas colunas compacto */
+.pdf-b .pdf-header {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  padding: 10px 14px;
+  text-align: center;
+}
+.pdf-b .pdf-header .logo { font-size: 12px; font-weight: 700; }
+.pdf-b .pdf-header .meta { font-size: 8px; opacity: 0.8; margin-top: 1px; }
+.pdf-b .pdf-body { padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pdf-b .q-block { border-left: 2px solid #ede9fe; padding-left: 8px; }
+.pdf-b .q-num { font-size: 8px; font-weight: 700; color: #7c3aed; margin-bottom: 3px; font-family: 'Segoe UI', sans-serif; }
+.pdf-b .q-text { font-size: 9px; color: #1a1a1a; line-height: 1.4; margin-bottom: 5px; }
+.pdf-b .q-option { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+.pdf-b .q-option .letter { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; color: #7c3aed; flex-shrink: 0; }
+.pdf-b .q-option .text { font-size: 8px; color: #444; line-height: 1.3; }
+
+/* LAYOUT C — Editorial com área de tema */
+.pdf-c .pdf-header {
+  background: #fff;
+  border-bottom: 3px solid #7c3aed;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.pdf-c .pdf-header .logo { font-size: 14px; font-weight: 900; color: #1e0a3c; letter-spacing: -0.5px; }
+.pdf-c .pdf-header .logo span { color: #7c3aed; }
+.pdf-c .pdf-header .meta { font-size: 8px; color: #888; text-align: right; }
+.pdf-c .pdf-body { padding: 12px 14px; }
+.pdf-c .q-block { margin-bottom: 14px; }
+.pdf-c .q-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.pdf-c .q-badge { background: #7c3aed; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: 'Segoe UI', sans-serif; }
+.pdf-c .q-area { font-size: 8px; color: #7c3aed; font-family: 'Segoe UI', sans-serif; font-weight: 600; }
+.pdf-c .q-text { font-size: 10px; color: #1a1a1a; line-height: 1.5; margin-bottom: 8px; }
+.pdf-c .q-option { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 4px; }
+.pdf-c .q-option .letter { width: 17px; height: 17px; border-radius: 3px; border: 1.5px solid #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #7c3aed; flex-shrink: 0; margin-top: 1px; font-family: 'Segoe UI', sans-serif; }
+.pdf-c .q-option .text { font-size: 9px; color: #333; line-height: 1.4; }
+.pdf-c .page-num { text-align: center; font-size: 8px; color: #bbb; padding: 6px 0 4px; border-top: 1px solid #f0f0f0; font-family: 'Segoe UI', sans-serif; }
+
+.card-desc { padding: 12px 14px 14px; }
+.card-desc h3 { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 4px; }
+.card-desc p { font-size: 12px; color: #666; line-height: 1.5; }
+
+.select-hint { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 0; }
+</style>
+</head>
+<body>
+
+<h2>Como deve ser o visual do PDF?</h2>
+<p class="subtitle">Clique no layout preferido — esses são mockups em escala do que o aluno vai imprimir</p>
+
+<div class="layouts">
+
+  <!-- LAYOUT A: Clássico clean -->
+  <div class="layout-card pdf-a" onclick="select(this,'a')">
+    <div class="card-tag">A — Clássico</div>
+    <div class="pdf-preview pdf-a">
+      <div class="pdf-header">
+        <div class="logo">ENAMED 2025</div>
+        <div class="meta">SanarFlix PRO<br>100 questões · 5h</div>
+      </div>
+      <div class="pdf-body">
+        <div class="q-block">
+          <div class="q-tag">Clínica Médica</div>
+          <div class="q-num">QUESTÃO 1</div>
+          <div class="q-text">Paciente de 58 anos, hipertenso em uso de enalapril, apresenta tosse seca há 3 semanas. Qual a conduta mais adequada?</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Manter enalapril e prescrever xarope</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Substituir por losartana 50 mg</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Adicionar anlodipino ao esquema</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Solicitar espirometria urgente</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Suspender anti-hipertensivo</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="q-block">
+          <div class="q-tag">Pediatria</div>
+          <div class="q-num">QUESTÃO 2</div>
+          <div class="q-text">Criança de 2 anos com febre há 5 dias, exantema maculopapular e linfadenopatia cervical. O diagnóstico mais provável é:</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Escarlatina</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Doença de Kawasaki</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Sarampo</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Rubéola</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Mononucleose infecciosa</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-desc">
+      <h3>Clássico — fundo branco, header escuro</h3>
+      <p>Visual limpo e sóbrio. Header preto com logo. Tags de área em roxo suave. Bolhas circulares para marcar. Divisor entre questões. Familiar, sem distrações.</p>
+    </div>
+  </div>
+
+  <!-- LAYOUT B: Duas colunas -->
+  <div class="layout-card pdf-b" onclick="select(this,'b')">
+    <div class="card-tag b">B — Compacto 2 colunas</div>
+    <div class="pdf-preview pdf-b">
+      <div class="pdf-header">
+        <div class="logo">ENAMED 2025 — SanarFlix PRO</div>
+        <div class="meta">100 questões · Tempo: 5 horas</div>
+      </div>
+      <div class="pdf-body">
+        <div class="q-block">
+          <div class="q-num">Q 01 — Clínica Médica</div>
+          <div class="q-text">Paciente de 58 anos, hipertenso em uso de enalapril, apresenta tosse seca há 3 semanas. Conduta:</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Manter e prescrever xarope</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Substituir por losartana</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Adicionar anlodipino</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Espirometria urgente</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Suspender anti-hipertensivo</div></div>
+        </div>
+        <div class="q-block">
+          <div class="q-num">Q 02 — Pediatria</div>
+          <div class="q-text">Criança 2 anos, febre 5 dias, exantema maculopapular, linfadenopatia cervical. Diagnóstico:</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Escarlatina</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Doença de Kawasaki</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Sarampo</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Rubéola</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Mononucleose</div></div>
+        </div>
+        <div class="q-block">
+          <div class="q-num">Q 03 — Cirurgia</div>
+          <div class="q-text">Homem 45 anos, dor em hipocôndrio direito após refeição gordurosa, Murphy positivo. Conduta:</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Colecistectomia eletiva</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Antibioticoterapia oral</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Ecografia e observação</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Colangiopancreatografia</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Alta com analgésico</div></div>
+        </div>
+        <div class="q-block">
+          <div class="q-num">Q 04 — Ginecologia</div>
+          <div class="q-text">Mulher 32 anos, ciclos irregulares, USG com imagem hiperecoica uterina. O diagnóstico é:</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Endometriose</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Mioma uterino</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Adenomiose</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Cisto ovariano</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Pólipo endometrial</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-desc">
+      <h3>Compacto — 2 colunas por página</h3>
+      <p>Mais questões por folha. Texto levemente menor. Bom para quem quer economizar papel. Header em gradiente roxo. Questões lado a lado.</p>
+    </div>
+  </div>
+
+  <!-- LAYOUT C: Editorial -->
+  <div class="layout-card pdf-c" onclick="select(this,'c')">
+    <div class="card-tag c">C — Editorial premium</div>
+    <div class="pdf-preview pdf-c">
+      <div class="pdf-header">
+        <div class="logo">ENAMED<span>·</span>2025</div>
+        <div class="meta">SanarFlix PRO · Modo Offline<br>100 questões · 5 horas</div>
+      </div>
+      <div class="pdf-body">
+        <div class="q-block">
+          <div class="q-header">
+            <div class="q-badge">01</div>
+            <div class="q-area">Clínica Médica — Cardiologia</div>
+          </div>
+          <div class="q-text">Paciente de 58 anos, hipertenso em uso de enalapril, apresenta tosse seca há 3 semanas sem melhora. Qual a conduta mais adequada?</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Manter enalapril e prescrever xarope para tosse</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Substituir enalapril por losartana 50 mg/dia</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Adicionar anlodipino 5 mg ao esquema atual</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Solicitar espirometria com urgência</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Suspender o anti-hipertensivo por 30 dias</div></div>
+        </div>
+        <div class="q-block" style="margin-top:12px;">
+          <div class="q-header">
+            <div class="q-badge">02</div>
+            <div class="q-area">Pediatria — Infectologia</div>
+          </div>
+          <div class="q-text">Criança de 2 anos com febre há 5 dias, exantema maculopapular e linfadenopatia cervical bilateral. O diagnóstico mais provável é:</div>
+          <div class="q-option"><div class="letter">A</div><div class="text">Escarlatina</div></div>
+          <div class="q-option"><div class="letter">B</div><div class="text">Doença de Kawasaki</div></div>
+          <div class="q-option"><div class="letter">C</div><div class="text">Sarampo</div></div>
+          <div class="q-option"><div class="letter">D</div><div class="text">Rubéola</div></div>
+          <div class="q-option"><div class="letter">E</div><div class="text">Mononucleose infecciosa</div></div>
+        </div>
+      </div>
+      <div class="page-num">ENAMED 2025 · SanarFlix PRO · Página 1 de 28</div>
+    </div>
+    <div class="card-desc">
+      <h3>Editorial — identidade visual forte</h3>
+      <p>Header branco com logo e linha roxa. Número da questão em badge colorido. Área/tema em destaque. Botões A–E quadrados. Numeração de página no rodapé. Visual de revista médica.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="select-hint">Clique em um layout para selecionar — ou me diga o que mudaria em algum deles</p>
+
+<script>
+function select(el, choice) {
+  document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.recordChoice) recordChoice(choice, el.querySelector('h3').textContent);
+}
+// Fallback for companion helper
+if (!window.toggleSelect) {
+  window.recordChoice = function(choice, text) {
+    try {
+      fetch('/event', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({type:'click', choice, text, timestamp: Date.now()})
+      });
+    } catch(e) {}
+  };
+}
+</script>
+</body>
+</html>

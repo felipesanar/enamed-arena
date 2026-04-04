@@ -1,0 +1,133 @@
+<h2>Como o aluno preenche o gabarito?</h2>
+<p class="subtitle">Escolha o layout que melhor representa "a melhor experiência do mercado"</p>
+
+<style>
+.bubble { width:22px;height:22px;border-radius:50%;border:2px solid #ccc;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold; }
+.bubble.filled { background:#7c3aed;border-color:#7c3aed;color:#fff; }
+.bubble-row { display:flex;align-items:center;gap:6px;margin-bottom:5px; }
+.q-label { width:24px;font-size:10px;color:#888;text-align:right;flex-shrink:0; }
+.pill { padding:5px 12px;border-radius:20px;font-size:11px;font-weight:bold;cursor:pointer;display:inline-block; }
+.pill.active { background:#7c3aed;color:#fff; }
+.pill.inactive { border:1.5px solid #ddd;color:#666; }
+.grid-btn { width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;flex-shrink:0; }
+.grid-btn.empty { border:1.5px solid #ddd;color:#aaa; }
+.grid-btn.done { background:#ede9fe;color:#7c3aed; }
+.grid-btn.current { background:#7c3aed;color:#fff; }
+.side-opt { padding:5px 0;border-radius:6px;border:1.5px solid #ddd;font-size:11px;font-weight:bold;text-align:center;margin-bottom:4px; }
+.side-opt.active { background:#7c3aed;color:#fff;border-color:#7c3aed; }
+</style>
+
+<div class="cards">
+
+  <!-- OPÇÃO A: Grade de bolhas -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fafafa;padding:18px;">
+      <div style="font-size:10px;font-weight:bold;color:#999;margin-bottom:10px;letter-spacing:1px;">GABARITO — 100 QUESTÕES</div>
+
+      <div style="display:flex;gap:4px;margin-bottom:8px;align-items:center;">
+        <div style="width:24px;"></div>
+        <div style="width:22px;text-align:center;font-size:9px;font-weight:bold;color:#888;">A</div>
+        <div style="width:22px;text-align:center;font-size:9px;font-weight:bold;color:#888;">B</div>
+        <div style="width:22px;text-align:center;font-size:9px;font-weight:bold;color:#888;">C</div>
+        <div style="width:22px;text-align:center;font-size:9px;font-weight:bold;color:#888;">D</div>
+        <div style="width:22px;text-align:center;font-size:9px;font-weight:bold;color:#888;">E</div>
+      </div>
+
+      <div class="bubble-row"><span class="q-label">1.</span><div class="bubble"></div><div class="bubble filled">B</div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">2.</span><div class="bubble"></div><div class="bubble"></div><div class="bubble filled">C</div><div class="bubble"></div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">3.</span><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">4.</span><div class="bubble filled">A</div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">5.</span><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble filled">D</div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">6.</span><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">7.</span><div class="bubble"></div><div class="bubble filled">B</div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+      <div class="bubble-row"><span class="q-label">8.</span><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+
+      <div style="font-size:9px;color:#aaa;margin-top:8px;text-align:center;">5 de 100 questões preenchidas</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Grade de bolhas</h3>
+      <p>Igual ao gabarito impresso. Todas as 100 questões numa grade compacta. Clica na bolha para marcar. Visão geral instantânea do progresso.</p>
+    </div>
+  </div>
+
+  <!-- OPÇÃO B: Uma questão por vez -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fafafa;padding:18px;">
+      <div style="font-size:10px;font-weight:bold;color:#999;margin-bottom:10px;letter-spacing:1px;">QUESTÃO 3 DE 100</div>
+
+      <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:10px;color:#7c3aed;font-weight:bold;">
+        ⬛ Progresso: 2 de 100 preenchidas
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <span class="pill inactive">A</span>
+        <span class="pill inactive">B</span>
+        <span class="pill active">C</span>
+        <span class="pill inactive">D</span>
+        <span class="pill inactive">E</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:10px;padding:6px 12px;background:#f3f4f6;border-radius:6px;color:#666;">← Q2</div>
+        <div style="font-size:9px;color:#aaa;">auto-avança ao marcar</div>
+        <div style="font-size:10px;padding:6px 12px;background:#7c3aed;border-radius:6px;color:#fff;">Q4 →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Uma questão por vez</h3>
+      <p>Fluxo guiado. Avança automaticamente ao marcar. Setas para navegar. Sem distração — foco na questão atual.</p>
+    </div>
+  </div>
+
+  <!-- OPÇÃO C: Híbrido grid + painel -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fafafa;padding:18px;">
+      <div style="display:flex;gap:12px;">
+
+        <!-- Grid à esquerda -->
+        <div style="flex:1;">
+          <div style="font-size:9px;font-weight:bold;color:#999;margin-bottom:8px;letter-spacing:1px;">TODAS AS QUESTÕES</div>
+          <div style="display:grid;grid-template-columns:repeat(5,26px);gap:4px;">
+            <div class="grid-btn done">1</div>
+            <div class="grid-btn done">2</div>
+            <div class="grid-btn current">3</div>
+            <div class="grid-btn empty">4</div>
+            <div class="grid-btn empty">5</div>
+            <div class="grid-btn done">6</div>
+            <div class="grid-btn empty">7</div>
+            <div class="grid-btn done">8</div>
+            <div class="grid-btn empty">9</div>
+            <div class="grid-btn empty">10</div>
+            <div class="grid-btn empty">11</div>
+            <div class="grid-btn empty">12</div>
+            <div class="grid-btn empty">13</div>
+            <div class="grid-btn empty">14</div>
+            <div class="grid-btn empty">15</div>
+          </div>
+          <div style="font-size:8px;color:#aaa;margin-top:6px;">
+            <span style="color:#7c3aed;">■</span> marcada &nbsp;
+            <span style="color:#ccc;">■</span> vazia &nbsp;
+            <span style="background:#7c3aed;color:#fff;padding:0 3px;border-radius:2px;font-size:8px;">■</span> atual
+          </div>
+        </div>
+
+        <!-- Painel à direita -->
+        <div style="width:90px;">
+          <div style="font-size:9px;font-weight:bold;color:#999;margin-bottom:8px;letter-spacing:1px;">QUESTÃO 3</div>
+          <div class="side-opt active">A ✓</div>
+          <div class="side-opt">B</div>
+          <div class="side-opt">C</div>
+          <div class="side-opt">D</div>
+          <div class="side-opt">E</div>
+        </div>
+
+      </div>
+      <div style="font-size:9px;color:#aaa;margin-top:8px;text-align:center;">4 de 100 marcadas — clique no grid para pular</div>
+    </div>
+    <div class="card-body">
+      <h3>C — Grid + painel lateral</h3>
+      <p>Grid de todas as questões à esquerda (colorido por status). Clica em qualquer número para ir direto. Painel à direita mostra A–E da questão selecionada.</p>
+    </div>
+  </div>
+
+</div>

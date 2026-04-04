@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gabarito — 2 colunas</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f3ff; min-height: 100vh; }
+
+  .page-header {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .page-header h1 { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .page-header p { font-size: 11px; color: #888; }
+  .progress-bar-wrap { margin-top: 8px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-bottom: 4px; }
+  .progress-bar { height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a855f7); border-radius: 99px; transition: width 0.3s ease; }
+
+  .sheet {
+    padding: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    margin: 16px 0 8px;
+  }
+
+  /* Two-column grid: each group of 10 side by side */
+  .group-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  @media (max-width: 560px) {
+    .group-pair { grid-template-columns: 1fr; }
+  }
+
+  .col-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .col-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #c4b5fd;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 2px;
+  }
+
+  .question-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fff;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .question-row.answered {
+    background: #faf5ff;
+    border-color: #ede9fe;
+  }
+  .question-row.current {
+    background: #fff;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+  }
+
+  .q-num {
+    width: 22px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b5fd;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .question-row.answered .q-num { color: #7c3aed; }
+  .question-row.current .q-num { color: #7c3aed; }
+
+  .bubbles { display: flex; gap: 5px; flex: 1; }
+
+  .bubble {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .bubble:hover { border-color: #a855f7; color: #7c3aed; background: #f5f3ff; }
+  .bubble.selected { background: #7c3aed; border-color: #7c3aed; color: #fff; transform: scale(1.1); }
+  .question-row.current .bubble { border-color: #c4b5fd; color: #7c3aed; }
+  .question-row.current .bubble:hover { background: #ede9fe; }
+
+  .check { width: 16px; font-size: 13px; text-align: center; flex-shrink: 0; color: #d1d5db; }
+  .check.done { color: #7c3aed; }
+
+  /* Divisor entre blocos de 20 */
+  .divider {
+    border: none;
+    border-top: 1px dashed #e5e7eb;
+    margin: 16px 0 4px;
+  }
+
+  .submit-area {
+    padding: 16px 16px 48px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    background: #e5e7eb;
+    color: #9ca3af;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    cursor: not-allowed;
+    transition: all 0.2s;
+  }
+  .submit-btn.ready {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+  }
+  .hint { font-size: 11px; color: #bbb; text-align: center; margin-top: 8px; }
+
+  @media (max-width: 400px) {
+    .bubble { width: 26px; height: 26px; font-size: 10px; }
+    .bubbles { gap: 3px; }
+    .q-num { width: 18px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>ENAMED 2025 — Gabarito Offline</h1>
+  <p>Preencha suas respostas. Você pode alterar qualquer resposta antes de enviar.</p>
+  <div class="progress-bar-wrap">
+    <div class="progress-label">
+      <span id="prog-text">4 de 20 questões preenchidas</span>
+      <span id="prog-pct" style="color:#7c3aed;font-weight:600;">20%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="fill" style="width:20%"></div></div>
+  </div>
+</div>
+
+<div class="sheet">
+  <div class="section-label">Questões 1 – 20</div>
+
+  <div class="group-pair">
+    <!-- Coluna 1: Q1–Q10 -->
+    <div class="col-group">
+      <div class="col-label">Questões 1–10</div>
+
+      <div class="question-row answered" id="q1">
+        <div class="q-num">1</div>
+        <div class="bubbles">
+          <div class="bubble selected">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check done">✓</div>
+      </div>
+
+      <div class="question-row answered" id="q2">
+        <div class="q-num">2</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble selected">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check done">✓</div>
+      </div>
+
+      <div class="question-row answered" id="q3">
+        <div class="q-num">3</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble selected">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check done">✓</div>
+      </div>
+
+      <div class="question-row current" id="q4">
+        <div class="q-num">4</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q5">
+        <div class="q-num">5</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q6">
+        <div class="q-num">6</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row answered" id="q7">
+        <div class="q-num">7</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble selected">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check done">✓</div>
+      </div>
+
+      <div class="question-row" id="q8">
+        <div class="q-num">8</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q9">
+        <div class="q-num">9</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q10">
+        <div class="q-num">10</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+    </div>
+
+    <!-- Coluna 2: Q11–Q20 -->
+    <div class="col-group">
+      <div class="col-label">Questões 11–20</div>
+
+      <div class="question-row" id="q11">
+        <div class="q-num">11</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q12">
+        <div class="q-num">12</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q13">
+        <div class="q-num">13</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q14">
+        <div class="q-num">14</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q15">
+        <div class="q-num">15</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q16">
+        <div class="q-num">16</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q17">
+        <div class="q-num">17</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q18">
+        <div class="q-num">18</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q19">
+        <div class="q-num">19</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+
+      <div class="question-row" id="q20">
+        <div class="q-num">20</div>
+        <div class="bubbles">
+          <div class="bubble">A</div><div class="bubble">B</div><div class="bubble">C</div><div class="bubble">D</div><div class="bubble">E</div>
+        </div>
+        <div class="check">○</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <p style="font-size:11px;color:#c4b5fd;text-align:center;padding:8px 0;">… questões 21–100 continuam no mesmo padrão …</p>
+
+</div>
+
+<div class="submit-area">
+  <button class="submit-btn" id="submit-btn">Enviar gabarito — preencha todas as questões</button>
+  <p class="hint" id="hint-text">Ainda faltam questões em branco. Você pode pular e voltar.</p>
+</div>
+
+<script>
+  const TOTAL = 20;
+
+  function getAnswered() {
+    return document.querySelectorAll('.question-row.answered').length;
+  }
+
+  function updateProgress() {
+    const answered = getAnswered();
+    const pct = Math.round(answered / TOTAL * 100);
+    document.getElementById('fill').style.width = pct + '%';
+    document.getElementById('prog-text').textContent = answered + ' de ' + TOTAL + ' questões preenchidas';
+    document.getElementById('prog-pct').textContent = pct + '%';
+    const btn = document.getElementById('submit-btn');
+    const hint = document.getElementById('hint-text');
+    if (answered === TOTAL) {
+      btn.classList.add('ready');
+      btn.textContent = 'Enviar gabarito ✓ — todas respondidas';
+      hint.textContent = 'Tudo pronto! Revise e envie quando quiser.';
+      hint.style.color = '#7c3aed';
+    } else {
+      btn.classList.remove('ready');
+      btn.textContent = 'Enviar gabarito — ' + (TOTAL - answered) + ' questão(ões) em branco';
+      hint.textContent = 'Ainda faltam questões em branco. Você pode pular e voltar.';
+      hint.style.color = '';
+    }
+  }
+
+  function highlightNextEmpty() {
+    document.querySelectorAll('.question-row.current').forEach(r => r.classList.remove('current'));
+    const rows = document.querySelectorAll('.question-row');
+    for (const r of rows) {
+      if (!r.classList.contains('answered')) {
+        r.classList.add('current');
+        r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        break;
+      }
+    }
+  }
+
+  document.querySelectorAll('.bubble').forEach(b => {
+    b.addEventListener('click', function () {
+      const row = this.closest('.question-row');
+      // deselect all in this row
+      row.querySelectorAll('.bubble').forEach(x => x.classList.remove('selected'));
+      this.classList.add('selected');
+      row.classList.add('answered');
+      row.classList.remove('current');
+      const check = row.querySelector('.check');
+      if (check) { check.textContent = '✓'; check.className = 'check done'; }
+      updateProgress();
+      highlightNextEmpty();
+    });
+  });
+
+  // Init: show current state
+  updateProgress();
+</script>
+</body>
+</html>
