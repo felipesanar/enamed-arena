@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle } from "lucide-react";
+import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Dialog,
