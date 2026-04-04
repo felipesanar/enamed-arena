@@ -216,7 +216,7 @@ export default function SimuladoDetailPage() {
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   opacity: 0.35,
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
                 }}
               />
               <div className="relative z-10">
@@ -351,38 +351,97 @@ export default function SimuladoDetailPage() {
               {/* Checklist completo — sempre para novatos, colapsável para veteranos */}
               {(!isVeteran || showFullChecklist) && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mb-8">
-                    {checklistItems.map((item) => {
+                  {/* ── Progress bar ── */}
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-[0.16em]"
+                        style={{ color: "rgba(255,255,255,0.3)" }}
+                      >
+                        Checklist de confirmação
+                      </span>
+                      <span
+                        className="text-[12px] font-bold tabular-nums"
+                        style={{ color: "rgba(255,255,255,0.4)" }}
+                      >
+                        <span style={{ color: "hsl(345,65%,65%)" }}>{checkedItems.size}</span>
+                        {" "}de {checklistItems.length} itens confirmados
+                      </span>
+                    </div>
+                    <div
+                      className="w-full h-[3px] rounded-full overflow-hidden"
+                      style={{ background: "rgba(255,255,255,0.08)" }}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+                        style={{
+                          width: `${checklistItems.length > 0 ? (checkedItems.size / checklistItems.length) * 100 : 0}%`,
+                          background: "linear-gradient(90deg, hsl(345,60%,38%), hsl(345,65%,58%))",
+                          boxShadow: "0 0 10px hsl(345 65% 52% / 0.55)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ── Checklist grid ── */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-9">
+                    {checklistItems.map((item, index) => {
                       const checked = checkedItems.has(item.key);
+                      const isLastOdd =
+                        checklistItems.length % 2 === 1 && index === checklistItems.length - 1;
                       return (
                         <button
                           key={item.key}
                           type="button"
                           onClick={() => toggleCheck(item.key)}
                           className={cn(
-                            "flex items-start gap-3 p-4 rounded-xl text-left transition-all duration-200",
-                            checked
-                              ? "bg-primary/[0.06] border border-primary/20"
-                              : "bg-muted/50 border border-transparent hover:border-border"
+                            "flex items-start gap-3.5 text-left transition-all duration-200 rounded-[14px]",
+                            "hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            isLastOdd && "sm:col-span-2 sm:mx-auto sm:w-1/2"
                           )}
+                          style={{
+                            padding: "18px 20px",
+                            background: checked ? "rgba(196,90,114,0.09)" : "rgba(255,255,255,0.04)",
+                            border: `1.5px solid ${checked ? "rgba(196,90,114,0.3)" : "rgba(255,255,255,0.07)"}`,
+                          }}
                         >
-                          {checked && (
-                            <Check
-                              className={cn(
-                                "h-5 w-5 shrink-0 mt-0.5 transition-colors text-primary"
-                              )}
-                            />
-                          )}
-                          {!checked && (
-                            <div className="h-5 w-5 shrink-0 mt-0.5 rounded border border-muted-foreground/30" />
-                          )}
-                          <div>
-                            <p className={cn("text-body font-medium", checked ? "text-foreground" : "text-foreground/80")}>
+                          {/* Icon wrap */}
+                          <div
+                            className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                            style={{
+                              background: checked ? "rgba(196,90,114,0.16)" : "rgba(255,255,255,0.06)",
+                              border: `1px solid ${checked ? "rgba(196,90,114,0.36)" : "rgba(255,255,255,0.08)"}`,
+                              color: checked ? "hsl(345,65%,72%)" : "rgba(255,255,255,0.5)",
+                            }}
+                          >
+                            <item.icon className="w-[18px] h-[18px]" strokeWidth={1.6} />
+                          </div>
+
+                          {/* Text */}
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="text-[13.5px] font-bold leading-[1.2] mb-0.5 transition-colors"
+                              style={{ color: checked ? "#fff" : "rgba(255,255,255,0.72)" }}
+                            >
                               {item.title}
                             </p>
-                            <p className="text-body-sm text-muted-foreground">
+                            <p
+                              className="text-[12px] leading-[1.4] transition-colors"
+                              style={{ color: checked ? "rgba(255,255,255,0.48)" : "rgba(255,255,255,0.3)" }}
+                            >
                               {item.getDesc(simulado)}
                             </p>
+                          </div>
+
+                          {/* Checkbox */}
+                          <div
+                            className="w-[18px] h-[18px] rounded-[6px] flex-shrink-0 mt-0.5 flex items-center justify-center transition-all duration-200"
+                            style={{
+                              background: checked ? "hsl(345,65%,55%)" : "transparent",
+                              border: `1.5px solid ${checked ? "hsl(345,65%,55%)" : "rgba(255,255,255,0.18)"}`,
+                            }}
+                          >
+                            {checked && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                           </div>
                         </button>
                       );
