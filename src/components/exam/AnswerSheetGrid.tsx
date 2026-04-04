@@ -39,21 +39,30 @@ export function AnswerSheetGrid({
     [],
   );
 
-  const half = Math.ceil(questions.length / 2);
-  const leftCol  = questions.slice(0, half);
-  const rightCol = questions.slice(half);
+  const third1 = Math.ceil(questions.length / 3);
+  const third2 = Math.ceil((questions.length * 2) / 3);
+  const col1 = questions.slice(0, third1);
+  const col2 = questions.slice(third1, third2);
+  const col3 = questions.slice(third2);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-0">
       <Column
-        questions={leftCol}
+        questions={col1}
         answers={answers}
         onSelect={onSelect}
         focusedQuestionId={focusedQuestionId}
         setRef={setRef}
       />
       <Column
-        questions={rightCol}
+        questions={col2}
+        answers={answers}
+        onSelect={onSelect}
+        focusedQuestionId={focusedQuestionId}
+        setRef={setRef}
+      />
+      <Column
+        questions={col3}
         answers={answers}
         onSelect={onSelect}
         focusedQuestionId={focusedQuestionId}
