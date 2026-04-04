@@ -22,6 +22,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   PDFDocument,
+  PDFFont,
   rgb,
   StandardFonts,
   PageSizes,
@@ -222,8 +223,8 @@ function drawHeader(
   page: ReturnType<PDFDocument["addPage"]>,
   pageW: number,
   headerH: number,
-  fontBold: typeof StandardFonts.HelveticaBold,
-  fontRegular: typeof StandardFonts.Helvetica,
+  fontBold: PDFFont,
+  fontRegular: PDFFont,
   examLabel: string,
 ): void {
   const pageH = page.getHeight();
@@ -268,7 +269,7 @@ function drawFooter(
   page: ReturnType<PDFDocument["addPage"]>,
   pageW: number,
   marginBot: number,
-  fontRegular: typeof StandardFonts.Helvetica,
+  fontRegular: PDFFont,
   leftText: string,
   rightText: string,
 ): void {
@@ -306,9 +307,9 @@ function renderColumn(
   x: number,
   topY: number,
   colW: number,
-  fontBold: typeof StandardFonts.HelveticaBold,
-  fontRegular: typeof StandardFonts.Helvetica,
-  fontOblique: typeof StandardFonts.HelveticaOblique,
+  fontBold: PDFFont,
+  fontRegular: PDFFont,
+  _fontOblique: PDFFont,
 ): void {
   let y = topY;
   const maxTextW = colW - 8;
@@ -374,8 +375,8 @@ function renderAnswerColumn(
   x: number,
   topY: number,
   _colW: number,
-  fontRegular: typeof StandardFonts.Helvetica,
-  fontBold: typeof StandardFonts.HelveticaBold,
+  fontRegular: PDFFont,
+  fontBold: PDFFont,
 ): void {
   let y = topY;
 
@@ -419,7 +420,7 @@ function renderAnswerColumn(
 
 function wrapText(
   text: string,
-  font: typeof StandardFonts.Helvetica,
+  font: PDFFont,
   size: number,
   maxWidth: number,
 ): string[] {
