@@ -1,0 +1,1 @@
+UPDATE public.simulados SET updated_at = now();
