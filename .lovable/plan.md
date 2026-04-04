@@ -1,72 +1,76 @@
 
+Do I know what the issue is? Yes.
 
-# Plano: Imagens no PDF, Interação Online e Remoção da Folha de Respostas
+Problema real identificado: a regressão começou quando o modo offline foi adicionado, mas o fluxo online continuou lendo/escrevendo attempts de forma genérica.
 
-## Problemas Identificados
+1. O que está quebrando hoje
+- `src/services/simuladosApi.ts`:
+  - `getAttempt()` e `getUserAttempts()` não diferenciam attempt online vs offline.
+  - Depois da adição de `attempt_type`, o fluxo online pode receber uma `offline_pending` como se fosse attempt da prova online.
+- `src/hooks/useExamFlow.ts`:
+  - o hook assume que o estado interativo só funciona com `status === 'in_progress'`.
+  - se entrar uma attempt `offline_pending`, o timer fica pausado/errado e `updateState()` bloqueia seleção, navegação e marcações.
+- `src/hooks/useExamStorageReal.ts`:
+  - `initializeState()` salva estado local mesmo quando `createAttempt()` falha.
+  - isso permite abrir a prova sem registro no banco.
+  - depois `loadState()` reaproveita esse cache órfão, então a tela abre “normal”, mas sem `attemptId`.
+- Banco:
+  - ainda existe a restrição antiga `UNIQUE(simulado_id, user_id)`.
+  - com `attempt_type` novo, isso impede coexistência correta entre online e offline.
+  - se já existir attempt offline, a criação da online pode falhar.
 
-### 1. PDF sem imagens
-A Edge Function `generate-exam-pdf` **intencionalmente omite imagens** (linha 2: "No image embedding — too CPU-heavy"). O campo `image_url` é buscado do banco mas nunca usado na renderação. As imagens precisam ser embarcadas no PDF, mas com cuidado para não estourar o limite de CPU (Error 546).
+2. Como isso explica os sintomas
+- “Tabela de attempts vazia”:
+  - `createAttempt()` falha, mas o app segue com cache local porque o erro é engolido no fluxo.
+- “Cronômetro zerado”:
+  - o app pode estar reabrindo um cache local órfão/expirado, ou uma `offline_pending` inválida para a tela online.
+- “Não consigo selecionar, avançar ou navegar”:
+  - quando o estado carregado não está em `in_progress`, `updateState()` retorna sem alterar nada.
 
-### 2. Modo online — cliques não funcionam e timer zerado
-Duas causas combinadas:
-- **`drag="x"` no Framer Motion** (linha 370 de `SimuladoExamPage.tsx`): O wrapper da questão tem `drag="x"` para swipe entre questões. Framer Motion intercepta o `pointerdown` para detectar drag, o que pode engolir cliques em botões filhos (alternativas), especialmente em dispositivos touch ou quando o threshold é baixo.
-- **Timer em 00:00:00**: Se `effectiveDeadline` já passou (ex: janela de execução encerrada), o timer inicia em 0. Com timer=0, `handleTimeUp` chama `finalize()` após 2s, mas se a finalização falhar, o usuário fica preso numa tela sem interação porque `updateState` retorna early quando `status !== 'in_progress'`.
+3. Plano de correção
+- Etapa 1 — separar online e offline nas leituras
+  - Ajustar `simuladosApi.getAttempt()` para aceitar filtro por `attempt_type`.
+  - Ajustar `getUserAttempts()` para não deixar `offline_pending` dirigir o status da experiência online.
+  - Atualizar `useSimuladoDetail` e `useSimulados` para considerar apenas attempts online na lógica de “iniciar/continuar prova”.
 
-### 3. Última página (Folha de Respostas) deve ser removida
-O bloco de código nas linhas 253-262 gera uma página "FOLHA DE RESPOSTAS" com bubbles A/B/C/D. O usuário quer removê-la do PDF.
+- Etapa 2 — blindar o start da prova online
+  - Em `useExamStorageReal.initializeState()`, se `createAttempt()` falhar:
+    - não salvar `in_progress` local como se estivesse tudo certo;
+    - abortar a abertura da prova;
+    - mostrar erro claro.
+  - Em `loadState()`, se não existir attempt online no banco:
+    - não retomar cache local órfão automaticamente;
+    - limpar cache inválido/expirado antes de continuar.
 
----
+- Etapa 3 — impedir estados inválidos na tela online
+  - Em `useExamFlow`, aceitar apenas estados online válidos (`in_progress`, `submitted`, `expired`).
+  - Se vier `offline_pending` ou qualquer status inesperado:
+    - redirecionar para a tela anterior com mensagem clara;
+    - nunca renderizar a experiência online com esse estado.
 
-## Plano de Implementação
+- Etapa 4 — corrigir o schema/RPC
+  - Criar migration para remover a unicidade antiga por `(simulado_id, user_id)`.
+  - Substituir por unicidade compatível com os dois modos, ex.: `(simulado_id, user_id, attempt_type)`.
+  - Atualizar `create_attempt_guarded` para gravar explicitamente `attempt_type = 'online'`.
 
-### Etapa 1 — Corrigir interação no modo online
+- Etapa 5 — validar casos críticos
+  - Caso A: iniciar online sem attempt prévia.
+  - Caso B: existir offline pendente e iniciar online.
+  - Caso C: falha ao criar attempt online.
+  - Caso D: cache local órfão/expirado.
+  - Adicionar testes para esses cenários.
 
-**Arquivo:** `src/pages/SimuladoExamPage.tsx`
+4. Arquivos que precisam entrar na correção
+- `src/services/simuladosApi.ts`
+- `src/hooks/useExamStorageReal.ts`
+- `src/hooks/useExamFlow.ts`
+- `src/hooks/useSimuladoDetail.ts`
+- `src/hooks/useSimulados.ts`
+- migration SQL para `attempts` + `create_attempt_guarded`
 
-- **Remover `drag="x"`** do `motion.div` que envolve `QuestionDisplay` (linhas 370-372). O swipe horizontal é raramente usado e causa conflito com cliques nas alternativas. Os botões "Anterior"/"Próxima" e o navigator mobile já cobrem a navegação.
-- Remover também `dragConstraints`, `dragElastic` e `onDragEnd`.
-
-**Arquivo:** `src/hooks/useExamFlow.ts`
-
-- Adicionar guard no `initializeState`: se a `windowDeadline` já passou, não permitir iniciar o attempt (redirecionar para a página do simulado). Isso evita que o timer inicie em 0.
-
-### Etapa 2 — Embarcar imagens no PDF
-
-**Arquivo:** `supabase/functions/generate-exam-pdf/index.ts`
-
-- Após buscar as questões, filtrar as que têm `image_url` não-nulo.
-- Fazer `fetch` das imagens em paralelo (com timeout de 5s cada e fallback para omitir se falhar).
-- Usar `pdfDoc.embedJpg()` ou `pdfDoc.embedPng()` conforme o tipo da imagem.
-- Inserir a imagem entre o enunciado e as alternativas, com largura máxima proporcional à coluna (~240pt) e altura proporcional.
-- Atualizar `measureQuestion()` para incluir a altura da imagem no cálculo de layout.
-- Atualizar `renderColumn()` para desenhar a imagem na posição correta.
-- Atualizar o tipo `Question` para incluir `imageUrl?: Uint8Array` e dimensões.
-
-Otimizações para evitar Error 546:
-- Limitar a 20 imagens máximas (ignorar excedentes).
-- Timeout de 5s por fetch de imagem.
-- Se a imagem for muito grande (>500KB), redimensionar via canvas ou omitir.
-
-### Etapa 3 — Remover Folha de Respostas do PDF
-
-**Arquivo:** `supabase/functions/generate-exam-pdf/index.ts`
-
-- Remover o bloco inteiro de "Answer sheet" (linhas 253-262) e a função `renderAnswerCol` (linhas 293-309).
-- O PDF terminará após a última página de questões.
-
-### Etapa 4 — Re-deploy da Edge Function
-
-- Executar deploy da função `generate-exam-pdf`.
-- Invalidar cache existente (migration `UPDATE simulados SET updated_at = now()`).
-
----
-
-## Arquivos Modificados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/SimuladoExamPage.tsx` | Remove `drag="x"` do wrapper de questão |
-| `src/hooks/useExamFlow.ts` | Guard contra deadline já expirada |
-| `supabase/functions/generate-exam-pdf/index.ts` | Embarca imagens, remove folha de respostas |
-| Migration SQL | `UPDATE simulados SET updated_at = now()` para invalidar cache |
-
+Resultado esperado após a correção:
+- escolher modo online sempre cria ou recupera a attempt online correta;
+- a tabela `attempts` volta a refletir o início da prova;
+- o cronômetro abre com deadline válido;
+- seleção, navegação e resposta voltam a funcionar;
+- attempts offline deixam de contaminar a experiência online.
