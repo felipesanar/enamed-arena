@@ -168,7 +168,7 @@ async function generatePdf(
   });
   cy -= 24;
 
-  coverPage.drawText(simulado.title, {
+  coverPage.drawText(sanitizeForWinAnsi(simulado.title), {
     x: marginX,
     y: cy,
     size: 16,
