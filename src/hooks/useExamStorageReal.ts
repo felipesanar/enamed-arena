@@ -162,6 +162,9 @@ export function useExamStorageReal(simuladoId: string) {
           effectiveDeadline.toISOString(),
         );
         attemptIdRef.current = attempt.id;
+        // Use server deadline (authoritative)
+        state.effectiveDeadline = attempt.effective_deadline;
+        state.startedAt = attempt.started_at;
         trackEvent('simulado_started', {
           simuladoId,
           attemptId: attempt.id,
@@ -171,9 +174,11 @@ export function useExamStorageReal(simuladoId: string) {
         logger.error('[ExamStorageReal] Failed to create DB attempt:', err);
         toast({
           title: 'Erro ao criar tentativa',
-          description: 'Não foi possível registrar sua prova no servidor. Suas respostas serão salvas localmente.',
+          description: 'Não foi possível registrar sua prova no servidor. Tente novamente.',
           variant: 'destructive',
         });
+        // Abort: do NOT save local state without a valid DB attempt
+        throw err;
       }
     }
 
