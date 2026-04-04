@@ -27,6 +27,8 @@ import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
+import AnswerSheetPage from "./pages/AnswerSheetPage";
+import { FloatingOfflineTimer } from "@/components/FloatingOfflineTimer";
 
 // Admin
 import AdminLoginPage from "./admin/AdminLoginPage";
@@ -55,6 +57,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+            <FloatingOfflineTimer />
             <Routes>
               {/* Public */}
               <Route path="/landing" element={<LandingPage />} />
@@ -84,6 +87,7 @@ const App = () => (
                 <Route path="simulados/:id" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />
                 <Route path="simulados/:id/resultado" element={<ResultadoPage />} />
+                <Route path="simulados/:id/gabarito" element={<AnswerSheetPage />} />
                 <Route path="simulados/:id/correcao" element={<CorrecaoPage />} />
                 <Route path="desempenho" element={<DesempenhoPage />} />
                 <Route path="ranking" element={<RankingPage />} />

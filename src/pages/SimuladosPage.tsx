@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText } from "lucide-react";
+import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -20,7 +20,11 @@ import {
   COMO_FUNCIONA_MODAL_OPEN_EVENT,
   ComoFuncionaSimuladosTrigger,
 } from "@/components/simulados/ComoFuncionaTutorial";
+import { useOfflineAttempt } from "@/hooks/useOfflineAttempt";
 import { SimuladosTimelineSection } from "@/components/simulados/SimuladosTimelineSection";
+import { offlineApi } from "@/services/offlineApi";
+import { persistOfflineAttempt } from "@/hooks/useOfflineAttempt";
+import { toast } from "@/hooks/use-toast";
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -40,6 +44,8 @@ function LoadingSkeleton() {
 export default function SimuladosPage() {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
+  const navigate = useNavigate();
+  const { activeAttempt } = useOfflineAttempt();
 
   const heroSimulado = useMemo(() => {
     const active = simulados.find(s => s.status === "available" || s.status === "in_progress");
@@ -108,6 +114,35 @@ export default function SimuladosPage() {
         <ComoFuncionaSimuladosTrigger />
       </motion.div>
 
+      {/* Offline attempt reminder banner */}
+      {activeAttempt && (
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm"
+          style={{
+            background: "hsl(345, 65%, 10%)",
+            borderColor: "hsl(345, 65%, 30%)",
+            color: "hsl(345, 65%, 90%)",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-[#e83862]" />
+            <span>
+              Você tem uma prova offline em andamento. Preencha o gabarito digital para registrar seu resultado.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(`/simulados/${activeAttempt.simulado_slug}/gabarito`)}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+            style={{ background: "hsl(345, 65%, 30%)", color: "#fff" }}
+          >
+            Preencher agora
+          </button>
+        </motion.div>
+      )}
+
       {heroSimulado ? (
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
@@ -166,6 +201,42 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
   const alreadyStarted = sim.userState?.started && !sim.userState.finished;
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
   const [showModeModal, setShowModeModal] = useState(false);
+  const [offlineLoading, setOfflineLoading] = useState(false);
+
+  const handleOfflineMode = useCallback(async () => {
+    setOfflineLoading(true);
+    try {
+      // 1. Create offline attempt (server-side clock)
+      const attempt = await offlineApi.createOfflineAttempt(sim.id);
+
+      // 2. Persist to localStorage so FloatingOfflineTimer picks it up
+      persistOfflineAttempt({
+        id:                   attempt.attempt_id,
+        simulado_id:          sim.id,
+        simulado_slug:        attempt.simulado_slug,
+        started_at:           attempt.started_at,
+        exam_duration_seconds: attempt.exam_duration_seconds,
+      });
+
+      // 3. Request PDF generation + trigger download
+      const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
+      const a = document.createElement("a");
+      a.href = pdfUrl;
+      a.download = `${sim.slug ?? sim.id}.pdf`;
+      a.click();
+
+      setShowModeModal(false);
+      toast({ title: "Download iniciado!", description: "O timer offline está ativo na tela." });
+    } catch (err) {
+      toast({
+        title: "Erro ao iniciar modo offline",
+        description: (err as Error)?.message ?? "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setOfflineLoading(false);
+    }
+  }, [sim]);
 
   return (
     <div
@@ -321,19 +392,17 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
 
             <button
               type="button"
-              disabled
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-border bg-muted/30 text-center opacity-60 cursor-not-allowed"
+              disabled={offlineLoading}
+              onClick={handleOfflineMode}
+              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
-                <FileText className="h-7 w-7 text-muted-foreground" />
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <FileText className="h-7 w-7 text-primary" />
               </div>
-              <p className="text-body font-semibold text-muted-foreground">Experiência offline</p>
+              <p className="text-body font-semibold text-foreground">Experiência offline</p>
               <p className="text-body-sm text-muted-foreground">
-                Gere o PDF e suba o gabarito após finalizar
+                {offlineLoading ? "Gerando PDF…" : "Gere o PDF e suba o gabarito após finalizar"}
               </p>
-              <span className="text-caption text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                Em breve
-              </span>
             </button>
           </div>
         </DialogContent>
