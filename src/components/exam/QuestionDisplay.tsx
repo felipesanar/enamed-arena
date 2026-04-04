@@ -138,11 +138,11 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                   onEliminateOption(opt.id);
                 }}
                 className={cn(
-                  'absolute right-2 top-1/2 -translate-y-1/2',
+                  'absolute right-3 top-1/2 -translate-y-1/2',
                   'flex items-center gap-1 px-2 py-1.5 rounded-lg',
                   'transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-muted',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  'active:scale-90 min-h-[36px]',
+                  'active:scale-90 min-h-[44px] min-w-[44px] sm:min-h-[36px] sm:min-w-0',
                   isEliminated ? 'opacity-100 text-destructive hover:text-destructive' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100',
                 )}
                 title={isEliminated ? 'Restaurar alternativa' : 'Eliminar alternativa'}
