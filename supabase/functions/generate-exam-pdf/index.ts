@@ -183,7 +183,9 @@ async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promis
     `Esta prova contem ${simulado.questions_count} questoes de multipla escolha (A, B, C ou D).`,
     `Tempo disponivel: ${durationH} hora${durationH > 1 ? "s" : ""}.`,
     "Leia cada questao com atencao antes de marcar sua resposta.",
-    "Utilize a folha de respostas ao final ou o gabarito digital na plataforma.",
+    "Utilize a folha de respostas ao final para conferencia.",
+    "Ao terminar, volte a plataforma e preencha o gabarito digital para entrar no ranking.",
+    "Para entrar no ranking, envie o gabarito digital dentro do tempo de prova.",
   ];
   for (const line of instructions) {
     const wrapped = metricsRegular.wrap("- " + line, 12, pageW - marginX * 2);
