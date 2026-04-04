@@ -186,9 +186,9 @@ function formatDeadlineTicker(windowEnd: string): string {
   return `Janela fecha em breve`;
 }
 
-function HeroCard({ sim }: { sim: SimuladoWithStatus }) {
+function HeroCard({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
   if (sim.status === "available" || sim.status === "in_progress") {
-    return <HeroCardActive sim={sim} />;
+    return <HeroCardActive sim={sim} hasActiveAttempt={hasActiveAttempt} />;
   }
   if (sim.status === "upcoming") {
     return <HeroCardUpcoming sim={sim} />;
