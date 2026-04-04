@@ -52,7 +52,7 @@ function MobileQuestionNav({
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border px-3 py-2">
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-safe">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
         {questionIds.map((qId, i) => {
           const a = answers[qId];
           const isAnswered = !!a?.selectedOption;
@@ -69,12 +69,12 @@ function MobileQuestionNav({
                 'flex-shrink-0 h-7 w-7 rounded-md text-[10px] font-bold transition-all duration-150',
                 'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                 isCurrent && 'ring-2 ring-primary ring-offset-1 scale-110',
-                isAnswered && !isReview
-                  ? 'bg-accent text-accent-foreground'
-                  : isReview
-                    ? 'bg-info/20 text-info'
-                    : isHighConf
-                      ? 'bg-success/20 text-success'
+                isReview
+                  ? 'bg-info/20 text-info'
+                  : isHighConf
+                    ? 'bg-success/20 text-success'
+                    : isAnswered
+                      ? 'bg-accent text-accent-foreground'
                       : 'bg-muted/70 text-muted-foreground',
               )}
               aria-label={`Ir para questão ${i + 1}`}
