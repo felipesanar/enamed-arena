@@ -168,7 +168,12 @@ export function useExamStorageReal(simuladoId: string) {
         });
         logger.log('[ExamStorageReal] Created DB attempt:', attempt.id);
       } catch (err) {
-        logger.error('[ExamStorageReal] Failed to create DB attempt');
+        logger.error('[ExamStorageReal] Failed to create DB attempt:', err);
+        toast({
+          title: 'Erro ao criar tentativa',
+          description: 'Não foi possível registrar sua prova no servidor. Suas respostas serão salvas localmente.',
+          variant: 'destructive',
+        });
       }
     }
 
