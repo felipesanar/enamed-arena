@@ -223,8 +223,8 @@ function drawHeader(
   page: ReturnType<PDFDocument["addPage"]>,
   pageW: number,
   headerH: number,
-  fontBold: typeof StandardFonts.HelveticaBold,
-  fontRegular: typeof StandardFonts.Helvetica,
+  fontBold: PDFFont,
+  fontRegular: PDFFont,
   examLabel: string,
 ): void {
   const pageH = page.getHeight();
