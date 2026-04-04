@@ -333,7 +333,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { simulado_id } = await req.json();
+    const { simulado_id, force } = await req.json();
     if (!simulado_id) {
       return new Response(JSON.stringify({ error: "simulado_id is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -348,11 +348,14 @@ serve(async (req) => {
 
     const pdfPath = `${simulado_id}_${new Date(simMeta.updated_at).getTime()}.pdf`;
 
-    const { data: existing } = await supabase.storage.from(BUCKET).list("", { search: pdfPath });
-    if (existing?.some(f => f.name === pdfPath)) {
-      const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET).createSignedUrl(pdfPath, SIGNED_URL_EXPIRY);
-      if (signedError) throw signedError;
-      return new Response(JSON.stringify({ url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const forceRegenerate = force === true;
+    if (!forceRegenerate) {
+      const { data: existing } = await supabase.storage.from(BUCKET).list("", { search: pdfPath });
+      if (existing?.some(f => f.name === pdfPath)) {
+        const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET).createSignedUrl(pdfPath, SIGNED_URL_EXPIRY);
+        if (signedError) throw signedError;
+        return new Response(JSON.stringify({ url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Fetch simulado

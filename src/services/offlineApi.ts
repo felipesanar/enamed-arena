@@ -58,10 +58,10 @@ export const offlineApi = {
    * Triggers PDF generation via Edge Function and returns a signed download URL.
    * The Edge Function caches the PDF in Storage after the first generation.
    */
-  async getSignedPdfUrl(simuladoId: string): Promise<string> {
+  async getSignedPdfUrl(simuladoId: string, force = false): Promise<string> {
     logger.log('[OfflineApi] Requesting signed PDF URL for simulado:', simuladoId);
     const { data, error } = await supabase.functions.invoke('generate-exam-pdf', {
-      body: { simulado_id: simuladoId },
+      body: { simulado_id: simuladoId, force },
     });
     if (error) {
       logger.error('[OfflineApi] Error generating PDF:', error);
