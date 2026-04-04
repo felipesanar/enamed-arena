@@ -130,7 +130,7 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                 </div>
               </button>
 
-              {/* Eliminate/restore — visible on touch (sm and below), hover on desktop */}
+              {/* Eliminate/restore — icon on mobile, icon+label on desktop hover */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -138,14 +138,20 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                   onEliminateOption(opt.id);
                 }}
                 className={cn(
-                  'absolute right-3 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] h-11 w-11 rounded-lg flex items-center justify-center',
-                  'transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-90',
-                  isEliminated ? 'opacity-100 text-destructive' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100',
+                  'absolute right-2 top-1/2 -translate-y-1/2',
+                  'flex items-center gap-1 px-2 py-1.5 rounded-lg',
+                  'transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-muted',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'active:scale-90 min-h-[36px]',
+                  isEliminated ? 'opacity-100 text-destructive hover:text-destructive' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100',
                 )}
                 title={isEliminated ? 'Restaurar alternativa' : 'Eliminar alternativa'}
                 aria-label={isEliminated ? 'Restaurar alternativa' : 'Eliminar alternativa'}
               >
-                {isEliminated ? <Undo2 className="h-4 w-4" aria-hidden /> : <Trash2 className="h-4 w-4" aria-hidden />}
+                {isEliminated
+                  ? <><Undo2 className="h-3.5 w-3.5 shrink-0" aria-hidden /><span className="hidden sm:inline text-[11px] font-medium">Restaurar</span></>
+                  : <><Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden /><span className="hidden sm:inline text-[11px] font-medium">Eliminar</span></>
+                }
               </button>
             </div>
           );
