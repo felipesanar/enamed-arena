@@ -20,8 +20,8 @@ import {
   buildGoogleCalendarUrl,
 } from "@/lib/simulado-helpers";
 import {
-  Clock, Play, AlertTriangle,
-  Wifi, Monitor, CheckCircle2, Lock, Sparkles, Square, CheckSquare,
+  Clock, Play, Zap, FileText, Trophy, Check,
+  Wifi, Monitor, CheckCircle2, Lock, Sparkles,
   CalendarPlus, Maximize2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 
 const CHECKLIST_BASE = [
   { key: "duration", icon: Clock, title: "Duração da prova", getDesc: (s: { estimatedDuration: string; questionsCount: number }) => `${s.estimatedDuration} · ${s.questionsCount} questões` },
-  { key: "noPause", icon: AlertTriangle, title: "Sem pausa", getDesc: () => "O cronômetro não pode ser pausado após iniciar." },
+  { key: "noPause", icon: Zap, title: "Sem pausa", getDesc: () => "O cronômetro não pode ser pausado após iniciar." },
   { key: "connection", icon: Wifi, title: "Conexão estável", getDesc: () => "Respostas salvas automaticamente. Mantenha conexão ativa." },
   { key: "environment", icon: Monitor, title: "Ambiente adequado", getDesc: () => "Local tranquilo, sem interrupções." },
   { key: "fullscreen", icon: Maximize2, title: "Prova em tela cheia", getDesc: () => "A prova abre automaticamente em fullscreen. Sair do fullscreen é registrado." },
@@ -56,10 +56,10 @@ function buildChecklistItems(simulado: SimuladoWithStatus): ChecklistItem[] {
   if (simulado.status === "available_late") {
     base.push({
       key: "rankingNational",
-      icon: CheckCircle2,
-      title: "Entendi sobre o ranking nacional",
+      icon: Trophy,
+      title: "Entendi sobre o ranking",
       getDesc: () =>
-        "Confirmo que esta realização não conta para o ranking nacional, pois a janela oficial encerrou.",
+        "Esta realização não conta para o ranking nacional — a janela oficial encerrou.",
     });
   }
   return base;
@@ -230,7 +230,7 @@ export default function SimuladoDetailPage() {
                       {simulado.questionsCount} questões · {simulado.estimatedDuration}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                      <Zap className="h-4 w-4 text-muted-foreground" />
                       Sem pausa
                     </span>
                     <span className="flex items-center gap-1.5">
@@ -266,7 +266,6 @@ export default function SimuladoDetailPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mb-8">
                     {checklistItems.map((item) => {
                       const checked = checkedItems.has(item.key);
-                      const CheckIcon = checked ? CheckSquare : Square;
                       return (
                         <button
                           key={item.key}
@@ -279,12 +278,16 @@ export default function SimuladoDetailPage() {
                               : "bg-muted/50 border border-transparent hover:border-border"
                           )}
                         >
-                          <CheckIcon
-                            className={cn(
-                              "h-5 w-5 shrink-0 mt-0.5 transition-colors",
-                              checked ? "text-primary" : "text-muted-foreground"
-                            )}
-                          />
+                          {checked && (
+                            <Check
+                              className={cn(
+                                "h-5 w-5 shrink-0 mt-0.5 transition-colors text-primary"
+                              )}
+                            />
+                          )}
+                          {!checked && (
+                            <div className="h-5 w-5 shrink-0 mt-0.5 rounded border border-muted-foreground/30" />
+                          )}
                           <div>
                             <p className={cn("text-body font-medium", checked ? "text-foreground" : "text-foreground/80")}>
                               {item.title}
