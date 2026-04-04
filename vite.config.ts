@@ -36,54 +36,5 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // React core — changes rarely, long cache
-          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) {
-            return "vendor-react";
-          }
-          // Router
-          if (id.includes("node_modules/react-router")) {
-            return "vendor-router";
-          }
-          // Framer Motion — large, changes independently of app code
-          if (id.includes("node_modules/framer-motion")) {
-            return "vendor-motion";
-          }
-          // Recharts + D3 — only used on ComparativoPage (lazy)
-          if (
-            id.includes("node_modules/recharts") ||
-            id.includes("node_modules/d3-") ||
-            id.includes("node_modules/victory-")
-          ) {
-            return "vendor-charts";
-          }
-          // Supabase
-          if (id.includes("node_modules/@supabase")) {
-            return "vendor-supabase";
-          }
-          // Radix UI primitives — large collection of UI components
-          if (id.includes("node_modules/@radix-ui")) {
-            return "vendor-radix";
-          }
-          // TanStack Query
-          if (id.includes("node_modules/@tanstack")) {
-            return "vendor-query";
-          }
-          // Admin-specific heavy deps (xlsx, jszip) — only loaded when admin route is visited
-          if (
-            id.includes("node_modules/xlsx") ||
-            id.includes("node_modules/jszip")
-          ) {
-            return "vendor-admin-heavy";
-          }
-          // All other node_modules go to vendor-misc
-          if (id.includes("node_modules/")) {
-            return "vendor-misc";
-          }
-        },
-      },
-    },
   },
 }));
