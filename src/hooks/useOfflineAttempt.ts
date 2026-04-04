@@ -62,6 +62,9 @@ export function persistOfflineAttempt(attempt: {
     effective_deadline: deadline,
     status:             'offline_pending',
   });
+
+  // Dispatch a synthetic storage event so same-tab listeners pick it up immediately
+  window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
 }
 
 // ─── Countdown helper ─────────────────────────────────────────────────────────
