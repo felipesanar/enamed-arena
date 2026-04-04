@@ -19,26 +19,23 @@ export default function LandingPage() {
         aria-hidden
       >
         {/* Orb 1 — top-left, wine-glow */}
-        <motion.div
-          className="absolute top-[-5%] left-[-8%] w-[600px] h-[600px] rounded-full bg-[hsl(var(--wine-glow)/0.18)] blur-[100px]"
-          animate={{ x: [0, 35, 0], y: [0, -25, 0] }}
-          transition={{ duration: 14, ease: "easeInOut", repeat: Infinity }}
+        <div
+          className="absolute top-[-5%] left-[-8%] w-[600px] h-[600px] rounded-full bg-[hsl(var(--wine-glow)/0.18)] blur-[100px] landing-orb-drift-a"
+          aria-hidden="true"
         />
         {/* Orb 2 — top-right: main + leve accent-mid (variedade tonal) */}
-        <motion.div
-          className="absolute top-[5%] right-[-10%] h-[500px] w-[500px] rounded-full blur-[90px]"
+        <div
+          className="absolute top-[5%] right-[-10%] h-[500px] w-[500px] rounded-full blur-[90px] landing-orb-drift-b"
           style={{
             background:
               "radial-gradient(circle, hsl(var(--primary) / 0.14) 0%, hsl(var(--landing-accent-mid) / 0.06) 55%, transparent 70%)",
           }}
-          animate={{ x: [0, -28, 0], y: [0, 20, 0] }}
-          transition={{ duration: 18, ease: "easeInOut", repeat: Infinity }}
+          aria-hidden="true"
         />
         {/* Orb 3 — bottom-center, wine */}
-        <motion.div
-          className="absolute bottom-[0%] left-[30%] w-[400px] h-[400px] rounded-full bg-[hsl(var(--wine)/0.08)] blur-[80px]"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
+        <div
+          className="absolute bottom-[0%] left-[30%] w-[400px] h-[400px] rounded-full bg-[hsl(var(--wine)/0.08)] blur-[80px] landing-orb-pulse"
+          aria-hidden="true"
         />
       </div>
       <div

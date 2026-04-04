@@ -638,3 +638,39 @@
     transform: none;
   }
 }
+
+/* ─── Landing ambient orbs — CSS-only, compositor-friendly ─── */
+@keyframes orb-drift-a {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(35px, -25px); }
+}
+@keyframes orb-drift-b {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(-28px, 20px); }
+}
+@keyframes orb-pulse-opacity {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+
+.landing-orb-drift-a {
+  will-change: transform;
+  animation: orb-drift-a 14s ease-in-out infinite;
+}
+.landing-orb-drift-b {
+  will-change: transform;
+  animation: orb-drift-b 18s ease-in-out infinite;
+}
+.landing-orb-pulse {
+  will-change: opacity;
+  animation: orb-pulse-opacity 10s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-orb-drift-a,
+  .landing-orb-drift-b,
+  .landing-orb-pulse {
+    animation: none;
+    will-change: auto;
+  }
+}
