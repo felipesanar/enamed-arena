@@ -162,6 +162,7 @@ export default function SimuladoExamPage() {
               </button>
               <button
                 onClick={flow.toggleHighConfidence}
+                title="Alta certeza — marque quando tiver certeza da resposta. Aparece na sua análise de resultados."
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
                   flow.isHighConfFlagged
