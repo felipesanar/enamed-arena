@@ -34,6 +34,7 @@ export interface QuestionRow {
   theme: string;
   difficulty: string | null;
   image_url: string | null;
+  explanation_image_url: string | null;
   explanation: string | null;
 }
 
