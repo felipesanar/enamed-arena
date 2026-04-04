@@ -74,7 +74,7 @@ AS $$
   last_released AS (
     SELECT simulado_id, score_percentage, finished_at
     FROM released
-    ORDER BY finished_at DESC
+    ORDER BY finished_at DESC, simulado_id DESC
     LIMIT 1
   )
   SELECT
@@ -88,4 +88,5 @@ AS $$
   FROM released r
   LEFT JOIN last_released lr ON true
   GROUP BY lr.simulado_id, lr.score_percentage, lr.finished_at
+  HAVING COUNT(*) > 0
 $$;
