@@ -222,7 +222,7 @@ export default function AnswerSheetPage() {
             }}
           >
             <AlertCircle className="h-4 w-4 shrink-0" />
-            {gridQuestions.length - answeredCount} questão(ões) sem resposta. Você pode enviar mesmo assim.
+            Faltam {gridQuestions.length - answeredCount} questão(ões) sem resposta. Responda todas para enviar.
           </div>
         )}
 
