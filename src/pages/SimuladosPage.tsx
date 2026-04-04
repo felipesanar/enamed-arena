@@ -84,7 +84,7 @@ export default function SimuladosPage() {
 
   if (error) {
     return (
-      <>
+    </PageTransition>
         <PageHeader title="Simulados" badge="ENAMED 2026" />
         <EmptyState
           variant="error"
