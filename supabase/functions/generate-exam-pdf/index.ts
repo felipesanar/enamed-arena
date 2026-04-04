@@ -110,6 +110,7 @@ interface QuestionRow {
   id: string;
   question_number: number;
   text: string;
+  image_url: string | null;
 }
 
 interface OptionRow {
@@ -121,6 +122,9 @@ interface OptionRow {
 interface Question {
   number: number;
   text: string;
+  imageUrl: string | null;
+  imageBytes?: Uint8Array;
+  imageMimeType?: string;
   options: Array<{ label: string; text: string }>;
 }
 
