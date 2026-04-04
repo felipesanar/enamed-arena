@@ -11,7 +11,7 @@ import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useExamResult } from "@/hooks/useExamResult";
 import { computePerformanceBreakdown } from "@/lib/resultHelpers";
 import { deriveHomeHeroState } from "@/lib/home-hero-state";
-import { canViewResults } from "@/lib/simulado-helpers";
+import { canViewResults, formatDateShort as formatDateShortWithYear } from "@/lib/simulado-helpers";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
@@ -290,7 +290,7 @@ export function HomePagePremium() {
             <Clock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
             <span>
               Resultado do <strong className="font-medium text-foreground">{pendingSimulado.title}</strong> disponível em{" "}
-              {formatDateShort(pendingSimulado.resultsReleaseAt)}
+              {formatDateShortWithYear(pendingSimulado.resultsReleaseAt)}
             </span>
           </div>
         )}
