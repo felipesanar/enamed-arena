@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,28 +52,20 @@ export function LandingNavbar() {
   return (
     <>
       {/* Wrapper: padding quando flutuando contém a barra dentro da viewport (sem margin no nav = sem overflow) */}
-      <motion.header
-        initial={{ y: -24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: EASE }}
+      <header
         className={cn(
           "fixed top-0 left-0 right-0 z-50 overflow-x-hidden box-border transition-[padding] duration-500 ease-[cubic-bezier(0.32,0.72,0.2,1)]",
           scrolled && "pt-5 px-4 sm:px-5 md:px-6 lg:px-8 xl:px-10 2xl:px-12"
         )}
       >
-        <motion.nav
-          animate={{
-            borderRadius: scrolled ? 20 : 0,
-            backgroundColor: scrolled ? "hsl(var(--card) / 0.94)" : "hsl(var(--card) / 0.04)",
-            backdropFilter: scrolled ? "blur(24px) saturate(1.15)" : "blur(0px)",
-            borderWidth: 1,
-            borderColor: scrolled ? "hsl(var(--border))" : "transparent",
-            boxShadow: scrolled
-              ? "0 0 0 1px hsl(var(--border)), 0 24px 60px -12px rgba(0,0,0,0.45), 0 12px 24px -8px rgba(0,0,0,0.25)"
-              : "none",
-          }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="w-full border border-transparent min-w-0"
+        <nav
+          data-scrolled={scrolled ? "" : undefined}
+          className={cn(
+            "w-full min-w-0 border transition-[border-radius,background-color,border-color,box-shadow,backdrop-filter] duration-500 ease-[cubic-bezier(0.32,0.72,0.2,1)]",
+            scrolled
+              ? "rounded-[20px] bg-[hsl(var(--card)/0.94)] backdrop-blur-2xl saturate-150 border-border shadow-[0_0_0_1px_hsl(var(--border)),0_24px_60px_-12px_rgba(0,0,0,0.45),0_12px_24px_-8px_rgba(0,0,0,0.25)]"
+              : "rounded-none bg-[hsl(var(--card)/0.04)] border-transparent"
+          )}
           style={{ boxSizing: "border-box" }}
         >
           <div
@@ -198,8 +190,8 @@ export function LandingNavbar() {
               </div>
             </div>
           </div>
-        </motion.nav>
-      </motion.header>
+        </nav>
+      </header>
 
       {/* data-scrolled para CSS responsivo do padding — aplicar via useEffect ou classe condicional */}
       <AnimatePresence>

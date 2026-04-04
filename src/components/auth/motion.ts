@@ -8,11 +8,10 @@ export const AUTH_DURATION_BASE = 0.36;
 export const AUTH_DURATION_SLOW = 0.56;
 
 export const authPageReveal: Variants = {
-  hidden: { opacity: 0, y: 18, filter: "blur(10px)" },
+  hidden: { opacity: 0, y: 18 },
   show: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: { duration: AUTH_DURATION_SLOW, ease: AUTH_EASE_STANDARD },
   },
 };

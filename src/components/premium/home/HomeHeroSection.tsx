@@ -49,7 +49,7 @@ export function HomeHeroSection({ heroState }: HomeHeroSectionProps) {
         className={`relative overflow-hidden rounded-[28px] border border-white/[0.08] p-5 md:p-6 lg:p-7 min-h-[208px] flex flex-col justify-between ${toneStyles[heroState.tone]}`}
       >
         {/* Atmospheric glows */}
-        <div className="pointer-events-none absolute -top-28 -right-16 h-72 w-72 rounded-full bg-[hsl(345,72%,48%)] blur-[80px] animate-glow-pulse" />
+        <div className="pointer-events-none absolute -top-28 -right-16 h-72 w-72 rounded-full bg-[hsl(345,72%,48%)] blur-[80px] opacity-[0.15]" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[hsl(335,60%,52%)] opacity-[0.08] blur-[70px]" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_20%_15%,rgba(255,255,255,0.12)_0%,transparent_60%)]" />
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
