@@ -109,6 +109,7 @@ export default function AdminUploadQuestions() {
   const handleUpload = async () => {
     if (!simuladoId || parsedRows.length === 0) return;
     setUploading(true);
+    setUploadProgress({ step: 'Preparando imagens...', percent: 5 });
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
