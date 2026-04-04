@@ -204,7 +204,7 @@ export function useExamFlow(): UseExamFlowReturn {
       let withinRankingWindow = true;
       if (profile?.id) {
         try {
-          const attempt = await simuladosApi.getAttempt(simulado.id, profile.id);
+          const attempt = await simuladosApi.getAttempt(simulado.id, profile.id, 'online');
           if (attempt && typeof attempt.is_within_window === 'boolean') {
             withinRankingWindow = attempt.is_within_window;
           }
