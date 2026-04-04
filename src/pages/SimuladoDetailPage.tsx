@@ -12,13 +12,6 @@ import { SimuladoResultNav } from "@/components/simulado/SimuladoResultNav";
 import { useUser } from "@/contexts/UserContext";
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
   formatDate,
   formatDateTime,
   canAccessSimulado,
@@ -27,7 +20,7 @@ import {
 } from "@/lib/simulado-helpers";
 import {
   Clock, Play, AlertTriangle,
-  Wifi, Monitor, CheckCircle2, Lock, Sparkles, FileText, Square, CheckSquare,
+  Wifi, Monitor, CheckCircle2, Lock, Sparkles, Square, CheckSquare,
   CalendarPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -75,7 +68,6 @@ export default function SimuladoDetailPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const { isOnboardingComplete } = useUser();
-  const [showExamChoiceModal, setShowExamChoiceModal] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Set<ChecklistKey>>(new Set());
 
   const { simulado, loading, error, refetch } = useSimuladoDetail(id);
@@ -258,7 +250,7 @@ export default function SimuladoDetailPage() {
 
               <div className="text-center">
                 <button
-                  onClick={() => setShowExamChoiceModal(true)}
+                  onClick={() => navigate(`/simulados/${id}/prova`)}
                   disabled={!allChecked}
                   className={cn(
                     "inline-flex items-center gap-2 px-10 py-4 rounded-xl text-body-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]",
@@ -276,54 +268,6 @@ export default function SimuladoDetailPage() {
                   </p>
                 )}
               </div>
-
-              {/* Exam choice modal */}
-              <Dialog open={showExamChoiceModal} onOpenChange={setShowExamChoiceModal}>
-                <DialogContent className="max-w-lg w-full rounded-2xl border border-border p-6 md:p-8 gap-0">
-                  <DialogHeader className="mb-6">
-                    <DialogTitle className="text-heading-2 text-foreground text-center">
-                      Como deseja realizar o simulado?
-                    </DialogTitle>
-                    <DialogDescription className="text-body text-muted-foreground text-center mt-2">
-                      Escolha a experiência que melhor se adapta ao seu momento.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => {
-                        setShowExamChoiceModal(false);
-                        navigate(`/simulados/${id}/prova`);
-                      }}
-                      className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group"
-                    >
-                      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <Monitor className="h-7 w-7 text-primary" />
-                      </div>
-                      <p className="text-body font-semibold text-foreground">Experiência online</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        Realize o simulado na plataforma com tela cheia
-                      </p>
-                    </button>
-
-                    <button
-                      disabled
-                      className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-border bg-muted/30 text-center opacity-60 cursor-not-allowed"
-                    >
-                      <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
-                        <FileText className="h-7 w-7 text-muted-foreground" />
-                      </div>
-                      <p className="text-body font-semibold text-muted-foreground">Experiência offline</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        Gere o PDF e suba o gabarito após finalizar
-                      </p>
-                      <span className="text-caption text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                        Em breve
-                      </span>
-                    </button>
-                  </div>
-                </DialogContent>
-              </Dialog>
 
               <p className="text-caption text-muted-foreground text-center mt-6">
                 Resultado em {formatDate(simulado.resultsReleaseAt)}.

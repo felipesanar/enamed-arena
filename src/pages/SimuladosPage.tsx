@@ -1,7 +1,14 @@
 import { useMemo, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar, CalendarPlus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -154,12 +161,11 @@ function HeroCard({ sim }: { sim: SimuladoWithStatus }) {
 }
 
 function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
+  const navigate = useNavigate();
   const isInProgress = sim.status === "in_progress";
   const alreadyStarted = sim.userState?.started && !sim.userState.finished;
-  const ctaHref = alreadyStarted
-    ? `/simulados/${sim.slug}/prova`
-    : `/simulados/${sim.slug}/start`;
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
+  const [showModeModal, setShowModeModal] = useState(false);
 
   return (
     <div
@@ -248,14 +254,26 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
 
         {/* CTAs */}
         <div className="flex flex-wrap gap-2">
-          <Link
-            to={ctaHref}
-            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "#e83862", color: "#fff" }}
-          >
-            <Play className="w-4 h-4" />
-            {ctaLabel}
-          </Link>
+          {alreadyStarted ? (
+            <Link
+              to={`/simulados/${sim.slug}/prova`}
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ background: "#e83862", color: "#fff" }}
+            >
+              <Play className="w-4 h-4" />
+              {ctaLabel}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowModeModal(true)}
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ background: "#e83862", color: "#fff" }}
+            >
+              <Play className="w-4 h-4" />
+              {ctaLabel}
+            </button>
+          )}
           <button
             type="button"
             className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
@@ -270,6 +288,54 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
           </button>
         </div>
       </div>
+
+      {/* Online/offline mode modal */}
+      <Dialog open={showModeModal} onOpenChange={setShowModeModal}>
+        <DialogContent className="max-w-lg w-full rounded-2xl border border-border p-6 md:p-8 gap-0">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-heading-2 text-foreground text-center">
+              Como deseja realizar o simulado?
+            </DialogTitle>
+            <DialogDescription className="text-body text-muted-foreground text-center mt-2">
+              Escolha a experiência que melhor se adapta ao seu momento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              onClick={() => {
+                setShowModeModal(false);
+                navigate(`/simulados/${sim.slug}/start`);
+              }}
+              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group"
+            >
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <Monitor className="h-7 w-7 text-primary" />
+              </div>
+              <p className="text-body font-semibold text-foreground">Experiência online</p>
+              <p className="text-body-sm text-muted-foreground">
+                Realize o simulado na plataforma com tela cheia
+              </p>
+            </button>
+
+            <button
+              disabled
+              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-border bg-muted/30 text-center opacity-60 cursor-not-allowed"
+            >
+              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
+                <FileText className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <p className="text-body font-semibold text-muted-foreground">Experiência offline</p>
+              <p className="text-body-sm text-muted-foreground">
+                Gere o PDF e suba o gabarito após finalizar
+              </p>
+              <span className="text-caption text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                Em breve
+              </span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
