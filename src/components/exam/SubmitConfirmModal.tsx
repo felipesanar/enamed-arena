@@ -94,6 +94,7 @@ export function SubmitConfirmModal({
                       onCancel();
                       onNavigateToQuestion(i);
                     }}
+                    aria-label={`Ir para questão ${i + 1}`}
                     className="h-7 w-7 rounded-md text-[11px] font-bold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors"
                   >
                     {i + 1}
