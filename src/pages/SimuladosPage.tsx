@@ -222,10 +222,19 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
         exam_duration_seconds: attempt.exam_duration_seconds,
       });
 
-      setOfflineStep('Preparando download...');
-      // 3. Request PDF generation + trigger download
+      setOfflineStep('Baixando PDF...');
+      // 3. Request PDF generation + download as blob to avoid popup blockers
       const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
-      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+      const response = await fetch(pdfUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${sim.slug ?? sim.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
 
       setShowModeModal(false);
       toast({ title: "Download iniciado!", description: "O timer offline está ativo na tela." });
