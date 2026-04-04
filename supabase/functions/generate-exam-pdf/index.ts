@@ -147,8 +147,8 @@ async function generatePdf(
   const colW      = (pageW - marginX * 2 - colGap) / 2;
 
   const durationH = Math.round(simulado.duration_minutes / 60);
-  const examLabel = `${simulado.title} · ${simulado.questions_count} questões · ${durationH}h`;
-  const footerLabel = `${simulado.title} · SanarFlix PRO · Modo Offline · Uso exclusivo do candidato`;
+  const examLabel = sanitizeForWinAnsi(`${simulado.title} · ${simulado.questions_count} questões · ${durationH}h`);
+  const footerLabel = sanitizeForWinAnsi(`${simulado.title} · SanarFlix PRO · Modo Offline · Uso exclusivo do candidato`);
 
   // ─── Cover page ─────────────────────────────────────────────────────────────
 
