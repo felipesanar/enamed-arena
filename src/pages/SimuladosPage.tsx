@@ -403,12 +403,22 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
               className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <FileText className="h-7 w-7 text-primary" />
+                {offlineLoading
+                  ? <Loader2 className="h-7 w-7 text-primary animate-spin" />
+                  : <FileText className="h-7 w-7 text-primary" />
+                }
               </div>
               <p className="text-body font-semibold text-foreground">Experiência offline</p>
-              <p className="text-body-sm text-muted-foreground">
-                {offlineLoading ? "Gerando PDF…" : "Gere o PDF e suba o gabarito após finalizar"}
-              </p>
+              {offlineLoading ? (
+                <div className="w-full space-y-2">
+                  <p className="text-body-sm text-primary font-medium">{offlineStep}</p>
+                  <Progress value={undefined} className="h-1.5 [&>div]:animate-pulse" />
+                </div>
+              ) : (
+                <p className="text-body-sm text-muted-foreground">
+                  Gere o PDF e suba o gabarito após finalizar
+                </p>
+              )}
             </button>
           </div>
 

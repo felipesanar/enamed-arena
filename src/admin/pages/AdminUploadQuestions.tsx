@@ -244,6 +244,17 @@ export default function AdminUploadQuestions() {
               </div>
             )}
           </div>
+
+          {uploadProgress && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2">
+                {uploadProgress.percent < 100 && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+                {uploadProgress.percent === 100 && <CheckCircle className="h-3.5 w-3.5 text-success" />}
+                <span className="text-sm text-muted-foreground">{uploadProgress.step}</span>
+              </div>
+              <Progress value={uploadProgress.percent} className="h-2" />
+            </div>
+          )}
         </CardContent>
       </Card>
 
