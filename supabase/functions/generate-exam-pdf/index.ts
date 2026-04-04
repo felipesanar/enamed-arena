@@ -133,9 +133,7 @@ interface Question {
 async function generatePdf(
   simulado: SimuladoRow,
   questions: Question[],
-  pdfDoc: ReturnType<Awaited<ReturnType<typeof PDFDocument.create>> extends infer T ? () => T : never> extends never ? any : any,
 ): Promise<Uint8Array> {
-  // pdfDoc is passed in so we can embed images before calling this
   const pdfDoc = await PDFDocument.create();
   const fontRegular  = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold     = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
