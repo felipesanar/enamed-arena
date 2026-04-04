@@ -337,7 +337,7 @@ export default function LoginPage() {
             </div>
 
             <a
-              href={SANARFLIX_PRO_ENAMED_URL}
+              href="https://sanarflix.sanar.com.br/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]"
