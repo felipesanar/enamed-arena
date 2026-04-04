@@ -74,6 +74,7 @@ export default function AdminUploadQuestions() {
   const [enunciadoImages, setEnunciadoImages] = useState<Map<number, ExtractedImage>>(new Map());
   const [comentarioImages, setComentarioImages] = useState<Map<number, ExtractedImage>>(new Map());
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ step: string; percent: number } | null>(null);
   const [fileName, setFileName] = useState('');
 
   useEffect(() => {
