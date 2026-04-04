@@ -1,40 +1,55 @@
 
+Objetivo: corrigir o crash global `Cannot read properties of undefined (reading 'createContext')` que agora ocorre em todas as páginas.
 
-# Bloquear envio de simulado com questões sem resposta
+1. Confirmar a causa principal
+- O app monta `src/components/ui/sonner.tsx` globalmente em `src/App.tsx`.
+- Esse wrapper importa `useTheme` de `next-themes`.
+- Não existe `ThemeProvider` em nenhum lugar do projeto.
+- Como `next-themes` é o único uso desse pacote, ele é o principal suspeito do crash global.
 
-## Problema
-Atualmente é possível enviar um simulado (online ou offline) mesmo com questões não respondidas. O requisito é que **todas** as questões devem estar respondidas antes de permitir o envio.
+2. Corrigir a origem do erro
+- Remover a dependência de `next-themes` de `src/components/ui/sonner.tsx`.
+- Trocar a lógica de tema do Sonner por uma abordagem sem provider:
+  - opção mais segura: fixar `theme="dark"` ou `theme="system"`
+  - manter apenas o componente `Sonner` e os `toastOptions`
 
-## Alterações
+3. Manter compatibilidade visual
+- Garantir que os estilos atuais dos toasts continuem funcionando com as classes já definidas.
+- Como o app já usa tokens CSS e classes `.dark`, o toast não precisa depender de `next-themes` para funcionar.
 
-### 1. Modal de confirmação online (`SubmitConfirmModal.tsx`)
-- Desabilitar o botão "Finalizar prova" quando `summary.unanswered > 0`
-- Trocar o texto do botão para "Responda todas as questões" com estilo desabilitado
-- Remover o alerta de "questões sem resposta" (warning box) — agora o botão desabilitado comunica isso diretamente
-- Manter os botões de navegação para questões não respondidas para facilitar a localização
+4. Revisar pontos impactados
+- Verificar `src/App.tsx` para manter a montagem de ambos os toasters sem dependências implícitas.
+- Confirmar que não há outro import de `next-themes` no código da aplicação.
+- Se quiser limpeza posterior, remover `next-themes` do `package.json` em uma etapa separada.
 
-### 2. Botões de "Finalizar" na tela de prova (`SimuladoExamPage.tsx`)
-- Nos 3 locais onde `setShowSubmitModal(true)` é chamado (header, footer desktop, navigator mobile), adicionar verificação: se `summary.unanswered > 0`, mostrar toast informativo ao invés de abrir o modal
-- Alternativa: permitir abrir o modal mas com botão desabilitado (melhor UX pois mostra as questões faltantes)
+5. Validar após implementação
+- Testar `/landing`, `/login` e uma rota protegida para confirmar que o crash sumiu em toda a plataforma.
+- Testar exibição de toast em pelo menos um fluxo real.
+- Verificar no mobile também, já que o toaster é global.
 
-### 3. Atalho de teclado Escape (`useExamFlow.ts`)
-- Na linha 437, o `Escape` abre o modal — manter o comportamento (o botão estará desabilitado no modal)
+Detalhes técnicos
+```text
+Hoje:
+App.tsx
+ └─ <Sonner />
+    └─ src/components/ui/sonner.tsx
+       └─ useTheme() from next-themes
+          └─ projeto não possui <ThemeProvider />
 
-### 4. Gabarito offline (`AnswerSheetPage.tsx`)
-- O botão "Enviar gabarito" já tem `disabled={answeredCount === 0}`, trocar para `disabled={!allAnswered}`
-- No modal de confirmação, desabilitar "Confirmar envio" quando `!allAnswered`
-- Atualizar o texto do modal para refletir que todas devem ser respondidas
+Plano de correção:
+App.tsx
+ └─ <Sonner />
+    └─ src/components/ui/sonner.tsx
+       └─ sem next-themes
+       └─ tema definido localmente (dark/system)
+```
 
-### 5. Guard no backend (defesa em profundidade)
-- Na RPC `finalize_attempt_with_results`: adicionar check que conta questões sem resposta e levanta exceção se houver
-- Na RPC `submit_offline_answers_guarded`: adicionar check similar antes de finalizar
+Arquivos envolvidos
+- `src/components/ui/sonner.tsx` — correção principal
+- `src/App.tsx` — conferência de montagem global
+- `package.json` — limpeza opcional posterior da dependência `next-themes`
 
-## Arquivos modificados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/exam/SubmitConfirmModal.tsx` | Desabilitar botão quando há questões sem resposta |
-| `src/pages/AnswerSheetPage.tsx` | Bloquear envio quando `!allAnswered` |
-| `src/pages/SimuladoExamPage.tsx` | Toast informativo se tentar finalizar incompleto (opcional) |
-| Migration SQL | Guard nas RPCs `finalize_attempt_with_results` e `submit_offline_answers_guarded` |
-
+Resultado esperado
+- O app volta a carregar em todas as páginas.
+- Os toasts continuam funcionando.
+- O erro de `createContext` deixa de ocorrer por remover a importação problemática de `next-themes`.
