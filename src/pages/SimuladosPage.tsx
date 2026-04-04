@@ -303,6 +303,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
+              type="button"
               onClick={() => {
                 setShowModeModal(false);
                 navigate(`/simulados/${sim.slug}/start`);
@@ -319,6 +320,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
             </button>
 
             <button
+              type="button"
               disabled
               className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-border bg-muted/30 text-center opacity-60 cursor-not-allowed"
             >
