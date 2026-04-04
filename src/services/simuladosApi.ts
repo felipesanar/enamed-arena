@@ -142,6 +142,7 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
     theme: qRow.theme,
     difficulty: qRow.difficulty ?? null,
     imageUrl: qRow.image_url ?? null,
+    explanationImageUrl: qRow.explanation_image_url ?? null,
     options: optionRows
       .filter(o => o.question_id === qRow.id)
       .sort((a, b) => a.label.localeCompare(b.label))
