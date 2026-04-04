@@ -47,6 +47,45 @@ const WHITE      = rgb(1, 1, 1);
 const GRAY_LIGHT = rgb(0.92, 0.92, 0.92);
 const GRAY_MID   = rgb(0.55, 0.55, 0.55);
 
+// ─── Text sanitization (WinAnsi safe) ─────────────────────────────────────────
+
+/**
+ * Replace characters that WinAnsi (pdf-lib standard fonts) cannot encode.
+ * Covers common subscripts, superscripts, special quotes, dashes, etc.
+ */
+function sanitizeForWinAnsi(text: string): string {
+  // Subscript digits → normal digits
+  const subscripts: Record<string, string> = {
+    "\u2080": "0", "\u2081": "1", "\u2082": "2", "\u2083": "3",
+    "\u2084": "4", "\u2085": "5", "\u2086": "6", "\u2087": "7",
+    "\u2088": "8", "\u2089": "9",
+  };
+  // Superscript digits → normal digits
+  const superscripts: Record<string, string> = {
+    "\u2070": "0", "\u00B9": "1", "\u00B2": "2", "\u00B3": "3",
+    "\u2074": "4", "\u2075": "5", "\u2076": "6", "\u2077": "7",
+    "\u2078": "8", "\u2079": "9",
+  };
+  let out = text;
+  for (const [k, v] of Object.entries(subscripts)) out = out.replaceAll(k, v);
+  for (const [k, v] of Object.entries(superscripts)) out = out.replaceAll(k, v);
+  // Common replacements
+  out = out
+    .replaceAll("\u2013", "-")   // en-dash
+    .replaceAll("\u2014", "-")   // em-dash
+    .replaceAll("\u2018", "'")   // left single quote
+    .replaceAll("\u2019", "'")   // right single quote
+    .replaceAll("\u201C", '"')   // left double quote
+    .replaceAll("\u201D", '"')   // right double quote
+    .replaceAll("\u2026", "...") // ellipsis
+    .replaceAll("\u2022", "-")   // bullet
+    .replaceAll("\u00A0", " "); // nbsp
+  // Strip any remaining non-WinAnsi characters (keep printable Latin-1 + common symbols)
+  // deno-lint-ignore no-control-regex
+  out = out.replace(/[^\x00-\xFF]/g, "?");
+  return out;
+}
+
 // ─── Supabase admin client ────────────────────────────────────────────────────
 
 function getAdminClient() {
@@ -108,8 +147,8 @@ async function generatePdf(
   const colW      = (pageW - marginX * 2 - colGap) / 2;
 
   const durationH = Math.round(simulado.duration_minutes / 60);
-  const examLabel = `${simulado.title} · ${simulado.questions_count} questões · ${durationH}h`;
-  const footerLabel = `${simulado.title} · SanarFlix PRO · Modo Offline · Uso exclusivo do candidato`;
+  const examLabel = sanitizeForWinAnsi(`${simulado.title} · ${simulado.questions_count} questões · ${durationH}h`);
+  const footerLabel = sanitizeForWinAnsi(`${simulado.title} · SanarFlix PRO · Modo Offline · Uso exclusivo do candidato`);
 
   // ─── Cover page ─────────────────────────────────────────────────────────────
 
@@ -129,7 +168,7 @@ async function generatePdf(
   });
   cy -= 24;
 
-  coverPage.drawText(simulado.title, {
+  coverPage.drawText(sanitizeForWinAnsi(simulado.title), {
     x: marginX,
     y: cy,
     size: 16,
@@ -424,7 +463,8 @@ function wrapText(
   size: number,
   maxWidth: number,
 ): string[] {
-  const words = text.split(" ");
+  const safe = sanitizeForWinAnsi(text);
+  const words = safe.split(" ");
   const lines: string[] = [];
   let current = "";
 
