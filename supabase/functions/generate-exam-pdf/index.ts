@@ -353,6 +353,7 @@ function renderColumn(
   fontBold: PDFFont,
   fontRegular: PDFFont,
   _fontOblique: PDFFont,
+  embeddedImages: Map<number, ReturnType<PDFDocument["embedPng"]> extends Promise<infer T> ? T : never>,
 ): void {
   let y = topY;
   const maxTextW = colW - 8;
@@ -375,6 +376,28 @@ function renderColumn(
       y -= 13;
     }
     y -= 4;
+
+    // Embedded image (if any)
+    const embImg = embeddedImages.get(q.number);
+    if (embImg) {
+      const origW = embImg.width;
+      const origH = embImg.height;
+      const maxImgW = maxTextW;
+      const maxImgH = 120;
+      const scale = Math.min(maxImgW / origW, maxImgH / origH, 1);
+      const drawW = origW * scale;
+      const drawH = origH * scale;
+
+      if (y - drawH > 50) {
+        page.drawImage(embImg, {
+          x,
+          y: y - drawH,
+          width: drawW,
+          height: drawH,
+        });
+        y -= drawH + 8;
+      }
+    }
 
     // Options
     for (const opt of q.options) {
