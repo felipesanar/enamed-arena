@@ -463,21 +463,26 @@ function wrapText(
   size: number,
   maxWidth: number,
 ): string[] {
-  const safe = sanitizeForWinAnsi(text);
-  const words = safe.split(" ");
   const lines: string[] = [];
-  let current = "";
+  // Split by newlines first, then wrap each paragraph
+  const paragraphs = sanitizeForWinAnsi(text).split(/\r?\n/);
 
-  for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    if (font.widthOfTextAtSize(test, size) <= maxWidth) {
-      current = test;
-    } else {
-      if (current) lines.push(current);
-      current = word;
+  for (const para of paragraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) { lines.push(""); continue; }
+    const words = trimmed.split(/\s+/);
+    let current = "";
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(test, size) <= maxWidth) {
+        current = test;
+      } else {
+        if (current) lines.push(current);
+        current = word;
+      }
     }
+    if (current) lines.push(current);
   }
-  if (current) lines.push(current);
   return lines;
 }
 
