@@ -139,7 +139,12 @@ export function deriveHomeHeroState({
     (simulado) => simulado.resultsReleaseAt,
   )[0];
 
-  if (waitingResults) {
+  // Only show awaiting_results hero if student has no prior released history.
+  // If they have history, fall through to show stats normally — a pending
+  // banner is rendered separately in HomePagePremium.
+  const hasReleasedHistory = simuladosRealizados > 0 || recentScores.length > 0;
+
+  if (waitingResults && !hasReleasedHistory) {
     const resultsDate = formatDateShort(waitingResults.resultsReleaseAt);
     return {
       scenario: "awaiting_results",

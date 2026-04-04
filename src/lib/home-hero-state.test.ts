@@ -74,7 +74,7 @@ describe("deriveHomeHeroState", () => {
     expect(state.ctaLabel).toBe("Retomar simulado");
   });
 
-  it("retorna awaiting_results quando ha tentativa aguardando liberacao", () => {
+  it("retorna awaiting_results quando ha tentativa aguardando liberacao e sem historico anterior", () => {
     const state = deriveHomeHeroState({
       userName: "Felipe",
       isOnboardingComplete: true,
@@ -85,15 +85,71 @@ describe("deriveHomeHeroState", () => {
           resultsReleaseAt: "2026-04-08T12:00:00.000Z",
         }),
       ],
-      simuladosRealizados: 1,
-      mediaAtual: 75,
-      lastScore: 75,
-      recentScores: [75],
+      simuladosRealizados: 0,
+      mediaAtual: 0,
+      lastScore: null,
+      recentScores: [],
     });
 
     expect(state.scenario).toBe("awaiting_results");
     expect(state.ctaTo).toBe("/desempenho");
     expect(state.description).toContain("Resultado previsto");
+  });
+
+  it("retorna awaiting_results apenas quando nao ha historico anterior liberado", () => {
+    // closed_waiting simulado + no released history → should show awaiting_results
+    const state = deriveHomeHeroState({
+      userName: "Felipe",
+      isOnboardingComplete: true,
+      simulados: [
+        buildSimulado({
+          id: "sim-waiting",
+          status: "closed_waiting",
+          resultsReleaseAt: "2026-04-08T12:00:00.000Z",
+          userState: {
+            simuladoId: "sim-waiting",
+            started: true,
+            finished: true,
+            finishedAt: "2026-04-07T10:00:00.000Z",
+          },
+        }),
+      ],
+      simuladosRealizados: 0,
+      mediaAtual: 0,
+      lastScore: null,
+      recentScores: [],
+    });
+
+    expect(state.scenario).toBe("awaiting_results");
+  });
+
+  it("nao retorna awaiting_results quando ha historico anterior liberado", () => {
+    // closed_waiting simulado + previous released history → should NOT show awaiting_results
+    const state = deriveHomeHeroState({
+      userName: "Felipe",
+      isOnboardingComplete: true,
+      simulados: [
+        buildSimulado({
+          id: "sim-waiting",
+          status: "closed_waiting",
+          resultsReleaseAt: "2026-04-08T12:00:00.000Z",
+          userState: {
+            simuladoId: "sim-waiting",
+            started: true,
+            finished: true,
+            finishedAt: "2026-04-07T10:00:00.000Z",
+          },
+        }),
+      ],
+      simuladosRealizados: 2,
+      mediaAtual: 74,
+      lastScore: 74,
+      recentScores: [68, 74],
+    });
+
+    expect(state.scenario).not.toBe("awaiting_results");
+    // Falls through to steady_progress since no completed/available/late simulados
+    expect(state.scenario).toBe("steady_progress");
   });
 
   it("retorna results_ready e link para resultado quando concluido", () => {
