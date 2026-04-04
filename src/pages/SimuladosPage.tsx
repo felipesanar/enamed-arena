@@ -339,7 +339,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-wrap gap-2">
+         <div className="flex flex-wrap gap-2">
           {alreadyStarted ? (
             <Link
               to={`/simulados/${sim.slug}/prova`}
@@ -352,12 +352,13 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
           ) : (
             <button
               type="button"
+              disabled={isBlocked}
               onClick={() => setShowModeModal(true)}
-              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: "#e83862", color: "#fff" }}
             >
-              <Play className="w-4 h-4" />
-              {ctaLabel}
+              {isBlocked ? <Lock className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {isBlocked ? "Prova em andamento" : ctaLabel}
             </button>
           )}
           <button
