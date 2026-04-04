@@ -112,13 +112,25 @@ Esta auditoria foi conduzida analisando o código-fonte (5 páginas, 9 component
 
 ## Design das Melhorias
 
-### Bloco A — Remover modal online/offline (P1 · Baixo esforço)
+### Bloco A — Mover modal online/offline para antes do checklist (P1 · Baixo esforço)
 
-**Situação atual:** Após o checklist, aparece um modal com duas opções — "Experiência online" (ativa) e "Experiência offline" (desabilitada, "em breve"). O modal não oferece escolha real.
+**Situação atual:** O modal de escolha online/offline aparece como último passo — após o checklist completo na `SimuladoDetailPage`. Isso inverte a ordem lógica: o usuário deveria escolher o modo de prova antes de ler as instruções específicas daquele modo.
 
-**Solução:** Remover o modal completamente. O clique em "Iniciar Simulado" navega diretamente para `/simulados/:id/prova`. Quando a opção offline for lançada, o modal faz sentido novamente.
+**Solução:** Mover o modal de escolha para ser o **primeiro passo** ao clicar em "Iniciar Simulado" na página `/simulados` (no `SimuladoCard` ou diretamente na `SimuladosPage`). O fluxo passa a ser:
 
-**Arquivos afetados:** `SimuladoDetailPage.tsx`
+```
+/simulados
+  → clique "Iniciar Simulado"
+  → modal online/offline (imediato, antes de qualquer navegação)
+  → se online selecionado → navega para /simulados/:id/start (checklist)
+  → início da prova
+```
+
+- O modal não navega para a detail page — ele aparece sobre a lista, como uma escolha de entrada
+- A `SimuladoDetailPage` não precisa mais conhecer o modal; recebe o modo como parâmetro de rota ou state de navegação se necessário no futuro
+- Quando offline for lançado, a escolha já está no lugar certo
+
+**Arquivos afetados:** `SimuladoCard.tsx` (ou `SimuladosPage.tsx`), `SimuladoDetailPage.tsx` (remover modal existente)
 
 ---
 
@@ -300,7 +312,8 @@ Substitui a necessidade de abrir o sheet modal para ter consciência de progress
 
 | Arquivo | Blocos |
 |---------|--------|
-| `src/pages/SimuladoDetailPage.tsx` | A, D, E |
+| `src/components/SimuladoCard.tsx` (ou `src/pages/SimuladosPage.tsx`) | A (mover modal para cá) |
+| `src/pages/SimuladoDetailPage.tsx` | A (remover modal existente), D, E |
 | `src/components/exam/ExamHeader.tsx` | B3 |
 | `src/components/exam/QuestionDisplay.tsx` | B1, B2 |
 | `src/components/exam/QuestionNavigator.tsx` | C, H |
