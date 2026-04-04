@@ -186,6 +186,7 @@ export type Database = {
       }
       attempts: {
         Row: {
+          attempt_type: string
           created_at: string
           current_question_index: number
           effective_deadline: string
@@ -194,6 +195,7 @@ export type Database = {
           id: string
           is_within_window: boolean
           last_saved_at: string
+          offline_answers_submitted_at: string | null
           score_percentage: number | null
           simulado_id: string
           started_at: string
@@ -204,6 +206,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempt_type?: string
           created_at?: string
           current_question_index?: number
           effective_deadline: string
@@ -212,6 +215,7 @@ export type Database = {
           id?: string
           is_within_window?: boolean
           last_saved_at?: string
+          offline_answers_submitted_at?: string | null
           score_percentage?: number | null
           simulado_id: string
           started_at?: string
@@ -222,6 +226,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempt_type?: string
           created_at?: string
           current_question_index?: number
           effective_deadline?: string
@@ -230,6 +235,7 @@ export type Database = {
           id?: string
           is_within_window?: boolean
           last_saved_at?: string
+          offline_answers_submitted_at?: string | null
           score_percentage?: number | null
           simulado_id?: string
           started_at?: string
@@ -770,6 +776,7 @@ export type Database = {
       create_attempt_guarded: {
         Args: { p_simulado_id: string }
         Returns: {
+          attempt_type: string
           created_at: string
           current_question_index: number
           effective_deadline: string
@@ -778,6 +785,7 @@ export type Database = {
           id: string
           is_within_window: boolean
           last_saved_at: string
+          offline_answers_submitted_at: string | null
           score_percentage: number | null
           simulado_id: string
           started_at: string
@@ -793,6 +801,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_offline_attempt_guarded: {
+        Args: { p_simulado_id: string }
+        Returns: Json
       }
       enqueue_attempt_reprocessing: {
         Args: { p_attempt_id: string; p_reason?: string }
@@ -902,6 +914,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      submit_offline_answers_guarded: {
+        Args: { p_answers: Json; p_attempt_id: string }
+        Returns: Json
       }
       update_attempt_progress_guarded: {
         Args: {
