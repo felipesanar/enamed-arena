@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
     // Update profiles table (segment + name)
     if (Object.keys(profileUpdates).length > 0) {
       promises.push(
-        supabase.from("profiles").update(profileUpdates).eq("id", userId)
+        Promise.resolve(supabase.from("profiles").update(profileUpdates).eq("id", userId))
           .then(({ error }) => {
             if (error) console.error("[sso-magic-link] Failed to update profile:", error.message);
             else console.log(`[sso-magic-link] Profile updated for ${userId}:`, Object.keys(profileUpdates).join(", "));

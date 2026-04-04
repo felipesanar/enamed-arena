@@ -420,7 +420,7 @@ function renderAnswerColumn(
 
 function wrapText(
   text: string,
-  font: typeof StandardFonts.Helvetica,
+  font: PDFFont,
   size: number,
   maxWidth: number,
 ): string[] {
