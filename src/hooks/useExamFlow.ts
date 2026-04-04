@@ -76,6 +76,7 @@ const emptySummary = {
   unanswered: 0,
   markedForReview: 0,
   highConfidence: 0,
+  unansweredIndices: [],
 };
 
 export function useExamFlow(): UseExamFlowReturn {

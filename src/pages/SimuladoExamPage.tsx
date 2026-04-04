@@ -62,6 +62,7 @@ function MobileQuestionNav({
 
           return (
             <button
+              type="button"
               key={qId}
               ref={isCurrent ? currentRef : undefined}
               onClick={() => onNavigate(i)}
