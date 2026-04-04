@@ -21,6 +21,7 @@ import {
   COMO_FUNCIONA_MODAL_OPEN_EVENT,
   ComoFuncionaSimuladosTrigger,
 } from "@/components/simulados/ComoFuncionaTutorial";
+import { PageTransition } from "@/components/premium/PageTransition";
 import { useOfflineAttempt } from "@/hooks/useOfflineAttempt";
 import { SimuladosTimelineSection } from "@/components/simulados/SimuladosTimelineSection";
 import { offlineApi } from "@/services/offlineApi";
