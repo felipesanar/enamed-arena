@@ -1,0 +1,1 @@
+UPDATE simulados SET updated_at = now();
