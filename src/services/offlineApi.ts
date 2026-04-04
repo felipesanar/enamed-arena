@@ -107,7 +107,7 @@ export const offlineApi = {
         simulados ( slug )
       `)
       .eq('user_id', userId)
-      .eq('status', 'offline_pending')
+      .eq('status', 'offline_pending' as any)
       .maybeSingle();
 
     if (error) {
