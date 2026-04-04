@@ -88,8 +88,12 @@ export function useExamStorageReal(simuladoId: string) {
     if (!user) return { state: loadLocalState(), fromCache: true };
 
     try {
-      const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
-      if (!attempt) return { state: loadLocalState(), fromCache: false };
+      const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
+      if (!attempt) {
+        // No online attempt in DB — clear any orphan local cache
+        localStorage.removeItem(getLocalKey(simuladoId));
+        return { state: null, fromCache: false };
+      }
 
       attemptIdRef.current = attempt.id;
 

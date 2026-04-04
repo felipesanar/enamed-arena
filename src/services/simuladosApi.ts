@@ -254,11 +254,12 @@ export const simuladosApi = {
     return data as AttemptRow | null;
   },
 
-  async getUserAttempts(userId: string): Promise<AttemptRow[]> {
+  async getUserAttempts(userId: string, attemptType: 'online' | 'offline' = 'online'): Promise<AttemptRow[]> {
     const { data, error } = await supabase
       .from('attempts')
       .select('*')
       .eq('user_id', userId)
+      .eq('attempt_type', attemptType)
       .order('started_at', { ascending: false });
 
     if (error) throw error;
