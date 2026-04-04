@@ -54,7 +54,7 @@ export default function ConfiguracoesPage() {
   };
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Configurações"
         subtitle="Seu perfil e preferências da plataforma."

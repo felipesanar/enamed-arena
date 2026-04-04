@@ -197,7 +197,7 @@ function ComparativoContent() {
   const hasAreaData = areaComparisonData.length > 0 && sorted.some(e => Object.keys(e.areaScores).length > 0);
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Comparativo entre Simulados"
         subtitle="Sua evolução ao longo dos simulados."

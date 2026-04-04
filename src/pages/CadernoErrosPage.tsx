@@ -315,7 +315,7 @@ export default function CadernoErrosPage() {
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
 
   return (
-    <>
+    <PageTransition>
       {!hasAccess ? (
         <>
           <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />

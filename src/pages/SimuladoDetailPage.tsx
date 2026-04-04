@@ -131,7 +131,7 @@ export default function SimuladoDetailPage() {
   const hasResults = canViewResults(simulado.status);
 
   return (
-    <>
+    <PageTransition>
       <PageBreadcrumb
         items={[
           { label: "Simulados", href: "/simulados" },

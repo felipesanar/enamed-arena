@@ -93,7 +93,7 @@ export default function DesempenhoPage() {
 
   // ── Main render ────────────────────────────────────────────────────────────
   return (
-    <>
+    <PageTransition>
       <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
 
       {/* Unified card: dark hero (top) + white body (bottom) */}

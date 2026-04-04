@@ -421,6 +421,6 @@ export default function RankingPage() {
           )}
         </>
       )}
-    </>
+    </PageTransition>
   );
 }
