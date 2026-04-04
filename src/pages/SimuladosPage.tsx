@@ -207,9 +207,11 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
 
   const handleOfflineMode = useCallback(async () => {
     setOfflineLoading(true);
+    setOfflineStep('Criando tentativa offline...');
     try {
       // 1. Create offline attempt (server-side clock)
       const attempt = await offlineApi.createOfflineAttempt(sim.id);
+      setOfflineStep('Gerando PDF da prova...');
 
       // 2. Persist to localStorage so FloatingOfflineTimer picks it up
       persistOfflineAttempt({
