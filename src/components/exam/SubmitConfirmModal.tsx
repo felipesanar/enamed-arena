@@ -1,4 +1,4 @@
-import { CheckCircle2, Flag, Zap, AlertTriangle, Check } from 'lucide-react';
+import { CheckCircle2, Flag, Zap, AlertTriangle, Check, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -148,13 +148,18 @@ export function SubmitConfirmModal({
               <button
                 type="button"
                 onClick={onConfirm}
-                disabled={submitting}
-                className="w-full min-h-[48px] px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
+                disabled={submitting || summary.unanswered > 0}
+                className="w-full min-h-[48px] px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" aria-hidden />
                     Enviando...
+                  </span>
+                ) : summary.unanswered > 0 ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <AlertCircle className="h-4 w-4" aria-hidden />
+                    Responda todas as questões
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
