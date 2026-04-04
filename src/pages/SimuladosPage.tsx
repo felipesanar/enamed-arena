@@ -151,7 +151,7 @@ export default function SimuladosPage() {
           transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
           className="mb-8"
         >
-          <HeroCard sim={heroSimulado} />
+          <HeroCard sim={heroSimulado} hasActiveAttempt={!!activeAttempt || !!heroSimulado.userState?.started && !heroSimulado.userState?.finished} />
         </motion.div>
       ) : (
         simulados.length === 0 && (
