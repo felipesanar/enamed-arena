@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Trash2, CheckCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageExtractor';
 
 interface ParsedRow {
   numero: number;
@@ -70,6 +71,8 @@ export default function AdminUploadQuestions() {
   const [simulado, setSimulado] = useState<any>(null);
   const [existingCount, setExistingCount] = useState(0);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
+  const [enunciadoImages, setEnunciadoImages] = useState<Map<number, ExtractedImage>>(new Map());
+  const [comentarioImages, setComentarioImages] = useState<Map<number, ExtractedImage>>(new Map());
   const [uploading, setUploading] = useState(false);
   const [fileName, setFileName] = useState('');
 
@@ -79,19 +82,27 @@ export default function AdminUploadQuestions() {
     adminApi.getQuestionsCount(simuladoId).then(setExistingCount);
   }, [simuladoId]);
 
-  const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const wb = XLSX.read(ev.target?.result, { type: 'array' });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<ParsedRow>(sheet);
-      setParsedRows(rows);
-    };
-    reader.readAsArrayBuffer(file);
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Parse text data with SheetJS
+    const wb = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<ParsedRow>(sheet);
+    setParsedRows(rows);
+
+    // Extract embedded images with JSZip
+    const { enunciadoImages: eImgs, comentarioImages: cImgs } = await extractImagesFromXlsx(arrayBuffer);
+    setEnunciadoImages(eImgs);
+    setComentarioImages(cImgs);
+
+    if (eImgs.size > 0 || cImgs.size > 0) {
+      toast({ title: `${eImgs.size + cImgs.size} imagens extraídas da planilha` });
+    }
   }, []);
 
   const handleUpload = async () => {
@@ -104,6 +115,23 @@ export default function AdminUploadQuestions() {
 
       const normalized = parsedRows.map(normalizeRow);
 
+      // Build images payload: { [questionNumber]: { enunciado?: {...}, comentario?: {...} } }
+      const images: Record<number, {
+        enunciado?: { data: string; mime: string };
+        comentario?: { data: string; mime: string };
+      }> = {};
+
+      parsedRows.forEach((row, index) => {
+        const qNum = Number(row.numero);
+        const eImg = enunciadoImages.get(index);
+        const cImg = comentarioImages.get(index);
+        if (eImg || cImg) {
+          images[qNum] = {};
+          if (eImg) images[qNum].enunciado = { data: eImg.base64, mime: eImg.mimeType };
+          if (cImg) images[qNum].comentario = { data: cImg.base64, mime: cImg.mimeType };
+        }
+      });
+
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/admin-upload-questions`, {
         method: 'POST',
@@ -111,7 +139,7 @@ export default function AdminUploadQuestions() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ simulado_id: simuladoId, questions: normalized }),
+        body: JSON.stringify({ simulado_id: simuladoId, questions: normalized, images }),
       });
 
       const result = await res.json();
@@ -120,6 +148,8 @@ export default function AdminUploadQuestions() {
       toast({ title: `${result.inserted} questões inseridas com sucesso!` });
       setParsedRows([]);
       setFileName('');
+      setEnunciadoImages(new Map());
+      setComentarioImages(new Map());
       setExistingCount(result.inserted);
     } catch (err: any) {
       toast({ title: 'Erro no upload', description: err.message, variant: 'destructive' });
@@ -143,6 +173,8 @@ export default function AdminUploadQuestions() {
   if (!simulado) {
     return <div className="flex justify-center py-12"><div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
   }
+
+  const totalImages = enunciadoImages.size + comentarioImages.size;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -190,9 +222,17 @@ export default function AdminUploadQuestions() {
             </label>
 
             {parsedRows.length > 0 && (
-              <Button onClick={handleUpload} disabled={uploading}>
-                {uploading ? 'Enviando...' : `Enviar ${parsedRows.length} questões`}
-              </Button>
+              <div className="flex items-center gap-3">
+                {totalImages > 0 && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3" />
+                    {totalImages} imagens
+                  </Badge>
+                )}
+                <Button onClick={handleUpload} disabled={uploading}>
+                  {uploading ? 'Enviando...' : `Enviar ${parsedRows.length} questões`}
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>
@@ -213,18 +253,37 @@ export default function AdminUploadQuestions() {
                     <TableHead>Grande Área</TableHead>
                     <TableHead>Especialidade</TableHead>
                     <TableHead>Gabarito</TableHead>
+                    <TableHead className="w-16">Img</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsedRows.map((q, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{q.numero}</TableCell>
-                      <TableCell className="text-xs max-w-[400px] truncate">{q.Enunciado}</TableCell>
-                      <TableCell><Badge variant="secondary" className="text-xs">{q['Grande Área']}</Badge></TableCell>
-                      <TableCell className="text-xs">{q.Especialidade}</TableCell>
-                      <TableCell><Badge>{q.Gabarito}</Badge></TableCell>
-                    </TableRow>
-                  ))}
+                  {parsedRows.map((q, i) => {
+                    const hasEnunciado = enunciadoImages.has(i);
+                    const hasComentario = comentarioImages.has(i);
+                    return (
+                      <TableRow key={i}>
+                        <TableCell>{q.numero}</TableCell>
+                        <TableCell className="text-xs max-w-[400px] truncate">{q.Enunciado}</TableCell>
+                        <TableCell><Badge variant="secondary" className="text-xs">{q['Grande Área']}</Badge></TableCell>
+                        <TableCell className="text-xs">{q.Especialidade}</TableCell>
+                        <TableCell><Badge>{q.Gabarito}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {hasEnunciado && (
+                              <span title="Imagem do enunciado">
+                                <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                              </span>
+                            )}
+                            {hasComentario && (
+                              <span title="Imagem do comentário">
+                                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
