@@ -139,12 +139,15 @@ export function deriveHomeHeroState({
     (simulado) => simulado.resultsReleaseAt,
   )[0];
 
+  // True when the student has at least one released result to show.
+  // Values come from the DB RPC which already filters by results_release_at <= now().
+  // Used both here (awaiting_results guard) and below (first_simulado guard).
+  const hasHistory = simuladosRealizados > 0 || recentScores.length > 0;
+
   // Only show awaiting_results hero if student has no prior released history.
   // If they have history, fall through to show stats normally — a pending
   // banner is rendered separately in HomePagePremium.
-  const hasReleasedHistory = simuladosRealizados > 0 || recentScores.length > 0;
-
-  if (waitingResults && !hasReleasedHistory) {
+  if (waitingResults && !hasHistory) {
     const resultsDate = formatDateShort(waitingResults.resultsReleaseAt);
     return {
       scenario: "awaiting_results",
@@ -199,7 +202,6 @@ export function deriveHomeHeroState({
     };
   }
 
-  const hasHistory = simuladosRealizados > 0 || recentScores.length > 0;
   if (!hasHistory) {
     return {
       scenario: "first_simulado",
