@@ -203,6 +203,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
   const [showModeModal, setShowModeModal] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
+  const [offlineStep, setOfflineStep] = useState('');
 
   const handleOfflineMode = useCallback(async () => {
     setOfflineLoading(true);
