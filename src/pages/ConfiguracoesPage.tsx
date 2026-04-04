@@ -204,6 +204,6 @@ export default function ConfiguracoesPage() {
           </div>
         </>
       )}
-    </>
+    </PageTransition>
   );
 }

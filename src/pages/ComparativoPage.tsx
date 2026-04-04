@@ -384,6 +384,6 @@ function ComparativoContent() {
           </table>
         </div>
       </PremiumCard>
-    </>
+    </PageTransition>
   );
 }

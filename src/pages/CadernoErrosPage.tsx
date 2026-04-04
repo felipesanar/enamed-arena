@@ -335,6 +335,6 @@ export default function CadernoErrosPage() {
       ) : (
         <CadernoContent userId={user?.id || ''} />
       )}
-    </>
+    </PageTransition>
   );
 }

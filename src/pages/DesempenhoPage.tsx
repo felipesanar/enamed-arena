@@ -208,7 +208,7 @@ export default function DesempenhoPage() {
 
         </div>
       </motion.div>
-    </>
+    </PageTransition>
   );
 }
 

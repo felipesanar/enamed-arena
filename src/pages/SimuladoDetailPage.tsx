@@ -634,6 +634,6 @@ export default function SimuladoDetailPage() {
           </div>
         </div>
       </PremiumCard>
-    </>
+    </PageTransition>
   );
 }
