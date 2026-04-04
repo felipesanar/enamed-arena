@@ -347,32 +347,30 @@ export default function SimuladoDetailPage() {
                   </div>
 
                   {/* Veteran CTA — immediately active */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/simulados/${id}/prova`)}
-                      className="inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      style={{
-                        padding: "17px 56px",
-                        fontSize: "16px",
-                        letterSpacing: "0.02em",
-                        background: "linear-gradient(135deg, hsl(345,65%,38%) 0%, hsl(345,65%,26%) 100%)",
-                        color: "#fff",
-                        border: "1.5px solid transparent",
-                        boxShadow:
-                          "0 10px 40px hsl(345 65% 32% / 0.6), 0 2px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
-                      }}
-                    >
-                      <Play className="h-4 w-4 fill-current" />
-                      Iniciar Simulado
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/simulados/${id}/prova`)}
+                    className="inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(345,65%,62%)] focus-visible:ring-offset-2"
+                    style={{
+                      padding: "17px 56px",
+                      fontSize: "16px",
+                      letterSpacing: "0.02em",
+                      background: "linear-gradient(135deg, hsl(345,65%,38%) 0%, hsl(345,65%,26%) 100%)",
+                      color: "#fff",
+                      border: "1.5px solid transparent",
+                      boxShadow:
+                        "0 10px 40px hsl(345 65% 32% / 0.6), 0 2px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+                    }}
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    Iniciar Simulado
+                  </button>
 
                   {/* Toggle to show/hide full checklist */}
                   <button
                     type="button"
                     onClick={() => setShowFullChecklist((v) => !v)}
-                    className="text-[11px] mt-3 underline underline-offset-2 transition-colors"
+                    className="text-[11px] mt-3 underline underline-offset-2 transition-colors hover:opacity-70"
                     style={{ color: "rgba(255,255,255,0.25)" }}
                   >
                     {showFullChecklist ? "ocultar detalhes ↑" : "ver detalhes ↓"}
