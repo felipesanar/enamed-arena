@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, AlertTriangle, CalendarDays, BookOpen, ArrowUpRight, Lock } from "lucide-react";
+import { BarChart3, AlertTriangle, CalendarDays, BookOpen, ArrowUpRight, Lock, Clock } from "lucide-react";
 const PRO_ENAMED_URL = "https://sanarflix.com.br/sanarflix-pro-enamed";
 import { motion, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
@@ -11,6 +11,7 @@ import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useExamResult } from "@/hooks/useExamResult";
 import { computePerformanceBreakdown } from "@/lib/resultHelpers";
 import { deriveHomeHeroState } from "@/lib/home-hero-state";
+import { canViewResults } from "@/lib/simulado-helpers";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
@@ -100,7 +101,7 @@ export function HomePagePremium() {
   const isLoading = simuladosLoading || perfLoading || rankingLoading;
 
   const stats = useMemo(() => {
-    const completed = simulados.filter((s) => s.userState?.finished);
+    const completed = simulados.filter((s) => canViewResults(s.status));
     const fallbackCount = completed.length;
     const fallbackAvg =
       fallbackCount > 0
@@ -116,6 +117,19 @@ export function HomePagePremium() {
     const avg = summary?.avg_score ? Math.round(summary.avg_score) : fallbackAvg;
     return { simuladosRealizados: count, mediaAtual: avg };
   }, [simulados, summary?.avg_score, summary?.total_attempts]);
+
+  // Detect most-recent closed_waiting simulado where the student has finished.
+  // Used to show a pending banner when they have prior released results.
+  const pendingSimulado = useMemo(
+    () =>
+      simulados
+        .filter((s) => s.status === "closed_waiting" && s.userState?.finished)
+        .sort(
+          (a, b) =>
+            Date.parse(b.executionWindowEnd) - Date.parse(a.executionWindowEnd),
+        )[0] ?? null,
+    [simulados],
+  );
 
   const nextSimulado = useMemo(() => {
     const now = Date.now();
@@ -271,6 +285,15 @@ export function HomePagePremium() {
       {/* Layer 1: Hero premium — full width */}
       <motion.div variants={itemVariants}>
         <HomeHeroSection heroState={heroState} />
+        {pendingSimulado && (recentScores.length > 0 || stats.simuladosRealizados > 0) && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-muted bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+            <span>
+              Resultado do <strong className="font-medium text-foreground">{pendingSimulado.title}</strong> disponível em{" "}
+              {formatDateShort(pendingSimulado.resultsReleaseAt)}
+            </span>
+          </div>
+        )}
       </motion.div>
 
       {/* Layer 2: KPI grid (left) + "Seu caminho até aqui" (right) */}
