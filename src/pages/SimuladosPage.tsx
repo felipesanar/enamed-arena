@@ -213,17 +213,8 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
       const attempt = await offlineApi.createOfflineAttempt(sim.id);
       setOfflineStep('Gerando PDF da prova...');
 
-      // 2. Persist to localStorage so FloatingOfflineTimer picks it up
-      persistOfflineAttempt({
-        id:                   attempt.attempt_id,
-        simulado_id:          sim.id,
-        simulado_slug:        attempt.simulado_slug,
-        started_at:           attempt.started_at,
-        exam_duration_seconds: attempt.exam_duration_seconds,
-      });
-
-      setOfflineStep('Baixando PDF...');
-      // 3. Request PDF generation + download as blob to avoid popup blockers
+      setOfflineStep('Gerando e baixando PDF...');
+      // 2. Request PDF generation + download as blob to avoid popup blockers
       const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
       const response = await fetch(pdfUrl);
       const blob = await response.blob();
@@ -235,6 +226,17 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
+
+      // 3. Only AFTER download completes, persist to localStorage
+      // This prevents the FloatingOfflineTimer from appearing (and auto-navigating)
+      // before the user has actually received the PDF
+      persistOfflineAttempt({
+        id:                   attempt.attempt_id,
+        simulado_id:          sim.id,
+        simulado_slug:        attempt.simulado_slug,
+        started_at:           attempt.started_at,
+        exam_duration_seconds: attempt.exam_duration_seconds,
+      });
 
       setShowModeModal(false);
       toast({ title: "Download iniciado!", description: "O timer offline está ativo na tela." });
