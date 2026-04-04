@@ -269,7 +269,7 @@ function drawFooter(
   page: ReturnType<PDFDocument["addPage"]>,
   pageW: number,
   marginBot: number,
-  fontRegular: typeof StandardFonts.Helvetica,
+  fontRegular: PDFFont,
   leftText: string,
   rightText: string,
 ): void {
