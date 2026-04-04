@@ -1,76 +1,72 @@
+# Correções do PDF: Logo, Acentuação e Capa Redesenhada
 
-Do I know what the issue is? Yes.
+## Problemas Identificados
 
-Problema real identificado: a regressão começou quando o modo offline foi adicionado, mas o fluxo online continuou lendo/escrevendo attempts de forma genérica.
+1. **Header usa texto "SanarFlix PRO" ao invés da logo** — a logo completa do Sanarflix Pro simulados (a mesma que está no header da landing) deve ser embarcada
+2. **Acentuação ausente em todo o PDF** — todas as strings foram escritas sem acentos (ex: "questoes" ao invés de "questões"). Os acentos portugueses são suportados pelo encoding WinAnsi (todos estão no range 0x00-0xFF), então o problema é apenas no código fonte
+3. **Capa com instruções muito simples** — layout básico de bullet points sem design, precisa de uma página de capa profissional e visualmente impactante
 
-1. O que está quebrando hoje
-- `src/services/simuladosApi.ts`:
-  - `getAttempt()` e `getUserAttempts()` não diferenciam attempt online vs offline.
-  - Depois da adição de `attempt_type`, o fluxo online pode receber uma `offline_pending` como se fosse attempt da prova online.
-- `src/hooks/useExamFlow.ts`:
-  - o hook assume que o estado interativo só funciona com `status === 'in_progress'`.
-  - se entrar uma attempt `offline_pending`, o timer fica pausado/errado e `updateState()` bloqueia seleção, navegação e marcações.
-- `src/hooks/useExamStorageReal.ts`:
-  - `initializeState()` salva estado local mesmo quando `createAttempt()` falha.
-  - isso permite abrir a prova sem registro no banco.
-  - depois `loadState()` reaproveita esse cache órfão, então a tela abre “normal”, mas sem `attemptId`.
-- Banco:
-  - ainda existe a restrição antiga `UNIQUE(simulado_id, user_id)`.
-  - com `attempt_type` novo, isso impede coexistência correta entre online e offline.
-  - se já existir attempt offline, a criação da online pode falhar.
+## Plano de Implementação
 
-2. Como isso explica os sintomas
-- “Tabela de attempts vazia”:
-  - `createAttempt()` falha, mas o app segue com cache local porque o erro é engolido no fluxo.
-- “Cronômetro zerado”:
-  - o app pode estar reabrindo um cache local órfão/expirado, ou uma `offline_pending` inválida para a tela online.
-- “Não consigo selecionar, avançar ou navegar”:
-  - quando o estado carregado não está em `in_progress`, `updateState()` retorna sem alterar nada.
+### Etapa 1 — Embarcar logo no PDF
 
-3. Plano de correção
-- Etapa 1 — separar online e offline nas leituras
-  - Ajustar `simuladosApi.getAttempt()` para aceitar filtro por `attempt_type`.
-  - Ajustar `getUserAttempts()` para não deixar `offline_pending` dirigir o status da experiência online.
-  - Atualizar `useSimuladoDetail` e `useSimulados` para considerar apenas attempts online na lógica de “iniciar/continuar prova”.
+- Criar PNG branco da logo (100x100px, ~313 bytes) e encodar em base64
+- Embarcar a constante base64 diretamente no código da Edge Function (420 chars, negligível)
+- No `drawHeader`, usar `pdfDoc.embedPng(iconBytes)` + `page.drawImage()` para renderizar o ícone à esquerda do texto
 
-- Etapa 2 — blindar o start da prova online
-  - Em `useExamStorageReal.initializeState()`, se `createAttempt()` falhar:
-    - não salvar `in_progress` local como se estivesse tudo certo;
-    - abortar a abertura da prova;
-    - mostrar erro claro.
-  - Em `loadState()`, se não existir attempt online no banco:
-    - não retomar cache local órfão automaticamente;
-    - limpar cache inválido/expirado antes de continuar.
+### Etapa 2 — Corrigir toda a acentuação
 
-- Etapa 3 — impedir estados inválidos na tela online
-  - Em `useExamFlow`, aceitar apenas estados online válidos (`in_progress`, `submitted`, `expired`).
-  - Se vier `offline_pending` ou qualquer status inesperado:
-    - redirecionar para a tela anterior com mensagem clara;
-    - nunca renderizar a experiência online com esse estado.
+Substituições no arquivo `supabase/functions/generate-exam-pdf/index.ts` (ambas as funções `generatePdf` e `generatePdfWithDoc`):
 
-- Etapa 4 — corrigir o schema/RPC
-  - Criar migration para remover a unicidade antiga por `(simulado_id, user_id)`.
-  - Substituir por unicidade compatível com os dois modos, ex.: `(simulado_id, user_id, attempt_type)`.
-  - Atualizar `create_attempt_guarded` para gravar explicitamente `attempt_type = 'online'`.
 
-- Etapa 5 — validar casos críticos
-  - Caso A: iniciar online sem attempt prévia.
-  - Caso B: existir offline pendente e iniciar online.
-  - Caso C: falha ao criar attempt online.
-  - Caso D: cache local órfão/expirado.
-  - Adicionar testes para esses cenários.
+| De            | Para          |
+| ------------- | ------------- |
+| `questoes`    | `questões`    |
+| `questao`     | `questão`     |
+| `Questao`     | `Questão`     |
+| `Pagina`      | `Página`      |
+| `contem`      | `contém`      |
+| `multipla`    | `múltipla`    |
+| `disponivel`  | `disponível`  |
+| `atencao`     | `atenção`     |
+| `conferencia` | `conferência` |
 
-4. Arquivos que precisam entrar na correção
-- `src/services/simuladosApi.ts`
-- `src/hooks/useExamStorageReal.ts`
-- `src/hooks/useExamFlow.ts`
-- `src/hooks/useSimuladoDetail.ts`
-- `src/hooks/useSimulados.ts`
-- migration SQL para `attempts` + `create_attempt_guarded`
 
-Resultado esperado após a correção:
-- escolher modo online sempre cria ou recupera a attempt online correta;
-- a tabela `attempts` volta a refletir o início da prova;
-- o cronômetro abre com deadline válido;
-- seleção, navegação e resposta voltam a funcionar;
-- attempts offline deixam de contaminar a experiência online.
+### Etapa 3 — Redesenhar a capa (página de instruções)
+
+Substituir o layout atual de bullets simples por uma capa profissional com:
+
+- **Bloco de título** — grande, com fundo wine e texto branco: "PROVA OFFLINE" + nome do simulado
+- **Seção "Informações da Prova"** — card com borda, ícones simulados com tipografia: número de questões, duração, tipo (múltipla escolha A-D)
+- **Seção "Como funciona"** — passos numerados com design visual:
+  1. "Imprima esta prova e resolva no papel"
+  2. "Volte à plataforma SanarFlix PRO"
+  3. "Preencha o gabarito digital"
+  4. "Envie dentro do tempo para entrar no ranking"
+- **Seção "Regras importantes"** — box com destaque visual:
+  - "O tempo de prova começa no momento do download"
+  - "Envie o gabarito dentro do prazo para participar do ranking"
+  - "Questões não respondidas serão registradas como em branco"
+- Todos os textos com acentuação correta
+- Uso de retângulos coloridos, linhas separadoras e tipografia variada para criar hierarquia visual
+
+### Etapa 4 — Invalidar cache
+
+- Executar migration SQL `UPDATE simulados SET updated_at = now()` para forçar regeneração dos PDFs
+
+## Arquivo Modificado
+
+
+| Arquivo                                         | Alteração                                            |
+| ----------------------------------------------- | ---------------------------------------------------- |
+| `supabase/functions/generate-exam-pdf/index.ts` | Logo embarcada, acentos corrigidos, capa redesenhada |
+| `supabase/migrations/...`                       | Invalidação de cache                                 |
+
+
+## Detalhes Técnicos
+
+- O ícone branco PNG (100x100, RGBA com pixels brancos sobre transparente) pesa apenas 313 bytes — ideal para embed base64
+- `pdf-lib` embarca PNG via `pdfDoc.embedPng(Uint8Array)` — já usado para imagens de questões
+- Helvetica (StandardFont do pdf-lib) suporta WinAnsi, que inclui todos os caracteres acentuados do português (ã=0xE3, é=0xE9, ç=0xE7, etc.)
+- A capa será desenhada com primitivas do pdf-lib: `drawRectangle`, `drawText`, `drawLine`, `drawCircle`
+- O `drawHeader` embarcará o ícone uma vez via `pdfDoc.embedPng()` e reutilizará a referência em todas as páginas
