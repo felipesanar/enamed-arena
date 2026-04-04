@@ -674,3 +674,39 @@
     will-change: auto;
   }
 }
+
+/* ─── Auth background orbs — CSS-only ─── */
+@keyframes auth-orb-float-1 {
+  0%, 100% { opacity: 0.55; transform: translate(0, 0); }
+  50%       { opacity: 0.92; transform: translate(18px, -12px); }
+}
+@keyframes auth-orb-float-2 {
+  0%, 100% { opacity: 0.45; transform: translate(0, 0); }
+  50%       { opacity: 0.7; transform: translate(-14px, 8px); }
+}
+@keyframes auth-orb-breathe {
+  0%, 100% { opacity: 0.14; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(1.06); }
+}
+
+.auth-orb-1 {
+  will-change: transform, opacity;
+  animation: auth-orb-float-1 9s ease-in-out infinite;
+}
+.auth-orb-2 {
+  will-change: transform, opacity;
+  animation: auth-orb-float-2 11s ease-in-out infinite;
+}
+.auth-orb-3 {
+  will-change: transform, opacity;
+  animation: auth-orb-breathe 10.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-orb-1,
+  .auth-orb-2,
+  .auth-orb-3 {
+    animation: none;
+    will-change: auto;
+  }
+}
