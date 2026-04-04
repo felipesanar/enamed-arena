@@ -1,73 +1,72 @@
 
 
-# Plano: Layout de Imagens, Espaçamento de Alternativas e Feedback de Progresso
+# Plano: Imagens no PDF, Interação Online e Remoção da Folha de Respostas
 
 ## Problemas Identificados
 
-1. **Imagem do enunciado sem padding/centering consistente** — A imagem usa `inline-block` sem largura máxima responsiva e sem centralização, podendo ficar desalinhada em telas pequenas.
+### 1. PDF sem imagens
+A Edge Function `generate-exam-pdf` **intencionalmente omite imagens** (linha 2: "No image embedding — too CPU-heavy"). O campo `image_url` é buscado do banco mas nunca usado na renderação. As imagens precisam ser embarcadas no PDF, mas com cuidado para não estourar o limite de CPU (Error 546).
 
-2. **Imagem do comentário (`explanationImageUrl`) nunca exibida** — O campo existe no tipo e no banco mas nenhum componente o renderiza. Nem no `QuestionDisplay` (prova), nem no `CorrecaoPage` (correção).
+### 2. Modo online — cliques não funcionam e timer zerado
+Duas causas combinadas:
+- **`drag="x"` no Framer Motion** (linha 370 de `SimuladoExamPage.tsx`): O wrapper da questão tem `drag="x"` para swipe entre questões. Framer Motion intercepta o `pointerdown` para detectar drag, o que pode engolir cliques em botões filhos (alternativas), especialmente em dispositivos touch ou quando o threshold é baixo.
+- **Timer em 00:00:00**: Se `effectiveDeadline` já passou (ex: janela de execução encerrada), o timer inicia em 0. Com timer=0, `handleTimeUp` chama `finalize()` após 2s, mas se a finalização falhar, o usuário fica preso numa tela sem interação porque `updateState` retorna early quando `status !== 'in_progress'`.
 
-3. **Espaçamento entre alternativas inconsistente** — O `space-y-3` (12px) no `QuestionDisplay` e `CorrecaoPage` é fixo, mas a variação visual vem de: (a) `border-2` na selecionada vs `border` nas demais cria 1px de diferença, (b) `p-4` é o mesmo em todas mas o conteúdo de texto varia muito, dando impressão de espaço irregular.
+### 3. Última página (Folha de Respostas) deve ser removida
+O bloco de código nas linhas 253-262 gera uma página "FOLHA DE RESPOSTAS" com bubbles A/B/C/D. O usuário quer removê-la do PDF.
 
-4. **Sem feedback de progresso no upload de questões (admin)** — O botão muda para "Enviando..." mas não há barra de progresso nem indicação de etapas (parsing, upload de imagens, inserção).
-
-5. **Sem feedback de progresso na geração do PDF (usuário)** — O botão muda para "Gerando PDF…" mas em payloads grandes isso leva vários segundos sem nenhuma indicação visual.
-
-6. **Imagem do enunciado não exibida na CorrecaoPage** — A correção mostra texto e alternativas mas ignora `question.imageUrl`.
+---
 
 ## Plano de Implementação
 
-### Step 1 — Melhorar layout de imagem no QuestionDisplay
-- **Arquivo:** `src/components/exam/QuestionDisplay.tsx`
-- Centralizar a imagem com `mx-auto` e `max-w-full w-fit`
-- Adicionar `p-2` interno e `shadow-sm` para destaque visual
-- Garantir `max-h-[320px]` com aspect-ratio preservado
-- Padronizar `border` com tokens do design system
+### Etapa 1 — Corrigir interação no modo online
 
-### Step 2 — Padronizar espaçamento das alternativas
-- **Arquivo:** `src/components/exam/QuestionDisplay.tsx`
-- Mudar de `border-2` (selecionada) + `border` (demais) para `border-2` em todas, usando `border-transparent` como default — elimina o shift de 1px
-- Usar `space-y-2.5` (10px) para gaps consistentes
-- **Arquivo:** `src/pages/CorrecaoPage.tsx`
-- Mesmo ajuste: `space-y-2.5` e `border-2` uniforme em todas as opções
+**Arquivo:** `src/pages/SimuladoExamPage.tsx`
 
-### Step 3 — Exibir imagem do enunciado na CorrecaoPage
-- **Arquivo:** `src/pages/CorrecaoPage.tsx`
-- Após o texto do enunciado (linha 186), renderizar `question.imageUrl` com lightbox (reutilizar padrão do QuestionDisplay ou extrair componente `QuestionImage`)
+- **Remover `drag="x"`** do `motion.div` que envolve `QuestionDisplay` (linhas 370-372). O swipe horizontal é raramente usado e causa conflito com cliques nas alternativas. Os botões "Anterior"/"Próxima" e o navigator mobile já cobrem a navegação.
+- Remover também `dragConstraints`, `dragElastic` e `onDragEnd`.
 
-### Step 4 — Exibir imagem do comentário na CorrecaoPage
-- **Arquivo:** `src/pages/CorrecaoPage.tsx`
-- Dentro do bloco de explicação (linha 212-219), após o texto, renderizar `question.explanationImageUrl` com lightbox
+**Arquivo:** `src/hooks/useExamFlow.ts`
 
-### Step 5 — Feedback de progresso no upload de questões (admin)
-- **Arquivo:** `src/admin/pages/AdminUploadQuestions.tsx`
-- Adicionar state `uploadProgress: { step: string; percent: number }`
-- Exibir `Progress` bar (de `@/components/ui/progress`) durante upload com etapas:
-  - "Preparando imagens..." (0-20%)
-  - "Enviando questões..." (20-80%)
-  - "Finalizando..." (80-100%)
-- Usar componente `Progress` existente com label de etapa acima
+- Adicionar guard no `initializeState`: se a `windowDeadline` já passou, não permitir iniciar o attempt (redirecionar para a página do simulado). Isso evita que o timer inicie em 0.
 
-### Step 6 — Feedback de progresso na geração do PDF (usuário)
-- **Arquivo:** `src/pages/SimuladosPage.tsx` (no `HeroCardActive`)
-- Substituir o texto "Gerando PDF…" por uma UI de progresso com:
-  - Spinner animado + texto de etapa ("Criando prova offline...", "Gerando PDF...", "Preparando download...")
-  - Usar `Progress` bar indeterminada (animação de loading) já que não temos progresso real do Edge Function
-  - Desabilitar o botão e mostrar o progresso inline no card do modal
+### Etapa 2 — Embarcar imagens no PDF
 
-### Step 7 — Extrair componente reutilizável `QuestionImage`
-- **Arquivo:** `src/components/exam/QuestionImage.tsx` (novo)
-- Componente que recebe `src`, `alt`, e renderiza imagem com lightbox, zoom, e estilos consistentes
-- Usado em `QuestionDisplay`, `CorrecaoPage` (enunciado e comentário)
+**Arquivo:** `supabase/functions/generate-exam-pdf/index.ts`
 
-## Arquivos Modificados/Criados
+- Após buscar as questões, filtrar as que têm `image_url` não-nulo.
+- Fazer `fetch` das imagens em paralelo (com timeout de 5s cada e fallback para omitir se falhar).
+- Usar `pdfDoc.embedJpg()` ou `pdfDoc.embedPng()` conforme o tipo da imagem.
+- Inserir a imagem entre o enunciado e as alternativas, com largura máxima proporcional à coluna (~240pt) e altura proporcional.
+- Atualizar `measureQuestion()` para incluir a altura da imagem no cálculo de layout.
+- Atualizar `renderColumn()` para desenhar a imagem na posição correta.
+- Atualizar o tipo `Question` para incluir `imageUrl?: Uint8Array` e dimensões.
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/components/exam/QuestionImage.tsx` | Novo — componente reutilizável de imagem com lightbox |
-| `src/components/exam/QuestionDisplay.tsx` | Usa `QuestionImage`, padroniza border das alternativas |
-| `src/pages/CorrecaoPage.tsx` | Exibe imagem do enunciado e comentário, padroniza espaçamento |
-| `src/admin/pages/AdminUploadQuestions.tsx` | Barra de progresso com etapas no upload |
-| `src/pages/SimuladosPage.tsx` | Feedback visual de progresso na geração do PDF |
+Otimizações para evitar Error 546:
+- Limitar a 20 imagens máximas (ignorar excedentes).
+- Timeout de 5s por fetch de imagem.
+- Se a imagem for muito grande (>500KB), redimensionar via canvas ou omitir.
+
+### Etapa 3 — Remover Folha de Respostas do PDF
+
+**Arquivo:** `supabase/functions/generate-exam-pdf/index.ts`
+
+- Remover o bloco inteiro de "Answer sheet" (linhas 253-262) e a função `renderAnswerCol` (linhas 293-309).
+- O PDF terminará após a última página de questões.
+
+### Etapa 4 — Re-deploy da Edge Function
+
+- Executar deploy da função `generate-exam-pdf`.
+- Invalidar cache existente (migration `UPDATE simulados SET updated_at = now()`).
+
+---
+
+## Arquivos Modificados
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/SimuladoExamPage.tsx` | Remove `drag="x"` do wrapper de questão |
+| `src/hooks/useExamFlow.ts` | Guard contra deadline já expirada |
+| `supabase/functions/generate-exam-pdf/index.ts` | Embarca imagens, remove folha de respostas |
+| Migration SQL | `UPDATE simulados SET updated_at = now()` para invalidar cache |
 
