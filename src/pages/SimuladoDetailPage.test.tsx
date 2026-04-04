@@ -99,10 +99,11 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
     expect(screen.getByText("Prova em tela cheia")).toBeInTheDocument();
   });
 
-  it("shows progress counter starting at 0", () => {
+  it("shows helper copy while the checklist is incomplete", () => {
     renderPage();
-    // The dark arena card should show a "0 / 5 itens confirmados" counter
-    expect(screen.getByText(/0.*5 itens confirmados/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Confirme todos os itens acima para continuar/i)
+    ).toBeInTheDocument();
   });
 
   it("CTA button is disabled with 0/5 items checked", () => {
@@ -112,20 +113,22 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
     ).toBeDisabled();
   });
 
-  it("clicking a checklist item marks it checked and updates counter", () => {
+  it("clicking a checklist item checks it but CTA stays disabled until all are checked", () => {
     renderPage();
     fireEvent.click(screen.getByText("Duração da prova").closest("button")!);
-    // Dark arena counter should update to "1 / 5 itens confirmados"
-    expect(screen.getByText(/1.*5 itens confirmados/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /iniciar simulado/i })
+    ).toBeDisabled();
   });
 
-  it("clicking a checked item unchecks it", () => {
+  it("clicking a checked item unchecks it and keeps CTA disabled", () => {
     renderPage();
     const item = screen.getByText("Duração da prova").closest("button")!;
     fireEvent.click(item);
     fireEvent.click(item);
-    // Counter should return to 0
-    expect(screen.getByText(/0.*5 itens confirmados/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /iniciar simulado/i })
+    ).toBeDisabled();
   });
 
   it("CTA becomes enabled when all 5 items are checked", () => {
@@ -195,7 +198,16 @@ describe("SimuladoDetailPage — available_late mode", () => {
   it("shows 6 checklist items including ranking disclaimer", () => {
     renderPage();
     expect(screen.getByText("Entendi sobre o ranking")).toBeInTheDocument();
-    expect(screen.getByText(/6 itens confirmados/)).toBeInTheDocument();
+    [
+      "Duração da prova",
+      "Sem pausa",
+      "Conexão estável",
+      "Ambiente adequado",
+      "Prova em tela cheia",
+      "Entendi sobre o ranking",
+    ].forEach((title) => {
+      expect(screen.getByText(title)).toBeInTheDocument();
+    });
   });
 
   it("renders the available_late info banner", () => {

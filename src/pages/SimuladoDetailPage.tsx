@@ -448,34 +448,58 @@ export default function SimuladoDetailPage() {
                     })}
                   </div>
 
-                  {(!isVeteran || showFullChecklist) && (
-                    <div className="text-center">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/simulados/${id}/prova`)}
-                        disabled={!isVeteran && !allChecked}
-                        className={cn(
-                          "inline-flex items-center gap-2 px-10 py-4 rounded-xl text-body-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]",
-                          (isVeteran || allChecked)
-                            ? "bg-primary text-primary-foreground hover:bg-wine-hover shadow-sm hover:shadow-md"
-                            : "bg-muted text-muted-foreground cursor-not-allowed"
-                        )}
-                      >
-                        <Play className="h-5 w-5" />
-                        Iniciar Simulado
-                      </button>
-                      {!isVeteran && !allChecked && (
-                        <p className="text-caption text-muted-foreground mt-3">
-                          Confirme todos os itens acima para prosseguir.
-                        </p>
+                  {/* ── CTA ── */}
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/simulados/${id}/prova`)}
+                      // Veterans bypass the checklist requirement — CTA always active
+                      disabled={!isVeteran && !allChecked}
+                      className={cn(
+                        "inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        isVeteran || allChecked ? "hover:-translate-y-0.5" : "cursor-not-allowed"
                       )}
-                    </div>
-                  )}
+                      style={{
+                        padding: "17px 56px",
+                        fontSize: "16px",
+                        letterSpacing: "0.02em",
+                        background:
+                          isVeteran || allChecked
+                            ? "linear-gradient(135deg, hsl(345,65%,38%) 0%, hsl(345,65%,26%) 100%)"
+                            : "rgba(255,255,255,0.06)",
+                        color: isVeteran || allChecked ? "#fff" : "rgba(255,255,255,0.25)",
+                        border: `1.5px solid ${isVeteran || allChecked ? "transparent" : "rgba(255,255,255,0.1)"}`,
+                        boxShadow:
+                          isVeteran || allChecked
+                            ? "0 10px 40px hsl(345 65% 32% / 0.6), 0 2px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)"
+                            : "none",
+                      }}
+                    >
+                      <Play className="h-4 w-4 fill-current" />
+                      Iniciar Simulado
+                    </button>
+                    <p
+                      className="text-[11.5px] mt-3 transition-colors"
+                      style={{
+                        color:
+                          isVeteran || allChecked ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.2)",
+                      }}
+                    >
+                      {isVeteran || allChecked
+                        ? "Tudo certo — boa prova! 🎯"
+                        : "Confirme todos os itens acima para continuar"}
+                    </p>
+                  </div>
                 </>
               )}
 
-              <p className="text-caption text-muted-foreground text-center mt-6">
-                Resultado em {formatDate(simulado.resultsReleaseAt)}.
+              {/* ── Footer ── */}
+              <p
+                className="text-center mt-6 uppercase tracking-[0.05em]"
+                style={{ fontSize: "11px", color: "rgba(255,255,255,0.18)" }}
+              >
+                Resultado liberado em {formatDate(simulado.resultsReleaseAt)}
               </p>
 
               </div>
