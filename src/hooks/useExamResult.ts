@@ -4,7 +4,12 @@
  * This hook only trusts server-side persisted data.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { simuladosApi, type AttemptRow, type AnswerRow } from '@/services/simuladosApi';
+import {
+  simuladosApi,
+  type AttemptRow,
+  type AnswerRow,
+  type AttemptQuestionResultRow,
+} from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 import type { ExamState, ExamAnswer } from '@/types/exam';
@@ -38,12 +43,14 @@ export function useExamResult(simuladoId: string | undefined) {
   const [examState, setExamState] = useState<ExamState | null>(null);
   const [attempt, setAttempt] = useState<AttemptRow | null>(null);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [attemptQuestionResults, setAttemptQuestionResults] = useState<Record<string, AttemptQuestionResultRow>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!simuladoId || !user) {
+      setAttemptQuestionResults({});
       setLoading(false);
       return;
     }
@@ -54,6 +61,7 @@ export function useExamResult(simuladoId: string | undefined) {
       if (!config) {
         setAttempt(null);
         setExamState(null);
+        setAttemptQuestionResults({});
         setLoading(false);
         return;
       }
@@ -62,6 +70,7 @@ export function useExamResult(simuladoId: string | undefined) {
       if (!attempt) {
         setAttempt(null);
         setExamState(null);
+        setAttemptQuestionResults({});
         setLoading(false);
         return;
       }
@@ -69,6 +78,12 @@ export function useExamResult(simuladoId: string | undefined) {
       setAttempt(attempt);
       setAttemptId(attempt.id);
       const answerRows = await simuladosApi.getAnswers(attempt.id);
+      const questionResults = await simuladosApi.getAttemptQuestionResults(attempt.id);
+      const questionResultsMap = questionResults.reduce<Record<string, AttemptQuestionResultRow>>((acc, row) => {
+        acc[row.question_id] = row;
+        return acc;
+      }, {});
+      setAttemptQuestionResults(questionResultsMap);
 
       setExamState(answersToExamState(attempt, answerRows));
     } catch (err: unknown) {
@@ -83,5 +98,5 @@ export function useExamResult(simuladoId: string | undefined) {
     fetchData();
   }, [fetchData]);
 
-  return { examState, attempt, attemptId, loading, error, refetch: fetchData };
+  return { examState, attempt, attemptId, attemptQuestionResults, loading, error, refetch: fetchData };
 }

@@ -11,6 +11,14 @@ const ALLOWED_ORIGINS = [
 const MAX_ATTEMPTS = 20;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
+async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
   try {
@@ -74,13 +82,15 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const emailHash = await sha256Hex(email);
+  const emailRef = `${emailHash.slice(0, 8)}...`;
 
   // --- Rate limiting ---
   try {
     const { data: rl } = await supabase
       .from("sso_rate_limit")
       .select("*")
-      .eq("email", email)
+      .eq("email_hash", emailHash)
       .maybeSingle();
 
     const now = Date.now();
@@ -92,9 +102,9 @@ Deno.serve(async (req) => {
         await supabase
           .from("sso_rate_limit")
           .update({ attempts: 1, window_start: new Date().toISOString() })
-          .eq("email", email);
+          .eq("email_hash", emailHash);
       } else if (rl.attempts >= MAX_ATTEMPTS) {
-        console.warn("[sso-magic-link] Rate limit exceeded for:", email);
+        console.warn("[sso-magic-link] Rate limit exceeded for hash:", emailRef);
         return new Response(
           JSON.stringify({ error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." }),
           { status: 429, headers }
@@ -103,12 +113,12 @@ Deno.serve(async (req) => {
         await supabase
           .from("sso_rate_limit")
           .update({ attempts: rl.attempts + 1 })
-          .eq("email", email);
+          .eq("email_hash", emailHash);
       }
     } else {
       await supabase
         .from("sso_rate_limit")
-        .insert({ email, attempts: 1, window_start: new Date().toISOString() });
+        .insert({ email_hash: emailHash, attempts: 1, window_start: new Date().toISOString() });
     }
   } catch (err) {
     console.error("[sso-magic-link] Rate limit check error:", err);
@@ -127,7 +137,7 @@ Deno.serve(async (req) => {
   if (linkResult.error) {
     const msg = linkResult.error.message || "";
     if (msg.includes("not found") || msg.includes("Unable") || msg.includes("does not exist")) {
-      console.log("[sso-magic-link] User not found, creating:", email);
+      console.log("[sso-magic-link] User not found, creating account for hash:", emailRef);
       const { error: createErr } = await supabase.auth.admin.createUser({
         email,
         email_confirm: true,
@@ -214,6 +224,6 @@ Deno.serve(async (req) => {
     );
   }
 
-  console.log("[sso-magic-link] Magic link generated for:", email);
+  console.log("[sso-magic-link] Magic link generated for hash:", emailRef);
   return new Response(JSON.stringify({ url: actionLink }), { status: 200, headers });
 });

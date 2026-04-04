@@ -1,10 +1,15 @@
 # Supabase RLS (Row Level Security) — Auditoria
 
-Última revisão: 2026-03-17
+Última revisão: 2026-04-04
 
 ## Resumo
 
-Todas as tabelas públicas possuem RLS habilitado com políticas restritivas. Dados de usuário são isolados por `auth.uid()`. Dados compartilhados (simulados, questões, opções) são somente leitura para usuários autenticados.
+As policies foram reforçadas para mitigar os alertas do Lovable em abril/2026.  
+Principais mudanças:
+
+- `question_options`: usuários autenticados não têm mais permissão para ler a coluna `is_correct`.
+- `attempt_processing_queue`: INSERT agora exige ownership real do `attempt_id`.
+- `sso_rate_limit`: passou a usar `email_hash` (sem e-mail em claro), com política explícita para `service_role`.
 
 ## Políticas por tabela
 
@@ -53,10 +58,26 @@ Todas as tabelas públicas possuem RLS habilitado com políticas restritivas. Da
 |----------|----------|
 | SELECT | qualquer autenticado |
 
-### `question_options` (somente leitura)
+### `question_options` (somente leitura parcial)
 | Operação | Condição |
 |----------|----------|
-| SELECT | qualquer autenticado |
+| SELECT (linhas) | somente opções de questões de simulados publicados |
+| SELECT (colunas) | `id`, `question_id`, `label`, `text`, `created_at` para `authenticated` |
+| `is_correct` | **bloqueada para `authenticated`** (sem privilégio de coluna) |
+
+### `attempt_processing_queue`
+| Operação | Condição |
+|----------|----------|
+| SELECT | `user_id = auth.uid()` |
+| INSERT | `user_id = auth.uid()` **e** `attempt_id` pertence ao `auth.uid()` |
+| UPDATE | bloqueado para `authenticated` |
+
+### `sso_rate_limit`
+| Operação | Condição |
+|----------|----------|
+| RLS | habilitado |
+| Políticas | policy explícita apenas para `service_role` (`FOR ALL`) |
+| PII | e-mail em claro removido; apenas `email_hash` |
 
 ## RPC: `get_ranking_for_simulado`
 
@@ -67,6 +88,7 @@ Todas as tabelas públicas possuem RLS habilitado com políticas restritivas. Da
 
 ## Observações
 
-- Nenhuma tabela permite acesso anônimo (todas exigem `authenticated`).
-- A tabela `answers` valida propriedade via JOIN com `attempts`, impedindo inserção em tentativas de outros usuários.
+- Nenhuma tabela de domínio do aluno permite acesso anônimo.
+- `answers` valida ownership via JOIN com `attempts`.
 - O trigger `handle_new_user` é `SECURITY DEFINER` e apenas cria o perfil na inserção em `auth.users`.
+- **Leaked password protection** é configuração de Dashboard (Auth) e não pode ser validada apenas por migration SQL no repositório.

@@ -43,8 +43,6 @@ export interface QuestionOptionRow {
   question_id: string;
   label: string;
   text: string;
-  /** Only present when fetched with includeCorrectAnswers=true (correction/review pages). */
-  is_correct?: boolean;
 }
 
 export interface AttemptRow {
@@ -147,10 +145,9 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
       .filter(o => o.question_id === qRow.id)
       .sort((a, b) => a.label.localeCompare(b.label))
       .map(o => ({ id: o.id, label: o.label, text: o.text })),
-    // correctOptionId is only populated for correction/review pages — never during active exams
-    correctOptionId: includeCorrectAnswers
-      ? (optionRows.find(o => o.question_id === qRow.id && o.is_correct === true)?.id || '')
-      : '',
+    // The answer key is never fetched from question_options on the client.
+    // Correction pages load correct option IDs from attempt_question_results.
+    correctOptionId: '',
     explanation: qRow.explanation || undefined,
   };
 }
@@ -216,14 +213,9 @@ export const simuladosApi = {
     if (questions.length === 0) return [];
 
     const questionIds = questions.map(q => q.id);
-    // Only request is_correct for correction/review pages — never expose answers during active exams
-    const optionsSelect = includeCorrectAnswers
-      ? 'id, question_id, label, text, is_correct'
-      : 'id, question_id, label, text';
-
     const { data: optionsData, error: optionsError } = await supabase
       .from('question_options')
-      .select(optionsSelect)
+      .select('id, question_id, label, text')
       .in('question_id', questionIds);
 
     if (optionsError) {

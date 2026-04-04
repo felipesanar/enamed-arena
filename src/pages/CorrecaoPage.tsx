@@ -32,8 +32,8 @@ export default function CorrecaoPage() {
   const segment = profile?.segment ?? 'guest';
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
 
-  const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id, true);
-  const { examState, attempt, loading: loadingExam } = useExamResult(id);
+  const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
+  const { examState, attempt, attemptQuestionResults, loading: loadingExam } = useExamResult(id);
 
   const initialQuestionParam = Number(searchParams.get('q') || '1');
   const [currentIndex, setCurrentIndex] = useState(Math.max(0, initialQuestionParam - 1));
@@ -41,20 +41,29 @@ export default function CorrecaoPage() {
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
 
+  const questionsWithCorrection = useMemo(
+    () =>
+      questions.map((question) => ({
+        ...question,
+        correctOptionId: attemptQuestionResults[question.id]?.correct_option_id ?? '',
+      })),
+    [questions, attemptQuestionResults],
+  );
+
   // Sync currentIndex with search params — must be before early returns
   useEffect(() => {
     const q = Number(searchParams.get('q') || '1');
-    if (!Number.isNaN(q) && q > 0 && questions.length > 0) {
-      setCurrentIndex(Math.max(0, Math.min(questions.length - 1, q - 1)));
+    if (!Number.isNaN(q) && q > 0 && questionsWithCorrection.length > 0) {
+      setCurrentIndex(Math.max(0, Math.min(questionsWithCorrection.length - 1, q - 1)));
     }
-  }, [searchParams, questions.length]);
+  }, [searchParams, questionsWithCorrection.length]);
 
   const loading = loadingSim || loadingExam;
 
   const score = useMemo(() => {
-    if (!examState || !questions.length) return null;
-    return computeSimuladoScore(examState, questions);
-  }, [examState, questions]);
+    if (!examState || !questionsWithCorrection.length) return null;
+    return computeSimuladoScore(examState, questionsWithCorrection);
+  }, [examState, questionsWithCorrection]);
 
   useEffect(() => {
     if (!id || !simulado) return;
@@ -105,7 +114,7 @@ export default function CorrecaoPage() {
     );
   }
 
-  const question = questions[currentIndex];
+  const question = questionsWithCorrection[currentIndex];
   const result = score.questionResults[currentIndex];
   const answer = examState.answers[question?.id];
 

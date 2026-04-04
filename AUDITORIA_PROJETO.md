@@ -434,7 +434,7 @@ enamed-arena/
 
 ## 10. Lacunas de contexto
 
-- **RLS e políticas Supabase:** Não estão no repositório; não é possível afirmar se tentativas, respostas, perfis e error_notebook estão restritos por user_id. Recomenda-se revisão no dashboard Supabase.
+- **RLS e políticas Supabase:** Estão versionadas em `supabase/migrations` e atualizadas em `docs/SUPABASE_RLS.md`; ainda é recomendado validar periodicamente o estado efetivo no Dashboard (Auth/RLS) para garantir aderência com produção.
 - **Função get_ranking_for_simulado:** Comportamento exato (filtros, ordenação, limites) e permissões são definidos no banco; não visíveis no código cliente.
 - **Segmento do usuário (guest/standard/pro):** Como é definido (manual no DB? integração com outro sistema SanarFlix?). Código só lê `profiles.segment`; não há fluxo de “upgrade” no app.
 - **Janelas de execução e results_release_at:** Regras de negócio (quem define datas, timezone) não estão documentadas no código; apenas usadas em deriveSimuladoStatus.
