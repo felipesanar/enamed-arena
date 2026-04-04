@@ -196,30 +196,118 @@ export default function SimuladoDetailPage() {
               </Link>
             </PremiumCard>
           ) : (
-            <PremiumCard variant="hero">
-              <div className="text-center mb-6">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Play className="h-7 w-7 text-primary" />
+            <div
+              data-testid="arena-card"
+              className="relative overflow-hidden rounded-[22px] px-10 pt-14 pb-12 md:px-16"
+              style={{
+                background: [
+                  "radial-gradient(ellipse 400px 320px at 96% 12%, rgba(140,32,64,0.22) 0%, transparent 68%)",
+                  "radial-gradient(ellipse 300px 300px at 4% 88%, rgba(100,18,44,0.14) 0%, transparent 65%)",
+                  "linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%)",
+                ].join(", "),
+                border: "1px solid rgba(255,255,255,0.06)",
+                boxShadow:
+                  "0 0 100px -24px rgba(140,32,64,0.4), 0 32px 80px -16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)",
+              }}
+            >
+              {/* grain texture */}
+              <div
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  opacity: 0.35,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
+                }}
+              />
+              <div className="relative z-10">
+
+              {/* ── Top section ── */}
+              <div className="text-center mb-9">
+                {/* Eyebrow */}
+                <div
+                  className="inline-flex items-center gap-1.5 mb-3.5"
+                  style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.28)" }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full animate-blink" style={{ background: "hsl(345,65%,62%)" }} />
+                  Simulado #{simulado.sequenceNumber} · ENAMED 2026
                 </div>
-                <h2 className="text-heading-2 text-foreground mb-2">
-                  {isVeteran ? "Tudo pronto?" : "Pronto para começar?"}
+
+                {/* Headline */}
+                <h2
+                  className="font-extrabold text-white text-center mb-3.5"
+                  style={{ fontSize: "52px", letterSpacing: "-0.045em", lineHeight: "0.95" }}
+                >
+                  {isVeteran ? "Tudo" : "Pronto para"}
+                  <br />
+                  <em className="not-italic" style={{ color: "hsl(345,62%,65%)" }}>
+                    {isVeteran ? "pronto?" : "começar?"}
+                  </em>
                 </h2>
+
+                {/* Description — only for non-veterans */}
+                {!isVeteran && (
+                  <p
+                    className="text-[15px] leading-relaxed max-w-[480px] mx-auto mb-6"
+                    style={{ color: "rgba(255,255,255,0.38)" }}
+                  >
+                    Confirme os itens abaixo antes de entrar. A prova não pode ser pausada.
+                  </p>
+                )}
+
+                {/* available_late info banner */}
                 {simulado.status === "available_late" && (
-                  <div className="inline-flex items-start gap-2 px-4 py-3 rounded-xl bg-primary/[0.06] border border-primary/15 text-left text-body-sm text-foreground max-w-lg mx-auto mb-4">
-                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
-                    <span>
+                  <div
+                    className="inline-flex items-start gap-3 px-4 py-3 rounded-xl mb-5 max-w-lg text-left"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  >
+                    <Sparkles
+                      className="h-4 w-4 shrink-0 mt-0.5"
+                      style={{ color: "hsl(345,65%,65%)" }}
+                      aria-hidden
+                    />
+                    <span className="text-[13px] leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
                       Você faz agora o mesmo simulado completo da preparação nacional.{" "}
-                      <strong className="text-foreground">Sua nota não entra no ranking nacional</strong>{" "}
+                      <strong style={{ color: "rgba(255,255,255,0.8)" }}>
+                        Sua nota não entra no ranking nacional
+                      </strong>{" "}
                       porque a janela oficial encerrou — resultado e gabarito seguem valendo para o seu estudo.
                     </span>
                   </div>
                 )}
-                {!isVeteran && (
-                  <p className="text-body text-muted-foreground max-w-lg mx-auto">
-                    Confirme os itens abaixo antes de iniciar. A prova não pode ser pausada.
-                  </p>
-                )}
+
+                {/* Meta chips */}
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  {[
+                    { icon: Clock, label: simulado.estimatedDuration },
+                    { icon: FileText, label: `${simulado.questionsCount} questões` },
+                    ...(simulado.status !== "available_late"
+                      ? [{ icon: Trophy, label: "Conta no ranking nacional" }]
+                      : []),
+                  ].map(({ icon: Icon, label }) => (
+                    <div
+                      key={label}
+                      className="inline-flex items-center gap-1.5 rounded-[9px] px-3 py-1.5 text-[12px] font-semibold"
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        color: "rgba(255,255,255,0.62)",
+                      }}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Divider */}
+              <div
+                className="w-full h-px mb-7"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent)",
+                }}
+              />
 
               {/* Veteran: banner resumido */}
               {isVeteran && (
@@ -330,7 +418,9 @@ export default function SimuladoDetailPage() {
               <p className="text-caption text-muted-foreground text-center mt-6">
                 Resultado em {formatDate(simulado.resultsReleaseAt)}.
               </p>
-            </PremiumCard>
+
+              </div>
+            </div>
           )}
         </motion.div>
       )}
