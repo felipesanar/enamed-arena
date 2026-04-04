@@ -278,9 +278,9 @@ export default function AnswerSheetPage() {
             <Button
               className="flex-1 gap-2"
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || !allAnswered}
             >
-              {submitting ? 'Enviando…' : 'Confirmar envio'}
+              {submitting ? 'Enviando…' : !allAnswered ? `Faltam ${gridQuestions.length - answeredCount} questões` : 'Confirmar envio'}
             </Button>
           </div>
         </DialogContent>
