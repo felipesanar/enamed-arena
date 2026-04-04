@@ -17,10 +17,10 @@ import { NextSimuladoBanner } from "./NextSimuladoBanner";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const STAGGER_CHILDREN = 0.07;
-const STAGGER_DELAY = 0.03;
-const DURATION = 0.5;
-const EASE = [0.25, 0.46, 0.45, 0.94] as const;
+const STAGGER_CHILDREN = 0.055;
+const STAGGER_DELAY = 0.02;
+const DURATION = 0.38;
+const EASE = [0.22, 0.9, 0.35, 1.0] as const;
 
 const HOME_STAGGER_KEY = "ea_home_stagger_done";
 
