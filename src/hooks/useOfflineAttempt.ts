@@ -6,7 +6,7 @@
  * - Computes countdown based on effective_deadline (server-set)
  * - Exposes helpers for AnswerSheetPage and FloatingOfflineTimer
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { offlineApi, type ActiveOfflineAttempt } from '@/services/offlineApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -136,18 +136,27 @@ export function useOfflineAttempt() {
   const activeAttempt: ActiveOfflineAttempt | null =
     dbAttempt ?? (localAttempt as ActiveOfflineAttempt | null);
 
-  // Countdown timer
-  const [remaining, setRemaining] = useState<number>(() =>
-    calcRemaining(activeAttempt?.effective_deadline),
+  // Calculate remaining SYNCHRONOUSLY via useMemo to avoid race condition
+  // where remaining=0 on first render before useEffect kicks in
+  const currentRemaining = useMemo(
+    () => (activeAttempt ? calcRemaining(activeAttempt.effective_deadline) : 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeAttempt?.effective_deadline],
   );
+
+  // Countdown timer — ticks every second, initialized from currentRemaining
+  const [remaining, setRemaining] = useState<number>(currentRemaining);
+
+  // Keep remaining in sync when activeAttempt changes (synchronous update)
+  useEffect(() => {
+    setRemaining(currentRemaining);
+  }, [currentRemaining]);
 
   useEffect(() => {
     if (!activeAttempt?.effective_deadline) {
-      setRemaining(0);
       return;
     }
     const tick = () => setRemaining(calcRemaining(activeAttempt.effective_deadline));
-    tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [activeAttempt?.effective_deadline]);
@@ -163,10 +172,15 @@ export function useOfflineAttempt() {
     queryClient.setQueryData([QUERY_KEY, user?.id], null);
   }, [queryClient, user?.id]);
 
+  // Guard: don't report expired if attempt was just created (< 30s ago)
+  const isRecentlyCreated = activeAttempt
+    ? (Date.now() - new Date(activeAttempt.started_at).getTime()) < 30_000
+    : false;
+
   return {
     activeAttempt,
     remaining,
-    isExpired: !!activeAttempt && remaining === 0,
+    isExpired: !!activeAttempt && remaining === 0 && !isRecentlyCreated,
     invalidate,
     clearAttempt,
   };
