@@ -624,7 +624,7 @@ serve(async (req) => {
     // ── Fetch questions + options ─────────────────────────────────────────────
     const { data: questionRows, error: qErr } = await supabase
       .from("questions")
-      .select("id, question_number, text")
+      .select("id, question_number, text, image_url")
       .eq("simulado_id", simulado_id)
       .order("question_number", { ascending: true })
       .limit(300);
