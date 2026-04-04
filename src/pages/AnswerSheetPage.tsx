@@ -241,7 +241,7 @@ export default function AnswerSheetPage() {
           <Button
             size="lg"
             onClick={() => setShowConfirm(true)}
-            disabled={submitting || answeredCount === 0}
+            disabled={submitting || !allAnswered}
             className="shadow-lg gap-2 px-8"
           >
             <Send className="h-4 w-4" />
