@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useExamFlow } from '@/hooks/useExamFlow';
 import { ExamHeader } from '@/components/exam/ExamHeader';
@@ -27,6 +27,66 @@ function useFullscreen() {
   }, []);
 
   return { enterFullscreen, exitFullscreen };
+}
+
+function MobileQuestionNav({
+  questionIds,
+  currentIndex,
+  answers,
+  onNavigate,
+}: {
+  questionIds: string[];
+  currentIndex: number;
+  answers: Record<string, import('@/types/exam').ExamAnswer>;
+  onNavigate: (index: number) => void;
+}) {
+  const currentRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    currentRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  }, [currentIndex]);
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border px-3 py-2">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-safe">
+        {questionIds.map((qId, i) => {
+          const a = answers[qId];
+          const isAnswered = !!a?.selectedOption;
+          const isReview = !!a?.markedForReview;
+          const isHighConf = !!a?.highConfidence;
+          const isCurrent = i === currentIndex;
+
+          return (
+            <button
+              key={qId}
+              ref={isCurrent ? currentRef : undefined}
+              onClick={() => onNavigate(i)}
+              className={cn(
+                'flex-shrink-0 h-7 w-7 rounded-md text-[10px] font-bold transition-all duration-150',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                isCurrent && 'ring-2 ring-primary ring-offset-1 scale-110',
+                isAnswered && !isReview
+                  ? 'bg-accent text-accent-foreground'
+                  : isReview
+                    ? 'bg-info/20 text-info'
+                    : isHighConf
+                      ? 'bg-success/20 text-success'
+                      : 'bg-muted/70 text-muted-foreground',
+              )}
+              aria-label={`Ir para questão ${i + 1}`}
+              aria-current={isCurrent ? 'step' : undefined}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function SimuladoExamPage() {
@@ -142,7 +202,7 @@ export default function SimuladoExamPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-14 md:pb-0">
           <div className="max-w-3xl mx-auto">
             <QuestionDisplay
               question={flow.currentQuestion}
@@ -294,6 +354,16 @@ export default function SimuladoExamPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mini-nav mobile — fixed bottom bar, horizontal scroll */}
+      {flow.state && (
+        <MobileQuestionNav
+          questionIds={flow.questionIds}
+          currentIndex={flow.currentIndex}
+          answers={flow.state.answers}
+          onNavigate={flow.handleNavigate}
+        />
+      )}
 
       <SubmitConfirmModal
         open={flow.showSubmitModal}
