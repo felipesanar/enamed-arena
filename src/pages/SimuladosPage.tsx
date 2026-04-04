@@ -222,6 +222,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
         exam_duration_seconds: attempt.exam_duration_seconds,
       });
 
+      setOfflineStep('Preparando download...');
       // 3. Request PDF generation + trigger download
       const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
       const a = document.createElement("a");
