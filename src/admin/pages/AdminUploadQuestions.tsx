@@ -134,6 +134,8 @@ export default function AdminUploadQuestions() {
         }
       });
 
+      setUploadProgress({ step: 'Enviando questões e imagens...', percent: 25 });
+
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/admin-upload-questions`, {
         method: 'POST',
