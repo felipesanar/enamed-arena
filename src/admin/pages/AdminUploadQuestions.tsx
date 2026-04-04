@@ -146,9 +146,12 @@ export default function AdminUploadQuestions() {
         body: JSON.stringify({ simulado_id: simuladoId, questions: normalized, images }),
       });
 
+      setUploadProgress({ step: 'Processando no servidor...', percent: 70 });
+
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro no upload');
 
+      setUploadProgress({ step: 'Finalizado!', percent: 100 });
       toast({ title: `${result.inserted} questões inseridas com sucesso!` });
       setParsedRows([]);
       setFileName('');
