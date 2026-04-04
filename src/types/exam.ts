@@ -32,6 +32,7 @@ export interface ExamSummary {
   unanswered: number;
   markedForReview: number;
   highConfidence: number;
+  unansweredIndices: number[]; // 0-based indices of unanswered questions
 }
 
 export function computeExamSummary(
@@ -39,11 +40,16 @@ export function computeExamSummary(
   questionIds: string[]
 ): ExamSummary {
   const answered = questionIds.filter(id => !!state.answers[id]?.selectedOption).length;
+  const unansweredIndices = questionIds
+    .map((id, i) => ({ id, i }))
+    .filter(({ id }) => !state.answers[id]?.selectedOption)
+    .map(({ i }) => i);
   return {
     total: questionIds.length,
     answered,
     unanswered: questionIds.length - answered,
     markedForReview: questionIds.filter(id => state.answers[id]?.markedForReview).length,
     highConfidence: questionIds.filter(id => state.answers[id]?.highConfidence).length,
+    unansweredIndices,
   };
 }

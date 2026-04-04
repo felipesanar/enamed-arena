@@ -297,6 +297,10 @@ export default function SimuladoExamPage() {
         submitting={flow.submitting}
         onConfirm={flow.finalize}
         onCancel={() => flow.setShowSubmitModal(false)}
+        onNavigateToQuestion={(index) => {
+          flow.setShowSubmitModal(false);
+          flow.handleNavigate(index);
+        }}
       />
     </div>
   );

@@ -15,6 +15,7 @@ interface SubmitConfirmModalProps {
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  onNavigateToQuestion: (index: number) => void;
 }
 
 export function SubmitConfirmModal({
@@ -23,6 +24,7 @@ export function SubmitConfirmModal({
   submitting,
   onConfirm,
   onCancel,
+  onNavigateToQuestion,
 }: SubmitConfirmModalProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
@@ -79,9 +81,31 @@ export function SubmitConfirmModal({
         {summary.unanswered > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-warning/10 mb-6">
             <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" aria-hidden />
-            <p className="text-body-sm text-warning">
-              Você tem {summary.unanswered} {summary.unanswered === 1 ? 'questão' : 'questões'} sem resposta.
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="text-body-sm text-warning mb-2">
+                Você tem {summary.unanswered} {summary.unanswered === 1 ? 'questão' : 'questões'} sem resposta.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {summary.unansweredIndices.slice(0, 12).map(i => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      onCancel();
+                      onNavigateToQuestion(i);
+                    }}
+                    className="h-7 w-7 rounded-md text-[11px] font-bold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors"
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                {summary.unansweredIndices.length > 12 && (
+                  <span className="text-body-sm text-muted-foreground self-center">
+                    +{summary.unansweredIndices.length - 12} mais
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
