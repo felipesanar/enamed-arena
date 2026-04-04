@@ -363,20 +363,10 @@ export default function SimuladoExamPage() {
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={flow.currentQuestion.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.15 }}
-                      drag="x"
-                      dragConstraints={{ left: 0, right: 0 }}
-                      dragElastic={0.15}
-                      onDragEnd={(_, info) => {
-                        if (info.offset.x < -80 && flow.currentIndex < flow.questions.length - 1) {
-                          flow.handleNext();
-                        } else if (info.offset.x > 80 && flow.currentIndex > 0) {
-                          flow.handlePrev();
-                        }
-                      }}
                     >
                       <QuestionDisplay
                         question={flow.currentQuestion}
