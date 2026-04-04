@@ -185,6 +185,7 @@ export default function SimuladoExamPage() {
         totalQuestions={flow.questions.length}
         timeRemaining={flow.timeRemaining}
         onFinalize={() => flow.setShowSubmitModal(true)}
+        saving={false}
       />
 
       <div className="px-4 md:px-6 py-2 bg-muted/30 border-b border-border">

@@ -9,10 +9,11 @@ interface ExamHeaderProps {
   totalQuestions: number;
   timeRemaining: number;
   onFinalize: () => void;
+  saving?: boolean;
 }
 
 export function ExamHeader({
-  title, currentQuestion, totalQuestions, timeRemaining, onFinalize,
+  title, currentQuestion, totalQuestions, timeRemaining, onFinalize, saving = false,
 }: ExamHeaderProps) {
   const progress = (currentQuestion / totalQuestions) * 100;
 
@@ -65,8 +66,12 @@ export function ExamHeader({
           </TooltipProvider>
 
           {/* Auto-save indicator */}
-          <div className="hidden sm:flex items-center gap-1 text-caption text-muted-foreground">
-            <Save className="h-3 w-3" />
+          <div className={cn(
+            'hidden sm:flex items-center gap-1 text-caption transition-colors',
+            saving ? 'text-primary' : 'text-muted-foreground/50',
+          )}>
+            <Save className={cn('h-3 w-3', saving && 'animate-pulse')} />
+            <span className="text-[10px]">{saving ? 'Salvando...' : 'Salvo'}</span>
           </div>
 
           {/* Timer — aria-live="off" during normal countdown; screen readers pick up urgent alerts separately */}
