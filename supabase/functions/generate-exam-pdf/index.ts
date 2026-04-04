@@ -135,6 +135,25 @@ async function generatePdf(
   questions: Question[],
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
+
+  // Embed images for questions that have image_url
+  const embeddedImages = new Map<number, Awaited<ReturnType<typeof pdfDoc.embedPng>>>();
+  for (const q of questions) {
+    if (!q.imageUrl) continue;
+    try {
+      const imgResp = await fetch(q.imageUrl);
+      if (!imgResp.ok) continue;
+      const imgBytes = new Uint8Array(await imgResp.arrayBuffer());
+      const mime = imgResp.headers.get("content-type") || "";
+      const embedded = mime.includes("jpeg") || mime.includes("jpg")
+        ? await pdfDoc.embedJpg(imgBytes)
+        : await pdfDoc.embedPng(imgBytes);
+      embeddedImages.set(q.number, embedded);
+    } catch (e) {
+      console.error(`[generate-exam-pdf] Failed to embed image for Q${q.number}:`, e);
+    }
+  }
+
   const fontRegular  = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold     = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontOblique  = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
