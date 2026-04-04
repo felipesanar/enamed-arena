@@ -68,7 +68,7 @@ export function ExamHeader({
           {/* Auto-save indicator */}
           <div className={cn(
             'hidden sm:flex items-center gap-1 text-caption transition-colors',
-            saving ? 'text-primary' : 'text-muted-foreground/50',
+            saving ? 'text-primary' : 'text-muted-foreground',
           )}>
             <Save className={cn('h-3 w-3', saving && 'animate-pulse')} />
             <span className="text-[10px]">{saving ? 'Salvando...' : 'Salvo'}</span>
