@@ -309,42 +309,73 @@ export default function SimuladoDetailPage() {
                 }}
               />
 
-              {/* Veteran: banner resumido */}
+              {/* ── Veteran compact row ── */}
               {isVeteran && (
-                <div className="max-w-2xl mx-auto mb-6">
-                  <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-3 rounded-xl bg-muted/50 border border-border text-body-sm text-foreground mb-4">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                <div className="text-center mb-7">
+                  {/* Compact info pills */}
+                  <div
+                    className="inline-flex flex-wrap items-center justify-center gap-3 px-5 py-3 rounded-xl mb-5"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                    }}
+                  >
+                    <span
+                      className="flex items-center gap-1.5 text-[12px] font-semibold"
+                      style={{ color: "rgba(255,255,255,0.55)" }}
+                    >
+                      <Clock className="h-3.5 w-3.5" />
                       {simulado.questionsCount} questões · {simulado.estimatedDuration}
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <Zap className="h-4 w-4 text-muted-foreground" />
+                    <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
+                    <span
+                      className="flex items-center gap-1.5 text-[12px] font-semibold"
+                      style={{ color: "rgba(255,255,255,0.55)" }}
+                    >
+                      <Zap className="h-3.5 w-3.5" />
                       Sem pausa
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                    <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
+                    <span
+                      className="flex items-center gap-1.5 text-[12px] font-semibold"
+                      style={{ color: "rgba(255,255,255,0.55)" }}
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
                       Tela cheia
                     </span>
                   </div>
-                  <div className="text-center mb-2">
+
+                  {/* Veteran CTA — immediately active */}
+                  <div>
                     <button
                       type="button"
                       onClick={() => navigate(`/simulados/${id}/prova`)}
-                      className="inline-flex items-center gap-2 px-10 py-4 rounded-xl text-body-lg font-semibold transition-all duration-200 bg-primary text-primary-foreground hover:bg-wine-hover shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
+                      className="inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      style={{
+                        padding: "17px 56px",
+                        fontSize: "16px",
+                        letterSpacing: "0.02em",
+                        background: "linear-gradient(135deg, hsl(345,65%,38%) 0%, hsl(345,65%,26%) 100%)",
+                        color: "#fff",
+                        border: "1.5px solid transparent",
+                        boxShadow:
+                          "0 10px 40px hsl(345 65% 32% / 0.6), 0 2px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+                      }}
                     >
-                      <Play className="h-5 w-5" />
+                      <Play className="h-4 w-4 fill-current" />
                       Iniciar Simulado
                     </button>
                   </div>
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowFullChecklist(v => !v)}
-                      className="text-caption text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                    >
-                      {showFullChecklist ? "ocultar detalhes ↑" : "ver detalhes ↓"}
-                    </button>
-                  </div>
+
+                  {/* Toggle to show/hide full checklist */}
+                  <button
+                    type="button"
+                    onClick={() => setShowFullChecklist((v) => !v)}
+                    className="text-[11px] mt-3 underline underline-offset-2 transition-colors"
+                    style={{ color: "rgba(255,255,255,0.25)" }}
+                  >
+                    {showFullChecklist ? "ocultar detalhes ↑" : "ver detalhes ↓"}
+                  </button>
                 </div>
               )}
 
