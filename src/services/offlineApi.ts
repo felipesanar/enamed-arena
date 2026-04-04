@@ -112,7 +112,9 @@ export const offlineApi = {
 
     if (error) {
       logger.error('[OfflineApi] Error fetching active offline attempt:', error);
-      throw error;
+      // Return null instead of throwing to maintain offline resilience
+      // React Query will still retry, but we won't break the UI
+      return null;
     }
 
     if (!data) return null;
