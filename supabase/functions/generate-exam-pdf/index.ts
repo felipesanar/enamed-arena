@@ -307,9 +307,9 @@ function renderColumn(
   x: number,
   topY: number,
   colW: number,
-  fontBold: typeof StandardFonts.HelveticaBold,
-  fontRegular: typeof StandardFonts.Helvetica,
-  fontOblique: typeof StandardFonts.HelveticaOblique,
+  fontBold: PDFFont,
+  fontRegular: PDFFont,
+  _fontOblique: PDFFont,
 ): void {
   let y = topY;
   const maxTextW = colW - 8;
