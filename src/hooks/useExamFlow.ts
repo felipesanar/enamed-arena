@@ -119,6 +119,13 @@ export function useExamFlow(): UseExamFlowReturn {
         if (cancelled) return;
         const existing = result.state;
 
+        // Reject offline_pending or any non-online state
+        if (existing && (existing.status as string) === 'offline_pending') {
+          logger.log('[useExamFlow] Loaded offline_pending state, redirecting');
+          navigate(`/simulados/${id}`, { replace: true });
+          return;
+        }
+
         if (existing && existing.status === 'in_progress') {
           // Guard: if deadline already passed, finalize instead of resuming with 0 timer
           if (existing.effectiveDeadline && new Date(existing.effectiveDeadline) <= new Date()) {
@@ -136,12 +143,18 @@ export function useExamFlow(): UseExamFlowReturn {
             navigate(`/simulados/${id}`, { replace: true });
             return;
           }
-          const fresh = await storage.initializeState(
-            questions.length,
-            simulado.estimatedDurationMinutes,
-            simulado.executionWindowEnd,
-          );
-          if (!cancelled) setState(fresh);
+          try {
+            const fresh = await storage.initializeState(
+              questions.length,
+              simulado.estimatedDurationMinutes,
+              simulado.executionWindowEnd,
+            );
+            if (!cancelled) setState(fresh);
+          } catch (initErr) {
+            logger.error('[useExamFlow] Failed to initialize exam:', initErr);
+            navigate(`/simulados/${id}`, { replace: true });
+            return;
+          }
         } else {
           if (!cancelled) setState(existing);
         }
@@ -149,8 +162,8 @@ export function useExamFlow(): UseExamFlowReturn {
         const notifEnabled = await storage.getResultNotificationPreference();
         if (!cancelled) setNotifyResultByEmailState(notifEnabled);
       } catch (err) {
-        const local = storage.loadLocalState();
-        if (!cancelled && local) setState(local);
+        logger.error('[useExamFlow] Init failed:', err);
+        navigate(`/simulados/${id}`, { replace: true });
       } finally {
         if (!cancelled) setInitLoading(false);
       }
