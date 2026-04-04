@@ -936,7 +936,11 @@ export type Database = {
         | "processing"
         | "completed"
         | "failed"
-      attempt_status: "in_progress" | "submitted" | "expired"
+      attempt_status:
+        | "in_progress"
+        | "submitted"
+        | "expired"
+        | "offline_pending"
       error_reason:
         | "did_not_know"
         | "did_not_remember"
@@ -1079,7 +1083,12 @@ export const Constants = {
         "completed",
         "failed",
       ],
-      attempt_status: ["in_progress", "submitted", "expired"],
+      attempt_status: [
+        "in_progress",
+        "submitted",
+        "expired",
+        "offline_pending",
+      ],
       error_reason: [
         "did_not_know",
         "did_not_remember",
