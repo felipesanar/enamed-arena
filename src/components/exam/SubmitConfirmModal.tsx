@@ -1,4 +1,4 @@
-import { CheckCircle2, Flag, Zap, AlertTriangle, Check } from 'lucide-react';
+import { CheckCircle2, Flag, Zap, AlertTriangle, Check, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
