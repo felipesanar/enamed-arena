@@ -225,10 +225,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
       setOfflineStep('Preparando download...');
       // 3. Request PDF generation + trigger download
       const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
-      const a = document.createElement("a");
-      a.href = pdfUrl;
-      a.download = `${sim.slug ?? sim.id}.pdf`;
-      a.click();
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
 
       setShowModeModal(false);
       toast({ title: "Download iniciado!", description: "O timer offline está ativo na tela." });
