@@ -21,6 +21,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
   FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles,
 } from 'lucide-react';
+import { QuestionImage } from '@/components/exam/QuestionImage';
 
 export default function CorrecaoPage() {
   const { id } = useParams<{ id: string }>();
