@@ -151,7 +151,7 @@ export default function SimuladosPage() {
           transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
           className="mb-8"
         >
-          <HeroCard sim={heroSimulado} />
+          <HeroCard sim={heroSimulado} hasActiveAttempt={!!activeAttempt || !!heroSimulado.userState?.started && !heroSimulado.userState?.finished} />
         </motion.div>
       ) : (
         simulados.length === 0 && (
@@ -186,9 +186,9 @@ function formatDeadlineTicker(windowEnd: string): string {
   return `Janela fecha em breve`;
 }
 
-function HeroCard({ sim }: { sim: SimuladoWithStatus }) {
+function HeroCard({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
   if (sim.status === "available" || sim.status === "in_progress") {
-    return <HeroCardActive sim={sim} />;
+    return <HeroCardActive sim={sim} hasActiveAttempt={hasActiveAttempt} />;
   }
   if (sim.status === "upcoming") {
     return <HeroCardUpcoming sim={sim} />;
@@ -196,11 +196,12 @@ function HeroCard({ sim }: { sim: SimuladoWithStatus }) {
   return null;
 }
 
-function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
+function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
   const navigate = useNavigate();
   const isInProgress = sim.status === "in_progress";
   const alreadyStarted = sim.userState?.started && !sim.userState.finished;
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
+  const isBlocked = hasActiveAttempt && !alreadyStarted;
   const [showModeModal, setShowModeModal] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [offlineStep, setOfflineStep] = useState('');
@@ -338,7 +339,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-wrap gap-2">
+         <div className="flex flex-wrap gap-2">
           {alreadyStarted ? (
             <Link
               to={`/simulados/${sim.slug}/prova`}
@@ -351,12 +352,13 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
           ) : (
             <button
               type="button"
+              disabled={isBlocked}
               onClick={() => setShowModeModal(true)}
-              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: "#e83862", color: "#fff" }}
             >
-              <Play className="w-4 h-4" />
-              {ctaLabel}
+              {isBlocked ? <Lock className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {isBlocked ? "Prova em andamento" : ctaLabel}
             </button>
           )}
           <button
