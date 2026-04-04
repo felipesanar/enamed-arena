@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { adminApi } from '../services/adminApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -74,6 +75,7 @@ export default function AdminUploadQuestions() {
   const [enunciadoImages, setEnunciadoImages] = useState<Map<number, ExtractedImage>>(new Map());
   const [comentarioImages, setComentarioImages] = useState<Map<number, ExtractedImage>>(new Map());
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ step: string; percent: number } | null>(null);
   const [fileName, setFileName] = useState('');
 
   useEffect(() => {
@@ -108,6 +110,7 @@ export default function AdminUploadQuestions() {
   const handleUpload = async () => {
     if (!simuladoId || parsedRows.length === 0) return;
     setUploading(true);
+    setUploadProgress({ step: 'Preparando imagens...', percent: 5 });
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -132,6 +135,8 @@ export default function AdminUploadQuestions() {
         }
       });
 
+      setUploadProgress({ step: 'Enviando questões e imagens...', percent: 25 });
+
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/admin-upload-questions`, {
         method: 'POST',
@@ -142,9 +147,12 @@ export default function AdminUploadQuestions() {
         body: JSON.stringify({ simulado_id: simuladoId, questions: normalized, images }),
       });
 
+      setUploadProgress({ step: 'Processando no servidor...', percent: 70 });
+
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro no upload');
 
+      setUploadProgress({ step: 'Finalizado!', percent: 100 });
       toast({ title: `${result.inserted} questões inseridas com sucesso!` });
       setParsedRows([]);
       setFileName('');
@@ -155,6 +163,7 @@ export default function AdminUploadQuestions() {
       toast({ title: 'Erro no upload', description: err.message, variant: 'destructive' });
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
@@ -235,6 +244,17 @@ export default function AdminUploadQuestions() {
               </div>
             )}
           </div>
+
+          {uploadProgress && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2">
+                {uploadProgress.percent < 100 && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+                {uploadProgress.percent === 100 && <CheckCircle className="h-3.5 w-3.5 text-success" />}
+                <span className="text-sm text-muted-foreground">{uploadProgress.step}</span>
+              </div>
+              <Progress value={uploadProgress.percent} className="h-2" />
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle } from "lucide-react";
+import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -202,12 +203,15 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
   const [showModeModal, setShowModeModal] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
+  const [offlineStep, setOfflineStep] = useState('');
 
   const handleOfflineMode = useCallback(async () => {
     setOfflineLoading(true);
+    setOfflineStep('Criando tentativa offline...');
     try {
       // 1. Create offline attempt (server-side clock)
       const attempt = await offlineApi.createOfflineAttempt(sim.id);
+      setOfflineStep('Gerando PDF da prova...');
 
       // 2. Persist to localStorage so FloatingOfflineTimer picks it up
       persistOfflineAttempt({
@@ -218,6 +222,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
         exam_duration_seconds: attempt.exam_duration_seconds,
       });
 
+      setOfflineStep('Preparando download...');
       // 3. Request PDF generation + trigger download
       const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
       const a = document.createElement("a");
@@ -235,6 +240,7 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
       });
     } finally {
       setOfflineLoading(false);
+      setOfflineStep('');
     }
   }, [sim]);
 
@@ -397,12 +403,22 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
               className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <FileText className="h-7 w-7 text-primary" />
+                {offlineLoading
+                  ? <Loader2 className="h-7 w-7 text-primary animate-spin" />
+                  : <FileText className="h-7 w-7 text-primary" />
+                }
               </div>
               <p className="text-body font-semibold text-foreground">Experiência offline</p>
-              <p className="text-body-sm text-muted-foreground">
-                {offlineLoading ? "Gerando PDF…" : "Gere o PDF e suba o gabarito após finalizar"}
-              </p>
+              {offlineLoading ? (
+                <div className="w-full space-y-2">
+                  <p className="text-body-sm text-primary font-medium">{offlineStep}</p>
+                  <Progress value={undefined} className="h-1.5 [&>div]:animate-pulse" />
+                </div>
+              ) : (
+                <p className="text-body-sm text-muted-foreground">
+                  Gere o PDF e suba o gabarito após finalizar
+                </p>
+              )}
             </button>
           </div>
 

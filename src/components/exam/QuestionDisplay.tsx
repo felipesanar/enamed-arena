@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/types';
 import type { ExamAnswer } from '@/types/exam';
-import { Trash2, Undo2, ZoomIn, X } from 'lucide-react';
+import { Trash2, Undo2 } from 'lucide-react';
+import { QuestionImage } from './QuestionImage';
 
 interface QuestionDisplayProps {
   question: Question;
@@ -15,7 +14,6 @@ interface QuestionDisplayProps {
 export function QuestionDisplay({ question, answer, onSelectOption, onEliminateOption }: QuestionDisplayProps) {
   const selectedId = answer?.selectedOption ?? null;
   const eliminated = answer?.eliminatedAlternatives ?? [];
-  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <div>
@@ -36,7 +34,7 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
       </div>
 
       {/* Question number + statement */}
-      <div className="mb-6">
+      <div className="mb-5">
         <p className="text-body font-bold text-primary tracking-tight mb-2">
           Questão {question.number}
         </p>
@@ -45,62 +43,18 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
         </p>
       </div>
 
-      {/* Question image with lightbox */}
+      {/* Question image */}
       {question.imageUrl && (
         <div className="mb-6">
-          <button
-            type="button"
-            onClick={() => setLightboxOpen(true)}
-            className="relative group cursor-zoom-in rounded-xl overflow-hidden border border-[hsl(var(--exam-border))] bg-[hsl(var(--exam-surface))] inline-block"
-          >
-            <img
-              src={question.imageUrl}
-              alt={`Imagem da questão ${question.number}`}
-              className="max-w-full max-h-80 object-contain"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center">
-              <ZoomIn className="h-6 w-6 text-foreground/0 group-hover:text-foreground/70 transition-colors" />
-            </div>
-          </button>
+          <QuestionImage
+            src={question.imageUrl}
+            alt={`Imagem da questão ${question.number}`}
+          />
         </div>
       )}
 
-      {/* Lightbox overlay */}
-      <AnimatePresence>
-        {lightboxOpen && question.imageUrl && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] bg-foreground/80 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => setLightboxOpen(false)}
-          >
-            <button
-              type="button"
-              onClick={() => setLightboxOpen(false)}
-              className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-muted transition-colors z-10"
-              aria-label="Fechar imagem"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <motion.img
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              src={question.imageUrl}
-              alt={`Imagem da questão ${question.number}`}
-              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Options — inspired by Academy's AlternativaProva, elevated visually */}
-      <div id="exam-options" className="space-y-3" role="radiogroup" aria-label={`Alternativas da questão ${question.number}`}>
+      {/* Options — uniform border-2 to prevent layout shift */}
+      <div id="exam-options" className="space-y-2.5" role="radiogroup" aria-label={`Alternativas da questão ${question.number}`}>
         {question.options.map((opt) => {
           const isSelected = selectedId === opt.id;
           const isEliminated = eliminated.includes(opt.id);
@@ -112,18 +66,18 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                 aria-checked={isSelected}
                 onClick={() => {
                   if (isEliminated) {
-                    onEliminateOption(opt.id); // restore first
+                    onEliminateOption(opt.id);
                   }
                   onSelectOption(opt.id);
                 }}
                 className={cn(
-                  'w-full text-left p-4 pr-14 sm:pr-24 rounded-xl transition-all duration-150',
+                  'w-full text-left p-4 pr-14 sm:pr-24 rounded-xl border-2 transition-all duration-150',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                   isSelected
-                    ? 'border-2 border-info bg-info/10 shadow-[var(--exam-shadow-selected)]'
+                    ? 'border-info bg-info/10 shadow-[var(--exam-shadow-selected)]'
                     : isEliminated
-                      ? 'border border-transparent bg-muted/15 opacity-35'
-                      : 'border border-transparent bg-[hsl(var(--exam-surface))] hover:bg-[hsl(var(--exam-surface-hover))]',
+                      ? 'border-transparent bg-muted/15 opacity-35'
+                      : 'border-transparent bg-[hsl(var(--exam-surface))] hover:bg-[hsl(var(--exam-surface-hover))]',
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -146,7 +100,7 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                 </div>
               </button>
 
-              {/* Eliminate/restore — icon on mobile, icon+label on desktop hover */}
+              {/* Eliminate/restore */}
               <button
                 type="button"
                 onClick={(e) => {

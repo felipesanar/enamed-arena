@@ -21,6 +21,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
   FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles,
 } from 'lucide-react';
+import { QuestionImage } from '@/components/exam/QuestionImage';
 
 export default function CorrecaoPage() {
   const { id } = useParams<{ id: string }>();
@@ -183,9 +184,15 @@ export default function CorrecaoPage() {
                   </div>
                 </div>
 
-                <p className="text-body-lg leading-relaxed text-foreground whitespace-pre-wrap mb-6">{question.text}</p>
+                <p className="text-body-lg leading-relaxed text-foreground whitespace-pre-wrap mb-5">{question.text}</p>
 
-                <div className="space-y-3">
+                {question.imageUrl && (
+                  <div className="mb-6">
+                    <QuestionImage src={question.imageUrl} alt={`Imagem da questão ${question.number}`} />
+                  </div>
+                )}
+
+                <div className="space-y-2.5">
                   {question.options.map(opt => {
                     const isCorrect = opt.id === question.correctOptionId;
                     const isUserSelection = opt.id === result.selectedOptionId;
@@ -193,8 +200,8 @@ export default function CorrecaoPage() {
 
                     return (
                       <div key={opt.id} className={cn(
-                        'flex items-start gap-3 p-4 rounded-xl border transition-colors',
-                        isCorrect ? 'bg-success/5 border-success/30' : isWrongSelection ? 'bg-destructive/5 border-destructive/30' : 'bg-card border-border/40',
+                        'flex items-start gap-3 p-4 rounded-xl border-2 transition-colors',
+                        isCorrect ? 'bg-success/5 border-success/30' : isWrongSelection ? 'bg-destructive/5 border-destructive/30' : 'bg-card border-transparent',
                       )}>
                         <span className={cn(
                           'flex items-center justify-center w-8 h-8 rounded-lg text-caption font-bold shrink-0',
@@ -209,13 +216,20 @@ export default function CorrecaoPage() {
                 </div>
               </PremiumCard>
 
-              {question.explanation && (
+              {(question.explanation || question.explanationImageUrl) && (
                 <PremiumCard className="p-5 md:p-6 mb-4 border-primary/10 bg-primary/[0.02]">
                   <div className="flex items-center gap-2 mb-3">
                     <BookOpen className="h-4 w-4 text-primary" />
                     <h3 className="text-body font-bold text-primary">Comentário do Professor</h3>
                   </div>
-                  <p className="text-body text-muted-foreground leading-relaxed whitespace-pre-wrap">{question.explanation}</p>
+                  {question.explanation && (
+                    <p className="text-body text-muted-foreground leading-relaxed whitespace-pre-wrap">{question.explanation}</p>
+                  )}
+                  {question.explanationImageUrl && (
+                    <div className="mt-4">
+                      <QuestionImage src={question.explanationImageUrl} alt={`Imagem do comentário da questão ${question.number}`} />
+                    </div>
+                  )}
                 </PremiumCard>
               )}
 
