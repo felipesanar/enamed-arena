@@ -348,7 +348,7 @@ serve(async (req) => {
 
     const pdfPath = `${simulado_id}_${new Date(simMeta.updated_at).getTime()}.pdf`;
 
-    const forceRegenerate = body?.force === true;
+    const forceRegenerate = force === true;
     if (!forceRegenerate) {
       const { data: existing } = await supabase.storage.from(BUCKET).list("", { search: pdfPath });
       if (existing?.some(f => f.name === pdfPath)) {
