@@ -346,7 +346,7 @@ export function useExamStorageReal(simuladoId: string) {
 
   const getResultNotificationPreference = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
-    const attempt = await simuladosApi.getAttempt(simuladoId, user.id);
+    const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
     return Boolean(attempt?.notify_result_email);
   }, [simuladoId, user]);
 
