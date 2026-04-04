@@ -405,6 +405,21 @@ function HeroCardActive({ sim }: { sim: SimuladoWithStatus }) {
               </p>
             </button>
           </div>
+
+          {/* Warning: outside execution window */}
+          {new Date() > new Date(sim.executionWindowEnd) && (
+            <div
+              className="flex items-center gap-2 rounded-lg px-4 py-3 text-xs mt-4"
+              style={{
+                background: 'hsl(var(--warning) / 0.08)',
+                border: '1px solid hsl(var(--warning) / 0.2)',
+                color: 'hsl(var(--warning))',
+              }}
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              A janela de execução já encerrou. Sua tentativa será registrada como <strong className="mx-0.5">treino</strong> e não entrará no ranking.
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

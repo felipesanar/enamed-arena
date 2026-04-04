@@ -76,7 +76,7 @@ export default function AnswerSheetPage() {
         // Find next unanswered after this one
         for (let i = idx + 1; i < gridQuestions.length; i++) {
           const next = gridQuestions[i];
-          if (!answers[next.id] && next.id !== optionId) return next.id;
+          if (!answers[next.id]) return next.id;
         }
         // Wrap: find first unanswered
         for (let i = 0; i < idx; i++) {

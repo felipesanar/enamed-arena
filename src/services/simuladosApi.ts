@@ -234,11 +234,16 @@ export const simuladosApi = {
   },
 
   async getAttempt(simuladoId: string, userId: string): Promise<AttemptRow | null> {
+    // Order by status priority: in_progress > offline_pending > submitted > expired
+    // Then by most recent, and take only the first row to avoid maybeSingle() errors
+    // when a user has multiple attempts (e.g. online + offline).
     const { data, error } = await supabase
       .from('attempts')
       .select('*')
       .eq('simulado_id', simuladoId)
       .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (error) {

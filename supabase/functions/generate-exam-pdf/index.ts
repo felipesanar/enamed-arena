@@ -494,6 +494,30 @@ serve(async (req) => {
   }
 
   try {
+    // ── JWT validation ──────────────────────────────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { simulado_id } = await req.json();
 
     if (!simulado_id) {
@@ -504,7 +528,23 @@ serve(async (req) => {
     }
 
     const supabase = getAdminClient();
-    const pdfPath  = `${simulado_id}.pdf`;
+
+    // ── Use updated_at-based cache path for invalidation ──────────────────
+    const { data: simMeta, error: simMetaErr } = await supabase
+      .from("simulados")
+      .select("updated_at")
+      .eq("id", simulado_id)
+      .single();
+
+    if (simMetaErr || !simMeta) {
+      return new Response(
+        JSON.stringify({ error: "Simulado not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const updatedTs = new Date(simMeta.updated_at).getTime();
+    const pdfPath = `${simulado_id}_${updatedTs}.pdf`;
 
     // ── Check cache ──────────────────────────────────────────────────────────
     const { data: existing } = await supabase.storage
