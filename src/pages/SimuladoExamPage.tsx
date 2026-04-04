@@ -1,12 +1,13 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useExamFlow } from '@/hooks/useExamFlow';
+import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
 import { ExamHeader } from '@/components/exam/ExamHeader';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
 import { QuestionNavigator } from '@/components/exam/QuestionNavigator';
 import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
-import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, Send, AlertCircle } from 'lucide-react';
+import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, AlertCircle, Clock, Play, WifiOff, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { canViewResults } from '@/lib/simulado-helpers';
 
@@ -27,6 +28,21 @@ function useFullscreen() {
   }, []);
 
   return { enterFullscreen, exitFullscreen };
+}
+
+function useOnlineStatus() {
+  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+  return online;
 }
 
 function MobileQuestionNav({
@@ -51,8 +67,11 @@ function MobileQuestionNav({
   }, [currentIndex]);
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border px-3 py-2">
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+    <div
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-[hsl(var(--exam-border))] px-3 py-2.5"
+      style={{ backgroundColor: 'hsl(var(--exam-header-bg))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+    >
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
         {questionIds.map((qId, i) => {
           const a = answers[qId];
           const isAnswered = !!a?.selectedOption;
@@ -67,18 +86,18 @@ function MobileQuestionNav({
               ref={isCurrent ? currentRef : undefined}
               onClick={() => onNavigate(i)}
               className={cn(
-                'flex-shrink-0 h-7 w-7 rounded-md text-[10px] font-bold transition-all duration-150',
+                'flex-shrink-0 h-8 min-w-[32px] px-1 rounded-lg text-[11px] font-bold transition-all duration-150',
                 'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
-                isCurrent && 'ring-2 ring-primary ring-offset-1 scale-110',
+                isCurrent && 'ring-2 ring-primary ring-offset-1',
                 isReview
-                  ? 'bg-info/20 text-info'
+                  ? 'bg-warning text-warning-foreground border border-warning/60'
                   : isHighConf
                     ? 'bg-success/20 text-success'
                     : isAnswered
-                      ? 'bg-accent text-accent-foreground'
-                      : 'bg-muted/70 text-muted-foreground',
+                      ? 'bg-info text-info-foreground border border-info/50'
+                      : 'bg-transparent border border-[hsl(var(--exam-border))] text-muted-foreground',
               )}
-              aria-label={`Ir para questão ${i + 1}`}
+              aria-label={`Questão ${i + 1}${isAnswered ? ', respondida' : ''}${isReview ? ', marcada para revisão' : ''}`}
               aria-current={isCurrent ? 'step' : undefined}
             >
               {i + 1}
@@ -93,48 +112,35 @@ function MobileQuestionNav({
 export default function SimuladoExamPage() {
   const flow = useExamFlow();
   const { enterFullscreen, exitFullscreen } = useFullscreen();
+  const isOnline = useOnlineStatus();
 
-  // Enter fullscreen on mount, exit on unmount
+  const [preFlightDismissed, setPreFlightDismissed] = useState(false);
+  const [timeWarningShown, setTimeWarningShown] = useState(false);
+  const [timeWarningVisible, setTimeWarningVisible] = useState(false);
+
   useEffect(() => {
     enterFullscreen();
     return () => exitFullscreen();
   }, [enterFullscreen, exitFullscreen]);
 
+  useEffect(() => {
+    if (flow.timeRemaining <= 300 && flow.timeRemaining > 295 && !timeWarningShown) {
+      setTimeWarningShown(true);
+      setTimeWarningVisible(true);
+      const timer = setTimeout(() => setTimeWarningVisible(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [flow.timeRemaining, timeWarningShown]);
+
   if (flow.loading) {
     return (
-      <div className="h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center justify-between px-4 md:px-6 h-14">
-            <div className="h-5 w-48 bg-muted rounded animate-pulse" />
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-12 bg-muted rounded animate-pulse" />
-              <div className="w-24 h-1.5 rounded-full bg-muted animate-pulse" />
-            </div>
-            <div className="h-9 w-20 bg-muted rounded-lg animate-pulse" />
+      <div className="h-screen flex flex-col items-center justify-center exam-bg">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           </div>
-        </header>
-        <div className="px-4 md:px-6 py-2 bg-muted/30 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-1.5 rounded-full bg-muted animate-pulse" />
-            <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-          </div>
+          <p className="text-body text-muted-foreground">Preparando sua prova...</p>
         </div>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-3xl mx-auto space-y-4">
-            <div className="flex gap-2">
-              <div className="h-6 w-20 bg-muted rounded animate-pulse" />
-              <div className="h-6 w-24 bg-muted rounded animate-pulse" />
-            </div>
-            <div className="h-4 w-full bg-muted rounded animate-pulse" />
-            <div className="h-4 w-full bg-muted rounded animate-pulse" />
-            <div className="h-4 max-w-[75%] w-full bg-muted rounded animate-pulse" />
-            <div className="pt-6 space-y-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-14 w-full bg-muted rounded-xl animate-pulse" />
-              ))}
-            </div>
-          </div>
-        </main>
       </div>
     );
   }
@@ -161,9 +167,29 @@ export default function SimuladoExamPage() {
   if (!flow.currentQuestion || !flow.simulado || !flow.state) return null;
 
   const { summary } = flow;
+  const reviewIndices = flow.questionIds
+    .map((qId, i) => (flow.state?.answers[qId]?.markedForReview ? i : -1))
+    .filter((i) => i >= 0);
+
+  const isResuming = flow.state.status === 'in_progress'
+    && flow.summary.answered > 0
+    && !preFlightDismissed;
+
+  const showPreFlight = !preFlightDismissed
+    && flow.state.status === 'in_progress'
+    && flow.currentIndex === 0
+    && flow.summary.answered === 0;
+
+  const showIntermediateScreen = showPreFlight || isResuming;
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-full min-h-0 flex flex-col exam-bg">
+      {/* Aria-live region for screen readers */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        Questão {flow.currentIndex + 1} de {flow.questions.length}
+        {flow.currentQuestion.area && ` — ${flow.currentQuestion.area}`}
+      </div>
+
       <AnimatePresence>
         {flow.focusControl.isTabAway && (
           <motion.div
@@ -180,139 +206,292 @@ export default function SimuladoExamPage() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {flow.focusControl.isFullscreenLost && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="bg-destructive/12 border-b border-destructive/30 px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <div className="text-body-sm">
+                <p className="text-destructive font-semibold">
+                  Você saiu do modo tela cheia.
+                </p>
+                <p className="text-destructive/90">
+                  O cronômetro continua e uma penalidade de integridade foi registrada ({flow.state?.fullscreenExitCount ?? 0}).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={flow.focusControl.enterFullscreen}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-destructive text-destructive-foreground text-body-sm font-semibold hover:brightness-95 transition-colors"
+            >
+              <Maximize2 className="h-4 w-4" />
+              Voltar à tela cheia
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ExamHeader
         title={flow.simulado.title}
         currentQuestion={flow.currentIndex + 1}
         totalQuestions={flow.questions.length}
         timeRemaining={flow.timeRemaining}
         onFinalize={() => flow.setShowSubmitModal(true)}
-        saving={false} // TODO: wire to flow saving state when implemented
+        saving={flow.saving ?? false}
       />
 
-      <div className="px-4 md:px-6 py-2 bg-muted/30 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${summary.total > 0 ? (summary.answered / summary.total) * 100 : 0}%` }}
-            />
-          </div>
-          <span className="text-caption font-medium text-muted-foreground whitespace-nowrap">
-            {summary.answered}/{summary.total} respondidas
-          </span>
-        </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-14 md:pb-0">
-          <div className="max-w-3xl mx-auto">
-            <QuestionDisplay
-              question={flow.currentQuestion}
-              answer={flow.currentAnswer}
-              onSelectOption={flow.handleSelectOption}
-              onEliminateOption={flow.handleEliminateOption}
-            />
-
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <button
-                onClick={flow.toggleReview}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
-                  flow.isReviewFlagged
-                    ? 'bg-info/10 text-info border border-info/30'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
-                )}
-              >
-                <Flag className="h-3.5 w-3.5" />
-                {flow.isReviewFlagged ? 'Marcada p/ revisão' : 'Marcar p/ revisar'}
-              </button>
-              <button
-                onClick={flow.toggleHighConfidence}
-                title="Alta certeza — marque quando tiver certeza da resposta. Aparece na sua análise de resultados."
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
-                  flow.isHighConfFlagged
-                    ? 'bg-success/10 text-success border border-success/30'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
-                )}
-              >
-                <Zap className="h-3.5 w-3.5" />
-                {flow.isHighConfFlagged ? 'Alta certeza ✓' : 'Alta certeza'}
-              </button>
-            </div>
-            <p className="mt-1.5 text-[10px] text-muted-foreground/60 leading-snug">
-              <strong className="text-muted-foreground/70">Marcar p/ revisar:</strong> volta nessa questão antes de finalizar.{' '}
-              <strong className="text-muted-foreground/70">Alta certeza:</strong> indica confiança na resposta — útil na análise pós-prova.
+      {/* Offline banner */}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-warning/8 border-b border-warning/15 px-4 py-2.5 flex items-center gap-2"
+          >
+            <WifiOff className="h-3.5 w-3.5 text-warning shrink-0" />
+            <p className="text-body-sm text-warning">
+              Sem conexão. Suas respostas estão salvas localmente e serão sincronizadas automaticamente.
             </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <div className="mt-6 flex items-center justify-between pb-8">
-              <button
-                onClick={flow.handlePrev}
-                disabled={flow.currentIndex === 0}
-                className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Anterior
-              </button>
-
-              <button
-                onClick={() => flow.setShowNavigator(v => !v)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-body-sm font-medium hover:bg-muted/80 transition-colors md:hidden"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
-
-              {flow.currentIndex < flow.questions.length - 1 ? (
-                <button
-                  onClick={flow.handleNext}
-                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors"
-                >
-                  Próxima
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => flow.setShowSubmitModal(true)}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
-                >
-                  <Send className="h-4 w-4" />
-                  Finalizar
-                </button>
-              )}
-            </div>
-          </div>
-        </main>
-
-        <aside className="hidden md:flex w-64 border-l border-border bg-card p-4 flex-col gap-4 overflow-y-auto">
-          <div>
-            <p className="text-body font-semibold text-foreground mb-1">Navegação</p>
-            <p className="text-caption text-muted-foreground mb-3">
-              {summary.answered}/{summary.total} respondidas
+      {/* Time warning banner */}
+      <AnimatePresence>
+        {timeWarningVisible && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-warning/8 border-b border-warning/15 px-4 py-2 text-center"
+          >
+            <p className="text-body-sm text-warning font-medium">
+              Restam 5 minutos para o término da prova.
             </p>
-          </div>
-          <QuestionNavigator
-            totalQuestions={flow.questions.length}
-            currentIndex={flow.currentIndex}
-            answers={flow.state.answers}
-            questionIds={flow.questionIds}
-            onNavigate={flow.handleNavigate}
-          />
-          <div className="mt-auto space-y-2 text-caption text-muted-foreground pt-4 border-t border-border">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded bg-accent border border-accent" />
-              Respondida
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded bg-info/20" />
-              Para revisão
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded bg-success" />
-              Alta certeza
-            </div>
-          </div>
-        </aside>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {showIntermediateScreen ? (
+          <motion.div
+            key={isResuming ? 'resume' : 'preflight'}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 min-h-0 flex items-center justify-center p-6"
+          >
+            {isResuming ? (
+              <div className="text-center max-w-md">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Play className="h-7 w-7 text-primary" />
+                </div>
+                <h1 className="text-heading-2 text-foreground mb-2">Bem-vindo de volta</h1>
+                <p className="text-body text-muted-foreground mb-4">
+                  Você respondeu {flow.summary.answered} de {flow.summary.total} questões.
+                </p>
+                <div className={cn(
+                  'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-body tabular-nums font-semibold mb-6',
+                  getTimerBgClass(flow.timeRemaining),
+                  getTimerColor(flow.timeRemaining),
+                )}>
+                  <Clock className="h-4 w-4" />
+                  {formatTimer(flow.timeRemaining)} restantes
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setPreFlightDismissed(true)}
+                    className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <Play className="h-4 w-4" />
+                    Continuar de onde parei
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center max-w-md">
+                <h1 className="text-heading-1 text-foreground mb-2">{flow.simulado.title}</h1>
+                <div className="flex items-center justify-center gap-4 text-body text-muted-foreground mb-6">
+                  <span>{flow.questions.length} questões</span>
+                  <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                  <span>{flow.simulado.estimatedDuration}</span>
+                </div>
+
+                <div className={cn(
+                  'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-body-lg tabular-nums font-semibold mb-6',
+                  getTimerBgClass(flow.timeRemaining),
+                  getTimerColor(flow.timeRemaining),
+                )}>
+                  <Clock className="h-4 w-4" />
+                  {formatTimer(flow.timeRemaining)}
+                </div>
+
+                <p className="text-body-sm text-muted-foreground mb-8">
+                  O cronômetro já está ativo. Boa prova!
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setPreFlightDismissed(true)}
+                  className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-colors shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  Começar
+                </button>
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="exam"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="flex-1 min-h-0 flex overflow-hidden"
+          >
+            <main className="flex-1 min-h-0 overflow-hidden p-3 md:p-4 pb-14 md:pb-0">
+              <div className="max-w-5xl mx-auto h-full min-h-0">
+                <div className="h-full overflow-y-auto pr-1">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={flow.currentQuestion.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.15}
+                      onDragEnd={(_, info) => {
+                        if (info.offset.x < -80 && flow.currentIndex < flow.questions.length - 1) {
+                          flow.handleNext();
+                        } else if (info.offset.x > 80 && flow.currentIndex > 0) {
+                          flow.handlePrev();
+                        }
+                      }}
+                    >
+                      <QuestionDisplay
+                        question={flow.currentQuestion}
+                        answer={flow.currentAnswer}
+                        onSelectOption={flow.handleSelectOption}
+                        onEliminateOption={flow.handleEliminateOption}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                  <div className="mt-3 pt-3 border-t border-[hsl(var(--exam-border))]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={flow.toggleReview}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
+                          flow.isReviewFlagged
+                            ? 'bg-warning text-warning-foreground border border-warning/60'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                        )}
+                      >
+                        <Flag className="h-3.5 w-3.5" />
+                        {flow.isReviewFlagged ? 'Marcada p/ revisão' : 'Marcar p/ revisar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={flow.toggleHighConfidence}
+                        title="Alta certeza — marque quando tiver certeza da resposta. Aparece na sua análise de resultados."
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-medium transition-all',
+                          flow.isHighConfFlagged
+                            ? 'bg-success/10 text-success border border-success/30'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                        )}
+                      >
+                        <Zap className="h-3.5 w-3.5" />
+                        {flow.isHighConfFlagged ? 'Alta certeza ✓' : 'Alta certeza'}
+                      </button>
+                    </div>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground/40">
+                      R = revisar · H = certeza
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between pb-2">
+                      <button
+                        type="button"
+                        onClick={flow.handlePrev}
+                        disabled={flow.currentIndex === 0}
+                        className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => flow.setShowNavigator(v => !v)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-body-sm font-medium hover:bg-muted/80 transition-colors md:hidden"
+                      >
+                        <Grid3X3 className="h-4 w-4" />
+                      </button>
+
+                      {flow.currentIndex < flow.questions.length - 1 ? (
+                        <button
+                          type="button"
+                          onClick={flow.handleNext}
+                          className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors"
+                        >
+                          Próxima
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => flow.setShowSubmitModal(true)}
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
+                        >
+                          Encerrar prova
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </main>
+
+            <aside className="hidden md:flex w-[340px] border-l border-[hsl(var(--exam-border))] p-5 flex-col gap-4 overflow-y-auto">
+              <div className="flex items-baseline justify-between mb-3">
+                <p className="text-body-sm font-semibold text-foreground">Questões</p>
+                <p className="text-caption text-muted-foreground tabular-nums">
+                  {summary.answered}/{summary.total}
+                </p>
+              </div>
+              <QuestionNavigator
+                totalQuestions={flow.questions.length}
+                currentIndex={flow.currentIndex}
+                answers={flow.state.answers}
+                questionIds={flow.questionIds}
+                onNavigate={flow.handleNavigate}
+              />
+              <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground pt-4 border-t border-[hsl(var(--exam-border))]">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-info" /> Respondida
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-warning" /> Revisão
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-success/20" /> Certeza
+                </span>
+              </div>
+            </aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {flow.showNavigator && (
@@ -320,7 +499,7 @@ export default function SimuladoExamPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 md:hidden bg-foreground/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 md:hidden bg-foreground/50 backdrop-blur-md"
             onClick={() => flow.setShowNavigator(false)}
           >
             <motion.div
@@ -328,14 +507,15 @@ export default function SimuladoExamPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25 }}
-              className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl border-t border-border p-5 max-h-[70vh] overflow-y-auto"
+              className="absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[hsl(var(--exam-border))] p-5 max-h-[70vh] overflow-y-auto"
+              style={{ backgroundColor: 'hsl(var(--exam-header-bg))', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-4" />
-              <div className="mb-4">
-                <p className="text-body font-semibold text-foreground mb-1">Navegação</p>
-                <p className="text-caption text-muted-foreground">
-                  {summary.answered}/{summary.total} respondidas
+              <div className="w-8 h-1 rounded-full bg-muted-foreground/20 mx-auto mb-4" />
+              <div className="flex items-baseline justify-between mb-4">
+                <p className="text-body-sm font-semibold text-foreground">Questões</p>
+                <p className="text-caption text-muted-foreground tabular-nums">
+                  {summary.answered}/{summary.total}
                 </p>
               </div>
               <QuestionNavigator
@@ -346,19 +526,18 @@ export default function SimuladoExamPage() {
                 onNavigate={flow.handleNavigate}
               />
               <button
+                type="button"
                 onClick={() => flow.setShowSubmitModal(true)}
                 className="mt-6 w-full inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors"
               >
-                <Send className="h-4 w-4" />
-                Finalizar simulado
+                Encerrar prova
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Mini-nav mobile — fixed bottom bar, horizontal scroll */}
-      {flow.state && (
+      {flow.state && !showIntermediateScreen && (
         <MobileQuestionNav
           questionIds={flow.questionIds}
           currentIndex={flow.currentIndex}
@@ -370,6 +549,7 @@ export default function SimuladoExamPage() {
       <SubmitConfirmModal
         open={flow.showSubmitModal}
         summary={flow.summary}
+        reviewIndices={reviewIndices}
         submitting={flow.submitting}
         onConfirm={flow.finalize}
         onCancel={() => flow.setShowSubmitModal(false)}

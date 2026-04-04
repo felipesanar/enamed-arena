@@ -1,6 +1,6 @@
 import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
 import { cn } from '@/lib/utils';
-import { Clock, Save, Keyboard } from 'lucide-react';
+import { Clock, Check, Keyboard } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ExamHeaderProps {
@@ -15,38 +15,40 @@ interface ExamHeaderProps {
 export function ExamHeader({
   title, currentQuestion, totalQuestions, timeRemaining, onFinalize, saving = false,
 }: ExamHeaderProps) {
-  const progress = (currentQuestion / totalQuestions) * 100;
-
   return (
-    <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
+    <header
+      className="sticky top-0 z-40 border-b border-[hsl(var(--exam-border))]"
+      style={{ backgroundColor: 'hsl(var(--exam-header-bg))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+    >
       <div className="flex items-center justify-between px-4 md:px-6 h-14">
-        {/* Left: title */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="min-w-0 hidden sm:block">
-            <p className="text-body font-semibold text-foreground truncate">{title}</p>
+          <div className="min-w-0 hidden sm:flex items-center gap-2">
+            <p className="text-body font-semibold text-foreground truncate max-w-[200px] lg:max-w-none">{title}</p>
+            <span className={cn(
+              'flex items-center gap-1 text-[10px] transition-opacity duration-300',
+              saving ? 'text-primary opacity-100' : 'text-muted-foreground/50 opacity-100',
+            )}>
+              <Check className={cn('h-3 w-3', saving && 'animate-pulse')} />
+              {saving ? 'Salvando' : 'Salvo'}
+            </span>
           </div>
         </div>
 
-        {/* Center: progress */}
         <div className="flex items-center gap-2">
-          <span className="text-caption text-muted-foreground whitespace-nowrap">
-            {currentQuestion}/{totalQuestions}
+          <span className="text-body-sm font-semibold text-foreground tabular-nums">
+            {currentQuestion}
           </span>
-          <div className="w-20 md:w-36 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          <span className="text-caption text-muted-foreground">/</span>
+          <span className="text-body-sm text-muted-foreground tabular-nums">
+            {totalQuestions}
+          </span>
         </div>
 
-        {/* Right: shortcuts + timer + finalize */}
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Keyboard shortcuts tooltip */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <button type="button" className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                   <Keyboard className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -65,35 +67,24 @@ export function ExamHeader({
             </Tooltip>
           </TooltipProvider>
 
-          {/* Auto-save indicator */}
-          <div className={cn(
-            'hidden sm:flex items-center gap-1 text-caption transition-colors',
-            saving ? 'text-primary' : 'text-muted-foreground',
-          )}>
-            <Save className={cn('h-3 w-3', saving && 'animate-pulse')} />
-            <span className="text-[10px]">{saving ? 'Salvando...' : 'Salvo'}</span>
-          </div>
-
-          {/* Timer — aria-live="off" during normal countdown; screen readers pick up urgent alerts separately */}
           <div
             role="timer"
             aria-label={`Tempo restante: ${formatTimer(timeRemaining)}`}
             aria-live={timeRemaining < 120 ? 'polite' : 'off'}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-body font-semibold',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-body tabular-nums font-semibold transition-colors duration-500',
               getTimerBgClass(timeRemaining),
               getTimerColor(timeRemaining),
-              timeRemaining < 60 && 'animate-pulse',
             )}
           >
-            <Clock className="h-4 w-4" aria-hidden />
+            <Clock className="h-3.5 w-3.5" aria-hidden />
             {formatTimer(timeRemaining)}
           </div>
 
-          {/* Finalize button */}
           <button
+            type="button"
             onClick={onFinalize}
-            className="px-3 md:px-4 py-1.5 rounded-lg bg-destructive text-white text-body font-semibold hover:bg-destructive/90 transition-colors"
+            className="px-3 md:px-4 py-1.5 rounded-lg border border-primary/35 bg-primary/10 text-body font-semibold text-primary hover:bg-primary/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             Finalizar
           </button>

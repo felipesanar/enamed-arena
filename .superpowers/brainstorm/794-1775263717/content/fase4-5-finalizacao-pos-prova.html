@@ -1,0 +1,270 @@
+<style>
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .problem-card { border: 1px solid #fecaca; border-radius: 10px; background: #fff5f5; padding: 14px; border-left: 4px solid #ef4444; }
+  .problem-card.warn { border-color: #fde68a; background: #fffbeb; border-left-color: #f59e0b; }
+  .problem-card.good { border-color: #bbf7d0; background: #f0fdf4; border-left-color: #10b981; }
+  .card-tag { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 2px 7px; border-radius: 99px; margin-bottom: 8px; }
+  .tag-crit { background: #fee2e2; color: #b91c1c; }
+  .tag-warn { background: #fef3c7; color: #b45309; }
+  .tag-good { background: #d1fae5; color: #065f46; }
+  .card-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+  .card-desc { font-size: 12px; color: #555; line-height: 1.5; margin-bottom: 8px; }
+  .card-rec { font-size: 11px; background: rgba(0,0,0,.05); border-radius: 6px; padding: 7px 9px; color: #333; line-height: 1.5; }
+  .card-rec strong { color: #1a1a1a; }
+  .impact-meter { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+  .impact-label { font-size: 10px; color: #888; width: 60px; flex-shrink: 0; }
+  .meter-bar { height: 5px; border-radius: 3px; background: #e5e7eb; flex: 1; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 3px; }
+  .fill-red { background: #ef4444; }
+  .fill-yellow { background: #f59e0b; }
+  .fill-green { background: #10b981; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #94a3b8; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+
+  /* Mockups side by side */
+  .split-mockups { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .mockup-frame { background: #0f172a; border-radius: 12px; overflow: hidden; }
+  .mockup-label { background: #1e293b; color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 6px 14px; border-bottom: 1px solid #334155; }
+
+  /* Modal de confirmação mock */
+  .modal-mock { background: #fff; padding: 20px; }
+  .modal-title { font-size: 14px; font-weight: 800; color: #1a1a1a; margin-bottom: 4px; }
+  .modal-sub { font-size: 11px; color: #64748b; margin-bottom: 14px; }
+  .modal-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-pill { border-radius: 8px; padding: 10px 12px; text-align: center; }
+  .stat-pill .num { font-size: 20px; font-weight: 800; }
+  .stat-pill .lbl { font-size: 10px; margin-top: 2px; }
+  .sp-blue { background: #dbeafe; } .sp-blue .num { color: #1d4ed8; } .sp-blue .lbl { color: #3b82f6; }
+  .sp-blank { background: #fee2e2; } .sp-blank .num { color: #b91c1c; } .sp-blank .lbl { color: #ef4444; }
+  .sp-rev { background: #fef3c7; } .sp-rev .num { color: #92400e; } .sp-rev .lbl { color: #f59e0b; }
+  .sp-high { background: #d1fae5; } .sp-high .num { color: #065f46; } .sp-high .lbl { color: #10b981; }
+  .modal-warning { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 8px 10px; font-size: 11px; color: #92400e; margin-bottom: 12px; }
+  .modal-missing { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; }
+  .modal-missing-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+  .missing-nums { display: flex; flex-wrap: wrap; gap: 4px; }
+  .missing-num { width: 22px; height: 22px; border-radius: 4px; background: #fee2e2; border: 1px solid #fca5a5; font-size: 9px; font-weight: 700; color: #b91c1c; display: flex; align-items: center; justify-content: center; }
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btn { flex: 1; padding: 10px; border-radius: 8px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; }
+  .btn-cancel { background: #f1f5f9; color: #475569; }
+  .btn-confirm { background: #dc2626; color: #fff; }
+  .loading-mock { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 10px; }
+  .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #e2e8f0; border-top-color: #3b82f6; }
+  .loading-text { font-size: 12px; color: #64748b; }
+  .loading-sub { font-size: 10px; color: #94a3b8; }
+
+  /* Tela pós-prova mock */
+  .completed-mock { background: #fff; padding: 24px; text-align: center; }
+  .check-icon { width: 56px; height: 56px; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; }
+  .completed-title { font-size: 16px; font-weight: 800; color: #1a1a1a; margin-bottom: 4px; }
+  .completed-sub { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+  .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #475569; text-align: left; margin-bottom: 12px; }
+  .notify-row { display: flex; align-items: center; gap: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+  .notify-text { font-size: 11px; color: #166534; flex: 1; text-align: left; }
+  .notify-btn { background: #10b981; color: #fff; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 6px; border: none; }
+  .completed-btns { display: flex; flex-direction: column; gap: 8px; }
+  .comp-btn { padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; }
+  .comp-btn-primary { background: #1e293b; color: #fff; }
+  .comp-btn-secondary { background: #f1f5f9; color: #475569; }
+
+  .annot-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; padding: 7px 10px; background: #fafafa; border-radius: 8px; border: 1px dashed #e2e8f0; }
+  .annot-row .annot-label { font-size: 10px; color: #94a3b8; width: 100%; margin-bottom: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+  .annotation { display: inline-flex; align-items: center; gap: 4px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 3px 7px; font-size: 10px; color: #92400e; font-weight: 600; margin: 2px; }
+  .annotation.red { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+  .annotation.green { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+
+  .phase-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 8px; }
+  .phase-divider-line { flex: 1; height: 1px; background: #e5e7eb; }
+  .phase-divider-label { font-size: 13px; font-weight: 800; color: #1a1a1a; white-space: nowrap; }
+
+  .highlight-box { background: linear-gradient(135deg, #1e293b, #0f172a); color: #e2e8f0; border-radius: 10px; padding: 14px 16px; margin: 14px 0; border-left: 4px solid #f59e0b; }
+  .highlight-box .hl-title { font-size: 12px; font-weight: 700; color: #fde68a; margin-bottom: 6px; }
+  .highlight-box p { font-size: 12px; line-height: 1.6; color: #cbd5e1; margin: 0; }
+</style>
+
+<h2 style="margin-bottom:4px">Fases 4 e 5 — Finalização e Pós-Prova</h2>
+<p class="subtitle">SubmitConfirmModal · Loading · ExamCompletedScreen · CTAs pós-prova</p>
+
+<!-- FASE 4 -->
+<div class="phase-divider">
+  <div class="phase-divider-line"></div>
+  <div class="phase-divider-label">Fase 4 · Finalização <span style="color:#f59e0b; font-size:12px">● Atenção</span></div>
+  <div class="phase-divider-line"></div>
+</div>
+
+<div class="section-title">Mockup anotado — Modal de confirmação atual vs. melhorado</div>
+
+<div class="split-mockups">
+  <div class="mockup-frame">
+    <div class="mockup-label">❌ Modal atual — informação incompleta</div>
+    <div class="modal-mock">
+      <div class="modal-title">Finalizar simulado?</div>
+      <div class="modal-sub">Você não poderá retornar após confirmar.</div>
+      <div class="modal-stats">
+        <div class="stat-pill sp-blue"><div class="num">87</div><div class="lbl">Respondidas</div></div>
+        <div class="stat-pill sp-blank"><div class="num">13</div><div class="lbl">Em branco</div></div>
+        <div class="stat-pill sp-rev"><div class="num">5</div><div class="lbl">Para revisar</div></div>
+        <div class="stat-pill sp-high"><div class="num">32</div><div class="lbl">Alta confiança</div></div>
+      </div>
+      <div class="modal-warning">⚠ Você tem 13 questões sem resposta.</div>
+      <div class="modal-btns">
+        <button class="modal-btn btn-cancel">Continuar respondendo</button>
+        <button class="modal-btn btn-confirm">Finalizar</button>
+      </div>
+      <div class="annot-row" style="margin-top:10px">
+        <span class="annot-label">Problemas</span>
+        <span class="annotation red">⚠ Não mostra QUAIS questões estão em branco</span>
+        <span class="annotation red">⚠ Não mostra QUAIS questões marcadas para revisão</span>
+        <span class="annotation">⚠ Aviso genérico — não dá para navegar às questões faltantes</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup-frame">
+    <div class="mockup-label">✅ Modal melhorado — acionável</div>
+    <div class="modal-mock">
+      <div class="modal-title">Finalizar simulado?</div>
+      <div class="modal-sub">Você não poderá retornar após confirmar.</div>
+      <div class="modal-stats">
+        <div class="stat-pill sp-blue"><div class="num">87</div><div class="lbl">Respondidas</div></div>
+        <div class="stat-pill sp-blank"><div class="num">13</div><div class="lbl">Em branco</div></div>
+        <div class="stat-pill sp-rev"><div class="num">5</div><div class="lbl">Para revisar</div></div>
+        <div class="stat-pill sp-high"><div class="num">32</div><div class="lbl">Alta confiança</div></div>
+      </div>
+      <div class="modal-missing">
+        <div class="modal-missing-title">Questões em branco — clique para ir</div>
+        <div class="missing-nums">
+          <div class="missing-num">6</div><div class="missing-num">14</div><div class="missing-num">23</div>
+          <div class="missing-num">31</div><div class="missing-num">38</div><div class="missing-num">+8</div>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn btn-cancel">← Voltar e responder</button>
+        <button class="modal-btn btn-confirm">Finalizar mesmo assim</button>
+      </div>
+      <div class="annot-row" style="margin-top:10px">
+        <span class="annot-label">Melhorias</span>
+        <span class="annotation green">✓ Mostra números das questões em branco</span>
+        <span class="annotation green">✓ Clique na questão → fecha modal e navega</span>
+        <span class="annotation green">✓ CTA "Voltar" mais direcional</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="analysis-grid" style="margin-top:0">
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Informação</span>
+    <div class="card-title">Modal não mostra quais questões estão incompletas</div>
+    <div class="card-desc">O aviso "13 questões sem resposta" é genérico. O usuário tem que fechar o modal, encontrar as questões em branco no grid e voltar. Cada clique extra em momento de decisão aumenta o abandono prematuro ou a finalização sem revisar.</div>
+    <div class="impact-meter"><span class="impact-label">Urgência</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:75%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Mostrar os números das questões em branco clicáveis. Clicar fecha o modal e navega para aquela questão. O usuário resolve sem sair do contexto de decisão.</div>
+  </div>
+
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Feedback</span>
+    <div class="card-title">Loading de envio sem feedback de progresso real</div>
+    <div class="card-desc">Ao confirmar, aparece um spinner "Enviando..." sem indicação de progresso. Se a conexão for lenta, o usuário não sabe se travou, se está carregando ou se deu erro. Num momento de alta ansiedade (fim de prova), a ausência de feedback é amplificada.</div>
+    <div class="impact-meter"><span class="impact-label">Ansiedade</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:70%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Mostrar etapas: "Sincronizando respostas... ✓ · Calculando resultado... · Finalizando..." com checkmarks progressivos. Transforma espera passiva em progresso percebido.</div>
+  </div>
+</div>
+
+<!-- FASE 5 -->
+<div class="phase-divider">
+  <div class="phase-divider-line"></div>
+  <div class="phase-divider-label">Fase 5 · Pós-Prova <span style="color:#f59e0b; font-size:12px">● Atenção</span></div>
+  <div class="phase-divider-line"></div>
+</div>
+
+<div class="section-title">Mockup — Tela de conclusão atual vs. melhorada</div>
+
+<div class="split-mockups">
+  <div class="mockup-frame">
+    <div class="mockup-label">❌ Atual — conclusão fria, sem celebração</div>
+    <div class="completed-mock">
+      <div class="check-icon">✓</div>
+      <div class="completed-title">Simulado concluído!</div>
+      <div class="completed-sub">ENAMED 2025 · 87 questões respondidas</div>
+      <div class="info-box">📅 Resultados disponíveis em 15 de abril de 2025</div>
+      <div class="notify-row">
+        <div class="notify-text">Avisar por email quando liberar</div>
+        <button class="notify-btn">Ativar</button>
+      </div>
+      <div class="completed-btns">
+        <button class="comp-btn comp-btn-primary">Ver resultado</button>
+        <button class="comp-btn comp-btn-secondary">Voltar ao calendário</button>
+      </div>
+      <div class="annot-row" style="margin-top:10px">
+        <span class="annot-label">Problemas</span>
+        <span class="annotation red">⚠ Ícone de check discreto — conquista sem peso emocional</span>
+        <span class="annotation red">⚠ "Ver resultado" aparece mesmo sem resultado liberado — confuso</span>
+        <span class="annotation">⚠ Notificação por email enterrada sem destaque</span>
+        <span class="annotation">⚠ Nenhum reforço sobre o que o usuário acabou de fazer</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup-frame">
+    <div class="mockup-label">✅ Melhorada — celebração + próximo passo claro</div>
+    <div class="completed-mock">
+      <div style="font-size:48px; margin-bottom:8px">🎉</div>
+      <div class="completed-title" style="font-size:18px">Prova entregue!</div>
+      <div class="completed-sub" style="font-size:13px">Você completou o ENAMED 2025 com <strong style="color:#1a1a1a">87 de 100 questões</strong> respondidas</div>
+      <div style="background: linear-gradient(135deg,#1e293b,#0f172a); border-radius:10px; padding:12px 14px; margin:12px 0; color:#e2e8f0; font-size:11px; line-height:1.6;">
+        <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:4px">Seu resumo</div>
+        ⚡ 32 questões com alta confiança · ⚑ 5 marcadas para revisão · 13 em branco
+      </div>
+      <div class="notify-row" style="background:#eff6ff; border-color:#bfdbfe">
+        <div class="notify-text" style="color:#1e40af">🔔 Quer saber quando o resultado sair?<br><span style="font-size:10px; opacity:.8">Resultados em 15 de abril</span></div>
+        <button class="notify-btn" style="background:#3b82f6">Ativar aviso</button>
+      </div>
+      <div class="completed-btns">
+        <button class="comp-btn comp-btn-secondary">Ver gabarito (já disponível)</button>
+        <button class="comp-btn comp-btn-secondary" style="color:#94a3b8; font-size:11px; font-weight:400">Voltar ao calendário</button>
+      </div>
+      <div class="annot-row" style="margin-top:10px">
+        <span class="annot-label">Melhorias</span>
+        <span class="annotation green">✓ Celebração emocional (emoji + tamanho)</span>
+        <span class="annotation green">✓ Resumo da prova reforça o que foi feito</span>
+        <span class="annotation green">✓ Notificação proeminente e contextual</span>
+        <span class="annotation green">✓ Sem "Ver resultado" se não disponível — gabarito como alternativa</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="analysis-grid" style="margin-top:0">
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Emoção</span>
+    <div class="card-title">Tela de conclusão sem celebração — oportunidade desperdiçada</div>
+    <div class="card-desc">Completar 100 questões de residência médica é uma conquista significativa para o usuário. A tela atual mostra um checkmark e texto plano — tratando o fim da prova como se fosse um upload de arquivo. Não há nenhuma validação emocional do esforço.</div>
+    <div class="impact-meter"><span class="impact-label">Retenção</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:75%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Adicionar microcelebração (confetti leve ou animação de conquista), texto que reforça o esforço ("Você completou X questões!"), e um resumo do que foi feito. Emoção positiva ao finalizar cria associação positiva com a plataforma.</div>
+  </div>
+
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Clareza de CTA</span>
+    <div class="card-title">"Ver resultado" quando resultado não está disponível</div>
+    <div class="card-desc">O botão primário "Ver resultado" aparece mesmo quando os resultados ainda não foram liberados. O usuário clica, chega numa página vazia ou de espera, e retorna frustrado. O produto cria uma expectativa que não pode cumprir imediatamente.</div>
+    <div class="impact-meter"><span class="impact-label">Frustração</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:80%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Quando resultado não disponível, remover ou desabilitar "Ver resultado" e substituir o CTA primário por algo acessível imediatamente — "Ver gabarito" (se disponível) ou simplesmente "Voltar ao calendário" com a data de liberação clara.</div>
+  </div>
+
+  <div class="problem-card good">
+    <span class="card-tag tag-good">Acerto · Manter</span>
+    <div class="card-title">Notificação por email na tela de conclusão</div>
+    <div class="card-desc">Colocar o opt-in de notificação exatamente quando o usuário acaba de terminar a prova é o timing ideal — o engajamento emocional está alto, a relevância é máxima. A funcionalidade está no lugar certo.</div>
+    <div class="card-rec"><strong>Manter e elevar:</strong> Tornar o bloco de notificação mais proeminente e explicar o valor ("Você será o primeiro a saber"). O texto atual é seco — adicionar contexto sobre quando e como o aviso chegará.</div>
+  </div>
+
+  <div class="problem-card good">
+    <span class="card-tag tag-good">Acerto · Manter</span>
+    <div class="card-title">Data de liberação de resultado visível</div>
+    <div class="card-desc">Mostrar a data exata de liberação ("Resultados disponíveis em 15 de abril") elimina dúvida e reduz o comportamento de "ficar checando". O usuário sabe exatamente quando voltar.</div>
+    <div class="card-rec"><strong>Manter.</strong> Considerar adicionar countdown regressivo em vez de só a data: "em 12 dias" é mais tangível que "15 de abril" para gerar antecipação.</div>
+  </div>
+</div>
+
+<div class="highlight-box">
+  <div class="hl-title">Diagnóstico Central — Fases 4 e 5</div>
+  <p>A finalização é funcional mas <strong>perde oportunidades de criar memória emocional positiva</strong>. O modal de confirmação poderia ser mais acionável (mostrar quais questões estão em branco). O loading poderia mostrar progresso real. A tela pós-prova trata uma conquista como uma tarefa concluída — sem celebração, sem reforço, sem emoção. Num produto de preparação médica onde o usuário está sob enorme pressão, <strong>cada momento de reforço positivo importa para a retenção e o engajamento futuro</strong>.</p>
+</div>

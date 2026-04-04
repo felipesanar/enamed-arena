@@ -53,13 +53,13 @@ export function formatTimer(seconds: number): string {
 export function getTimerColor(seconds: number): string {
   if (seconds < 60) return 'text-destructive';
   if (seconds < 300) return 'text-warning';
-  if (seconds < 900) return 'text-amber-600 dark:text-amber-400';
-  return 'text-foreground';
+  if (seconds < 900) return 'text-foreground';
+  return 'text-foreground/70';
 }
 
 export function getTimerBgClass(seconds: number): string {
-  if (seconds < 60) return 'bg-destructive/10';
-  if (seconds < 300) return 'bg-warning/10';
-  if (seconds < 900) return 'bg-amber-50 dark:bg-amber-950/20';
-  return 'bg-muted';
+  if (seconds < 60) return 'bg-destructive/8';
+  if (seconds < 300) return 'bg-warning/8';
+  if (seconds < 900) return 'bg-muted/50';
+  return 'bg-transparent';
 }

@@ -71,6 +71,18 @@
     --sidebar-ring: 345 65% 50%;
     --sidebar-muted: 345 15% 45%;
 
+    /* Exam focus mode */
+    --exam-bg: 210 15% 97.5%;
+    --exam-surface: 0 0% 100%;
+    --exam-surface-hover: 210 10% 95%;
+    --exam-border: 210 10% 90%;
+    --exam-border-selected: var(--primary);
+    --exam-text: 210 20% 15%;
+    --exam-text-secondary: 210 10% 45%;
+    --exam-header-bg: 0 0% 100% / 0.92;
+    --exam-option-selected-bg: 345 65% 30% / 0.04;
+    --exam-shadow-selected: 0 2px 8px -2px hsl(345 65% 30% / 0.08);
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.04);
     --shadow-md: 0 4px 12px -2px hsl(220 20% 10% / 0.06), 0 2px 4px -2px hsl(220 20% 10% / 0.04);
@@ -150,6 +162,18 @@
     --sidebar-border: 220 18% 12%;
     --sidebar-ring: 345 55% 50%;
     --sidebar-muted: 220 10% 35%;
+
+    /* Exam focus mode (dark) */
+    --exam-bg: 220 18% 7%;
+    --exam-surface: 220 16% 11%;
+    --exam-surface-hover: 220 14% 14%;
+    --exam-border: 220 14% 16%;
+    --exam-border-selected: var(--primary);
+    --exam-text: 210 10% 92%;
+    --exam-text-secondary: 210 8% 55%;
+    --exam-header-bg: 220 18% 8% / 0.92;
+    --exam-option-selected-bg: 345 55% 50% / 0.06;
+    --exam-shadow-selected: 0 2px 8px -2px hsl(345 55% 50% / 0.12);
 
     --auth-bg-base: 220 22% 7%;
     --auth-bg-soft: 220 18% 10%;
@@ -392,6 +416,9 @@
   .shadow-auth-ambient {
     box-shadow: var(--auth-shadow-ambient);
   }
+
+  .exam-bg { background-color: hsl(var(--exam-bg)); }
+  .exam-surface { background-color: hsl(var(--exam-surface)); }
 
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;

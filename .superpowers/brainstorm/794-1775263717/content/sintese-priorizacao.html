@@ -1,0 +1,259 @@
+<style>
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #94a3b8; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+
+  .priority-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+  .priority-table th { background: #1e293b; color: #94a3b8; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 8px 12px; text-align: left; }
+  .priority-table td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; line-height: 1.5; }
+  .priority-table tr:last-child td { border-bottom: none; }
+  .priority-table tr:hover td { background: #f8fafc; }
+  .priority-table tr.p1 td:first-child { border-left: 3px solid #ef4444; }
+  .priority-table tr.p2 td:first-child { border-left: 3px solid #f59e0b; }
+  .priority-table tr.p3 td:first-child { border-left: 3px solid #10b981; }
+
+  .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+  .badge-p1 { background: #fee2e2; color: #b91c1c; }
+  .badge-p2 { background: #fef3c7; color: #b45309; }
+  .badge-p3 { background: #d1fae5; color: #065f46; }
+  .badge-phase { background: #e0e7ff; color: #3730a3; }
+  .badge-effort { background: #f3f4f6; color: #374151; }
+
+  .effort-dots { display: flex; gap: 3px; }
+  .effort-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-filled { background: #1e293b; }
+  .dot-empty { background: #e5e7eb; }
+
+  .impact-effort-matrix {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+    margin: 14px 0; background: #e5e7eb; border-radius: 12px; overflow: hidden;
+    aspect-ratio: 1.8;
+  }
+  .matrix-cell {
+    background: #fff; padding: 12px; position: relative;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .matrix-cell.top-left  { border-radius: 10px 0 0 0; background: #fef3c7; }
+  .matrix-cell.top-right { border-radius: 0 10px 0 0; background: #f0fdf4; }
+  .matrix-cell.bot-left  { border-radius: 0 0 0 10px; background: #f8fafc; }
+  .matrix-cell.bot-right { border-radius: 0 0 10px 0; background: #fff5f5; }
+  .matrix-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; margin-bottom: 4px; }
+  .matrix-tag { font-size: 10px; font-weight: 600; color: #374151; background: rgba(255,255,255,.8); border: 1px solid rgba(0,0,0,.07); border-radius: 5px; padding: 2px 7px; display: inline-block; margin: 1px 0; }
+  .matrix-axis-x { text-align: center; font-size: 10px; color: #64748b; font-weight: 700; margin-top: 4px; }
+  .matrix-axis-y { writing-mode: vertical-lr; transform: rotate(180deg); font-size: 10px; color: #64748b; font-weight: 700; text-align: center; }
+  .matrix-wrap { display: flex; gap: 8px; align-items: center; }
+
+  .principles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+  .principle-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; }
+  .p-icon { font-size: 24px; margin-bottom: 8px; }
+  .p-title { font-size: 12px; font-weight: 700; color: #1a1a1a; margin-bottom: 5px; }
+  .p-desc { font-size: 11px; color: #555; line-height: 1.5; }
+
+  .summary-final { background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 12px; padding: 20px; margin: 16px 0; color: #e2e8f0; }
+  .sf-title { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+  .sf-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .sf-col-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: .07em; margin-bottom: 8px; }
+  .sf-item { font-size: 11px; color: #cbd5e1; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); line-height: 1.5; }
+  .sf-item:last-child { border-bottom: none; }
+  .sf-item strong { color: #e2e8f0; }
+</style>
+
+<h2 style="margin-bottom:4px">Síntese e Priorização</h2>
+<p class="subtitle">Plano de ação ordenado por impacto no usuário vs. esforço de implementação</p>
+
+<div class="section-title">Matriz Impacto × Esforço</div>
+
+<div class="matrix-wrap">
+  <div class="matrix-axis-y">↑ Impacto no usuário</div>
+  <div style="flex:1">
+    <div class="impact-effort-matrix">
+      <div class="matrix-cell top-left">
+        <div class="matrix-label">🚀 Quick Wins — Fazer primeiro</div>
+        <span class="matrix-tag">Remover modal online/offline</span>
+        <span class="matrix-tag">Legenda do navegador de questões</span>
+        <span class="matrix-tag">Tooltip "eliminar alternativa"</span>
+        <span class="matrix-tag">Tooltip "alta confiança"</span>
+        <span class="matrix-tag">Fullscreen no checklist</span>
+      </div>
+      <div class="matrix-cell top-right">
+        <div class="matrix-label">💎 Grandes apostas — Planejar</div>
+        <span class="matrix-tag">Checklist com memória (novato vs veterano)</span>
+        <span class="matrix-tag">Mini-nav mobile no rodapé</span>
+        <span class="matrix-tag">Tela pós-prova com celebração</span>
+        <span class="matrix-tag">Painel de atalhos de teclado</span>
+      </div>
+      <div class="matrix-cell bot-left">
+        <div class="matrix-label">✨ Polimento — Quando der</div>
+        <span class="matrix-tag">Countdown regressivo de resultado</span>
+        <span class="matrix-tag">Indicador "Salvo" no header</span>
+        <span class="matrix-tag">Timer estado em 15 min</span>
+      </div>
+      <div class="matrix-cell bot-right">
+        <div class="matrix-label">⏸ Reconsiderar — Baixa prioridade</div>
+        <span class="matrix-tag">Loading com etapas progressivas</span>
+        <span class="matrix-tag">Overlay de atalhos na 1ª prova</span>
+      </div>
+    </div>
+    <div class="matrix-axis-x">Esforço de implementação →</div>
+  </div>
+</div>
+
+<div class="section-title">Plano de ação priorizado</div>
+
+<table class="priority-table">
+  <tr>
+    <th>Prioridade</th>
+    <th>Problema</th>
+    <th>Fase</th>
+    <th>Esforço</th>
+    <th>Ação recomendada</th>
+  </tr>
+  <tr class="p1">
+    <td><span class="badge badge-p1">P1 · Crítico</span></td>
+    <td>Modal online/offline desnecessário</td>
+    <td><span class="badge badge-phase">Pré-Prova</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Remover o modal. Botão "Iniciar" navega direto para prova.</td>
+  </tr>
+  <tr class="p1">
+    <td><span class="badge badge-p1">P1 · Crítico</span></td>
+    <td>Eliminar alternativa — invisível</td>
+    <td><span class="badge badge-phase">Interface</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Tooltip "Eliminar esta alternativa" + label visível no hover da opção.</td>
+  </tr>
+  <tr class="p1">
+    <td><span class="badge badge-p1">P1 · Crítico</span></td>
+    <td>"Alta confiança" sem explicação</td>
+    <td><span class="badge badge-phase">Interface</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Tooltip contextual explicando uso + exibir dado nos resultados.</td>
+  </tr>
+  <tr class="p1">
+    <td><span class="badge badge-p1">P1 · Crítico</span></td>
+    <td>Legenda de cores ausente no navegador</td>
+    <td><span class="badge badge-phase">Interface</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Mini legenda fixa abaixo do grid: ● Respondida ● Revisão ● Alta conf.</td>
+  </tr>
+  <tr class="p1">
+    <td><span class="badge badge-p1">P1 · Crítico</span></td>
+    <td>Atalhos de teclado invisíveis</td>
+    <td><span class="badge badge-phase">Interface</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Ícone de teclado no header → painel dropdown com todos os atalhos.</td>
+  </tr>
+  <tr class="p2">
+    <td><span class="badge badge-p2">P2 · Atenção</span></td>
+    <td>Checklist sem memória para veterano</td>
+    <td><span class="badge badge-phase">Pré-Prova</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Após 1ª prova: substituir checklist por resumo colapsado + CTA direto.</td>
+  </tr>
+  <tr class="p2">
+    <td><span class="badge badge-p2">P2 · Atenção</span></td>
+    <td>Fullscreen sem aviso prévio</td>
+    <td><span class="badge badge-phase">Pré-Prova</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Adicionar item no checklist: "A prova abre em tela cheia".</td>
+  </tr>
+  <tr class="p2">
+    <td><span class="badge badge-p2">P2 · Atenção</span></td>
+    <td>Modal: não mostra quais questões estão em branco</td>
+    <td><span class="badge badge-phase">Finalização</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Listar números das questões em branco, clicáveis, que fecham o modal e navegam.</td>
+  </tr>
+  <tr class="p2">
+    <td><span class="badge badge-p2">P2 · Atenção</span></td>
+    <td>Tela pós-prova sem celebração</td>
+    <td><span class="badge badge-phase">Pós-Prova</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Animação de conquista + resumo da prova + notificação proeminente.</td>
+  </tr>
+  <tr class="p2">
+    <td><span class="badge badge-p2">P2 · Atenção</span></td>
+    <td>Mobile: navegador escondido em sheet</td>
+    <td><span class="badge badge-phase">Interface</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-filled"></div><div class="effort-dot dot-filled"></div></div></td>
+    <td>Mini-nav fixo no rodapé mobile com bolinhas coloridas swipeable.</td>
+  </tr>
+  <tr class="p3">
+    <td><span class="badge badge-p3">P3 · Polimento</span></td>
+    <td>"Ver resultado" antes de resultado liberado</td>
+    <td><span class="badge badge-phase">Pós-Prova</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Condicionar CTA ao status do resultado. Mostrar gabarito como alternativa.</td>
+  </tr>
+  <tr class="p3">
+    <td><span class="badge badge-p3">P3 · Polimento</span></td>
+    <td>Indicador de salvamento invisível</td>
+    <td><span class="badge badge-phase">Interface</span></td>
+    <td><div class="effort-dots"><div class="effort-dot dot-filled"></div><div class="effort-dot dot-empty"></div><div class="effort-dot dot-empty"></div></div></td>
+    <td>Ícone sutil "✓ Salvo" no header que pisca ao sincronizar com Supabase.</td>
+  </tr>
+</table>
+
+<div class="section-title">Princípios UX que devem guiar as melhorias</div>
+
+<div class="principles-grid">
+  <div class="principle-card">
+    <div class="p-icon">🔍</div>
+    <div class="p-title">Discoverability First</div>
+    <div class="p-desc">Uma funcionalidade que não é descoberta não existe. Eliminar alternativa, alta confiança e atalhos precisam se tornar visíveis — a interface deve ensinar enquanto o usuário usa.</div>
+  </div>
+  <div class="principle-card">
+    <div class="p-icon">🧠</div>
+    <div class="p-title">Fluxo adaptativo ao contexto</div>
+    <div class="p-desc">Novato e veterano têm necessidades diferentes no pré-prova. O produto deve reconhecer o histórico e adaptar a fricção — mais orientação para quem está começando, caminho rápido para quem já sabe.</div>
+  </div>
+  <div class="principle-card">
+    <div class="p-icon">❤️</div>
+    <div class="p-title">Reforço emocional positivo</div>
+    <div class="p-desc">Completar uma prova de residência médica é estressante e significativo. A tela de conclusão deve celebrar o esforço — cria memória emocional positiva e aumenta a chance de retorno.</div>
+  </div>
+  <div class="principle-card">
+    <div class="p-icon">⚡</div>
+    <div class="p-title">Menos cliques, mais foco</div>
+    <div class="p-desc">Cada clique antes da prova é ansiedade adicionada. O fluxo pré-prova para usuários recorrentes deve ser reduzido ao mínimo — o usuário veio para fazer a prova, não para confirmar que sabe as regras.</div>
+  </div>
+  <div class="principle-card">
+    <div class="p-icon">📱</div>
+    <div class="p-title">Mobile como cidadão de primeira classe</div>
+    <div class="p-desc">O navegador de questões em sheet modal não é equivalente ao sidebar desktop. Mobile precisa de um padrão próprio que mantenha a consciência de progresso sem ocupar espaço da questão.</div>
+  </div>
+  <div class="principle-card">
+    <div class="p-icon">🎯</div>
+    <div class="p-title">CTAs honestos com o estado real</div>
+    <div class="p-desc">"Ver resultado" antes do resultado estar disponível quebra a confiança. Cada CTA deve refletir o que o sistema pode entregar agora — não o que vai poder entregar depois.</div>
+  </div>
+</div>
+
+<div class="summary-final">
+  <div class="sf-title">Resumo Executivo da Auditoria</div>
+  <div class="sf-cols">
+    <div>
+      <div class="sf-col-title">🔴 Corrigir agora</div>
+      <div class="sf-item">Remover modal online/offline</div>
+      <div class="sf-item">Tornar "eliminar alternativa" visível</div>
+      <div class="sf-item">Explicar "alta confiança"</div>
+      <div class="sf-item">Adicionar legenda ao navegador</div>
+      <div class="sf-item">Expor atalhos de teclado</div>
+    </div>
+    <div>
+      <div class="sf-col-title">🟡 Planejar próximo sprint</div>
+      <div class="sf-item">Checklist adaptativo (novato/veterano)</div>
+      <div class="sf-item">Questões em branco clicáveis no modal</div>
+      <div class="sf-item">Celebração na tela de conclusão</div>
+      <div class="sf-item">Aviso de fullscreen no checklist</div>
+      <div class="sf-item">Mini-nav mobile no rodapé</div>
+    </div>
+    <div>
+      <div class="sf-col-title">🟢 Acertos a preservar</div>
+      <div class="sf-item">Persistência resiliente (localStorage + DB)</div>
+      <div class="sf-item">Botão contextual Iniciar/Continuar</div>
+      <div class="sf-item">Timer progressivo (5min/1min)</div>
+      <div class="sf-item">Marcação para revisão</div>
+      <div class="sf-item">Data de resultado na tela pós-prova</div>
+      <div class="sf-item">Opt-in de email no momento certo</div>
+    </div>
+  </div>
+</div>

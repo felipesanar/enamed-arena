@@ -68,6 +68,7 @@ export interface UseExamFlowReturn {
   notifyResultByEmail: boolean;
   /** Após finalizar: true se a tentativa entrou na janela oficial (ranking). */
   isWithinWindow: boolean;
+  saving: boolean;
 }
 
 const emptySummary = {
@@ -154,7 +155,15 @@ export function useExamFlow(): UseExamFlowReturn {
   const focusControl = useFocusControl({
     onTabExit: () => storage.registerTabExit(),
     onTabReturn: () => {},
-    onFullscreenExit: () => storage.registerFullscreenExit(),
+    onFullscreenExit: () => {
+      storage.registerFullscreenExit();
+      setState(prev => prev ? { ...prev, fullscreenExitCount: prev.fullscreenExitCount + 1 } : prev);
+      toast({
+        title: 'Você saiu da tela cheia',
+        description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
+        variant: 'destructive',
+      });
+    },
   });
 
   const finalize = useCallback(async () => {
@@ -451,5 +460,6 @@ export function useExamFlow(): UseExamFlowReturn {
     attemptId: storage.attemptId.current,
     notifyResultByEmail,
     isWithinWindow,
+    saving: storage.isSaving,
   };
 }

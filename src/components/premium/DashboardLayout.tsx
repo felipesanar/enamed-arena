@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { PremiumSidebar, PREMIUM_SIDEBAR_COLLAPSED_W, PREMIUM_SIDEBAR_EXPANDED_W } from "@/components/premium/PremiumSidebar";
 import { DashboardOutlet } from "@/components/premium/DashboardOutlet";
 import { MobileDashboardHeader } from "@/components/premium/MobileDashboardHeader";
@@ -18,8 +19,13 @@ function readSidebarCollapsed(): boolean {
 }
 
 export function DashboardLayout() {
+  const location = useLocation();
   const isMobile = useIsMobile();
   const { profile } = useUser();
+  const isExamRoute = useMemo(
+    () => /^\/simulados\/[^/]+\/prova(?:\/|$)/.test(location.pathname),
+    [location.pathname]
+  );
   const isGuestMobile =
     isMobile && (profile?.segment ?? "guest") === "guest";
 
@@ -35,7 +41,7 @@ export function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen w-full bg-[radial-gradient(120%_100%_at_80%_0%,rgba(142,31,61,0.07)_0%,rgba(142,31,61,0)_35%),radial-gradient(80%_60%_at_0%_100%,rgba(142,31,61,0.04)_0%,transparent_50%),#F4F1F3]">
-      {!isMobile && (
+      {!isMobile && !isExamRoute && (
         <div
           className={cn(
             "fixed inset-y-0 z-40 flex shrink-0 flex-col overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
@@ -53,7 +59,7 @@ export function DashboardLayout() {
         </div>
       )}
 
-      {isMobile && (
+      {isMobile && !isExamRoute && (
         <>
           <MobileDashboardHeader />
           <MobileBottomNav />
@@ -63,14 +69,17 @@ export function DashboardLayout() {
       <div
         className={cn(
           "flex min-w-0 flex-1 flex-col transition-[padding-left] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-          !isMobile && sidebarCollapsed && "md:pl-[72px]",
-          !isMobile && !sidebarCollapsed && "md:pl-[292px]",
+          isExamRoute && "md:pl-0",
+          !isExamRoute && !isMobile && sidebarCollapsed && "md:pl-[72px]",
+          !isExamRoute && !isMobile && !sidebarCollapsed && "md:pl-[292px]",
         )}
       >
         <main
           className={cn(
-            "flex-1 px-4 md:px-8 py-6 md:py-8",
+            "flex-1",
+            isExamRoute ? "p-0 overflow-hidden" : "px-4 md:px-8 py-6 md:py-8",
             isMobile &&
+              !isExamRoute &&
               cn(
                 isGuestMobile
                   ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"

@@ -1,0 +1,142 @@
+<style>
+  body-wrap { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .problem-card {
+    border: 1px solid #fecaca; border-radius: 10px; background: #fff5f5;
+    padding: 14px; border-left: 4px solid #ef4444;
+  }
+  .problem-card.warn {
+    border-color: #fde68a; background: #fffbeb; border-left-color: #f59e0b;
+  }
+  .problem-card.good {
+    border-color: #bbf7d0; background: #f0fdf4; border-left-color: #10b981;
+  }
+  .card-tag {
+    display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; padding: 2px 7px; border-radius: 99px; margin-bottom: 8px;
+  }
+  .tag-crit { background: #fee2e2; color: #b91c1c; }
+  .tag-warn { background: #fef3c7; color: #b45309; }
+  .tag-good { background: #d1fae5; color: #065f46; }
+  .card-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+  .card-desc { font-size: 12px; color: #555; line-height: 1.5; margin-bottom: 8px; }
+  .card-rec {
+    font-size: 11px; background: rgba(0,0,0,.05); border-radius: 6px;
+    padding: 7px 9px; color: #333; line-height: 1.5;
+  }
+  .card-rec strong { color: #1a1a1a; }
+
+  .flow-diagram {
+    background: #0f172a; border-radius: 12px; padding: 16px;
+    display: flex; align-items: center; gap: 0; margin: 14px 0; overflow-x: auto;
+  }
+  .flow-node {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 8px 12px; color: #e2e8f0; font-size: 11px; font-weight: 600;
+    text-align: center; min-width: 90px; flex-shrink: 0;
+  }
+  .flow-node.bad { border-color: #ef4444; background: #450a0a; color: #fca5a5; }
+  .flow-node.ok  { border-color: #10b981; background: #052e16; color: #86efac; }
+  .flow-arrow { color: #475569; font-size: 20px; padding: 0 4px; flex-shrink: 0; }
+  .flow-node small { display: block; font-size: 9px; color: #64748b; margin-top: 2px; font-weight: 400; }
+  .flow-node.bad small { color: #f87171; opacity: .7; }
+
+  .impact-meter { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .impact-label { font-size: 10px; color: #888; width: 60px; flex-shrink: 0; }
+  .meter-bar { height: 6px; border-radius: 3px; background: #e5e7eb; flex: 1; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 3px; }
+  .fill-red { background: #ef4444; }
+  .fill-yellow { background: #f59e0b; }
+  .fill-green { background: #10b981; }
+
+  .section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+    color: #94a3b8; margin: 20px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .highlight-box {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #e2e8f0; border-radius: 10px; padding: 14px 16px; margin: 14px 0;
+    border-left: 4px solid #3b82f6;
+  }
+  .highlight-box .hl-title { font-size: 12px; font-weight: 700; color: #93c5fd; margin-bottom: 6px; }
+  .highlight-box p { font-size: 12px; line-height: 1.6; color: #cbd5e1; margin: 0; }
+</style>
+
+<h2 style="margin-bottom:4px">Fase 2 — Pré-Prova <span style="color:#ef4444; font-size:14px">● Crítico</span></h2>
+<p class="subtitle">SimuladoDetailPage · Checklist · Modais de escolha · Fluxo de entrada</p>
+
+<div class="section-title">Fluxo atual (número real de interações para iniciar)</div>
+
+<div class="flow-diagram">
+  <div class="flow-node ok">Card de<br>Simulado<br><small>click 1</small></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node bad">Checklist<br>Obrigatório<br><small>5 checkboxes</small></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node bad">Modal<br>"Como Funciona"<br><small>opcional, 4 steps</small></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node bad">Botão<br>"Iniciar"<br><small>click 7+</small></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node bad">Modal Escolha<br>Online/Offline<br><small>só 1 opção ativa</small></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node ok">Prova<br>Inicia<br><small>click 9+</small></div>
+</div>
+
+<div class="highlight-box">
+  <div class="hl-title">Diagnóstico Central</div>
+  <p>Um usuário recorrente precisa de <strong>9+ interações</strong> (5 checkboxes + 2 cliques de modal + 1 clique de confirmação + 1 clique de escolha) para iniciar uma prova que já iniciou antes. O fluxo foi projetado para o <em>primeiro uso</em>, mas <strong>não se adapta ao usuário que já sabe o que está fazendo</strong>. Em contexto de prova com prazo real, cada clique adicional gera ansiedade desnecessária.</p>
+</div>
+
+<div class="section-title">Problemas identificados</div>
+
+<div class="analysis-grid">
+
+  <div class="problem-card">
+    <span class="card-tag tag-crit">Crítico · Fricção</span>
+    <div class="card-title">Checklist sem memória para usuário recorrente</div>
+    <div class="card-desc">O checklist de 5 itens obrigatórios apresenta as mesmas informações toda vez — "a prova não pode ser pausada", "precisa de conexão estável" — mesmo que o usuário já tenha feito 10 provas. Não há distinção entre novato e veterano.</div>
+    <div class="impact-meter"><span class="impact-label">Fricção</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:90%"></div></div></div>
+    <div class="impact-meter"><span class="impact-label">Frequência</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:100%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Após a primeira prova concluída, substituir o checklist completo por um resumo colapsado "Lembre-se: prova sem pausa · X questões · Xh" com um único CTA. O checklist completo fica disponível via "ver detalhes".</div>
+  </div>
+
+  <div class="problem-card">
+    <span class="card-tag tag-crit">Crítico · Redundância</span>
+    <div class="card-title">Modal de escolha online/offline com apenas 1 opção ativa</div>
+    <div class="card-desc">Após o usuário passar por todo o checklist e clicar "Iniciar Simulado", aparece um modal perguntando "Experiência online ou offline?" — mas a opção offline está desabilitada ("em breve"). O modal não acrescenta nenhuma decisão real, é apenas uma tela extra.</div>
+    <div class="impact-meter"><span class="impact-label">Fricção</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:80%"></div></div></div>
+    <div class="impact-meter"><span class="impact-label">Confusão</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:65%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Remover o modal completamente enquanto offline não existir. Quando offline for lançado, o modal faz sentido. Até lá, o clique em "Iniciar" deve navegar diretamente para a prova.</div>
+  </div>
+
+  <div class="problem-card">
+    <span class="card-tag tag-warn">Atenção · Discoverability</span>
+    <div class="card-title">"Como funciona" não diferencia contexto de uso</div>
+    <div class="card-desc">O tutorial modal com 4 slides (janela oficial, treinamento, resultados, regras) é útil para novatos, mas ocupa espaço proeminente para todos. Usuários que já entendem o sistema são forçados a ignorar ou rolar por ele.</div>
+    <div class="impact-meter"><span class="impact-label">Fricção</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:50%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Mostrar destaque para "Como funciona" apenas na primeira vez. Depois, colapsar para um ícone de interrogação discreto no canto. O conteúdo permanece acessível, mas não domina a tela para quem já sabe.</div>
+  </div>
+
+  <div class="problem-card">
+    <span class="card-tag tag-warn">Atenção · Clareza</span>
+    <div class="card-title">Aviso sobre "janela de ranking" não tem urgência visual</div>
+    <div class="card-desc">O item opcional do checklist sobre disponibilidade tardia e ranking é texto plano. Se o usuário está dentro da janela oficial (o que impacta o ranking), isso deveria ser comunicado com urgência — não enterrado como um 5º checkbox igual aos outros.</div>
+    <div class="impact-meter"><span class="impact-label">Clareza</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:60%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Quando dentro da janela de ranking, mostrar um badge/banner destacado no topo da página: "⚡ Você está na janela oficial — sua nota contará para o ranking". Fora da janela, omitir ou mencionar brevemente.</div>
+  </div>
+
+  <div class="problem-card good">
+    <span class="card-tag tag-good">Acerto · Manter</span>
+    <div class="card-title">Aviso de "sem pausa" está presente e correto</div>
+    <div class="card-desc">A informação de que a prova não pode ser pausada é crítica e está corretamente no checklist. Em uma prova com prazo real, o usuário precisa saber isso antes de começar. É um dos poucos itens do checklist que sempre justifica estar ali.</div>
+    <div class="card-rec"><strong>Manter:</strong> Este aviso mesmo na versão simplificada para usuários recorrentes. É a única informação contextual que muda a decisão de iniciar agora vs depois.</div>
+  </div>
+
+  <div class="problem-card good">
+    <span class="card-tag tag-good">Acerto · Manter</span>
+    <div class="card-title">Botão "Continuar Simulado" é contextual e correto</div>
+    <div class="card-desc">A lógica que diferencia "Iniciar" de "Continuar" no card do simulado é excelente UX — o sistema reconhece o estado do usuário e adapta o CTA. Poucos produtos de simulado fazem isso.</div>
+    <div class="card-rec"><strong>Manter e fortalecer:</strong> Ao clicar em "Continuar", o fluxo deveria ser ainda mais rápido — talvez pular o checklist inteiro e ir diretamente para a prova com um toast "Retomando do ponto X".</div>
+  </div>
+
+</div>

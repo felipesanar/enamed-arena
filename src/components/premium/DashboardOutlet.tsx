@@ -12,6 +12,7 @@ export function DashboardOutlet() {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location.pathname}
+        className="h-full"
         initial={prefersReducedMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={prefersReducedMotion ? undefined : { opacity: 0 }}

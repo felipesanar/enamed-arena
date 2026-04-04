@@ -1,0 +1,174 @@
+<style>
+  .journey-wrap { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 8px 0; }
+  .phase-row { display: flex; gap: 0; margin-bottom: 0; }
+  .phase-box {
+    flex: 1;
+    border-top: 4px solid #ccc;
+    padding: 14px 12px 10px;
+    position: relative;
+    background: #fafafa;
+    border-right: 1px solid #e5e5e5;
+  }
+  .phase-box:last-child { border-right: none; }
+  .phase-box.critical { border-top-color: #ef4444; background: #fff5f5; }
+  .phase-box.warning  { border-top-color: #f59e0b; background: #fffbeb; }
+  .phase-box.ok       { border-top-color: #10b981; background: #f0fdf4; }
+  .phase-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #888; margin-bottom: 4px; }
+  .phase-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+  .issue-list { list-style: none; padding: 0; margin: 0; }
+  .issue-list li { font-size: 11px; color: #555; padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,.05); display: flex; gap: 5px; align-items: flex-start; }
+  .issue-list li:last-child { border-bottom: none; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .dot.red    { background: #ef4444; }
+  .dot.yellow { background: #f59e0b; }
+  .dot.green  { background: #10b981; }
+  .severity-badge {
+    position: absolute; top: 10px; right: 10px;
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 99px;
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .badge-critical { background: #fee2e2; color: #b91c1c; }
+  .badge-warning  { background: #fef3c7; color: #b45309; }
+  .badge-ok       { background: #d1fae5; color: #065f46; }
+
+  .journey-flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; margin: 16px 0 8px; padding: 0 8px;
+  }
+  .flow-step {
+    background: #1e293b; color: #fff;
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .flow-arrow { color: #94a3b8; font-size: 18px; padding: 0 4px; }
+
+  .legend { display: flex; gap: 16px; justify-content: center; margin: 8px 0 16px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+
+  .summary-bar {
+    display: flex; gap: 12px; background: #1e293b; border-radius: 10px;
+    padding: 12px 16px; margin-top: 12px; color: #fff;
+  }
+  .summary-stat { text-align: center; flex: 1; }
+  .summary-stat .num { font-size: 22px; font-weight: 800; }
+  .summary-stat .lbl { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+  .summary-stat.red .num { color: #f87171; }
+  .summary-stat.yellow .num { color: #fbbf24; }
+  .summary-stat.green .num { color: #34d399; }
+</style>
+
+<div class="journey-wrap">
+  <h2 style="margin-bottom:4px">Auditoria UX/UI — Fluxo de Simulados</h2>
+  <p class="subtitle">Análise completa do fluxo "Iniciar → Finalizar Simulado" identificando pontos críticos, atenção e acertos</p>
+
+  <div class="journey-flow">
+    <div class="flow-step">Lista de Simulados</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Pré-Prova</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Interface da Prova</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Finalização</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Pós-Prova</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot red"></div> Crítico (alta fricção / confusão)</div>
+    <div class="legend-item"><div class="dot yellow"></div> Atenção (melhoria importante)</div>
+    <div class="legend-item"><div class="dot green"></div> Funciona bem (manter)</div>
+  </div>
+
+  <div class="phase-row">
+
+    <div class="phase-box warning">
+      <span class="severity-badge badge-warning">Atenção</span>
+      <div class="phase-label">Fase 1</div>
+      <div class="phase-title">Lista de Simulados</div>
+      <ul class="issue-list">
+        <li><div class="dot yellow"></div> Status e CTAs ambíguos (card hero vs timeline)</li>
+        <li><div class="dot yellow"></div> Hierarquia visual fraca entre simulados ativos e passados</li>
+        <li><div class="dot green"></div> Layout de timeline é intuitivo</li>
+        <li><div class="dot green"></div> Botão contextual (Iniciar / Continuar)</li>
+      </ul>
+    </div>
+
+    <div class="phase-box critical">
+      <span class="severity-badge badge-critical">Crítico</span>
+      <div class="phase-label">Fase 2</div>
+      <div class="phase-title">Pré-Prova (Checklist)</div>
+      <ul class="issue-list">
+        <li><div class="dot red"></div> 3 cliques / 2 modais antes de iniciar a prova</li>
+        <li><div class="dot red"></div> Modal de escolha online/offline com só 1 opção ativa é redundante</li>
+        <li><div class="dot red"></div> Checklist obrigatório sem memória (usuário recorrente repete tudo)</li>
+        <li><div class="dot yellow"></div> "Como funciona" não diferencia novato de veterano</li>
+        <li><div class="dot green"></div> Aviso sobre sem pausa é essencial e está presente</li>
+      </ul>
+    </div>
+
+    <div class="phase-box critical">
+      <span class="severity-badge badge-critical">Crítico</span>
+      <div class="phase-label">Fase 3</div>
+      <div class="phase-title">Interface da Prova</div>
+      <ul class="issue-list">
+        <li><div class="dot red"></div> Fullscreen forçado sem aviso prévio visível</li>
+        <li><div class="dot red"></div> Funcionalidade "eliminar alternativa" invisível / não descoberta</li>
+        <li><div class="dot red"></div> Atalhos de teclado não documentados na interface</li>
+        <li><div class="dot red"></div> "Alta confiança" (⚡) — sem explicação do que faz</li>
+        <li><div class="dot yellow"></div> Mobile: navegador de questões escondido em sheet</li>
+        <li><div class="dot yellow"></div> Timer: tensão visual só nos últimos minutos</li>
+        <li><div class="dot yellow"></div> Header denso com informações competindo por atenção</li>
+        <li><div class="dot green"></div> Persistência (localStorage + Supabase) — resiliente</li>
+        <li><div class="dot green"></div> Marcação para revisão (⚑) — presente</li>
+        <li><div class="dot green"></div> Barra de progresso — presente</li>
+      </ul>
+    </div>
+
+    <div class="phase-box warning">
+      <span class="severity-badge badge-warning">Atenção</span>
+      <div class="phase-label">Fase 4</div>
+      <div class="phase-title">Finalização</div>
+      <ul class="issue-list">
+        <li><div class="dot yellow"></div> Botão "Finalizar" no header pode ser acionado acidentalmente</li>
+        <li><div class="dot yellow"></div> Modal de confirmação sobrepõe informação (não mostra quais questões estão em branco)</li>
+        <li><div class="dot yellow"></div> Estado de loading preso — sem feedback de progresso real</li>
+        <li><div class="dot green"></div> Resumo (respondidas, revisão, branco) — bom</li>
+        <li><div class="dot green"></div> Prevenção de fechar modal durante envio — correto</li>
+      </ul>
+    </div>
+
+    <div class="phase-box warning">
+      <span class="severity-badge badge-warning">Atenção</span>
+      <div class="phase-label">Fase 5</div>
+      <div class="phase-title">Pós-Prova</div>
+      <ul class="issue-list">
+        <li><div class="dot yellow"></div> Tela de conclusão não transmite conquista / celebração adequada</li>
+        <li><div class="dot yellow"></div> CTA "Ver resultado" pode aparecer antes de resultados liberados</li>
+        <li><div class="dot yellow"></div> Opt-in de email notification enterrado como elemento secundário</li>
+        <li><div class="dot green"></div> Data de liberação de resultado visível — correto</li>
+        <li><div class="dot green"></div> Notificação por email — funcionalidade valiosa</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="summary-bar">
+    <div class="summary-stat red">
+      <div class="num">8</div>
+      <div class="lbl">Problemas Críticos</div>
+    </div>
+    <div class="summary-stat yellow">
+      <div class="num">10</div>
+      <div class="lbl">Pontos de Atenção</div>
+    </div>
+    <div class="summary-stat green">
+      <div class="num">9</div>
+      <div class="lbl">Acertos a Manter</div>
+    </div>
+    <div class="summary-stat" style="border-left: 1px solid #334155; padding-left: 12px;">
+      <div class="num" style="font-size:18px; color:#e2e8f0">Pré-Prova<br>+ Interface</div>
+      <div class="lbl">Fases mais críticas</div>
+    </div>
+  </div>
+
+</div>

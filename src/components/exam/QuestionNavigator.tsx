@@ -14,11 +14,11 @@ export function QuestionNavigator({
   totalQuestions, currentIndex, answers, questionIds, onNavigate,
 }: QuestionNavigatorProps) {
   // Dynamic column count — Academy pattern
-  const columns = Math.min(10, Math.ceil(Math.sqrt(totalQuestions)));
+  const columns = 6;
 
   return (
     <div
-      className="grid gap-1.5"
+      className="grid gap-2"
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       {questionIds.map((qId, i) => {
@@ -31,22 +31,24 @@ export function QuestionNavigator({
         return (
           <button
             key={qId}
+            type="button"
             onClick={() => onNavigate(i)}
+            aria-label={`Questão ${i + 1}${isAnswered ? ', respondida' : ''}${isReview ? ', marcada para revisão' : ''}`}
             className={cn(
-              'relative h-8 w-full rounded-md text-[11px] font-semibold transition-all duration-150',
+              'relative h-9 w-full rounded-lg text-[11px] font-semibold transition-all duration-150',
               'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
-              isCurrent && 'ring-2 ring-primary ring-offset-2',
+              isCurrent && 'ring-2 ring-primary ring-offset-2 text-primary',
               isAnswered && !isReview
-                ? 'bg-accent text-accent-foreground'
+                ? 'bg-info text-info-foreground border border-info/50'
                 : isReview
-                  ? 'bg-info/20 text-info'
-                  : 'bg-muted/60 text-muted-foreground hover:bg-muted',
+                  ? 'bg-warning text-warning-foreground border border-warning/60'
+                  : 'bg-transparent border border-[hsl(var(--exam-border))] text-muted-foreground hover:bg-muted/30',
             )}
           >
             {i + 1}
             {isReview && (
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-info flex items-center justify-center">
-                <Flag className="h-[7px] w-[7px] text-info-foreground" />
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-warning flex items-center justify-center">
+                <Flag className="h-[7px] w-[7px] text-warning-foreground" />
               </span>
             )}
             {isHighConf && !isReview && (

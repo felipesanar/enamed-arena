@@ -10,6 +10,7 @@ import { useRanking } from "@/hooks/useRanking";
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useExamResult } from "@/hooks/useExamResult";
 import { computePerformanceBreakdown } from "@/lib/resultHelpers";
+import { deriveHomeHeroState } from "@/lib/home-hero-state";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
@@ -168,6 +169,28 @@ export function HomePagePremium() {
     );
   }, [recentScores]);
 
+  const heroState = useMemo(
+    () =>
+      deriveHomeHeroState({
+        userName,
+        isOnboardingComplete,
+        simulados,
+        simuladosRealizados: stats.simuladosRealizados,
+        mediaAtual: stats.mediaAtual,
+        lastScore,
+        recentScores,
+      }),
+    [
+      isOnboardingComplete,
+      lastScore,
+      recentScores,
+      simulados,
+      stats.mediaAtual,
+      stats.simuladosRealizados,
+      userName,
+    ],
+  );
+
   const rankPosition = currentUser?.position ?? null;
   const rankTotal = rankingStats?.totalCandidatos ?? null;
 
@@ -247,13 +270,7 @@ export function HomePagePremium() {
 
       {/* Layer 1: Hero premium — full width */}
       <motion.div variants={itemVariants}>
-        <HomeHeroSection
-          userName={userName}
-          simuladosRealizados={stats.simuladosRealizados}
-          mediaAtual={stats.mediaAtual}
-          lastScore={lastScore}
-          recentScores={recentScores}
-        />
+        <HomeHeroSection heroState={heroState} />
       </motion.div>
 
       {/* Layer 2: KPI grid (left) + "Seu caminho até aqui" (right) */}

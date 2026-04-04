@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/types';
 import type { ExamAnswer } from '@/types/exam';
@@ -17,7 +18,13 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
-    <div className="animate-fade-in">
+    <div>
+      <a
+        href="#exam-options"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10 focus:px-3 focus:py-1.5 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-body-sm"
+      >
+        Pular para alternativas
+      </a>
       {/* Area + theme */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <span className="px-2.5 py-1 rounded-md bg-accent text-accent-foreground text-caption font-medium">
@@ -30,10 +37,10 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
 
       {/* Question number + statement */}
       <div className="mb-6">
-        <p className="text-overline uppercase text-muted-foreground mb-2">
+        <p className="text-body font-bold text-primary tracking-tight mb-2">
           Questão {question.number}
         </p>
-        <p className="text-body-lg text-foreground leading-relaxed whitespace-pre-line">
+        <p className="text-[17px] leading-[1.75] text-[hsl(var(--exam-text))] whitespace-pre-line">
           {question.text}
         </p>
       </div>
@@ -44,7 +51,7 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
           <button
             type="button"
             onClick={() => setLightboxOpen(true)}
-            className="relative group cursor-zoom-in rounded-xl overflow-hidden border border-border bg-muted/30 inline-block"
+            className="relative group cursor-zoom-in rounded-xl overflow-hidden border border-[hsl(var(--exam-border))] bg-[hsl(var(--exam-surface))] inline-block"
           >
             <img
               src={question.imageUrl}
@@ -60,30 +67,40 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
       )}
 
       {/* Lightbox overlay */}
-      {lightboxOpen && question.imageUrl && (
-        <div
-          className="fixed inset-0 z-[60] bg-foreground/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <button
-            type="button"
+      <AnimatePresence>
+        {lightboxOpen && question.imageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] bg-foreground/80 backdrop-blur-md flex items-center justify-center p-4"
             onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-muted transition-colors z-10"
-            aria-label="Fechar imagem"
           >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={question.imageUrl}
-            alt={`Imagem da questão ${question.number}`}
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-muted transition-colors z-10"
+              aria-label="Fechar imagem"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <motion.img
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              src={question.imageUrl}
+              alt={`Imagem da questão ${question.number}`}
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Options — inspired by Academy's AlternativaProva, elevated visually */}
-      <div className="space-y-3" role="radiogroup" aria-label={`Alternativas da questão ${question.number}`}>
+      <div id="exam-options" className="space-y-3" role="radiogroup" aria-label={`Alternativas da questão ${question.number}`}>
         {question.options.map((opt) => {
           const isSelected = selectedId === opt.id;
           const isEliminated = eliminated.includes(opt.id);
@@ -100,30 +117,29 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
                   onSelectOption(opt.id);
                 }}
                 className={cn(
-                  'w-full text-left p-4 rounded-xl border-2 transition-all duration-200',
-                  'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
-                  'active:scale-[0.995]',
+                  'w-full text-left p-4 pr-14 sm:pr-24 rounded-xl transition-all duration-150',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                   isSelected
-                    ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20'
+                    ? 'border-2 border-info bg-info/10 shadow-[var(--exam-shadow-selected)]'
                     : isEliminated
-                      ? 'border-border bg-muted/20 opacity-40'
-                      : 'border-border bg-card hover:border-primary/40 hover:bg-muted/30',
+                      ? 'border border-transparent bg-muted/15 opacity-35'
+                      : 'border border-transparent bg-[hsl(var(--exam-surface))] hover:bg-[hsl(var(--exam-surface-hover))]',
                 )}
               >
                 <div className="flex items-start gap-3">
                   <span
                     className={cn(
-                      'flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-caption font-bold transition-colors',
+                      'flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold transition-all duration-150',
                       isSelected
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground',
+                        ? 'bg-info text-info-foreground scale-105'
+                        : 'bg-muted/60 text-muted-foreground',
                     )}
                   >
                     {opt.label}
                   </span>
                   <span className={cn(
-                    'text-body text-foreground pt-0.5',
-                    isEliminated && 'line-through',
+                    'text-[15px] leading-[1.6] text-[hsl(var(--exam-text))] pt-0.5 break-words',
+                    isEliminated && 'line-through text-muted-foreground',
                   )}>
                     {opt.text}
                   </span>

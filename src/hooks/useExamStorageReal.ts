@@ -3,7 +3,7 @@
  * Maintains localStorage as fast write-through cache for UX (debounced sync to DB).
  */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { simuladosApi } from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
@@ -27,6 +27,7 @@ export function useExamStorageReal(simuladoId: string) {
   const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptIdRef = useRef<string | null>(null);
   const pendingAnswersRef = useRef<Record<string, ExamAnswer>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   // Clear pending debounced save on unmount to avoid writing to an unmounted component
   useEffect(() => {
@@ -200,11 +201,14 @@ export function useExamStorageReal(simuladoId: string) {
   // ── Save state (write-through: local immediately, DB debounced) ──
   const saveStateDebounced = useCallback((state: ExamState) => {
     saveLocalState(state);
+    setIsSaving(true);
 
     if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
     debouncedSaveRef.current = setTimeout(() => {
       syncToDb(state).catch(() => {
         logger.error('[ExamStorageReal] Debounced DB sync failed');
+      }).finally(() => {
+        setIsSaving(false);
       });
     }, 2000);
   }, [saveLocalState, syncToDb]);
@@ -333,6 +337,7 @@ export function useExamStorageReal(simuladoId: string) {
   }, [simuladoId, user]);
 
   return {
+    isSaving,
     loadState,
     loadLocalState,
     saveStateSync,

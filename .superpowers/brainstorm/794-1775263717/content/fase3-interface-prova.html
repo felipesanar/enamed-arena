@@ -1,0 +1,299 @@
+<style>
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .analysis-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .problem-card {
+    border: 1px solid #fecaca; border-radius: 10px; background: #fff5f5;
+    padding: 14px; border-left: 4px solid #ef4444;
+  }
+  .problem-card.warn { border-color: #fde68a; background: #fffbeb; border-left-color: #f59e0b; }
+  .problem-card.good { border-color: #bbf7d0; background: #f0fdf4; border-left-color: #10b981; }
+  .card-tag {
+    display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; padding: 2px 7px; border-radius: 99px; margin-bottom: 8px;
+  }
+  .tag-crit { background: #fee2e2; color: #b91c1c; }
+  .tag-warn { background: #fef3c7; color: #b45309; }
+  .tag-good { background: #d1fae5; color: #065f46; }
+  .card-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+  .card-desc { font-size: 12px; color: #555; line-height: 1.5; margin-bottom: 8px; }
+  .card-rec { font-size: 11px; background: rgba(0,0,0,.05); border-radius: 6px; padding: 7px 9px; color: #333; line-height: 1.5; }
+  .card-rec strong { color: #1a1a1a; }
+  .impact-meter { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+  .impact-label { font-size: 10px; color: #888; width: 60px; flex-shrink: 0; }
+  .meter-bar { height: 5px; border-radius: 3px; background: #e5e7eb; flex: 1; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 3px; }
+  .fill-red { background: #ef4444; }
+  .fill-yellow { background: #f59e0b; }
+  .fill-green { background: #10b981; }
+
+  .section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+    color: #94a3b8; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Mockup do Header */
+  .mockup-frame {
+    background: #0f172a; border-radius: 12px; overflow: hidden; margin: 14px 0;
+  }
+  .mockup-label {
+    background: #1e293b; color: #64748b; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; padding: 6px 14px;
+    border-bottom: 1px solid #334155;
+  }
+  .mockup-body { padding: 0; }
+
+  /* Header atual simulado */
+  .exam-header-mock {
+    background: #1e293b; padding: 10px 16px; display: flex;
+    align-items: center; gap: 10px; border-bottom: 1px solid #334155;
+  }
+  .eh-title { color: #e2e8f0; font-size: 12px; font-weight: 700; flex: 1; }
+  .eh-progress { color: #94a3b8; font-size: 11px; }
+  .eh-timer { background: #0f172a; color: #e2e8f0; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 6px; font-family: monospace; }
+  .eh-timer.warn { background: #431407; color: #fb923c; }
+  .eh-btn { background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; }
+  .progress-bar-mock { height: 3px; background: #334155; }
+  .progress-bar-fill { height: 100%; background: #3b82f6; width: 43%; }
+
+  /* Questão mock */
+  .question-area-mock { display: flex; background: #fff; }
+  .q-main { flex: 1; padding: 16px; border-right: 1px solid #f1f5f9; }
+  .q-tag { background: #ede9fe; color: #7c3aed; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; display: inline-block; margin-bottom: 8px; }
+  .q-text { font-size: 12px; color: #1e293b; line-height: 1.6; margin-bottom: 12px; }
+  .q-option {
+    display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px;
+    border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 6px; cursor: pointer;
+  }
+  .q-option:hover { background: #f8fafc; }
+  .q-option.selected { border-color: #3b82f6; background: #eff6ff; }
+  .q-option.eliminated { opacity: 0.4; text-decoration: line-through; }
+  .opt-letter { background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .opt-letter.sel { background: #3b82f6; color: #fff; }
+  .opt-text { font-size: 11px; color: #334155; line-height: 1.5; }
+  .q-elim-btn { font-size: 9px; color: #94a3b8; background: none; border: none; cursor: pointer; margin-left: auto; flex-shrink: 0; margin-top: 2px; }
+  .q-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .q-action-btn { font-size: 10px; padding: 5px 10px; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .q-action-btn.active { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
+  .q-action-btn.active2 { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+  .q-nav-btns { display: flex; gap: 8px; margin-top: 14px; justify-content: space-between; }
+  .q-nav-btn { font-size: 11px; padding: 7px 14px; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; color: #374151; cursor: pointer; }
+  .q-nav-btn.primary { background: #1e293b; color: #fff; border-color: #1e293b; }
+  .q-sidebar { width: 180px; flex-shrink: 0; padding: 12px; background: #f8fafc; }
+  .q-sidebar-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+  .q-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .q-num { font-size: 9px; font-weight: 700; width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; cursor: pointer; }
+  .q-num.ans { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+  .q-num.rev { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
+  .q-num.current { background: #1e293b; border-color: #1e293b; color: #fff; }
+  .q-num.high { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+
+  /* Annotation overlays */
+  .annotation {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px;
+    padding: 3px 7px; font-size: 10px; color: #92400e; font-weight: 600;
+    margin: 3px 2px;
+  }
+  .annotation.red { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+  .annotation.green { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+  .annotation.blue { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+
+  .annot-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; padding: 8px 10px; background: #fafafa; border-radius: 8px; border: 1px dashed #e2e8f0; }
+  .annot-row .annot-label { font-size: 10px; color: #94a3b8; width: 100%; margin-bottom: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+
+  .highlight-box {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #e2e8f0; border-radius: 10px; padding: 14px 16px; margin: 14px 0;
+    border-left: 4px solid #ef4444;
+  }
+  .highlight-box .hl-title { font-size: 12px; font-weight: 700; color: #fca5a5; margin-bottom: 6px; }
+  .highlight-box p { font-size: 12px; line-height: 1.6; color: #cbd5e1; margin: 0; }
+  .highlight-box ul { font-size: 12px; color: #cbd5e1; margin: 6px 0 0; padding-left: 16px; }
+  .highlight-box li { margin-bottom: 4px; line-height: 1.5; }
+</style>
+
+<h2 style="margin-bottom:4px">Fase 3 — Interface da Prova <span style="color:#ef4444; font-size:14px">● Crítico</span></h2>
+<p class="subtitle">ExamHeader · QuestionDisplay · QuestionNavigator · Timer · Atalhos · Funcionalidades ocultas</p>
+
+<div class="section-title">Mockup anotado — interface atual</div>
+
+<div class="mockup-frame">
+  <div class="mockup-label">Interface atual — desktop (com problemas identificados)</div>
+  <div class="mockup-body">
+    <div class="exam-header-mock">
+      <div class="eh-title">ENAMED 2025 – Simulado Nacional</div>
+      <div class="eh-progress">43 / 100</div>
+      <div class="eh-timer warn">01:47:32</div>
+      <div class="eh-btn">Finalizar</div>
+    </div>
+    <div class="progress-bar-mock"><div class="progress-bar-fill"></div></div>
+
+    <div class="annot-row">
+      <span class="annot-label">Problemas no Header</span>
+      <span class="annotation red">⚠ "Finalizar" próximo ao timer — clique acidental</span>
+      <span class="annotation red">⚠ Progresso "43/100" não diz quantas foram respondidas vs navegadas</span>
+      <span class="annotation">⚠ Timer sem estado "normal" — sempre parece urgente</span>
+      <span class="annotation green">✓ Barra de progresso presente</span>
+    </div>
+
+    <div class="question-area-mock">
+      <div class="q-main">
+        <div class="q-tag">Clínica Médica · Cardiologia</div>
+        <div class="q-text">
+          Paciente do sexo masculino, 58 anos, hipertenso e diabético, apresenta dor torácica opressiva há 3 horas...
+          <span style="color:#94a3b8; font-size:11px">(texto continua)</span>
+        </div>
+
+        <div class="q-option">
+          <div class="opt-letter">A</div>
+          <div class="opt-text">Iniciar anticoagulação com heparina não fracionada</div>
+          <button class="q-elim-btn">✕</button>
+        </div>
+        <div class="q-option selected">
+          <div class="opt-letter sel">B</div>
+          <div class="opt-text">Realizar ecocardiograma transtorácico imediatamente</div>
+          <button class="q-elim-btn">✕</button>
+        </div>
+        <div class="q-option eliminated">
+          <div class="opt-letter">C</div>
+          <div class="opt-text">Administrar betabloqueador IV em dose alta</div>
+          <button class="q-elim-btn">✕</button>
+        </div>
+        <div class="q-option">
+          <div class="opt-letter">D</div>
+          <div class="opt-text">Solicitar troponina e ECG seriados</div>
+          <button class="q-elim-btn">✕</button>
+        </div>
+        <div class="q-option">
+          <div class="opt-letter">E</div>
+          <div class="opt-text">Prescrever nitroglicerina sublingual e observar</div>
+          <button class="q-elim-btn">✕</button>
+        </div>
+
+        <div class="annot-row">
+          <span class="annot-label">Problemas na área de questão</span>
+          <span class="annotation red">⚠ Botão "✕" de eliminar é minúsculo e invisível — não descoberto</span>
+          <span class="annotation red">⚠ Opção C eliminada (tachada) — sem feedback visual adequado sobre o que fazer depois</span>
+          <span class="annotation">⚠ Sem indicação de que pressionar 1-5 seleciona opções</span>
+        </div>
+
+        <div class="q-actions">
+          <button class="q-action-btn active">⚑ Revisar depois</button>
+          <button class="q-action-btn active2">⚡ Alta confiança</button>
+        </div>
+
+        <div class="annot-row">
+          <span class="annot-label">Problema nos botões de marcação</span>
+          <span class="annotation red">⚠ "Alta confiança" — sem tooltip nem explicação de pra que serve</span>
+          <span class="annotation">⚠ Usuário não entende o impacto de marcar alta confiança</span>
+          <span class="annotation green">✓ "Revisar depois" é padrão e compreensível</span>
+        </div>
+
+        <div class="q-nav-btns">
+          <button class="q-nav-btn">← Anterior</button>
+          <button class="q-nav-btn">Ir para questão...</button>
+          <button class="q-nav-btn primary">Próxima →</button>
+        </div>
+      </div>
+
+      <div class="q-sidebar">
+        <div class="q-sidebar-title">Questões</div>
+        <div class="q-grid">
+          <div class="q-num ans">1</div><div class="q-num ans">2</div><div class="q-num rev">3</div>
+          <div class="q-num ans">4</div><div class="q-num current">5</div><div class="q-num">6</div>
+          <div class="q-num high">7</div><div class="q-num">8</div><div class="q-num ans">9</div>
+          <div class="q-num">10</div><div class="q-num ans">11</div><div class="q-num">12</div>
+          <div class="q-num rev">13</div><div class="q-num">14</div><div class="q-num ans">15</div>
+        </div>
+        <div class="annot-row" style="margin-top:8px">
+          <span class="annot-label">Problema no navegador</span>
+          <span class="annotation red">⚠ Legenda das cores ausente no sidebar</span>
+          <span class="annotation">⚠ Verde (alta confiança) vs azul (respondida) — distinção não explicada</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Análise detalhada dos problemas</div>
+
+<div class="analysis-grid">
+
+  <div class="problem-card">
+    <span class="card-tag tag-crit">Crítico · Descoberta</span>
+    <div class="card-title">Eliminar alternativa — funcionalidade invisível</div>
+    <div class="card-desc">O botão "✕" para eliminar uma alternativa é minúsculo, sem label, aparece discretamente na lateral direita de cada opção. Em testes de usabilidade, funcionalidades sem label clara têm taxa de descoberta próxima de zero. Muitos usuários nunca saberão que podem eliminar alternativas.</div>
+    <div class="impact-meter"><span class="impact-label">Impacto</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:85%"></div></div></div>
+    <div class="impact-meter"><span class="impact-label">Descoberta</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:15%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Adicionar um tooltip no hover "Eliminar esta alternativa" + um ícone com label "Eliminar" ao selecionar a linha. Considerar um tutorial overlay na primeira prova destacando a funcionalidade. A eliminação é uma das ferramentas mais valiosas em prova — ela precisa ser descoberta.</div>
+  </div>
+
+  <div class="problem-card">
+    <span class="card-tag tag-crit">Crítico · Compreensão</span>
+    <div class="card-title">"Alta confiança" — sem contexto de uso</div>
+    <div class="card-desc">O botão ⚡ "Alta confiança" existe mas o usuário não tem como saber o que ele faz. Ele aparece no modal de confirmação da prova? Gera alguma análise nos resultados? Impacta o ranking? A funcionalidade existe mas o usuário não tem incentivo para usá-la por não entender o valor.</div>
+    <div class="impact-meter"><span class="impact-label">Confusão</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:80%"></div></div></div>
+    <div class="impact-meter"><span class="impact-label">Adoção</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:10%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Tooltip ao passar o mouse: "Marque quando tiver certeza — aparecerá nos seus resultados para análise de calibração". Mostrar no modal de finalização quantas questões foram marcadas com alta confiança e o percentual de acerto nelas.</div>
+  </div>
+
+  <div class="problem-card">
+    <span class="card-tag tag-crit">Crítico · Affordance</span>
+    <div class="card-title">Atalhos de teclado invisíveis na interface</div>
+    <div class="card-desc">Existem atalhos poderosos: 1-5 seleciona opções, ←→ navega questões, R marca revisão, H marca alta confiança, Esc abre modal de finalização. Mas nenhum desses atalhos está visível na interface. Usuários power-users que poderiam economizar minutos nunca descobrirão.</div>
+    <div class="impact-meter"><span class="impact-label">Eficiência</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:75%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Adicionar um ícone de teclado no header que expande um painel de atalhos. Alternativamente, mostrar um overlay de atalhos na primeira questão da primeira prova (descartável com "Entendi"). Labels inline sutis: "B → tecle 2" próximo a cada opção no primeiro uso.</div>
+  </div>
+
+  <div class="problem-card">
+    <span class="card-tag tag-crit">Crítico · Risco de erro</span>
+    <div class="card-title">Botão "Finalizar" — posição de alto risco no header</div>
+    <div class="card-desc">O botão "Finalizar" fica no header ao lado do timer. Em mobile, a densidade do header é alta. Um usuário tentando ver o tempo restante pode acidentalmente tocar em "Finalizar". O ícone Esc também abre o modal de finalização — dois caminhos acidentais para encerrar a prova.</div>
+    <div class="impact-meter"><span class="impact-label">Risco</span><div class="meter-bar"><div class="meter-fill fill-red" style="width:70%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Mover "Finalizar" para a área inferior das questões (junto com Anterior/Próxima). No header, manter apenas informação (título, progresso, timer). Exige confirmação dupla — o modal de confirmação já existe, o risco é chegar nele sem querer.</div>
+  </div>
+
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Mobile</span>
+    <div class="card-title">Navegador de questões escondido em sheet no mobile</div>
+    <div class="card-desc">No desktop o navegador de questões fica visível na sidebar. No mobile ele fica escondido num sheet modal que precisa ser ativado. Isso significa que no mobile o usuário não tem visão geral do progresso a menos que abra explicitamente o sheet — gerando desorientação e mais interações.</div>
+    <div class="impact-meter"><span class="impact-label">Mobile UX</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:70%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Adicionar um mini-navegador fixo no rodapé do mobile: uma barra horizontal com bolinhas coloridas das últimas/próximas questões, swipeable. Mantém a consciência de progresso sem abrir modal.</div>
+  </div>
+
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Legenda</span>
+    <div class="card-title">Cores do navegador sem legenda visível</div>
+    <div class="card-desc">O navegador de questões usa 4 cores: branco (não respondida), azul (respondida), amarelo (revisão), verde (alta confiança). Nenhuma dessas cores tem uma legenda visível. O usuário aprende por tentativa e erro ou não aprende.</div>
+    <div class="impact-meter"><span class="impact-label">Clareza</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:65%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Adicionar uma mini legenda abaixo do grid: "● Respondida ● Revisão ● Alta conf." com os respectivos ícones coloridos. Ocupa 12px de altura e elimina toda a confusão.</div>
+  </div>
+
+  <div class="problem-card warn">
+    <span class="card-tag tag-warn">Atenção · Tensão</span>
+    <div class="card-title">Fullscreen forçado sem aviso prévio claro</div>
+    <div class="card-desc">A prova entra em fullscreen automaticamente ao iniciar. Isso pode ser inesperado e assustador para usuários que não estão familiarizados. O sistema operacional mostra a notificação padrão do browser ("Pressione Esc para sair do fullscreen"), mas não há aviso contextual do produto explicando o porquê.</div>
+    <div class="impact-meter"><span class="impact-label">Surpresa</span><div class="meter-bar"><div class="meter-fill fill-yellow" style="width:60%"></div></div></div>
+    <div class="card-rec"><strong>Recomendação:</strong> Incluir no checklist pré-prova: "A prova abre em tela cheia para sua concentração. Sair do fullscreen é registrado." Isso transforma surpresa em expectativa gerenciada e reforça o propósito da funcionalidade.</div>
+  </div>
+
+  <div class="problem-card good">
+    <span class="card-tag tag-good">Acerto · Manter</span>
+    <div class="card-title">Persistência resiliente (localStorage + Supabase)</div>
+    <div class="card-desc">A estratégia de write-through com localStorage imediato + sync Supabase com debounce de 2s + flush no beforeunload é excelente. O usuário dificilmente perderá progresso mesmo com falha de rede. Isso reduz ansiedade durante a prova.</div>
+    <div class="card-rec"><strong>Manter e comunicar:</strong> Adicionar um indicador sutil de "Salvando..." ou um checkmark "Salvo" no header para o usuário saber que o progresso está sendo persistido. Reduz ainda mais a ansiedade sobre perder respostas.</div>
+  </div>
+
+  <div class="problem-card good">
+    <span class="card-tag tag-good">Acerto · Manter</span>
+    <div class="card-title">Timer com mudança de estado nos momentos críticos</div>
+    <div class="card-desc">A mudança de cor do timer em 5 min (warning) e 1 min (destructive + pulse) é boa UX — cria urgência progressiva sem alarmar o usuário desde o início. O estado neutro no começo é correto.</div>
+    <div class="card-rec"><strong>Manter.</strong> Considerar adicionar um estado intermediário em 15 minutos restantes — uma cor "atenção suave" antes do warning. O salto de neutro → alarme pode ser brusco.</div>
+  </div>
+
+</div>
+
+<div class="highlight-box">
+  <div class="hl-title">Diagnóstico Central — Interface da Prova</div>
+  <p>A interface tem <strong>funcionalidades poderosas e subutilizadas</strong>. Eliminar alternativas, alta confiança e atalhos de teclado existem no código mas são funcionalmente invisíveis. Um usuário pode fazer 100 questões sem nunca descobrir essas ferramentas. O problema não é ausência de funcionalidade — é ausência de <em>discoverability</em>. A máxima de UX se aplica: <strong>uma funcionalidade que não é descoberta não existe para o usuário.</strong></p>
+</div>
