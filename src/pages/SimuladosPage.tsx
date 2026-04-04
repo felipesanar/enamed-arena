@@ -98,7 +98,7 @@ export default function SimuladosPage() {
   }
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Simulados"
         subtitle="100 questões inéditas no modelo ENAMED, elaboradas pelos professores do SanarFlix PRO."
