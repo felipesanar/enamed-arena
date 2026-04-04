@@ -375,8 +375,8 @@ function renderAnswerColumn(
   x: number,
   topY: number,
   _colW: number,
-  fontRegular: typeof StandardFonts.Helvetica,
-  fontBold: typeof StandardFonts.HelveticaBold,
+  fontRegular: PDFFont,
+  fontBold: PDFFont,
 ): void {
   let y = topY;
 
