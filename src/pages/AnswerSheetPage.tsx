@@ -259,9 +259,9 @@ export default function AnswerSheetPage() {
               {allAnswered ? (
                 'Todas as questões foram respondidas. Após enviar, o gabarito não pode ser alterado.'
               ) : (
-                <>
+              <>
                   <strong>{gridQuestions.length - answeredCount} questão(ões)</strong> sem resposta.
-                  Questões em branco serão registradas como não respondidas.
+                  Responda todas as questões antes de enviar o gabarito.
                 </>
               )}
             </DialogDescription>
