@@ -46,7 +46,7 @@ const baseSimulado = {
   questionsCount: 100,
   estimatedDuration: "5h",
   estimatedDurationMinutes: 300,
-  themeTags: [],
+  themeTags: [] as string[],
   resultsReleaseAt: "2026-04-15T12:00:00Z",
   executionWindowStart: "2026-04-01T08:00:00Z",
   executionWindowEnd: "2026-04-01T18:00:00Z",
