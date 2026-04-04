@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { PageTransition } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -196,7 +197,7 @@ function ComparativoContent() {
   const hasAreaData = areaComparisonData.length > 0 && sorted.some(e => Object.keys(e.areaScores).length > 0);
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Comparativo entre Simulados"
         subtitle="Sua evolução ao longo dos simulados."
@@ -383,6 +384,6 @@ function ComparativoContent() {
           </table>
         </div>
       </PremiumCard>
-    </>
+    </PageTransition>
   );
 }

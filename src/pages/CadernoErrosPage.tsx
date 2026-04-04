@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { PageTransition } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -314,7 +315,7 @@ export default function CadernoErrosPage() {
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
 
   return (
-    <>
+    <PageTransition>
       {!hasAccess ? (
         <>
           <PageHeader title="Caderno de Erros" subtitle="Seu material de revisão para consolidar o que importa." badge="PRO: ENAMED Exclusivo" />
@@ -334,6 +335,6 @@ export default function CadernoErrosPage() {
       ) : (
         <CadernoContent userId={user?.id || ''} />
       )}
-    </>
+    </PageTransition>
   );
 }

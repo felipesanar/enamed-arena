@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageTransition } from "@/components/premium/PageTransition";
 import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -53,7 +54,7 @@ export default function ConfiguracoesPage() {
   };
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Configurações"
         subtitle="Seu perfil e preferências da plataforma."
@@ -203,6 +204,6 @@ export default function ConfiguracoesPage() {
           </div>
         </>
       )}
-    </>
+    </PageTransition>
   );
 }

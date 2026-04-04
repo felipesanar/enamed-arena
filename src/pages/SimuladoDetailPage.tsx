@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
+import { PageTransition } from "@/components/premium/PageTransition";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { PremiumCard } from "@/components/PremiumCard";
@@ -130,7 +131,7 @@ export default function SimuladoDetailPage() {
   const hasResults = canViewResults(simulado.status);
 
   return (
-    <>
+    <PageTransition>
       <PageBreadcrumb
         items={[
           { label: "Simulados", href: "/simulados" },
@@ -633,6 +634,6 @@ export default function SimuladoDetailPage() {
           </div>
         </div>
       </PremiumCard>
-    </>
+    </PageTransition>
   );
 }

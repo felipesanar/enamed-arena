@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useRef, useMemo } from 'react';
+import { PageTransition } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -136,7 +137,7 @@ export default function RankingPage() {
   }
 
   return (
-    <>
+    <PageTransition>
       <PageHeader
         title="Ranking ENAMED"
         subtitle="Compare seu desempenho com milhares de candidatos."
@@ -420,6 +421,6 @@ export default function RankingPage() {
           )}
         </>
       )}
-    </>
+    </PageTransition>
   );
 }
