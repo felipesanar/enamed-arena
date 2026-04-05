@@ -15,6 +15,10 @@ import type {
   JourneyTimeseriesRow,
   JourneySourceRow,
   JourneyTimeToConvert,
+  MarketingKpis,
+  MarketingSourceRow,
+  MarketingMediumRow,
+  MarketingCampaignRow,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -426,5 +430,53 @@ export const adminApi = {
       onboarding_to_first_exam_days: Number(r.onboarding_to_first_exam_days),
       first_to_second_exam_days:     Number(r.first_to_second_exam_days),
     }
+  },
+
+  // ─── Marketing ───
+  async getMarketingKpis(days: number): Promise<MarketingKpis> {
+    const { data, error } = await supabase.rpc('admin_marketing_kpis', { p_days: days })
+    if (error) throw error
+    const r = (data as any[])?.[0]
+    if (!r) return { new_users: 0, new_users_prev: 0, landing_to_signup_pct: 0, active_campaigns: 0, organic_pct: 0 }
+    return {
+      new_users:             Number(r.new_users),
+      new_users_prev:        Number(r.new_users_prev),
+      landing_to_signup_pct: Number(r.landing_to_signup_pct),
+      active_campaigns:      Number(r.active_campaigns),
+      organic_pct:           Number(r.organic_pct),
+    }
+  },
+
+  async getMarketingSources(days: number): Promise<MarketingSourceRow[]> {
+    const { data, error } = await supabase.rpc('admin_marketing_sources', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      source:     r.source as string,
+      user_count: Number(r.user_count),
+      conv_rate:  Number(r.conv_rate),
+    }))
+  },
+
+  async getMarketingMediums(days: number): Promise<MarketingMediumRow[]> {
+    const { data, error } = await supabase.rpc('admin_marketing_mediums', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      medium:     r.medium as string,
+      user_count: Number(r.user_count),
+      conv_rate:  Number(r.conv_rate),
+    }))
+  },
+
+  async getMarketingCampaigns(days: number): Promise<MarketingCampaignRow[]> {
+    const { data, error } = await supabase.rpc('admin_marketing_campaigns', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      campaign:    r.campaign as string,
+      source:      r.source as string,
+      visits:      Number(r.visits),
+      signups:     Number(r.signups),
+      conv_rate:   Number(r.conv_rate),
+      first_exams: Number(r.first_exams),
+    }))
   },
 };

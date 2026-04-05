@@ -149,3 +149,32 @@ export interface JourneyTimeToConvert {
   onboarding_to_first_exam_days: number
   first_to_second_exam_days: number
 }
+
+export interface MarketingKpis {
+  new_users: number
+  new_users_prev: number
+  landing_to_signup_pct: number
+  active_campaigns: number
+  organic_pct: number
+}
+
+export interface MarketingSourceRow {
+  source: string
+  user_count: number
+  conv_rate: number
+}
+
+export interface MarketingMediumRow {
+  medium: string
+  user_count: number
+  conv_rate: number
+}
+
+export interface MarketingCampaignRow {
+  campaign: string
+  source: string
+  visits: number
+  signups: number
+  conv_rate: number
+  first_exams: number
+}
