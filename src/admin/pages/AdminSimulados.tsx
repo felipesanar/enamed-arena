@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Upload, Trash2 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
+import { useAdminSimuladoEngagementMap } from '@/admin/hooks/useAdminSimuladosAnalytics';
 import { toast } from '@/hooks/use-toast';
 
 interface SimuladoListItem {
@@ -19,6 +20,7 @@ interface SimuladoListItem {
 
 export default function AdminSimulados() {
   const navigate = useNavigate();
+  const { data: engagementMap } = useAdminSimuladoEngagementMap();
   const [simulados, setSimulados] = useState<SimuladoListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,6 +70,10 @@ export default function AdminSimulados() {
                 <TableHead>Status</TableHead>
                 <TableHead>Questões</TableHead>
                 <TableHead>Janela</TableHead>
+                <TableHead className="text-right">Participantes</TableHead>
+                <TableHead className="text-right">Conclusão</TableHead>
+                <TableHead className="text-right">Média</TableHead>
+                <TableHead className="text-right">Abandono</TableHead>
                 <TableHead className="w-32">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -85,8 +91,50 @@ export default function AdminSimulados() {
                   <TableCell className="text-xs text-muted-foreground">
                     {fmt(s.execution_window_start)} — {fmt(s.execution_window_end)}
                   </TableCell>
+                  {(() => {
+                    const eng = engagementMap?.get(s.id)
+                    if (!eng) return (
+                      <>
+                        <TableCell className="text-right text-muted-foreground/40 text-xs">—</TableCell>
+                        <TableCell className="text-right text-muted-foreground/40 text-xs">—</TableCell>
+                        <TableCell className="text-right text-muted-foreground/40 text-xs">—</TableCell>
+                        <TableCell className="text-right text-muted-foreground/40 text-xs">—</TableCell>
+                      </>
+                    )
+                    return (
+                      <>
+                        <TableCell className="text-right text-xs font-medium">{eng.participants.toLocaleString('pt-BR')}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+                              <div className="h-1 bg-success rounded-full" style={{ width: `${Math.min(100, eng.completion_rate)}%` }} />
+                            </div>
+                            <span className="text-xs font-medium">{eng.completion_rate.toFixed(1)}%</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+                              <div className="h-1 bg-primary rounded-full" style={{ width: `${Math.min(100, eng.avg_score)}%` }} />
+                            </div>
+                            <span className="text-xs font-medium">{eng.avg_score.toFixed(1)}%</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-xs font-medium">{eng.abandonment_rate.toFixed(1)}%</TableCell>
+                      </>
+                    )
+                  })()}
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Analytics"
+                        disabled={!engagementMap?.get(s.id)?.participants}
+                        onClick={() => navigate(`/admin/simulados/${s.id}/analytics`)}
+                      >
+                        📊
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/simulados/${s.id}`)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
