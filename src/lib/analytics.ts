@@ -92,10 +92,8 @@ export function trackEvent(name: AnalyticsEventName, payload: AnalyticsPayload =
   logger.log("[analytics]", event.name, event.payload);
 
   handlers.forEach((handler) => {
-    try {
-      void handler(event);
-    } catch (error) {
+    Promise.resolve(handler(event)).catch((error) => {
       logger.error("[analytics] handler error", error);
-    }
+    });
   });
 }
