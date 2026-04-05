@@ -42,8 +42,7 @@ export function UpgradeBanner({
           onClick={() =>
             trackEvent("upsell_clicked", {
               source: "upgrade_banner",
-              title,
-              ctaTo,
+              cta_to: ctaTo,
             })
           }
           className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-all duration-200 shrink-0 group shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"

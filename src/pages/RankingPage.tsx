@@ -105,9 +105,10 @@ export default function RankingPage() {
 
   useEffect(() => {
     trackEvent('ranking_viewed', {
-      selectedSimuladoId,
-      comparisonFilter,
-      segmentFilter,
+      selected_simulado_id: selectedSimuladoId,
+      comparison_filter: comparisonFilter,
+      segment_filter: segmentFilter,
+      source: 'page',
     });
   }, [selectedSimuladoId, comparisonFilter, segmentFilter]);
 

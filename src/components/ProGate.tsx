@@ -79,9 +79,9 @@ export function ProGate({
             trackEvent("upsell_clicked", {
               source: "pro_gate",
               feature,
-              currentSegment,
-              requiredSegment,
-              ctaTo,
+              current_segment: currentSegment,
+              required_segment: requiredSegment,
+              cta_to: ctaTo,
             })
           }
           className={cn("inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-primary text-primary-foreground !text-white text-body-lg font-semibold hover:bg-wine-hover transition-all duration-200 shadow-sm hover:shadow-md group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]")}

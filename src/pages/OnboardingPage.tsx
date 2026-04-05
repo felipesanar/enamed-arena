@@ -150,7 +150,7 @@ export default function OnboardingPage() {
       trackEvent("onboarding_completed", {
         segment,
         specialty: selectedSpecialty,
-        institutionsCount: selectedInstitutions.length,
+        institutions_count: selectedInstitutions.length,
       });
       clearPersistedStateByPrefix("onboarding:");
       navigate("/");

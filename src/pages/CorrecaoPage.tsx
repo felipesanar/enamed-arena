@@ -68,8 +68,8 @@ export default function CorrecaoPage() {
   useEffect(() => {
     if (!id || !simulado) return;
     trackEvent('correction_viewed', {
-      simuladoId: id,
-      simuladoTitle: simulado.title,
+      simulado_id: id,
+      simulado_title: simulado.title,
       segment,
     });
   }, [id, simulado, segment]);

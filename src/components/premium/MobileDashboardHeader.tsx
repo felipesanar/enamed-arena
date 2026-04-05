@@ -138,8 +138,8 @@ export function MobileDashboardHeader({
               rel="noreferrer"
               onClick={() =>
                 trackEvent("upsell_clicked", {
-                  source: "mobile_header_guest",
-                  ctaTo: SANARFLIX_PRO_ENAMED_URL,
+                  source: "mobile_header_upsell",
+                  cta_to: SANARFLIX_PRO_ENAMED_URL,
                 })
               }
               className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-center text-[11px] font-bold leading-tight text-primary-foreground shadow-[0_4px_14px_-6px_hsl(345_65%_30%/0.55)] transition-[transform,filter] hover:brightness-105 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:text-xs"
