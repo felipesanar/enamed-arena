@@ -14,6 +14,14 @@ function getSessionId(): string {
   return sid;
 }
 
+function readStoredUtm(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem('_ea_utm') ?? '{}') ?? {}
+  } catch {
+    return {}
+  }
+}
+
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
 const urlParams = new URLSearchParams(window.location.search)
 const utmFromUrl: Record<string, string> = {}
@@ -24,7 +32,7 @@ for (const k of UTM_KEYS) {
 if (Object.keys(utmFromUrl).length > 0) {
   localStorage.setItem('_ea_utm', JSON.stringify(utmFromUrl))
 }
-const storedUtm: Record<string, string> = JSON.parse(localStorage.getItem('_ea_utm') ?? '{}')
+const storedUtm = readStoredUtm()
 
 setSuperProperties({
   session_id: getSessionId(),
