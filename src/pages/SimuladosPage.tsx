@@ -456,7 +456,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
 function useCountdown(targetISO: string) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
+    const id = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(id);
   }, []);
   const target = parseISO(targetISO);
@@ -464,7 +464,8 @@ function useCountdown(targetISO: string) {
   const days = Math.floor(diff / 86_400_000);
   const hours = Math.floor((diff % 86_400_000) / 3_600_000);
   const mins = Math.floor((diff % 3_600_000) / 60_000);
-  return { days, hours, mins };
+  const secs = Math.floor((diff % 60_000) / 1_000);
+  return { days, hours, mins, secs };
 }
 
 function CountdownBlock({ label, value }: { label: string; value: string }) {
