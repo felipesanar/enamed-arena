@@ -287,7 +287,7 @@ export default function SimuladoDetailPage() {
 
               {/* Divider */}
               <div
-                className="w-full h-px mb-7"
+                className="w-full h-px mb-5"
                 style={{
                   background:
                     "linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent)",
