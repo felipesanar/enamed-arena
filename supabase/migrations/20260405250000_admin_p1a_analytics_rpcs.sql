@@ -59,11 +59,11 @@ begin
   where status = 'submitted'
     and created_at >= v_start;
 
-  -- 6. Returned (users with 2+ attempts, counting all time for those active in period)
+  -- 6. Returned (users with 2+ attempts within the period)
   select count(distinct a.user_id) into v_step6
   from attempts a
   where a.created_at >= v_start
-    and (select count(*) from attempts a2 where a2.user_id = a.user_id) >= 2;
+    and (select count(*) from attempts a2 where a2.user_id = a.user_id and a2.created_at >= v_start) >= 2;
 
   return query values
     (1, 'Visitou landing',       v_step1, 100.0),

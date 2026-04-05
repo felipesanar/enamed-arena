@@ -50,6 +50,7 @@ begin
          and not exists (
            select 1 from analytics_events ae
            where ae.user_id = p.id
+             and ae.created_at >= v_start
              and ae.payload->>'utm_source' is not null
              and ae.payload->>'utm_source' != ''
          ))
@@ -103,7 +104,7 @@ begin
     round(count(*)::numeric / nullif(v_total, 0) * 100, 1)
   from user_first_src
   group by source
-  order by user_count desc
+  order by 2 desc
   limit 8;
 end;
 $$;
@@ -153,7 +154,7 @@ begin
     round(count(*)::numeric / nullif(v_total, 0) * 100, 1)
   from user_first_med
   group by medium
-  order by user_count desc
+  order by 2 desc
   limit 8;
 end;
 $$;

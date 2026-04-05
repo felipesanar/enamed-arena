@@ -75,7 +75,7 @@ begin
   from attempts a
   join profiles pr on pr.id = a.user_id
   where pr.created_at >= v_start
-    and (select count(*) from attempts a2 where a2.user_id = a.user_id) >= 2
+    and (select count(*) from attempts a2 where a2.user_id = a.user_id and a2.created_at >= v_start) >= 2
   order by 1;
 end;
 $$;
