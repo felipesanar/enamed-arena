@@ -803,6 +803,149 @@ export type Database = {
       }
     }
     Functions: {
+      admin_dashboard_kpis: {
+        Args: { p_days?: number }
+        Returns: {
+          activation_rate: number
+          activation_rate_prev: number
+          avg_score: number
+          avg_score_prev: number
+          completion_rate: number
+          completion_rate_prev: number
+          exams_started: number
+          exams_started_prev: number
+          new_users: number
+          new_users_prev: number
+          total_users: number
+        }[]
+      }
+      admin_events_timeseries: {
+        Args: { p_days?: number }
+        Returns: {
+          day: string
+          exams_completed: number
+          exams_started: number
+          new_users: number
+        }[]
+      }
+      admin_funnel_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          conversion_from_prev: number
+          step_label: string
+          step_order: number
+          user_count: number
+        }[]
+      }
+      admin_get_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar_url: string
+          avg_score: number
+          best_score: number
+          created_at: string
+          email: string
+          full_name: string
+          is_admin: boolean
+          last_finished_at: string
+          last_score: number
+          last_sign_in_at: string
+          segment: string
+          specialty: string
+          target_institutions: string[]
+          total_attempts: number
+          user_id: string
+        }[]
+      }
+      admin_get_user_attempts: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          attempt_id: string
+          created_at: string
+          ranking_position: number
+          score_percentage: number
+          sequence_number: number
+          simulado_id: string
+          simulado_title: string
+          status: string
+        }[]
+      }
+      admin_list_users: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_segment?: string
+        }
+        Returns: {
+          avatar_url: string
+          avg_score: number
+          created_at: string
+          email: string
+          full_name: string
+          segment: string
+          specialty: string
+          total_attempts: number
+          total_count: number
+          user_id: string
+        }[]
+      }
+      admin_live_signals: {
+        Args: never
+        Returns: {
+          active_exams: number
+          online_last_15min: number
+          open_tickets: number
+        }[]
+      }
+      admin_reset_user_onboarding: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      admin_set_user_role: {
+        Args: { p_grant: boolean; p_role: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_set_user_segment: {
+        Args: { p_segment: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_simulado_detail_stats: {
+        Args: { p_simulado_id: string }
+        Returns: {
+          abandonment_rate: number
+          avg_score: number
+          avg_time_minutes: number
+          completion_rate: number
+          participants: number
+          sequence_number: number
+          simulado_id: string
+          title: string
+        }[]
+      }
+      admin_simulado_engagement: {
+        Args: { p_limit?: number }
+        Returns: {
+          abandonment_rate: number
+          avg_score: number
+          completion_rate: number
+          participants: number
+          sequence_number: number
+          simulado_id: string
+          title: string
+        }[]
+      }
+      admin_simulado_question_stats: {
+        Args: { p_simulado_id: string }
+        Returns: {
+          correct_rate: number
+          discrimination_index: number
+          most_common_wrong_label: string
+          most_common_wrong_pct: number
+          question_number: number
+          text: string
+        }[]
+      }
       create_attempt_guarded: {
         Args: { p_simulado_id: string }
         Returns: {
