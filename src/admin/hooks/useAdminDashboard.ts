@@ -1,8 +1,9 @@
 // src/admin/hooks/useAdminDashboard.ts
 import { useQuery } from '@tanstack/react-query'
 import { adminApi } from '@/admin/services/adminApi'
+import type { AdminPeriod } from '@/admin/types'
 
-export function useAdminDashboardKpis(period: number) {
+export function useAdminDashboardKpis(period: AdminPeriod) {
   return useQuery({
     queryKey: ['admin', 'kpis', period],
     queryFn: () => adminApi.getDashboardKpis(period),
@@ -10,7 +11,7 @@ export function useAdminDashboardKpis(period: number) {
   })
 }
 
-export function useAdminEventsTimeseries(period: number) {
+export function useAdminEventsTimeseries(period: AdminPeriod) {
   return useQuery({
     queryKey: ['admin', 'timeseries', period],
     queryFn: () => adminApi.getEventsTimeseries(period),
@@ -18,7 +19,7 @@ export function useAdminEventsTimeseries(period: number) {
   })
 }
 
-export function useAdminFunnelStats(period: number) {
+export function useAdminFunnelStats(period: AdminPeriod) {
   return useQuery({
     queryKey: ['admin', 'funnel', period],
     queryFn: () => adminApi.getFunnelStats(period),

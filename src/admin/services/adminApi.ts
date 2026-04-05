@@ -105,7 +105,8 @@ export const adminApi = {
   async getDashboardKpis(days: number): Promise<DashboardKpis> {
     const { data, error } = await supabase.rpc('admin_dashboard_kpis', { p_days: days })
     if (error) throw error
-    const row = (data as any[])[0]
+    const row = (data as any[])?.[0]
+    if (!row) throw new Error('admin_dashboard_kpis returned no rows')
     return {
       total_users: Number(row.total_users),
       new_users: Number(row.new_users),
@@ -160,7 +161,8 @@ export const adminApi = {
   async getLiveSignals(): Promise<LiveSignals> {
     const { data, error } = await supabase.rpc('admin_live_signals')
     if (error) throw error
-    const row = (data as any[])[0]
+    const row = (data as any[])?.[0]
+    if (!row) throw new Error('admin_live_signals returned no rows')
     return {
       online_last_15min: Number(row.online_last_15min),
       active_exams: Number(row.active_exams),
