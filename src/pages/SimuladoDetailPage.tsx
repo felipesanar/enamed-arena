@@ -211,8 +211,8 @@ export default function SimuladoDetailPage() {
 
                 {/* Headline */}
                 <h2
-                  className="font-extrabold text-white text-center mb-3.5"
-                  style={{ fontSize: "52px", letterSpacing: "-0.045em", lineHeight: "0.95" }}
+                  className="font-extrabold text-white text-center mb-2.5"
+                  style={{ fontSize: "clamp(32px, 5vw, 48px)", letterSpacing: "-0.045em", lineHeight: "0.95" }}
                 >
                   {isVeteran ? "Tudo" : "Pronto para"}
                   <br />
