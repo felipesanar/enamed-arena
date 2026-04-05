@@ -19,7 +19,7 @@ const mockKpis = { total: 120, in_progress: 5, submitted: 100, expired: 15 }
 const mockRows = [
   {
     attempt_id: 'a1', user_id: 'u1', full_name: 'Felipe Matos', email: 'felipe@sanar.com',
-    avatar_url: null, simulado_id: 's1', sequence_number: 12, simulado_title: 'ENAMED Abril',
+    avatar_url: null as string | null, simulado_id: 's1', sequence_number: 12, simulado_title: 'ENAMED Abril',
     created_at: '2026-04-04T10:00:00Z', status: 'submitted', score_percentage: 71.5,
     ranking_position: 23, total_count: 120,
   },
