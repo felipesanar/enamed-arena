@@ -428,7 +428,7 @@ export default function SimuladoDetailPage() {
                               color: checked ? "hsl(345,65%,72%)" : "rgba(255,255,255,0.5)",
                             }}
                           >
-                            <item.icon className="w-[18px] h-[18px]" strokeWidth={1.6} />
+                            <item.icon className="w-4 h-4" strokeWidth={1.6} />
                           </div>
 
                           {/* Text */}
