@@ -803,6 +803,53 @@ export type Database = {
       }
     }
     Functions: {
+      admin_analytics_funnel: {
+        Args: { p_days?: number }
+        Returns: {
+          conversion_from_prev: number
+          step_label: string
+          step_order: number
+          user_count: number
+        }[]
+      }
+      admin_analytics_sources: {
+        Args: { p_days?: number }
+        Returns: {
+          signup_conv_pct: number
+          user_count: number
+          utm_source: string
+        }[]
+      }
+      admin_analytics_time_to_convert: {
+        Args: { p_days?: number }
+        Returns: {
+          first_to_second_exam_days: number
+          landing_to_signup_min: number
+          onboarding_to_first_exam_days: number
+          signup_to_onboarding_min: number
+        }[]
+      }
+      admin_analytics_timeseries: {
+        Args: { p_days?: number }
+        Returns: {
+          first_exams: number
+          new_users: number
+          week_start: string
+        }[]
+      }
+      admin_attempts_kpis: {
+        Args: { p_days?: number }
+        Returns: {
+          expired: number
+          in_progress: number
+          submitted: number
+          total: number
+        }[]
+      }
+      admin_cancel_attempt: {
+        Args: { p_attempt_id: string }
+        Returns: undefined
+      }
       admin_dashboard_kpis: {
         Args: { p_days?: number }
         Returns: {
@@ -818,6 +865,10 @@ export type Database = {
           new_users_prev: number
           total_users: number
         }[]
+      }
+      admin_delete_attempt: {
+        Args: { p_attempt_id: string }
+        Returns: undefined
       }
       admin_events_timeseries: {
         Args: { p_days?: number }
@@ -870,6 +921,31 @@ export type Database = {
           status: string
         }[]
       }
+      admin_list_attempts: {
+        Args: {
+          p_days?: number
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_simulado_id?: string
+          p_status?: string
+        }
+        Returns: {
+          attempt_id: string
+          avatar_url: string
+          created_at: string
+          email: string
+          full_name: string
+          ranking_position: number
+          score_percentage: number
+          sequence_number: number
+          simulado_id: string
+          simulado_title: string
+          status: string
+          total_count: number
+          user_id: string
+        }[]
+      }
       admin_list_users: {
         Args: {
           p_limit?: number
@@ -896,6 +972,82 @@ export type Database = {
           active_exams: number
           online_last_15min: number
           open_tickets: number
+        }[]
+      }
+      admin_marketing_campaigns: {
+        Args: { p_days?: number }
+        Returns: {
+          campaign: string
+          conv_rate: number
+          first_exams: number
+          signups: number
+          source: string
+          visits: number
+        }[]
+      }
+      admin_marketing_kpis: {
+        Args: { p_days?: number }
+        Returns: {
+          active_campaigns: number
+          landing_to_signup_pct: number
+          new_users: number
+          new_users_prev: number
+          organic_pct: number
+        }[]
+      }
+      admin_marketing_mediums: {
+        Args: { p_days?: number }
+        Returns: {
+          conv_rate: number
+          medium: string
+          user_count: number
+        }[]
+      }
+      admin_marketing_sources: {
+        Args: { p_days?: number }
+        Returns: {
+          conv_rate: number
+          source: string
+          user_count: number
+        }[]
+      }
+      admin_produto_feature_adoption: {
+        Args: { p_days?: number; p_segment?: string }
+        Returns: {
+          adoption_pct: number
+          event_name: string
+          feature: string
+        }[]
+      }
+      admin_produto_friction: {
+        Args: { p_days?: number; p_segment?: string }
+        Returns: {
+          event_name: string
+          key: string
+          metric_unit: string
+          metric_value: number
+          severity: string
+          title: string
+        }[]
+      }
+      admin_produto_segmented_funnel: {
+        Args: { p_days?: number }
+        Returns: {
+          guest_count: number
+          guest_pct: number
+          pro_count: number
+          pro_pct: number
+          standard_count: number
+          standard_pct: number
+          step_label: string
+          step_order: number
+        }[]
+      }
+      admin_produto_top_events: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          cnt: number
+          event_name: string
         }[]
       }
       admin_reset_user_onboarding: {
