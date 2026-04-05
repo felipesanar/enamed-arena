@@ -45,3 +45,65 @@ export interface LiveSignals {
   active_exams: number
   open_tickets: number
 }
+
+export interface UserListRow {
+  user_id: string
+  full_name: string | null
+  email: string
+  avatar_url: string | null
+  segment: 'guest' | 'standard' | 'pro'
+  specialty: string | null
+  created_at: string
+  avg_score: number
+  total_attempts: number
+  total_count: number
+}
+
+export interface UserDetail {
+  user_id: string
+  full_name: string | null
+  email: string
+  avatar_url: string | null
+  segment: 'guest' | 'standard' | 'pro'
+  created_at: string
+  last_sign_in_at: string | null
+  specialty: string | null
+  target_institutions: string[] | null
+  avg_score: number
+  best_score: number
+  last_score: number
+  total_attempts: number
+  last_finished_at: string | null
+  is_admin: boolean
+}
+
+export interface UserAttemptRow {
+  attempt_id: string
+  simulado_id: string
+  sequence_number: number
+  simulado_title: string
+  created_at: string
+  status: string
+  score_percentage: number | null
+  ranking_position: number
+}
+
+export interface SimuladoDetailStats {
+  simulado_id: string
+  sequence_number: number
+  title: string
+  participants: number
+  completion_rate: number
+  avg_score: number
+  abandonment_rate: number
+  avg_time_minutes: number
+}
+
+export interface SimuladoQuestionStat {
+  question_number: number
+  text: string
+  correct_rate: number
+  discrimination_index: number
+  most_common_wrong_label: string | null
+  most_common_wrong_pct: number | null
+}
