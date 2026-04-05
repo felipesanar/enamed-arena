@@ -130,14 +130,14 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_200px] gap-3">
           <AdminTrendChart
             title="Novos cadastros / dia"
-            data={timeseries.data ?? []}
+            data={(timeseries.data ?? []) as Record<string, unknown>[]}
             xKey="day"
             bars={[{ key: 'new_users', color: 'hsl(345 65% 42%)', label: 'Cadastros' }]}
             isLoading={timeseries.isLoading}
           />
           <AdminTrendChart
             title="Simulados iniciados vs concluídos"
-            data={timeseries.data ?? []}
+            data={(timeseries.data ?? []) as Record<string, unknown>[]}
             xKey="day"
             bars={[
               { key: 'exams_started',   color: 'hsl(345 65% 42%)', label: 'Iniciados' },
