@@ -46,6 +46,14 @@ const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
 const AdminSimulados = lazy(() => import("./admin/pages/AdminSimulados"));
 const AdminSimuladoForm = lazy(() => import("./admin/pages/AdminSimuladoForm"));
 const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestions"));
+const AdminUsuarios    = lazy(() => import('./admin/pages/stubs/AdminUsuarios'))
+const AdminSupporte    = lazy(() => import('./admin/pages/stubs/AdminSupporte'))
+const AdminTentativas  = lazy(() => import('./admin/pages/stubs/AdminTentativas'))
+const AdminAnalytics   = lazy(() => import('./admin/pages/stubs/AdminAnalytics'))
+const AdminMarketing   = lazy(() => import('./admin/pages/stubs/AdminMarketing'))
+const AdminProduto     = lazy(() => import('./admin/pages/stubs/AdminProduto'))
+const AdminTecnologia  = lazy(() => import('./admin/pages/stubs/AdminTecnologia'))
+const AdminAuditoria   = lazy(() => import('./admin/pages/stubs/AdminAuditoria'))
 
 // Admin lazy imports — named exports
 const AdminGuard = lazy(() =>
@@ -97,6 +105,14 @@ const App = () => (
                   <Route path="simulados/novo" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id/questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUploadQuestions /></Suspense>} />
+                  <Route path="usuarios"   element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarios /></Suspense>} />
+                  <Route path="suporte"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSupporte /></Suspense>} />
+                  <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
+                  <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />
+                  <Route path="marketing"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminMarketing /></Suspense>} />
+                  <Route path="produto"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminProduto /></Suspense>} />
+                  <Route path="tecnologia" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTecnologia /></Suspense>} />
+                  <Route path="auditoria"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAuditoria /></Suspense>} />
                 </Route>
               </Route>
 
