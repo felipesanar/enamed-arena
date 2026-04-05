@@ -196,10 +196,10 @@ export default function SimuladoDetailPage() {
                 ].join(", "),
               }}
             >
-              <div className="relative z-10 px-10 pt-14 pb-12 md:px-16 flex-1 flex flex-col justify-center">
+              <div className="relative z-10 px-6 pt-8 pb-8 md:px-16 md:pt-12 md:pb-10 flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
 
               {/* ── Top section ── */}
-              <div className="text-center mb-9">
+              <div className="text-center mb-5 md:mb-7">
                 {/* Eyebrow */}
                 <div
                   className="inline-flex items-center gap-1.5 mb-3.5"
@@ -211,8 +211,8 @@ export default function SimuladoDetailPage() {
 
                 {/* Headline */}
                 <h2
-                  className="font-extrabold text-white text-center mb-3.5"
-                  style={{ fontSize: "52px", letterSpacing: "-0.045em", lineHeight: "0.95" }}
+                  className="font-extrabold text-white text-center mb-2.5"
+                  style={{ fontSize: "clamp(32px, 5vw, 48px)", letterSpacing: "-0.045em", lineHeight: "0.95" }}
                 >
                   {isVeteran ? "Tudo" : "Pronto para"}
                   <br />
@@ -224,7 +224,7 @@ export default function SimuladoDetailPage() {
                 {/* Description — only for non-veterans */}
                 {!isVeteran && (
                   <p
-                    className="text-[15px] leading-relaxed max-w-[480px] mx-auto mb-6"
+                    className="text-[13px] md:text-[15px] leading-relaxed max-w-[440px] mx-auto mb-4"
                     style={{ color: "rgba(255,255,255,0.38)" }}
                   >
                     Confirme os itens abaixo antes de entrar. A prova não pode ser pausada.
@@ -253,7 +253,7 @@ export default function SimuladoDetailPage() {
                 )}
 
                 {/* Meta chips */}
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex items-center justify-center gap-1.5 md:gap-2 flex-wrap">
                   {[
                     { icon: Clock, label: simulado.estimatedDuration },
                     { icon: FileText, label: `${simulado.questionsCount} questões` },
@@ -263,7 +263,7 @@ export default function SimuladoDetailPage() {
                   ].map(({ icon: Icon, label }) => (
                     <div
                       key={label}
-                      className="inline-flex items-center gap-1.5 rounded-[9px] px-3 py-1.5 text-[12px] font-semibold"
+                      className="inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1 text-[11px] md:text-[12px] font-semibold"
                       style={{
                         background: "rgba(255,255,255,0.06)",
                         border: "1px solid rgba(255,255,255,0.1)",
@@ -278,7 +278,7 @@ export default function SimuladoDetailPage() {
 
                 {/* Execution window */}
                 <p
-                  className="text-[12px] mt-4"
+                  className="text-[11px] mt-3"
                   style={{ color: "rgba(255,255,255,0.3)" }}
                 >
                   Janela de execução: {formatDate(simulado.executionWindowStart)} — {formatDate(simulado.executionWindowEnd)}
@@ -287,7 +287,7 @@ export default function SimuladoDetailPage() {
 
               {/* Divider */}
               <div
-                className="w-full h-px mb-7"
+                className="w-full h-px mb-5"
                 style={{
                   background:
                     "linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent)",
@@ -366,7 +366,7 @@ export default function SimuladoDetailPage() {
               {(!isVeteran || showFullChecklist) && (
                 <>
                   {/* ── Progress bar ── */}
-                  <div className="mb-5">
+                  <div className="mb-4">
                     <div className="flex items-center justify-between mb-2.5">
                       <span
                         className="text-[10px] font-bold uppercase tracking-[0.16em]"
@@ -398,7 +398,7 @@ export default function SimuladoDetailPage() {
                   </div>
 
                   {/* ── Checklist grid ── */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-9">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6">
                     {checklistItems.map((item, index) => {
                       const checked = checkedItems.has(item.key);
                       const isLastOdd =
@@ -414,33 +414,33 @@ export default function SimuladoDetailPage() {
                             isLastOdd && "sm:col-span-2 sm:mx-auto sm:w-1/2"
                           )}
                           style={{
-                            padding: "18px 20px",
+                            padding: "14px 16px",
                             background: checked ? "rgba(196,90,114,0.09)" : "rgba(255,255,255,0.04)",
                             border: `1.5px solid ${checked ? "rgba(196,90,114,0.3)" : "rgba(255,255,255,0.07)"}`,
                           }}
                         >
                           {/* Icon wrap */}
                           <div
-                            className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                            className="w-[34px] h-[34px] rounded-[9px] flex items-center justify-center flex-shrink-0 transition-all duration-200"
                             style={{
                               background: checked ? "rgba(196,90,114,0.16)" : "rgba(255,255,255,0.06)",
                               border: `1px solid ${checked ? "rgba(196,90,114,0.36)" : "rgba(255,255,255,0.08)"}`,
                               color: checked ? "hsl(345,65%,72%)" : "rgba(255,255,255,0.5)",
                             }}
                           >
-                            <item.icon className="w-[18px] h-[18px]" strokeWidth={1.6} />
+                            <item.icon className="w-4 h-4" strokeWidth={1.6} />
                           </div>
 
                           {/* Text */}
                           <div className="flex-1 min-w-0">
                             <p
-                              className="text-[13.5px] font-bold leading-[1.2] mb-0.5 transition-colors"
+                              className="text-[12.5px] font-bold leading-[1.2] mb-0.5 transition-colors"
                               style={{ color: checked ? "#fff" : "rgba(255,255,255,0.72)" }}
                             >
                               {item.title}
                             </p>
                             <p
-                              className="text-[12px] leading-[1.4] transition-colors"
+                              className="text-[11px] leading-[1.4] transition-colors"
                               style={{ color: checked ? "rgba(255,255,255,0.48)" : "rgba(255,255,255,0.3)" }}
                             >
                               {item.getDesc(simulado)}
@@ -487,8 +487,8 @@ export default function SimuladoDetailPage() {
                         }
                       }}
                       style={{
-                        padding: "17px 56px",
-                        fontSize: "16px",
+                        padding: "14px 48px",
+                        fontSize: "15px",
                         letterSpacing: "0.02em",
                         cursor: ctaActive ? "pointer" : "not-allowed",
                         background: ctaActive
