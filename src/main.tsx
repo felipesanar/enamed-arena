@@ -14,11 +14,24 @@ function getSessionId(): string {
   return sid;
 }
 
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
+const urlParams = new URLSearchParams(window.location.search)
+const utmFromUrl: Record<string, string> = {}
+for (const k of UTM_KEYS) {
+  const v = urlParams.get(k)
+  if (v) utmFromUrl[k] = v
+}
+if (Object.keys(utmFromUrl).length > 0) {
+  localStorage.setItem('_ea_utm', JSON.stringify(utmFromUrl))
+}
+const storedUtm: Record<string, string> = JSON.parse(localStorage.getItem('_ea_utm') ?? '{}')
+
 setSuperProperties({
   session_id: getSessionId(),
-  platform: "web",
-  app_version: import.meta.env.VITE_APP_VERSION ?? "unknown",
-});
+  platform: 'web',
+  app_version: import.meta.env.VITE_APP_VERSION ?? 'unknown',
+  ...storedUtm,
+})
 
 if (import.meta.env.DEV) {
   registerAnalyticsHandler((event) => {
