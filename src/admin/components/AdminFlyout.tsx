@@ -29,15 +29,15 @@ const FLYOUT_GROUPS: Record<RailGroup, { title: string; items: FlyoutItem[] }> =
     items: [
       { to: '/admin/usuarios',   label: 'Usuários',   description: 'Gestão e perfis',      icon: Users,          phase: 'p0' },
       { to: '/admin/simulados',  label: 'Simulados',  description: 'Gestão e analytics',   icon: FileText,       phase: 'live' },
-      { to: '/admin/tentativas', label: 'Tentativas', description: 'Histórico e detalhes', icon: ClipboardList,  phase: 'p1' },
+      { to: '/admin/tentativas', label: 'Tentativas', description: 'Histórico e detalhes', icon: ClipboardList,  phase: 'live' },
     ],
   },
   inteligencia: {
     title: 'Inteligência',
     items: [
-      { to: '/admin/analytics', label: 'Analytics', description: 'Produto e jornada',   icon: BarChart3,  phase: 'p1' },
-      { to: '/admin/marketing', label: 'Marketing', description: 'Aquisição e coortes', icon: Megaphone,  phase: 'p1' },
-      { to: '/admin/produto',   label: 'Produto',   description: 'Funil e fricções',    icon: Compass,    phase: 'p1' },
+      { to: '/admin/analytics', label: 'Analytics', description: 'Produto e jornada',   icon: BarChart3,  phase: 'live' },
+      { to: '/admin/marketing', label: 'Marketing', description: 'Aquisição e coortes', icon: Megaphone,  phase: 'live' },
+      { to: '/admin/produto',   label: 'Produto',   description: 'Funil e fricções',    icon: Compass,    phase: 'live' },
     ],
   },
   sistema: {
