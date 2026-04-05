@@ -186,7 +186,7 @@ export default function SimuladoDetailPage() {
           ) : (
             <div
               data-testid="arena-card"
-              className="relative overflow-hidden rounded-[22px] px-10 pt-14 pb-12 md:px-16"
+              className="relative overflow-hidden -mx-4 md:-mx-8 -mt-6 md:-mt-8 min-h-[calc(100vh-64px)] flex flex-col"
               style={{
                 background: [
                   "radial-gradient(ellipse 500px 380px at 98% 8%, rgba(160,38,72,0.32) 0%, transparent 65%)",
@@ -194,12 +194,9 @@ export default function SimuladoDetailPage() {
                   "radial-gradient(ellipse 600px 300px at 50% 110%, rgba(90,12,36,0.18) 0%, transparent 55%)",
                   "linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%)",
                 ].join(", "),
-                border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow:
-                  "0 0 120px -20px rgba(160,38,72,0.5), 0 32px 80px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.09)",
               }}
             >
-              <div className="relative z-10">
+              <div className="relative z-10 px-10 pt-14 pb-12 md:px-16 flex-1 flex flex-col justify-center">
 
               {/* ── Top section ── */}
               <div className="text-center mb-9">
