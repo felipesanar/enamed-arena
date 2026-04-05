@@ -8,7 +8,7 @@ vi.mock('@/admin/services/adminApi')
 import { useAdminUser, useAdminUserAttempts } from '@/admin/hooks/useAdminUsuarios'
 import { adminApi } from '@/admin/services/adminApi'
 
-const mockUser = {
+const mockUser: Record<string, unknown> = {
   user_id: 'u1',
   full_name: 'Felipe Matos',
   email: 'felipe@sanar.com',

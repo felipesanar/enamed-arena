@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 vi.mock('@/admin/hooks/useAdminUsuarios')
 import { useAdminUserList } from '@/admin/hooks/useAdminUsuarios'
 
-const mockUsers = [
+const mockUsers: Record<string, unknown>[] = [
   {
     user_id: 'u1', full_name: 'Felipe Matos', email: 'felipe@sanar.com',
     avatar_url: null, segment: 'pro' as const, specialty: 'Clínica Médica',
