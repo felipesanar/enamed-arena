@@ -602,24 +602,6 @@ export default function SimuladoDetailPage() {
         </PremiumCard>
       )}
 
-      {/* Execution window info */}
-      <PremiumCard className="p-5 md:p-6 mb-6">
-        <SectionHeader title="Janela de Execução" className="mb-3" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <p className="text-overline uppercase text-muted-foreground mb-1">Abertura</p>
-            <p className="text-body font-medium text-foreground">{formatDateTime(simulado.executionWindowStart)}</p>
-          </div>
-          <div>
-            <p className="text-overline uppercase text-muted-foreground mb-1">Encerramento</p>
-            <p className="text-body font-medium text-foreground">{formatDateTime(simulado.executionWindowEnd)}</p>
-          </div>
-          <div>
-            <p className="text-overline uppercase text-muted-foreground mb-1">Liberação de resultado</p>
-            <p className="text-body font-medium text-foreground">{formatDateTime(simulado.resultsReleaseAt)}</p>
-          </div>
-        </div>
-      </PremiumCard>
     </PageTransition>
   );
 }
