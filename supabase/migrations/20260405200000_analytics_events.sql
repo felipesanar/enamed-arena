@@ -2,6 +2,11 @@
 -- Analytics Events — persistent event log for admin dashboard
 -- =====================================================================
 
+-- Add is_admin flag to profiles first (referenced by the SELECT policy below)
+-- Set manually per admin user via Supabase dashboard or service_role.
+alter table profiles
+  add column if not exists is_admin boolean not null default false;
+
 -- Table
 create table analytics_events (
   id          uuid        not null default gen_random_uuid() primary key,
@@ -19,7 +24,7 @@ create index analytics_events_created_at_idx  on analytics_events (created_at de
 -- RLS: enable (no direct client read; writes via SECURITY DEFINER RPC only)
 alter table analytics_events enable row level security;
 
--- Admin read policy (requires is_admin on profiles — added below)
+-- Admin read policy
 create policy "Admins can read analytics events"
   on analytics_events for select
   to authenticated
@@ -60,10 +65,3 @@ $$;
 
 -- Grant execute to authenticated and anonymous callers
 grant execute on function log_analytics_event(text, jsonb) to authenticated, anon;
-
--- =====================================================================
--- Add is_admin flag to profiles (used by the admin SELECT policy above)
--- Set manually per admin user via Supabase dashboard or service_role.
--- =====================================================================
-alter table profiles
-  add column if not exists is_admin boolean not null default false;
