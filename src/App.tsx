@@ -47,6 +47,8 @@ const AdminSimulados = lazy(() => import("./admin/pages/AdminSimulados"));
 const AdminSimuladoForm = lazy(() => import("./admin/pages/AdminSimuladoForm"));
 const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestions"));
 const AdminUsuarios    = lazy(() => import('./admin/pages/stubs/AdminUsuarios'))
+const AdminUsuarioDetail = lazy(() => import('./admin/pages/AdminUsuarioDetail'))
+const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAnalytics'))
 const AdminSupporte    = lazy(() => import('./admin/pages/stubs/AdminSupporte'))
 const AdminTentativas  = lazy(() => import('./admin/pages/stubs/AdminTentativas'))
 const AdminAnalytics   = lazy(() => import('./admin/pages/stubs/AdminAnalytics'))
@@ -106,6 +108,8 @@ const App = () => (
                   <Route path="simulados/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id/questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUploadQuestions /></Suspense>} />
                   <Route path="usuarios"   element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarios /></Suspense>} />
+                  <Route path="usuarios/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarioDetail /></Suspense>} />
+                  <Route path="simulados/:id/analytics" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoAnalytics /></Suspense>} />
                   <Route path="suporte"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSupporte /></Suspense>} />
                   <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
                   <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />
