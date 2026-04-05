@@ -487,8 +487,8 @@ export default function SimuladoDetailPage() {
                         }
                       }}
                       style={{
-                        padding: "17px 56px",
-                        fontSize: "16px",
+                        padding: "14px 48px",
+                        fontSize: "15px",
                         letterSpacing: "0.02em",
                         cursor: ctaActive ? "pointer" : "not-allowed",
                         background: ctaActive
