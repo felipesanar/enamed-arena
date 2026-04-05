@@ -278,6 +278,14 @@ export default function SimuladoDetailPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Execution window */}
+                <p
+                  className="text-[12px] mt-4"
+                  style={{ color: "rgba(255,255,255,0.3)" }}
+                >
+                  Janela de execução: {formatDate(simulado.executionWindowStart)} — {formatDate(simulado.executionWindowEnd)}
+                </p>
               </div>
 
               {/* Divider */}
