@@ -199,7 +199,7 @@ export default function SimuladoDetailPage() {
               <div className="relative z-10 px-6 pt-8 pb-8 md:px-16 md:pt-12 md:pb-10 flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
 
               {/* ── Top section ── */}
-              <div className="text-center mb-9">
+              <div className="text-center mb-5 md:mb-7">
                 {/* Eyebrow */}
                 <div
                   className="inline-flex items-center gap-1.5 mb-3.5"
