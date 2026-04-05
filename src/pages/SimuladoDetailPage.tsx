@@ -278,7 +278,7 @@ export default function SimuladoDetailPage() {
 
                 {/* Execution window */}
                 <p
-                  className="text-[12px] mt-4"
+                  className="text-[11px] mt-3"
                   style={{ color: "rgba(255,255,255,0.3)" }}
                 >
                   Janela de execução: {formatDate(simulado.executionWindowStart)} — {formatDate(simulado.executionWindowEnd)}
