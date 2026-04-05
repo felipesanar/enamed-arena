@@ -421,7 +421,7 @@ export default function SimuladoDetailPage() {
                         >
                           {/* Icon wrap */}
                           <div
-                            className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                            className="w-[34px] h-[34px] rounded-[9px] flex items-center justify-center flex-shrink-0 transition-all duration-200"
                             style={{
                               background: checked ? "rgba(196,90,114,0.16)" : "rgba(255,255,255,0.06)",
                               border: `1px solid ${checked ? "rgba(196,90,114,0.36)" : "rgba(255,255,255,0.08)"}`,
