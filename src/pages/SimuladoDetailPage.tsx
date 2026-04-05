@@ -164,10 +164,10 @@ export default function SimuladoDetailPage() {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
-          className="mb-8"
+          className="mb-0"
         >
           {!isOnboardingComplete ? (
-            <PremiumCard variant="hero" className="text-center">
+            <PremiumCard variant="hero" className="text-center mb-8">
               <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="h-7 w-7 text-warning" />
               </div>
@@ -186,14 +186,17 @@ export default function SimuladoDetailPage() {
           ) : (
             <div
               data-testid="arena-card"
-              className="relative overflow-hidden -mx-4 md:-mx-8 -mt-6 md:-mt-8 -mb-6 md:-mb-8 min-h-[calc(100vh-64px)] flex flex-col"
+              className="relative overflow-hidden -mx-4 md:-mx-8 -mt-6 md:-mt-8 -mb-6 md:-mb-8 min-h-[calc(100vh-4rem)] flex flex-col"
               style={{
                 background: [
-                  "radial-gradient(ellipse 500px 380px at 98% 8%, rgba(160,38,72,0.32) 0%, transparent 65%)",
-                  "radial-gradient(ellipse 380px 380px at 2% 92%, rgba(120,22,52,0.22) 0%, transparent 60%)",
-                  "radial-gradient(ellipse 600px 300px at 50% 110%, rgba(90,12,36,0.18) 0%, transparent 55%)",
-                  "linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%)",
+                  // Wine atmosphere — top-right glow
+                  "radial-gradient(ellipse 55% 45% at 100% 0%, rgba(160,38,72,0.36) 0%, transparent 65%)",
+                  // Subtle bottom depth
+                  "radial-gradient(ellipse 70% 35% at 50% 115%, rgba(80,10,28,0.22) 0%, transparent 55%)",
+                  // Left edge matches sidebar (#421424→#361019), fades into deep arena dark
+                  "linear-gradient(90deg, #421424 0%, #331018 5%, #200d12 15%, #0e0810 35%, #110910 65%, #1c0a14 100%)",
                 ].join(", "),
+                borderLeft: "none",
               }}
             >
               <div className="relative z-10 px-6 pt-8 pb-8 md:px-16 md:pt-12 md:pb-10 flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
