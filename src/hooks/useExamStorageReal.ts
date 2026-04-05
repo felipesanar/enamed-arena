@@ -126,6 +126,12 @@ export function useExamStorageReal(simuladoId: string) {
       return { state, fromCache: false };
     } catch (err) {
       logger.error('[ExamStorageReal] DB load failed, using local cache');
+      trackEvent('exam_storage_fallback', {
+        simulado_id: simuladoId,
+        attempt_id: attemptIdRef.current ?? undefined,
+        error_message: err instanceof Error ? err.message : 'unknown',
+        fallback_source: 'localStorage',
+      });
       toast({
         title: 'Dados carregados do cache local',
         description: 'Algumas respostas podem não estar sincronizadas.',
@@ -170,8 +176,9 @@ export function useExamStorageReal(simuladoId: string) {
         state.effectiveDeadline = attempt.effective_deadline;
         state.startedAt = attempt.started_at;
         trackEvent('simulado_started', {
-          simuladoId,
-          attemptId: attempt.id,
+          simulado_id: simuladoId,
+          attempt_id: attempt.id,
+          mode: 'online',
         });
         logger.log('[ExamStorageReal] Created DB attempt:', attempt.id);
       } catch (err) {
