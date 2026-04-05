@@ -10,6 +10,8 @@ import type {
   UserAttemptRow,
   SimuladoDetailStats,
   SimuladoQuestionStat,
+  AttemptListKpis,
+  AttemptListRow,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -318,5 +320,62 @@ export const adminApi = {
       most_common_wrong_label: r.most_common_wrong_label as string | null,
       most_common_wrong_pct: r.most_common_wrong_pct != null ? Number(r.most_common_wrong_pct) : null,
     }))
+  },
+
+  // ─── Tentativas ───
+  async getAttemptKpis(days: number): Promise<AttemptListKpis> {
+    const { data, error } = await supabase.rpc('admin_attempts_kpis', { p_days: days })
+    if (error) throw error
+    const r = (data as any[])[0]
+    return {
+      total:       Number(r.total),
+      in_progress: Number(r.in_progress),
+      submitted:   Number(r.submitted),
+      expired:     Number(r.expired),
+    }
+  },
+
+  async listAttempts(
+    search = '',
+    simuladoId: string | null = null,
+    status = 'all',
+    days = 30,
+    limit = 25,
+    offset = 0,
+  ): Promise<AttemptListRow[]> {
+    const { data, error } = await supabase.rpc('admin_list_attempts', {
+      p_search:      search,
+      p_simulado_id: simuladoId ?? null,
+      p_status:      status,
+      p_days:        days,
+      p_limit:       limit,
+      p_offset:      offset,
+    })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      attempt_id:       r.attempt_id as string,
+      user_id:          r.user_id as string,
+      full_name:        r.full_name as string | null,
+      email:            r.email as string,
+      avatar_url:       r.avatar_url as string | null,
+      simulado_id:      r.simulado_id as string,
+      sequence_number:  Number(r.sequence_number),
+      simulado_title:   r.simulado_title as string,
+      created_at:       r.created_at as string,
+      status:           r.status as string,
+      score_percentage: r.score_percentage != null ? Number(r.score_percentage) : null,
+      ranking_position: r.ranking_position != null ? Number(r.ranking_position) : null,
+      total_count:      Number(r.total_count),
+    }))
+  },
+
+  async cancelAttempt(attemptId: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_cancel_attempt', { p_attempt_id: attemptId })
+    if (error) throw error
+  },
+
+  async deleteAttempt(attemptId: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_delete_attempt', { p_attempt_id: attemptId })
+    if (error) throw error
   },
 };

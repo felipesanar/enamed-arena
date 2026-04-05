@@ -107,3 +107,26 @@ export interface SimuladoQuestionStat {
   most_common_wrong_label: string | null
   most_common_wrong_pct: number | null
 }
+
+export interface AttemptListKpis {
+  total: number
+  in_progress: number
+  submitted: number
+  expired: number
+}
+
+export interface AttemptListRow {
+  attempt_id: string
+  user_id: string
+  full_name: string | null
+  email: string
+  avatar_url: string | null
+  simulado_id: string
+  sequence_number: number
+  simulado_title: string
+  created_at: string
+  status: string
+  score_percentage: number | null
+  ranking_position: number | null
+  total_count: number
+}
