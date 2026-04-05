@@ -18,7 +18,7 @@ interface BarSeries {
 
 interface AdminTrendChartProps {
   title: string
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[] | readonly Record<string, unknown>[]
   xKey: string
   bars: BarSeries[]
   height?: number
