@@ -326,7 +326,8 @@ export const adminApi = {
   async getAttemptKpis(days: number): Promise<AttemptListKpis> {
     const { data, error } = await supabase.rpc('admin_attempts_kpis', { p_days: days })
     if (error) throw error
-    const r = (data as any[])[0]
+    const r = (data as any[])?.[0]
+    if (!r) return { total: 0, in_progress: 0, submitted: 0, expired: 0 }
     return {
       total:       Number(r.total),
       in_progress: Number(r.in_progress),
