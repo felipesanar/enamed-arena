@@ -286,7 +286,7 @@ begin
       / nullif(count(*), 0) * 100, 1), 0) as completion_rate,
     coalesce(round(avg(uph.score_percentage)::numeric, 1), 0) as avg_score,
     coalesce(round(
-      count(*) filter (where a.status not in ('submitted', 'expired'))::numeric
+      count(*) filter (where a.status not in ('submitted', 'expired', 'in_progress'))::numeric
       / nullif(count(*), 0) * 100, 1), 0) as abandonment_rate
   from simulados s
   left join attempts a on a.simulado_id = s.id
