@@ -203,26 +203,16 @@ export default function SimuladoDetailPage() {
               className="relative overflow-hidden rounded-[22px] px-10 pt-14 pb-12 md:px-16"
               style={{
                 background: [
-                  "radial-gradient(ellipse 400px 320px at 96% 12%, rgba(140,32,64,0.22) 0%, transparent 68%)",
-                  "radial-gradient(ellipse 300px 300px at 4% 88%, rgba(100,18,44,0.14) 0%, transparent 65%)",
+                  "radial-gradient(ellipse 500px 380px at 98% 8%, rgba(160,38,72,0.32) 0%, transparent 65%)",
+                  "radial-gradient(ellipse 380px 380px at 2% 92%, rgba(120,22,52,0.22) 0%, transparent 60%)",
+                  "radial-gradient(ellipse 600px 300px at 50% 110%, rgba(90,12,36,0.18) 0%, transparent 55%)",
                   "linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%)",
                 ].join(", "),
-                border: "1px solid rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
                 boxShadow:
-                  "0 0 100px -24px rgba(140,32,64,0.4), 0 32px 80px -16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)",
+                  "0 0 120px -20px rgba(160,38,72,0.5), 0 32px 80px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.09)",
               }}
             >
-              {/* grain texture */}
-              <div
-                aria-hidden
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  opacity: 0.35,
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: "repeat",
-                  backgroundSize: "200px 200px",
-                }}
-              />
               <div className="relative z-10">
 
               {/* ── Top section ── */}
