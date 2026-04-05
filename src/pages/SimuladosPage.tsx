@@ -550,6 +550,7 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
           <CountdownBlock label="dias" value={String(days).padStart(2, "0")} />
           <CountdownBlock label="horas" value={String(hours).padStart(2, "0")} />
           <CountdownBlock label="min" value={String(mins).padStart(2, "0")} />
+          <CountdownBlock label="seg" value={String(secs).padStart(2, "0")} />
         </div>
 
         {/* CTAs */}
