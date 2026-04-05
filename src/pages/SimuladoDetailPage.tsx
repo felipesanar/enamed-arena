@@ -253,7 +253,7 @@ export default function SimuladoDetailPage() {
                 )}
 
                 {/* Meta chips */}
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex items-center justify-center gap-1.5 md:gap-2 flex-wrap">
                   {[
                     { icon: Clock, label: simulado.estimatedDuration },
                     { icon: FileText, label: `${simulado.questionsCount} questões` },
