@@ -46,7 +46,7 @@ const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
 const AdminSimulados = lazy(() => import("./admin/pages/AdminSimulados"));
 const AdminSimuladoForm = lazy(() => import("./admin/pages/AdminSimuladoForm"));
 const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestions"));
-const AdminUsuarios    = lazy(() => import('./admin/pages/stubs/AdminUsuarios'))
+const AdminUsuarios    = lazy(() => import('./admin/pages/AdminUsuarios'))
 const AdminUsuarioDetail = lazy(() => import('./admin/pages/AdminUsuarioDetail'))
 const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAnalytics'))
 const AdminSupporte    = lazy(() => import('./admin/pages/stubs/AdminSupporte'))
