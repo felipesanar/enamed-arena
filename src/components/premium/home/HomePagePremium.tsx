@@ -272,9 +272,10 @@ export function HomePagePremium() {
 
   return (
     <motion.div
-      variants={containerVariants}
-      initial={skipHomeStagger || prefersReducedMotion ? false : "hidden"}
-      animate="visible"
+      variants={skipHomeStagger ? undefined : containerVariants}
+      initial={prefersReducedMotion ? false : skipHomeStagger ? { opacity: 0 } : "hidden"}
+      animate={skipHomeStagger ? { opacity: 1 } : "visible"}
+      transition={skipHomeStagger ? { duration: 0.28, ease: "easeOut" } : undefined}
       className="space-y-4 max-md:space-y-4 md:space-y-6"
     >
       {/* Layer 0: Notification banner — always on top */}
