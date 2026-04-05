@@ -398,7 +398,7 @@ export default function SimuladoDetailPage() {
                   </div>
 
                   {/* ── Checklist grid ── */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-9">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6">
                     {checklistItems.map((item, index) => {
                       const checked = checkedItems.has(item.key);
                       const isLastOdd =
