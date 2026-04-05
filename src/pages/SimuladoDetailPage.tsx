@@ -440,7 +440,7 @@ export default function SimuladoDetailPage() {
                               {item.title}
                             </p>
                             <p
-                              className="text-[12px] leading-[1.4] transition-colors"
+                              className="text-[11px] leading-[1.4] transition-colors"
                               style={{ color: checked ? "rgba(255,255,255,0.48)" : "rgba(255,255,255,0.3)" }}
                             >
                               {item.getDesc(simulado)}
