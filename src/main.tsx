@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { registerAnalyticsHandler, setSuperProperties } from "@/lib/analytics";
+import { supabase } from "@/integrations/supabase/client";
 
 function getSessionId(): string {
   const key = "_ea_sid";
@@ -29,5 +30,12 @@ if (import.meta.env.DEV) {
     console.groupEnd();
   });
 }
+
+registerAnalyticsHandler((event) => {
+  supabase.rpc('log_analytics_event', {
+    p_event_name: event.name,
+    p_payload: event.payload,
+  });
+});
 
 createRoot(document.getElementById("root")!).render(<App />);
