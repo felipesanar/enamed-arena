@@ -16,7 +16,11 @@ function getSessionId(): string {
 
 function readStoredUtm(): Record<string, string> {
   try {
-    return JSON.parse(localStorage.getItem('_ea_utm') ?? '{}') ?? {}
+    const parsed = JSON.parse(localStorage.getItem('_ea_utm') ?? '{}')
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>
+    }
+    return {}
   } catch {
     return {}
   }
@@ -29,8 +33,12 @@ for (const k of UTM_KEYS) {
   const v = urlParams.get(k)
   if (v) utmFromUrl[k] = v
 }
-if (Object.keys(utmFromUrl).length > 0) {
-  localStorage.setItem('_ea_utm', JSON.stringify(utmFromUrl))
+try {
+  if (Object.keys(utmFromUrl).length > 0) {
+    localStorage.setItem('_ea_utm', JSON.stringify(utmFromUrl))
+  }
+} catch {
+  // Storage unavailable or full — skip UTM persistence silently
 }
 const storedUtm = readStoredUtm()
 
