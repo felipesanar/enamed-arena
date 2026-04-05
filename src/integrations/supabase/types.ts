@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          payload: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          payload?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          payload?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       answers: {
         Row: {
           answered_at: string | null
@@ -454,6 +478,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_admin: boolean
           segment: Database["public"]["Enums"]["user_segment"]
           updated_at: string
         }
@@ -463,6 +488,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_admin?: boolean
           segment?: Database["public"]["Enums"]["user_segment"]
           updated_at?: string
         }
@@ -472,6 +498,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean
           segment?: Database["public"]["Enums"]["user_segment"]
           updated_at?: string
         }
@@ -887,6 +914,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_analytics_event: {
+        Args: { p_event_name: string; p_payload?: Json }
+        Returns: undefined
       }
       process_attempt_reprocessing_queue: {
         Args: { p_limit?: number }

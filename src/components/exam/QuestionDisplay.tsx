@@ -24,14 +24,6 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
         Pular para alternativas
       </a>
       {/* Area + theme */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="px-2.5 py-1 rounded-md bg-accent text-accent-foreground text-caption font-medium">
-          {question.area}
-        </span>
-        <span className="px-2.5 py-1 rounded-md bg-muted text-muted-foreground text-caption">
-          {question.theme}
-        </span>
-      </div>
 
       {/* Question number + statement */}
       <div className="mb-5">
