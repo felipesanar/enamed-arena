@@ -189,12 +189,14 @@ export default function SimuladoDetailPage() {
               className="relative overflow-hidden -mx-4 md:-mx-8 -mt-6 md:-mt-8 -mb-6 md:-mb-8 min-h-[calc(100vh-4rem)] flex flex-col"
               style={{
                 background: [
-                  // Wine atmosphere — top-right glow
-                  "radial-gradient(ellipse 55% 45% at 100% 0%, rgba(160,38,72,0.36) 0%, transparent 65%)",
-                  // Subtle bottom depth
-                  "radial-gradient(ellipse 70% 35% at 50% 115%, rgba(80,10,28,0.22) 0%, transparent 55%)",
-                  // Left edge matches sidebar (#421424→#361019), fades into deep arena dark
-                  "linear-gradient(90deg, #421424 0%, #331018 5%, #200d12 15%, #0e0810 35%, #110910 65%, #1c0a14 100%)",
+                  // Top-left corner: sidebar top color (#421424) bleeds in
+                  "radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%)",
+                  // Bottom-left corner: sidebar bottom color (#280D14) bleeds in
+                  "radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%)",
+                  // Top-right wine glow — premium atmosphere
+                  "radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%)",
+                  // Base horizontal blend: sidebar midpoint (#361019) → arena deep dark
+                  "linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%)",
                 ].join(", "),
                 borderLeft: "none",
               }}
