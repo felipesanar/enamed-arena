@@ -224,7 +224,7 @@ export default function SimuladoDetailPage() {
                 {/* Description — only for non-veterans */}
                 {!isVeteran && (
                   <p
-                    className="text-[15px] leading-relaxed max-w-[480px] mx-auto mb-6"
+                    className="text-[13px] md:text-[15px] leading-relaxed max-w-[440px] mx-auto mb-4"
                     style={{ color: "rgba(255,255,255,0.38)" }}
                   >
                     Confirme os itens abaixo antes de entrar. A prova não pode ser pausada.
