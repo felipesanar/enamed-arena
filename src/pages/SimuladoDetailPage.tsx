@@ -366,7 +366,7 @@ export default function SimuladoDetailPage() {
               {(!isVeteran || showFullChecklist) && (
                 <>
                   {/* ── Progress bar ── */}
-                  <div className="mb-5">
+                  <div className="mb-4">
                     <div className="flex items-center justify-between mb-2.5">
                       <span
                         className="text-[10px] font-bold uppercase tracking-[0.16em]"
