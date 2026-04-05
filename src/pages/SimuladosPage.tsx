@@ -484,7 +484,7 @@ function CountdownBlock({ label, value }: { label: string; value: string }) {
 }
 
 function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
-  const { days, hours, mins } = useCountdown(sim.executionWindowStart);
+  const { days, hours, mins, secs } = useCountdown(sim.executionWindowStart);
 
   return (
     <div
