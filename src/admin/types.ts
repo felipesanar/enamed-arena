@@ -178,3 +178,34 @@ export interface MarketingCampaignRow {
   conv_rate: number
   first_exams: number
 }
+
+export interface SegmentedFunnelRow {
+  step_order: number
+  step_label: string
+  guest_count: number
+  guest_pct: number
+  standard_count: number
+  standard_pct: number
+  pro_count: number
+  pro_pct: number
+}
+
+export interface FrictionPoint {
+  key: string
+  title: string
+  event_name: string
+  metric_value: number
+  metric_unit: 'percent' | 'days' | 'minutes'
+  severity: 'critical' | 'warning' | 'healthy'
+}
+
+export interface FeatureAdoptionRow {
+  feature: string
+  event_name: string
+  adoption_pct: number
+}
+
+export interface TopEventRow {
+  event_name: string
+  cnt: number
+}

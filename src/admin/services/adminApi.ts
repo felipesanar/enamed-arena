@@ -19,6 +19,10 @@ import type {
   MarketingSourceRow,
   MarketingMediumRow,
   MarketingCampaignRow,
+  SegmentedFunnelRow,
+  FrictionPoint,
+  FeatureAdoptionRow,
+  TopEventRow,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -477,6 +481,54 @@ export const adminApi = {
       signups:     Number(r.signups),
       conv_rate:   Number(r.conv_rate),
       first_exams: Number(r.first_exams),
+    }))
+  },
+
+  // ─── Produto ───
+  async getProdutoSegmentedFunnel(days: number): Promise<SegmentedFunnelRow[]> {
+    const { data, error } = await supabase.rpc('admin_produto_segmented_funnel', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      step_order:     Number(r.step_order),
+      step_label:     r.step_label as string,
+      guest_count:    Number(r.guest_count),
+      guest_pct:      Number(r.guest_pct),
+      standard_count: Number(r.standard_count),
+      standard_pct:   Number(r.standard_pct),
+      pro_count:      Number(r.pro_count),
+      pro_pct:        Number(r.pro_pct),
+    }))
+  },
+
+  async getProdutoFriction(days: number, segment = 'all'): Promise<FrictionPoint[]> {
+    const { data, error } = await supabase.rpc('admin_produto_friction', { p_days: days, p_segment: segment })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      key:          r.key as string,
+      title:        r.title as string,
+      event_name:   r.event_name as string,
+      metric_value: Number(r.metric_value),
+      metric_unit:  r.metric_unit as 'percent' | 'days' | 'minutes',
+      severity:     r.severity as 'critical' | 'warning' | 'healthy',
+    }))
+  },
+
+  async getProdutoFeatureAdoption(days: number, segment = 'all'): Promise<FeatureAdoptionRow[]> {
+    const { data, error } = await supabase.rpc('admin_produto_feature_adoption', { p_days: days, p_segment: segment })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      feature:      r.feature as string,
+      event_name:   r.event_name as string,
+      adoption_pct: Number(r.adoption_pct),
+    }))
+  },
+
+  async getProdutoTopEvents(days: number, limit = 6): Promise<TopEventRow[]> {
+    const { data, error } = await supabase.rpc('admin_produto_top_events', { p_days: days, p_limit: limit })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      event_name: r.event_name as string,
+      cnt:        Number(r.cnt),
     }))
   },
 };
