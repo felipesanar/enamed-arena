@@ -5,6 +5,11 @@ import type {
   FunnelStep,
   SimuladoEngagementRow,
   LiveSignals,
+  UserListRow,
+  UserDetail,
+  UserAttemptRow,
+  SimuladoDetailStats,
+  SimuladoQuestionStat,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -168,5 +173,150 @@ export const adminApi = {
       active_exams: Number(row.active_exams),
       open_tickets: Number(row.open_tickets),
     }
+  },
+
+  // ─── Usuários ───
+  async listUsers(
+    search = '',
+    segment = 'all',
+    limit = 25,
+    offset = 0
+  ): Promise<UserListRow[]> {
+    const { data, error } = await supabase.rpc('admin_list_users', {
+      p_search: search,
+      p_segment: segment,
+      p_limit: limit,
+      p_offset: offset,
+    })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      user_id: r.user_id as string,
+      full_name: r.full_name as string | null,
+      email: r.email as string,
+      avatar_url: r.avatar_url as string | null,
+      segment: r.segment as 'guest' | 'standard' | 'pro',
+      specialty: r.specialty as string | null,
+      created_at: r.created_at as string,
+      avg_score: Number(r.avg_score),
+      total_attempts: Number(r.total_attempts),
+      total_count: Number(r.total_count),
+    }))
+  },
+
+  async getUser(userId: string): Promise<UserDetail> {
+    const { data, error } = await supabase.rpc('admin_get_user', { p_user_id: userId })
+    if (error) throw error
+    const r = (data as any[])[0]
+    return {
+      user_id: r.user_id as string,
+      full_name: r.full_name as string | null,
+      email: r.email as string,
+      avatar_url: r.avatar_url as string | null,
+      segment: r.segment as 'guest' | 'standard' | 'pro',
+      created_at: r.created_at as string,
+      last_sign_in_at: r.last_sign_in_at as string | null,
+      specialty: r.specialty as string | null,
+      target_institutions: r.target_institutions as string[] | null,
+      avg_score: Number(r.avg_score),
+      best_score: Number(r.best_score),
+      last_score: Number(r.last_score),
+      total_attempts: Number(r.total_attempts),
+      last_finished_at: r.last_finished_at as string | null,
+      is_admin: Boolean(r.is_admin),
+    }
+  },
+
+  async getUserAttempts(userId: string, limit = 10): Promise<UserAttemptRow[]> {
+    const { data, error } = await supabase.rpc('admin_get_user_attempts', {
+      p_user_id: userId,
+      p_limit: limit,
+    })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      attempt_id: r.attempt_id as string,
+      simulado_id: r.simulado_id as string,
+      sequence_number: Number(r.sequence_number),
+      simulado_title: r.simulado_title as string,
+      created_at: r.created_at as string,
+      status: r.status as string,
+      score_percentage: r.score_percentage != null ? Number(r.score_percentage) : null,
+      ranking_position: Number(r.ranking_position),
+    }))
+  },
+
+  async setUserSegment(userId: string, segment: 'guest' | 'standard' | 'pro'): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_user_segment', {
+      p_user_id: userId,
+      p_segment: segment,
+    })
+    if (error) throw error
+  },
+
+  async setUserRole(userId: string, role: string, grant: boolean): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_user_role', {
+      p_user_id: userId,
+      p_role: role,
+      p_grant: grant,
+    })
+    if (error) throw error
+  },
+
+  async resetUserOnboarding(userId: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_reset_user_onboarding', { p_user_id: userId })
+    if (error) throw error
+  },
+
+  async deleteUser(userId: string): Promise<void> {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) throw new Error('Not authenticated')
+
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ user_id: userId }),
+      }
+    )
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error ?? 'Delete failed')
+  },
+
+  // ─── Simulados Analytics ───
+  async getSimuladoDetailStats(simuladoId: string): Promise<SimuladoDetailStats> {
+    const { data, error } = await supabase.rpc('admin_simulado_detail_stats', {
+      p_simulado_id: simuladoId,
+    })
+    if (error) throw error
+    const r = (data as any[])[0]
+    return {
+      simulado_id: r.simulado_id as string,
+      sequence_number: Number(r.sequence_number),
+      title: r.title as string,
+      participants: Number(r.participants),
+      completion_rate: Number(r.completion_rate),
+      avg_score: Number(r.avg_score),
+      abandonment_rate: Number(r.abandonment_rate),
+      avg_time_minutes: Number(r.avg_time_minutes),
+    }
+  },
+
+  async getSimuladoQuestionStats(simuladoId: string): Promise<SimuladoQuestionStat[]> {
+    const { data, error } = await supabase.rpc('admin_simulado_question_stats', {
+      p_simulado_id: simuladoId,
+    })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      question_number: Number(r.question_number),
+      text: r.text as string,
+      correct_rate: Number(r.correct_rate),
+      discrimination_index: Number(r.discrimination_index),
+      most_common_wrong_label: r.most_common_wrong_label as string | null,
+      most_common_wrong_pct: r.most_common_wrong_pct != null ? Number(r.most_common_wrong_pct) : null,
+    }))
   },
 };
