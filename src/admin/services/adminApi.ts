@@ -12,6 +12,9 @@ import type {
   SimuladoQuestionStat,
   AttemptListKpis,
   AttemptListRow,
+  JourneyTimeseriesRow,
+  JourneySourceRow,
+  JourneyTimeToConvert,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -378,5 +381,50 @@ export const adminApi = {
   async deleteAttempt(attemptId: string): Promise<void> {
     const { error } = await supabase.rpc('admin_delete_attempt', { p_attempt_id: attemptId })
     if (error) throw error
+  },
+
+  // ─── Analytics ───
+  async getAnalyticsFunnel(days: number): Promise<FunnelStep[]> {
+    const { data, error } = await supabase.rpc('admin_analytics_funnel', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      step_order:           Number(r.step_order),
+      step_label:           r.step_label as string,
+      user_count:           Number(r.user_count),
+      conversion_from_prev: Number(r.conversion_from_prev),
+    }))
+  },
+
+  async getAnalyticsTimeseries(days: number): Promise<JourneyTimeseriesRow[]> {
+    const { data, error } = await supabase.rpc('admin_analytics_timeseries', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      week_start:  r.week_start as string,
+      new_users:   Number(r.new_users),
+      first_exams: Number(r.first_exams),
+    }))
+  },
+
+  async getAnalyticsSources(days: number): Promise<JourneySourceRow[]> {
+    const { data, error } = await supabase.rpc('admin_analytics_sources', { p_days: days })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      utm_source:      r.utm_source as string,
+      user_count:      Number(r.user_count),
+      signup_conv_pct: Number(r.signup_conv_pct),
+    }))
+  },
+
+  async getAnalyticsTimeToConvert(days: number): Promise<JourneyTimeToConvert> {
+    const { data, error } = await supabase.rpc('admin_analytics_time_to_convert', { p_days: days })
+    if (error) throw error
+    const r = (data as any[])?.[0]
+    if (!r) return { landing_to_signup_min: 0, signup_to_onboarding_min: 0, onboarding_to_first_exam_days: 0, first_to_second_exam_days: 0 }
+    return {
+      landing_to_signup_min:         Number(r.landing_to_signup_min),
+      signup_to_onboarding_min:      Number(r.signup_to_onboarding_min),
+      onboarding_to_first_exam_days: Number(r.onboarding_to_first_exam_days),
+      first_to_second_exam_days:     Number(r.first_to_second_exam_days),
+    }
   },
 };

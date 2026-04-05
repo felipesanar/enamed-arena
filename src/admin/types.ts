@@ -130,3 +130,22 @@ export interface AttemptListRow {
   ranking_position: number | null
   total_count: number
 }
+
+export interface JourneyTimeseriesRow {
+  week_start: string
+  new_users: number
+  first_exams: number
+}
+
+export interface JourneySourceRow {
+  utm_source: string
+  user_count: number
+  signup_conv_pct: number
+}
+
+export interface JourneyTimeToConvert {
+  landing_to_signup_min: number
+  signup_to_onboarding_min: number
+  onboarding_to_first_exam_days: number
+  first_to_second_exam_days: number
+}
