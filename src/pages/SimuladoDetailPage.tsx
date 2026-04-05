@@ -257,37 +257,50 @@ export default function SimuladoDetailPage() {
                   </div>
                 )}
 
-                {/* Meta chips */}
-                <div className="flex items-center justify-center gap-1.5 md:gap-2 flex-wrap">
-                  {[
-                    { icon: Clock, label: simulado.estimatedDuration },
-                    { icon: FileText, label: `${simulado.questionsCount} questões` },
-                    ...(simulado.status !== "available_late"
-                      ? [{ icon: Trophy, label: "Conta no ranking nacional" }]
-                      : []),
-                  ].map(({ icon: Icon, label }) => (
-                    <div
-                      key={label}
-                      className="inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1 text-[11px] md:text-[12px] font-semibold"
-                      style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        color: "rgba(255,255,255,0.62)",
-                      }}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {label}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Execution window */}
-                <p
-                  className="text-[11px] mt-3"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
+                {/* Meta info card */}
+                <div
+                  className="w-full max-w-md mx-auto rounded-2xl px-5 py-4 flex flex-col items-center gap-3"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: "0 4px 24px -8px rgba(0,0,0,0.3)",
+                  }}
                 >
-                  Janela de execução: {formatDate(simulado.executionWindowStart)} — {formatDate(simulado.executionWindowEnd)}
-                </p>
+                  {/* Chips row */}
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {[
+                      { icon: Clock, label: simulado.estimatedDuration },
+                      { icon: FileText, label: `${simulado.questionsCount} questões` },
+                      ...(simulado.status !== "available_late"
+                        ? [{ icon: Trophy, label: "Conta no ranking nacional" }]
+                        : []),
+                    ].map(({ icon: Icon, label }) => (
+                      <div
+                        key={label}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] md:text-[13px] font-semibold"
+                        style={{
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          color: "rgba(255,255,255,0.72)",
+                        }}
+                      >
+                        <Icon className="h-3.5 w-3.5" style={{ opacity: 0.7 }} />
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Divider inside card */}
+                  <div className="w-full h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+
+                  {/* Execution window */}
+                  <div className="flex items-center gap-2 text-[12px] md:text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    <CalendarDays className="h-3.5 w-3.5" style={{ opacity: 0.5 }} />
+                    <span>
+                      Janela de execução: <span style={{ color: "rgba(255,255,255,0.6)" }}>{formatDate(simulado.executionWindowStart)} — {formatDate(simulado.executionWindowEnd)}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Divider */}
