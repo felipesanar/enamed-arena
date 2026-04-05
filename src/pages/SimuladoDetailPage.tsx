@@ -186,7 +186,7 @@ export default function SimuladoDetailPage() {
           ) : (
             <div
               data-testid="arena-card"
-              className="relative overflow-hidden rounded-[22px] px-10 pt-14 pb-12 md:px-16"
+              className="relative overflow-hidden -mx-4 md:-mx-8 -mt-6 md:-mt-8 min-h-[calc(100vh-64px)] flex flex-col"
               style={{
                 background: [
                   "radial-gradient(ellipse 500px 380px at 98% 8%, rgba(160,38,72,0.32) 0%, transparent 65%)",
