@@ -26,7 +26,7 @@ describe('AuthContext', () => {
     });
 
     let signIn: ((e: string, p: string) => Promise<{ error: string | null }>) | null = null;
-    const Spy = () => {
+    const Spy = (): null => {
       const ctx = useAuth();
       signIn = ctx.signInWithPassword;
       return null;

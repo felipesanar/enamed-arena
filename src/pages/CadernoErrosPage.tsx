@@ -152,7 +152,7 @@ function CadernoContent({ userId }: { userId: string }) {
       });
       prevFiltersRef.current = { area: areaFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
     }
-  }, [areaFilter, reasonFilter, simuladoFilter, resolvedFilter, loading, filtered.length]);
+  }, [areaFilter, reasonFilter, simuladoFilter, resolvedFilter, loading, entries.length]);
 
   const fetchEntries = useCallback(async () => {
     if (!userId) return;
