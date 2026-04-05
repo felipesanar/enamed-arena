@@ -456,7 +456,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
 function useCountdown(targetISO: string) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
+    const id = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(id);
   }, []);
   const target = parseISO(targetISO);
@@ -464,7 +464,8 @@ function useCountdown(targetISO: string) {
   const days = Math.floor(diff / 86_400_000);
   const hours = Math.floor((diff % 86_400_000) / 3_600_000);
   const mins = Math.floor((diff % 3_600_000) / 60_000);
-  return { days, hours, mins };
+  const secs = Math.floor((diff % 60_000) / 1_000);
+  return { days, hours, mins, secs };
 }
 
 function CountdownBlock({ label, value }: { label: string; value: string }) {
@@ -483,7 +484,7 @@ function CountdownBlock({ label, value }: { label: string; value: string }) {
 }
 
 function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
-  const { days, hours, mins } = useCountdown(sim.executionWindowStart);
+  const { days, hours, mins, secs } = useCountdown(sim.executionWindowStart);
 
   return (
     <div
@@ -549,6 +550,7 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
           <CountdownBlock label="dias" value={String(days).padStart(2, "0")} />
           <CountdownBlock label="horas" value={String(hours).padStart(2, "0")} />
           <CountdownBlock label="min" value={String(mins).padStart(2, "0")} />
+          <CountdownBlock label="seg" value={String(secs).padStart(2, "0")} />
         </div>
 
         {/* CTAs */}
