@@ -26,6 +26,20 @@ export function DashboardLayout() {
     () => /^\/simulados\/[^/]+\/prova(?:\/|$)/.test(location.pathname),
     [location.pathname]
   );
+
+  // Auto-collapse sidebar when entering simulado detail / arena pages
+  const isArenaRoute = useMemo(
+    () => /^\/simulados\/[^/]+(?:\/start)?(?:\/|$)/.test(location.pathname) && !isExamRoute,
+    [location.pathname, isExamRoute]
+  );
+  useEffect(() => {
+    if (isArenaRoute && !isMobile) {
+      setSidebarCollapsed(true);
+    }
+    // Intentionally depends only on isArenaRoute — fires once on route entry,
+    // does not re-collapse if the user manually expands while on the page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isArenaRoute]);
   const isGuestMobile =
     isMobile && (profile?.segment ?? "guest") === "guest";
 
