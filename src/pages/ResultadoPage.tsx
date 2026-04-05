@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
@@ -16,6 +16,7 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { canViewResults } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
+import { trackEvent } from '@/lib/analytics';
 import {
   Trophy, CheckCircle2, XCircle, Target, BarChart3,
   FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown,
@@ -31,6 +32,25 @@ export default function ResultadoPage() {
   const { examState, attempt, loading: loadingExam } = useExamResult(id);
 
   const loading = loadingSim || loadingExam;
+
+  const resultTracked = useRef(false);
+  useEffect(() => {
+    if (loading || resultTracked.current) return;
+    if (!examState || (examState.status !== 'submitted' && examState.status !== 'expired')) return;
+    resultTracked.current = true;
+    const breakdown = computePerformanceBreakdown(examState, questions);
+    const worstArea = breakdown.byArea.at(-1)?.area ?? 'unknown';
+    const bestArea = breakdown.byArea[0]?.area ?? 'unknown';
+    trackEvent('resultado_viewed', {
+      simulado_id: id ?? '',
+      score_percentage: attempt?.score_percentage ?? 0,
+      total_correct: attempt?.total_correct ?? 0,
+      total_questions: questions.length,
+      worst_area: worstArea,
+      best_area: bestArea,
+      segment,
+    });
+  }, [loading, examState, id, questions, segment]);
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { PageTransition } from "@/components/premium/PageTransition";
@@ -28,6 +28,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { SimuladoWithStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { trackEvent } from '@/lib/analytics';
 
 const CHECKLIST_BASE = [
   { key: "duration", icon: Clock, title: "Duração da prova", getDesc: (s: { estimatedDuration: string; questionsCount: number }) => `${s.estimatedDuration} · ${s.questionsCount} questões` },
@@ -101,6 +102,19 @@ export default function SimuladoDetailPage() {
   const allChecked =
     checklistItems.length > 0 && checkedItems.size === checklistItems.length;
   const ctaActive = isVeteran || allChecked;
+
+  const detailTracked = useRef(false);
+  useEffect(() => {
+    if (!simulado || detailTracked.current) return;
+    detailTracked.current = true;
+    trackEvent('simulado_detail_viewed', {
+      simulado_id: simulado.id,
+      simulado_sequence: simulado.sequenceNumber ?? 0,
+      simulado_status: simulado.status,
+      user_started: simulado.userState?.started ?? false,
+      checklist_required: simulado.status === 'available' || simulado.status === 'available_late',
+    });
+  }, [simulado]);
 
   if (loading) {
     return (

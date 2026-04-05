@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { PageTransition } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
@@ -130,6 +131,17 @@ export default function ComparativoPage() {
 
 function ComparativoContent() {
   const { entries, insights, loading } = useComparativeData();
+  const { profile } = useUser();
+
+  const compTracked = useRef(false);
+  useEffect(() => {
+    if (loading || compTracked.current) return;
+    compTracked.current = true;
+    trackEvent('comparativo_viewed', {
+      simulados_count: entries.length,
+      segment: profile?.segment ?? 'guest',
+    });
+  }, [loading, entries.length, profile?.segment]);
 
   if (loading) {
     return (

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
+import { trackEvent } from '@/lib/analytics';
 
 interface UserContextValue {
   profile: UserProfile | null;
@@ -119,6 +120,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar perfil';
       logger.error('[UserContext] Unexpected error fetching user data:', message);
       setProfileError(message);
+      trackEvent('auth_profile_load_failed', {
+        error_message: message,
+        fallback_segment: 'guest',
+      });
       toast({
         title: 'Erro ao carregar perfil',
         description: 'Não foi possível carregar seus dados. Tente recarregar.',

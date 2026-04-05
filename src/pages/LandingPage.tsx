@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { motion } from "framer-motion";
+import { trackEvent } from '@/lib/analytics';
 import { LandingProgressBar } from "@/components/landing/LandingProgressBar";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingHero } from "@/components/landing/LandingHero";
@@ -11,6 +13,19 @@ import { LandingCta } from "@/components/landing/LandingCta";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
 export default function LandingPage() {
+  const landingTracked = useRef(false);
+  useEffect(() => {
+    if (landingTracked.current) return;
+    landingTracked.current = true;
+    const params = new URLSearchParams(window.location.search);
+    trackEvent('landing_page_viewed', {
+      referrer: document.referrer || 'direct',
+      utm_source: params.get('utm_source') ?? undefined,
+      utm_medium: params.get('utm_medium') ?? undefined,
+      utm_campaign: params.get('utm_campaign') ?? undefined,
+    });
+  }, []);
+
   return (
     <div className="dark landing-dark min-h-screen font-sans antialiased text-foreground bg-landing-bg">
       {/* Animated ambient orbs — wine/primary glow (SanarFlix Pro) */}

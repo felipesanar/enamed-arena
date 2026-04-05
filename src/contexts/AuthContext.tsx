@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, Re
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { trackEvent } from '@/lib/analytics';
 
 interface AuthContextType {
   user: User | null;
@@ -71,9 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       logger.log('[AuthContext] Password sign-in error:', error.message);
+      trackEvent('auth_login_failed', {
+        method: 'password',
+        error_code: error.message,
+      });
       return { error: error.message };
     }
 
+    trackEvent('auth_login_succeeded', {
+      method: 'password',
+      is_new_user: false,
+      segment: 'guest',
+    });
     return { error: null };
   }, []);
 
@@ -132,9 +142,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       logger.log('[AuthContext] Login link error:', error.message);
+      trackEvent('auth_login_failed', {
+        method: 'magic_link',
+        error_code: error.message,
+      });
       return { error: error.message };
     }
 
+    trackEvent('auth_login_succeeded', {
+      method: 'magic_link',
+      is_new_user: false,
+      segment: 'guest',
+    });
     return { error: null };
   }, []);
 

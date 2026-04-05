@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, Fragment } from "react";
+import { useState, useCallback, useRef, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
@@ -104,6 +104,25 @@ export default function OnboardingPage() {
   const [error, setError] = useState("");
   const isEditingBlocked = isOnboardingComplete && onboardingEditLocked;
 
+  const STEP_NAMES = ['Especialidade', 'Instituições', 'Confirmação'] as const;
+
+  const startedTracked = useRef(false);
+  useEffect(() => {
+    if (startedTracked.current) return;
+    startedTracked.current = true;
+    trackEvent('onboarding_started', {
+      segment,
+      from_sso: false,
+    });
+  }, []);
+
+  useEffect(() => {
+    trackEvent('onboarding_step_viewed', {
+      step: (step + 1) as 1 | 2 | 3,
+      step_name: STEP_NAMES[step],
+    });
+  }, [step]);
+
   const nextEditableText = onboardingNextEditableAt
     ? new Date(onboardingNextEditableAt).toLocaleString("pt-BR")
     : null;
@@ -118,7 +137,13 @@ export default function OnboardingPage() {
   };
 
   const handleNext = () => {
-    if (isEditingBlocked) return;
+    if (isEditingBlocked) {
+      trackEvent('onboarding_edit_blocked', {
+        reason: 'active_exam_window',
+        next_editable_at: onboardingNextEditableAt ?? undefined,
+      });
+      return;
+    }
     setError("");
     if (!canProceed()) {
       if (step === 0) setError("Selecione uma especialidade para continuar.");
@@ -136,6 +161,10 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     if (isEditingBlocked) {
+      trackEvent('onboarding_edit_blocked', {
+        reason: 'active_exam_window',
+        next_editable_at: onboardingNextEditableAt ?? undefined,
+      });
       setError("Seu perfil só pode ser editado entre janelas de execução.");
       return;
     }

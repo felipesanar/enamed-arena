@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 interface Props {
   children: ReactNode;
@@ -26,6 +27,11 @@ export class ErrorBoundary extends Component<Props, State> {
     if (import.meta.env.DEV) {
       console.error('[ErrorBoundary]', error, info.componentStack);
     }
+    trackEvent('error_boundary_triggered', {
+      error_message: error.message,
+      component_stack: (info.componentStack ?? '').slice(0, 500),
+      route: window.location.pathname,
+    });
   }
 
   handleReload = () => {

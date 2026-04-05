@@ -5,6 +5,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { trackEvent } from '@/lib/analytics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,7 +52,12 @@ export const offlineApi = {
       logger.error('[OfflineApi] Error creating offline attempt:', error);
       throw error;
     }
-    return data as unknown as OfflineAttemptCreated;
+    const result = data as unknown as OfflineAttemptCreated;
+    trackEvent('offline_attempt_created', {
+      simulado_id: simuladoId,
+      attempt_id: result.attempt_id,
+    });
+    return result;
   },
 
   /**
@@ -69,6 +75,10 @@ export const offlineApi = {
     }
     const url = (data as { url?: string })?.url;
     if (!url) throw new Error('PDF URL not returned from edge function');
+    trackEvent('offline_pdf_generated', {
+      simulado_id: simuladoId,
+      forced_regeneration: force,
+    });
     return url;
   },
 
@@ -79,6 +89,7 @@ export const offlineApi = {
   async submitOfflineAnswers(
     attemptId: string,
     answers: Array<{ question_id: string; selected_option_id: string | null }>,
+    simuladoId?: string,
   ): Promise<OfflineAttemptSubmitResult> {
     logger.log('[OfflineApi] Submitting offline answers for attempt:', attemptId);
     const { data, error } = await rpc('submit_offline_answers_guarded', {
@@ -87,9 +98,21 @@ export const offlineApi = {
     });
     if (error) {
       logger.error('[OfflineApi] Error submitting offline answers:', error);
+      trackEvent('offline_answers_submit_failed', {
+        attempt_id: attemptId,
+        simulado_id: simuladoId ?? null,
+        error_message: (error as { message?: string }).message ?? 'unknown',
+      });
       throw error;
     }
-    return data as unknown as OfflineAttemptSubmitResult;
+    const result = data as unknown as OfflineAttemptSubmitResult;
+    trackEvent('offline_answers_submitted', {
+      attempt_id: result.attempt_id,
+      simulado_id: simuladoId ?? null,
+      answers_count: answers.filter(a => a.selected_option_id !== null).length,
+      is_within_window: result.is_within_window,
+    });
+    return result;
   },
 
   /**

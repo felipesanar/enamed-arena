@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -27,6 +27,7 @@ import { SimuladosTimelineSection } from "@/components/simulados/SimuladosTimeli
 import { offlineApi } from "@/services/offlineApi";
 import { persistOfflineAttempt } from "@/hooks/useOfflineAttempt";
 import { toast } from "@/hooks/use-toast";
+import { trackEvent } from '@/lib/analytics';
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -48,6 +49,22 @@ export default function SimuladosPage() {
   const { simulados, loading, error, refetch } = useSimulados();
   const navigate = useNavigate();
   const { activeAttempt } = useOfflineAttempt();
+
+  const listTracked = useRef(false);
+  useEffect(() => {
+    if (loading || listTracked.current) return;
+    listTracked.current = true;
+    const available = simulados.filter(s => s.status === 'available' || s.status === 'available_late').length;
+    const inProgress = simulados.filter(s => s.status === 'in_progress').length;
+    const completed = simulados.filter(s => s.status === 'completed').length;
+    trackEvent('simulados_list_viewed', {
+      total_simulados: simulados.length,
+      available_count: available,
+      in_progress_count: inProgress,
+      completed_count: completed,
+      has_active_offline: !!activeAttempt,
+    });
+  }, [loading, simulados, activeAttempt]);
 
   const heroSimulado = useMemo(() => {
     const active = simulados.find(s => s.status === "available" || s.status === "in_progress");

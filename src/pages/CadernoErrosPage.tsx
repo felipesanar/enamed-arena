@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PageTransition } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
@@ -110,6 +111,7 @@ function NotebookEntryCard({
 
 function CadernoContent({ userId }: { userId: string }) {
   const prefersReducedMotion = useReducedMotion();
+  const { profile } = useUser();
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,6 +120,39 @@ function CadernoContent({ userId }: { userId: string }) {
   const [reasonFilter, setReasonFilter] = useState<ReasonFilter>('all');
   const [simuladoFilter, setSimuladoFilter] = useState<string | null>(null);
   const [resolvedFilter, setResolvedFilter] = useState<ResolvedFilter>('all');
+
+  const errosTracked = useRef(false);
+  useEffect(() => {
+    if (loading || errosTracked.current) return;
+    errosTracked.current = true;
+    trackEvent('caderno_erros_viewed', {
+      total_errors: entries.length,
+      segment: profile?.segment ?? 'guest',
+    });
+  }, [loading, entries.length, profile?.segment]);
+
+  // Track all filter changes with post-filter result_count
+  const prevFiltersRef = useRef<{ area: string | null; reason: ReasonFilter; simulado: string | null; resolved: ResolvedFilter } | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (prevFiltersRef.current === null) {
+      prevFiltersRef.current = { area: areaFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
+      return;
+    }
+    const prev = prevFiltersRef.current;
+    const filterType =
+      prev.area !== areaFilter ? 'area' :
+      prev.reason !== reasonFilter ? 'reason' :
+      prev.simulado !== simuladoFilter ? 'simulado' :
+      prev.resolved !== resolvedFilter ? 'resolved' : null;
+    if (filterType) {
+      trackEvent('caderno_erros_filtered', {
+        filter_type: filterType,
+        result_count: filtered.length,
+      });
+      prevFiltersRef.current = { area: areaFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
+    }
+  }, [areaFilter, reasonFilter, simuladoFilter, resolvedFilter, loading, filtered.length]);
 
   const fetchEntries = useCallback(async () => {
     if (!userId) return;
@@ -165,6 +200,10 @@ function CadernoContent({ userId }: { userId: string }) {
     if (resolvedFilter === 'resolved') data = data.filter(e => !!e.resolvedAt);
     return data.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
   }, [entries, areaFilter, reasonFilter, simuladoFilter, resolvedFilter]);
+
+  const handleAreaFilter = (area: string | null) => {
+    setAreaFilter(prev => area === null ? null : (prev === area ? null : area));
+  };
 
   const handleRemove = async (id: string) => {
     try {
@@ -235,9 +274,9 @@ function CadernoContent({ userId }: { userId: string }) {
           <div>
             <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><Stethoscope className="h-3.5 w-3.5" /> Grande área</p>
             <div className="flex flex-wrap gap-1.5">
-              <button onClick={() => setAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas</button>
+              <button onClick={() => handleAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas</button>
               {areas.map(area => (
-                <button key={area} onClick={() => setAreaFilter(prev => prev === area ? null : area)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', areaFilter === area ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{area}</button>
+                <button key={area} onClick={() => handleAreaFilter(area)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', areaFilter === area ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{area}</button>
               ))}
             </div>
           </div>

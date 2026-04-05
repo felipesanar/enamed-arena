@@ -97,6 +97,26 @@ export default function RankingPage() {
 
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter(o => allowedSegments.includes(o.key));
 
+  const handleComparisonFilterChange = (newValue: ComparisonFilter) => {
+    trackEvent('ranking_filter_changed', {
+      simulado_id: selectedSimuladoId ?? '',
+      filter_type: 'comparison',
+      old_value: comparisonFilter,
+      new_value: newValue,
+    });
+    setComparisonFilter(newValue);
+  };
+
+  const handleSegmentFilterChange = (newValue: SegmentFilter) => {
+    trackEvent('ranking_filter_changed', {
+      simulado_id: selectedSimuladoId ?? '',
+      filter_type: 'segment',
+      old_value: segmentFilter,
+      new_value: newValue,
+    });
+    setSegmentFilter(newValue);
+  };
+
   useEffect(() => {
     if (!allowedSegments.includes(segmentFilter)) {
       setSegmentFilter('all');
@@ -239,7 +259,7 @@ export default function RankingPage() {
                       ]).map((f) => (
                         <button
                           key={f.key}
-                          onClick={() => !f.disabled && setComparisonFilter(f.key)}
+                          onClick={() => !f.disabled && handleComparisonFilterChange(f.key)}
                           disabled={f.disabled}
                           className={cn(
                             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
@@ -264,7 +284,7 @@ export default function RankingPage() {
                         <span className="text-caption text-muted-foreground">Restringir à:</span>
                         <button
                           onClick={() =>
-                            setComparisonFilter(
+                            handleComparisonFilterChange(
                               comparisonFilter === 'same_institution' ? 'same_specialty' : 'same_institution'
                             )
                           }
@@ -293,7 +313,7 @@ export default function RankingPage() {
                       {visibleSegmentOptions.map((f) => (
                         <button
                           key={f.key}
-                          onClick={() => setSegmentFilter(f.key)}
+                          onClick={() => handleSegmentFilterChange(f.key)}
                           className={cn(
                             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
                             segmentFilter === f.key

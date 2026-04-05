@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PageTransition } from '@/components/premium/PageTransition';
 import { Link } from 'react-router-dom';
@@ -28,6 +29,15 @@ export default function DesempenhoPage() {
   const [selectedSimuladoId, setSelectedSimuladoId] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+
+  const desTracked = useRef(false);
+  useEffect(() => {
+    if (loadingSimulados || desTracked.current) return;
+    desTracked.current = true;
+    trackEvent('desempenho_viewed', {
+      simulados_with_results: simuladosWithResults.length,
+    });
+  }, [loadingSimulados, simuladosWithResults.length]);
 
   useEffect(() => {
     if (!selectedSimuladoId && simuladosWithResults.length > 0) {

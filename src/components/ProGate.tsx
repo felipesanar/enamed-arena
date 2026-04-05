@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { LucideIcon, Lock, Sparkles, ArrowRight, Check } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,16 @@ export function ProGate({
   benefits,
 }: ProGateProps) {
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    trackEvent('feature_gate_seen', {
+      feature,
+      current_segment: currentSegment,
+      required_segment: requiredSegment,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const upgradeLabel = requiredSegment === 'pro' ? 'PRO: ENAMED' : 'SanarFlix';
 
   return (
