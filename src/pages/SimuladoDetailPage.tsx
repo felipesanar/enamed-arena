@@ -196,7 +196,7 @@ export default function SimuladoDetailPage() {
                 ].join(", "),
               }}
             >
-              <div className="relative z-10 px-10 pt-14 pb-12 md:px-16 flex-1 flex flex-col justify-center">
+              <div className="relative z-10 px-6 pt-8 pb-8 md:px-16 md:pt-12 md:pb-10 flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
 
               {/* ── Top section ── */}
               <div className="text-center mb-9">
