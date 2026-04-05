@@ -194,9 +194,6 @@ export default function SimuladoDetailPage() {
                   "radial-gradient(ellipse 600px 300px at 50% 110%, rgba(90,12,36,0.18) 0%, transparent 55%)",
                   "linear-gradient(155deg, #0e0810 0%, #1c0a14 50%, #2e1222 100%)",
                 ].join(", "),
-                border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow:
-                  "0 0 120px -20px rgba(160,38,72,0.5), 0 32px 80px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.09)",
               }}
             >
               <div className="relative z-10">
