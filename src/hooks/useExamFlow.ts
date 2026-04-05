@@ -42,7 +42,7 @@ export interface UseExamFlowReturn {
   // Side effects (focus, timer, finalize)
   focusControl: ReturnType<typeof useFocusControl>;
   timeRemaining: ReturnType<typeof useExamTimer>;
-  finalize: () => Promise<void>;
+  finalize: (isAutoSubmit?: boolean) => Promise<void>;
   setNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 
   // State update (debounced persist)
@@ -131,9 +131,31 @@ export function useExamFlow(): UseExamFlowReturn {
           if (existing.effectiveDeadline && new Date(existing.effectiveDeadline) <= new Date()) {
             logger.log('[useExamFlow] Deadline already passed, finalizing attempt');
             setState(existing);
+            const answeredBefore = Object.values(existing.answers).filter(a => !!a.selectedOption).length;
+            trackEvent('exam_auto_submitted', {
+              simulado_id: simulado.id,
+              attempt_id: storage.attemptId.current ?? '',
+              answered: answeredBefore,
+              total: questions.length,
+              reason: 'past_deadline_on_init',
+            });
             // Will be finalized by handleTimeUp
           } else {
             setState(existing);
+            const answeredBefore = Object.values(existing.answers).filter(a => !!a.selectedOption).length;
+            const timeElapsedMinutes = existing.startedAt
+              ? Math.round((Date.now() - new Date(existing.startedAt).getTime()) / 60000)
+              : 0;
+            const timeRemainingSeconds = existing.effectiveDeadline
+              ? Math.max(0, Math.round((new Date(existing.effectiveDeadline).getTime() - Date.now()) / 1000))
+              : 0;
+            trackEvent('exam_resumed', {
+              simulado_id: simulado.id,
+              attempt_id: storage.attemptId.current ?? '',
+              time_elapsed_since_start_minutes: timeElapsedMinutes,
+              answered_before_resume: answeredBefore,
+              time_remaining_seconds: timeRemainingSeconds,
+            });
             toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
           }
         } else if (!existing || existing.status === 'not_started') {
@@ -179,11 +201,37 @@ export function useExamFlow(): UseExamFlowReturn {
   }, [simulado?.id]);
 
   const focusControl = useFocusControl({
-    onTabExit: () => storage.registerTabExit(),
+    onTabExit: () => {
+      storage.registerTabExit();
+      if (state && simulado) {
+        const timeRemainingS = state.effectiveDeadline
+          ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000))
+          : 0;
+        trackEvent('exam_integrity_event', {
+          simulado_id: simulado.id,
+          attempt_id: storage.attemptId.current ?? '',
+          event_type: 'tab_exit',
+          count_so_far: (state.tabExitCount ?? 0) + 1,
+          time_remaining_seconds: timeRemainingS,
+        });
+      }
+    },
     onTabReturn: () => {},
     onFullscreenExit: () => {
       storage.registerFullscreenExit();
       setState(prev => prev ? { ...prev, fullscreenExitCount: prev.fullscreenExitCount + 1 } : prev);
+      if (state && simulado) {
+        const timeRemainingS = state.effectiveDeadline
+          ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000))
+          : 0;
+        trackEvent('exam_integrity_event', {
+          simulado_id: simulado.id,
+          attempt_id: storage.attemptId.current ?? '',
+          event_type: 'fullscreen_exit',
+          count_so_far: (state.fullscreenExitCount ?? 0) + 1,
+          time_remaining_seconds: timeRemainingS,
+        });
+      }
       toast({
         title: 'Você saiu da tela cheia',
         description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
@@ -192,21 +240,41 @@ export function useExamFlow(): UseExamFlowReturn {
     },
   });
 
-  const finalize = useCallback(async () => {
+  const finalize = useCallback(async (isAutoSubmit = false) => {
     if (hasFinalized.current || !state || !simulado) return;
     hasFinalized.current = true;
     setSubmitting(true);
+
+    const answeredAtSubmit = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
+
+    if (!isAutoSubmit) {
+      const timeRemainingAtSubmit = state.effectiveDeadline
+        ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000))
+        : 0;
+      trackEvent('exam_submit_attempted', {
+        simulado_id: simulado.id,
+        attempt_id: storage.attemptId.current ?? '',
+        answered: answeredAtSubmit,
+        total: questionIds.length,
+        unanswered: questionIds.length - answeredAtSubmit,
+        time_remaining_seconds: timeRemainingAtSubmit,
+      });
+    }
 
     try {
       await storage.submitAttempt(state);
       setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
 
       let withinRankingWindow = true;
+      let scorePercentage = 0;
       if (profile?.id) {
         try {
           const attempt = await simuladosApi.getAttempt(simulado.id, profile.id, 'online');
           if (attempt && typeof attempt.is_within_window === 'boolean') {
             withinRankingWindow = attempt.is_within_window;
+          }
+          if (attempt && typeof attempt.score_percentage === 'number') {
+            scorePercentage = attempt.score_percentage;
           }
         } catch (e) {
           logger.error('[useExamFlow] Não foi possível ler is_within_window da tentativa:', e);
@@ -214,15 +282,29 @@ export function useExamFlow(): UseExamFlowReturn {
       }
       setIsWithinWindow(withinRankingWindow);
 
-      const answeredCount = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
+      const durationMinutes = state.startedAt
+        ? Math.round((Date.now() - new Date(state.startedAt).getTime()) / 60000)
+        : 0;
       trackEvent('simulado_completed', {
-        simuladoId: simulado.id,
-        answered: answeredCount,
+        simulado_id: simulado.id,
+        attempt_id: storage.attemptId.current ?? '',
+        answered: answeredAtSubmit,
         total: questionIds.length,
+        score_percentage: scorePercentage,
+        duration_minutes: durationMinutes,
+        tab_exit_count: state.tabExitCount,
+        fullscreen_exit_count: state.fullscreenExitCount,
+        is_within_window: withinRankingWindow,
       });
       setShowSubmitModal(false);
       toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
     } catch (err) {
+      trackEvent('exam_submit_failed', {
+        simulado_id: simulado.id,
+        attempt_id: storage.attemptId.current ?? '',
+        error_message: err instanceof Error ? err.message : 'unknown',
+        retry_count: 0,
+      });
       toast({ title: 'Erro ao finalizar', description: 'Tente novamente.', variant: 'destructive' });
       hasFinalized.current = false;
     } finally {
@@ -263,8 +345,18 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const handleTimeUp = useCallback(() => {
     toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
-    timeUpTimerRef.current = setTimeout(() => finalize(), 2000);
-  }, [finalize]);
+    if (state && simulado) {
+      const answeredCount = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
+      trackEvent('exam_auto_submitted', {
+        simulado_id: simulado.id,
+        attempt_id: storage.attemptId.current ?? '',
+        answered: answeredCount,
+        total: questionIds.length,
+        reason: 'timer_expired',
+      });
+    }
+    timeUpTimerRef.current = setTimeout(() => finalize(true), 2000);
+  }, [finalize, state, simulado, storage, questionIds.length]);
 
   const timeRemaining = useExamTimer({
     deadline: state?.effectiveDeadline ?? null,
