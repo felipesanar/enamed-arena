@@ -434,7 +434,7 @@ export default function SimuladoDetailPage() {
                           {/* Text */}
                           <div className="flex-1 min-w-0">
                             <p
-                              className="text-[13.5px] font-bold leading-[1.2] mb-0.5 transition-colors"
+                              className="text-[12.5px] font-bold leading-[1.2] mb-0.5 transition-colors"
                               style={{ color: checked ? "#fff" : "rgba(255,255,255,0.72)" }}
                             >
                               {item.title}
