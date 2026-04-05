@@ -414,7 +414,7 @@ export default function SimuladoDetailPage() {
                             isLastOdd && "sm:col-span-2 sm:mx-auto sm:w-1/2"
                           )}
                           style={{
-                            padding: "18px 20px",
+                            padding: "14px 16px",
                             background: checked ? "rgba(196,90,114,0.09)" : "rgba(255,255,255,0.04)",
                             border: `1.5px solid ${checked ? "rgba(196,90,114,0.3)" : "rgba(255,255,255,0.07)"}`,
                           }}
