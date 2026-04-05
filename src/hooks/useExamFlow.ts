@@ -99,6 +99,7 @@ export function useExamFlow(): UseExamFlowReturn {
   const [initLoading, setInitLoading] = useState(true);
   const [isWithinWindow, setIsWithinWindow] = useState(true);
   const hasFinalized = useRef(false);
+  const hasAutoSubmitTracked = useRef(false);
 
   // ── Gate: redirect if not eligible ──
   useEffect(() => {
@@ -131,6 +132,7 @@ export function useExamFlow(): UseExamFlowReturn {
           if (existing.effectiveDeadline && new Date(existing.effectiveDeadline) <= new Date()) {
             logger.log('[useExamFlow] Deadline already passed, finalizing attempt');
             setState(existing);
+            if (cancelled) return;
             const answeredBefore = Object.values(existing.answers).filter(a => !!a.selectedOption).length;
             trackEvent('exam_auto_submitted', {
               simulado_id: simulado.id,
@@ -142,6 +144,7 @@ export function useExamFlow(): UseExamFlowReturn {
             // Will be finalized by handleTimeUp
           } else {
             setState(existing);
+            if (cancelled) return;
             const answeredBefore = Object.values(existing.answers).filter(a => !!a.selectedOption).length;
             const timeElapsedMinutes = existing.startedAt
               ? Math.round((Date.now() - new Date(existing.startedAt).getTime()) / 60000)
@@ -345,7 +348,8 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const handleTimeUp = useCallback(() => {
     toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
-    if (state && simulado) {
+    if (!hasAutoSubmitTracked.current && state && simulado) {
+      hasAutoSubmitTracked.current = true;
       const answeredCount = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
       trackEvent('exam_auto_submitted', {
         simulado_id: simulado.id,
