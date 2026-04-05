@@ -53,7 +53,7 @@ const AdminSupporte    = lazy(() => import('./admin/pages/stubs/AdminSupporte'))
 const AdminTentativas  = lazy(() => import('./admin/pages/AdminTentativas'))
 const AdminAnalytics   = lazy(() => import('./admin/pages/AdminAnalytics'))
 const AdminMarketing   = lazy(() => import('./admin/pages/AdminMarketing'))
-const AdminProduto     = lazy(() => import('./admin/pages/stubs/AdminProduto'))
+const AdminProduto     = lazy(() => import('./admin/pages/AdminProduto'))
 const AdminTecnologia  = lazy(() => import('./admin/pages/stubs/AdminTecnologia'))
 const AdminAuditoria   = lazy(() => import('./admin/pages/stubs/AdminAuditoria'))
 
