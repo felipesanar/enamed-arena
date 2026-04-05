@@ -23,7 +23,7 @@ import {
 import {
   Clock, Play, Zap, FileText, Trophy, Check,
   Wifi, Monitor, CheckCircle2, Lock, Sparkles,
-  CalendarPlus, Maximize2,
+  CalendarPlus, CalendarDays, Maximize2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SimuladoWithStatus } from "@/types";
