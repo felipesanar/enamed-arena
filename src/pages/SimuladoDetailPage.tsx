@@ -132,20 +132,6 @@ export default function SimuladoDetailPage() {
 
   return (
     <PageTransition>
-      <PageBreadcrumb
-        items={[
-          { label: "Simulados", href: "/simulados" },
-          { label: simulado.title },
-        ]}
-        className="mb-4"
-      />
-
-      <PageHeader
-        title={simulado.title}
-        subtitle={simulado.description}
-        badge={`Simulado #${simulado.sequenceNumber}`}
-        action={<StatusBadge status={simulado.status} />}
-      />
 
       {/* Upcoming */}
       {simulado.status === "upcoming" && (
