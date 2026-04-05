@@ -263,7 +263,7 @@ export default function SimuladoDetailPage() {
                   ].map(({ icon: Icon, label }) => (
                     <div
                       key={label}
-                      className="inline-flex items-center gap-1.5 rounded-[9px] px-3 py-1.5 text-[12px] font-semibold"
+                      className="inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1 text-[11px] md:text-[12px] font-semibold"
                       style={{
                         background: "rgba(255,255,255,0.06)",
                         border: "1px solid rgba(255,255,255,0.1)",
