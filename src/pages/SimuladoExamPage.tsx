@@ -114,7 +114,7 @@ export default function SimuladoExamPage() {
   const { enterFullscreen, exitFullscreen } = useFullscreen();
   const isOnline = useOnlineStatus();
 
-  const [preFlightDismissed, setPreFlightDismissed] = useState(false);
+  const [preFlightDismissed, setPreFlightDismissed] = useState(true);
   const [timeWarningShown, setTimeWarningShown] = useState(false);
   const [timeWarningVisible, setTimeWarningVisible] = useState(false);
 
