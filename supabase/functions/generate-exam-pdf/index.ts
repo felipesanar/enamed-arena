@@ -22,9 +22,9 @@ const corsHeaders = {
 
 const BUCKET = "exam-pdfs";
 const SIGNED_URL_EXPIRY = 3600;
-const MAX_IMAGES = 30;
-const IMAGE_FETCH_TIMEOUT = 8000;
-const MAX_IMAGE_BYTES = 800_000;
+const MAX_IMAGES = 150;
+const IMAGE_FETCH_TIMEOUT = 15_000;
+const MAX_IMAGE_BYTES = 5_000_000;
 
 const WINE_DARK  = rgb(0.35, 0.07, 0.19);
 const WINE_MID   = rgb(0.42, 0.11, 0.24);
@@ -139,22 +139,30 @@ interface Question {
 
 // ─── Image fetching ──────────────────────────────────────────────────────────
 
-async function fetchImageWithTimeout(url: string): Promise<Uint8Array | null> {
+async function fetchImageWithTimeout(url: string, questionNum: number): Promise<Uint8Array | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), IMAGE_FETCH_TIMEOUT);
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      console.warn(`[generate-exam-pdf] Image for Q${questionNum} fetch failed: HTTP ${resp.status}`);
+      return null;
+    }
     const buf = await resp.arrayBuffer();
-    if (buf.byteLength > MAX_IMAGE_BYTES) return null;
+    if (buf.byteLength > MAX_IMAGE_BYTES) {
+      console.warn(`[generate-exam-pdf] Image for Q${questionNum} skipped: ${buf.byteLength}B exceeds ${MAX_IMAGE_BYTES}B limit`);
+      return null;
+    }
     return new Uint8Array(buf);
-  } catch {
+  } catch (e) {
+    const reason = e instanceof DOMException && e.name === 'AbortError' ? 'timeout' : String(e);
+    console.warn(`[generate-exam-pdf] Image for Q${questionNum} fetch failed: ${reason}`);
     return null;
   }
 }
 
-async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string): Promise<PDFImage | null> {
+async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string, questionNum: number): Promise<PDFImage | null> {
   try {
     const lower = url.toLowerCase();
     if (lower.includes(".png")) {
@@ -164,6 +172,7 @@ async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string): 
   } catch {
     try { return await pdfDoc.embedPng(bytes); } catch { /* ignore */ }
     try { return await pdfDoc.embedJpg(bytes); } catch { /* ignore */ }
+    console.warn(`[generate-exam-pdf] Image for Q${questionNum} embed failed (${bytes.byteLength}B)`);
     return null;
   }
 }
@@ -177,108 +186,7 @@ function base64ToUint8Array(b64: string): Uint8Array {
   return arr;
 }
 
-// ─── PDF generation ──────────────────────────────────────────────────────────
 
-async function generatePdf(simulado: SimuladoRow, questions: Question[]): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.create();
-  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  const metricsRegular = new FontMetrics(fontRegular);
-
-  const [pageW, pageH] = PageSizes.A4;
-  const marginX = 40, marginBot = 50, headerH = 72;
-  const colGap = 20;
-  const colW = (pageW - marginX * 2 - colGap) / 2;
-  const maxTextW = colW - 8;
-  const maxImgW = maxTextW - 4;
-
-  const durationH = Math.round(simulado.duration_minutes / 60);
-  const examLabel = sanitizeForWinAnsi(`${simulado.title} \u00B7 ${simulado.questions_count} quest\u00F5es \u00B7 ${durationH}h`);
-  const footerLabel = sanitizeForWinAnsi(`${simulado.title} \u00B7 SanarFlix PRO \u00B7 Modo Offline`);
-
-  // Embed logo icon
-  const logoBytes = base64ToUint8Array(LOGO_ICON_B64);
-  const logoImage = await pdfDoc.embedPng(logoBytes);
-
-  const drawHeader = (page: ReturnType<typeof pdfDoc.addPage>) => {
-    const pH = page.getHeight();
-    page.drawRectangle({ x: 0, y: pH - headerH, width: pageW, height: headerH, color: WINE_DARK });
-    // Full logo image (aspect ratio ~3.55:1 from 600x169)
-    const logoW = 150;
-    const logoH = logoW / 3.55;
-    page.drawImage(logoImage, { x: 20, y: pH - headerH + (headerH - logoH) / 2, width: logoW, height: logoH });
-    // Exam label right-aligned
-    const lw = metricsRegular.textWidth(examLabel, 9);
-    page.drawText(examLabel, { x: pageW - 24 - lw, y: pH - headerH + 30, size: 9, font: fontRegular, color: rgb(1, 0.85, 0.9) });
-  };
-
-  const drawFooter = (page: ReturnType<typeof pdfDoc.addPage>, rightText: string) => {
-    const y = marginBot - 16;
-    page.drawLine({ start: { x: 40, y: y + 18 }, end: { x: pageW - 40, y: y + 18 }, thickness: 0.5, color: GRAY_LIGHT });
-    page.drawText(footerLabel, { x: 40, y, size: 7, font: fontRegular, color: GRAY_MID });
-    const rw = metricsRegular.textWidth(rightText, 7);
-    page.drawText(rightText, { x: pageW - 40 - rw, y, size: 7, font: fontRegular, color: GRAY_MID });
-  };
-
-  // ── Cover page (redesigned) ──
-  drawCoverPage(pdfDoc, simulado, durationH, fontRegular, fontBold, metricsRegular, logoImage, drawHeader, drawFooter);
-
-  // ── Layout: measure and pack into columns ──
-  const colTop = pageH - headerH - 60;
-  const colBottom = marginBot + 20;
-  const colHeight = colTop - colBottom;
-
-  function measureQuestion(q: Question): number {
-    let h = 14;
-    h += metricsRegular.wrap(q.text, 9, maxTextW).length * 13 + 4;
-    if (q.image) {
-      const scale = Math.min(maxImgW / q.image.width, 1);
-      const imgH = q.image.height * scale;
-      h += imgH + 8;
-    }
-    for (const opt of q.options) {
-      const optLines = metricsRegular.wrap(`${opt.label}) ${opt.text}`, 8, maxTextW - 12);
-      h += optLines.length * 11 + 2;
-    }
-    h += 12;
-    return h;
-  }
-
-  type PageLayout = { left: Question[]; right: Question[] };
-  const pages: PageLayout[] = [];
-  let curPage: PageLayout = { left: [], right: [] };
-  let leftH = 0, rightH = 0;
-
-  for (const q of questions) {
-    const qh = measureQuestion(q);
-    if (leftH + qh <= colHeight) {
-      curPage.left.push(q);
-      leftH += qh;
-    } else if (rightH + qh <= colHeight) {
-      curPage.right.push(q);
-      rightH += qh;
-    } else {
-      pages.push(curPage);
-      curPage = { left: [q], right: [] };
-      leftH = qh;
-      rightH = 0;
-    }
-  }
-  if (curPage.left.length || curPage.right.length) pages.push(curPage);
-
-  // ── Render question pages ──
-  for (let i = 0; i < pages.length; i++) {
-    const page = pdfDoc.addPage(PageSizes.A4);
-    drawHeader(page);
-    drawFooter(page, `P\u00E1gina ${i + 1} de ${pages.length}`);
-
-    renderColumn(page, pages[i].left, marginX, colTop, maxTextW, maxImgW, fontBold, fontRegular, metricsRegular);
-    renderColumn(page, pages[i].right, marginX + colW + colGap, colTop, maxTextW, maxImgW, fontBold, fontRegular, metricsRegular);
-  }
-
-  return pdfDoc.save();
-}
 
 // ─── Cover Page (redesigned) ─────────────────────────────────────────────────
 
@@ -619,44 +527,43 @@ serve(async (req) => {
     // Generate PDF with image embedding inside
     const pdfDoc = await PDFDocument.create();
 
-    // Fetch and embed images
+    // Fetch and embed images (sequentially to control memory)
     const qRows = questionRows as QuestionRow[];
     const imageQuestions = qRows.filter(q => q.image_url).slice(0, MAX_IMAGES);
+    const failedImages: string[] = [];
+    let embeddedCount = 0;
+
     if (imageQuestions.length > 0) {
-      console.log(`[generate-exam-pdf] Fetching ${imageQuestions.length} images...`);
-      const imageResults = await Promise.allSettled(
-        imageQuestions.map(async (q) => {
-          const bytes = await fetchImageWithTimeout(q.image_url!);
-          if (!bytes) return null;
-          return { questionId: q.id, bytes, url: q.image_url! };
-        })
-      );
+      console.log(`[generate-exam-pdf] Processing ${imageQuestions.length} images (of ${qRows.filter(q => q.image_url).length} total with URLs)...`);
 
-      const successfulImages: Array<{ questionId: string; bytes: Uint8Array; url: string }> = [];
-      for (const r of imageResults) {
-        if (r.status === 'fulfilled' && r.value) {
-          successfulImages.push(r.value);
+      for (const q of imageQuestions) {
+        const bytes = await fetchImageWithTimeout(q.image_url!, q.question_number);
+        if (!bytes) {
+          failedImages.push(`Q${q.question_number}: fetch failed`);
+          continue;
         }
-      }
-      console.log(`[generate-exam-pdf] Successfully fetched ${successfulImages.length} images`);
-
-      for (const img of successfulImages) {
         try {
-          const embedded = await embedImage(pdfDoc, img.bytes, img.url);
+          const embedded = await embedImage(pdfDoc, bytes, q.image_url!, q.question_number);
           if (embedded) {
-            const qObj = questions.find(qq => qq.number === qRows.find(r => r.id === img.questionId)?.question_number);
+            const qObj = questions.find(qq => qq.number === q.question_number);
             if (qObj) {
               qObj.image = {
                 pdfImage: embedded,
                 width: embedded.width,
                 height: embedded.height,
               };
+              embeddedCount++;
             }
+          } else {
+            failedImages.push(`Q${q.question_number}: embed failed`);
           }
         } catch (e) {
-          console.error(`[generate-exam-pdf] Failed to embed image:`, e);
+          console.error(`[generate-exam-pdf] Image for Q${q.question_number} unexpected error:`, e);
+          failedImages.push(`Q${q.question_number}: ${String(e)}`);
         }
       }
+
+      console.log(`[generate-exam-pdf] Image summary: ${imageQuestions.length} found, ${embeddedCount} embedded, ${failedImages.length} failed${failedImages.length > 0 ? ` (${failedImages.join('; ')})` : ''}`);
     }
 
     // Now generate using the shared pdfDoc
@@ -676,7 +583,7 @@ serve(async (req) => {
   }
 });
 
-// Same as generatePdf but accepts pre-created pdfDoc with embedded images
+// ─── PDF generation (uses pre-created pdfDoc with embedded images) ───────────
 async function generatePdfWithDoc(pdfDoc: PDFDocument, simulado: SimuladoRow, questions: Question[]): Promise<Uint8Array> {
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
