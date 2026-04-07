@@ -204,6 +204,15 @@ export default function SimuladosPage() {
       {timelineItems.length > 0 && (
         <SimuladosTimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
       )}
+
+      {/* Auto-open modal from ?openModal= query param (e.g. from Home hero CTA) */}
+      {openModalSim && (
+        <OfflineModeSimpleDialog
+          open={autoModalOpen}
+          onOpenChange={handleAutoModalChange}
+          sim={openModalSim}
+        />
+      )}
     </PageTransition>
   );
 }
