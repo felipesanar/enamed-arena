@@ -628,44 +628,43 @@ serve(async (req) => {
     // Generate PDF with image embedding inside
     const pdfDoc = await PDFDocument.create();
 
-    // Fetch and embed images
+    // Fetch and embed images (sequentially to control memory)
     const qRows = questionRows as QuestionRow[];
     const imageQuestions = qRows.filter(q => q.image_url).slice(0, MAX_IMAGES);
+    const failedImages: string[] = [];
+    let embeddedCount = 0;
+
     if (imageQuestions.length > 0) {
-      console.log(`[generate-exam-pdf] Fetching ${imageQuestions.length} images...`);
-      const imageResults = await Promise.allSettled(
-        imageQuestions.map(async (q) => {
-          const bytes = await fetchImageWithTimeout(q.image_url!);
-          if (!bytes) return null;
-          return { questionId: q.id, bytes, url: q.image_url! };
-        })
-      );
+      console.log(`[generate-exam-pdf] Processing ${imageQuestions.length} images (of ${qRows.filter(q => q.image_url).length} total with URLs)...`);
 
-      const successfulImages: Array<{ questionId: string; bytes: Uint8Array; url: string }> = [];
-      for (const r of imageResults) {
-        if (r.status === 'fulfilled' && r.value) {
-          successfulImages.push(r.value);
+      for (const q of imageQuestions) {
+        const bytes = await fetchImageWithTimeout(q.image_url!, q.question_number);
+        if (!bytes) {
+          failedImages.push(`Q${q.question_number}: fetch failed`);
+          continue;
         }
-      }
-      console.log(`[generate-exam-pdf] Successfully fetched ${successfulImages.length} images`);
-
-      for (const img of successfulImages) {
         try {
-          const embedded = await embedImage(pdfDoc, img.bytes, img.url);
+          const embedded = await embedImage(pdfDoc, bytes, q.image_url!, q.question_number);
           if (embedded) {
-            const qObj = questions.find(qq => qq.number === qRows.find(r => r.id === img.questionId)?.question_number);
+            const qObj = questions.find(qq => qq.number === q.question_number);
             if (qObj) {
               qObj.image = {
                 pdfImage: embedded,
                 width: embedded.width,
                 height: embedded.height,
               };
+              embeddedCount++;
             }
+          } else {
+            failedImages.push(`Q${q.question_number}: embed failed`);
           }
         } catch (e) {
-          console.error(`[generate-exam-pdf] Failed to embed image:`, e);
+          console.error(`[generate-exam-pdf] Image for Q${q.question_number} unexpected error:`, e);
+          failedImages.push(`Q${q.question_number}: ${String(e)}`);
         }
       }
+
+      console.log(`[generate-exam-pdf] Image summary: ${imageQuestions.length} found, ${embeddedCount} embedded, ${failedImages.length} failed${failedImages.length > 0 ? ` (${failedImages.join('; ')})` : ''}`);
     }
 
     // Now generate using the shared pdfDoc
