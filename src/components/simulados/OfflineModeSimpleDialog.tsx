@@ -1,5 +1,5 @@
 /**
- * Modal escolha online/offline — fluxo simples: offline cria tentativa, baixa PDF e ativa o cronômetro.
+ * Modal escolha online/offline — fluxo simples: offline cria tentativa e baixa PDF (sem cronômetro no app).
  * Regras de ranking (janela do simulado, treino etc.) são validadas no servidor ao enviar o gabarito.
  */
 import { useCallback, useState } from "react";
@@ -59,7 +59,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
       toast({
         title: "Download iniciado!",
         description:
-          "O cronômetro da prova está no canto da tela. Envie o gabarito digital quando terminar — dentro da janela de execução do simulado, sua nota entra no ranking.",
+          "Faça a prova no seu ritmo no papel. Quando quiser, envie o gabarito digital — se o envio for dentro da janela de execução do simulado, sua nota entra no ranking.",
       });
     } catch (err) {
       toast({

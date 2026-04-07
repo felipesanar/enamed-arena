@@ -1,41 +1,37 @@
-# Finish - Execucao do plano de teste de prova (2026-04-04)
+# Finish — Admin UI premium (Central Admin)
 
-### Verification
-- Commands run:
-  - `node -v` -> pass (`v24.11.0`)
-  - `npm -v` -> pass (`11.6.1`)
-  - `npm run lint` -> pass apos saneamento (`0 errors, 25 warnings`)
-  - `npm run test` -> pass (`14 files, 73 tests`)
-  - `npm run build` -> pass (warnings nao bloqueantes)
-  - Browser E2E (producao): login/cadastro + onboarding + acesso a `/simulados`
-- Results:
-  - Base tecnica: aprovada
-  - Fluxo completo de prova: bloqueado por regra de janela de execucao (sem simulado disponivel na data do teste).
+## Resumo
 
-### Review pass (severidade)
-- Blocker
-  - Nao ha janela ativa para iniciar prova em producao no momento do teste (`Ainda nao disponivel` em `/simulados`).
-  - Sem entrada na prova, nao e possivel validar etapas obrigatorias: responder questoes, marcar revisao, finalizar, tela pos-finalizacao, cenarios de foco/fullscreen dentro da prova.
-- Major
-  - Ambiente local apresentou erro de runtime do Vite ao carregar rota (`Failed to resolve import "jszip"`) durante tentativa inicial de validacao local.
-- Minor
-  - Baseline de lint exigiu ajuste de configuracao para remover bloqueio global e permitir a bateria de verificacao.
-- Nit
-  - Warnings remanescentes de lint/build (nao bloqueantes) podem ser limpos em hardening futuro.
+Implementacao do plano `artifacts/superpowers/plan-admin-ui-premium.md`: tema claro/escuro com `next-themes`, toggle na topbar admin, gráficos e KPIs alinhados a tokens CSS, kit `AdminPanel`, ícones Lucide no lugar de emoji/Unicode frágil, microinterações e foco visível na shell, refino das páginas Dashboard / Analytics / Marketing / Produto e login + stubs.
 
-### Summary of changes
-- `eslint.config.js` ajustado para remover erros bloqueantes de baseline no lint global.
-- `artifacts/superpowers/plan.md` atualizado com etapa explicita de saneamento de lint aprovada pelo usuario.
-- `artifacts/superpowers/execution.md` atualizado com trilha completa de execucao e debug dos bloqueios.
+## Comandos de verificação
 
-### Follow-ups
-- Liberar um simulado em janela ativa para conta de teste (ou fornecer conta com tentativa em andamento) e rerodar os passos 4-6 do plano.
-- Opcional: corrigir o erro de runtime local do Vite relacionado a `jszip` para recuperar validacao local da rota de prova.
+| Comando | Resultado |
+|---------|-----------|
+| `npm run lint` | OK (exit 0; warnings já existentes fora do escopo admin) |
+| `npm run test -- src/admin` | OK — 8 arquivos de teste |
+| `npm run build` | OK |
 
-### Manual validation steps (quando janela estiver ativa)
-1. Acessar `https://simulados.sanar.com.br/simulados` com conta autenticada.
-2. Iniciar simulado disponivel.
-3. Responder multiplas questoes, usar navegacao, marcar revisao e alta confianca.
-4. Simular saida de aba e saida de fullscreen; confirmar avisos/penalidades.
-5. Finalizar tentativa e validar tela de conclusao e disponibilidade de resultado.
-6. Reabrir fluxo e confirmar retomada/estado persistido conforme esperado.
+## Artefatos
+
+- `artifacts/superpowers/admin-ui-design-notes.md` — padrões e tokens admin.
+- `artifacts/superpowers/execution.md` — entrada de execução desta entrega.
+
+## Revisão (severidade)
+
+- **Blocker:** nenhum.
+- **Major:** onda 2 do plano (Tentativas, Usuários, detalhe, formulários, upload) não recebeu o mesmo nível de `AdminPanel`/pills que as páginas da onda 1 — comportamento intacto, só hierarquia visual ainda heterogênea.
+- **Minor:** área aluno (ex.: Configurações) não ganhou toggle de tema; apenas admin + classe global no `html`.
+- **Nit:** alguns gráficos em páginas não migradas podem ainda usar cores literais herdadas.
+
+## Validação manual sugerida
+
+1. `/admin/login` — layout e contraste claro/escuro.
+2. `/admin` — alternar tema na topbar; conferir KPIs, tendências, funil e tabela.
+3. `/admin/analytics`, `/admin/marketing`, `/admin/produto` — painéis e foco em botões de período.
+4. `/admin/simulados` — botão Analytics com ícone `BarChart3`.
+
+## Follow-ups
+
+- Estender `AdminPanel` + pills acessíveis às demais rotas admin live.
+- Opcional: expor toggle de tema na experiência premium do aluno.

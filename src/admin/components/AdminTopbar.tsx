@@ -1,6 +1,8 @@
 // src/admin/components/AdminTopbar.tsx
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Search, Bell } from 'lucide-react'
+import { Search, Bell, Moon, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useAuth } from '@/contexts/AuthContext'
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -32,6 +34,37 @@ function getInitials(name: string | null | undefined): string {
     .toUpperCase()
 }
 
+function AdminThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <span
+        className="w-7 h-7 rounded-md border border-transparent shrink-0"
+        aria-hidden
+      />
+    )
+  }
+
+  const isDark = resolvedTheme === 'dark'
+
+  return (
+    <button
+      type="button"
+      aria-label={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      {isDark ? <Sun className="h-3.5 w-3.5" aria-hidden /> : <Moon className="h-3.5 w-3.5" aria-hidden />}
+    </button>
+  )
+}
+
 export function AdminTopbar() {
   const { pathname } = useLocation()
   const { user } = useAuth()
@@ -46,19 +79,22 @@ export function AdminTopbar() {
       </div>
 
       <div className="flex items-center gap-1.5">
+        <AdminThemeToggle />
         <button
+          type="button"
           title="Busca global (em breve)"
           className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors opacity-40 cursor-not-allowed"
         >
-          <Search className="h-3.5 w-3.5" />
+          <Search className="h-3.5 w-3.5" aria-hidden />
         </button>
         <button
+          type="button"
           title="Notificações (em breve)"
           className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors opacity-40 cursor-not-allowed"
         >
-          <Bell className="h-3.5 w-3.5" />
+          <Bell className="h-3.5 w-3.5" aria-hidden />
         </button>
-        <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center ml-1">
+        <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center ml-1 ring-2 ring-background">
           <span className="text-primary-foreground text-xs font-bold leading-none">
             {getInitials(user?.user_metadata?.full_name ?? user?.email)}
           </span>

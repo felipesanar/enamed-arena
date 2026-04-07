@@ -34,7 +34,7 @@ export default function AnswerSheetPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { activeAttempt, remaining, clearAttempt } = useOfflineAttempt();
+  const { activeAttempt, clearAttempt } = useOfflineAttempt();
 
   // answers: question_id → selected option_id
   const [answers, setAnswers] = useState<Record<string, string>>({});

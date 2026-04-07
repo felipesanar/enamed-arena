@@ -3,10 +3,9 @@
  *
  * - Fetches offline_pending attempt from DB (React Query)
  * - Mirrors state to localStorage for resilience across page reloads
- * - Computes countdown based on effective_deadline (server-set)
- * - Exposes helpers for AnswerSheetPage and FloatingOfflineTimer
+ * - Exposes helpers for AnswerSheetPage (sem cronômetro no cliente — ranking via servidor ao enviar gabarito)
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { offlineApi, type ActiveOfflineAttempt } from '@/services/offlineApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,16 +62,7 @@ export function persistOfflineAttempt(attempt: {
     status:             'offline_pending',
   });
 
-  // Dispatch a synthetic storage event so same-tab listeners pick it up immediately
   window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
-}
-
-// ─── Countdown helper ─────────────────────────────────────────────────────────
-
-function calcRemaining(deadline?: string): number {
-  if (!deadline) return 0;
-  const diff = new Date(deadline).getTime() - Date.now();
-  return Math.max(0, Math.floor(diff / 1000));
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -81,11 +71,9 @@ export function useOfflineAttempt() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Reactive localStorage state — re-reads on storage events and short interval
   const [localAttempt, setLocalAttempt] = useState<StoredAttempt | null>(readStorage);
 
   useEffect(() => {
-    // Listen for cross-tab storage events
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY || e.key === null) {
         setLocalAttempt(readStorage());
@@ -93,7 +81,6 @@ export function useOfflineAttempt() {
     };
     window.addEventListener('storage', onStorage);
 
-    // Poll every 2s for same-tab writes (storage event doesn't fire in same tab)
     const poll = setInterval(() => {
       setLocalAttempt(readStorage());
     }, 2000);
@@ -112,7 +99,6 @@ export function useOfflineAttempt() {
     refetchOnWindowFocus: true,
   });
 
-  // Sync DB → localStorage
   useEffect(() => {
     if (dbAttempt) {
       const stored = readStorage();
@@ -132,34 +118,8 @@ export function useOfflineAttempt() {
     }
   }, [dbAttempt]);
 
-  // Active attempt: prefer DB, fall back to localStorage
   const activeAttempt: ActiveOfflineAttempt | null =
     dbAttempt ?? (localAttempt as ActiveOfflineAttempt | null);
-
-  // Calculate remaining SYNCHRONOUSLY via useMemo to avoid race condition
-  // where remaining=0 on first render before useEffect kicks in
-  const currentRemaining = useMemo(
-    () => (activeAttempt ? calcRemaining(activeAttempt.effective_deadline) : 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeAttempt?.effective_deadline],
-  );
-
-  // Countdown timer — ticks every second, initialized from currentRemaining
-  const [remaining, setRemaining] = useState<number>(currentRemaining);
-
-  // Keep remaining in sync when activeAttempt changes (synchronous update)
-  useEffect(() => {
-    setRemaining(currentRemaining);
-  }, [currentRemaining]);
-
-  useEffect(() => {
-    if (!activeAttempt?.effective_deadline) {
-      return;
-    }
-    const tick = () => setRemaining(calcRemaining(activeAttempt.effective_deadline));
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [activeAttempt?.effective_deadline]);
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: [QUERY_KEY, user?.id] });
@@ -172,15 +132,8 @@ export function useOfflineAttempt() {
     queryClient.setQueryData([QUERY_KEY, user?.id], null);
   }, [queryClient, user?.id]);
 
-  // Guard: don't report expired if attempt was just created (< 30s ago)
-  const isRecentlyCreated = activeAttempt
-    ? (Date.now() - new Date(activeAttempt.started_at).getTime()) < 30_000
-    : false;
-
   return {
     activeAttempt,
-    remaining,
-    isExpired: !!activeAttempt && remaining === 0 && !isRecentlyCreated,
     invalidate,
     clearAttempt,
   };

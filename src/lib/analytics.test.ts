@@ -30,5 +30,9 @@ describe('analytics', () => {
     expect(() => trackEvent('offline_answers_submitted', {
       attempt_id: 'a', simulado_id: 's', answers_count: 10, is_within_window: true
     })).not.toThrow();
+    expect(() => trackEvent('offline_printing_consent_viewed', { simulado_id: 's' })).not.toThrow();
+    expect(() => trackEvent('offline_printing_started', { simulado_id: 's' })).not.toThrow();
+    expect(() => trackEvent('offline_printing_completed_early', { simulado_id: 's' })).not.toThrow();
+    expect(() => trackEvent('offline_printing_expired', { simulado_id: 's' })).not.toThrow();
   });
 });

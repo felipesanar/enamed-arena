@@ -85,7 +85,8 @@ export function AdminFlyout({ activeGroup, onClose }: AdminFlyoutProps) {
     <div
       ref={ref}
       className={cn(
-        'shrink-0 bg-card/90 backdrop-blur-sm border-r border-border overflow-hidden transition-all duration-150',
+        'shrink-0 bg-card/90 backdrop-blur-sm border-r border-border overflow-hidden',
+        'motion-safe:transition-[width] motion-safe:duration-200 motion-reduce:duration-0',
         isOpen ? 'w-52' : 'w-0',
       )}
     >
@@ -130,7 +131,8 @@ export function AdminFlyout({ activeGroup, onClose }: AdminFlyoutProps) {
                     onClick={onClose}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-colors',
+                        'flex items-center gap-2.5 px-2.5 py-2 rounded-md motion-safe:transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                         isActive
                           ? 'bg-primary/10 text-primary'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground',

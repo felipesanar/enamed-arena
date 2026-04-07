@@ -475,3 +475,13 @@
   - Repro: acessar `/simulados` com conta autenticada e onboarding concluido.
   - Causa raiz: release gate por janela de execucao (simulado ainda nao liberado na data atual).
   - Acao: pausar execucao e solicitar liberacao de conta/cenario com simulado disponivel ou janela ativa.
+
+## Admin UI Premium — execucao do plano `plan-admin-ui-premium.md` (2026-04-06)
+- Plano fonte: `artifacts/superpowers/plan-admin-ui-premium.md` (usuario referenciou explicitamente no `/superpowers-execute-plan`).
+- Passos 1–14 implementados em sequencia (tema global, topbar, chart theme, charts, paineis, stat cards, shell, ondas 1–2 parcial, login/stubs, tabela/live/header, varredura emoji, doc).
+- Files principais: `package.json` (next-themes), `src/App.tsx`, `index.html`, `src/admin/**` (componentes UI, paginas dashboard/analytics/marketing/produto, simulados, login, stubs), `artifacts/superpowers/admin-ui-design-notes.md`.
+- Verification:
+  - `npm run lint` — pass (warnings pre-existentes em worktrees/outros modulos)
+  - `npm run test -- src/admin` — pass (8 arquivos)
+  - `npm run build` — pass
+- Nota: onda 2 do plano (Tentativas, Usuarios, detalhe, formularios, upload) recebeu ajustes menores apenas onde ja tocado (ex. Simulados); demais paginas podem receber `AdminPanel`/foco visual no mesmo padrao como follow-up.

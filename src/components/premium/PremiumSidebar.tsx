@@ -24,32 +24,26 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
         className={cn(
           "flex h-full min-h-0 flex-col",
           collapsed
-            ? "items-center px-2 py-5"
+            ? "items-center gap-3 px-2 py-4 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-3"
             : "px-4 py-5 [@media(max-height:820px)]:px-3.5 [@media(max-height:820px)]:py-4 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3",
         )}
       >
         {/* Brand */}
         <div
           className={cn(
-            "shrink-0",
-            collapsed
-              ? "pb-4 mb-2"
-              : "border-b border-white/[0.06] pb-4 [@media(max-height:700px)]:pb-3",
+            "w-full shrink-0",
+            collapsed ? "flex justify-center" : "border-b border-white/[0.06] pb-4 [@media(max-height:700px)]:pb-3",
           )}
         >
           <SidebarBrandBlock collapsed={collapsed} onCollapse={onCollapse} onExpand={onExpand} />
         </div>
-
-        {collapsed && (
-          <div className="w-full h-px bg-white/[0.06] mb-2" />
-        )}
 
         {/* Nav + Pro */}
         <div
           className={cn(
             "flex min-h-0 flex-1 flex-col",
             collapsed
-              ? "w-full items-center"
+              ? "w-full items-center gap-2.5 [@media(max-height:700px)]:gap-2"
               : "gap-5 pt-5 [@media(max-height:700px)]:gap-3 [@media(max-height:700px)]:pt-3",
           )}
         >
@@ -57,7 +51,7 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
           <div
             className={cn(
               collapsed
-                ? "w-full border-t border-white/[0.05] pt-1.5"
+                ? "w-full border-t border-white/[0.07] pt-2.5 [@media(max-height:700px)]:pt-2"
                 : "border-t border-white/[0.05] pt-3 [@media(max-height:700px)]:pt-2",
             )}
           >
@@ -68,15 +62,12 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
         {/* Footer */}
         <div
           className={cn(
-            "mt-auto",
+            "mt-auto w-full",
             collapsed
-              ? "pt-4"
+              ? "flex flex-col items-center pt-3 [@media(max-height:700px)]:pt-2"
               : "border-t border-white/[0.06] pt-4 [@media(max-height:700px)]:pt-3",
           )}
         >
-          {collapsed && (
-            <div className="w-full h-px bg-white/[0.06] mb-2" />
-          )}
           <SidebarFooterAccount collapsed={collapsed} />
         </div>
       </div>

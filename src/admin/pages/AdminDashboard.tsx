@@ -14,6 +14,9 @@ import { AdminTrendChart } from '@/admin/components/ui/AdminTrendChart'
 import { AdminFunnelChart } from '@/admin/components/ui/AdminFunnelChart'
 import { AdminLivePanel } from '@/admin/components/ui/AdminLivePanel'
 import { AdminDataTable } from '@/admin/components/ui/AdminDataTable'
+import { AdminPanel } from '@/admin/components/ui/AdminPanel'
+import { adminChartSeriesColors } from '@/admin/lib/adminChartTheme'
+import { cn } from '@/lib/utils'
 import type { AdminPeriod, SimuladoEngagementRow } from '@/admin/types'
 
 const PERIOD_OPTIONS: { label: string; value: AdminPeriod }[] = [
@@ -58,16 +61,19 @@ export default function AdminDashboard() {
           <h1 className="text-heading-1 text-foreground">Dashboard</h1>
           <p className="text-caption text-muted-foreground">Central de comando · ENAMED Arena</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg p-1">
+        <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
           {PERIOD_OPTIONS.map(opt => (
             <button
               key={opt.value}
+              type="button"
               onClick={() => setPeriod(opt.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 period === opt.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              )}
             >
               {opt.label}
             </button>
@@ -78,6 +84,7 @@ export default function AdminDashboard() {
       {/* ── SEÇÃO 1: Visão Executiva ── */}
       <section>
         <AdminSectionHeader title="Visão Executiva" hook="useAdminDashboardKpis" />
+        <AdminPanel className="p-3 sm:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <AdminStatCard
             label="Usuários totais"
@@ -119,50 +126,57 @@ export default function AdminDashboard() {
         {kpis.isError && (
           <p className="text-xs text-destructive mt-2">
             Erro ao carregar KPIs.{' '}
-            <button className="underline" onClick={() => kpis.refetch()}>Tentar novamente</button>
+            <button type="button" className="underline" onClick={() => kpis.refetch()}>Tentar novamente</button>
           </p>
         )}
+        </AdminPanel>
       </section>
 
       {/* ── SEÇÃO 2: Tendências + Sinais ao vivo ── */}
       <section>
         <AdminSectionHeader title="Tendências" hook="useAdminEventsTimeseries" />
+        <AdminPanel className="p-3">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_200px] gap-3">
           <AdminTrendChart
+            embedded
             title="Novos cadastros / dia"
             data={timeseries.data ?? []}
             xKey="day"
-            bars={[{ key: 'new_users', color: 'hsl(345 65% 42%)', label: 'Cadastros' }]}
+            bars={[{ key: 'new_users', color: adminChartSeriesColors.primary, label: 'Cadastros' }]}
             isLoading={timeseries.isLoading}
           />
           <AdminTrendChart
+            embedded
             title="Simulados iniciados vs concluídos"
             data={timeseries.data ?? []}
             xKey="day"
             bars={[
-              { key: 'exams_started',   color: 'hsl(345 65% 42%)', label: 'Iniciados' },
-              { key: 'exams_completed', color: 'hsl(142 40% 35%)', label: 'Concluídos' },
+              { key: 'exams_started',   color: adminChartSeriesColors.primary, label: 'Iniciados' },
+              { key: 'exams_completed', color: adminChartSeriesColors.success, label: 'Concluídos' },
             ]}
             isLoading={timeseries.isLoading}
           />
-          <AdminLivePanel data={live.data} isLoading={live.isLoading} />
+          <AdminLivePanel embedded data={live.data} isLoading={live.isLoading} />
         </div>
         {timeseries.isError && (
           <p className="text-xs text-destructive mt-2">
             Erro nos gráficos.{' '}
-            <button className="underline" onClick={() => timeseries.refetch()}>Tentar novamente</button>
+            <button type="button" className="underline" onClick={() => timeseries.refetch()}>Tentar novamente</button>
           </p>
         )}
+        </AdminPanel>
       </section>
 
       {/* ── SEÇÃO 3: Funil de Jornada ── */}
       <section>
         <AdminSectionHeader title="Funil de Jornada" hook="useAdminFunnelStats" />
-        <AdminFunnelChart steps={funnel.data ?? []} isLoading={funnel.isLoading} />
+        <AdminPanel flush className="p-3 sm:p-4">
+          <AdminFunnelChart embedded steps={funnel.data ?? []} isLoading={funnel.isLoading} />
+        </AdminPanel>
         {funnel.isError && (
           <p className="text-xs text-destructive mt-2">
             Erro no funil.{' '}
-            <button className="underline" onClick={() => funnel.refetch()}>Tentar novamente</button>
+            <button type="button" className="underline" onClick={() => funnel.refetch()}>Tentar novamente</button>
           </p>
         )}
       </section>
@@ -170,22 +184,25 @@ export default function AdminDashboard() {
       {/* ── SEÇÃO 4: Simulados — Engajamento ── */}
       <section>
         <AdminSectionHeader title="Simulados — Engajamento" hook="useAdminSimuladoEngagement" />
+        <AdminPanel flush className="p-3 sm:p-4">
         <AdminDataTable
+          embedded
           columns={engagementColumns as any}
           data={(engagement.data ?? []) as any}
           compact
           isLoading={engagement.isLoading}
           emptyMessage="Nenhum simulado encontrado."
           footer={
-            <Link to="/admin/simulados" className="text-primary hover:underline text-[11px]">
-              → Ver todos os simulados
+            <Link to="/admin/simulados" className="text-primary hover:underline text-[11px] inline-flex items-center gap-1 font-medium">
+              Ver todos os simulados
             </Link>
           }
         />
+        </AdminPanel>
         {engagement.isError && (
           <p className="text-xs text-destructive mt-2">
             Erro ao carregar simulados.{' '}
-            <button className="underline" onClick={() => engagement.refetch()}>Tentar novamente</button>
+            <button type="button" className="underline" onClick={() => engagement.refetch()}>Tentar novamente</button>
           </p>
         )}
       </section>

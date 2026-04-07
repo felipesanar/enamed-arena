@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminTrendChart } from '@/admin/components/ui/AdminTrendChart'
+import { AdminPanel } from '@/admin/components/ui/AdminPanel'
+import { adminChartSeriesColors } from '@/admin/lib/adminChartTheme'
 import {
   useAdminAnalyticsFunnel,
   useAdminAnalyticsTimeseries,
@@ -16,9 +18,9 @@ const PERIODS = [
 ]
 
 function convColor(pct: number) {
-  if (pct >= 70) return 'text-emerald-400'
-  if (pct >= 50) return 'text-yellow-400'
-  return 'text-red-400'
+  if (pct >= 70) return 'text-success'
+  if (pct >= 50) return 'text-warning'
+  return 'text-destructive'
 }
 
 export default function AdminAnalytics() {
@@ -43,10 +45,12 @@ export default function AdminAnalytics() {
         {PERIODS.map(p => (
           <button
             key={p.value}
+            type="button"
             aria-label={p.label}
             onClick={() => setDays(p.value)}
             className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              'px-3 py-1.5 rounded-full text-xs font-medium border motion-safe:transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               days === p.value
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted',
@@ -56,9 +60,9 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Funnel steps */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Funil de Conversão</p>
+      <AdminPanel flush className="overflow-hidden p-0">
+        <div className="px-4 py-3 border-b border-border/80 bg-muted/10">
+          <p className="text-micro-label text-muted-foreground uppercase">Funil de Conversão</p>
         </div>
         {fLoading ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -96,25 +100,28 @@ export default function AdminAnalytics() {
             ))}
           </div>
         )}
-      </div>
+      </AdminPanel>
 
       {/* Weekly chart */}
+      <AdminPanel className="p-3 sm:p-4">
       <AdminTrendChart
+        embedded
         title="Novos usuários vs. 1ª prova por semana"
         data={timeseries}
         xKey="week_start"
         bars={[
-          { key: 'new_users',   color: 'hsl(var(--primary))', label: 'Cadastros' },
-          { key: 'first_exams', color: '#34d399',             label: '1ª prova' },
+          { key: 'new_users',   color: adminChartSeriesColors.primary, label: 'Cadastros' },
+          { key: 'first_exams', color: adminChartSeriesColors.success, label: '1ª prova' },
         ]}
         height={140}
         isLoading={tLoading}
       />
+      </AdminPanel>
 
       {/* Sources + TTC */}
       <div className="grid grid-cols-2 gap-4">
         {/* Sources */}
-        <div className="bg-card rounded-lg border border-border p-4">
+        <AdminPanel>
           <p className="text-[11px] font-semibold text-foreground mb-3">Origem dos Usuários (UTM Source)</p>
           <div className="space-y-2">
             {(sources as JourneySourceRow[]).map(src => (
@@ -132,10 +139,10 @@ export default function AdminAnalytics() {
               </div>
             ))}
           </div>
-        </div>
+        </AdminPanel>
 
         {/* Time to convert */}
-        <div className="bg-card rounded-lg border border-border p-4">
+        <AdminPanel>
           <p className="text-[11px] font-semibold text-foreground mb-3">Tempo médio por etapa</p>
           {ttc ? (
             <div className="space-y-3">
@@ -147,7 +154,7 @@ export default function AdminAnalytics() {
               ] as [string, string, boolean][]).map(([label, value, ok]) => (
                 <div key={label} className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">{label}</span>
-                  <span className={cn('text-xs font-semibold', ok ? 'text-emerald-400' : 'text-yellow-400')}>
+                  <span className={cn('text-xs font-semibold', ok ? 'text-success' : 'text-warning')}>
                     {value}
                   </span>
                 </div>
@@ -158,7 +165,7 @@ export default function AdminAnalytics() {
               {[1,2,3,4].map(i => <div key={i} className="h-4 bg-muted rounded" />)}
             </div>
           )}
-        </div>
+        </AdminPanel>
       </div>
     </div>
   )

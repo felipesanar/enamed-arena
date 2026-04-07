@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { AdminPanel } from '@/admin/components/ui/AdminPanel'
 import {
   useAdminProdutoSegmentedFunnel,
   useAdminProdutoFriction,
@@ -22,9 +23,9 @@ const SEGMENTS = [
 ]
 
 function pctColor(pct: number) {
-  if (pct >= 70) return 'text-emerald-400'
-  if (pct >= 40) return 'text-yellow-400'
-  return 'text-red-400'
+  if (pct >= 70) return 'text-success'
+  if (pct >= 40) return 'text-warning'
+  return 'text-destructive'
 }
 
 function formatMetric(value: number, unit: FrictionPoint['metric_unit']) {
@@ -34,9 +35,9 @@ function formatMetric(value: number, unit: FrictionPoint['metric_unit']) {
 }
 
 function severityClass(severity: FrictionPoint['severity']) {
-  if (severity === 'critical') return 'bg-red-500/20 text-red-400 border-red-500/30'
-  if (severity === 'warning') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-  return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+  if (severity === 'critical') return 'bg-destructive/15 text-destructive border-destructive/30'
+  if (severity === 'warning') return 'bg-warning/15 text-warning border-warning/30'
+  return 'bg-success/15 text-success border-success/30'
 }
 
 function severityLabel(severity: FrictionPoint['severity']) {
@@ -70,10 +71,12 @@ export default function AdminProduto() {
           {PERIODS.map(p => (
             <button
               key={p.value}
+              type="button"
               aria-label={p.label}
               onClick={() => setDays(p.value)}
               className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                'px-3 py-1.5 rounded-full text-xs font-medium border motion-safe:transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 days === p.value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted',
@@ -89,10 +92,12 @@ export default function AdminProduto() {
           {SEGMENTS.map(s => (
             <button
               key={s.value}
+              type="button"
               aria-label={s.label}
               onClick={() => setSegment(s.value)}
               className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                'px-3 py-1.5 rounded-full text-xs font-medium border motion-safe:transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 segment === s.value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted',
@@ -103,9 +108,9 @@ export default function AdminProduto() {
       </div>
 
       {/* Section 1: Segmented Funnel */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Funil Segmentado</p>
+      <AdminPanel flush className="overflow-hidden p-0">
+        <div className="px-4 py-3 border-b border-border/80 bg-muted/10">
+          <p className="text-micro-label text-muted-foreground uppercase">Funil Segmentado</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -119,7 +124,7 @@ export default function AdminProduto() {
             </thead>
             <tbody className="divide-y divide-border/40">
               {(funnel as SegmentedFunnelRow[]).map(row => (
-                <tr key={row.step_order} className="hover:bg-muted/20 transition-colors">
+                <tr key={row.step_order} className="hover:bg-muted/20 motion-safe:transition-colors">
                   <td className="px-4 py-2.5 font-medium text-foreground">{row.step_label}</td>
                   <td className="px-4 py-2.5 text-right">
                     <span className={cn('font-semibold text-[11px]', pctColor(row.guest_pct))}>
@@ -144,17 +149,14 @@ export default function AdminProduto() {
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sem dados no período.</div>
           )}
         </div>
-      </div>
+      </AdminPanel>
 
       {/* Section 2: Friction Map */}
       <div>
-        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide mb-3">Mapa de Fricção</p>
-        <div className="grid grid-cols-3 gap-3">
+        <p className="text-micro-label text-muted-foreground uppercase mb-3">Mapa de Fricção</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {(friction as FrictionPoint[]).map(point => (
-            <div
-              key={point.key}
-              className="bg-card rounded-lg border border-border p-4 flex flex-col gap-2"
-            >
+            <AdminPanel key={point.key} className="flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-foreground leading-snug">{point.title}</p>
                 <span className={cn(
@@ -167,19 +169,19 @@ export default function AdminProduto() {
               <p className="text-2xl font-bold text-foreground">
                 {formatMetric(point.metric_value, point.metric_unit)}
               </p>
-            </div>
+            </AdminPanel>
           ))}
           {friction.length === 0 && (
-            <div className="col-span-3 px-4 py-8 text-center text-sm text-muted-foreground bg-card rounded-lg border border-border">
+            <AdminPanel className="col-span-full text-center text-sm text-muted-foreground py-8">
               Sem dados no período.
-            </div>
+            </AdminPanel>
           )}
         </div>
       </div>
 
       {/* Section 3: Feature Adoption */}
-      <div className="bg-card rounded-lg border border-border p-4">
-        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide mb-4">Adoção de Features</p>
+      <AdminPanel>
+        <p className="text-micro-label text-muted-foreground uppercase mb-4">Adoção de Features</p>
         <div className="space-y-3">
           {(adoption as FeatureAdoptionRow[]).map(row => (
             <div key={row.event_name} className="flex items-center gap-3">
@@ -199,16 +201,16 @@ export default function AdminProduto() {
             <div className="py-4 text-center text-sm text-muted-foreground">Sem dados no período.</div>
           )}
         </div>
-      </div>
+      </AdminPanel>
 
       {/* Section 4: Top Events */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Top Eventos</p>
+      <AdminPanel flush className="overflow-hidden p-0">
+        <div className="px-4 py-3 border-b border-border/80 bg-muted/10">
+          <p className="text-micro-label text-muted-foreground uppercase">Top Eventos</p>
         </div>
         <div className="divide-y divide-border/40">
           {(topEvents as TopEventRow[]).map((ev, idx) => (
-            <div key={ev.event_name} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors">
+            <div key={ev.event_name} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 motion-safe:transition-colors">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-bold text-muted-foreground/40 w-4">{idx + 1}</span>
                 <span className="text-xs font-mono text-foreground">{ev.event_name}</span>
@@ -222,7 +224,7 @@ export default function AdminProduto() {
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sem dados no período.</div>
           )}
         </div>
-      </div>
+      </AdminPanel>
     </div>
   )
 }

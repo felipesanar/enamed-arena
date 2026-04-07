@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
+import { PremiumSidebarRailItem } from "@/components/premium/sidebar/PremiumSidebarRailItem";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NavItemProps {
   to: string;
@@ -18,48 +18,14 @@ const navLinkBase =
 
 const barExpanded =
   "gap-2.5 px-3 py-2.5 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:px-2 [@media(max-height:700px)]:py-1.5 [@media(max-height:700px)]:text-[12px] before:left-1.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2";
-const barCollapsed =
-  "w-full h-11 justify-center px-0 py-0 before:left-0 before:top-1/2 before:h-[22px] before:w-[3px] before:-translate-y-1/2";
 
 const activeBar =
   "border-white/[0.14] bg-[linear-gradient(135deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.06)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_2px_10px_-4px_rgba(0,0,0,0.4)] before:opacity-100 before:scale-y-100";
 
-const activeBarCollapsed =
-  "border-white/[0.14] bg-[linear-gradient(135deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.06)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_14px_rgba(232,56,98,0.18)] before:opacity-100 before:scale-y-100";
-
-/* ── Collapsed link (simple icon button) ── */
-const collapsedBase =
-  "flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/[0.08] hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25";
-
-const collapsedActive =
-  "bg-white/[0.12] text-white ring-1 ring-white/[0.12]";
-
 export function NavItem({ to, end, icon: Icon, label, className, collapsed }: NavItemProps) {
   if (collapsed) {
-    const link = (
-      <NavLink
-        to={to}
-        end={end}
-        className={({ isActive }) =>
-          cn(collapsedBase, isActive && collapsedActive, className)
-        }
-      >
-        <Icon className="h-5 w-5 text-white" strokeWidth={1.8} aria-hidden />
-        <span className="sr-only">{label}</span>
-      </NavLink>
-    );
-
     return (
-      <Tooltip delayDuration={200}>
-        <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent
-          side="right"
-          sideOffset={10}
-          className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg"
-        >
-          {label}
-        </TooltipContent>
-      </Tooltip>
+      <PremiumSidebarRailItem to={to} end={end} icon={Icon} label={label} className={className} />
     );
   }
 
@@ -68,21 +34,11 @@ export function NavItem({ to, end, icon: Icon, label, className, collapsed }: Na
       to={to}
       end={end}
       className={({ isActive }) =>
-        cn(
-          navLinkBase,
-          collapsed ? barCollapsed : barExpanded,
-          isActive && (collapsed ? activeBarCollapsed : activeBar),
-          className,
-        )
+        cn(navLinkBase, barExpanded, isActive && activeBar, className)
       }
     >
       <Icon
-        className={cn(
-          "shrink-0 transition-[opacity,transform] duration-300",
-          collapsed
-            ? "h-[22px] w-[22px] opacity-100"
-            : "h-[18px] w-[18px] opacity-85 [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4",
-        )}
+        className="h-[18px] w-[18px] shrink-0 opacity-85 transition-[opacity,transform] duration-300 [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:w-4"
         aria-hidden
       />
       <span className="transition-colors duration-300">{label}</span>

@@ -19,7 +19,7 @@ export function AdminApp() {
 
   return (
     <AdminPeriodProvider>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-background antialiased">
         <AdminRail activeGroup={activeGroup} onGroupClick={handleGroupClick} />
         <AdminFlyout activeGroup={activeGroup} onClose={handleFlyoutClose} />
         <div className="flex flex-col flex-1 min-w-0">

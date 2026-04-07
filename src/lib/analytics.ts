@@ -55,6 +55,10 @@ export type AnalyticsEventName =
   | "offline_pdf_generated"
   | "offline_answers_submitted"
   | "offline_answers_submit_failed"
+  | "offline_printing_consent_viewed"
+  | "offline_printing_started"
+  | "offline_printing_completed_early"
+  | "offline_printing_expired"
   // Errors & integrity
   | "exam_storage_fallback"
   | "exam_storage_retry"

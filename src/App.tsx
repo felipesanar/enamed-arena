@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +10,6 @@ import { UserProvider } from "@/contexts/UserContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardLayout } from "@/components/premium/DashboardLayout";
-import { FloatingOfflineTimer } from "@/components/FloatingOfflineTimer";
 import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
 
 // Page lazy imports — default exports
@@ -82,13 +82,19 @@ function PageShell() {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem
+        storageKey="ea-ui-theme"
+        disableTransitionOnChange
+      >
       <TooltipProvider>
         <AuthProvider>
           <UserProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <FloatingOfflineTimer />
             <Routes>
               {/* Public — own Suspense boundary */}
               <Route path="/landing" element={<Suspense fallback={<PageShell />}><LandingPage /></Suspense>} />
@@ -143,6 +149,7 @@ const App = () => (
           </UserProvider>
         </AuthProvider>
       </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );

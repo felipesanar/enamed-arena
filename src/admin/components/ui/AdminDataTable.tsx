@@ -16,6 +16,8 @@ interface AdminDataTableProps<T extends Record<string, unknown>> {
   compact?: boolean
   isLoading?: boolean
   emptyMessage?: string
+  /** Dentro de `AdminPanel` */
+  embedded?: boolean
 }
 
 export function AdminDataTable<T extends Record<string, unknown>>({
@@ -25,6 +27,7 @@ export function AdminDataTable<T extends Record<string, unknown>>({
   compact,
   isLoading,
   emptyMessage = 'Nenhum dado encontrado.',
+  embedded,
 }: AdminDataTableProps<T>) {
   const cellPadding = compact ? 'px-3.5 py-2' : 'px-4 py-3'
   const textSize = compact ? 'text-[11px]' : 'text-sm'
@@ -33,9 +36,14 @@ export function AdminDataTable<T extends Record<string, unknown>>({
     gridTemplateColumns: columns.map(c => c.width ?? '1fr').join(' '),
   }
 
+  const shell = cn(
+    'rounded-lg border overflow-hidden',
+    embedded ? 'border-border/60 bg-muted/15' : 'border-border bg-card',
+  )
+
   if (isLoading) {
     return (
-      <div className="bg-card rounded-lg border border-border overflow-hidden animate-pulse">
+      <div className={cn(shell, 'animate-pulse')}>
         <div className="grid border-b border-border px-3.5 py-2" style={gridStyle}>
           {columns.map(c => (
             <div key={c.key} className="h-2.5 bg-muted rounded w-2/3" />
@@ -53,7 +61,7 @@ export function AdminDataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden">
+    <div className={shell}>
       {/* Header */}
       <div className="grid border-b border-border" style={gridStyle}>
         {columns.map(c => (
@@ -75,8 +83,9 @@ export function AdminDataTable<T extends Record<string, unknown>>({
           <div
             key={i}
             className={cn(
-              'grid border-b border-border/40 last:border-0',
-              i % 2 === 0 ? 'bg-transparent' : 'bg-muted/20',
+              'grid border-b border-border/40 last:border-0 motion-safe:transition-colors',
+              'hover:bg-muted/30 focus-within:bg-muted/20',
+              i % 2 === 0 ? 'bg-transparent' : 'bg-muted/15',
             )}
             style={gridStyle}
           >

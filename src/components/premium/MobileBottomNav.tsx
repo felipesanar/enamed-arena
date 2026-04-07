@@ -24,6 +24,7 @@ const DIRECT_ITEMS = [
   { to: "/caderno-erros", end: false, label: "Erros", icon: BookOpen },
 ] as const;
 
+/** Kept in sync with desktop collapsed rail (`PremiumSidebarRailItem` / `PREMIUM_RAIL_ICON_STROKE`). */
 const ICON_STROKE = 1.75;
 
 function NavIconButton({

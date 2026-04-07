@@ -46,10 +46,12 @@ export function AdminRail({ activeGroup, onGroupClick }: AdminRailProps) {
           <div key={g.id}>
             {i > 0 && <div className="w-6 h-px bg-border my-1" />}
             <button
+              type="button"
               title={g.label}
               onClick={() => onGroupClick(g.id)}
               className={cn(
-                'w-9 h-9 rounded-lg flex items-center justify-center transition-colors relative',
+                'w-9 h-9 rounded-lg flex items-center justify-center motion-safe:transition-colors relative',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 isActive
                   ? 'bg-primary/10 border border-primary/30 text-primary'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -67,9 +69,10 @@ export function AdminRail({ activeGroup, onGroupClick }: AdminRailProps) {
       <div className="flex-1" />
 
       <button
+        type="button"
         title="Sair"
         onClick={handleLogout}
-        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <LogOut className="h-4 w-4" />
       </button>

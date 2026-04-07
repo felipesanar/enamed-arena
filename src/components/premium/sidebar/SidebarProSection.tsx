@@ -1,7 +1,7 @@
 import { BookOpen } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { PremiumSidebarRailItem } from "@/components/premium/sidebar/PremiumSidebarRailItem";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -17,35 +17,15 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
   if (collapsed) {
-    const link = (
-      <NavLink
-        to="/caderno-erros"
-        className={({ isActive }) =>
-          cn(
-            linkClass({ isActive }),
-            "w-full h-11 justify-center gap-0 px-0 py-0 before:left-0 before:top-1/2 before:h-[22px] before:w-[3px] before:-translate-y-1/2",
-            isActive &&
-              "bg-[linear-gradient(135deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.06)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_14px_rgba(232,56,98,0.18)]",
-          )
-        }
-      >
-        <BookOpen className="h-[22px] w-[22px] shrink-0" aria-hidden />
-        <span className="sr-only">Caderno de Erros, recurso PRO</span>
-      </NavLink>
-    );
-
     return (
-      <div className="space-y-1">
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent
-            side="right"
-            sideOffset={10}
-            className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg"
-          >
-            Caderno de Erros · PRO
-          </TooltipContent>
-        </Tooltip>
+      <div className="flex w-full flex-col items-center">
+        <PremiumSidebarRailItem
+          to="/caderno-erros"
+          icon={BookOpen}
+          label="Caderno de Erros, recurso PRO"
+          tooltip="Caderno de Erros · PRO"
+          variant="pro"
+        />
       </div>
     );
   }

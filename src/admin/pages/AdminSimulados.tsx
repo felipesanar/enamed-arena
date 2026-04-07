@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Upload, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Upload, Trash2, BarChart3 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { useAdminSimuladoEngagementMap } from '@/admin/hooks/useAdminSimuladosAnalytics';
 import { toast } from '@/hooks/use-toast';
@@ -128,12 +128,13 @@ export default function AdminSimulados() {
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         title="Analytics"
+                        className="h-8 w-8"
                         disabled={!engagementMap?.get(s.id)?.participants}
                         onClick={() => navigate(`/admin/simulados/${s.id}/analytics`)}
                       >
-                        📊
+                        <BarChart3 className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/simulados/${s.id}`)}>
                         <Pencil className="h-4 w-4" />
