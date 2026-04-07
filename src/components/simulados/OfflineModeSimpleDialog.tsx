@@ -56,7 +56,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
     try {
       const attempt = await offlineApi.createOfflineAttempt(sim.id);
       setOfflineStep("Gerando e baixando PDF...");
-      const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
+      const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id, true);
       const response = await fetch(pdfUrl);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
