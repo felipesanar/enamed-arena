@@ -22,9 +22,9 @@ const corsHeaders = {
 
 const BUCKET = "exam-pdfs";
 const SIGNED_URL_EXPIRY = 3600;
-const MAX_IMAGES = 30;
-const IMAGE_FETCH_TIMEOUT = 8000;
-const MAX_IMAGE_BYTES = 800_000;
+const MAX_IMAGES = 150;
+const IMAGE_FETCH_TIMEOUT = 15_000;
+const MAX_IMAGE_BYTES = 5_000_000;
 
 const WINE_DARK  = rgb(0.35, 0.07, 0.19);
 const WINE_MID   = rgb(0.42, 0.11, 0.24);
