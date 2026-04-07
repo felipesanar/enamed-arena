@@ -39,6 +39,29 @@ export default function SimuladosPage() {
   const { simulados, loading, error, refetch } = useSimulados();
   const navigate = useNavigate();
   const { activeAttempt } = useOfflineAttempt();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open mode modal when navigating with ?openModal=<simuladoId>
+  const openModalId = searchParams.get("openModal");
+  const openModalSim = useMemo(
+    () => (openModalId ? simulados.find(s => s.id === openModalId) ?? null : null),
+    [openModalId, simulados],
+  );
+  const [autoModalOpen, setAutoModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (openModalSim && !loading) {
+      setAutoModalOpen(true);
+    }
+  }, [openModalSim, loading]);
+
+  const handleAutoModalChange = (open: boolean) => {
+    setAutoModalOpen(open);
+    if (!open && openModalId) {
+      searchParams.delete("openModal");
+      setSearchParams(searchParams, { replace: true });
+    }
+  };
 
   const listTracked = useRef(false);
   useEffect(() => {
