@@ -223,6 +223,11 @@
     @apply border-border;
   }
 
+  /* Evita “saltos” horizontais quando a rolagem vertical aparece/desaparece (troca de rota). */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }

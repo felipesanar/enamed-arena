@@ -18,7 +18,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
   if (collapsed) {
     return (
-      <div className="flex w-full flex-col items-center">
+      <div className="flex w-full min-w-0 flex-col items-stretch">
         <PremiumSidebarRailItem
           to="/caderno-erros"
           icon={BookOpen}

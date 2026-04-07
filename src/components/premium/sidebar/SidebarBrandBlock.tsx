@@ -21,11 +21,10 @@ export function SidebarBrandBlock({ collapsed, onCollapse, onExpand }: SidebarBr
           <TooltipTrigger asChild>
             <Link
               to="/"
-              className="group relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.2] bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_2px_12px_rgba(0,0,0,0.2)] ring-1 ring-white/15 transition-all duration-200 hover:border-white/[0.28] hover:bg-white/[0.07] hover:ring-white/25 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+              className="inline-flex items-center justify-center rounded-full outline-none transition-opacity duration-200 hover:opacity-90 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#270812] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
               aria-label="Ir para início"
             >
-              {/* Single source of size: avoid `size` + className conflict from BrandIcon */}
-              <BrandIcon alt="" className="h-8 w-8 max-h-8 max-w-8 rounded-xl object-contain" />
+              <BrandIcon alt="" className="h-11 w-11 max-h-11 max-w-11 object-contain" />
             </Link>
           </TooltipTrigger>
           <TooltipContent
@@ -42,7 +41,7 @@ export function SidebarBrandBlock({ collapsed, onCollapse, onExpand }: SidebarBr
             <button
               type="button"
               onClick={onExpand}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-transparent text-white/40 transition-all duration-200 hover:border-white/[0.08] hover:bg-white/[0.06] hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-transparent text-white/40 transition-all duration-200 hover:border-white/[0.08] hover:bg-white/[0.06] hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#270812]"
               aria-label="Expandir menu lateral"
             >
               <PanelLeft className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />

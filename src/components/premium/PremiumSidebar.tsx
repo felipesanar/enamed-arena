@@ -6,7 +6,8 @@ import { SidebarProSection } from "@/components/premium/sidebar/SidebarProSectio
 import { SidebarFooterAccount } from "@/components/premium/sidebar/SidebarFooterAccount";
 
 export const PREMIUM_SIDEBAR_EXPANDED_W = 292;
-export const PREMIUM_SIDEBAR_COLLAPSED_W = 72;
+/** Alinhado ao rail Figma + `PremiumSidebarRailItem` (max-w 80px). */
+export const PREMIUM_SIDEBAR_COLLAPSED_W = 80;
 
 export type PremiumSidebarProps = {
   collapsed: boolean;
@@ -17,18 +18,23 @@ export type PremiumSidebarProps = {
 function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebarProps) {
   return (
     <aside
-      className="flex h-full w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto border-r border-white/[0.05] bg-[#361019] bg-[linear-gradient(180deg,#421424_0%,#361019_50%,#280D14_100%)] shadow-[2px_0_32px_rgba(0,0,0,0.35),inset_-1px_0_0_rgba(255,255,255,0.03)]"
+      className={cn(
+        "flex h-full w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto border-r",
+        collapsed
+          ? "border-white/[0.06] bg-[#270812] shadow-[20px_0px_50px_0px_rgba(33,4,13,0.3)]"
+          : "border-white/[0.05] bg-[#361019] bg-[linear-gradient(180deg,#421424_0%,#361019_50%,#280D14_100%)] shadow-[2px_0_32px_rgba(0,0,0,0.35),inset_-1px_0_0_rgba(255,255,255,0.03)]",
+      )}
       aria-label="Navegação principal"
     >
       <div
         className={cn(
           "flex h-full min-h-0 flex-col",
           collapsed
-            ? "items-center gap-3 px-2 py-4 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-3"
+            ? "items-center gap-7 px-2 py-8 [@media(max-height:620px)]:gap-6 [@media(max-height:620px)]:py-6"
             : "px-4 py-5 [@media(max-height:820px)]:px-3.5 [@media(max-height:820px)]:py-4 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3",
         )}
       >
-        {/* Brand */}
+        {/* Brand (logo + expandir) — `gap-7` acima separa este bloco da navegação */}
         <div
           className={cn(
             "w-full shrink-0",
@@ -43,7 +49,7 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
           className={cn(
             "flex min-h-0 flex-1 flex-col",
             collapsed
-              ? "w-full items-center gap-2.5 [@media(max-height:700px)]:gap-2"
+              ? "w-full items-center gap-3 [@media(max-height:620px)]:gap-2.5"
               : "gap-5 pt-5 [@media(max-height:700px)]:gap-3 [@media(max-height:700px)]:pt-3",
           )}
         >

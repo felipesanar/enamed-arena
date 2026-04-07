@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
 
 const railIconBtn =
-  "flex w-full h-11 items-center justify-center rounded-[10px] text-white/55 transition-all duration-200 hover:bg-white/[0.07] hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]";
+  "flex w-full h-11 items-center justify-center rounded-[10px] text-white/55 transition-all duration-200 hover:bg-white/[0.07] hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#270812]";
 
 const segmentColors: Record<string, string> = {
   pro: "#e83862",
@@ -45,7 +45,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
                   </AvatarFallback>
                 </Avatar>
                 <span
-                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#361019]"
+                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#270812]"
                   style={{ backgroundColor: dotColor }}
                 />
               </div>
@@ -59,18 +59,6 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
             <p className="font-semibold text-white">{name}</p>
             {email ? <p className="mt-0.5 text-[10px] text-white/50">{email}</p> : null}
             {isPro && <p className="mt-1 text-[10px] font-semibold text-[#E8839B]">PRO</p>}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Settings */}
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>
-            <Link to="/configuracoes" className={railIconBtn} aria-label="Configurações">
-              <Settings className="h-[18px] w-[18px]" aria-hidden />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10} className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg">
-            Configurações
           </TooltipContent>
         </Tooltip>
 

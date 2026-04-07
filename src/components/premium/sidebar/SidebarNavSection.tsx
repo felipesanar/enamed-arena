@@ -21,8 +21,9 @@ export function SidebarNavSection({ collapsed }: { collapsed?: boolean }) {
     <nav
       aria-label="Links principais"
       className={cn(
-        "space-y-1.5 [@media(max-height:700px)]:space-y-0.5",
-        collapsed && "flex flex-col items-center gap-2.5 space-y-0 [@media(max-height:700px)]:gap-2",
+        !collapsed && "space-y-1.5 [@media(max-height:700px)]:space-y-0.5",
+        collapsed &&
+          "flex w-full min-w-0 flex-col items-stretch gap-2.5 space-y-0 [@media(max-height:620px)]:gap-2",
       )}
     >
       {mainNav.map((item) => (

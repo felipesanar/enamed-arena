@@ -25,7 +25,13 @@ const activeBar =
 export function NavItem({ to, end, icon: Icon, label, className, collapsed }: NavItemProps) {
   if (collapsed) {
     return (
-      <PremiumSidebarRailItem to={to} end={end} icon={Icon} label={label} className={className} />
+      <PremiumSidebarRailItem
+        to={to}
+        end={end}
+        icon={Icon}
+        label={label}
+        className={className}
+      />
     );
   }
 

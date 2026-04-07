@@ -36,10 +36,7 @@ export function DashboardLayout() {
     if (isArenaRoute && !isMobile) {
       setSidebarCollapsed(true);
     }
-    // Intentionally depends only on isArenaRoute — fires once on route entry,
-    // does not re-collapse if the user manually expands while on the page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isArenaRoute]);
+  }, [isArenaRoute, isMobile]);
   const isGuestMobile =
     isMobile && (profile?.segment ?? "guest") === "guest";
 
@@ -59,7 +56,7 @@ export function DashboardLayout() {
         <div
           className={cn(
             "fixed inset-y-0 z-40 flex shrink-0 flex-col overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-            sidebarCollapsed ? "w-[72px]" : "w-[292px]",
+            sidebarCollapsed ? "w-[80px]" : "w-[292px]",
           )}
           style={{
             width: sidebarCollapsed ? PREMIUM_SIDEBAR_COLLAPSED_W : PREMIUM_SIDEBAR_EXPANDED_W,
@@ -84,7 +81,7 @@ export function DashboardLayout() {
         className={cn(
           "flex min-w-0 flex-1 flex-col transition-[padding-left] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
           isExamRoute && "md:pl-0",
-          !isExamRoute && !isMobile && sidebarCollapsed && "md:pl-[72px]",
+          !isExamRoute && !isMobile && sidebarCollapsed && "md:pl-[80px]",
           !isExamRoute && !isMobile && !sidebarCollapsed && "md:pl-[292px]",
         )}
       >
