@@ -130,7 +130,7 @@ export function deriveHomeHeroState({
       headline: "Seu próximo passo está disponível",
       description: `"${available.title}" está aberto agora e conta para ranking quando concluído dentro da janela oficial.`,
       ctaLabel: "Realizar simulado",
-      ctaTo: `/simulados/${available.id}`,
+      ctaTo: `/simulados?openModal=${available.id}`,
     };
   }
 
@@ -198,7 +198,7 @@ export function deriveHomeHeroState({
       headline: "Treino extra para manter tração",
       description: `"${availableLate.title}" segue aberto para prática. Não entra no ranking, mas fortalece sua preparação.`,
       ctaLabel: "Treinar agora",
-      ctaTo: `/simulados/${availableLate.id}`,
+      ctaTo: `/simulados?openModal=${availableLate.id}`,
     };
   }
 
