@@ -139,22 +139,30 @@ interface Question {
 
 // ─── Image fetching ──────────────────────────────────────────────────────────
 
-async function fetchImageWithTimeout(url: string): Promise<Uint8Array | null> {
+async function fetchImageWithTimeout(url: string, questionNum: number): Promise<Uint8Array | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), IMAGE_FETCH_TIMEOUT);
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      console.warn(`[generate-exam-pdf] Image for Q${questionNum} fetch failed: HTTP ${resp.status}`);
+      return null;
+    }
     const buf = await resp.arrayBuffer();
-    if (buf.byteLength > MAX_IMAGE_BYTES) return null;
+    if (buf.byteLength > MAX_IMAGE_BYTES) {
+      console.warn(`[generate-exam-pdf] Image for Q${questionNum} skipped: ${buf.byteLength}B exceeds ${MAX_IMAGE_BYTES}B limit`);
+      return null;
+    }
     return new Uint8Array(buf);
-  } catch {
+  } catch (e) {
+    const reason = e instanceof DOMException && e.name === 'AbortError' ? 'timeout' : String(e);
+    console.warn(`[generate-exam-pdf] Image for Q${questionNum} fetch failed: ${reason}`);
     return null;
   }
 }
 
-async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string): Promise<PDFImage | null> {
+async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string, questionNum: number): Promise<PDFImage | null> {
   try {
     const lower = url.toLowerCase();
     if (lower.includes(".png")) {
@@ -164,6 +172,7 @@ async function embedImage(pdfDoc: PDFDocument, bytes: Uint8Array, url: string): 
   } catch {
     try { return await pdfDoc.embedPng(bytes); } catch { /* ignore */ }
     try { return await pdfDoc.embedJpg(bytes); } catch { /* ignore */ }
+    console.warn(`[generate-exam-pdf] Image for Q${questionNum} embed failed (${bytes.byteLength}B)`);
     return null;
   }
 }
