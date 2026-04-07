@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('@/admin/hooks/useAdminAnalytics')
-vi.mock('@/admin/components/ui/AdminTrendChart', () => ({
-  AdminTrendChart: () => null,
+vi.mock('@/admin/components/ui/AdminTrendChart', (): Record<string, unknown> => ({
+  AdminTrendChart: (): null => null,
 }))
 
 import {

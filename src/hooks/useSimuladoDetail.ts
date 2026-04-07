@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 import type { Question, SimuladoWithStatus, SimuladoUserState } from '@/types';
 import { enrichSimulado } from '@/lib/simulado-helpers';
+import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
 
 interface UseSimuladoDetailReturn {
   simulado: SimuladoWithStatus | null;
@@ -24,10 +25,13 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined,
   }
 
   const canonicalId = config.id;
-  const [questionData, attempt] = await Promise.all([
+  const [questionData, onlineAttempt, offlineAttempt] = await Promise.all([
     simuladosApi.getQuestions(canonicalId, includeCorrectAnswers),
     userId ? simuladosApi.getAttempt(canonicalId, userId, 'online') : Promise.resolve(null),
+    userId ? simuladosApi.getAttempt(canonicalId, userId, 'offline') : Promise.resolve(null),
   ]);
+
+  const attempt = pickMostRelevantAttempt(onlineAttempt, offlineAttempt);
 
   const userState: SimuladoUserState | undefined = attempt
     ? {
