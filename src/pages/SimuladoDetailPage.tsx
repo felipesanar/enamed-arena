@@ -1,13 +1,9 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { PageTransition } from "@/components/premium/PageTransition";
-import { PageHeader } from "@/components/PageHeader";
-import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { PremiumCard } from "@/components/PremiumCard";
 import { EmptyState } from "@/components/EmptyState";
-import { StatusBadge } from "@/components/StatusBadge";
-import { SectionHeader } from "@/components/SectionHeader";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { SimuladoResultNav } from "@/components/simulado/SimuladoResultNav";
 import { useUser } from "@/contexts/UserContext";
@@ -15,7 +11,6 @@ import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useSimulados } from "@/hooks/useSimulados";
 import {
   formatDate,
-  formatDateTime,
   canAccessSimulado,
   canViewResults,
   buildGoogleCalendarUrl,
@@ -29,6 +24,65 @@ import type { LucideIcon } from "lucide-react";
 import type { SimuladoWithStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { trackEvent } from '@/lib/analytics';
+import { useIsMobile } from "@/hooks/use-mobile";
+
+/** Padding que o DashboardLayout aplicava ao `main`; necessário na rota arena (`main` com `p-0`). */
+function SimuladoDetailPaddedShell({ children, className }: { children: ReactNode; className?: string }) {
+  const isMobile = useIsMobile();
+  const { profile } = useUser();
+  const isGuestMobile = isMobile && (profile?.segment ?? "guest") === "guest";
+  return (
+    <div
+      className={cn(
+        "px-4 md:px-8 py-6 md:py-8",
+        isMobile &&
+          cn(
+            isGuestMobile
+              ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"
+              : "pt-[calc(3.5rem+env(safe-area-inset-top,0px)+0.75rem)]",
+            "pb-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
+          ),
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+const ARENA_PREMIUM_BG = [
+  "radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%)",
+  "radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%)",
+  "radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%)",
+  "linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%)",
+].join(", ");
+
+function PreExamArenaGradient({ children }: { children: ReactNode }) {
+  const isMobile = useIsMobile();
+  const { profile } = useUser();
+  const isGuestMobile = isMobile && (profile?.segment ?? "guest") === "guest";
+  return (
+    <div
+      data-testid="arena-card"
+      className={cn(
+        "relative w-full flex flex-col min-h-[100dvh] md:min-h-screen",
+        isMobile &&
+          cn(
+            isGuestMobile
+              ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"
+              : "pt-[calc(3.5rem+env(safe-area-inset-top,0px)+0.75rem)]",
+            "pb-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
+          )
+      )}
+      style={{
+        background: ARENA_PREMIUM_BG,
+        borderLeft: "none",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 const CHECKLIST_BASE = [
   { key: "duration", icon: Clock, title: "Duração da prova", getDesc: (s: { estimatedDuration: string; questionsCount: number }) => `${s.estimatedDuration} · ${s.questionsCount} questões` },
@@ -118,26 +172,30 @@ export default function SimuladoDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <SkeletonCard />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+      <SimuladoDetailPaddedShell>
+        <div className="space-y-4">
+          <SkeletonCard />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+          <SkeletonCard />
         </div>
-        <SkeletonCard />
-      </div>
+      </SimuladoDetailPaddedShell>
     );
   }
 
   if (!simulado || error) {
     return (
-      <EmptyState
-        variant="error"
-        title="Simulado não encontrado"
-        description={error || "O simulado que você procura não existe ou foi removido."}
-        onRetry={() => refetch()}
-        backHref="/simulados"
-        backLabel="Voltar ao calendário"
-      />
+      <SimuladoDetailPaddedShell>
+        <EmptyState
+          variant="error"
+          title="Simulado não encontrado"
+          description={error || "O simulado que você procura não existe ou foi removido."}
+          onRetry={() => refetch()}
+          backHref="/simulados"
+          backLabel="Voltar ao calendário"
+        />
+      </SimuladoDetailPaddedShell>
     );
   }
 
@@ -149,27 +207,29 @@ export default function SimuladoDetailPage() {
 
       {/* Upcoming */}
       {simulado.status === "upcoming" && (
-        <PremiumCard variant="hero" className="text-center">
-          <div className="h-14 w-14 rounded-2xl bg-info/10 flex items-center justify-center mx-auto mb-4">
-            <Clock className="h-7 w-7 text-info" />
-          </div>
-          <h2 className="text-heading-2 text-foreground mb-2">Simulado em breve</h2>
-          <p className="text-body text-muted-foreground mb-2 max-w-md mx-auto">
-            A janela de execução abrirá em <strong>{formatDate(simulado.executionWindowStart)}</strong>.
-          </p>
-          <p className="text-body-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Prepare-se para {simulado.questionsCount} questões em {simulado.estimatedDuration} de prova.
-          </p>
-          <a
-            href={buildGoogleCalendarUrl(simulado)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-accent/50 text-body font-medium text-foreground hover:bg-accent transition-colors"
-          >
-            <CalendarPlus className="h-4 w-4 text-primary" />
-            Adicionar ao Google Agenda
-          </a>
-        </PremiumCard>
+        <SimuladoDetailPaddedShell>
+          <PremiumCard variant="hero" className="text-center">
+            <div className="h-14 w-14 rounded-2xl bg-info/10 flex items-center justify-center mx-auto mb-4">
+              <Clock className="h-7 w-7 text-info" />
+            </div>
+            <h2 className="text-heading-2 text-foreground mb-2">Simulado em breve</h2>
+            <p className="text-body text-muted-foreground mb-2 max-w-md mx-auto">
+              A janela de execução abrirá em <strong>{formatDate(simulado.executionWindowStart)}</strong>.
+            </p>
+            <p className="text-body-sm text-muted-foreground max-w-md mx-auto mb-6">
+              Prepare-se para {simulado.questionsCount} questões em {simulado.estimatedDuration} de prova.
+            </p>
+            <a
+              href={buildGoogleCalendarUrl(simulado)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-accent/50 text-body font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              <CalendarPlus className="h-4 w-4 text-primary" />
+              Adicionar ao Google Agenda
+            </a>
+          </PremiumCard>
+        </SimuladoDetailPaddedShell>
       )}
 
       {/* Accessible + not started: checklist + CTA */}
@@ -181,41 +241,27 @@ export default function SimuladoDetailPage() {
           className="mb-0"
         >
           {!isOnboardingComplete ? (
-            <PremiumCard variant="hero" className="text-center mb-8">
-              <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="h-7 w-7 text-warning" />
-              </div>
-              <h2 className="text-heading-2 text-foreground mb-2">Complete seu perfil primeiro</h2>
-              <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
-                Para iniciar o simulado, você precisa informar sua especialidade e instituições desejadas.
-              </p>
-              <Link
-                to="/onboarding"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
-              >
-                <Sparkles className="h-4 w-4" />
-                Completar perfil
-              </Link>
-            </PremiumCard>
+            <SimuladoDetailPaddedShell>
+              <PremiumCard variant="hero" className="text-center mb-8">
+                <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="h-7 w-7 text-warning" />
+                </div>
+                <h2 className="text-heading-2 text-foreground mb-2">Complete seu perfil primeiro</h2>
+                <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+                  Para iniciar o simulado, você precisa informar sua especialidade e instituições desejadas.
+                </p>
+                <Link
+                  to="/onboarding"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Completar perfil
+                </Link>
+              </PremiumCard>
+            </SimuladoDetailPaddedShell>
           ) : (
-            <div
-              data-testid="arena-card"
-              className="relative overflow-hidden -mx-4 md:-mx-8 -mt-6 md:-mt-8 -mb-6 md:-mb-8 min-h-[calc(100vh-4rem)] flex flex-col"
-              style={{
-                background: [
-                  // Top-left corner: sidebar top color (#421424) bleeds in
-                  "radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%)",
-                  // Bottom-left corner: sidebar bottom color (#280D14) bleeds in
-                  "radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%)",
-                  // Top-right wine glow — premium atmosphere
-                  "radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%)",
-                  // Base horizontal blend: sidebar midpoint (#361019) → arena deep dark
-                  "linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%)",
-                ].join(", "),
-                borderLeft: "none",
-              }}
-            >
-              <div className="relative z-10 px-6 pt-8 pb-8 md:px-16 md:pt-12 md:pb-10 flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
+            <PreExamArenaGradient>
+              <div className="relative z-10 px-6 py-8 pb-10 md:px-16 md:py-12 md:pb-10 flex flex-col justify-start max-w-4xl mx-auto w-full">
 
               {/* ── Top section ── */}
               <div className="text-center mb-5 md:mb-7">
@@ -557,78 +603,86 @@ export default function SimuladoDetailPage() {
               </p>
 
               </div>
-            </div>
+            </PreExamArenaGradient>
           )}
         </motion.div>
       )}
 
       {/* In progress */}
       {simulado.status === "in_progress" && simulado.userState?.started && (
-        <PremiumCard variant="hero" className="text-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
-            <Play className="h-7 w-7 text-warning" />
-          </div>
-          <h2 className="text-heading-2 text-foreground mb-2">Simulado em andamento</h2>
-          <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
-            Você já iniciou este simulado. Continue de onde parou.
-          </p>
-          <button
-            onClick={() => navigate(`/simulados/${id}/prova`)}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
-          >
-            <Play className="h-4 w-4" />
-            Continuar Simulado
-          </button>
-        </PremiumCard>
+        <SimuladoDetailPaddedShell>
+          <PremiumCard variant="hero" className="text-center mb-8">
+            <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
+              <Play className="h-7 w-7 text-warning" />
+            </div>
+            <h2 className="text-heading-2 text-foreground mb-2">Simulado em andamento</h2>
+            <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+              Você já iniciou este simulado. Continue de onde parou.
+            </p>
+            <button
+              onClick={() => navigate(`/simulados/${id}/prova`)}
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
+            >
+              <Play className="h-4 w-4" />
+              Continuar Simulado
+            </button>
+          </PremiumCard>
+        </SimuladoDetailPaddedShell>
       )}
 
       {/* Closed waiting */}
       {simulado.status === "closed_waiting" && (
-        <PremiumCard variant="hero" className="text-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-            <Lock className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <h2 className="text-heading-2 text-foreground mb-2">Janela encerrada</h2>
-          <p className="text-body text-muted-foreground max-w-md mx-auto">
-            O resultado e gabarito serão liberados em <strong>{formatDate(simulado.resultsReleaseAt)}</strong>.
-          </p>
-        </PremiumCard>
+        <SimuladoDetailPaddedShell>
+          <PremiumCard variant="hero" className="text-center mb-8">
+            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+              <Lock className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <h2 className="text-heading-2 text-foreground mb-2">Janela encerrada</h2>
+            <p className="text-body text-muted-foreground max-w-md mx-auto">
+              O resultado e gabarito serão liberados em <strong>{formatDate(simulado.resultsReleaseAt)}</strong>.
+            </p>
+          </PremiumCard>
+        </SimuladoDetailPaddedShell>
       )}
 
       {/* Results available */}
       {hasResults && (
-        <PremiumCard variant="hero" className="text-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="h-7 w-7 text-success" />
-          </div>
-          {simulado.userState?.score !== undefined ? (
-            <>
-              <div className="text-display text-primary mb-2">{simulado.userState.score}%</div>
-              <p className="text-body text-muted-foreground mb-6">Sua nota neste simulado</p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-heading-2 text-foreground mb-2">Resultado disponível</h2>
-              <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
-                O gabarito comentado e ranking deste simulado já estão liberados.
-              </p>
-            </>
-          )}
-          {id && <SimuladoResultNav simuladoId={id} className="justify-center" />}
-        </PremiumCard>
+        <SimuladoDetailPaddedShell>
+          <PremiumCard variant="hero" className="text-center mb-8">
+            <div className="h-14 w-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="h-7 w-7 text-success" />
+            </div>
+            {simulado.userState?.score !== undefined ? (
+              <>
+                <div className="text-display text-primary mb-2">{simulado.userState.score}%</div>
+                <p className="text-body text-muted-foreground mb-6">Sua nota neste simulado</p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-heading-2 text-foreground mb-2">Resultado disponível</h2>
+                <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
+                  O gabarito comentado e ranking deste simulado já estão liberados.
+                </p>
+              </>
+            )}
+            {id && <SimuladoResultNav simuladoId={id} className="justify-center" />}
+          </PremiumCard>
+        </SimuladoDetailPaddedShell>
       )}
 
       {/* Fallback */}
       {isAccessible && simulado.userState?.started && simulado.status !== "in_progress" && (
-        <PremiumCard variant="hero" className="text-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="h-7 w-7 text-primary" />
-          </div>
-          <h2 className="text-heading-2 text-foreground mb-2">Simulado já realizado</h2>
-          <p className="text-body text-muted-foreground max-w-md mx-auto">
-            Você já realizou este simulado. O resultado será liberado em <strong>{formatDate(simulado.resultsReleaseAt)}</strong>.
-          </p>
-        </PremiumCard>
+        <SimuladoDetailPaddedShell>
+          <PremiumCard variant="hero" className="text-center mb-8">
+            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="h-7 w-7 text-primary" />
+            </div>
+            <h2 className="text-heading-2 text-foreground mb-2">Simulado já realizado</h2>
+            <p className="text-body text-muted-foreground max-w-md mx-auto">
+              Você já realizou este simulado. O resultado será liberado em <strong>{formatDate(simulado.resultsReleaseAt)}</strong>.
+            </p>
+          </PremiumCard>
+        </SimuladoDetailPaddedShell>
       )}
 
     </PageTransition>

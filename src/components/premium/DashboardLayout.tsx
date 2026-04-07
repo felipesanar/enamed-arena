@@ -88,9 +88,10 @@ export function DashboardLayout() {
         <main
           className={cn(
             "flex-1",
-            isExamRoute ? "p-0 overflow-hidden" : "px-4 md:px-8 py-6 md:py-8",
+            isExamRoute ? "p-0 overflow-hidden" : isArenaRoute ? "p-0" : "px-4 md:px-8 py-6 md:py-8",
             isMobile &&
               !isExamRoute &&
+              !isArenaRoute &&
               cn(
                 isGuestMobile
                   ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"

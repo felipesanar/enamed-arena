@@ -242,7 +242,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
             <Button
               type="button"
               size="lg"
-              className="w-full rounded-xl h-12 text-body font-semibold"
+              className="w-full rounded-xl h-12 text-body font-semibold !text-white"
               disabled={offlineLoading}
               onClick={() => void handleOfflineMode()}
             >

@@ -21,7 +21,7 @@ function PremiumSidebarInner({ collapsed, onCollapse, onExpand }: PremiumSidebar
       className={cn(
         "flex h-full w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto border-r",
         collapsed
-          ? "border-white/[0.06] bg-[#270812] shadow-[20px_0px_50px_0px_rgba(33,4,13,0.3)]"
+          ? "border-white/[0.06] bg-[#361019] bg-[linear-gradient(180deg,#421424_0%,#361019_50%,#280D14_100%)] shadow-[20px_0px_50px_0px_rgba(33,4,13,0.3)]"
           : "border-white/[0.05] bg-[#361019] bg-[linear-gradient(180deg,#421424_0%,#361019_50%,#280D14_100%)] shadow-[2px_0_32px_rgba(0,0,0,0.35),inset_-1px_0_0_rgba(255,255,255,0.03)]",
       )}
       aria-label="Navegação principal"
