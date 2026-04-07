@@ -1,15 +1,7 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play, Lock, Clock, Calendar, CalendarPlus, Monitor, FileText, AlertCircle, Loader2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Play, Lock, Clock, Calendar, CalendarPlus, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,10 +16,8 @@ import {
 import { PageTransition } from "@/components/premium/PageTransition";
 import { useOfflineAttempt } from "@/hooks/useOfflineAttempt";
 import { SimuladosTimelineSection } from "@/components/simulados/SimuladosTimelineSection";
-import { offlineApi } from "@/services/offlineApi";
-import { persistOfflineAttempt } from "@/hooks/useOfflineAttempt";
-import { toast } from "@/hooks/use-toast";
-import { trackEvent } from '@/lib/analytics';
+import { OfflineModeSimpleDialog } from "@/components/simulados/OfflineModeSimpleDialog";
+import { trackEvent } from "@/lib/analytics";
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -169,7 +159,13 @@ export default function SimuladosPage() {
           transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
           className="mb-8"
         >
-          <HeroCard sim={heroSimulado} hasActiveAttempt={!!activeAttempt || !!heroSimulado.userState?.started && !heroSimulado.userState?.finished} />
+          <HeroCard
+            sim={heroSimulado}
+            hasActiveAttempt={
+              !!activeAttempt ||
+              (!!heroSimulado.userState?.started && !heroSimulado.userState?.finished)
+            }
+          />
         </motion.div>
       ) : (
         simulados.length === 0 && (
@@ -204,7 +200,13 @@ function formatDeadlineTicker(windowEnd: string): string {
   return `Janela fecha em breve`;
 }
 
-function HeroCard({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
+function HeroCard({
+  sim,
+  hasActiveAttempt,
+}: {
+  sim: SimuladoWithStatus;
+  hasActiveAttempt: boolean;
+}) {
   if (sim.status === "available" || sim.status === "in_progress") {
     return <HeroCardActive sim={sim} hasActiveAttempt={hasActiveAttempt} />;
   }
@@ -215,61 +217,11 @@ function HeroCard({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiv
 }
 
 function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
-  const navigate = useNavigate();
   const isInProgress = sim.status === "in_progress";
   const alreadyStarted = sim.userState?.started && !sim.userState.finished;
   const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
   const isBlocked = hasActiveAttempt && !alreadyStarted;
   const [showModeModal, setShowModeModal] = useState(false);
-  const [offlineLoading, setOfflineLoading] = useState(false);
-  const [offlineStep, setOfflineStep] = useState('');
-
-  const handleOfflineMode = useCallback(async () => {
-    setOfflineLoading(true);
-    setOfflineStep('Criando tentativa offline...');
-    try {
-      // 1. Create offline attempt (server-side clock)
-      const attempt = await offlineApi.createOfflineAttempt(sim.id);
-      setOfflineStep('Gerando PDF da prova...');
-
-      setOfflineStep('Gerando e baixando PDF...');
-      // 2. Request PDF generation + download as blob to avoid popup blockers
-      const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id);
-      const response = await fetch(pdfUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `${sim.slug ?? sim.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-
-      // 3. Only AFTER download completes, persist to localStorage
-      // This prevents the FloatingOfflineTimer from appearing (and auto-navigating)
-      // before the user has actually received the PDF
-      persistOfflineAttempt({
-        id:                   attempt.attempt_id,
-        simulado_id:          sim.id,
-        simulado_slug:        attempt.simulado_slug,
-        started_at:           attempt.started_at,
-        exam_duration_seconds: attempt.exam_duration_seconds,
-      });
-
-      setShowModeModal(false);
-      toast({ title: "Download iniciado!", description: "O timer offline está ativo na tela." });
-    } catch (err) {
-      toast({
-        title: "Erro ao iniciar modo offline",
-        description: (err as Error)?.message ?? "Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setOfflineLoading(false);
-      setOfflineStep('');
-    }
-  }, [sim]);
 
   return (
     <div
@@ -394,78 +346,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
         </div>
       </div>
 
-      {/* Online/offline mode modal */}
-      <Dialog open={showModeModal} onOpenChange={setShowModeModal}>
-        <DialogContent className="max-w-lg w-full rounded-2xl border border-border p-6 md:p-8 gap-0">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="text-heading-2 text-foreground text-center">
-              Como deseja realizar o simulado?
-            </DialogTitle>
-            <DialogDescription className="text-body text-muted-foreground text-center mt-2">
-              Escolha a experiência que melhor se adapta ao seu momento.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setShowModeModal(false);
-                navigate(`/simulados/${sim.slug}/start`);
-              }}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group"
-            >
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Monitor className="h-7 w-7 text-primary" />
-              </div>
-              <p className="text-body font-semibold text-foreground">Experiência online</p>
-              <p className="text-body-sm text-muted-foreground">
-                Realize o simulado na plataforma com tela cheia
-              </p>
-            </button>
-
-            <button
-              type="button"
-              disabled={offlineLoading}
-              onClick={handleOfflineMode}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                {offlineLoading
-                  ? <Loader2 className="h-7 w-7 text-primary animate-spin" />
-                  : <FileText className="h-7 w-7 text-primary" />
-                }
-              </div>
-              <p className="text-body font-semibold text-foreground">Experiência offline</p>
-              {offlineLoading ? (
-                <div className="w-full space-y-2">
-                  <p className="text-body-sm text-primary font-medium">{offlineStep}</p>
-                  <Progress value={undefined} className="h-1.5 [&>div]:animate-pulse" />
-                </div>
-              ) : (
-                <p className="text-body-sm text-muted-foreground">
-                  Gere o PDF e suba o gabarito após finalizar
-                </p>
-              )}
-            </button>
-          </div>
-
-          {/* Warning: outside execution window */}
-          {new Date() > new Date(sim.executionWindowEnd) && (
-            <div
-              className="flex items-center gap-2 rounded-lg px-4 py-3 text-xs mt-4"
-              style={{
-                background: 'hsl(var(--warning) / 0.08)',
-                border: '1px solid hsl(var(--warning) / 0.2)',
-                color: 'hsl(var(--warning))',
-              }}
-            >
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              A janela de execução já encerrou. Sua tentativa será registrada como <strong className="mx-0.5">treino</strong> e não entrará no ranking.
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <OfflineModeSimpleDialog open={showModeModal} onOpenChange={setShowModeModal} sim={sim} />
     </div>
   );
 }
