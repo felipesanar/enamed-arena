@@ -20,8 +20,8 @@ const RAIL_BAR_H_PX = 32;
 const RAIL_BAR_HALF = RAIL_BAR_H_PX / 2;
 
 /** Referências estáveis para o Framer não repetir o pulse a cada render. */
-const RAIL_ICON_ACTIVE = { scale: [1, 1.07, 1] as const };
-const RAIL_ICON_IDLE = { scale: 1 as const };
+const RAIL_ICON_ACTIVE = { scale: [1, 1.07, 1] };
+const RAIL_ICON_IDLE = { scale: 1 };
 
 export type PremiumSidebarRailItemProps = {
   to: string;

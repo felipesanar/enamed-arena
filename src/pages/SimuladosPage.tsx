@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Play, Lock, Clock, Calendar, CalendarPlus, AlertCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,6 +39,29 @@ export default function SimuladosPage() {
   const { simulados, loading, error, refetch } = useSimulados();
   const navigate = useNavigate();
   const { activeAttempt } = useOfflineAttempt();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open mode modal when navigating with ?openModal=<simuladoId>
+  const openModalId = searchParams.get("openModal");
+  const openModalSim = useMemo(
+    () => (openModalId ? simulados.find(s => s.id === openModalId) ?? null : null),
+    [openModalId, simulados],
+  );
+  const [autoModalOpen, setAutoModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (openModalSim && !loading) {
+      setAutoModalOpen(true);
+    }
+  }, [openModalSim, loading]);
+
+  const handleAutoModalChange = (open: boolean) => {
+    setAutoModalOpen(open);
+    if (!open && openModalId) {
+      searchParams.delete("openModal");
+      setSearchParams(searchParams, { replace: true });
+    }
+  };
 
   const listTracked = useRef(false);
   useEffect(() => {
@@ -180,6 +203,15 @@ export default function SimuladosPage() {
 
       {timelineItems.length > 0 && (
         <SimuladosTimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
+      )}
+
+      {/* Auto-open modal from ?openModal= query param (e.g. from Home hero CTA) */}
+      {openModalSim && (
+        <OfflineModeSimpleDialog
+          open={autoModalOpen}
+          onOpenChange={handleAutoModalChange}
+          sim={openModalSim}
+        />
       )}
     </PageTransition>
   );

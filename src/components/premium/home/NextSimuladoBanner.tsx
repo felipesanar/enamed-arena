@@ -71,7 +71,7 @@ export function NextSimuladoBanner({ simulados }: NextSimuladoBannerProps) {
           subtitle="Realize agora para garantir sua posição no ranking."
         />
         <BannerCTA
-          to={`/simulados/${scenario.simuladoId}`}
+          to={`/simulados?openModal=${scenario.simuladoId}`}
           label="Realizar simulado"
           urgent
         />
