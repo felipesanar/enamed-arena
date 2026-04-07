@@ -5,6 +5,7 @@
 import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { simuladosApi, type AttemptRow } from '@/services/simuladosApi';
+import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 import type { SimuladoConfig, SimuladoWithStatus, SimuladoUserState } from '@/types';
