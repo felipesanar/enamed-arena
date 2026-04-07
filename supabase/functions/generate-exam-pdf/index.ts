@@ -583,7 +583,7 @@ serve(async (req) => {
   }
 });
 
-// Same as generatePdf but accepts pre-created pdfDoc with embedded images
+// ─── PDF generation (uses pre-created pdfDoc with embedded images) ───────────
 async function generatePdfWithDoc(pdfDoc: PDFDocument, simulado: SimuladoRow, questions: Question[]): Promise<Uint8Array> {
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
