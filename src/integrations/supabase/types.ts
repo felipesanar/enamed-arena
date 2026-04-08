@@ -888,6 +888,23 @@ export type Database = {
           user_count: number
         }[]
       }
+      admin_get_ranking_for_simulado: {
+        Args: { p_include_train?: boolean; p_simulado_id: string }
+        Returns: {
+          especialidade: string
+          finished_at: string
+          full_name: string
+          instituicoes_alvo: string[]
+          nota_final: number
+          posicao: number
+          segment: Database["public"]["Enums"]["user_segment"]
+          simulado_id: string
+          total_answered: number
+          total_candidatos: number
+          total_correct: number
+          user_id: string
+        }[]
+      }
       admin_get_user: {
         Args: { p_user_id: string }
         Returns: {
@@ -944,6 +961,14 @@ export type Database = {
           status: string
           total_count: number
           user_id: string
+        }[]
+      }
+      admin_list_simulados_for_ranking_preview: {
+        Args: never
+        Returns: {
+          id: string
+          sequence_number: number
+          title: string
         }[]
       }
       admin_list_users: {
