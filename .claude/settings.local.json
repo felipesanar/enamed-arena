@@ -3,7 +3,12 @@
     "allow": [
       "Bash(npx supabase:*)",
       "Bash(bash \"C:/Users/Felipe Souza/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/Felipe Souza/Documents/enamed-arena\")",
-      "Bash(grep -n \"sidebar\\\\|Sidebar\\\\|bg-sidebar\\\\|sidebar-bg\\\\|hsl.*sidebar\\\\|--sidebar\" src/components/premium/*.tsx src/index.css tailwind.config.ts)"
+      "Bash(grep -n \"sidebar\\\\|Sidebar\\\\|bg-sidebar\\\\|sidebar-bg\\\\|hsl.*sidebar\\\\|--sidebar\" src/components/premium/*.tsx src/index.css tailwind.config.ts)",
+      "Bash(bash \"C:\\\\Users\\\\Felipe Souza\\\\.claude\\\\plugins\\\\cache\\\\superpowers-marketplace\\\\superpowers\\\\5.0.6\\\\skills\\\\brainstorming\\\\scripts\\\\start-server.sh\" --project-dir \"C:\\\\Users\\\\Felipe Souza\\\\Documents\\\\enamed-arena\")",
+      "Bash(curl -s http://localhost:55885 -o /dev/null -w \"%{http_code}\")",
+      "Bash(scripts/start-server.sh --project-dir \"C:/Users/Felipe Souza/Documents/enamed-arena\")",
+      "Bash(cat \"C:/Users/Felipe Souza/Documents/enamed-arena/.superpowers/brainstorm/\"*/state/server-info)",
+      "Bash(\"C:/Users/Felipe Souza/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/Felipe Souza/Documents/enamed-arena\")"
     ]
   }
 }
