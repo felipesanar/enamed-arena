@@ -65,7 +65,8 @@ export async function fetchAdminRankingForSimulado(
 ): Promise<RankingRow[]> {
   logger.log('[rankingApi] Fetching admin ranking preview');
 
-  const { data, error } = await supabase.rpc('admin_get_ranking_for_simulado', {
+  // Cast needed: RPC exists in DB but types.ts hasn't been regenerated yet
+  const { data, error } = await (supabase.rpc as any)('admin_get_ranking_for_simulado', {
     p_simulado_id: simuladoId,
     p_include_train: includeTrain,
   });
@@ -84,14 +85,15 @@ export async function fetchAdminSimuladosForRankingPreview(): Promise<
 > {
   logger.log('[rankingApi] Fetching admin simulados for ranking preview');
 
-  const { data, error } = await supabase.rpc('admin_list_simulados_for_ranking_preview');
+  // Cast needed: RPC exists in DB but types.ts hasn't been regenerated yet
+  const { data, error } = await (supabase.rpc as any)('admin_list_simulados_for_ranking_preview');
 
   if (error) {
     logger.error('[rankingApi] Error fetching admin simulados for preview:', error);
     throw error;
   }
 
-  return (data || []).map((row) => ({
+  return (data || []).map((row: any) => ({
     id: row.id,
     title: row.title,
     sequence_number: row.sequence_number,
