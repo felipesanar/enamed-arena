@@ -58,6 +58,46 @@ export async function fetchRankingForSimulado(simuladoId: string): Promise<Ranki
   return (data || []) as RankingRow[];
 }
 
+/** Admin-only: mesmo shape do ranking público; opcionalmente inclui tentativas fora da janela (treino). */
+export async function fetchAdminRankingForSimulado(
+  simuladoId: string,
+  includeTrain: boolean,
+): Promise<RankingRow[]> {
+  logger.log('[rankingApi] Fetching admin ranking preview');
+
+  const { data, error } = await supabase.rpc('admin_get_ranking_for_simulado', {
+    p_simulado_id: simuladoId,
+    p_include_train: includeTrain,
+  });
+
+  if (error) {
+    logger.error('[rankingApi] Error fetching admin ranking:', error);
+    throw error;
+  }
+
+  return (data || []) as RankingRow[];
+}
+
+/** Admin-only: simulados publicados com ao menos uma tentativa finalizada (sem gate de results_release_at). */
+export async function fetchAdminSimuladosForRankingPreview(): Promise<
+  Array<{ id: string; title: string; sequence_number: number }>
+> {
+  logger.log('[rankingApi] Fetching admin simulados for ranking preview');
+
+  const { data, error } = await supabase.rpc('admin_list_simulados_for_ranking_preview');
+
+  if (error) {
+    logger.error('[rankingApi] Error fetching admin simulados for preview:', error);
+    throw error;
+  }
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    sequence_number: row.sequence_number,
+  }));
+}
+
 // ─── Fetch simulados that have submitted attempts (for selector) ───
 
 export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; title: string; sequence_number: number }>> {

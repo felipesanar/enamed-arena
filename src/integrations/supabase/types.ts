@@ -1098,6 +1098,31 @@ export type Database = {
           text: string
         }[]
       }
+      admin_get_ranking_for_simulado: {
+        Args: { p_include_train?: boolean; p_simulado_id: string }
+        Returns: {
+          especialidade: string
+          finished_at: string
+          full_name: string
+          instituicoes_alvo: string[]
+          nota_final: number
+          posicao: number
+          segment: Database["public"]["Enums"]["user_segment"]
+          simulado_id: string
+          total_answered: number
+          total_candidatos: number
+          total_correct: number
+          user_id: string
+        }[]
+      }
+      admin_list_simulados_for_ranking_preview: {
+        Args: never
+        Returns: {
+          id: string
+          sequence_number: number
+          title: string
+        }[]
+      }
       create_attempt_guarded: {
         Args: { p_simulado_id: string }
         Returns: {

@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Headphones, Users, FileText, ClipboardList,
-  BarChart3, Megaphone, Compass, Monitor, Shield,
+  BarChart3, Megaphone, Compass, Monitor, Shield, Trophy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RailGroup } from './AdminRail'
@@ -30,6 +30,7 @@ const FLYOUT_GROUPS: Record<RailGroup, { title: string; items: FlyoutItem[] }> =
       { to: '/admin/usuarios',   label: 'Usuários',   description: 'Gestão e perfis',      icon: Users,          phase: 'p0' },
       { to: '/admin/simulados',  label: 'Simulados',  description: 'Gestão e analytics',   icon: FileText,       phase: 'live' },
       { to: '/admin/tentativas', label: 'Tentativas', description: 'Histórico e detalhes', icon: ClipboardList,  phase: 'live' },
+      { to: '/admin/ranking-preview', label: 'Preview ranking', description: 'UI do ranking (liberado)', icon: Trophy, phase: 'live' },
     ],
   },
   inteligencia: {

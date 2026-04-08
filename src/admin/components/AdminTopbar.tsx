@@ -11,6 +11,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/admin/usuarios':   'Usuários',
   '/admin/suporte':    'Suporte',
   '/admin/tentativas': 'Tentativas',
+  '/admin/ranking-preview': 'Preview ranking',
   '/admin/analytics':  'Analytics',
   '/admin/marketing':  'Marketing',
   '/admin/produto':    'Produto',
