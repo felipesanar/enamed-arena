@@ -242,23 +242,45 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
               transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
             >
               <PremiumCard className="p-5 md:p-6 mb-4">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="text-body font-bold text-foreground">Questão {question.number}</span>
-                    <span className="text-caption text-muted-foreground">de {questions.length}</span>
-                    <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">{question.area}</span>
-                    <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">{question.theme}</span>
+                <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
+                  {/* Esquerda: número + meta tags */}
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-2 mb-1.5">
+                      <span className="text-body font-bold text-foreground">Questão {question.number}</span>
+                      <span className="text-caption text-muted-foreground">de {questions.length}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">{question.area}</span>
+                      <span className="text-caption text-muted-foreground px-2 py-0.5 rounded-md bg-muted">{question.theme}</span>
+                      {answer?.markedForReview && (
+                        <span className="inline-flex items-center gap-1 text-caption text-info bg-info/10 px-2 py-0.5 rounded-md font-medium">
+                          <Flag className="h-3 w-3" /> Revisão
+                        </span>
+                      )}
+                      {answer?.highConfidence && (
+                        <span className="inline-flex items-center gap-1 text-caption text-success bg-success/10 px-2 py-0.5 rounded-md font-medium">
+                          <Zap className="h-3 w-3" /> Alta certeza
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {answer?.markedForReview && (
-                      <span className="inline-flex items-center gap-1 text-caption text-info bg-info/10 px-2 py-0.5 rounded-md font-medium">
-                        <Flag className="h-3 w-3" /> Revisão
-                      </span>
-                    )}
-                    {answer?.highConfidence && (
-                      <span className="inline-flex items-center gap-1 text-caption text-success bg-success/10 px-2 py-0.5 rounded-md font-medium">
-                        <Zap className="h-3 w-3" /> Alta certeza
-                      </span>
+
+                  {/* Direita: caderno + badge resultado */}
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    {canUseNotebook ? (
+                      <button
+                        onClick={() => setNotebookModal(true)}
+                        aria-label="Caderno de Erros"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-secondary text-secondary-foreground hover:bg-muted border border-border/50"
+                      >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Caderno de Erros
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/50 border border-primary/10 text-caption text-muted-foreground">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        <span>PRO: ENAMED</span>
+                      </div>
                     )}
                     {result.isCorrect ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-bold bg-success/10 text-success">
@@ -323,22 +345,6 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                 </PremiumCard>
               )}
 
-              <div className="mb-6">
-                {canUseNotebook ? (
-                  <button
-                    onClick={() => setNotebookModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-body-sm font-medium transition-all bg-secondary text-secondary-foreground hover:bg-muted border border-border/50"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    Adicionar ao Caderno de Erros
-                  </button>
-                ) : (
-                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent/50 border border-primary/10 text-body-sm text-muted-foreground">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <span>Caderno de Erros — <strong className="text-primary font-semibold">PRO: ENAMED</strong></span>
-                  </div>
-                )}
-              </div>
             </motion.div>
           </AnimatePresence>
 

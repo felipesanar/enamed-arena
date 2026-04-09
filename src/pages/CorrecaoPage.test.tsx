@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CorrecaoPage from './CorrecaoPage'
+import * as UserContext from '@/contexts/UserContext'
 
 // ── Framer Motion mock ──────────────────────────────────────────────────────
 vi.mock('framer-motion', () => ({
@@ -86,7 +87,7 @@ vi.mock('@/hooks/useExamResult', () => ({
 }))
 
 vi.mock('@/contexts/UserContext', () => ({
-  useUser: () => ({ profile: { segment: 'pro' } }),
+  useUser: vi.fn(() => ({ profile: { segment: 'pro' } })),
 }))
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -196,5 +197,28 @@ describe('CorrecaoPage — sticky header', () => {
     // No novo design, esse h1 não existe mais — o título vai no sticky header
     const h1s = document.querySelectorAll('h1')
     expect(h1s.length).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('CorrecaoPage — question card header', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('mostra botão "Caderno de Erros" no header do card (usuário PRO)', () => {
+    renderPage()
+    expect(screen.getByRole('button', { name: /caderno de erros/i })).toBeTruthy()
+  })
+
+  it('mostra pill PRO quando usuário não tem acesso ao caderno', () => {
+    vi.mocked(UserContext.useUser).mockReturnValueOnce({
+      profile: { segment: 'standard' },
+    })
+    renderPage()
+    expect(screen.getAllByText(/PRO/i).length).toBeGreaterThan(0)
+  })
+
+  it('mostra tag de revisão quando questão foi marcada', () => {
+    renderPage()
+    // q1 tem markedForReview: true
+    expect(screen.getByText(/revisão/i)).toBeTruthy()
   })
 })
