@@ -1,8 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { PageHeader } from '@/components/PageHeader';
-import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
@@ -215,6 +213,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
         <div
           className="h-[3px] bg-muted"
           role="progressbar"
+          aria-valuemin={1}
           aria-valuenow={currentIndex + 1}
           aria-valuemax={score.totalQuestions}
           aria-label={`Questão ${currentIndex + 1} de ${score.totalQuestions}`}
