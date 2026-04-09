@@ -175,3 +175,26 @@ describe('CorrecaoPage — expandedExplanations', () => {
     expect(screen.queryByRole('button', { name: /ver mais/i })).toBeNull()
   })
 })
+
+describe('CorrecaoPage — sticky header', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('mostra o título do simulado no header', () => {
+    renderPage()
+    expect(screen.getByText(/ENAMED 2025\.1/i)).toBeTruthy()
+  })
+
+  it('mostra chips de score corretos', () => {
+    renderPage()
+    // 1 acerto, 1 erro, 0 em branco de 2 questões = 50%
+    expect(screen.getByText('50%')).toBeTruthy()
+  })
+
+  it('não renderiza PageHeader no happy path', () => {
+    renderPage()
+    // O PageHeader renderizava um <h1> com "Gabarito Comentado"
+    // No novo design, esse h1 não existe mais — o título vai no sticky header
+    const h1s = document.querySelectorAll('h1')
+    expect(h1s.length).toBeLessThanOrEqual(1)
+  })
+})

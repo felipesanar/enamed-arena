@@ -178,29 +178,53 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
 
   return (
     <>
-      <PageBreadcrumb
-        items={
-          adminPreview
-            ? [
-                { label: 'Admin', href: '/admin' },
-                { label: 'Preview ranking', href: '/admin/ranking-preview' },
-                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
-                { label: 'Correção' },
-              ]
-            : [
-                { label: 'Simulados', href: '/simulados' },
-                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
-                { label: 'Correção' },
-              ]
-        }
-        className="mb-4"
-      />
-
-      <PageHeader
-        title="Gabarito Comentado"
-        subtitle={`${simulado.title} — ${attempt?.total_correct ?? score.totalCorrect}/${score.totalQuestions} acertos (${attempt?.score_percentage != null ? Math.round(Number(attempt.score_percentage)) : score.percentageScore}%)${adminPreview ? ' · preview admin' : ''}`}
-        badge={adminPreview ? 'Admin · preview · Correção' : `Simulado #${simulado.sequenceNumber} · Correção`}
-      />
+      <header
+        className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border"
+        aria-label="Resultado da correção"
+      >
+        <div className="flex items-center justify-between px-4 md:px-6 h-12 gap-3">
+          <span className="text-body font-semibold text-foreground truncate min-w-0">
+            Gabarito — {simulado.title}
+            {adminPreview && (
+              <span className="ml-2 text-caption text-primary font-bold uppercase tracking-wider">
+                · Admin
+              </span>
+            )}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold bg-success/10 text-success">
+              ✓ {attempt?.total_correct ?? score.totalCorrect}
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold bg-destructive/10 text-destructive">
+              ✗ {score.totalIncorrect}
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold bg-warning/10 text-warning">
+              — {score.totalUnanswered}
+            </span>
+            <div className="w-px h-4 bg-border mx-1" />
+            <span className="text-heading-3 font-bold text-primary tabular-nums">
+              {attempt?.score_percentage != null
+                ? Math.round(Number(attempt.score_percentage))
+                : score.percentageScore}%
+            </span>
+            <span className="text-caption text-muted-foreground tabular-nums">
+              {currentIndex + 1}/{score.totalQuestions}
+            </span>
+          </div>
+        </div>
+        <div
+          className="h-[3px] bg-muted"
+          role="progressbar"
+          aria-valuenow={currentIndex + 1}
+          aria-valuemax={score.totalQuestions}
+          aria-label={`Questão ${currentIndex + 1} de ${score.totalQuestions}`}
+        >
+          <div
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: `${((currentIndex + 1) / score.totalQuestions) * 100}%` }}
+          />
+        </div>
+      </header>
 
       {id && (
         <div className="mb-6">
