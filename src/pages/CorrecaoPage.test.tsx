@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CorrecaoPage from './CorrecaoPage'
@@ -127,10 +127,21 @@ describe('CorrecaoPage — smoke', () => {
 })
 
 describe('CorrecaoPage — expandedExplanations', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  let origScrollHeight: PropertyDescriptor | undefined
+  let origClientHeight: PropertyDescriptor | undefined
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    origScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight')
+    origClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')
+  })
+
+  afterEach(() => {
+    if (origScrollHeight) Object.defineProperty(HTMLElement.prototype, 'scrollHeight', origScrollHeight)
+    if (origClientHeight) Object.defineProperty(HTMLElement.prototype, 'clientHeight', origClientHeight)
+  })
 
   it('mostra o botão "Ver mais" quando o comentário é longo (overflow simulado)', () => {
-    const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight')
     Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => 300 })
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 160 })
 
@@ -138,8 +149,6 @@ describe('CorrecaoPage — expandedExplanations', () => {
     fireEvent.click(screen.getByRole('button', { name: /próxima/i }))
 
     expect(screen.getByRole('button', { name: /ver mais/i })).toBeTruthy()
-
-    if (originalScrollHeight) Object.defineProperty(HTMLElement.prototype, 'scrollHeight', originalScrollHeight)
   })
 
   it('expande o comentário ao clicar em "Ver mais"', () => {
@@ -160,6 +169,9 @@ describe('CorrecaoPage — expandedExplanations', () => {
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 160 })
 
     renderPage()
+    // Guard: verifica que a página renderizou corretamente
+    expect(screen.getAllByText(/questão 1/i).length).toBeGreaterThan(0)
+    // Então verifica que o botão não existe
     expect(screen.queryByRole('button', { name: /ver mais/i })).toBeNull()
   })
 })

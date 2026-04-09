@@ -68,11 +68,12 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     }
   }, [searchParams, questionsWithCorrection.length]);
 
+  const currentExplanation = questionsWithCorrection[currentIndex]?.explanation
   useEffect(() => {
     const el = explanationRef.current
     if (!el) { setExplanationOverflows(false); return }
     setExplanationOverflows(el.scrollHeight > el.clientHeight)
-  }, [currentIndex, questionsWithCorrection[currentIndex]?.explanation])
+  }, [currentIndex, currentExplanation])
 
   const loading = loadingSim || loadingExam;
 
