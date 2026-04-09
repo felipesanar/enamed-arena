@@ -335,7 +335,40 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                     <h3 className="text-body font-bold text-primary">Comentário do Professor</h3>
                   </div>
                   {question.explanation && (
-                    <p className="text-body text-muted-foreground leading-relaxed whitespace-pre-wrap">{question.explanation}</p>
+                    <div className="relative">
+                      <p
+                        ref={explanationRef}
+                        className={cn(
+                          'text-body text-muted-foreground leading-relaxed whitespace-pre-wrap overflow-hidden transition-all duration-300',
+                        )}
+                        style={
+                          !expandedExplanations.has(currentIndex) && explanationOverflows
+                            ? { maxHeight: `${EXPLANATION_MAX_H}px` }
+                            : undefined
+                        }
+                      >
+                        {question.explanation}
+                      </p>
+                      {!expandedExplanations.has(currentIndex) && explanationOverflows && (
+                        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                      )}
+                      {explanationOverflows && (
+                        <button
+                          onClick={() =>
+                            setExpandedExplanations(prev => {
+                              const next = new Set(prev)
+                              if (next.has(currentIndex)) next.delete(currentIndex)
+                              else next.add(currentIndex)
+                              return next
+                            })
+                          }
+                          aria-expanded={expandedExplanations.has(currentIndex)}
+                          className="mt-2 text-caption font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {expandedExplanations.has(currentIndex) ? 'Ver menos ▴' : 'Ver mais ▾'}
+                        </button>
+                      )}
+                    </div>
                   )}
                   {question.explanationImageUrl && (
                     <div className="mt-4">
