@@ -219,6 +219,15 @@ describe('CorrecaoPage — question card header', () => {
   it('mostra tag de revisão quando questão foi marcada', () => {
     renderPage()
     // q1 tem markedForReview: true
-    expect(screen.getByText(/revisão/i)).toBeTruthy()
+    expect(screen.getAllByText(/revisão/i).length).toBeGreaterThan(0)
+  })
+})
+
+describe('CorrecaoPage — sidebar', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('exibe item de legenda "Flag revisão" na sidebar', () => {
+    renderPage()
+    expect(screen.getByText(/flag revisão/i)).toBeTruthy()
   })
 })

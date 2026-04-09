@@ -394,25 +394,57 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
           </div>
         </div>
 
-        {/* Side navigator */}
-        <aside className="hidden md:flex w-60 flex-col gap-3 shrink-0">
-          <p className="text-body font-semibold text-foreground">Questões</p>
-          <p className="text-caption text-muted-foreground mb-2">{score.totalCorrect}/{score.totalQuestions} corretas</p>
-          <div className="grid grid-cols-5 gap-1.5">
-            {score.questionResults.map((r, i) => (
-              <button key={r.questionId} onClick={() => handleNavigate(i)} className={cn(
-                'h-9 w-full rounded-lg text-caption font-bold transition-all',
-                i === currentIndex ? 'ring-2 ring-primary bg-primary text-primary-foreground'
-                  : r.isCorrect ? 'bg-success/15 text-success hover:bg-success/25'
-                  : r.wasAnswered ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
-                  : 'bg-warning/15 text-warning hover:bg-warning/25',
-              )}>{i + 1}</button>
-            ))}
-          </div>
-          <div className="mt-4 space-y-2.5 text-caption text-muted-foreground border-t border-border pt-4">
-            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-success/20 border border-success/30" /> Acertou</div>
-            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/30" /> Errou</div>
-            <div className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-warning/20 border border-warning/30" /> Em branco</div>
+        {/* Side navigator — sticky desktop */}
+        <aside className="hidden md:flex w-56 flex-col gap-3 shrink-0">
+          <div className="sticky top-12 pt-4">
+            <p className="text-overline uppercase text-muted-foreground tracking-wider mb-3">Questões</p>
+            <div className="grid grid-cols-5 gap-1.5 mb-4">
+              {score.questionResults.map((r, i) => {
+                const qId = questionsWithCorrection[i]?.id
+                const qAnswer = qId ? examState?.answers[qId] : undefined
+                const hasFlag = !!qAnswer?.markedForReview
+                return (
+                  <button
+                    key={r.questionId}
+                    onClick={() => handleNavigate(i)}
+                    aria-label={`Questão ${i + 1}${r.isCorrect ? ', acertou' : r.wasAnswered ? ', errou' : ', em branco'}${hasFlag ? ', marcada para revisão' : ''}`}
+                    className={cn(
+                      'relative h-9 w-full rounded-lg text-caption font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      i === currentIndex
+                        ? 'ring-2 ring-primary bg-primary text-primary-foreground'
+                        : r.isCorrect
+                          ? 'bg-success/15 text-success hover:bg-success/25'
+                          : r.wasAnswered
+                            ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                            : 'bg-warning/15 text-warning hover:bg-warning/25',
+                    )}
+                  >
+                    {i + 1}
+                    {hasFlag && (
+                      <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-warning border border-background" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="space-y-2 text-caption text-muted-foreground border-t border-border pt-3">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-success/20 border border-success/30 shrink-0" />
+                Acertou
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/30 shrink-0" />
+                Errou
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-warning/20 border border-warning/30 shrink-0" />
+                Em branco
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-warning shrink-0" />
+                Flag revisão
+              </div>
+            </div>
           </div>
         </aside>
       </div>
