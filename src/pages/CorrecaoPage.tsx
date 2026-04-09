@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PageHeader } from '@/components/PageHeader';
@@ -12,7 +12,7 @@ import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
-import { canViewResults } from '@/lib/simulado-helpers';
+import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
 import { computeSimuladoScore } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,11 @@ import {
 } from 'lucide-react';
 import { QuestionImage } from '@/components/exam/QuestionImage';
 
-export default function CorrecaoPage() {
+interface CorrecaoPageProps {
+  adminPreview?: boolean;
+}
+
+export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps) {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const prefersReducedMotion = useReducedMotion();
@@ -41,6 +45,12 @@ export default function CorrecaoPage() {
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
 
+  const EXPLANATION_MAX_H = 160 // px
+
+  const [expandedExplanations, setExpandedExplanations] = useState<Set<number>>(new Set())
+  const [explanationOverflows, setExplanationOverflows] = useState(false)
+  const explanationRef = useRef<HTMLParagraphElement>(null)
+
   const questionsWithCorrection = useMemo(
     () =>
       questions.map((question) => ({
@@ -57,6 +67,12 @@ export default function CorrecaoPage() {
       setCurrentIndex(Math.max(0, Math.min(questionsWithCorrection.length - 1, q - 1)));
     }
   }, [searchParams, questionsWithCorrection.length]);
+
+  useEffect(() => {
+    const el = explanationRef.current
+    if (!el) { setExplanationOverflows(false); return }
+    setExplanationOverflows(el.scrollHeight > el.clientHeight)
+  }, [currentIndex, questionsWithCorrection[currentIndex]?.explanation])
 
   const loading = loadingSim || loadingExam;
 
@@ -91,7 +107,35 @@ export default function CorrecaoPage() {
     );
   }
 
-  if (!canViewResults(simulado.status)) {
+  const attemptFinished =
+    examState?.status === 'submitted' || examState?.status === 'expired';
+  const resultsAllowed = canViewResultsOrAdminPreview(simulado.status, {
+    adminPreview,
+    attemptFinished,
+  });
+
+  if (!resultsAllowed) {
+    if (adminPreview) {
+      return (
+        <>
+          <div className="mb-4">
+            <Link
+              to="/admin/ranking-preview"
+              className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao preview do ranking
+            </Link>
+          </div>
+          <EmptyState
+            icon={FileText}
+            title="Preview indisponível"
+            description="Não há tentativa finalizada para este simulado com o usuário logado, ou a correção ainda não pode ser exibida."
+            backHref="/admin/ranking-preview"
+            backLabel="Preview do ranking"
+          />
+        </>
+      );
+    }
     return <Navigate to={`/simulados/${id}`} replace />;
   }
 
@@ -99,16 +143,20 @@ export default function CorrecaoPage() {
     return (
       <>
         <div className="mb-4">
-          <Link to={`/simulados/${id}`} className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+          <Link
+            to={adminPreview ? '/admin/ranking-preview' : `/simulados/${id}`}
+            className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />{' '}
+            {adminPreview ? 'Voltar ao preview do ranking' : 'Voltar'}
           </Link>
         </div>
         <EmptyState
           icon={FileText}
           title="Sem correção disponível"
           description="Você não realizou este simulado."
-          backHref={id ? `/simulados/${id}` : "/simulados"}
-          backLabel="Voltar ao simulado"
+          backHref={adminPreview ? '/admin/ranking-preview' : id ? `/simulados/${id}` : '/simulados'}
+          backLabel={adminPreview ? 'Preview do ranking' : 'Voltar ao simulado'}
         />
       </>
     );
@@ -130,23 +178,32 @@ export default function CorrecaoPage() {
   return (
     <>
       <PageBreadcrumb
-        items={[
-          { label: "Simulados", href: "/simulados" },
-          { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
-          { label: "Correção" },
-        ]}
+        items={
+          adminPreview
+            ? [
+                { label: 'Admin', href: '/admin' },
+                { label: 'Preview ranking', href: '/admin/ranking-preview' },
+                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
+                { label: 'Correção' },
+              ]
+            : [
+                { label: 'Simulados', href: '/simulados' },
+                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
+                { label: 'Correção' },
+              ]
+        }
         className="mb-4"
       />
 
       <PageHeader
         title="Gabarito Comentado"
-        subtitle={`${simulado.title} — ${attempt?.total_correct ?? score.totalCorrect}/${score.totalQuestions} acertos (${attempt?.score_percentage != null ? Math.round(Number(attempt.score_percentage)) : score.percentageScore}%)`}
-        badge={`Simulado #${simulado.sequenceNumber} · Correção`}
+        subtitle={`${simulado.title} — ${attempt?.total_correct ?? score.totalCorrect}/${score.totalQuestions} acertos (${attempt?.score_percentage != null ? Math.round(Number(attempt.score_percentage)) : score.percentageScore}%)${adminPreview ? ' · preview admin' : ''}`}
+        badge={adminPreview ? 'Admin · preview · Correção' : `Simulado #${simulado.sequenceNumber} · Correção`}
       />
 
       {id && (
         <div className="mb-6">
-          <SimuladoResultNav simuladoId={id} />
+          <SimuladoResultNav simuladoId={id} variant={adminPreview ? 'admin' : 'public'} />
         </div>
       )}
 
