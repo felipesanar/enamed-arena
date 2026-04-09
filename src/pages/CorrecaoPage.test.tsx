@@ -231,3 +231,12 @@ describe('CorrecaoPage — sidebar', () => {
     expect(screen.getByText(/flag revisão/i)).toBeTruthy()
   })
 })
+
+describe('CorrecaoPage — mobile nav', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('mostra botão "Grade" com texto visível na barra de navegação mobile', () => {
+    renderPage()
+    expect(screen.getByRole('button', { name: /grade/i })).toBeTruthy()
+  })
+})

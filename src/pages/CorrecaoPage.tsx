@@ -385,8 +385,13 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
             <button onClick={() => setCurrentIndex(i => Math.max(0, i - 1))} disabled={currentIndex === 0} className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-body font-medium hover:bg-muted transition-colors disabled:opacity-40">
               <ChevronLeft className="h-4 w-4" /> Anterior
             </button>
-            <button onClick={() => setShowNav(v => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-body-sm font-medium hover:bg-muted/80 transition-colors md:hidden">
-              <Grid3X3 className="h-4 w-4" />
+            <button
+              onClick={() => setShowNav(v => !v)}
+              aria-label="Grade de questões"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-body-sm font-medium hover:bg-muted/80 transition-colors md:hidden"
+            >
+              <Grid3X3 className="h-4 w-4" aria-hidden />
+              <span>Grade</span>
             </button>
             <button onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))} disabled={currentIndex === questions.length - 1} className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-wine-hover transition-colors disabled:opacity-40">
               Próxima <ChevronRight className="h-4 w-4" />
@@ -400,13 +405,12 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
             <p className="text-overline uppercase text-muted-foreground tracking-wider mb-3">Questões</p>
             <div className="grid grid-cols-5 gap-1.5 mb-4">
               {score.questionResults.map((r, i) => {
-                const qId = questionsWithCorrection[i]?.id
-                const qAnswer = qId ? examState?.answers[qId] : undefined
-                const hasFlag = !!qAnswer?.markedForReview
+                const hasFlag = r.markedForReview
                 return (
                   <button
                     key={r.questionId}
                     onClick={() => handleNavigate(i)}
+                    aria-current={i === currentIndex ? 'true' : undefined}
                     aria-label={`Questão ${i + 1}${r.isCorrect ? ', acertou' : r.wasAnswered ? ', errou' : ', em branco'}${hasFlag ? ', marcada para revisão' : ''}`}
                     className={cn(
                       'relative h-9 w-full rounded-lg text-caption font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
