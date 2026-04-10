@@ -87,7 +87,7 @@ vi.mock('@/hooks/useExamResult', () => ({
 }))
 
 vi.mock('@/contexts/UserContext', () => ({
-  useUser: vi.fn(() => ({ profile: { segment: 'pro' } })),
+  useUser: vi.fn((): any => ({ profile: { id: 'u1', name: 'Test User', email: 'test@test.com', segment: 'pro' } })),
 }))
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -211,7 +211,7 @@ describe('CorrecaoPage — question card header', () => {
   it('mostra pill PRO quando usuário não tem acesso ao caderno', () => {
     vi.mocked(UserContext.useUser).mockReturnValue({
       profile: { id: 'u1', name: 'Test', email: 'test@test.com', segment: 'standard' },
-    })
+    } as any)
     renderPage()
     expect(screen.getAllByText(/PRO/i).length).toBeGreaterThan(0)
   })
