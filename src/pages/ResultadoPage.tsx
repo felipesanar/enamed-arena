@@ -1,11 +1,7 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { PageHeader } from '@/components/PageHeader';
-import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { PremiumCard } from '@/components/PremiumCard';
-import { SectionHeader } from '@/components/SectionHeader';
-import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
 import { UpgradeBanner } from '@/components/UpgradeBanner';
 import { SkeletonCard } from '@/components/SkeletonCard';
@@ -19,7 +15,7 @@ import { SEGMENT_ACCESS } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import {
   Trophy, CheckCircle2, XCircle, Target, BarChart3,
-  FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown,
+  FileText, ArrowLeft, Clock, Star, TrendingDown,
 } from 'lucide-react';
 
 interface ResultadoPageProps {
@@ -144,6 +140,8 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const officialPercentage = attempt?.score_percentage != null
     ? Math.round(Number(attempt.score_percentage))
     : overall.percentageScore;
+  const officialIncorrect = officialAnswered - officialCorrect;
+  const officialUnanswered = overall.totalQuestions - officialAnswered;
   const bestArea = byArea[0];
   const worstArea = byArea[byArea.length - 1];
   const hasComparativo = SEGMENT_ACCESS[segment].comparativo;
@@ -151,34 +149,6 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
 
   return (
     <>
-      <PageBreadcrumb
-        items={
-          adminPreview
-            ? [
-                { label: 'Admin', href: '/admin' },
-                { label: 'Preview ranking', href: '/admin/ranking-preview' },
-                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
-                { label: 'Resultado' },
-              ]
-            : [
-                { label: 'Simulados', href: '/simulados' },
-                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
-                { label: 'Resultado' },
-              ]
-        }
-        className="mb-4"
-      />
-
-      <PageHeader
-        title={`Resultado — ${simulado.title}`}
-        subtitle={
-          adminPreview
-            ? 'Preview admin — mesma tela do aluno sem depender da liberação pública.'
-            : 'Confira seu desempenho neste simulado.'
-        }
-        badge={adminPreview ? 'Admin · preview' : `Simulado #${simulado.sequenceNumber}`}
-        action={<StatusBadge status={simulado.status} />}
-      />
 
       {/* Hero score — momento de reconhecimento (Fase D) */}
       <motion.div
@@ -199,8 +169,8 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
             {[
               { label: 'Acertos', value: String(officialCorrect), icon: CheckCircle2, color: 'text-success' },
-              { label: 'Erros', value: String(overall.totalIncorrect), icon: XCircle, color: 'text-destructive' },
-              { label: 'Em branco', value: String(overall.totalUnanswered), icon: Target, color: 'text-muted-foreground' },
+              { label: 'Erros', value: String(officialIncorrect), icon: XCircle, color: 'text-destructive' },
+              { label: 'Em branco', value: String(officialUnanswered), icon: Target, color: 'text-muted-foreground' },
               { label: 'Respondidas', value: String(officialAnswered), icon: Clock, color: 'text-info' },
             ].map((stat, i) => (
               <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.08 }} className="p-3 rounded-xl bg-card border border-border">
@@ -246,28 +216,6 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
           </PremiumCard>
         </div>
       )}
-
-      {/* Area breakdown */}
-      <SectionHeader title="Desempenho por Grande Área" />
-      <div className="space-y-3 mb-8">
-        {byArea.map((area, i) => (
-          <PremiumCard key={area.area} delay={i * 0.05} className="p-4 md:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                <span className="text-body font-medium text-foreground">{area.area}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-body-sm text-muted-foreground">{area.correct}/{area.questions}</span>
-                <span className="text-heading-3 text-foreground">{area.score}%</span>
-              </div>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${area.score}%` }} transition={{ duration: 0.7, delay: 0.3 + i * 0.05 }} className="h-full rounded-full bg-primary" />
-            </div>
-          </PremiumCard>
-        ))}
-      </div>
 
       {!hasCadernoErros && (
         <div className="mb-8">
