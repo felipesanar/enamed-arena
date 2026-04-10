@@ -167,6 +167,18 @@ export function canViewResultsOrAdminPreview(
 }
 
 /**
+ * Gate para telas de resultado/correção/desempenho: no preview admin, permite ver dados da própria
+ * tentativa finalizada mesmo antes da liberação pública (ex. closed_waiting).
+ */
+export function canViewResultsOrAdminPreview(
+  status: SimuladoStatus,
+  opts: { adminPreview: boolean; attemptFinished: boolean },
+): boolean {
+  if (canViewResults(status)) return true;
+  return opts.adminPreview && opts.attemptFinished;
+}
+
+/**
  * Build a Google Calendar event URL for a simulado.
  */
 export function buildGoogleCalendarUrl(simulado: SimuladoWithStatus): string {

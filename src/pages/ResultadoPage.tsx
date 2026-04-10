@@ -13,7 +13,7 @@ import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useUser } from '@/contexts/UserContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
-import { canViewResults } from '@/lib/simulado-helpers';
+import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { trackEvent } from '@/lib/analytics';
@@ -22,7 +22,12 @@ import {
   FileText, Stethoscope, ArrowLeft, Clock, Star, TrendingDown,
 } from 'lucide-react';
 
-export default function ResultadoPage() {
+interface ResultadoPageProps {
+  /** Rota /admin/preview/... — ignora gate de liberação se houver tentativa finalizada */
+  adminPreview?: boolean;
+}
+
+export default function ResultadoPage({ adminPreview = false }: ResultadoPageProps) {
   const { id } = useParams<{ id: string }>();
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
@@ -77,7 +82,35 @@ export default function ResultadoPage() {
     );
   }
 
-  if (!canViewResults(simulado.status)) {
+  const attemptFinished =
+    examState?.status === 'submitted' || examState?.status === 'expired';
+  const resultsAllowed = canViewResultsOrAdminPreview(simulado.status, {
+    adminPreview,
+    attemptFinished,
+  });
+
+  if (!resultsAllowed) {
+    if (adminPreview) {
+      return (
+        <>
+          <div className="mb-4">
+            <Link
+              to="/admin/ranking-preview"
+              className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao preview do ranking
+            </Link>
+          </div>
+          <EmptyState
+            icon={FileText}
+            title="Preview indisponível"
+            description="Não há tentativa finalizada para este simulado com o usuário logado, ou os resultados ainda não podem ser exibidos."
+            backHref="/admin/ranking-preview"
+            backLabel="Preview do ranking"
+          />
+        </>
+      );
+    }
     return <Navigate to={`/simulados/${id}`} replace />;
   }
 
@@ -85,16 +118,20 @@ export default function ResultadoPage() {
     return (
       <>
         <div className="mb-4">
-          <Link to={`/simulados/${id}`} className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao simulado
+          <Link
+            to={adminPreview ? '/admin/ranking-preview' : `/simulados/${id}`}
+            className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />{' '}
+            {adminPreview ? 'Voltar ao preview do ranking' : 'Voltar ao simulado'}
           </Link>
         </div>
         <EmptyState
           icon={FileText}
           title="Sem resultado disponível"
           description="Você não realizou este simulado. Não há resultado para exibir."
-          backHref={id ? `/simulados/${id}` : "/simulados"}
-          backLabel="Voltar ao simulado"
+          backHref={adminPreview ? '/admin/ranking-preview' : id ? `/simulados/${id}` : '/simulados'}
+          backLabel={adminPreview ? 'Preview do ranking' : 'Voltar ao simulado'}
         />
       </>
     );
@@ -115,18 +152,31 @@ export default function ResultadoPage() {
   return (
     <>
       <PageBreadcrumb
-        items={[
-          { label: "Simulados", href: "/simulados" },
-          { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
-          { label: "Resultado" },
-        ]}
+        items={
+          adminPreview
+            ? [
+                { label: 'Admin', href: '/admin' },
+                { label: 'Preview ranking', href: '/admin/ranking-preview' },
+                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
+                { label: 'Resultado' },
+              ]
+            : [
+                { label: 'Simulados', href: '/simulados' },
+                { label: `Simulado #${simulado.sequenceNumber}`, href: `/simulados/${id}` },
+                { label: 'Resultado' },
+              ]
+        }
         className="mb-4"
       />
 
       <PageHeader
         title={`Resultado — ${simulado.title}`}
-        subtitle="Confira seu desempenho neste simulado."
-        badge={`Simulado #${simulado.sequenceNumber}`}
+        subtitle={
+          adminPreview
+            ? 'Preview admin — mesma tela do aluno sem depender da liberação pública.'
+            : 'Confira seu desempenho neste simulado.'
+        }
+        badge={adminPreview ? 'Admin · preview' : `Simulado #${simulado.sequenceNumber}`}
         action={<StatusBadge status={simulado.status} />}
       />
 
@@ -229,7 +279,7 @@ export default function ResultadoPage() {
         </div>
       )}
 
-      {id && <SimuladoResultNav simuladoId={id} />}
+      {id && <SimuladoResultNav simuladoId={id} variant={adminPreview ? 'admin' : 'public'} />}
       {hasComparativo && (
         <div className="mt-4">
           <Link

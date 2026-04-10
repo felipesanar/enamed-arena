@@ -162,8 +162,45 @@ export function computeRankingStats(rows: RankingRow[]): RankingStats {
 
 // ─── Apply filters ───
 
-export type ComparisonFilter = 'all' | 'same_specialty' | 'same_institution';
+/** @deprecated Prefer RankingComparisonSelection; mantido para migração de sessionStorage. */
+export type LegacyComparisonFilter = 'all' | 'same_specialty' | 'same_institution';
+
+export interface RankingComparisonSelection {
+  bySpecialty: boolean;
+  byInstitution: boolean;
+}
+
+export const RANKING_COMPARISON_DEFAULT: RankingComparisonSelection = {
+  bySpecialty: false,
+  byInstitution: false,
+};
+
+export function migrateLegacyRankingComparison(legacy: LegacyComparisonFilter | string): RankingComparisonSelection {
+  if (legacy === 'same_specialty') return { bySpecialty: true, byInstitution: false };
+  if (legacy === 'same_institution') return { bySpecialty: false, byInstitution: true };
+  return { bySpecialty: false, byInstitution: false };
+}
+
+export function rankingComparisonAnalyticsLabel(s: RankingComparisonSelection): string {
+  if (!s.bySpecialty && !s.byInstitution) return 'all';
+  if (s.bySpecialty && s.byInstitution) return 'specialty+institution';
+  if (s.bySpecialty) return 'specialty';
+  return 'institution';
+}
+
 export type SegmentFilter = 'all' | 'sanarflix' | 'pro';
+
+/** Normaliza texto para comparação de especialidade/instituição no ranking (evita mismatch por espaços ou maiúsculas). */
+export function normalizeRankingFilterValue(value: string): string {
+  return (value || '').trim().toLowerCase();
+}
+
+function rankingFilterValuesMatch(a: string, b: string): boolean {
+  const na = normalizeRankingFilterValue(a);
+  const nb = normalizeRankingFilterValue(b);
+  if (!na || !nb) return false;
+  return na === nb;
+}
 
 /** Quais filtros de segmento a UI pode exibir conforme o segmento do usuário logado. */
 export function getAllowedRankingSegmentFilters(segment: UserSegment): SegmentFilter[] {
@@ -174,23 +211,34 @@ export function getAllowedRankingSegmentFilters(segment: UserSegment): SegmentFi
 
 export function applyRankingFilters(
   participants: RankingParticipant[],
-  comparisonFilter: ComparisonFilter,
+  comparison: RankingComparisonSelection,
   segmentFilter: SegmentFilter,
   userSpecialty: string,
   userInstitutions: string[],
 ): RankingParticipant[] {
   let filtered = participants;
 
-  if (comparisonFilter === 'same_specialty') {
-    filtered = filtered.filter(
-      (p) => p.specialty === userSpecialty || p.isCurrentUser,
-    );
-  } else if (comparisonFilter === 'same_institution') {
-    // Exclusive: filter by first target institution only
-    const targetInstitution = userInstitutions.find(Boolean) || '';
-    filtered = filtered.filter(
-      (p) => p.institution === targetInstitution || p.isCurrentUser,
-    );
+  if (comparison.bySpecialty) {
+    const needle = normalizeRankingFilterValue(userSpecialty);
+    if (needle.length > 0) {
+      filtered = filtered.filter(
+        (p) =>
+          p.isCurrentUser ||
+          rankingFilterValuesMatch(p.specialty, userSpecialty),
+      );
+    }
+  }
+
+  if (comparison.byInstitution) {
+    const userPrimaryInstitution = userInstitutions.find(Boolean) || '';
+    const targetNorm = normalizeRankingFilterValue(userPrimaryInstitution);
+    if (targetNorm.length > 0) {
+      filtered = filtered.filter(
+        (p) =>
+          p.isCurrentUser ||
+          rankingFilterValuesMatch(p.institution, userPrimaryInstitution),
+      );
+    }
   }
 
   // "sanarflix" = aluno SanarFlix padrão (standard), não inclui PRO nem visitante

@@ -22,8 +22,8 @@ export default function RankingPage() {
     filteredParticipants,
     currentUser,
     stats,
-    comparisonFilter,
-    setComparisonFilter,
+    rankingComparison,
+    setRankingComparison,
     segmentFilter,
     setSegmentFilter,
     userSpecialty,
@@ -62,8 +62,8 @@ export default function RankingPage() {
         filteredParticipants={filteredParticipants}
         currentUser={currentUser}
         stats={stats}
-        comparisonFilter={comparisonFilter}
-        setComparisonFilter={setComparisonFilter}
+        rankingComparison={rankingComparison}
+        setRankingComparison={setRankingComparison}
         segmentFilter={segmentFilter}
         setSegmentFilter={setSegmentFilter}
         userSpecialty={userSpecialty}

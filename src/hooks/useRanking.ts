@@ -4,8 +4,16 @@
  * Uses get_ranking_for_simulado() security definer function.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
+import { usePersistedState, clearPersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import {
@@ -14,10 +22,12 @@ import {
   transformRankingData,
   computeRankingStats,
   applyRankingFilters,
+  migrateLegacyRankingComparison,
+  RANKING_COMPARISON_DEFAULT,
   type RankingRow,
   type RankingParticipant,
   type RankingStats,
-  type ComparisonFilter,
+  type RankingComparisonSelection,
   type SegmentFilter,
 } from '@/services/rankingApi';
 
@@ -37,8 +47,8 @@ interface UseRankingReturn {
   stats: RankingStats;
   
   // Filters
-  comparisonFilter: ComparisonFilter;
-  setComparisonFilter: (f: ComparisonFilter) => void;
+  rankingComparison: RankingComparisonSelection;
+  setRankingComparison: Dispatch<SetStateAction<RankingComparisonSelection>>;
   segmentFilter: SegmentFilter;
   setSegmentFilter: (f: SegmentFilter) => void;
   
@@ -60,7 +70,27 @@ export function useRanking(): UseRankingReturn {
   >([]);
   const [selectedSimuladoId, setSelectedSimuladoId] = usePersistedState<string | null>('ranking:simuladoId', null);
   const [rawRanking, setRawRanking] = useState<RankingRow[]>([]);
-  const [comparisonFilter, setComparisonFilter] = usePersistedState<ComparisonFilter>('ranking:comparison', 'all');
+  const [rankingComparison, setRankingComparison] = usePersistedState<RankingComparisonSelection>(
+    'ranking:comparisonFlags',
+    RANKING_COMPARISON_DEFAULT,
+  );
+  const legacyRankingMigratedRef = useRef(false);
+
+  useEffect(() => {
+    if (legacyRankingMigratedRef.current) return;
+    legacyRankingMigratedRef.current = true;
+    try {
+      const raw = sessionStorage.getItem('enamed_ui_ranking:comparison');
+      if (raw === null) return;
+      const parsed = JSON.parse(raw) as string;
+      if (parsed === 'all' || parsed === 'same_specialty' || parsed === 'same_institution') {
+        setRankingComparison(migrateLegacyRankingComparison(parsed));
+        clearPersistedState('ranking:comparison');
+      }
+    } catch {
+      legacyRankingMigratedRef.current = false;
+    }
+  }, [setRankingComparison]);
   const [segmentFilter, setSegmentFilter] = usePersistedState<SegmentFilter>('ranking:segment', 'all');
   
   const userSpecialty = onboarding?.specialty || '';
@@ -137,12 +167,12 @@ export function useRanking(): UseRankingReturn {
     () =>
       applyRankingFilters(
         allParticipants,
-        comparisonFilter,
+        rankingComparison,
         segmentFilter,
         userSpecialty,
         userInstitutions,
       ),
-    [allParticipants, comparisonFilter, segmentFilter, userSpecialty, userInstitutions],
+    [allParticipants, rankingComparison, segmentFilter, userSpecialty, userInstitutions],
   );
 
   const currentUser = useMemo(
@@ -170,8 +200,8 @@ export function useRanking(): UseRankingReturn {
     filteredParticipants,
     currentUser,
     stats,
-    comparisonFilter,
-    setComparisonFilter,
+    rankingComparison,
+    setRankingComparison,
     segmentFilter,
     setSegmentFilter,
     userSpecialty,

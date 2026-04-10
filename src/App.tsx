@@ -52,6 +52,7 @@ const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAna
 const AdminSupporte    = lazy(() => import('./admin/pages/stubs/AdminSupporte'))
 const AdminTentativas  = lazy(() => import('./admin/pages/AdminTentativas'))
 const AdminRankingPreview = lazy(() => import('./admin/pages/AdminRankingPreviewPage'))
+const AdminDesempenhoPreview = lazy(() => import('./admin/pages/AdminDesempenhoPreviewPage'))
 const AdminAnalytics   = lazy(() => import('./admin/pages/AdminAnalytics'))
 const AdminMarketing   = lazy(() => import('./admin/pages/AdminMarketing'))
 const AdminProduto     = lazy(() => import('./admin/pages/AdminProduto'))
@@ -120,6 +121,9 @@ const App = () => (
                   <Route path="suporte"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSupporte /></Suspense>} />
                   <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
                   <Route path="ranking-preview" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminRankingPreview /></Suspense>} />
+                  <Route path="preview/simulados/:id/resultado" element={<Suspense fallback={<PageLoadingSkeleton />}><ResultadoPage adminPreview /></Suspense>} />
+                  <Route path="preview/simulados/:id/correcao" element={<Suspense fallback={<PageLoadingSkeleton />}><CorrecaoPage adminPreview /></Suspense>} />
+                  <Route path="preview/simulados/:id/desempenho" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDesempenhoPreview /></Suspense>} />
                   <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />
                   <Route path="marketing"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminMarketing /></Suspense>} />
                   <Route path="produto"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminProduto /></Suspense>} />

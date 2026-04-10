@@ -2,7 +2,7 @@
  * Conteúdo compartilhado entre Ranking (aluno) e preview admin.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { PremiumCard } from '@/components/PremiumCard';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -12,10 +12,12 @@ import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { cn } from '@/lib/utils';
 import { Trophy, Medal, Filter, Users, Stethoscope, Building, Globe, Crown } from 'lucide-react';
 import {
-  type ComparisonFilter,
   type SegmentFilter,
   type RankingParticipant,
   type RankingStats,
+  type RankingComparisonSelection,
+  rankingComparisonAnalyticsLabel,
+  RANKING_COMPARISON_DEFAULT,
 } from '@/services/rankingApi';
 import { trackEvent } from '@/lib/analytics';
 const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.ElementType }> = [
@@ -68,8 +70,8 @@ export interface RankingViewProps {
   filteredParticipants: RankingParticipant[];
   currentUser: RankingParticipant | undefined;
   stats: RankingStats;
-  comparisonFilter: ComparisonFilter;
-  setComparisonFilter: (f: ComparisonFilter) => void;
+  rankingComparison: RankingComparisonSelection;
+  setRankingComparison: Dispatch<SetStateAction<RankingComparisonSelection>>;
   segmentFilter: SegmentFilter;
   setSegmentFilter: (f: SegmentFilter) => void;
   userSpecialty: string;
@@ -90,8 +92,8 @@ export function RankingView({
   filteredParticipants,
   currentUser,
   stats,
-  comparisonFilter,
-  setComparisonFilter,
+  rankingComparison,
+  setRankingComparison,
   segmentFilter,
   setSegmentFilter,
   userSpecialty,
@@ -105,15 +107,39 @@ export function RankingView({
   const mountedAtRef = useRef<number>(Date.now());
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
 
-  const handleComparisonFilterChange = (newValue: ComparisonFilter) => {
-    trackEvent('ranking_filter_changed', {
-      simulado_id: selectedSimuladoId ?? '',
-      filter_type: 'comparison',
-      old_value: comparisonFilter,
-      new_value: newValue,
-      source: trackSource,
+  const applyComparisonUpdate = (next: RankingComparisonSelection) => {
+    const oldLabel = rankingComparisonAnalyticsLabel(rankingComparison);
+    const newLabel = rankingComparisonAnalyticsLabel(next);
+    if (oldLabel !== newLabel) {
+      trackEvent('ranking_filter_changed', {
+        simulado_id: selectedSimuladoId ?? '',
+        filter_type: 'comparison',
+        old_value: oldLabel,
+        new_value: newLabel,
+        source: trackSource,
+      });
+    }
+    setRankingComparison(next);
+  };
+
+  const handleSelectAllComparison = () => {
+    applyComparisonUpdate(RANKING_COMPARISON_DEFAULT);
+  };
+
+  const handleToggleSpecialtyComparison = () => {
+    if (!userSpecialty) return;
+    applyComparisonUpdate({
+      ...rankingComparison,
+      bySpecialty: !rankingComparison.bySpecialty,
     });
-    setComparisonFilter(newValue);
+  };
+
+  const handleToggleInstitutionComparison = () => {
+    if (userInstitutions.length === 0) return;
+    applyComparisonUpdate({
+      ...rankingComparison,
+      byInstitution: !rankingComparison.byInstitution,
+    });
   };
 
   const handleSegmentFilterChange = (newValue: SegmentFilter) => {
@@ -136,11 +162,11 @@ export function RankingView({
   useEffect(() => {
     trackEvent('ranking_viewed', {
       selected_simulado_id: selectedSimuladoId,
-      comparison_filter: comparisonFilter,
+      comparison_filter: rankingComparisonAnalyticsLabel(rankingComparison),
       segment_filter: segmentFilter,
       source: trackSource,
     });
-  }, [selectedSimuladoId, comparisonFilter, segmentFilter, trackSource]);
+  }, [selectedSimuladoId, rankingComparison, segmentFilter, trackSource]);
 
   useEffect(() => {
     return () => {
@@ -168,7 +194,10 @@ export function RankingView({
         <>
           {selectedSimuladoId && (
             <div className="mb-6">
-              <SimuladoResultNav simuladoId={selectedSimuladoId} />
+              <SimuladoResultNav
+                simuladoId={selectedSimuladoId}
+                variant={trackSource === 'admin_preview' ? 'admin' : 'public'}
+              />
             </div>
           )}
 
@@ -249,70 +278,73 @@ export function RankingView({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <div>
+                  <div className="min-w-0 flex-1 basis-[min(100%,20rem)]">
                     <p className="text-caption text-muted-foreground mb-1.5">Comparar com</p>
-                    <div className="flex gap-1.5">
-                      {(
-                        [
-                          {
-                            key: 'all' as ComparisonFilter,
-                            label: 'Todos',
-                            icon: Users,
-                            disabled: false,
-                          },
-                          {
-                            key: 'same_specialty' as ComparisonFilter,
-                            label: userSpecialty || 'Especialidade',
-                            icon: Stethoscope,
-                            disabled: !userSpecialty,
-                          },
-                        ] as const
-                      ).map((f) => (
-                        <button
-                          key={f.key}
-                          type="button"
-                          onClick={() => !f.disabled && handleComparisonFilterChange(f.key)}
-                          disabled={f.disabled}
-                          className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
-                            comparisonFilter === f.key ||
-                              (f.key === 'same_specialty' && comparisonFilter === 'same_institution')
-                              ? 'bg-primary text-primary-foreground'
-                              : f.disabled
-                                ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
-                                : 'bg-muted text-muted-foreground hover:bg-muted/80',
-                          )}
-                          title={f.disabled ? 'Configure nas Configurações' : undefined}
-                        >
-                          <f.icon className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">{f.label}</span>
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllComparison}
+                        aria-pressed={!rankingComparison.bySpecialty && !rankingComparison.byInstitution}
+                        aria-label="Todos os candidatos"
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
+                          !rankingComparison.bySpecialty && !rankingComparison.byInstitution
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                        )}
+                      >
+                        <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span className="hidden sm:inline">Todos</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleToggleSpecialtyComparison}
+                        disabled={!userSpecialty}
+                        aria-pressed={rankingComparison.bySpecialty}
+                        aria-label={
+                          userSpecialty
+                            ? `Filtrar por especialidade: ${userSpecialty}`
+                            : 'Especialidade não configurada'
+                        }
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
+                          rankingComparison.bySpecialty
+                            ? 'bg-primary text-primary-foreground'
+                            : !userSpecialty
+                              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                        )}
+                        title={!userSpecialty ? 'Configure nas Configurações' : undefined}
+                      >
+                        <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span className="hidden sm:inline">{userSpecialty || 'Especialidade'}</span>
+                      </button>
                     </div>
 
-                    {comparisonFilter !== 'all' && (
-                      <div className="mt-2 flex items-center gap-2 border-t border-border pt-2.5">
-                        <span className="text-caption text-muted-foreground">Restringir à:</span>
+                    {userInstitutions.length > 0 && (
+                      <div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-2.5">
+                        <span className="text-caption text-muted-foreground leading-snug">
+                          Também filtrar pela minha 1ª instituição-alvo (opcional)
+                        </span>
                         <button
                           type="button"
-                          onClick={() =>
-                            handleComparisonFilterChange(
-                              comparisonFilter === 'same_institution' ? 'same_specialty' : 'same_institution',
-                            )
-                          }
-                          disabled={userInstitutions.length === 0}
+                          onClick={handleToggleInstitutionComparison}
+                          aria-pressed={rankingComparison.byInstitution}
+                          aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
                           className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all',
-                            comparisonFilter === 'same_institution'
+                            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-medium transition-all w-fit max-w-full',
+                            rankingComparison.byInstitution
                               ? 'bg-primary text-primary-foreground'
-                              : userInstitutions.length === 0
-                                ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
-                                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80',
                           )}
-                          title={userInstitutions.length === 0 ? 'Configure nas Configurações' : undefined}
+                          title={
+                            rankingComparison.byInstitution
+                              ? 'Desative para ver a mesma especialidade em todas as instituições'
+                              : 'Ative para restringir também à instituição do seu perfil (ex.: Pediatria na UFBA)'
+                          }
                         >
-                          <Building className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">{userInstitutions[0] || 'Instituição'}</span>
+                          <Building className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          <span className="hidden sm:inline truncate">{userInstitutions[0]}</span>
                         </button>
                       </div>
                     )}
@@ -343,25 +375,40 @@ export function RankingView({
                   </div>
                 </div>
 
-                {comparisonFilter !== 'all' && (
-                  <p className="text-caption text-muted-foreground mt-3 flex items-center gap-1.5">
-                    {comparisonFilter === 'same_specialty' && userSpecialty && (
+                {(rankingComparison.bySpecialty || rankingComparison.byInstitution) && (
+                  <p className="text-caption text-muted-foreground mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                    {rankingComparison.bySpecialty &&
+                      userSpecialty &&
+                      rankingComparison.byInstitution &&
+                      userInstitutions[0] && (
+                        <>
+                          <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          <span>
+                            Filtrando por <strong className="text-foreground">{userSpecialty}</strong> na{' '}
+                            <strong className="text-foreground">{userInstitutions[0]}</strong>.
+                          </span>
+                        </>
+                      )}
+                    {rankingComparison.bySpecialty && userSpecialty && !rankingComparison.byInstitution && (
                       <>
-                        <Stethoscope className="h-3.5 w-3.5" /> Filtrando por especialidade:{' '}
-                        <strong>{userSpecialty}</strong>
+                        <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span>
+                          Filtrando por especialidade: <strong className="text-foreground">{userSpecialty}</strong>
+                          <span className="text-muted-foreground"> (todas as instituições).</span>
+                        </span>
                       </>
                     )}
-                    {comparisonFilter === 'same_institution' && userInstitutions.length > 0 && (
+                    {!rankingComparison.bySpecialty && rankingComparison.byInstitution && userInstitutions[0] && (
                       <>
-                        <Building className="h-3.5 w-3.5" /> Filtrando por instituição:{' '}
-                        <strong>{userInstitutions[0]}</strong>
+                        <Building className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span>
+                          Filtrando por instituição: <strong className="text-foreground">{userInstitutions[0]}</strong>
+                          <span className="text-muted-foreground"> (todas as especialidades).</span>
+                        </span>
                       </>
                     )}
-                    {comparisonFilter === 'same_specialty' && !userSpecialty && (
-                      <>Configure sua especialidade nas Configurações para usar este filtro.</>
-                    )}
-                    {comparisonFilter === 'same_institution' && userInstitutions.length === 0 && (
-                      <>Configure suas instituições-alvo nas Configurações para usar este filtro.</>
+                    {rankingComparison.bySpecialty && !userSpecialty && (
+                      <span>Configure sua especialidade nas Configurações para usar este filtro.</span>
                     )}
                   </p>
                 )}

@@ -21,6 +21,12 @@ const ROUTE_LABELS: Record<string, string> = {
 
 function getLabel(pathname: string): string {
   if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname]
+  if (pathname.includes('/admin/preview/simulados/')) {
+    if (pathname.endsWith('/resultado')) return 'Preview resultado'
+    if (pathname.endsWith('/correcao')) return 'Preview correção'
+    if (pathname.endsWith('/desempenho')) return 'Preview desempenho'
+    return 'Preview simulado'
+  }
   if (pathname.includes('/simulados/')) return 'Simulados'
   return 'Admin'
 }

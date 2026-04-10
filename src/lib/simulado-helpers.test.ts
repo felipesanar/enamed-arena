@@ -3,6 +3,7 @@ import {
   deriveSimuladoStatus,
   canAccessSimulado,
   canViewResults,
+  canViewResultsOrAdminPreview,
   getSimuladoCTA,
 } from './simulado-helpers';
 import type { SimuladoConfig, SimuladoUserState } from '@/types';
@@ -123,6 +124,29 @@ describe('canViewResults', () => {
     expect(canViewResults('available_late')).toBe(false);
     expect(canViewResults('in_progress')).toBe(false);
     expect(canViewResults('closed_waiting')).toBe(false);
+  });
+});
+
+describe('canViewResultsOrAdminPreview', () => {
+  it('delegates to canViewResults when public flow', () => {
+    expect(
+      canViewResultsOrAdminPreview('completed', { adminPreview: false, attemptFinished: false }),
+    ).toBe(true);
+    expect(
+      canViewResultsOrAdminPreview('closed_waiting', { adminPreview: false, attemptFinished: true }),
+    ).toBe(false);
+  });
+
+  it('allows closed_waiting when admin preview and attempt finished', () => {
+    expect(
+      canViewResultsOrAdminPreview('closed_waiting', { adminPreview: true, attemptFinished: true }),
+    ).toBe(true);
+  });
+
+  it('denies admin preview without finished attempt', () => {
+    expect(
+      canViewResultsOrAdminPreview('closed_waiting', { adminPreview: true, attemptFinished: false }),
+    ).toBe(false);
   });
 });
 
