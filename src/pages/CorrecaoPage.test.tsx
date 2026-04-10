@@ -30,7 +30,7 @@ const mockSimulado = {
   status: 'completed',
 }
 
-const mockQuestions = [
+const mockQuestions: any[] = [
   {
     id: 'q1', number: 1, area: 'Clínica Médica', theme: 'Cardiologia',
     text: 'Texto da questão 1',
@@ -99,7 +99,7 @@ vi.mock('@/lib/simulado-helpers', () => ({
 }))
 
 vi.mock('@/components/AddToNotebookModal', () => ({
-  AddToNotebookModal: () => null,
+  AddToNotebookModal: (): any => null,
 }))
 
 vi.mock('@/components/exam/QuestionImage', () => ({
