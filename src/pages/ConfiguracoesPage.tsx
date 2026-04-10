@@ -15,6 +15,7 @@ import {
   Save, X, Camera,
 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export default function ConfiguracoesPage() {
   const {
