@@ -158,14 +158,6 @@ export function canViewResults(status: SimuladoStatus): boolean {
   return status === 'results_available' || status === 'completed';
 }
 
-export function canViewResultsOrAdminPreview(
-  status: SimuladoStatus,
-  opts?: { adminPreview?: boolean; attemptFinished?: boolean }
-): boolean {
-  if (opts?.adminPreview) return true;
-  return canViewResults(status);
-}
-
 /**
  * Gate para telas de resultado/correção/desempenho: no preview admin, permite ver dados da própria
  * tentativa finalizada mesmo antes da liberação pública (ex. closed_waiting).
