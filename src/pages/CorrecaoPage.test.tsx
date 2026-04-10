@@ -210,7 +210,7 @@ describe('CorrecaoPage — question card header', () => {
 
   it('mostra pill PRO quando usuário não tem acesso ao caderno', () => {
     vi.mocked(UserContext.useUser).mockReturnValue({
-      profile: { segment: 'standard' },
+      profile: { id: 'u1', name: 'Test', email: 'test@test.com', segment: 'standard' },
     })
     renderPage()
     expect(screen.getAllByText(/PRO/i).length).toBeGreaterThan(0)
