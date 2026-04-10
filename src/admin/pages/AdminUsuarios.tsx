@@ -2,7 +2,9 @@ import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAdminUserList } from '@/admin/hooks/useAdminUsuarios'
+import { adminApi } from '@/admin/services/adminApi'
 import type { UserListRow } from '@/admin/types'
+import { toast } from '@/hooks/use-toast'
 
 const SEGMENTS = [
   { label: 'Todos', value: 'all' },
@@ -76,6 +78,40 @@ export default function AdminUsuarios() {
           <h1 className="text-heading-1 text-foreground">Usuários</h1>
           <p className="text-caption text-muted-foreground">{totalCount.toLocaleString('pt-BR')} cadastrados</p>
         </div>
+        <button
+          onClick={async () => {
+            try {
+              toast({ title: 'Exportando…', description: 'Buscando todos os usuários.' })
+              // Fetch all users with current filters (no pagination limit)
+              const allUsers = await adminApi.listUsers(debouncedSearch, segment, 10000, 0)
+              if (!allUsers.length) {
+                toast({ title: 'Nenhum usuário', description: 'Nenhum usuário encontrado com os filtros atuais.', variant: 'destructive' })
+                return
+              }
+              const csvHeader = 'Nome Completo,E-mail,Segmento,Especialidade,Cadastro,Média,Provas'
+              const csvRows = allUsers.map(u => {
+                const name = (u.full_name ?? '').replace(/"/g, '""')
+                const email = (u.email ?? '').replace(/"/g, '""')
+                const spec = (u.specialty ?? '').replace(/"/g, '""')
+                const date = new Date(u.created_at).toLocaleDateString('pt-BR')
+                return `"${name}","${email}","${u.segment}","${spec}","${date}","${u.avg_score.toFixed(1)}%","${u.total_attempts}"`
+              })
+              const blob = new Blob([csvHeader + '\n' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `usuarios_${new Date().toISOString().slice(0,10)}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+              toast({ title: 'CSV exportado!', description: `${allUsers.length} usuários exportados.` })
+            } catch (err) {
+              toast({ title: 'Erro ao exportar', description: 'Não foi possível gerar o CSV.', variant: 'destructive' })
+            }
+          }}
+          className="px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          Exportar CSV
+        </button>
       </div>
 
       {/* Toolbar */}
