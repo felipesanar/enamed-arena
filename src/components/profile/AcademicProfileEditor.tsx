@@ -27,7 +27,7 @@ export function AcademicProfileEditor({
   const [instSearch, setInstSearch] = useState("");
 
   const { data: specialties, isLoading: specLoading } = useEnamedSpecialties();
-  const { data: instData, isLoading: instLoading } = useInstitutionsBySpecialty(specialty);
+  const { grouped: instGrouped, flat: instFlat } = useInstitutionsBySpecialty(specialty);
 
   const specOptions = useMemo(
     () => {
@@ -40,20 +40,19 @@ export function AcademicProfileEditor({
   );
 
   const groupedInstitutions = useMemo(() => {
-    if (!instData?.length) return [];
+    if (!instGrouped) return [];
     const q = instSearch.toLowerCase();
-    const filtered = instSearch.trim()
-      ? instData.filter(i => i.institution_name.toLowerCase().includes(q) || i.uf.toLowerCase().includes(q))
-      : instData;
-
-    const byUf = new Map<string, typeof filtered>();
-    for (const inst of filtered) {
-      const arr = byUf.get(inst.uf) || [];
-      arr.push(inst);
-      byUf.set(inst.uf, arr);
-    }
-    return Array.from(byUf.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [instData, instSearch]);
+    const entries = Object.entries(instGrouped);
+    if (!instSearch.trim()) return entries;
+    return entries
+      .map(([uf, insts]) => {
+        const filtered = insts.filter(
+          (i: any) => i.name.toLowerCase().includes(q) || uf.toLowerCase().includes(q)
+        );
+        return filtered.length ? [uf, filtered] as const : null;
+      })
+      .filter(Boolean) as [string, any[]][];
+  }, [instGrouped, instSearch]);
 
   const toggleInstitution = useCallback((name: string) => {
     setInstitutions(prev => {
