@@ -30,7 +30,7 @@ const mockSimulado = {
   status: 'completed',
 }
 
-const mockQuestions = [
+const mockQuestions: any[] = [
   {
     id: 'q1', number: 1, area: 'Clínica Médica', theme: 'Cardiologia',
     text: 'Texto da questão 1',
@@ -87,7 +87,7 @@ vi.mock('@/hooks/useExamResult', () => ({
 }))
 
 vi.mock('@/contexts/UserContext', () => ({
-  useUser: vi.fn(() => ({ profile: { segment: 'pro' } })),
+  useUser: vi.fn((): any => ({ profile: { id: 'u1', name: 'Test User', email: 'test@test.com', segment: 'pro' } })),
 }))
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -99,7 +99,7 @@ vi.mock('@/lib/simulado-helpers', () => ({
 }))
 
 vi.mock('@/components/AddToNotebookModal', () => ({
-  AddToNotebookModal: () => null,
+  AddToNotebookModal: (): any => null,
 }))
 
 vi.mock('@/components/exam/QuestionImage', () => ({
@@ -210,8 +210,8 @@ describe('CorrecaoPage — question card header', () => {
 
   it('mostra pill PRO quando usuário não tem acesso ao caderno', () => {
     vi.mocked(UserContext.useUser).mockReturnValue({
-      profile: { segment: 'standard' },
-    })
+      profile: { id: 'u1', name: 'Test', email: 'test@test.com', segment: 'standard' },
+    } as any)
     renderPage()
     expect(screen.getAllByText(/PRO/i).length).toBeGreaterThan(0)
   })

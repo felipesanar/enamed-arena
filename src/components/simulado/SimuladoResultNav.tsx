@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface SimuladoResultNavProps {
   simuladoId: string;
+  variant?: 'public' | 'admin';
   className?: string;
 }
 

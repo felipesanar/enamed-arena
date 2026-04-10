@@ -158,6 +158,14 @@ export function canViewResults(status: SimuladoStatus): boolean {
   return status === 'results_available' || status === 'completed';
 }
 
+export function canViewResultsOrAdminPreview(
+  status: SimuladoStatus,
+  opts?: { adminPreview?: boolean; attemptFinished?: boolean }
+): boolean {
+  if (opts?.adminPreview) return true;
+  return canViewResults(status);
+}
+
 /**
  * Build a Google Calendar event URL for a simulado.
  */
