@@ -181,12 +181,12 @@ export function AcademicProfileEditor({
                       {uf}
                     </div>
                     {insts.map(inst => {
-                      const selected = institutions.includes(inst.institution_name);
+                      const selected = institutions.includes(inst.name);
                       const disabled = !selected && institutions.length >= MAX_INSTITUTIONS;
                       return (
                         <button
-                          key={inst.institution_name}
-                          onClick={() => toggleInstitution(inst.institution_name)}
+                          key={inst.name}
+                          onClick={() => toggleInstitution(inst.name)}
                           disabled={disabled}
                           className={cn(
                             "w-full text-left px-3 py-2 text-body-sm flex items-center justify-between transition-colors",
@@ -198,7 +198,7 @@ export function AcademicProfileEditor({
                           )}
                         >
                           <span>
-                            {inst.institution_name}
+                            {inst.name}
                             {inst.vagas > 0 && (
                               <span className="ml-1.5 text-caption text-muted-foreground">
                                 ({inst.vagas} vaga{inst.vagas !== 1 ? 's' : ''})
