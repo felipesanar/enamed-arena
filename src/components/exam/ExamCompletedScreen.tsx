@@ -156,20 +156,12 @@ export function ExamCompletedScreen({
         </motion.div>
 
         <motion.div variants={prefersReducedMotion ? undefined : fadeUp} className="space-y-3">
-          {resultsAvailable ? (
+          {resultsAvailable && (
             <Link
               to={`/simulados/${simuladoId}/resultado`}
               className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
             >
               Ver resultado
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" aria-hidden />
-            </Link>
-          ) : (
-            <Link
-              to={`/simulados/${simuladoId}/correcao`}
-              className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
-            >
-              Ver gabarito
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
           )}
