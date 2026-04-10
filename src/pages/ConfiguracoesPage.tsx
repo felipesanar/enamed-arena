@@ -3,6 +3,7 @@ import { PageTransition } from "@/components/premium/PageTransition";
 import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
+import { AcademicProfileEditor } from "@/components/profile/AcademicProfileEditor";
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SEGMENT_LABELS } from "@/types";
@@ -13,7 +14,6 @@ import {
   Shield, User, GraduationCap, Building2, Edit3, LogOut,
   Save, X, Camera,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function ConfiguracoesPage() {
