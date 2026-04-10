@@ -3,6 +3,7 @@ import { PageTransition } from "@/components/premium/PageTransition";
 import { PageHeader } from "@/components/PageHeader";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SectionHeader } from "@/components/SectionHeader";
+import { AcademicProfileEditor } from "@/components/profile/AcademicProfileEditor";
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SEGMENT_LABELS } from "@/types";
@@ -13,8 +14,8 @@ import {
   Shield, User, GraduationCap, Building2, Edit3, LogOut,
   Save, X, Camera,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export default function ConfiguracoesPage() {
   const {
@@ -23,6 +24,7 @@ export default function ConfiguracoesPage() {
     isOnboardingComplete,
     onboardingEditLocked,
     onboardingNextEditableAt,
+    saveOnboarding,
     refreshProfile,
   } = useUser();
   const { user: authUser, signOut } = useAuth();
@@ -32,6 +34,10 @@ export default function ConfiguracoesPage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(profile?.name || '');
   const [saving, setSaving] = useState(false);
+
+  // Edit mode for academic profile
+  const [editingAcademic, setEditingAcademic] = useState(false);
+  const [savingAcademic, setSavingAcademic] = useState(false);
 
   const handleSave = async () => {
     if (!authUser || !editName.trim()) return;
@@ -149,59 +155,85 @@ export default function ConfiguracoesPage() {
         </div>
       </PremiumCard>
 
-      {isOnboardingComplete && onboarding && (
+       {isOnboardingComplete && onboarding && (
         <>
           <SectionHeader
             title="Seu perfil acadêmico"
             action={
+              editingAcademic ? null :
               onboardingEditLocked ? (
                 <span className="inline-flex items-center gap-1.5 text-body-sm text-warning font-semibold">
                   <Edit3 className="h-3.5 w-3.5" />
                   Edição bloqueada em janela ativa
                 </span>
               ) : (
-                <Link
-                  to="/onboarding"
+                <button
+                  onClick={() => setEditingAcademic(true)}
                   className="inline-flex items-center gap-1.5 text-body-sm text-primary hover:text-wine-hover transition-colors font-semibold"
                 >
                   <Edit3 className="h-3.5 w-3.5" />
                   Editar
-                </Link>
+                </button>
               )
             }
           />
-          {onboardingEditLocked && (
+          {onboardingEditLocked && !editingAcademic && (
             <p className="text-caption text-warning mb-3">
               Você poderá editar novamente entre janelas de simulado.
               {onboardingNextEditableAt ? ` Liberação prevista: ${new Date(onboardingNextEditableAt).toLocaleString('pt-BR')}.` : ''}
             </p>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <PremiumCard className="p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                  <GraduationCap className="h-4 w-4 text-primary" />
-                </div>
-                <p className="text-overline uppercase text-muted-foreground">Especialidade</p>
-              </div>
-              <p className="text-body font-semibold text-foreground">{onboarding.specialty}</p>
+
+          {editingAcademic ? (
+            <PremiumCard className="p-5 mb-8">
+              <AcademicProfileEditor
+                initialSpecialty={onboarding.specialty}
+                initialInstitutions={onboarding.targetInstitutions}
+                saving={savingAcademic}
+                onCancel={() => setEditingAcademic(false)}
+                onSave={async (data) => {
+                  setSavingAcademic(true);
+                  try {
+                    await saveOnboarding(data);
+                    toast.success('Perfil acadêmico atualizado!');
+                    setEditingAcademic(false);
+                  } catch (err) {
+                    logger.error('[ConfiguracoesPage] Error saving academic profile:', err);
+                    toast.error('Erro ao salvar. Tente novamente.');
+                  } finally {
+                    setSavingAcademic(false);
+                  }
+                }}
+              />
             </PremiumCard>
-            <PremiumCard className="p-5" delay={0.06}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-primary" />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <PremiumCard className="p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
+                    <GraduationCap className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-overline uppercase text-muted-foreground">Especialidade</p>
                 </div>
-                <p className="text-overline uppercase text-muted-foreground">Instituições</p>
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {onboarding.targetInstitutions.map(inst => (
-                  <span key={inst} className="px-2.5 py-1 rounded-lg bg-accent text-accent-foreground text-caption font-medium">
-                    {inst}
-                  </span>
-                ))}
-              </div>
-            </PremiumCard>
-          </div>
+                <p className="text-body font-semibold text-foreground">{onboarding.specialty}</p>
+              </PremiumCard>
+              <PremiumCard className="p-5" delay={0.06}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-overline uppercase text-muted-foreground">Instituições</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {onboarding.targetInstitutions.map(inst => (
+                    <span key={inst} className="px-2.5 py-1 rounded-lg bg-accent text-accent-foreground text-caption font-medium">
+                      {inst}
+                    </span>
+                  ))}
+                </div>
+              </PremiumCard>
+            </div>
+          )}
         </>
       )}
     </PageTransition>
