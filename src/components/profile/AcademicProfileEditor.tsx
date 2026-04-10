@@ -170,7 +170,7 @@ export function AcademicProfileEditor({
               )}
             </div>
             <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-background">
-              {instLoading ? (
+              {!instGrouped ? (
                 <div className="p-3 text-caption text-muted-foreground">Carregando...</div>
               ) : groupedInstitutions.length === 0 ? (
                 <div className="p-3 text-caption text-muted-foreground">Nenhuma instituição encontrada.</div>
