@@ -7,6 +7,7 @@ import type { RankingParticipant, RankingStats } from '@/services/rankingApi';
 import { RANKING_COMPARISON_DEFAULT } from '@/services/rankingApi';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
+vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'dark' }) }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 vi.mock('@/hooks/useCutoffScore', () => ({
   useCutoffScore: vi.fn(() => ({ loading: false, cutoff: null })),

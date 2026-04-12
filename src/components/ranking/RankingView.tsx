@@ -10,6 +10,7 @@ import React, {
   type SetStateAction,
 } from 'react';
 import { Link } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -96,9 +97,11 @@ const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.El
 function PositionBadge({
   position,
   isCurrentUser,
+  isDark,
 }: {
   position: number;
   isCurrentUser?: boolean;
+  isDark: boolean;
 }) {
   if (isCurrentUser) {
     return (
@@ -123,7 +126,9 @@ function PositionBadge({
       style={
         medal
           ? { background: medal.bg, color: medal.color }
-          : { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)' }
+          : isDark
+          ? { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)' }
+          : { background: 'rgba(0,0,0,0.07)', color: 'rgba(0,0,0,0.45)' }
       }
       aria-label={medal?.label}
     >
@@ -198,6 +203,8 @@ export function RankingView({
   toolbar,
 }: RankingViewProps) {
   const mountedAtRef = useRef<number>(Date.now());
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
   const [cutoffModalOpen, setCutoffModalOpen] = useState(false);
 
@@ -310,19 +317,100 @@ export function RankingView({
   const lowConfidence = filteredParticipants.length > 0 && filteredParticipants.length < 30;
   const tableRows = buildTableRows(filteredParticipants, currentUser);
 
-  // ── Shared inline styles ──────────────────────────────────────────────────
+  // ── Theme tokens ──────────────────────────────────────────────────────────
 
-  const chipActive = {
-    background: 'rgba(122,26,50,0.6)',
-    border: '1px solid rgba(255,150,170,0.25)',
-    color: 'white',
-  } as React.CSSProperties;
-
-  const chipInactive = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.09)',
-    color: 'rgba(255,255,255,0.5)',
-  } as React.CSSProperties;
+  const t = {
+    containerBg: isDark ? '#100910' : '#ffffff',
+    text1: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+    text2: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
+    text3: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.35)',
+    textMuted: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
+    surfaceBg: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
+    surfaceBorder: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.08)',
+    borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+    chipActive: {
+      background: 'rgba(122,26,50,0.85)',
+      border: '1px solid rgba(255,150,170,0.25)',
+      color: 'white',
+    } as React.CSSProperties,
+    chipInactive: isDark
+      ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.5)' } as React.CSSProperties
+      : { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', color: 'rgba(0,0,0,0.55)' } as React.CSSProperties,
+    kpiPerfGoodBg: isDark
+      ? 'linear-gradient(135deg, rgba(34,197,94,0.14) 0%, rgba(16,185,129,0.06) 100%)'
+      : 'linear-gradient(135deg, rgba(34,197,94,0.10) 0%, rgba(16,185,129,0.04) 100%)',
+    kpiPerfGoodBorder: isDark ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(34,197,94,0.28)',
+    kpiPerfGoodShadow: isDark
+      ? '0 8px 24px -6px rgba(34,197,94,0.1), inset 0 1px 0 rgba(255,255,255,0.05)'
+      : '0 4px 16px -4px rgba(34,197,94,0.12)',
+    kpiPerfGoodOrb: isDark
+      ? 'radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%)'
+      : 'radial-gradient(circle, rgba(74,222,128,0.14) 0%, transparent 70%)',
+    kpiPerfGoodTag: isDark ? 'rgba(74,222,128,0.7)' : 'rgba(22,163,74,0.85)',
+    kpiPerfGoodVal: isDark ? '#4ade80' : '#15803d',
+    kpiPerfBadBg: isDark
+      ? 'linear-gradient(135deg, rgba(251,146,60,0.1) 0%, rgba(239,68,68,0.05) 100%)'
+      : 'linear-gradient(135deg, rgba(251,146,60,0.08) 0%, rgba(239,68,68,0.04) 100%)',
+    kpiPerfBadBorder: isDark ? '1px solid rgba(251,146,60,0.2)' : '1px solid rgba(251,146,60,0.25)',
+    kpiPerfBadShadow: isDark
+      ? '0 8px 24px -6px rgba(251,146,60,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+      : '0 4px 16px -4px rgba(251,146,60,0.1)',
+    kpiPerfBadOrb: isDark
+      ? 'radial-gradient(circle, rgba(251,146,60,0.1) 0%, transparent 70%)'
+      : 'radial-gradient(circle, rgba(251,146,60,0.12) 0%, transparent 70%)',
+    kpiPerfBadTag: isDark ? 'rgba(251,146,60,0.7)' : 'rgba(194,65,12,0.85)',
+    kpiPerfBadVal: isDark ? '#fb923c' : '#c2410c',
+    kpiPerfSubtext: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)',
+    kpiCutPassBg: isDark
+      ? 'linear-gradient(135deg, rgba(99,179,237,0.12) 0%, rgba(139,92,246,0.06) 100%)'
+      : 'linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(139,92,246,0.04) 100%)',
+    kpiCutPassBorder: isDark ? '1px solid rgba(99,179,237,0.22)' : '1px solid rgba(56,189,248,0.28)',
+    kpiCutPassShadow: isDark
+      ? '0 8px 24px -6px rgba(99,179,237,0.1), inset 0 1px 0 rgba(255,255,255,0.05)'
+      : '0 4px 16px -4px rgba(56,189,248,0.12)',
+    kpiCutPassOrb: isDark
+      ? 'radial-gradient(circle, rgba(125,211,252,0.1) 0%, transparent 70%)'
+      : 'radial-gradient(circle, rgba(56,189,248,0.12) 0%, transparent 70%)',
+    kpiCutPassTag: isDark ? 'rgba(125,211,252,0.7)' : 'rgba(3,105,161,0.85)',
+    kpiCutPassVal: isDark ? '#7dd3fc' : '#0369a1',
+    kpiCutPassSub: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)',
+    kpiCutPassStrong: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.7)',
+    kpiCutPassLink: isDark ? 'rgba(125,211,252,0.6)' : 'rgba(3,105,161,0.7)',
+    kpiCutFailBg: isDark
+      ? 'linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(220,38,38,0.05) 100%)'
+      : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(220,38,38,0.04) 100%)',
+    kpiCutFailBorder: isDark ? '1px solid rgba(239,68,68,0.20)' : '1px solid rgba(239,68,68,0.25)',
+    kpiCutFailShadow: isDark
+      ? '0 8px 24px -6px rgba(239,68,68,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+      : '0 4px 16px -4px rgba(239,68,68,0.1)',
+    kpiCutFailOrb: isDark
+      ? 'radial-gradient(circle, rgba(248,113,113,0.1) 0%, transparent 70%)'
+      : 'radial-gradient(circle, rgba(248,113,113,0.12) 0%, transparent 70%)',
+    kpiCutFailTag: isDark ? 'rgba(248,113,113,0.7)' : 'rgba(185,28,28,0.85)',
+    kpiCutFailVal: isDark ? '#f87171' : '#b91c1c',
+    kpiCutFailGap: isDark ? '#f87171' : '#dc2626',
+    kpiCutFailSub: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)',
+    kpiCutFailStrong: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.7)',
+    kpiCutFailLink: isDark ? 'rgba(248,113,113,0.6)' : 'rgba(185,28,28,0.7)',
+    kpiEmptyBg: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+    kpiEmptyBorder: isDark ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(0,0,0,0.09)',
+    kpiEmptyTag: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.35)',
+    kpiEmptyText: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.45)',
+    kpiEmptyCta: isDark ? 'rgba(255,150,170,0.65)' : 'rgba(122,26,50,0.7)',
+    bannerText: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.65)',
+    tableHeaderBorder: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.07)',
+    tableHeaderText: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
+    tableRowBorder: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)',
+    tableUserBg: isDark ? 'rgba(122,26,50,0.28)' : 'rgba(122,26,50,0.07)',
+    tableText: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+    tableUserText: isDark ? '#fff' : 'rgba(0,0,0,0.85)',
+    tableUserScore: isDark ? '#ffcbd8' : '#7a1a32',
+    tableScore: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+    tableSpecialty: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
+    tableSeparator: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)',
+    filterLabel: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)',
+    filterActiveText: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)',
+  };
 
   return (
     <>
@@ -330,7 +418,7 @@ export function RankingView({
 
       <div
         className="rounded-2xl p-5"
-        style={{ background: '#100910', color: 'white' }}
+        style={{ background: t.containerBg }}
       >
       {loading && <RankingSkeleton />}
 
@@ -345,7 +433,7 @@ export function RankingView({
                   type="button"
                   onClick={() => setSelectedSimuladoId(s.id)}
                   className="px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0"
-                  style={s.id === selectedSimuladoId ? chipActive : chipInactive}
+                  style={s.id === selectedSimuladoId ? t.chipActive : t.chipInactive}
                 >
                   {s.title}
                 </button>
@@ -442,18 +530,9 @@ export function RankingView({
                   style={{
                     padding: '15px 13px 13px',
                     minHeight: '110px',
-                    background:
-                      perfState === 'good'
-                        ? 'linear-gradient(135deg, rgba(34,197,94,0.14) 0%, rgba(16,185,129,0.06) 100%)'
-                        : 'linear-gradient(135deg, rgba(251,146,60,0.1) 0%, rgba(239,68,68,0.05) 100%)',
-                    border:
-                      perfState === 'good'
-                        ? '1px solid rgba(34,197,94,0.25)'
-                        : '1px solid rgba(251,146,60,0.2)',
-                    boxShadow:
-                      perfState === 'good'
-                        ? '0 8px 24px -6px rgba(34,197,94,0.1), inset 0 1px 0 rgba(255,255,255,0.05)'
-                        : '0 8px 24px -6px rgba(251,146,60,0.08), inset 0 1px 0 rgba(255,255,255,0.04)',
+                    background: perfState === 'good' ? t.kpiPerfGoodBg : t.kpiPerfBadBg,
+                    border: perfState === 'good' ? t.kpiPerfGoodBorder : t.kpiPerfBadBorder,
+                    boxShadow: perfState === 'good' ? t.kpiPerfGoodShadow : t.kpiPerfBadShadow,
                   }}
                 >
                   <div
@@ -464,10 +543,7 @@ export function RankingView({
                       width: '100px',
                       height: '100px',
                       borderRadius: '50%',
-                      background:
-                        perfState === 'good'
-                          ? 'radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%)'
-                          : 'radial-gradient(circle, rgba(251,146,60,0.1) 0%, transparent 70%)',
+                      background: perfState === 'good' ? t.kpiPerfGoodOrb : t.kpiPerfBadOrb,
                     }}
                     aria-hidden
                   />
@@ -477,10 +553,7 @@ export function RankingView({
                       style={{
                         fontSize: '0.56rem',
                         letterSpacing: '.09em',
-                        color:
-                          perfState === 'good'
-                            ? 'rgba(74,222,128,0.7)'
-                            : 'rgba(251,146,60,0.7)',
+                        color: perfState === 'good' ? t.kpiPerfGoodTag : t.kpiPerfBadTag,
                       }}
                     >
                       Seu desempenho
@@ -489,14 +562,14 @@ export function RankingView({
                       className="font-bold leading-snug mb-[5px]"
                       style={{
                         fontSize: '0.95rem',
-                        color: perfState === 'good' ? '#4ade80' : '#fb923c',
+                        color: perfState === 'good' ? t.kpiPerfGoodVal : t.kpiPerfBadVal,
                       }}
                     >
                       {perfMessage}
                     </p>
                     <p
                       className="leading-snug"
-                      style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)' }}
+                      style={{ fontSize: '0.62rem', color: t.kpiPerfSubtext }}
                     >
                       {perfSubtext}
                     </p>
@@ -510,8 +583,8 @@ export function RankingView({
                     style={{
                       padding: '15px 13px 13px',
                       minHeight: '110px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.09)',
+                      background: t.kpiEmptyBg,
+                      border: t.kpiEmptyBorder,
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                     }}
                   >
@@ -520,7 +593,7 @@ export function RankingView({
                       style={{
                         fontSize: '0.56rem',
                         letterSpacing: '.09em',
-                        color: 'rgba(255,255,255,0.3)',
+                        color: t.kpiEmptyTag,
                       }}
                     >
                       Nota de corte
@@ -531,14 +604,14 @@ export function RankingView({
                         <>
                           <p
                             className="leading-snug"
-                            style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)' }}
+                            style={{ fontSize: '0.62rem', color: t.kpiEmptyText }}
                           >
                             Preencha sua especialidade e instituição para ver se você passaria.
                           </p>
                           <Link
                             to="/configuracoes"
                             className="font-semibold inline-flex items-center gap-[3px]"
-                            style={{ fontSize: '0.6rem', color: 'rgba(255,150,170,0.65)' }}
+                            style={{ fontSize: '0.6rem', color: t.kpiEmptyCta }}
                           >
                             Completar perfil →
                           </Link>
@@ -547,7 +620,7 @@ export function RankingView({
                         <>
                           <p
                             className="leading-snug"
-                            style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)' }}
+                            style={{ fontSize: '0.62rem', color: t.kpiEmptyText }}
                           >
                             Não encontramos nota de corte para sua combinação.
                           </p>
@@ -555,7 +628,7 @@ export function RankingView({
                             type="button"
                             onClick={() => setCutoffModalOpen(true)}
                             className="font-semibold inline-flex items-center gap-[3px] text-left"
-                            style={{ fontSize: '0.6rem', color: 'rgba(255,150,170,0.65)' }}
+                            style={{ fontSize: '0.6rem', color: t.kpiEmptyCta }}
                           >
                             Ver todas →
                           </button>
@@ -571,11 +644,11 @@ export function RankingView({
                     style={{
                       padding: '15px 13px 13px',
                       minHeight: '110px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.09)',
+                      background: t.kpiEmptyBg,
+                      border: t.kpiEmptyBorder,
                     }}
                   >
-                    <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)' }}>
+                    <p style={{ fontSize: '0.62rem', color: t.kpiEmptyText }}>
                       Carregando...
                     </p>
                   </div>
@@ -587,11 +660,9 @@ export function RankingView({
                     style={{
                       padding: '15px 13px 13px',
                       minHeight: '110px',
-                      background:
-                        'linear-gradient(135deg, rgba(99,179,237,0.12) 0%, rgba(139,92,246,0.06) 100%)',
-                      border: '1px solid rgba(99,179,237,0.22)',
-                      boxShadow:
-                        '0 8px 24px -6px rgba(99,179,237,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+                      background: t.kpiCutPassBg,
+                      border: t.kpiCutPassBorder,
+                      boxShadow: t.kpiCutPassShadow,
                     }}
                   >
                     <div
@@ -602,8 +673,7 @@ export function RankingView({
                         width: '100px',
                         height: '100px',
                         borderRadius: '50%',
-                        background:
-                          'radial-gradient(circle, rgba(125,211,252,0.1) 0%, transparent 70%)',
+                        background: t.kpiCutPassOrb,
                       }}
                       aria-hidden
                     />
@@ -613,30 +683,30 @@ export function RankingView({
                         style={{
                           fontSize: '0.56rem',
                           letterSpacing: '.09em',
-                          color: 'rgba(125,211,252,0.7)',
+                          color: t.kpiCutPassTag,
                         }}
                       >
                         Nota de corte
                       </p>
                       <p
                         className="font-bold leading-snug mb-[5px]"
-                        style={{ fontSize: '0.95rem', color: '#7dd3fc' }}
+                        style={{ fontSize: '0.95rem', color: t.kpiCutPassVal }}
                       >
                         Passaria ✓
                       </p>
                       <p
                         className="leading-snug"
-                        style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)' }}
+                        style={{ fontSize: '0.62rem', color: t.kpiCutPassSub }}
                       >
                         Corte geral:{' '}
-                        <strong style={{ color: 'rgba(255,255,255,0.65)' }}>
+                        <strong style={{ color: t.kpiCutPassStrong }}>
                           {cutoff.cutoff_score_general}%
                         </strong>
                         {cutoff.cutoff_score_quota != null && (
                           <>
                             {' '}
                             · Cotas:{' '}
-                            <strong style={{ color: 'rgba(255,255,255,0.65)' }}>
+                            <strong style={{ color: t.kpiCutPassStrong }}>
                               {cutoff.cutoff_score_quota}%
                             </strong>
                           </>
@@ -647,7 +717,7 @@ export function RankingView({
                       type="button"
                       onClick={() => setCutoffModalOpen(true)}
                       className="relative z-10 inline-flex items-center gap-[3px] mt-[7px]"
-                      style={{ fontSize: '0.58rem', color: 'rgba(125,211,252,0.6)' }}
+                      style={{ fontSize: '0.58rem', color: t.kpiCutPassLink }}
                     >
                       Ver todas as notas ↗
                     </button>
@@ -660,11 +730,9 @@ export function RankingView({
                     style={{
                       padding: '15px 13px 13px',
                       minHeight: '110px',
-                      background:
-                        'linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(220,38,38,0.05) 100%)',
-                      border: '1px solid rgba(239,68,68,0.20)',
-                      boxShadow:
-                        '0 8px 24px -6px rgba(239,68,68,0.08), inset 0 1px 0 rgba(255,255,255,0.04)',
+                      background: t.kpiCutFailBg,
+                      border: t.kpiCutFailBorder,
+                      boxShadow: t.kpiCutFailShadow,
                     }}
                   >
                     <div
@@ -675,8 +743,7 @@ export function RankingView({
                         width: '100px',
                         height: '100px',
                         borderRadius: '50%',
-                        background:
-                          'radial-gradient(circle, rgba(248,113,113,0.1) 0%, transparent 70%)',
+                        background: t.kpiCutFailOrb,
                       }}
                       aria-hidden
                     />
@@ -686,27 +753,27 @@ export function RankingView({
                         style={{
                           fontSize: '0.56rem',
                           letterSpacing: '.09em',
-                          color: 'rgba(248,113,113,0.7)',
+                          color: t.kpiCutFailTag,
                         }}
                       >
                         Nota de corte
                       </p>
                       <p
                         className="font-bold leading-snug mb-[5px]"
-                        style={{ fontSize: '0.95rem', color: '#f87171' }}
+                        style={{ fontSize: '0.95rem', color: t.kpiCutFailVal }}
                       >
                         Ainda não ✗
                       </p>
                       <p
                         className="leading-snug"
-                        style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)' }}
+                        style={{ fontSize: '0.62rem', color: t.kpiCutFailSub }}
                       >
                         Faltam{' '}
-                        <strong style={{ color: '#f87171' }}>
+                        <strong style={{ color: t.kpiCutFailGap }}>
                           {cutoff.cutoff_score_general - currentUser.score}pp
                         </strong>{' '}
                         para o corte geral de{' '}
-                        <strong style={{ color: 'rgba(255,255,255,0.65)' }}>
+                        <strong style={{ color: t.kpiCutFailStrong }}>
                           {cutoff.cutoff_score_general}%
                         </strong>
                       </p>
@@ -715,7 +782,7 @@ export function RankingView({
                       type="button"
                       onClick={() => setCutoffModalOpen(true)}
                       className="relative z-10 inline-flex items-center gap-[3px] mt-[7px]"
-                      style={{ fontSize: '0.58rem', color: 'rgba(248,113,113,0.6)' }}
+                      style={{ fontSize: '0.58rem', color: t.kpiCutFailLink }}
                     >
                       Ver todas as notas ↗
                     </button>
@@ -740,8 +807,8 @@ export function RankingView({
                 style={{ color: '#fb923c' }}
                 aria-hidden
               />
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <strong className="text-white">Ranking com poucos participantes</strong> — com menos
+              <p className="text-xs leading-relaxed" style={{ color: t.bannerText }}>
+                <strong style={{ color: t.text1 }}>Ranking com poucos participantes</strong> — com menos
                 de 30 candidatos, os resultados podem não refletir o desempenho real.{' '}
                 <button
                   type="button"
@@ -770,24 +837,24 @@ export function RankingView({
               <div
                 className="p-4 mb-4 rounded-[15px]"
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  background: t.surfaceBg,
+                  border: t.surfaceBorder,
                 }}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <Filter
                     className="h-4 w-4"
-                    style={{ color: 'rgba(255,255,255,0.3)' }}
+                    style={{ color: t.text3 }}
                     aria-hidden
                   />
-                  <span className="text-sm font-semibold text-white">Filtrar ranking</span>
+                  <span className="text-sm font-semibold" style={{ color: t.text1 }}>Filtrar ranking</span>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                   <div className="min-w-0 flex-1 basis-[min(100%,20rem)]">
                     <p
                       className="text-xs mb-1.5"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}
+                      style={{ color: t.filterLabel }}
                     >
                       Comparar com
                     </p>
@@ -802,8 +869,8 @@ export function RankingView({
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
                         style={
                           !rankingComparison.bySpecialty && !rankingComparison.byInstitution
-                            ? chipActive
-                            : chipInactive
+                            ? t.chipActive
+                            : t.chipInactive
                         }
                       >
                         <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -823,7 +890,7 @@ export function RankingView({
                           'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all',
                           !userSpecialty && 'cursor-not-allowed opacity-40',
                         )}
-                        style={rankingComparison.bySpecialty ? chipActive : chipInactive}
+                        style={rankingComparison.bySpecialty ? t.chipActive : t.chipInactive}
                         title={!userSpecialty ? 'Configure nas Configurações' : undefined}
                       >
                         <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -834,11 +901,11 @@ export function RankingView({
                     {userInstitutions.length > 0 && (
                       <div
                         className="mt-2 flex flex-col gap-1.5 pt-2.5"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+                        style={{ borderTop: `1px solid ${t.borderColor}` }}
                       >
                         <span
                           className="text-xs leading-snug"
-                          style={{ color: 'rgba(255,255,255,0.3)' }}
+                          style={{ color: t.filterLabel }}
                         >
                           Também filtrar pela minha 1ª instituição-alvo (opcional)
                         </span>
@@ -848,7 +915,7 @@ export function RankingView({
                           aria-pressed={rankingComparison.byInstitution}
                           aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all w-fit max-w-full"
-                          style={rankingComparison.byInstitution ? chipActive : chipInactive}
+                          style={rankingComparison.byInstitution ? t.chipActive : t.chipInactive}
                         >
                           <Building className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           <span className="hidden sm:inline truncate">{userInstitutions[0]}</span>
@@ -860,7 +927,7 @@ export function RankingView({
                   <div>
                     <p
                       className="text-xs mb-1.5"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}
+                      style={{ color: t.filterLabel }}
                     >
                       Segmento
                     </p>
@@ -873,13 +940,13 @@ export function RankingView({
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
                           style={
                             segmentFilter === f.key
-                              ? chipActive
+                              ? t.chipActive
                               : {
-                                  ...chipInactive,
+                                  ...t.chipInactive,
                                   color:
                                     f.key === 'pro'
                                       ? '#c4b5fd'
-                                      : 'rgba(255,255,255,0.5)',
+                                      : t.chipInactive.color,
                                 }
                           }
                         >
@@ -894,7 +961,7 @@ export function RankingView({
                 {(rankingComparison.bySpecialty || rankingComparison.byInstitution) && (
                   <p
                     className="text-xs mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: t.filterActiveText }}
                   >
                     {rankingComparison.bySpecialty &&
                       userSpecialty &&
@@ -904,8 +971,8 @@ export function RankingView({
                           <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           <span>
                             Filtrando por{' '}
-                            <strong className="text-white">{userSpecialty}</strong> na{' '}
-                            <strong className="text-white">{userInstitutions[0]}</strong>.
+                            <strong style={{ color: t.text1 }}>{userSpecialty}</strong> na{' '}
+                            <strong style={{ color: t.text1 }}>{userInstitutions[0]}</strong>.
                           </span>
                         </>
                       )}
@@ -916,8 +983,8 @@ export function RankingView({
                           <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           <span>
                             Filtrando por especialidade:{' '}
-                            <strong className="text-white">{userSpecialty}</strong>
-                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            <strong style={{ color: t.text1 }}>{userSpecialty}</strong>
+                            <span style={{ color: t.text3 }}>
                               {' '}
                               (todas as instituições).
                             </span>
@@ -931,8 +998,8 @@ export function RankingView({
                           <Building className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           <span>
                             Filtrando por instituição:{' '}
-                            <strong className="text-white">{userInstitutions[0]}</strong>
-                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            <strong style={{ color: t.text1 }}>{userInstitutions[0]}</strong>
+                            <span style={{ color: t.text3 }}>
                               {' '}
                               (todas as especialidades).
                             </span>
@@ -952,28 +1019,28 @@ export function RankingView({
               <div
                 className="relative overflow-hidden"
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  background: t.surfaceBg,
+                  border: t.surfaceBorder,
                   borderRadius: '15px',
                 }}
               >
                 <table className="w-full">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                      <th className="text-left w-10 px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>#</th>
-                      <th className="text-left px-2 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Candidato</th>
-                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Especialidade</th>
-                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Instituição</th>
-                      <th className="text-right px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Nota</th>
+                    <tr style={{ borderBottom: t.tableHeaderBorder }}>
+                      <th className="text-left w-10 px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>#</th>
+                      <th className="text-left px-2 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Candidato</th>
+                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Especialidade</th>
+                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Instituição</th>
+                      <th className="text-right px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Nota</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableRows.map((row, i) => {
                       if (isSeparator(row)) {
                         return (
-                          <tr key={`sep-${i}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <tr key={`sep-${i}`} style={{ borderBottom: t.tableRowBorder }}>
                             <td colSpan={5} className="px-4 py-2 text-center">
-                              <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)' }}>
+                              <span style={{ fontSize: '0.6rem', color: t.tableSeparator }}>
                                 posições {row.from} – {row.to}
                               </span>
                             </td>
@@ -986,10 +1053,10 @@ export function RankingView({
                           key={`${row.userId}-${row.position}`}
                           className="transition-colors"
                           style={{
-                            background: row.isCurrentUser ? 'rgba(122,26,50,0.28)' : undefined,
+                            background: row.isCurrentUser ? t.tableUserBg : undefined,
                             borderBottom:
                               i < tableRows.length - 1
-                                ? '1px solid rgba(255,255,255,0.05)'
+                                ? t.tableRowBorder
                                 : undefined,
                           }}
                         >
@@ -997,6 +1064,7 @@ export function RankingView({
                             <PositionBadge
                               position={row.position}
                               isCurrentUser={row.isCurrentUser}
+                              isDark={isDark}
                             />
                           </td>
                           <td className="pr-2 py-3">
@@ -1004,7 +1072,7 @@ export function RankingView({
                               <span
                                 className="text-sm truncate"
                                 style={{
-                                  color: row.isCurrentUser ? '#fff' : 'rgba(255,255,255,0.7)',
+                                  color: row.isCurrentUser ? t.tableUserText : t.tableText,
                                   fontWeight: row.isCurrentUser ? 600 : 400,
                                 }}
                               >
@@ -1026,13 +1094,13 @@ export function RankingView({
                           </td>
                           <td
                             className="pr-2 py-3 hidden md:table-cell"
-                            style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}
+                            style={{ fontSize: '0.8rem', color: t.tableSpecialty }}
                           >
                             {row.specialty}
                           </td>
                           <td
                             className="pr-2 py-3 hidden md:table-cell"
-                            style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}
+                            style={{ fontSize: '0.8rem', color: t.tableSpecialty }}
                           >
                             {row.institution}
                           </td>
@@ -1040,7 +1108,7 @@ export function RankingView({
                             <span
                               className="text-sm font-semibold tabular-nums"
                               style={{
-                                color: row.isCurrentUser ? '#ffcbd8' : 'rgba(255,255,255,0.7)',
+                                color: row.isCurrentUser ? t.tableUserScore : t.tableScore,
                               }}
                             >
                               {row.score}%
