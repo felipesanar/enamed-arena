@@ -24,7 +24,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Verify admin
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: { user }, error: authError } = await anonClient.auth.getUser(
       authHeader.replace("Bearer ", "")
@@ -50,7 +49,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { rows } = await req.json();
+    const { rows, clear } = await req.json();
     if (!Array.isArray(rows) || rows.length === 0) {
       return new Response(JSON.stringify({ error: "No rows provided" }), {
         status: 400,
@@ -58,10 +57,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Clear existing data first
-    await supabase.from("enamed_cutoff_scores").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (clear) {
+      await supabase.from("enamed_cutoff_scores").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    }
 
-    // Insert in batches of 200
     const batchSize = 200;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += batchSize) {
