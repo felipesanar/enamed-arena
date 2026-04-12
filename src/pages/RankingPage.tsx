@@ -69,11 +69,6 @@ export default function RankingPage() {
         userSpecialty={userSpecialty}
         userInstitutions={userInstitutions}
         allowedSegments={allowedSegments}
-        header={{
-          title: 'Ranking ENAMED',
-          subtitle: 'Compare seu desempenho com milhares de candidatos.',
-          badge: 'Ranking Geral',
-        }}
         trackSource="page"
         participantDisplay="public"
       />

@@ -65,11 +65,6 @@ export default function AdminRankingPreviewPage() {
       userSpecialty={userSpecialty}
       userInstitutions={userInstitutions}
       allowedSegments={allowedSegments}
-      header={{
-        title: 'Preview do ranking',
-        subtitle: 'Mesma experiência do ranking público, sem depender da liberação de resultados.',
-        badge: 'Admin',
-      }}
       trackSource="admin_preview"
       participantDisplay="admin"
       toolbar={
