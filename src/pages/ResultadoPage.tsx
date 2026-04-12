@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PremiumCard } from '@/components/PremiumCard';
@@ -147,40 +147,102 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const hasComparativo = SEGMENT_ACCESS[segment].comparativo;
   const hasCadernoErros = SEGMENT_ACCESS[segment].cadernoErros;
 
+  const RING_CIRCUMFERENCE = 376.99
+  const ringTargetOffset = RING_CIRCUMFERENCE * (1 - officialPercentage / 100)
+  const [ringOffset, setRingOffset] = useState(RING_CIRCUMFERENCE)
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setRingOffset(ringTargetOffset)
+      return
+    }
+    const t = setTimeout(() => setRingOffset(ringTargetOffset), 100)
+    return () => clearTimeout(t)
+  }, [ringTargetOffset, prefersReducedMotion])
+
   return (
     <>
 
-      {/* Hero score — momento de reconhecimento (Fase D) */}
+      {/* Hero score */}
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
         className="mb-8"
       >
-        <PremiumCard variant="hero" className="text-center border-primary/20 bg-gradient-to-br from-accent/40 via-card to-card">
-          <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Trophy className="h-10 w-10 text-primary" aria-hidden />
+        <div
+          className="rounded-3xl overflow-hidden relative"
+          style={{
+            background: 'linear-gradient(155deg, #7a1a32 0%, #5c1225 45%, #3d0b18 100%)',
+            boxShadow: '0 32px 64px -20px rgba(142,31,61,0.7), 0 8px 24px -8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+          }}
+        >
+          {/* glow orb */}
+          <div
+            className="absolute pointer-events-none"
+            style={{ top: '-60px', right: '-60px', width: 260, height: 260, background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)' }}
+            aria-hidden
+          />
+
+          <div className="relative z-10 px-7 pt-9 pb-7">
+            {/* Ring + score */}
+            <div className="flex flex-col items-center mb-7">
+              <div className="relative mb-3.5" style={{ width: 140, height: 140 }}>
+                <svg
+                  width="140"
+                  height="140"
+                  viewBox="0 0 140 140"
+                  style={{ transform: 'rotate(-90deg)' }}
+                  role="img"
+                  aria-label={`${officialPercentage}% de aproveitamento`}
+                >
+                  <defs>
+                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#ff9ab0" />
+                      <stop offset="100%" stopColor="#ffffff" />
+                    </linearGradient>
+                  </defs>
+                  <circle
+                    cx="70" cy="70" r="60"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="10"
+                  />
+                  <circle
+                    cx="70" cy="70" r="60"
+                    fill="none"
+                    stroke="url(#ringGrad)"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    style={{
+                      strokeDashoffset: ringOffset,
+                      transition: prefersReducedMotion ? 'none' : 'stroke-dashoffset 1s ease-out',
+                      filter: 'drop-shadow(0 0 8px rgba(255,180,180,0.4))',
+                    }}
+                  />
+                </svg>
+                {/* center text — absolute over the SVG */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Trophy className="h-5 w-5 mb-1" style={{ color: 'rgba(255,255,255,0.45)' }} />
+                  <span className="text-display font-bold leading-none tabular-nums" style={{ color: '#fff' }}>
+                    {officialPercentage}%
+                  </span>
+                  <span className="text-overline uppercase tracking-wider mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    do total
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-body text-center" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                <strong style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>{officialCorrect}</strong>
+                {' '}de{' '}
+                <strong style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>{overall.totalQuestions}</strong>
+                {' '}questões corretas
+              </p>
+            </div>
           </div>
-          <p className="text-overline uppercase text-muted-foreground tracking-wide mb-1">Seu desempenho neste simulado</p>
-          <div className="text-display font-bold text-primary mb-1 tabular-nums">{officialPercentage}%</div>
-          <p className="text-body-lg text-muted-foreground mb-6">
-            {officialCorrect} de {overall.totalQuestions} questões corretas
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            {[
-              { label: 'Acertos', value: String(officialCorrect), icon: CheckCircle2, color: 'text-success' },
-              { label: 'Erros', value: String(officialIncorrect), icon: XCircle, color: 'text-destructive' },
-              { label: 'Em branco', value: String(officialUnanswered), icon: Target, color: 'text-muted-foreground' },
-              { label: 'Respondidas', value: String(officialAnswered), icon: Clock, color: 'text-info' },
-            ].map((stat, i) => (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.08 }} className="p-3 rounded-xl bg-card border border-border">
-                <stat.icon className={`h-5 w-5 ${stat.color} mx-auto mb-1.5`} />
-                <p className="text-heading-2 text-foreground">{stat.value}</p>
-                <p className="text-caption text-muted-foreground">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </PremiumCard>
+        </div>
       </motion.div>
 
       {/* Performance highlights */}

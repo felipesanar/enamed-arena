@@ -128,3 +128,26 @@ describe('ResultadoPage — smoke', () => {
     expect(document.body).toBeTruthy()
   })
 })
+
+describe('ResultadoPage — hero card', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('exibe o percentual de acerto em destaque', () => {
+    renderPage()
+    expect(screen.getByText('31%')).toBeTruthy()
+  })
+
+  it('exibe subtítulo com contagem de corretas', () => {
+    renderPage()
+    const els = screen.getAllByText(
+      (_content, node) => !!node?.textContent?.match(/31.*questões corretas/i)
+    )
+    expect(els.length).toBeGreaterThan(0)
+  })
+
+  it('exibe o ring SVG de progresso', () => {
+    renderPage()
+    // O SVG do ring deve existir (role="img" com aria-label)
+    expect(screen.getByRole('img', { name: /31%.*aproveitamento/i })).toBeTruthy()
+  })
+})
