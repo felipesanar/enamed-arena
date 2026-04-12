@@ -173,3 +173,14 @@ describe('ResultadoPage — highlights', () => {
     expect(screen.getByText('Oportunidade')).toBeTruthy()
   })
 })
+
+describe('ResultadoPage — CTA', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('exibe link "Ir para correção comentada" apontando para /correcao', () => {
+    renderPage()
+    const cta = screen.getByRole('link', { name: /ir para correção comentada/i })
+    expect(cta).toBeTruthy()
+    expect((cta as HTMLAnchorElement).href).toContain('/correcao')
+  })
+})

@@ -1,10 +1,9 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { EmptyState } from '@/components/EmptyState';
 import { UpgradeBanner } from '@/components/UpgradeBanner';
 import { SkeletonCard } from '@/components/SkeletonCard';
-import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useUser } from '@/contexts/UserContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
@@ -14,7 +13,7 @@ import { SEGMENT_ACCESS } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import {
   Trophy, CheckCircle2, XCircle, MinusCircle, ClipboardCheck,
-  BarChart3, FileText, ArrowLeft, Star, TrendingDown,
+  BarChart3, FileText, ArrowLeft, ArrowRight, BookOpen, Star, TrendingDown,
 } from 'lucide-react';
 
 interface ResultadoPageProps {
@@ -352,6 +351,46 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                   </div>
                 </div>
               )}
+
+              {/* CTA perolado */}
+              <div
+                className="rounded-b-3xl -mx-7 -mb-7 px-7 pb-7 pt-5"
+                style={{
+                  background: 'rgba(0,0,0,0.2)',
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <p className="text-caption text-center mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Pronto para conferir questão por questão?
+                </p>
+                <Link
+                  to={`/simulados/${id}/correcao`}
+                  className="relative flex items-center justify-center gap-2.5 w-full py-[17px] px-6 rounded-2xl overflow-hidden font-bold text-body"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,220,230,0.08) 30%, rgba(255,255,255,0.05) 50%, rgba(230,200,215,0.12) 70%, rgba(255,255,255,0.2) 100%), linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, #f0e4ea 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(180,140,155,0.3), 0 10px 32px -8px rgba(255,255,255,0.3), 0 4px 12px -4px rgba(0,0,0,0.35)',
+                    color: '#4a0e22',
+                  }}
+                >
+                  {/* shimmer sweep */}
+                  <motion.span
+                    className="absolute inset-y-0 left-0 w-1/2 pointer-events-none -skew-x-12"
+                    style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent)' }}
+                    animate={prefersReducedMotion ? {} : { x: ['-100%', '300%'] }}
+                    transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 1, ease: 'easeInOut' }}
+                    aria-hidden
+                  />
+                  {/* top gloss */}
+                  <span
+                    className="absolute inset-x-0 top-0 h-1/2 pointer-events-none rounded-t-2xl"
+                    style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)' }}
+                    aria-hidden
+                  />
+                  <BookOpen className="h-5 w-5 relative z-10" aria-hidden />
+                  <span className="relative z-10">Ir para correção comentada</span>
+                  <ArrowRight className="h-[18px] w-[18px] relative z-10 ml-auto opacity-50" aria-hidden />
+                </Link>
+              </div>
           </div>
         </div>
       </motion.div>
@@ -366,7 +405,6 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
         </div>
       )}
 
-      {id && <SimuladoResultNav simuladoId={id} variant={adminPreview ? 'admin' : 'public'} />}
       {hasComparativo && (
         <div className="mt-4">
           <Link
