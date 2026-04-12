@@ -328,6 +328,10 @@ export function RankingView({
     <>
       {toolbar && <div className="mb-4">{toolbar}</div>}
 
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: '#100910', color: 'white' }}
+      >
       {loading && <RankingSkeleton />}
 
       {!loading && (
@@ -1085,6 +1089,7 @@ export function RankingView({
         onClose={() => setCutoffModalOpen(false)}
         userSpecialty={userSpecialty}
       />
+      </div>
     </>
   );
 }
