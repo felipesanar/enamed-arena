@@ -112,7 +112,7 @@ describe('RankingView', () => {
 
   it('does not show hero card or KPI cards when currentUser is undefined', () => {
     renderView({ currentUser: undefined });
-    expect(screen.queryByLabelText(/Sua posição/)).toBeNull();
+    expect(screen.queryByLabelText(/Posição \d+ de \d+/)).toBeNull();
   });
 
   it('shows hero card when currentUser exists', () => {
