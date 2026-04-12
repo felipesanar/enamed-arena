@@ -48,14 +48,14 @@ export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreMo
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.6)' }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Notas de Corte ENAMED"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Notas de Corte ENAMED"
         className="w-full max-w-2xl max-h-[80vh] flex flex-col"
         style={{
           background: 'linear-gradient(145deg, #2a0e1a 0%, #1a0811 100%)',
@@ -130,7 +130,7 @@ export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreMo
               <tbody>
                 {userRows.map((row, i) => (
                   <tr
-                    key={`user-${i}`}
+                    key={`user-${row.institution_name}-${row.specialty_name}`}
                     style={{
                       background: 'rgba(122,26,50,0.2)',
                       borderBottom: '1px solid rgba(255,150,170,0.08)',
@@ -152,7 +152,7 @@ export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreMo
                 ))}
                 {otherRows.map((row, i) => (
                   <tr
-                    key={`other-${i}`}
+                    key={`other-${row.institution_name}-${row.specialty_name}`}
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                   >
                     <td className="py-2.5 px-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
