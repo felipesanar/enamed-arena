@@ -275,7 +275,7 @@ export function RankingView({
   // ── Derived values ────────────────────────────────────────────────────────
 
   const percentil = currentUser
-    ? Math.round((currentUser.position / Math.max(1, filteredParticipants.length)) * 100)
+    ? Math.min(99, Math.round((currentUser.position / Math.max(1, filteredParticipants.length)) * 100))
     : 0;
 
   const perfState: 'good' | 'bad' = percentil <= 50 ? 'good' : 'bad';
@@ -953,114 +953,100 @@ export function RankingView({
                   borderRadius: '15px',
                 }}
               >
-                {/* Column header */}
-                <div
-                  className="px-4 py-3"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
-                >
-                  <table className="w-full">
-                    <thead>
-                      <tr>
-                        <th className="text-left w-10" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>#</th>
-                        <th className="text-left" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Candidato</th>
-                        <th className="text-left hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Especialidade</th>
-                        <th className="text-left hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Instituição</th>
-                        <th className="text-right" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Nota</th>
-                      </tr>
-                    </thead>
-                  </table>
-                </div>
-
-                {/* Rows */}
-                {tableRows.map((row, i) => {
-                  if (isSeparator(row)) {
-                    return (
-                      <div
-                        key={`sep-${i}`}
-                        className="px-4 py-2 text-center"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-                      >
-                        <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)' }}>
-                          posições {row.from} – {row.to}
-                        </span>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={`${row.userId}-${row.position}`}
-                      className="transition-colors"
-                      style={{
-                        background: row.isCurrentUser ? 'rgba(122,26,50,0.28)' : undefined,
-                        borderBottom:
-                          i < tableRows.length - 1
-                            ? '1px solid rgba(255,255,255,0.05)'
-                            : undefined,
-                      }}
-                    >
-                      <table className="w-full px-4">
-                        <tbody>
-                          <tr>
-                            <td className="w-10 pl-4 py-3">
-                              <PositionBadge
-                                position={row.position}
-                                isCurrentUser={row.isCurrentUser}
-                              />
-                            </td>
-                            <td className="pr-2 py-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span
-                                  className="text-sm truncate"
-                                  style={{
-                                    color: row.isCurrentUser ? '#fff' : 'rgba(255,255,255,0.7)',
-                                    fontWeight: row.isCurrentUser ? 600 : 400,
-                                  }}
-                                >
-                                  {participantLabel(row)}
-                                </span>
-                                {row.isCurrentUser && (
-                                  <span
-                                    className="text-[0.56rem] font-bold px-1.5 py-0.5 rounded shrink-0"
-                                    style={{
-                                      background: 'rgba(122,26,50,0.6)',
-                                      color: '#ff9ab0',
-                                      border: '1px solid rgba(255,150,170,0.2)',
-                                    }}
-                                  >
-                                    Você
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td
-                              className="pr-2 py-3 hidden md:table-cell"
-                              style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}
-                            >
-                              {row.specialty}
-                            </td>
-                            <td
-                              className="pr-2 py-3 hidden md:table-cell"
-                              style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}
-                            >
-                              {row.institution}
-                            </td>
-                            <td className="pr-4 py-3 text-right">
-                              <span
-                                className="text-sm font-semibold tabular-nums"
-                                style={{
-                                  color: row.isCurrentUser ? '#ffcbd8' : 'rgba(255,255,255,0.7)',
-                                }}
-                              >
-                                {row.score}%
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                      <th className="text-left w-10 px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>#</th>
+                      <th className="text-left px-2 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Candidato</th>
+                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Especialidade</th>
+                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Instituição</th>
+                      <th className="text-right px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Nota</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((row, i) => {
+                      if (isSeparator(row)) {
+                        return (
+                          <tr key={`sep-${i}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <td colSpan={5} className="px-4 py-2 text-center">
+                              <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)' }}>
+                                posições {row.from} – {row.to}
                               </span>
                             </td>
                           </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })}
+                        );
+                      }
+
+                      return (
+                        <tr
+                          key={`${row.userId}-${row.position}`}
+                          className="transition-colors"
+                          style={{
+                            background: row.isCurrentUser ? 'rgba(122,26,50,0.28)' : undefined,
+                            borderBottom:
+                              i < tableRows.length - 1
+                                ? '1px solid rgba(255,255,255,0.05)'
+                                : undefined,
+                          }}
+                        >
+                          <td className="w-10 pl-4 py-3">
+                            <PositionBadge
+                              position={row.position}
+                              isCurrentUser={row.isCurrentUser}
+                            />
+                          </td>
+                          <td className="pr-2 py-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="text-sm truncate"
+                                style={{
+                                  color: row.isCurrentUser ? '#fff' : 'rgba(255,255,255,0.7)',
+                                  fontWeight: row.isCurrentUser ? 600 : 400,
+                                }}
+                              >
+                                {participantLabel(row)}
+                              </span>
+                              {row.isCurrentUser && (
+                                <span
+                                  className="text-[0.56rem] font-bold px-1.5 py-0.5 rounded shrink-0"
+                                  style={{
+                                    background: 'rgba(122,26,50,0.6)',
+                                    color: '#ff9ab0',
+                                    border: '1px solid rgba(255,150,170,0.2)',
+                                  }}
+                                >
+                                  Você
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td
+                            className="pr-2 py-3 hidden md:table-cell"
+                            style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}
+                          >
+                            {row.specialty}
+                          </td>
+                          <td
+                            className="pr-2 py-3 hidden md:table-cell"
+                            style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}
+                          >
+                            {row.institution}
+                          </td>
+                          <td className="pr-4 py-3 text-right">
+                            <span
+                              className="text-sm font-semibold tabular-nums"
+                              style={{
+                                color: row.isCurrentUser ? '#ffcbd8' : 'rgba(255,255,255,0.7)',
+                              }}
+                            >
+                              {row.score}%
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
 
                 {/* Sticky bar */}
                 {currentUser && (
