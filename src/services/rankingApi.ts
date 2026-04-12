@@ -252,3 +252,60 @@ export function applyRankingFilters(
     .sort((a, b) => b.score - a.score)
     .map((p, i) => ({ ...p, position: i + 1 }));
 }
+
+// ─── Cutoff scores ────────────────────────────────────────────────────────────
+
+export interface CutoffScoreRow {
+  institution_name: string;
+  practice_scenario: string;
+  specialty_name: string;
+  cutoff_score_general: number;
+  cutoff_score_quota: number | null;
+}
+
+/**
+ * Fetches the cutoff score for a specific specialty + institution combination.
+ * Uses ilike for case-insensitive matching; institution uses %partial% match.
+ * Returns null when no match found or on error.
+ */
+export async function fetchCutoffScore(
+  specialty: string,
+  institution: string,
+): Promise<CutoffScoreRow | null> {
+  logger.log('[rankingApi] Fetching cutoff score');
+  const { data, error } = await supabase
+    .from('enamed_cutoff_scores')
+    .select(
+      'institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
+    )
+    .ilike('specialty_name', specialty.trim())
+    .ilike('institution_name', `%${institution.trim()}%`)
+    .maybeSingle();
+
+  if (error) {
+    logger.error('[rankingApi] Error fetching cutoff score:', error);
+    return null;
+  }
+  return data as CutoffScoreRow | null;
+}
+
+/**
+ * Fetches all cutoff score rows, ordered by institution then specialty.
+ * Used by CutoffScoreModal to display the full table.
+ */
+export async function fetchAllCutoffScores(): Promise<CutoffScoreRow[]> {
+  logger.log('[rankingApi] Fetching all cutoff scores');
+  const { data, error } = await supabase
+    .from('enamed_cutoff_scores')
+    .select(
+      'institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
+    )
+    .order('institution_name')
+    .order('specialty_name');
+
+  if (error) {
+    logger.error('[rankingApi] Error fetching all cutoff scores:', error);
+    return [];
+  }
+  return (data || []) as CutoffScoreRow[];
+}
