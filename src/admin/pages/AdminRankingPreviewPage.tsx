@@ -50,8 +50,14 @@ export default function AdminRankingPreviewPage() {
   }
 
   return (
-    <RankingView
-      loading={loading}
+    <>
+      <PageHeader
+        title="Preview do ranking"
+        subtitle="Mesma experiência do ranking público, sem depender da liberação de resultados."
+        badge="Admin"
+      />
+      <RankingView
+        loading={loading}
       simuladosWithResults={simuladosWithResults}
       selectedSimuladoId={selectedSimuladoId}
       setSelectedSimuladoId={setSelectedSimuladoId}
@@ -85,6 +91,7 @@ export default function AdminRankingPreviewPage() {
           </div>
         </div>
       }
-    />
+      />
+    </>
   )
 }
