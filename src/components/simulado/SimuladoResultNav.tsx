@@ -5,7 +5,6 @@ export type SimuladoResultNavVariant = "public" | "admin";
 
 interface SimuladoResultNavProps {
   simuladoId: string;
-  variant?: 'public' | 'admin';
   className?: string;
   /** admin: links para rotas /admin/preview/... e ranking-preview */
   variant?: SimuladoResultNavVariant;

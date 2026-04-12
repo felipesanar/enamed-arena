@@ -119,7 +119,7 @@ export default function ComparativoPage() {
           benefits={[
             "Gráfico de evolução do score entre simulados",
             "Insights automáticos (melhoria, queda, consistência)",
-            "Comparativo de grandes áreas entre simulados",
+            "Comparativo de especialidades entre simulados",
           ]}
         />
       </>
@@ -271,16 +271,16 @@ function ComparativoContent() {
       {/* Area comparison — grandes áreas entre simulados */}
       {hasAreaData && (
         <>
-          <SectionHeader title="Comparativo por grande área" />
+          <SectionHeader title="Comparativo por especialidade" />
           <PremiumCard className="p-5 md:p-6 mb-8">
             <p className="text-body-sm text-muted-foreground mb-4">
-              Veja como cada grande área variou entre os simulados.
+              Veja como cada especialidade variou entre os simulados.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left text-overline uppercase text-muted-foreground px-4 py-3">Grande Área</th>
+                    <th className="text-left text-overline uppercase text-muted-foreground px-4 py-3">Especialidade</th>
                     {sorted.map(e => (
                       <th key={e.simuladoId} className="text-center text-overline uppercase text-muted-foreground px-4 py-3">
                         #{e.sequenceNumber}
@@ -339,10 +339,10 @@ function ComparativoContent() {
 
       {!hasAreaData && (
         <>
-          <SectionHeader title="Comparativo por grande área" />
+          <SectionHeader title="Comparativo por especialidade" />
           <PremiumCard className="p-5 md:p-6 mb-8">
             <p className="text-body-sm text-muted-foreground text-center py-6">
-              O comparativo detalhado por grande área será exibido quando houver dados de área disponíveis entre simulados.
+              O comparativo detalhado por especialidade será exibido quando houver dados disponíveis entre simulados.
             </p>
           </PremiumCard>
         </>

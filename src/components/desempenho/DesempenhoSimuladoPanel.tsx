@@ -72,7 +72,7 @@ export function DesempenhoSimuladoPanel({
       <div className="bg-white px-4 py-5 md:px-5 md:py-6 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">Grande Área</p>
+            <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">Especialidade</p>
             <div className="grid grid-cols-2 gap-1.5">
               {byArea.map((area, idx) => (
                 <AreaCard
@@ -100,7 +100,7 @@ export function DesempenhoSimuladoPanel({
             </p>
             {!selectedArea ? (
               <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60 text-center px-4">
-                Selecione uma Grande Área
+                Selecione uma Especialidade
               </div>
             ) : themesForArea.length === 0 ? (
               <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60">
@@ -133,9 +133,11 @@ export function DesempenhoSimuladoPanel({
         {byArea.length > 1 && (
           <SummarySection
             bestArea={bestArea.area}
-            bestScore={bestArea.score}
+            bestCorrect={bestArea.correct}
+            bestTotal={bestArea.questions}
             worstArea={worstArea.area}
-            worstScore={worstArea.score}
+            worstCorrect={worstArea.correct}
+            worstTotal={worstArea.questions}
           />
         )}
 
@@ -159,8 +161,8 @@ function HeroSection({
   selectedSimuladoId: string | null;
   onSelectSimulado: (id: string) => void;
   overall: { percentageScore: number; totalCorrect: number; totalQuestions: number };
-  bestArea: { area: string; score: number } | null;
-  worstArea: { area: string; score: number } | null;
+  bestArea: { area: string; score: number; correct: number; questions: number } | null;
+  worstArea: { area: string; score: number; correct: number; questions: number } | null;
 }) {
   return (
     <div className="relative overflow-hidden bg-[linear-gradient(135deg,hsl(345,64%,22%)_0%,hsl(340,58%,14%)_60%,#0f111a_100%)] px-4 py-4 md:px-5 md:py-5">
@@ -188,22 +190,22 @@ function HeroSection({
 
       <div className="relative z-10 flex items-end justify-between gap-4">
         <div>
-          <p className="text-[9px] uppercase tracking-[1.5px] text-white/40 mb-1">Aproveitamento geral</p>
-          <p className="text-[40px] font-black tracking-[-2px] text-white leading-none">{overall.percentageScore}%</p>
+          <p className="text-[9px] uppercase tracking-[1.5px] text-white/40 mb-1">Total de acertos</p>
+          <p className="text-[40px] font-black tracking-[-2px] text-white leading-none">{overall.totalCorrect}/{overall.totalQuestions}</p>
           <p className="text-[10px] text-white/40 mt-1">
-            {overall.totalCorrect} de {overall.totalQuestions} questões
+            {overall.percentageScore}% de aproveitamento
           </p>
         </div>
         <div className="flex gap-2 mb-1">
           {bestArea && (
             <div className="bg-white/[0.08] border border-white/[0.12] rounded-[10px] px-3 py-1.5 text-center">
-              <p className="text-[14px] font-extrabold text-green-400 leading-none">{bestArea.score}%</p>
-              <p className="text-[7px] text-white/40 mt-1">melhor área</p>
+              <p className="text-[14px] font-extrabold text-green-400 leading-none">{bestArea.correct}/{bestArea.questions}</p>
+              <p className="text-[7px] text-white/40 mt-1">melhor espec.</p>
             </div>
           )}
           {worstArea && bestArea?.area !== worstArea.area && (
             <div className="bg-white/[0.08] border border-white/[0.12] rounded-[10px] px-3 py-1.5 text-center">
-              <p className="text-[14px] font-extrabold text-red-400 leading-none">{worstArea.score}%</p>
+              <p className="text-[14px] font-extrabold text-red-400 leading-none">{worstArea.correct}/{worstArea.questions}</p>
               <p className="text-[7px] text-white/40 mt-1">foco</p>
             </div>
           )}
@@ -246,7 +248,7 @@ function AreaCard({
       )}
     >
       <p className="text-[9px] text-muted-foreground truncate mb-1">{area}</p>
-      <p className={cn('text-[20px] font-black tracking-[-0.8px] leading-none tabular-nums', scoreColor)}>{score}%</p>
+      <p className={cn('text-[20px] font-black tracking-[-0.8px] leading-none tabular-nums', scoreColor)}>{correct}/{questions}</p>
       <p className="text-[8px] text-muted-foreground/70 mt-0.5">{correct}/{questions} questões</p>
       <div className="h-[3px] rounded-full bg-border/40 mt-1.5 overflow-hidden">
         <div className={cn('h-full rounded-full', barColor)} style={{ width: `${score}%` }} />
@@ -286,6 +288,7 @@ function ThemeAccordionRow({
           <span>{theme}</span>
         </span>
         <span className={cn('text-[12px] font-bold tabular-nums', scoreColor)}>{score}%</span>
+
       </button>
 
       <AnimatePresence initial={false}>
@@ -330,20 +333,22 @@ function ThemeAccordionRow({
 }
 
 function SummarySection({
-  bestArea, bestScore, worstArea, worstScore,
+  bestArea, bestCorrect, bestTotal, worstArea, worstCorrect, worstTotal,
 }: {
-  bestArea: string; bestScore: number; worstArea: string; worstScore: number;
+  bestArea: string; bestCorrect: number; bestTotal: number;
+  worstArea: string; worstCorrect: number; worstTotal: number;
 }) {
   return (
     <div>
       <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-3">Resumo do desempenho</p>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-xl border border-success/20 bg-success/[0.03] p-4">
           <h4 className="font-semibold flex items-center gap-2 text-success text-[12px] mb-2">
             <Star className="h-3.5 w-3.5" aria-hidden /> Onde você brilha
           </h4>
           <p className="text-[12px] text-muted-foreground">
-            {`Sua principal fortaleza foi em ${bestArea} com ${bestScore}%.`}
+            {`Sua principal fortaleza foi em ${bestArea} com ${bestCorrect}/${bestTotal} acertos.`}
           </p>
         </div>
         <div className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4">
@@ -351,7 +356,7 @@ function SummarySection({
             <TrendingDown className="h-3.5 w-3.5" aria-hidden /> Próximo foco
           </h4>
           <p className="text-[12px] text-muted-foreground">
-            {`A área com maior oportunidade é ${worstArea} com ${worstScore}%.`}
+            {`A especialidade com maior oportunidade é ${worstArea} com ${worstCorrect}/${worstTotal} acertos.`}
           </p>
         </div>
       </div>
@@ -368,7 +373,7 @@ function EvoBars({
   const lastIdx = byArea.length - 1;
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-3">Evolução por grande área</p>
+      <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-3">Evolução por especialidade</p>
       <div className="space-y-3">
         {byArea.map((area, i) => {
           const isWorst = i === lastIdx;
@@ -383,7 +388,7 @@ function EvoBars({
                   <span className="text-[12px] font-medium text-foreground">{area.area}</span>
                 </div>
                 <span className="text-[12px] font-bold text-foreground tabular-nums">
-                  {area.score}% <span className="text-[10px] font-normal text-muted-foreground">· {area.correct}/{area.questions}</span>
+                  {area.correct}/{area.questions} <span className="text-[10px] font-normal text-muted-foreground">· {area.score}%</span>
                 </span>
               </div>
               <div className="h-[6px] bg-primary/[0.08] rounded-full overflow-hidden">
