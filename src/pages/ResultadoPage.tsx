@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+
+const RING_CIRCUMFERENCE = 376.99;
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { EmptyState } from '@/components/EmptyState';
@@ -49,7 +51,22 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
       best_area: bestArea,
       segment,
     });
-  }, [loading, examState, id, questions, segment]);
+  }, [loading, examState, attempt, id, questions, segment]);
+
+  const [ringOffset, setRingOffset] = useState(RING_CIRCUMFERENCE);
+
+  useEffect(() => {
+    const pct = attempt?.score_percentage != null
+      ? Math.round(Number(attempt.score_percentage))
+      : 0;
+    const target = RING_CIRCUMFERENCE * (1 - pct / 100);
+    if (prefersReducedMotion) {
+      setRingOffset(target);
+      return;
+    }
+    const t = setTimeout(() => setRingOffset(target), 100);
+    return () => clearTimeout(t);
+  }, [attempt?.score_percentage, prefersReducedMotion]);
 
   if (loading) {
     return (
@@ -145,19 +162,6 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const hasComparativo = SEGMENT_ACCESS[segment].comparativo;
   const hasCadernoErros = SEGMENT_ACCESS[segment].cadernoErros;
 
-  const RING_CIRCUMFERENCE = 376.99
-  const ringTargetOffset = RING_CIRCUMFERENCE * (1 - officialPercentage / 100)
-  const [ringOffset, setRingOffset] = useState(RING_CIRCUMFERENCE)
-
-  useEffect(() => {
-    if (prefersReducedMotion) {
-      setRingOffset(ringTargetOffset)
-      return
-    }
-    const t = setTimeout(() => setRingOffset(ringTargetOffset), 100)
-    return () => clearTimeout(t)
-  }, [ringTargetOffset, prefersReducedMotion])
-
   return (
     <>
 
@@ -222,7 +226,7 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                 </svg>
                 {/* center text — absolute over the SVG */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <Trophy className="h-5 w-5 mb-1" style={{ color: 'rgba(255,255,255,0.45)' }} />
+                  <Trophy className="h-5 w-5 mb-1" style={{ color: 'rgba(255,255,255,0.45)' }} aria-hidden />
                   <span className="text-display font-bold leading-none tabular-nums" style={{ color: '#fff' }}>
                     {officialPercentage}%
                   </span>
@@ -274,9 +278,9 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                 ] as const).map((stat, i) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + i * 0.08 }}
+                    transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.2 + i * 0.08 }}
                     className="rounded-2xl py-3 px-1.5 text-center"
                     style={{
                       background: 'rgba(255,255,255,0.07)',
@@ -313,7 +317,7 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                       className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80' }}
                     >
-                      <Star className="h-[18px] w-[18px]" />
+                      <Star className="h-[18px] w-[18px]" aria-hidden />
                     </div>
                     <div>
                       <p className="text-caption uppercase tracking-wider font-bold mb-0.5" style={{ color: '#4ade80' }}>
@@ -335,7 +339,7 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                       className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c' }}
                     >
-                      <TrendingDown className="h-[18px] w-[18px]" />
+                      <TrendingDown className="h-[18px] w-[18px]" aria-hidden />
                     </div>
                     <div>
                       <p className="text-caption uppercase tracking-wider font-bold mb-0.5" style={{ color: '#fb923c' }}>
