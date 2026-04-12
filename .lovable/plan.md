@@ -1,69 +1,77 @@
 
 
-# Corrigir imagens ausentes no PDF offline
+# Desempenho: Números absolutos + Hierarquia Especialidade > Tema
 
-## Causa raiz
+## Resumo
 
-Analisei a Edge Function `generate-exam-pdf/index.ts` e identifiquei **3 problemas** que causam perda silenciosa de imagens:
+Duas mudancas no modulo de Desempenho:
 
-1. **Limite de tamanho muito baixo**: `MAX_IMAGE_BYTES = 800_000` (800KB). A imagem da questao 70, por exemplo, tem **2.09MB** -- e eliminada silenciosamente pelo `fetchImageWithTimeout` sem qualquer log.
+1. **% para numero absoluto** — exibir "X/Y" (acertos/total) em vez de percentual em todos os indicadores
+2. **Hierarquia Grande Area > Tema para Especialidade > Tema** — o campo `theme` no banco ja contem "Especialidade > Tema" (ex: "Hematologia > Hemostasia e Trombose"). Vamos parsear esse campo para extrair Especialidade como nivel primario e Tema como sub-nivel, eliminando o agrupamento por `area` (Grande Area)
 
-2. **Limite de 30 imagens**: `MAX_IMAGES = 30` -- se houver mais de 30 questoes com imagem, as excedentes sao descartadas via `.slice(0, MAX_IMAGES)`.
+## Dados atuais no banco
 
-3. **Falhas completamente silenciosas**: quando uma imagem e rejeitada por tamanho, timeout ou erro de embed, nada e logado. Impossivel diagnosticar qual imagem faltou.
+- `questions.area` = "Clinica Medica", "Cirurgia", "Pediatria", etc. (Grande Area)
+- `questions.theme` = "Hematologia > Hemostasia e Trombose" (ja contem Especialidade > Tema)
 
-## Plano
+## Plano de implementacao
 
-### Passo 1 -- Aumentar limites e remover cap artificial
+### 1. Atualizar `resultHelpers.ts` — parser e breakdown
 
-- `MAX_IMAGE_BYTES`: de 800KB para **5MB** (imagens medicas podem ser grandes)
-- `MAX_IMAGES`: de 30 para **150** (cobrir simulados com 100 questoes, todas com imagem)
-- `IMAGE_FETCH_TIMEOUT`: de 8s para **15s** (imagens grandes em conexoes lentas)
+- Adicionar funcao `parseThemeField(theme: string)` que retorna `{ specialty: string, subTopic: string }`
+- Mudar `computePerformanceBreakdown` para agrupar por **Especialidade** (primeira parte do theme) em vez de `area`
+- O segundo nivel (byTheme) agrupa por Tema (segunda parte do theme) dentro de cada Especialidade
+- Mudar `AreaPerformance.score` para manter `correct` e `questions` como dados primarios (score % ainda calculado internamente para barras, mas display sera absoluto)
 
-### Passo 2 -- Adicionar logging detalhado em cada ponto de falha
+### 2. Atualizar `DesempenhoSimuladoPanel.tsx` — labels e display
 
-Em `fetchImageWithTimeout`:
-- Logar quando imagem excede o limite de bytes: `"[generate-exam-pdf] Image for Q${num} skipped: ${bytes}B exceeds limit"`
-- Logar quando fetch falha ou da timeout: `"[generate-exam-pdf] Image for Q${num} fetch failed: ${reason}"`
+- Trocar label "Grande Area" por "Especialidade"
+- Trocar placeholder "Selecione uma Grande Area" por "Selecione uma Especialidade"
+- Trocar label "Temas · X" por "Temas · [Especialidade]"
+- Trocar "Evolucao por grande area" por "Evolucao por especialidade"
+- No `AreaCard`: exibir "X/Y" em vez de "score%"
+- No `ThemeAccordionRow`: exibir "X/Y" em vez de "score%"
+- No `HeroSection`: manter total de acertos "X de Y questoes" como metrica principal, remover ou secundarizar o percentual
+- No `EvoBars`: exibir "X/Y" em vez de "score%"
+- No `SummarySection`: ajustar texto para usar acertos absolutos
 
-Em `embedImage`:
-- Logar quando embed falha: `"[generate-exam-pdf] Image for Q${num} embed failed"`
+### 3. Atualizar `ComparativoPage.tsx`
 
-No loop principal (linhas 643-659):
-- Logar cada imagem processada com sucesso e cada falha
+- Trocar labels "grande area" por "especialidade"
+- Exibir acertos absolutos nas celulas da tabela
 
-### Passo 3 -- Comprimir imagens grandes com pdf-lib scale-down
+### 4. Atualizar `CadernoErrosPage.tsx`
 
-Para imagens que excedem um threshold (ex: 1500px de largura ou altura), redimensionar proporcionalmente no momento do embed. Isso reduz o tamanho do PDF sem perder qualidade visual no A4.
+- Trocar label "Grande area" por "Especialidade" no filtro
 
-- Usar `PDFImage.scale()` para calcular dimensoes proporcionais
-- Limitar a imagem renderizada a no maximo `maxImgW` pixels de largura (ja feito no render, mas o embed carrega a imagem original inteira)
+### 5. Atualizar `HomePagePremium.tsx`
 
-### Passo 4 -- Adicionar resumo final de imagens
+- Trocar "Grande area de atencao" por "Especialidade de atencao"
 
-Apos processar todas as imagens, logar um resumo:
-```
-[generate-exam-pdf] Image summary: 15 found, 14 embedded, 1 failed (Q70: size exceeded)
-```
+### 6. Atualizar `AdminUploadQuestions.tsx`
 
-Isso permite diagnosticar rapidamente qualquer problema futuro.
+- Manter mapeamento de colunas do CSV (Grande Area, Especialidade, Tema) inalterado — os dados ja sao compostos corretamente no upload
+- Trocar apenas labels de UI de "Grande Area" para "Especialidade" na tabela de preview
 
-### Passo 5 -- Remover funcao `generatePdf` morta
+### 7. Corrigir build errors pre-existentes
 
-A funcao `generatePdf` (linhas 182-281) e codigo morto -- o handler real usa `generatePdfWithDoc`. Remover para evitar confusao.
+- **`SimuladoResultNav.tsx`**: remover prop `variant` duplicada na interface
+- **`ResultadoPage.test.tsx`**: adicionar tipos explicitos para `eliminatedAlternatives`, `imageUrl`, `explanationImageUrl`, `difficulty`
+- **`rankingApi.test.ts`**: adicionar `segment` obrigatorio na funcao helper `p()`
+- **`DesempenhoPage.test.tsx`**: atualizar texto de assertions para refletir novos labels
 
-### Passo 6 -- Forcar regeneracao do PDF em cache
-
-Apos o deploy, chamar a Edge Function com `force: true` para regenerar o PDF do simulado atual, garantindo que as imagens das questoes 9 e 70 sejam incluidas.
-
-## Arquivos alterados
+### Arquivos editados
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `supabase/functions/generate-exam-pdf/index.ts` | Aumentar limites, logging, remover dead code |
-
-## Riscos
-
-- **CPU Time limit**: aumentar limites pode estourar o tempo de CPU da Edge Function com muitas imagens grandes. Mitigacao: manter timeout por imagem e processar sequencialmente em vez de `Promise.allSettled` para controlar uso de memoria.
-- **Tamanho do PDF**: com mais imagens, o PDF pode ficar grande (>20MB). Aceitavel para download offline.
+| `src/lib/resultHelpers.ts` | Parser de theme, agrupamento por especialidade |
+| `src/components/desempenho/DesempenhoSimuladoPanel.tsx` | Labels + display absoluto |
+| `src/pages/ComparativoPage.tsx` | Labels especialidade |
+| `src/pages/CadernoErrosPage.tsx` | Label filtro |
+| `src/components/premium/home/HomePagePremium.tsx` | Label card |
+| `src/admin/pages/AdminUploadQuestions.tsx` | Labels preview |
+| `src/components/simulado/SimuladoResultNav.tsx` | Fix duplicate variant |
+| `src/pages/ResultadoPage.test.tsx` | Fix implicit any |
+| `src/services/rankingApi.test.ts` | Fix missing segment |
+| `src/pages/DesempenhoPage.test.tsx` | Update assertions |
 
