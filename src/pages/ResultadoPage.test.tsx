@@ -37,8 +37,8 @@ const mockSimulado = {
 const mockExamState = {
   status: 'submitted',
   answers: {
-    'q1': { selectedOption: 'o1b', markedForReview: false, highConfidence: false, eliminatedAlternatives: [] },
-    'q2': { selectedOption: 'o2a', markedForReview: false, highConfidence: false, eliminatedAlternatives: [] },
+    'q1': { selectedOption: 'o1b', markedForReview: false, highConfidence: false, eliminatedAlternatives: [] as string[] },
+    'q2': { selectedOption: 'o2a', markedForReview: false, highConfidence: false, eliminatedAlternatives: [] as string[] },
   },
   startedAt: '2025-11-01T10:00:00Z',
   tabExitCount: 0,
@@ -56,8 +56,8 @@ const mockAttempt = {
 const mockQuestions = [
   {
     id: 'q1', number: 1, area: 'Clínica Médica', theme: 'Cardiologia',
-    text: 'Questão 1', imageUrl: null, explanation: 'Explicação 1',
-    explanationImageUrl: null, difficulty: null, correctOptionId: 'o1b',
+    text: 'Questão 1', imageUrl: null as string | null, explanation: 'Explicação 1',
+    explanationImageUrl: null as string | null, difficulty: null as string | null, correctOptionId: 'o1b',
     options: [
       { id: 'o1a', label: 'A', text: 'Alt A' },
       { id: 'o1b', label: 'B', text: 'Alt B' },
@@ -65,8 +65,8 @@ const mockQuestions = [
   },
   {
     id: 'q2', number: 2, area: 'Cirurgia', theme: 'Trauma',
-    text: 'Questão 2', imageUrl: null, explanation: 'Explicação 2',
-    explanationImageUrl: null, difficulty: null, correctOptionId: 'o2b',
+    text: 'Questão 2', imageUrl: null as string | null, explanation: 'Explicação 2',
+    explanationImageUrl: null as string | null, difficulty: null as string | null, correctOptionId: 'o2b',
     options: [
       { id: 'o2a', label: 'A', text: 'Alt A' },
       { id: 'o2b', label: 'B', text: 'Alt B' },
