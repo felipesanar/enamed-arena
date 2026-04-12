@@ -272,7 +272,7 @@ function CadernoContent({ userId }: { userId: string }) {
         <div className="space-y-4">
           {/* Area filter */}
           <div>
-            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><Stethoscope className="h-3.5 w-3.5" /> Grande área</p>
+            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><Stethoscope className="h-3.5 w-3.5" /> Especialidade</p>
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => handleAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas</button>
               {areas.map(area => (

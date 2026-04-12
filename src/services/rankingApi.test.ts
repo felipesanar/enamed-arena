@@ -43,9 +43,9 @@ describe('normalizeRankingFilterValue', () => {
 describe('applyRankingFilters — mesma especialidade', () => {
   it('inclui todos com a mesma especialidade após normalização, sem filtrar por instituição', () => {
     const list = [
-      p({ userId: 'a', specialty: 'Pediatria', institution: 'UFBA', score: 90 }),
-      p({ userId: 'b', specialty: ' pediatria ', institution: 'USP', score: 85 }),
-      p({ userId: 'c', specialty: 'Cirurgia', institution: 'UFBA', score: 80 }),
+      p({ userId: 'a', segment: 'guest', specialty: 'Pediatria', institution: 'UFBA', score: 90 }),
+      p({ userId: 'b', segment: 'guest', specialty: ' pediatria ', institution: 'USP', score: 85 }),
+      p({ userId: 'c', segment: 'guest', specialty: 'Cirurgia', institution: 'UFBA', score: 80 }),
     ];
     const out = applyRankingFilters(
       list,
@@ -59,7 +59,7 @@ describe('applyRankingFilters — mesma especialidade', () => {
 
   it('modo especialidade não exige que a instituição do participante coincida com a do usuário', () => {
     const list = [
-      p({ userId: 'a', specialty: 'Pediatria', institution: 'USP', score: 70 }),
+      p({ userId: 'a', segment: 'guest', specialty: 'Pediatria', institution: 'USP', score: 70 }),
     ];
     const out = applyRankingFilters(
       list,
@@ -73,9 +73,9 @@ describe('applyRankingFilters — mesma especialidade', () => {
 
   it('especialidade + instituição aplica os dois critérios (E lógico)', () => {
     const list = [
-      p({ userId: 'a', specialty: 'Pediatria', institution: 'UFBA', score: 90 }),
-      p({ userId: 'b', specialty: 'Pediatria', institution: 'USP', score: 85 }),
-      p({ userId: 'c', specialty: 'Cirurgia', institution: 'UFBA', score: 80 }),
+      p({ userId: 'a', segment: 'guest', specialty: 'Pediatria', institution: 'UFBA', score: 90 }),
+      p({ userId: 'b', segment: 'guest', specialty: 'Pediatria', institution: 'USP', score: 85 }),
+      p({ userId: 'c', segment: 'guest', specialty: 'Cirurgia', institution: 'UFBA', score: 80 }),
     ];
     const out = applyRankingFilters(
       list,

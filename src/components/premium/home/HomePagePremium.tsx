@@ -723,15 +723,15 @@ function KpiGridSection({
     },
     {
       key: "ranking",
-      title: "Grande área de atenção",
+      title: "Especialidade de atenção",
       value: worstArea ?? "—",
       hint:
         worstArea !== null
-          ? "Sugerido com base no seu último desempenho por área."
+          ? "Sugerido com base no seu último desempenho por especialidade."
           : "Complete um simulado para ver onde investir estudo.",
-      footnote: "Abrir análise por área",
+      footnote: "Abrir análise por especialidade",
       valueKind: "text" as const,
-      ariaLabel: `Grande área de atenção: ${worstArea ?? "sem dados ainda"}`,
+      ariaLabel: `Especialidade de atenção: ${worstArea ?? "sem dados ainda"}`,
       to: "/desempenho",
       icon: AlertTriangle,
       locked: false,

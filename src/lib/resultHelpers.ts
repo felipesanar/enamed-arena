@@ -90,45 +90,59 @@ export function computeSimuladoScore(
   };
 }
 
+/**
+ * Parse the `theme` field which contains "Especialidade > Tema".
+ * Returns { specialty, subTopic }.
+ */
+export function parseThemeField(theme: string): { specialty: string; subTopic: string } {
+  const parts = theme.split('>').map(p => p.trim());
+  return {
+    specialty: parts[0] || 'Sem Especialidade',
+    subTopic: parts[1] || 'Geral',
+  };
+}
+
 export function computePerformanceBreakdown(
   state: ExamState,
   questions: Question[],
 ): PerformanceBreakdown {
   const overall = computeSimuladoScore(state, questions);
 
-  // Group by area
-  const areaMap = new Map<string, { total: number; correct: number }>();
+  // Group by specialty (first part of theme field) instead of area
+  const specialtyMap = new Map<string, { total: number; correct: number }>();
   overall.questionResults.forEach(r => {
-    const entry = areaMap.get(r.area) || { total: 0, correct: 0 };
+    const { specialty } = parseThemeField(r.theme);
+    const entry = specialtyMap.get(specialty) || { total: 0, correct: 0 };
     entry.total++;
     if (r.isCorrect) entry.correct++;
-    areaMap.set(r.area, entry);
+    specialtyMap.set(specialty, entry);
   });
 
-  const byArea: AreaPerformance[] = Array.from(areaMap.entries())
-    .map(([area, data]) => ({
-      area,
+  const byArea: AreaPerformance[] = Array.from(specialtyMap.entries())
+    .map(([specialty, data]) => ({
+      area: specialty,
       score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
       questions: data.total,
       correct: data.correct,
     }))
     .sort((a, b) => b.score - a.score);
 
-  // Group by theme
+  // Group by sub-topic (second part of theme) within each specialty
   const themeMap = new Map<string, { area: string; total: number; correct: number }>();
   overall.questionResults.forEach(r => {
-    const key = `${r.area}::${r.theme}`;
-    const entry = themeMap.get(key) || { area: r.area, total: 0, correct: 0 };
+    const { specialty, subTopic } = parseThemeField(r.theme);
+    const key = `${specialty}::${subTopic}`;
+    const entry = themeMap.get(key) || { area: specialty, total: 0, correct: 0 };
     entry.total++;
     if (r.isCorrect) entry.correct++;
     themeMap.set(key, entry);
   });
 
   const byTheme: ThemePerformance[] = Array.from(themeMap.entries()).map(([key, data]) => {
-    const [area, theme] = key.split('::');
+    const [specialty, subTopic] = key.split('::');
     return {
-      theme: theme || area,
-      area,
+      theme: subTopic || specialty,
+      area: specialty,
       total: data.total,
       correct: data.correct,
       score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
