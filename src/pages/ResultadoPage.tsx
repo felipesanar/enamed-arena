@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
 import { UpgradeBanner } from '@/components/UpgradeBanner';
 import { SkeletonCard } from '@/components/SkeletonCard';
@@ -14,8 +13,8 @@ import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import {
-  Trophy, CheckCircle2, XCircle, Target, BarChart3,
-  FileText, ArrowLeft, Clock, Star, TrendingDown,
+  Trophy, CheckCircle2, XCircle, MinusCircle, ClipboardCheck,
+  BarChart3, FileText, ArrowLeft, Star, TrendingDown,
 } from 'lucide-react';
 
 interface ResultadoPageProps {
@@ -241,43 +240,121 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                 {' '}questões corretas
               </p>
             </div>
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {([
+                  {
+                    label: 'Acertos',
+                    value: officialCorrect,
+                    iconBg: 'rgba(34,197,94,0.15)',
+                    iconColor: '#4ade80',
+                    icon: <CheckCircle2 className="h-4 w-4" />,
+                  },
+                  {
+                    label: 'Erros',
+                    value: officialIncorrect,
+                    iconBg: 'rgba(239,68,68,0.15)',
+                    iconColor: '#f87171',
+                    icon: <XCircle className="h-4 w-4" />,
+                  },
+                  {
+                    label: 'Em branco',
+                    value: officialUnanswered,
+                    iconBg: 'rgba(255,255,255,0.08)',
+                    iconColor: 'rgba(255,255,255,0.4)',
+                    icon: <MinusCircle className="h-4 w-4" />,
+                  },
+                  {
+                    label: 'Respondidas',
+                    value: officialAnswered,
+                    iconBg: 'rgba(99,179,237,0.15)',
+                    iconColor: '#7dd3fc',
+                    icon: <ClipboardCheck className="h-4 w-4" />,
+                  },
+                ] as const).map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + i * 0.08 }}
+                    className="rounded-2xl py-3 px-1.5 text-center"
+                    style={{
+                      background: 'rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-[9px] flex items-center justify-center mx-auto mb-2"
+                      style={{ background: stat.iconBg, color: stat.iconColor }}
+                    >
+                      {stat.icon}
+                    </div>
+                    <p className="text-heading-2 leading-none mb-1" style={{ color: '#fff' }}>
+                      {stat.value}
+                    </p>
+                    <p className="text-caption uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      {stat.label}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 -4px 16px' }} />
+
+              {/* Highlights */}
+              {byArea.length > 1 && (
+                <div className="grid grid-cols-2 gap-2.5 mb-6">
+                  <div
+                    className="rounded-2xl p-3.5 flex items-center gap-2.5"
+                    style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80' }}
+                    >
+                      <Star className="h-[18px] w-[18px]" />
+                    </div>
+                    <div>
+                      <p className="text-caption uppercase tracking-wider font-bold mb-0.5" style={{ color: '#4ade80' }}>
+                        Ponto forte
+                      </p>
+                      <p className="text-body font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                        {bestArea.area}
+                      </p>
+                      <p className="text-caption" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {bestArea.correct}/{bestArea.questions} · {bestArea.score}%
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="rounded-2xl p-3.5 flex items-center gap-2.5"
+                    style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.2)' }}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c' }}
+                    >
+                      <TrendingDown className="h-[18px] w-[18px]" />
+                    </div>
+                    <div>
+                      <p className="text-caption uppercase tracking-wider font-bold mb-0.5" style={{ color: '#fb923c' }}>
+                        Oportunidade
+                      </p>
+                      <p className="text-body font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                        {worstArea.area}
+                      </p>
+                      <p className="text-caption" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {worstArea.correct}/{worstArea.questions} · {worstArea.score}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       </motion.div>
-
-      {/* Performance highlights */}
-      {byArea.length > 1 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <PremiumCard delay={0.1} className="p-5 border-success/20 bg-success/[0.02]">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
-                <Star className="h-[18px] w-[18px] text-success" />
-              </div>
-              <div>
-                <p className="text-overline uppercase text-success">Ponto forte</p>
-                <p className="text-body font-semibold text-foreground">{bestArea.area}</p>
-              </div>
-            </div>
-            <p className="text-body-sm text-muted-foreground">
-              {bestArea.correct}/{bestArea.questions} questões corretas — <strong className="text-foreground">{bestArea.score}%</strong>
-            </p>
-          </PremiumCard>
-          <PremiumCard delay={0.15} className="p-5 border-destructive/20 bg-destructive/[0.02]">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <TrendingDown className="h-[18px] w-[18px] text-destructive" />
-              </div>
-              <div>
-                <p className="text-overline uppercase text-destructive">Oportunidade</p>
-                <p className="text-body font-semibold text-foreground">{worstArea.area}</p>
-              </div>
-            </div>
-            <p className="text-body-sm text-muted-foreground">
-              {worstArea.correct}/{worstArea.questions} questões corretas — <strong className="text-foreground">{worstArea.score}%</strong>
-            </p>
-          </PremiumCard>
-        </div>
-      )}
 
       {!hasCadernoErros && (
         <div className="mb-8">

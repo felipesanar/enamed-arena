@@ -151,3 +151,25 @@ describe('ResultadoPage — hero card', () => {
     expect(screen.getByRole('img', { name: /31%.*aproveitamento/i })).toBeTruthy()
   })
 })
+
+describe('ResultadoPage — stat cards', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('exibe os 4 stat cards com labels', () => {
+    renderPage()
+    expect(screen.getByText('Acertos')).toBeTruthy()
+    expect(screen.getByText('Erros')).toBeTruthy()
+    expect(screen.getByText('Em branco')).toBeTruthy()
+    expect(screen.getByText('Respondidas')).toBeTruthy()
+  })
+})
+
+describe('ResultadoPage — highlights', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('exibe Ponto forte e Oportunidade quando há mais de 1 área', () => {
+    renderPage()
+    expect(screen.getByText('Ponto forte')).toBeTruthy()
+    expect(screen.getByText('Oportunidade')).toBeTruthy()
+  })
+})
