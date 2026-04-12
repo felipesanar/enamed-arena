@@ -279,6 +279,36 @@ export type Database = {
           },
         ]
       }
+      enamed_cutoff_scores: {
+        Row: {
+          created_at: string
+          cutoff_score_general: number
+          cutoff_score_quota: number | null
+          id: string
+          institution_name: string
+          practice_scenario: string
+          specialty_name: string
+        }
+        Insert: {
+          created_at?: string
+          cutoff_score_general: number
+          cutoff_score_quota?: number | null
+          id?: string
+          institution_name: string
+          practice_scenario?: string
+          specialty_name: string
+        }
+        Update: {
+          created_at?: string
+          cutoff_score_general?: number
+          cutoff_score_quota?: number | null
+          id?: string
+          institution_name?: string
+          practice_scenario?: string
+          specialty_name?: string
+        }
+        Relationships: []
+      }
       enamed_institutions: {
         Row: {
           created_at: string
