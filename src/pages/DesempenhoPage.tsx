@@ -39,13 +39,21 @@ export default function DesempenhoPage() {
     }
   }, [simuladosWithResults, selectedSimuladoId]);
 
-  const { questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined, true);
-  const { examState, loading: loadingExam } = useExamResult(selectedSimuladoId || undefined);
+  const { questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined);
+  const { examState, attemptQuestionResults, loading: loadingExam } = useExamResult(selectedSimuladoId || undefined);
+
+  const performanceQuestions = useMemo(
+    () => questions.map((question) => ({
+      ...question,
+      correctOptionId: attemptQuestionResults[question.id]?.correct_option_id ?? '',
+    })),
+    [questions, attemptQuestionResults],
+  );
 
   const breakdown = useMemo<PerformanceBreakdown | null>(() => {
-    if (!examState || (examState.status !== 'submitted' && examState.status !== 'expired') || !questions.length) return null;
-    return computePerformanceBreakdown(examState, questions);
-  }, [examState, questions]);
+    if (!examState || (examState.status !== 'submitted' && examState.status !== 'expired') || !performanceQuestions.length) return null;
+    return computePerformanceBreakdown(examState, performanceQuestions);
+  }, [examState, performanceQuestions]);
 
   const loading = loadingSimulados || loadingDetail || loadingExam;
 

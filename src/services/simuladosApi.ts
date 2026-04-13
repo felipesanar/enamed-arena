@@ -215,12 +215,9 @@ export const simuladosApi = {
     if (questions.length === 0) return [];
 
     const questionIds = questions.map(q => q.id);
-    const optionSelect = includeCorrectAnswers
-      ? 'id, question_id, label, text, is_correct'
-      : 'id, question_id, label, text';
     const { data: optionsData, error: optionsError } = await supabase
       .from('question_options')
-      .select(optionSelect)
+      .select('id, question_id, label, text')
       .in('question_id', questionIds);
 
     if (optionsError) {
