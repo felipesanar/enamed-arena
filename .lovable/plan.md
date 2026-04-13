@@ -1,40 +1,40 @@
 
 
-# Fix: ResultadoPage UI — better sizing, centering, and responsiveness
+# Fix: DesempenhoPage data + layout
 
-## Problems
-1. **Card too wide** — no `max-width`, stretches to full container width (can be 900px+)
-2. **Not centered** — content fills available space without centering
-3. **Ring too small relative to card** — at full width the 140px ring looks lost
-4. **Stat cards only 3 columns** — spec had 4 (with "Respondidas"), but even 3 cols stretch too wide
-5. **No vertical centering** — page doesn't feel like a "moment" screen
-6. **Mobile: padding and proportions** — card padding too large on small screens
+## Problem 1: All scores show 0 (CRITICAL)
 
-## Plan
+**Root cause**: `rowsToQuestion()` in `simuladosApi.ts` always sets `correctOptionId: ''` (line 150). It never fetches `is_correct` from `question_options`. So `computePerformanceBreakdown` compares user answers against `''` and everything shows as incorrect.
 
-### Step 1: Constrain and center the hero card
-- Wrap the entire content in a centered container: `max-w-md mx-auto` (448px max)
-- This makes the card feel intentional and focused, matching the emotional "reveal" moment
+Additionally, `getQuestions()` only selects `id, question_id, label, text` from `question_options` — missing the `is_correct` column.
 
-### Step 2: Responsive padding
-- Card inner padding: `px-5 pt-7 pb-5 sm:px-7 sm:pt-9 sm:pb-7`
-- CTA footer: adjust negative margins to match
+The DesempenhoPage calls `useSimuladoDetail()` without `includeCorrectAnswers=true`, and even if it did, the function ignores that flag.
 
-### Step 3: Ring sizing
-- Keep 140px on desktop, reduce to 120px on mobile via responsive classes
+**Fix**:
+1. **`src/services/simuladosApi.ts`**: 
+   - Add `is_correct` to `QuestionOptionRow` interface
+   - In `getQuestions()`, when `includeCorrectAnswers=true`, select `is_correct` from `question_options`
+   - In `rowsToQuestion()`, when `includeCorrectAnswers=true`, find the option with `is_correct=true` and set `correctOptionId` to its `id`
 
-### Step 4: Stat cards grid
-- Keep 3 columns but they'll look proportional within the narrower card
-- Reduce gap slightly on mobile
+2. **`src/pages/DesempenhoPage.tsx`**: Call `useSimuladoDetail(selectedSimuladoId, true)` to request correct answers
 
-### Step 5: CTA section
-- Adjust negative margins for responsive padding changes
+## Problem 2: Layout — card should be full-width
 
-### Step 6: Add "Voltar" link below the card
-- Subtle back link to `/simulados` below the card for navigation
+**Current**: `DesempenhoSimuladoPanel` is a rounded card (`rounded-[22px]`) centered in the page, with `PageHeader` outside it.
 
-## File to edit
+**Fix in `src/pages/DesempenhoPage.tsx`**: Remove `PageHeader` and pass title info into the panel.
+
+**Fix in `src/components/desempenho/DesempenhoSimuladoPanel.tsx`**:
+- Remove the outer `rounded-[22px]` border/shadow wrapper — make it full-width
+- Move the page title ("Desempenho" / "Sua evolução por área e tema.") into the hero header section
+- The hero gradient becomes the page header, spanning full width
+- The white content area below also spans full width (no rounded corners on the outer container)
+
+## Files to edit
+
 | File | Change |
 |------|--------|
-| `src/pages/ResultadoPage.tsx` | Add max-width wrapper, responsive padding, ring sizing |
+| `src/services/simuladosApi.ts` | Add `is_correct` to option row type + query; use it in `rowsToQuestion` when flag is true |
+| `src/pages/DesempenhoPage.tsx` | Pass `includeCorrectAnswers=true` to hook; remove `PageHeader`; remove it from skeleton/empty states too or integrate into panel |
+| `src/components/desempenho/DesempenhoSimuladoPanel.tsx` | Remove rounded card wrapper; integrate page title into hero header; make layout full-width |
 
