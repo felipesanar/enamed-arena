@@ -64,7 +64,7 @@ export function DesempenhoSimuladoPanel({
       initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[22px] overflow-hidden border border-white/[0.07] shadow-[0_20px_40px_-16px_rgba(142,31,61,0.25),0_6px_16px_-8px_rgba(0,0,0,0.08)]"
+      className="overflow-hidden"
     >
       <HeroSection
         simuladosWithResults={simuladosWithResults}
@@ -267,6 +267,12 @@ function HeroSection({
   return (
     <div className="relative overflow-hidden bg-[linear-gradient(135deg,hsl(345,64%,22%)_0%,hsl(340,58%,14%)_60%,#0f111a_100%)] px-4 py-4 md:px-5 md:py-5">
       <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[hsl(345,72%,48%)] blur-[60px] opacity-25" />
+
+      <div className="mb-3">
+        <span className="text-[9px] uppercase tracking-[1.5px] text-white/40 font-bold block mb-1">Análise de Performance</span>
+        <h1 className="text-[22px] font-bold text-white leading-tight">Desempenho</h1>
+        <p className="text-[11px] text-white/40 mt-0.5">Sua evolução por área e tema.</p>
+      </div>
 
       {simuladosWithResults.length > 1 && (
         <div className="flex gap-1.5 mb-3 overflow-x-auto scrollbar-none pb-0.5">

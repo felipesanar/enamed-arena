@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { PageTransition } from '@/components/premium/PageTransition';
-import { PageHeader } from '@/components/PageHeader';
+
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { DesempenhoSimuladoPanel } from '@/components/desempenho/DesempenhoSimuladoPanel';
@@ -39,7 +39,7 @@ export default function DesempenhoPage() {
     }
   }, [simuladosWithResults, selectedSimuladoId]);
 
-  const { questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined);
+  const { questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined, true);
   const { examState, loading: loadingExam } = useExamResult(selectedSimuladoId || undefined);
 
   const breakdown = useMemo<PerformanceBreakdown | null>(() => {
@@ -51,37 +51,29 @@ export default function DesempenhoPage() {
 
   if (loading && !breakdown) {
     return (
-      <>
-        <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
-        <div className="space-y-3">
-          <SkeletonCard className="h-[140px] rounded-[22px] bg-primary/[0.06]" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <SkeletonCard className="h-[280px]" />
-            <SkeletonCard className="h-[280px]" />
-          </div>
-          <SkeletonCard className="h-[160px]" />
+      <div className="space-y-3">
+        <SkeletonCard className="h-[140px] rounded-[22px] bg-primary/[0.06]" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <SkeletonCard className="h-[280px]" />
+          <SkeletonCard className="h-[280px]" />
         </div>
-      </>
+        <SkeletonCard className="h-[160px]" />
+      </div>
     );
   }
 
   if (simuladosWithResults.length === 0 || !breakdown) {
     return (
-      <>
-        <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
-        <EmptyState
-          icon={BarChart3}
-          title="Sem dados de desempenho"
-          description="Complete um simulado e aguarde a liberação do resultado para ver sua análise de desempenho."
-        />
-      </>
+      <EmptyState
+        icon={BarChart3}
+        title="Sem dados de desempenho"
+        description="Complete um simulado e aguarde a liberação do resultado para ver sua análise de desempenho."
+      />
     );
   }
 
   return (
     <PageTransition>
-      <PageHeader title="Desempenho" subtitle="Sua evolução por área e tema." badge="Análise de Performance" />
-
       <DesempenhoSimuladoPanel
         simuladosWithResults={simuladosWithResults}
         selectedSimuladoId={selectedSimuladoId}

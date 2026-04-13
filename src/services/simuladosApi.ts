@@ -43,6 +43,7 @@ export interface QuestionOptionRow {
   question_id: string;
   label: string;
   text: string;
+  is_correct?: boolean;
 }
 
 export interface AttemptRow {
@@ -132,6 +133,12 @@ function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
 }
 
 function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], includeCorrectAnswers = false): Question {
+  const qOptions = optionRows
+    .filter(o => o.question_id === qRow.id)
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const correctOption = includeCorrectAnswers ? qOptions.find(o => o.is_correct) : undefined;
+
   return {
     id: qRow.id,
     number: qRow.question_number,
@@ -141,13 +148,8 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
     difficulty: qRow.difficulty ?? null,
     imageUrl: qRow.image_url ?? null,
     explanationImageUrl: qRow.explanation_image_url ?? null,
-    options: optionRows
-      .filter(o => o.question_id === qRow.id)
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map(o => ({ id: o.id, label: o.label, text: o.text })),
-    // The answer key is never fetched from question_options on the client.
-    // Correction pages load correct option IDs from attempt_question_results.
-    correctOptionId: '',
+    options: qOptions.map(o => ({ id: o.id, label: o.label, text: o.text })),
+    correctOptionId: correctOption?.id ?? '',
     explanation: qRow.explanation || undefined,
   };
 }
@@ -213,9 +215,12 @@ export const simuladosApi = {
     if (questions.length === 0) return [];
 
     const questionIds = questions.map(q => q.id);
+    const optionSelect = includeCorrectAnswers
+      ? 'id, question_id, label, text, is_correct'
+      : 'id, question_id, label, text';
     const { data: optionsData, error: optionsError } = await supabase
       .from('question_options')
-      .select('id, question_id, label, text')
+      .select(optionSelect)
       .in('question_id', questionIds);
 
     if (optionsError) {
