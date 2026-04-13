@@ -85,6 +85,9 @@ export function buildTableRows(
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const PILL_TRANSITION =
+  'background 0.22s cubic-bezier(0.34,1.56,0.64,1), border-color 0.22s cubic-bezier(0.34,1.56,0.64,1), color 0.18s ease, box-shadow 0.2s ease';
+
 const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.ElementType }> = [
   { key: 'all', label: 'Todos', icon: Globe },
   { key: 'sanarflix', label: 'SanarFlix', icon: Users },
@@ -242,7 +245,10 @@ export function RankingView({
 
   const handleToggleSpecialtyComparison = () => {
     if (!userSpecialty) return;
-    applyComparisonUpdate({ ...rankingComparison, bySpecialty: !rankingComparison.bySpecialty });
+    const next = { ...rankingComparison, bySpecialty: !rankingComparison.bySpecialty };
+    // When turning specialty off, also clear institution (institution pill becomes hidden)
+    if (!next.bySpecialty) next.byInstitution = false;
+    applyComparisonUpdate(next);
   };
 
   const handleToggleInstitutionComparison = () => {
@@ -416,16 +422,12 @@ export function RankingView({
     tableSpecialty: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
     tableSeparator: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)',
     filterLabel: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)',
-    filterActiveText: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)',
   };
 
   const triggerShimmer = (id: string) => {
     setShimmeringPillId(id);
     setTimeout(() => setShimmeringPillId((cur) => (cur === id ? null : cur)), 750);
   };
-
-  const PILL_TRANSITION =
-    'background 0.22s cubic-bezier(0.34,1.56,0.64,1), border-color 0.22s cubic-bezier(0.34,1.56,0.64,1), color 0.18s ease, box-shadow 0.2s ease';
 
   const getPillStyle = (isActive: boolean, isPro = false): React.CSSProperties => {
     if (isActive)
@@ -1003,6 +1005,7 @@ export function RankingView({
                         handleSegmentFilterChange(f.key);
                       }}
                       aria-pressed={segmentFilter === f.key}
+                      aria-label={f.label}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
                       style={getPillStyle(segmentFilter === f.key, f.key === 'pro' && segmentFilter !== f.key)}
                       data-shimmer={shimmeringPillId === `seg-${f.key}` ? '1' : undefined}
