@@ -12,7 +12,6 @@ export function exportQuestionRankingXlsx(
     'Tema': s.theme,
     '% Acerto': s.correct_rate,
     'Total Respostas': s.total_responses,
-    'Índ. Discriminação': s.discrimination_index,
     'Alt. Errada Mais Comum': s.most_common_wrong_label ?? '—',
     '% Alt. Errada': s.most_common_wrong_pct ?? '',
   }))
@@ -26,7 +25,6 @@ export function exportQuestionRankingXlsx(
     { wch: 30 },  // Tema
     { wch: 10 },  // % Acerto
     { wch: 15 },  // Total Respostas
-    { wch: 18 },  // Índ. Discriminação
     { wch: 22 },  // Alt. Errada
     { wch: 12 },  // % Alt. Errada
   ]
