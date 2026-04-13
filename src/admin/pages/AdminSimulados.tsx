@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Upload, Trash2, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Upload, Trash2, BarChart3, Download } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { useAdminSimuladoEngagementMap } from '@/admin/hooks/useAdminSimuladosAnalytics';
+import { exportQuestionRankingXlsx } from '@/admin/utils/exportQuestionRanking';
 import { toast } from '@/hooks/use-toast';
 
 interface SimuladoListItem {
@@ -42,6 +43,17 @@ export default function AdminSimulados() {
       load();
     } catch (err: any) {
       toast({ title: 'Erro ao deletar', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleExportXlsx = async (id: string, title: string) => {
+    try {
+      toast({ title: 'Gerando planilha…' });
+      const stats = await adminApi.getSimuladoQuestionStats(id);
+      exportQuestionRankingXlsx(stats, title);
+      toast({ title: 'Download iniciado!' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao exportar', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -126,6 +138,16 @@ export default function AdminSimulados() {
                   })()}
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Exportar XLSX"
+                        className="h-8 w-8"
+                        disabled={!engagementMap?.get(s.id)?.participants}
+                        onClick={() => handleExportXlsx(s.id, s.title)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
