@@ -64,7 +64,7 @@ export function DesempenhoSimuladoPanel({
       initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top,0px))] md:pt-0"
+      className="overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top,0px))] md:pt-0 p-2 md:p-3"
     >
       <HeroSection
         simuladosWithResults={simuladosWithResults}
@@ -265,7 +265,7 @@ function HeroSection({
   worstArea: { area: string; score: number; correct: number; questions: number } | null;
 }) {
   return (
-    <div className="relative overflow-hidden bg-[linear-gradient(135deg,#421424_0%,hsl(340,58%,14%)_50%,#0f111a_100%)] px-4 py-4 md:px-5 md:py-5">
+    <div className="relative overflow-hidden bg-[linear-gradient(135deg,#421424_0%,hsl(340,58%,14%)_50%,#0f111a_100%)] px-5 py-6 md:px-8 md:py-8 rounded-[22px] md:rounded-[28px]">
       <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[hsl(345,72%,48%)] blur-[60px] opacity-25" />
 
       <div className="mb-3">
