@@ -10,12 +10,12 @@ import React, {
   type SetStateAction,
 } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import {
   Trophy,
-  Filter,
   Users,
   Stethoscope,
   Building,
@@ -87,8 +87,8 @@ export function buildTableRows(
 
 const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.ElementType }> = [
   { key: 'all', label: 'Todos', icon: Globe },
-  { key: 'sanarflix', label: 'Aluno SanarFlix padrão', icon: Users },
-  { key: 'pro', label: 'Aluno PRO', icon: Crown },
+  { key: 'sanarflix', label: 'SanarFlix', icon: Users },
+  { key: 'pro', label: 'PRO', icon: Crown },
 ];
 
 // ─── PositionBadge ────────────────────────────────────────────────────────────
@@ -213,6 +213,7 @@ export function RankingView({
   }, []);
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
   const [cutoffModalOpen, setCutoffModalOpen] = useState(false);
+  const [shimmeringPillId, setShimmeringPillId] = useState<string | null>(null);
 
   // Must be called unconditionally (Rules of Hooks)
   const { loading: cutoffLoading, cutoff } = useCutoffScore(
@@ -416,6 +417,42 @@ export function RankingView({
     tableSeparator: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)',
     filterLabel: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)',
     filterActiveText: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)',
+  };
+
+  const triggerShimmer = (id: string) => {
+    setShimmeringPillId(id);
+    setTimeout(() => setShimmeringPillId((cur) => (cur === id ? null : cur)), 750);
+  };
+
+  const PILL_TRANSITION =
+    'background 0.22s cubic-bezier(0.34,1.56,0.64,1), border-color 0.22s cubic-bezier(0.34,1.56,0.64,1), color 0.18s ease, box-shadow 0.2s ease';
+
+  const getPillStyle = (isActive: boolean, isPro = false): React.CSSProperties => {
+    if (isActive)
+      return {
+        background: 'linear-gradient(135deg, #8b1a35 0%, #5c1225 100%)',
+        border: '1px solid rgba(255,150,170,0.2)',
+        color: '#fff',
+        boxShadow: '0 4px 14px rgba(122,26,50,0.35), inset 0 1px 0 rgba(255,255,255,0.12)',
+        transition: PILL_TRANSITION,
+        position: 'relative',
+        overflow: 'hidden',
+      };
+    if (isPro)
+      return {
+        background: 'rgba(196,181,253,0.08)',
+        border: '1px solid rgba(196,181,253,0.2)',
+        color: '#c4b5fd',
+        transition: PILL_TRANSITION,
+        position: 'relative',
+        overflow: 'hidden',
+      };
+    return {
+      ...t.chipInactive,
+      transition: PILL_TRANSITION,
+      position: 'relative',
+      overflow: 'hidden',
+    };
   };
 
   return (
@@ -841,181 +878,179 @@ export function RankingView({
             <>
               {/* ── Filter bar ────────────────────────────────────────────── */}
               <div
-                className="p-4 mb-4 rounded-[15px]"
-                style={{
-                  background: t.surfaceBg,
-                  border: t.surfaceBorder,
-                }}
+                className="px-4 py-3.5 mb-4 rounded-[15px]"
+                style={{ background: t.surfaceBg, border: t.surfaceBorder }}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <Filter
-                    className="h-4 w-4"
-                    style={{ color: t.text3 }}
+                <div className="flex flex-wrap items-center gap-2">
+
+                  {/* ─ Comparar group ─ */}
+                  <span
+                    className="shrink-0 whitespace-nowrap"
+                    style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
+                  >
+                    Comparar
+                  </span>
+
+                  {/* Todos comparison pill */}
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      if (rankingComparison.bySpecialty || rankingComparison.byInstitution) triggerShimmer('comp-all');
+                      handleSelectAllComparison();
+                    }}
+                    aria-pressed={!rankingComparison.bySpecialty && !rankingComparison.byInstitution}
+                    aria-label="Todos os candidatos"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
+                    style={getPillStyle(!rankingComparison.bySpecialty && !rankingComparison.byInstitution)}
+                    data-shimmer={shimmeringPillId === 'comp-all' ? '1' : undefined}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  >
+                    <motion.span
+                      className="inline-flex shrink-0"
+                      whileHover={{ scale: 1.15 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    >
+                      <Users className="h-3.5 w-3.5" aria-hidden />
+                    </motion.span>
+                    Todos
+                  </motion.button>
+
+                  {/* Specialty pill — only when user has a configured specialty */}
+                  {userSpecialty && (
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        if (!rankingComparison.bySpecialty) triggerShimmer('comp-specialty');
+                        handleToggleSpecialtyComparison();
+                      }}
+                      aria-pressed={rankingComparison.bySpecialty}
+                      aria-label={`Filtrar por especialidade: ${userSpecialty}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
+                      style={getPillStyle(rankingComparison.bySpecialty)}
+                      data-shimmer={shimmeringPillId === 'comp-specialty' ? '1' : undefined}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    >
+                      <motion.span
+                        className="inline-flex shrink-0"
+                        whileHover={{ scale: 1.15 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                      >
+                        <Stethoscope className="h-3.5 w-3.5" aria-hidden />
+                      </motion.span>
+                      {userSpecialty}
+                    </motion.button>
+                  )}
+
+                  {/* Institution pill — slides in when specialty filter is active */}
+                  <AnimatePresence>
+                    {rankingComparison.bySpecialty && userInstitutions.length > 0 && (
+                      <motion.button
+                        key="institution-pill"
+                        type="button"
+                        onClick={() => {
+                          if (!rankingComparison.byInstitution) triggerShimmer('comp-institution');
+                          handleToggleInstitutionComparison();
+                        }}
+                        aria-pressed={rankingComparison.byInstitution}
+                        aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium max-w-[12rem]"
+                        style={getPillStyle(rankingComparison.byInstitution)}
+                        data-shimmer={shimmeringPillId === 'comp-institution' ? '1' : undefined}
+                        initial={{ opacity: 0, x: -8, scale: 0.88 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -8, scale: 0.88 }}
+                        whileHover={{ y: -1 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                      >
+                        <motion.span
+                          className="inline-flex shrink-0"
+                          whileHover={{ scale: 1.15 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                        >
+                          <Building className="h-3.5 w-3.5" aria-hidden />
+                        </motion.span>
+                        <span className="truncate">{userInstitutions[0]}</span>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Vertical divider */}
+                  <div
+                    className="shrink-0"
+                    style={{ width: '1px', height: '22px', background: t.borderColor, borderRadius: '1px' }}
                     aria-hidden
                   />
-                  <span className="text-sm font-semibold" style={{ color: t.text1 }}>Filtrar ranking</span>
+
+                  {/* ─ Segmento group ─ */}
+                  <span
+                    className="shrink-0 whitespace-nowrap"
+                    style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
+                  >
+                    Segmento
+                  </span>
+
+                  {visibleSegmentOptions.map((f) => (
+                    <motion.button
+                      key={f.key}
+                      type="button"
+                      onClick={() => {
+                        if (segmentFilter !== f.key) triggerShimmer(`seg-${f.key}`);
+                        handleSegmentFilterChange(f.key);
+                      }}
+                      aria-pressed={segmentFilter === f.key}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
+                      style={getPillStyle(segmentFilter === f.key, f.key === 'pro' && segmentFilter !== f.key)}
+                      data-shimmer={shimmeringPillId === `seg-${f.key}` ? '1' : undefined}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    >
+                      <motion.span
+                        className="inline-flex shrink-0"
+                        whileHover={{ scale: 1.15 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                      >
+                        <f.icon className="h-3.5 w-3.5" aria-hidden />
+                      </motion.span>
+                      <span className="hidden sm:inline">{f.label}</span>
+                    </motion.button>
+                  ))}
+
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <div className="min-w-0 flex-1 basis-[min(100%,20rem)]">
-                    <p
-                      className="text-xs mb-1.5"
-                      style={{ color: t.filterLabel }}
-                    >
-                      Comparar com
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleSelectAllComparison}
-                        aria-pressed={
-                          !rankingComparison.bySpecialty && !rankingComparison.byInstitution
-                        }
-                        aria-label="Todos os candidatos"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                        style={
-                          !rankingComparison.bySpecialty && !rankingComparison.byInstitution
-                            ? t.chipActive
-                            : t.chipInactive
-                        }
-                      >
-                        <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        <span className="hidden sm:inline">Todos</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleToggleSpecialtyComparison}
-                        disabled={!userSpecialty}
-                        aria-pressed={rankingComparison.bySpecialty}
-                        aria-label={
-                          userSpecialty
-                            ? `Filtrar por especialidade: ${userSpecialty}`
-                            : 'Especialidade não configurada'
-                        }
-                        className={cn(
-                          'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all',
-                          !userSpecialty && 'cursor-not-allowed opacity-40',
-                        )}
-                        style={rankingComparison.bySpecialty ? t.chipActive : t.chipInactive}
-                        title={!userSpecialty ? 'Configure nas Configurações' : undefined}
-                      >
-                        <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        <span className="hidden sm:inline">{userSpecialty || 'Especialidade'}</span>
-                      </button>
-                    </div>
-
-                    {userInstitutions.length > 0 && (
-                      <div
-                        className="mt-2 flex flex-col gap-1.5 pt-2.5"
-                        style={{ borderTop: `1px solid ${t.borderColor}` }}
-                      >
-                        <span
-                          className="text-xs leading-snug"
-                          style={{ color: t.filterLabel }}
-                        >
-                          Também filtrar pela minha 1ª instituição-alvo (opcional)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleToggleInstitutionComparison}
-                          aria-pressed={rankingComparison.byInstitution}
-                          aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all w-fit max-w-full"
-                          style={rankingComparison.byInstitution ? t.chipActive : t.chipInactive}
-                        >
-                          <Building className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span className="hidden sm:inline truncate">{userInstitutions[0]}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <p
-                      className="text-xs mb-1.5"
-                      style={{ color: t.filterLabel }}
-                    >
-                      Segmento
-                    </p>
-                    <div className="flex gap-1.5">
-                      {visibleSegmentOptions.map((f) => (
-                        <button
-                          key={f.key}
-                          type="button"
-                          onClick={() => handleSegmentFilterChange(f.key)}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                          style={
-                            segmentFilter === f.key
-                              ? t.chipActive
-                              : {
-                                  ...t.chipInactive,
-                                  color:
-                                    f.key === 'pro'
-                                      ? '#c4b5fd'
-                                      : t.chipInactive.color,
-                                }
-                          }
-                        >
-                          <f.icon className="h-3.5 w-3.5" aria-hidden />
-                          <span className="hidden sm:inline">{f.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
+                {/* Active filter summary */}
                 {(rankingComparison.bySpecialty || rankingComparison.byInstitution) && (
                   <p
-                    className="text-xs mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1"
-                    style={{ color: t.filterActiveText }}
+                    className="text-xs mt-2.5 leading-snug"
+                    style={{ color: t.filterLabel }}
                   >
-                    {rankingComparison.bySpecialty &&
-                      userSpecialty &&
-                      rankingComparison.byInstitution &&
-                      userInstitutions[0] && (
-                        <>
-                          <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span>
-                            Filtrando por{' '}
-                            <strong style={{ color: t.text1 }}>{userSpecialty}</strong> na{' '}
-                            <strong style={{ color: t.text1 }}>{userInstitutions[0]}</strong>.
-                          </span>
-                        </>
-                      )}
-                    {rankingComparison.bySpecialty &&
-                      userSpecialty &&
-                      !rankingComparison.byInstitution && (
-                        <>
-                          <Stethoscope className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span>
-                            Filtrando por especialidade:{' '}
-                            <strong style={{ color: t.text1 }}>{userSpecialty}</strong>
-                            <span style={{ color: t.text3 }}>
-                              {' '}
-                              (todas as instituições).
-                            </span>
-                          </span>
-                        </>
-                      )}
-                    {!rankingComparison.bySpecialty &&
-                      rankingComparison.byInstitution &&
-                      userInstitutions[0] && (
-                        <>
-                          <Building className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span>
-                            Filtrando por instituição:{' '}
-                            <strong style={{ color: t.text1 }}>{userInstitutions[0]}</strong>
-                            <span style={{ color: t.text3 }}>
-                              {' '}
-                              (todas as especialidades).
-                            </span>
-                          </span>
-                        </>
-                      )}
-                    {rankingComparison.bySpecialty && !userSpecialty && (
-                      <span>
-                        Configure sua especialidade nas Configurações para usar este filtro.
-                      </span>
+                    <span style={{ color: '#7a1a32', marginRight: '4px' }}>●</span>
+                    {rankingComparison.bySpecialty && userSpecialty && rankingComparison.byInstitution && userInstitutions[0] ? (
+                      <>
+                        Comparando com candidatos de{' '}
+                        <span style={{ color: t.text2 }}>{userSpecialty}</span>
+                        {' · '}
+                        <span style={{ color: t.text2 }}>{userInstitutions[0]}</span>
+                      </>
+                    ) : rankingComparison.bySpecialty && userSpecialty && !rankingComparison.byInstitution ? (
+                      <>
+                        Comparando com candidatos de{' '}
+                        <span style={{ color: t.text2 }}>{userSpecialty}</span>
+                        <span style={{ color: t.filterLabel }}> (todas as instituições)</span>
+                      </>
+                    ) : !rankingComparison.bySpecialty && rankingComparison.byInstitution && userInstitutions[0] ? (
+                      <>
+                        Comparando com candidatos da{' '}
+                        <span style={{ color: t.text2 }}>{userInstitutions[0]}</span>
+                        <span style={{ color: t.filterLabel }}> (todas as especialidades)</span>
+                      </>
+                    ) : (
+                      <span>Configure sua especialidade nas Configurações para usar este filtro.</span>
                     )}
                   </p>
                 )}
