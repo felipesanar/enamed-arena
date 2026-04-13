@@ -32,6 +32,10 @@ export function DashboardLayout() {
     () => /^\/simulados\/[^/]+(?:\/start)?(?:\/|$)/.test(location.pathname) && !isExamRoute,
     [location.pathname, isExamRoute]
   );
+  const isFullBleedRoute = useMemo(
+    () => /^\/(desempenho|comparativo)(?:\/|$)/.test(location.pathname),
+    [location.pathname]
+  );
   useEffect(() => {
     if (isArenaRoute && !isMobile) {
       setSidebarCollapsed(true);
@@ -88,10 +92,11 @@ export function DashboardLayout() {
         <main
           className={cn(
             "flex-1",
-            isExamRoute ? "p-0 overflow-hidden" : isArenaRoute ? "p-0" : "px-4 md:px-8 py-6 md:py-8",
+            isExamRoute ? "p-0 overflow-hidden" : (isArenaRoute || isFullBleedRoute) ? "p-0" : "px-4 md:px-8 py-6 md:py-8",
             isMobile &&
               !isExamRoute &&
               !isArenaRoute &&
+              !isFullBleedRoute &&
               cn(
                 isGuestMobile
                   ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"
