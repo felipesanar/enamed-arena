@@ -1,37 +1,40 @@
 
 
-# Fix: Build errors + CORS manifest warning
+# Fix: ResultadoPage UI — better sizing, centering, and responsiveness
 
 ## Problems
-
-### 1. Build errors in test files
-
-**`CutoffScoreModal.test.tsx`** (lines 34, 41, 52, 63): The `wrapper` function signature `{ children: React.ReactNode }` requires `children`, but `React.createElement(wrapper, {})` passes empty props. Fix: change `wrapper` to accept optional children or pass children correctly via JSX-style createElement.
-
-**`RankingView.test.tsx`** (line 15): Mock function `() => null` lacks return type annotation, causing implicit `any`. Fix: add explicit return type `(): null => null`.
-
-**`RankingView.test.tsx`** (line 38): `props` variable has implicit complex type. Fix: add explicit type annotation or use `as const` assertion.
-
-### 2. CORS manifest error (preview-only)
-
-The `site.webmanifest` file exists at `public/site.webmanifest`. The CORS error happens because the Lovable preview proxy redirects the manifest fetch to `lovable.dev/auth-bridge`, which strips CORS headers. This is a known preview environment limitation and does not affect production. No code fix needed — but we can add `crossorigin="use-credentials"` to the manifest link tag in `index.html` to suppress the warning.
+1. **Card too wide** — no `max-width`, stretches to full container width (can be 900px+)
+2. **Not centered** — content fills available space without centering
+3. **Ring too small relative to card** — at full width the 140px ring looks lost
+4. **Stat cards only 3 columns** — spec had 4 (with "Respondidas"), but even 3 cols stretch too wide
+5. **No vertical centering** — page doesn't feel like a "moment" screen
+6. **Mobile: padding and proportions** — card padding too large on small screens
 
 ## Plan
 
-### Step 1: Fix `CutoffScoreModal.test.tsx`
-- Change all `React.createElement(wrapper, {}, ...)` calls to properly pass children as the third argument (they already do — the issue is TypeScript inferring `{}` for the second arg). Fix by typing the wrapper properly or casting.
+### Step 1: Constrain and center the hero card
+- Wrap the entire content in a centered container: `max-w-md mx-auto` (448px max)
+- This makes the card feel intentional and focused, matching the emotional "reveal" moment
 
-### Step 2: Fix `RankingView.test.tsx`
-- Add return type to the CutoffScoreModal mock: `CutoffScoreModal: (): null => null`
-- Add explicit type annotation to `props` in `renderView`
+### Step 2: Responsive padding
+- Card inner padding: `px-5 pt-7 pb-5 sm:px-7 sm:pt-9 sm:pb-7`
+- CTA footer: adjust negative margins to match
 
-### Step 3: Add `crossorigin` to manifest link in `index.html`
-- Change `<link rel="manifest" href="/site.webmanifest" />` to `<link rel="manifest" href="/site.webmanifest" crossorigin="use-credentials" />` — this won't fully fix the preview proxy issue but is the correct HTML practice.
+### Step 3: Ring sizing
+- Keep 140px on desktop, reduce to 120px on mobile via responsive classes
 
-### Files to edit
+### Step 4: Stat cards grid
+- Keep 3 columns but they'll look proportional within the narrower card
+- Reduce gap slightly on mobile
+
+### Step 5: CTA section
+- Adjust negative margins for responsive padding changes
+
+### Step 6: Add "Voltar" link below the card
+- Subtle back link to `/simulados` below the card for navigation
+
+## File to edit
 | File | Change |
 |------|--------|
-| `src/components/ranking/CutoffScoreModal.test.tsx` | Fix wrapper createElement typing |
-| `src/components/ranking/RankingView.test.tsx` | Add return types + explicit prop type |
-| `index.html` | Add crossorigin to manifest link |
+| `src/pages/ResultadoPage.tsx` | Add max-width wrapper, responsive padding, ring sizing |
 
