@@ -14,6 +14,7 @@ import {
   Trophy, CheckCircle2, XCircle, MinusCircle,
   FileText, ArrowLeft, ArrowRight, BookOpen,
 } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
 
 interface ResultadoPageProps {
   /** Rota /admin/preview/... — ignora gate de liberação se houver tentativa finalizada */
