@@ -715,3 +715,18 @@
     will-change: auto;
   }
 }
+
+/* ── Ranking filter bar — pill shimmer ──────────────────────────────────── */
+@keyframes pill-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+[data-shimmer="1"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
+  animation: pill-shimmer 0.7s ease forwards;
+  pointer-events: none;
+}
