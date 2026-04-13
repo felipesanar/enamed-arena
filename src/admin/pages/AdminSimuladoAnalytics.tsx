@@ -8,10 +8,11 @@ import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
 import { AdminSectionHeader } from '@/admin/components/ui/AdminSectionHeader'
 import type { SimuladoQuestionStat } from '@/admin/types'
 
-function discriminationLabel(index: number): { label: string; cls: string } {
-  if (index >= 30) return { label: 'Alta ↑', cls: 'text-success' }
-  if (index >= 10) return { label: 'Média', cls: 'text-warning' }
-  return { label: 'Baixa ↓', cls: 'text-destructive' }
+function discriminationLabel(index: number): { label: string; description: string; cls: string } {
+  if (index >= 30) return { label: 'Diferencia bem', description: 'Quem estudou acerta, quem não estudou erra', cls: 'text-success' }
+  if (index >= 10) return { label: 'Diferencia pouco', description: 'Não separa bem preparados de não preparados', cls: 'text-warning' }
+  if (index >= 0) return { label: 'Não diferencia', description: 'Todos acertam ou todos erram igualmente', cls: 'text-destructive' }
+  return { label: 'Questão confusa', description: 'Os melhores alunos erram mais que os piores', cls: 'text-destructive' }
 }
 
 export default function AdminSimuladoAnalytics() {
