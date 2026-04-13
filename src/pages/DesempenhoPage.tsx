@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { PageTransition } from '@/components/premium/PageTransition';
-import { PageHeader } from '@/components/PageHeader';
+
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { DesempenhoSimuladoPanel } from '@/components/desempenho/DesempenhoSimuladoPanel';

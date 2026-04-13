@@ -268,6 +268,12 @@ function HeroSection({
     <div className="relative overflow-hidden bg-[linear-gradient(135deg,hsl(345,64%,22%)_0%,hsl(340,58%,14%)_60%,#0f111a_100%)] px-4 py-4 md:px-5 md:py-5">
       <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[hsl(345,72%,48%)] blur-[60px] opacity-25" />
 
+      <div className="mb-3">
+        <span className="text-[9px] uppercase tracking-[1.5px] text-white/40 font-bold block mb-1">Análise de Performance</span>
+        <h1 className="text-[22px] font-bold text-white leading-tight">Desempenho</h1>
+        <p className="text-[11px] text-white/40 mt-0.5">Sua evolução por área e tema.</p>
+      </div>
+
       {simuladosWithResults.length > 1 && (
         <div className="flex gap-1.5 mb-3 overflow-x-auto scrollbar-none pb-0.5">
           {simuladosWithResults.map(s => (
