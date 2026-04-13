@@ -4,6 +4,7 @@
  * This hook only trusts server-side persisted data.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
 import {
   simuladosApi,
   type AttemptRow,
@@ -66,7 +67,11 @@ export function useExamResult(simuladoId: string | undefined) {
         return;
       }
 
-      const attempt = await simuladosApi.getAttempt(config.id, user.id, 'online');
+      const [onlineAttempt, offlineAttempt] = await Promise.all([
+        simuladosApi.getAttempt(config.id, user.id, 'online'),
+        simuladosApi.getAttempt(config.id, user.id, 'offline'),
+      ]);
+      const attempt = pickMostRelevantAttempt(onlineAttempt, offlineAttempt) ?? null;
       if (!attempt) {
         setAttempt(null);
         setExamState(null);
