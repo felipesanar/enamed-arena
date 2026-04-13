@@ -1145,12 +1145,15 @@ export type Database = {
       admin_simulado_question_stats: {
         Args: { p_simulado_id: string }
         Returns: {
+          area: string
           correct_rate: number
           discrimination_index: number
           most_common_wrong_label: string
           most_common_wrong_pct: number
           question_number: number
           text: string
+          theme: string
+          total_responses: number
         }[]
       }
       create_attempt_guarded: {
