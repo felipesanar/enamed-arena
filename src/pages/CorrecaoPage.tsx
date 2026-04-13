@@ -244,6 +244,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
         </div>
       </header>
 
+      <div className="px-4 md:px-6 py-4 md:py-6">
       {id && (
         <div className="mb-6">
           <SimuladoResultNav simuladoId={id} variant={adminPreview ? 'admin' : 'public'} />
