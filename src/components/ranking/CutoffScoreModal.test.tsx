@@ -23,7 +23,7 @@ vi.mock('@/services/rankingApi', () => ({
   ]),
 }));
 
-function wrapper({ children }: { children: React.ReactNode }) {
+function wrapper({ children }: { children?: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return React.createElement(QueryClientProvider, { client }, children);
 }
