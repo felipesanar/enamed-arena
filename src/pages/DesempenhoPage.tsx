@@ -59,7 +59,7 @@ export default function DesempenhoPage() {
 
   if (loading && !breakdown) {
     return (
-      <div className="px-4 md:px-8 py-6 md:py-8 space-y-3">
+      <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8 space-y-3">
         <SkeletonCard className="h-[140px] rounded-[22px] bg-primary/[0.06]" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <SkeletonCard className="h-[280px]" />
@@ -72,7 +72,7 @@ export default function DesempenhoPage() {
 
   if (simuladosWithResults.length === 0 || !breakdown) {
     return (
-      <div className="px-4 md:px-8 py-6 md:py-8">
+      <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8">
         <EmptyState
           icon={BarChart3}
           title="Sem dados de desempenho"
