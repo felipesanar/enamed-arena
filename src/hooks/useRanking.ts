@@ -16,6 +16,7 @@ import {
 import { usePersistedState, clearPersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
+import { logger } from '@/lib/logger';
 import {
   fetchRankingForSimulado,
   fetchSimuladosWithResults,
@@ -106,7 +107,7 @@ export function useRanking(): UseRankingReturn {
     let cancelled = false;
     
     async function load() {
-      console.log('[useRanking] Loading simulados with results');
+      logger.log('[useRanking] Loading simulados with results');
       try {
         const sims = await fetchSimuladosWithResults();
         if (cancelled) return;

@@ -10,14 +10,14 @@ import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
-import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
+import { canViewResultsOrAdminPreview, areResultsReleased } from '@/lib/simulado-helpers';
 import { computeSimuladoScore } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles,
+  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles, Lock,
 } from 'lucide-react';
 import { QuestionImage } from '@/components/exam/QuestionImage';
 
@@ -42,6 +42,9 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   const [showNav, setShowNav] = useState(false);
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
+  const [selectedHighlight, setSelectedHighlight] = useState<string | null>(null);
+  const [highlightAnchor, setHighlightAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [upsellOpen, setUpsellOpen] = useState(false);
 
   const EXPLANATION_MAX_H = 160 // px
 
@@ -108,10 +111,10 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
 
   const attemptFinished =
     examState?.status === 'submitted' || examState?.status === 'expired';
-  const resultsAllowed = canViewResultsOrAdminPreview(simulado.status, {
-    adminPreview,
-    attemptFinished,
-  });
+  // Also allow if results release time has already passed client-side — bypasses stale React Query cache
+  const resultsAllowed =
+    canViewResultsOrAdminPreview(simulado.status, { adminPreview, attemptFinished }) ||
+    (!adminPreview && attemptFinished && areResultsReleased(simulado.resultsReleaseAt));
 
   if (!resultsAllowed) {
     if (adminPreview) {
@@ -172,6 +175,22 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   const handleNavigate = (idx: number) => {
     setCurrentIndex(idx);
     setShowNav(false);
+  };
+
+  const handleExplanationMouseUp = () => {
+    if (!canUseNotebook) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      setHighlightAnchor(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    if (explanationRef.current?.contains(range.commonAncestorContainer)) {
+      const rect = range.getBoundingClientRect();
+      setHighlightAnchor({ x: rect.left + rect.width / 2, y: rect.top });
+    } else {
+      setHighlightAnchor(null);
+    }
   };
 
   return (
@@ -269,18 +288,22 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                   <div className="flex items-center gap-2 flex-wrap shrink-0">
                     {canUseNotebook ? (
                       <button
-                        onClick={() => setNotebookModal(true)}
-                        aria-label="Caderno de Erros"
+                        onClick={() => { setSelectedHighlight(null); setNotebookModal(true); }}
+                        aria-label="Adicionar ao caderno de erros"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-secondary text-secondary-foreground hover:bg-muted border border-border/50"
                       >
                         <BookOpen className="h-3.5 w-3.5" />
-                        Caderno de Erros
+                        Adicionar ao caderno de erros
                       </button>
                     ) : (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/50 border border-primary/10 text-caption text-muted-foreground">
-                        <Sparkles className="h-3.5 w-3.5 text-primary" />
-                        <span>PRO: ENAMED</span>
-                      </div>
+                      <button
+                        onClick={() => setUpsellOpen(true)}
+                        aria-label="Adicionar ao caderno de erros"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-accent/50 border border-primary/10 text-muted-foreground hover:bg-accent"
+                      >
+                        <Lock className="h-3.5 w-3.5 text-primary" />
+                        Adicionar ao caderno de erros
+                      </button>
                     )}
                     {result.isCorrect ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-bold bg-success/10 text-success">
@@ -338,6 +361,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                     <div className="relative">
                       <p
                         ref={explanationRef}
+                        onMouseUp={handleExplanationMouseUp}
                         className={cn(
                           'text-body text-muted-foreground leading-relaxed whitespace-pre-wrap overflow-hidden transition-all duration-300',
                         )}
@@ -478,7 +502,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
       {canUseNotebook && question && id && user && (
         <AddToNotebookModal
           open={notebookModal}
-          onClose={() => setNotebookModal(false)}
+          onClose={() => { setNotebookModal(false); setSelectedHighlight(null); setHighlightAnchor(null); }}
           questionId={question.id}
           simuladoId={id}
           simuladoTitle={simulado.title}
@@ -489,8 +513,102 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
           wasCorrect={result.isCorrect}
           userId={user.id}
           onAdded={() => setNotebookRefresh(v => v + 1)}
+          selectedHighlight={selectedHighlight ?? undefined}
         />
       )}
+
+      {/* Floating text-selection tooltip (PRO only) */}
+      <AnimatePresence>
+        {highlightAnchor && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'fixed',
+              left: highlightAnchor.x,
+              top: highlightAnchor.y - 48,
+              transform: 'translateX(-50%)',
+              zIndex: 50,
+            }}
+          >
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                const text = window.getSelection()?.toString().trim() || null;
+                setSelectedHighlight(text);
+                setHighlightAnchor(null);
+                setNotebookModal(true);
+                window.getSelection()?.removeAllRanges();
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-caption font-semibold shadow-lg hover:bg-wine-hover transition-colors whitespace-nowrap"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Adicionar ao caderno
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-primary" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Upsell modal (non-PRO) */}
+      <AnimatePresence>
+        {upsellOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
+            onClick={() => setUpsellOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-card border border-border rounded-2xl shadow-xl max-w-sm w-full p-6 text-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="relative mb-5 inline-flex">
+                <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center">
+                  <BookOpen className="h-7 w-7 text-primary" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                  <Lock className="h-3 w-3 text-primary-foreground" />
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span className="text-overline uppercase text-primary font-bold tracking-wider">Exclusivo PRO: ENAMED</span>
+              </div>
+              <h3 className="text-heading-2 text-foreground mb-2">Caderno de Erros</h3>
+              <p className="text-body-sm text-muted-foreground mb-6 leading-relaxed">
+                Salve questões com anotações, marque o motivo do erro e organize sua revisão de forma estratégica.
+              </p>
+              <a
+                href="https://sanarflix.com.br/sanarflix-pro-enamed"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  trackEvent('upsell_clicked', { source: 'caderno_erros_button', feature: 'cadernoErros', current_segment: segment });
+                  setUpsellOpen(false);
+                }}
+                className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-primary text-primary-foreground !text-white text-body font-semibold hover:bg-wine-hover transition-colors shadow-sm mb-3"
+              >
+                <Sparkles className="h-4 w-4" />
+                Conhecer o PRO: ENAMED
+              </a>
+              <button
+                onClick={() => setUpsellOpen(false)}
+                className="text-caption text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Fechar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

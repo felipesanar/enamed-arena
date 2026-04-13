@@ -9,7 +9,7 @@ import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
 import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, AlertCircle, Clock, Play, WifiOff, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canViewResults } from '@/lib/simulado-helpers';
+import { areResultsReleased } from '@/lib/simulado-helpers';
 
 function useFullscreen() {
   const enterFullscreen = useCallback(() => {
@@ -158,7 +158,7 @@ export default function SimuladoExamPage() {
         notifyResultByEmail={flow.notifyResultByEmail}
         notificationSaving={flow.notificationSaving}
         isWithinWindow={flow.isWithinWindow}
-        resultsAvailable={canViewResults(flow.simulado.status)}
+        resultsAvailable={areResultsReleased(flow.simulado.resultsReleaseAt)}
         onToggleNotifyResultByEmail={flow.setNotifyResultByEmail}
       />
     );

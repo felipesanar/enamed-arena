@@ -16,10 +16,11 @@ import { cn } from '@/lib/utils';
 import {
   BookOpen, Trash2, Stethoscope, Filter,
   StickyNote, ExternalLink, CheckSquare, Square,
-  Calendar, FileText,
+  FileText, ChevronRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getReasonLabel, type DbReason } from '@/lib/errorNotebookReasons';
+import { parseThemeField } from '@/lib/resultHelpers';
 
 interface NotebookEntry {
   id: string;
@@ -115,8 +116,10 @@ function CadernoContent({ userId }: { userId: string }) {
   const [entries, setEntries] = useState<NotebookEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [areaFilter, setAreaFilter] = useState<string | null>(null);
+  // Filters — 3-level specialty drill-down
+  const [specialtyFilter, setSpecialtyFilter] = useState<string | null>(null);
+  const [subspecFilter, setSubspecFilter] = useState<string | null>(null);
+  const [themeFilter, setThemeFilter] = useState<string | null>(null);
   const [reasonFilter, setReasonFilter] = useState<ReasonFilter>('all');
   const [simuladoFilter, setSimuladoFilter] = useState<string | null>(null);
   const [resolvedFilter, setResolvedFilter] = useState<ResolvedFilter>('all');
@@ -132,16 +135,18 @@ function CadernoContent({ userId }: { userId: string }) {
   }, [loading, entries.length, profile?.segment]);
 
   // Track all filter changes with post-filter result_count
-  const prevFiltersRef = useRef<{ area: string | null; reason: ReasonFilter; simulado: string | null; resolved: ResolvedFilter } | null>(null);
+  const prevFiltersRef = useRef<{ specialty: string | null; subspec: string | null; theme: string | null; reason: ReasonFilter; simulado: string | null; resolved: ResolvedFilter } | null>(null);
   useEffect(() => {
     if (loading) return;
     if (prevFiltersRef.current === null) {
-      prevFiltersRef.current = { area: areaFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
+      prevFiltersRef.current = { specialty: specialtyFilter, subspec: subspecFilter, theme: themeFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
       return;
     }
     const prev = prevFiltersRef.current;
     const filterType =
-      prev.area !== areaFilter ? 'area' :
+      prev.specialty !== specialtyFilter ? 'specialty' :
+      prev.subspec !== subspecFilter ? 'subspecialty' :
+      prev.theme !== themeFilter ? 'theme' :
       prev.reason !== reasonFilter ? 'reason' :
       prev.simulado !== simuladoFilter ? 'simulado' :
       prev.resolved !== resolvedFilter ? 'resolved' : null;
@@ -150,9 +155,9 @@ function CadernoContent({ userId }: { userId: string }) {
         filter_type: filterType,
         result_count: filtered.length,
       });
-      prevFiltersRef.current = { area: areaFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
+      prevFiltersRef.current = { specialty: specialtyFilter, subspec: subspecFilter, theme: themeFilter, reason: reasonFilter, simulado: simuladoFilter, resolved: resolvedFilter };
     }
-  }, [areaFilter, reasonFilter, simuladoFilter, resolvedFilter, loading, entries.length]);
+  }, [specialtyFilter, subspecFilter, themeFilter, reasonFilter, simuladoFilter, resolvedFilter, loading, entries.length]);
 
   const fetchEntries = useCallback(async () => {
     if (!userId) return;
@@ -183,8 +188,31 @@ function CadernoContent({ userId }: { userId: string }) {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  // Derived filter options
-  const areas = useMemo(() => Array.from(new Set(entries.map(e => e.area).filter(Boolean) as string[])).sort(), [entries]);
+  // Derived filter options — 3-level cascade
+  const specialties = useMemo(() =>
+    Array.from(new Set(entries.map(e => e.area).filter(Boolean) as string[])).sort(),
+  [entries]);
+
+  const subspecialties = useMemo(() => {
+    if (!specialtyFilter) return [];
+    return Array.from(new Set(
+      entries
+        .filter(e => e.area === specialtyFilter && e.theme)
+        .map(e => parseThemeField(e.theme!).specialty)
+        .filter(Boolean),
+    )).sort();
+  }, [entries, specialtyFilter]);
+
+  const themes = useMemo(() => {
+    if (!specialtyFilter || !subspecFilter) return [];
+    return Array.from(new Set(
+      entries
+        .filter(e => e.area === specialtyFilter && e.theme && parseThemeField(e.theme).specialty === subspecFilter)
+        .map(e => parseThemeField(e.theme!).subTopic)
+        .filter(Boolean),
+    )).sort();
+  }, [entries, specialtyFilter, subspecFilter]);
+
   const simulados = useMemo(() => {
     const map = new Map<string, string>();
     entries.forEach(e => { if (e.simuladoId && e.simuladoTitle) map.set(e.simuladoId, e.simuladoTitle); });
@@ -193,16 +221,25 @@ function CadernoContent({ userId }: { userId: string }) {
 
   const filtered = useMemo(() => {
     let data = entries;
-    if (areaFilter) data = data.filter(e => e.area === areaFilter);
+    if (specialtyFilter) data = data.filter(e => e.area === specialtyFilter);
+    if (subspecFilter) data = data.filter(e => e.theme && parseThemeField(e.theme).specialty === subspecFilter);
+    if (themeFilter) data = data.filter(e => e.theme && parseThemeField(e.theme).subTopic === themeFilter);
     if (reasonFilter !== 'all') data = data.filter(e => e.reason === reasonFilter);
     if (simuladoFilter) data = data.filter(e => e.simuladoId === simuladoFilter);
     if (resolvedFilter === 'pending') data = data.filter(e => !e.resolvedAt);
     if (resolvedFilter === 'resolved') data = data.filter(e => !!e.resolvedAt);
     return data.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
-  }, [entries, areaFilter, reasonFilter, simuladoFilter, resolvedFilter]);
+  }, [entries, specialtyFilter, subspecFilter, themeFilter, reasonFilter, simuladoFilter, resolvedFilter]);
 
-  const handleAreaFilter = (area: string | null) => {
-    setAreaFilter(prev => area === null ? null : (prev === area ? null : area));
+  const handleSpecialtyFilter = (val: string | null) => {
+    setSpecialtyFilter(val);
+    setSubspecFilter(null);
+    setThemeFilter(null);
+  };
+
+  const handleSubspecFilter = (val: string | null) => {
+    setSubspecFilter(val);
+    setThemeFilter(null);
   };
 
   const handleRemove = async (id: string) => {
@@ -259,7 +296,7 @@ function CadernoContent({ userId }: { userId: string }) {
         <PremiumCard delay={0} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{entries.length}</p><p className="text-caption text-muted-foreground">Total de questões</p></PremiumCard>
         <PremiumCard delay={0.06} className="p-4"><p className="text-heading-2 text-warning tabular-nums">{pendingCount}</p><p className="text-caption text-muted-foreground">Pendentes</p></PremiumCard>
         <PremiumCard delay={0.12} className="p-4"><p className="text-heading-2 text-success tabular-nums">{resolvedCount}</p><p className="text-caption text-muted-foreground">Resolvidos</p></PremiumCard>
-        <PremiumCard delay={0.18} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{areas.length}</p><p className="text-caption text-muted-foreground">Áreas</p></PremiumCard>
+        <PremiumCard delay={0.18} className="p-4"><p className="text-heading-2 text-foreground tabular-nums">{specialties.length}</p><p className="text-caption text-muted-foreground">Especialidades</p></PremiumCard>
       </div>
 
       {/* Advanced Filters */}
@@ -270,15 +307,49 @@ function CadernoContent({ userId }: { userId: string }) {
         </div>
 
         <div className="space-y-4">
-          {/* Area filter */}
+          {/* 3-level specialty filter */}
           <div>
-            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1.5"><Stethoscope className="h-3.5 w-3.5" /> Especialidade</p>
-            <div className="flex flex-wrap gap-1.5">
-              <button onClick={() => handleAreaFilter(null)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', !areaFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todas</button>
-              {areas.map(area => (
-                <button key={area} onClick={() => handleAreaFilter(area)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', areaFilter === area ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{area}</button>
-              ))}
-            </div>
+            {/* Breadcrumb header */}
+            <p className="text-caption text-muted-foreground mb-1.5 flex items-center gap-1 flex-wrap">
+              <Stethoscope className="h-3.5 w-3.5 shrink-0" />
+              <button onClick={() => handleSpecialtyFilter(null)} className={cn('transition-colors', !specialtyFilter ? 'text-foreground font-semibold' : 'hover:text-foreground')}>Especialidade</button>
+              {specialtyFilter && (<><ChevronRight className="h-3 w-3 shrink-0" /><button onClick={() => handleSubspecFilter(null)} className={cn('transition-colors', !subspecFilter ? 'text-foreground font-semibold' : 'hover:text-foreground')}>{specialtyFilter}</button></>)}
+              {subspecFilter && (<><ChevronRight className="h-3 w-3 shrink-0" /><span className="text-foreground font-semibold">{subspecFilter}</span></>)}
+            </p>
+
+            {/* Level 1: Especialidade */}
+            {!specialtyFilter && (
+              <div className="flex flex-wrap gap-1.5">
+                {specialties.map(s => (
+                  <button key={s} onClick={() => handleSpecialtyFilter(s)} className="px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary">{s}</button>
+                ))}
+              </div>
+            )}
+
+            {/* Level 2: Subespecialidade */}
+            {specialtyFilter && !subspecFilter && subspecialties.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button onClick={() => handleSpecialtyFilter(null)} className="px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-primary/10 text-primary">← Todas</button>
+                {subspecialties.map(s => (
+                  <button key={s} onClick={() => handleSubspecFilter(s)} className="px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary">{s}</button>
+                ))}
+              </div>
+            )}
+            {specialtyFilter && !subspecFilter && subspecialties.length === 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button onClick={() => handleSpecialtyFilter(null)} className="px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-primary/10 text-primary">← Todas</button>
+              </div>
+            )}
+
+            {/* Level 3: Tema */}
+            {subspecFilter && (
+              <div className="flex flex-wrap gap-1.5">
+                <button onClick={() => handleSubspecFilter(null)} className="px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-primary/10 text-primary">← {specialtyFilter}</button>
+                {themes.map(t => (
+                  <button key={t} onClick={() => setThemeFilter(prev => prev === t ? null : t)} className={cn('px-3 py-1.5 rounded-lg text-caption font-medium transition-all', themeFilter === t ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary')}>{t}</button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Reason filter */}
@@ -327,7 +398,10 @@ function CadernoContent({ userId }: { userId: string }) {
       </PremiumCard>
 
       {/* Entries list */}
-      <SectionHeader title={areaFilter ? `Revisão · ${areaFilter}` : 'Suas questões para revisar'} action={<span className="text-body-sm text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'questão' : 'questões'}</span>} />
+      <SectionHeader
+        title={themeFilter ? `Revisão · ${themeFilter}` : subspecFilter ? `Revisão · ${subspecFilter}` : specialtyFilter ? `Revisão · ${specialtyFilter}` : 'Suas questões para revisar'}
+        action={<span className="text-body-sm text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'questão' : 'questões'}</span>}
+      />
       {filtered.length === 0 ? (
         <EmptyState
           icon={Filter}

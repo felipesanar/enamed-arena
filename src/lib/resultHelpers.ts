@@ -33,10 +33,19 @@ export interface SimuladoScore {
 
 export interface ThemePerformance {
   theme: string;
-  area: string;
+  area: string;       // subspecialty (theme part 1)
+  specialty: string;  // top-level specialty (question.area)
   total: number;
   correct: number;
   score: number;
+}
+
+export interface SubspecialtyPerformance {
+  subspecialty: string; // theme part 1
+  specialty: string;    // question.area (parent)
+  score: number;
+  questions: number;
+  correct: number;
 }
 
 export interface DifficultyPerformance {
@@ -48,8 +57,9 @@ export interface DifficultyPerformance {
 
 export interface PerformanceBreakdown {
   overall: SimuladoScore;
-  byArea: AreaPerformance[];
-  byTheme: ThemePerformance[];
+  byArea: AreaPerformance[];                    // level 1: grouped by question.area
+  bySubspecialty: SubspecialtyPerformance[];    // level 2: theme part 1 within specialty
+  byTheme: ThemePerformance[];                  // level 3: theme part 2 within subspecialty
   byDifficulty: DifficultyPerformance[];
 }
 
@@ -108,46 +118,76 @@ export function computePerformanceBreakdown(
 ): PerformanceBreakdown {
   const overall = computeSimuladoScore(state, questions);
 
-  // Group by specialty (first part of theme field) instead of area
-  const specialtyMap = new Map<string, { total: number; correct: number }>();
+  // Level 1: group by question.area (Especialidade)
+  const areaMap = new Map<string, { total: number; correct: number }>();
   overall.questionResults.forEach(r => {
-    const { specialty } = parseThemeField(r.theme);
-    const entry = specialtyMap.get(specialty) || { total: 0, correct: 0 };
+    const key = r.area || 'Sem Especialidade';
+    const entry = areaMap.get(key) || { total: 0, correct: 0 };
     entry.total++;
     if (r.isCorrect) entry.correct++;
-    specialtyMap.set(specialty, entry);
+    areaMap.set(key, entry);
   });
 
-  const byArea: AreaPerformance[] = Array.from(specialtyMap.entries())
-    .map(([specialty, data]) => ({
-      area: specialty,
+  const byArea: AreaPerformance[] = Array.from(areaMap.entries())
+    .map(([area, data]) => ({
+      area,
       score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
       questions: data.total,
       correct: data.correct,
     }))
     .sort((a, b) => b.score - a.score);
 
-  // Group by sub-topic (second part of theme) within each specialty
-  const themeMap = new Map<string, { area: string; total: number; correct: number }>();
+  // Level 2: group by theme.part1 within each question.area (Subespecialidade)
+  const subspecMap = new Map<string, { specialty: string; total: number; correct: number }>();
   overall.questionResults.forEach(r => {
-    const { specialty, subTopic } = parseThemeField(r.theme);
-    const key = `${specialty}::${subTopic}`;
-    const entry = themeMap.get(key) || { area: specialty, total: 0, correct: 0 };
+    const { specialty: subspec } = parseThemeField(r.theme);
+    const parentSpecialty = r.area || 'Sem Especialidade';
+    const key = `${parentSpecialty}::${subspec}`;
+    const entry = subspecMap.get(key) || { specialty: parentSpecialty, total: 0, correct: 0 };
+    entry.total++;
+    if (r.isCorrect) entry.correct++;
+    subspecMap.set(key, entry);
+  });
+
+  const bySubspecialty: SubspecialtyPerformance[] = Array.from(subspecMap.entries())
+    .map(([key, data]) => {
+      const sep = key.indexOf('::');
+      const subspecialty = sep >= 0 ? key.slice(sep + 2) : key;
+      return {
+        subspecialty,
+        specialty: data.specialty,
+        score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+        questions: data.total,
+        correct: data.correct,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  // Level 3: group by theme.part2 within specialty+subspecialty (Tema)
+  const themeMap = new Map<string, { specialty: string; subspecialty: string; total: number; correct: number }>();
+  overall.questionResults.forEach(r => {
+    const { specialty: subspec, subTopic } = parseThemeField(r.theme);
+    const parentSpecialty = r.area || 'Sem Especialidade';
+    const key = `${parentSpecialty}::${subspec}::${subTopic}`;
+    const entry = themeMap.get(key) || { specialty: parentSpecialty, subspecialty: subspec, total: 0, correct: 0 };
     entry.total++;
     if (r.isCorrect) entry.correct++;
     themeMap.set(key, entry);
   });
 
-  const byTheme: ThemePerformance[] = Array.from(themeMap.entries()).map(([key, data]) => {
-    const [specialty, subTopic] = key.split('::');
-    return {
-      theme: subTopic || specialty,
-      area: specialty,
-      total: data.total,
-      correct: data.correct,
-      score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
-    };
-  }).sort((a, b) => b.score - a.score);
+  const byTheme: ThemePerformance[] = Array.from(themeMap.entries())
+    .map(([key, data]) => {
+      const parts = key.split('::');
+      return {
+        theme: parts[2] || parts[1] || parts[0],
+        area: data.subspecialty,
+        specialty: data.specialty,
+        total: data.total,
+        correct: data.correct,
+        score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
 
   // Group by difficulty
   const diffMap = new Map<string, { total: number; correct: number }>();
@@ -174,7 +214,7 @@ export function computePerformanceBreakdown(
       return aIdx - bIdx;
     });
 
-  return { overall, byArea, byTheme, byDifficulty };
+  return { overall, byArea, bySubspecialty, byTheme, byDifficulty };
 }
 
 // ─── Comparative Helpers ───

@@ -159,6 +159,14 @@ export function canViewResults(status: SimuladoStatus): boolean {
 }
 
 /**
+ * Client-side check: returns true if the results release timestamp has already passed.
+ * Used to bypass stale React Query cache at the moment of result release.
+ */
+export function areResultsReleased(resultsReleaseAt: string, now: Date = new Date()): boolean {
+  return isAfter(now, parseISO(resultsReleaseAt));
+}
+
+/**
  * Gate para telas de resultado/correção/desempenho: no preview admin, permite ver dados da própria
  * tentativa finalizada mesmo antes da liberação pública (ex. closed_waiting).
  */

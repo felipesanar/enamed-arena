@@ -25,6 +25,7 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
           label="Caderno de Erros, recurso PRO"
           tooltip="Caderno de Erros · PRO"
           variant="pro"
+          microLabel="Caderno"
         />
       </div>
     );

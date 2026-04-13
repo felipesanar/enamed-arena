@@ -5,7 +5,7 @@ import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import type { Question } from '@/types';
 import { cn } from '@/lib/utils';
-import { Star, TrendingDown, Stethoscope } from 'lucide-react';
+import { Star, TrendingDown, Stethoscope, ChevronRight } from 'lucide-react';
 
 export type DesempenhoSimuladoPanelProps = {
   simuladosWithResults: Array<{ id: string; title: string }>;
@@ -25,23 +25,39 @@ export function DesempenhoSimuladoPanel({
   resultNavVariant = 'public',
 }: DesempenhoSimuladoPanelProps) {
   const prefersReducedMotion = useReducedMotion();
-  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [selectedSubspecialty, setSelectedSubspecialty] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
+  const { overall, byArea, bySubspecialty, byTheme } = breakdown;
+  const bestArea = byArea[0];
+  const worstArea = byArea[byArea.length - 1];
+
+  const subspecialtiesForSpecialty = useMemo(
+    () => selectedSpecialty ? bySubspecialty.filter(s => s.specialty === selectedSpecialty) : [],
+    [selectedSpecialty, bySubspecialty],
+  );
+
+  const themesForSubspecialty = useMemo(
+    () => selectedSpecialty && selectedSubspecialty
+      ? byTheme.filter(t => t.specialty === selectedSpecialty && t.area === selectedSubspecialty)
+      : [],
+    [selectedSpecialty, selectedSubspecialty, byTheme],
+  );
+
   const questionResultsForTheme = useMemo(() => {
-    if (!selectedTheme || !breakdown) return [];
+    if (!selectedTheme || !selectedSpecialty || !selectedSubspecialty) return [];
     return breakdown.overall.questionResults
-      .filter(q => q.theme === selectedTheme && (!selectedArea || q.area === selectedArea))
+      .filter(q => {
+        if (q.area !== selectedSpecialty) return false;
+        const parts = q.theme.split('>').map(p => p.trim());
+        return parts[0] === selectedSubspecialty && (parts[1] || '') === selectedTheme;
+      })
       .map(q => {
         const question = questions.find(item => item.id === q.questionId);
         return { ...q, number: question?.number ?? null, text: question?.text ?? '' };
       });
-  }, [selectedTheme, selectedArea, breakdown, questions]);
-
-  const { overall, byArea, byTheme } = breakdown;
-  const themesForArea = selectedArea ? byTheme.filter(t => t.area === selectedArea) : [];
-  const bestArea = byArea[0];
-  const worstArea = byArea[byArea.length - 1];
+  }, [selectedTheme, selectedSpecialty, selectedSubspecialty, breakdown, questions]);
 
   return (
     <motion.div
@@ -55,7 +71,8 @@ export function DesempenhoSimuladoPanel({
         selectedSimuladoId={selectedSimuladoId}
         onSelectSimulado={(sid) => {
           onSelectSimulado(sid);
-          setSelectedArea(null);
+          setSelectedSpecialty(null);
+          setSelectedSubspecialty(null);
           setSelectedTheme(null);
         }}
         overall={overall}
@@ -70,22 +87,56 @@ export function DesempenhoSimuladoPanel({
       )}
 
       <div className="bg-white px-4 py-5 md:px-5 md:py-6 space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* Breadcrumb */}
+        {(selectedSpecialty || selectedSubspecialty) && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
+            <button
+              type="button"
+              onClick={() => { setSelectedSpecialty(null); setSelectedSubspecialty(null); setSelectedTheme(null); }}
+              className="hover:text-foreground transition-colors"
+            >
+              Especialidades
+            </button>
+            {selectedSpecialty && (
+              <>
+                <ChevronRight className="h-3 w-3 opacity-40 shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => { setSelectedSubspecialty(null); setSelectedTheme(null); }}
+                  className={cn('hover:text-foreground transition-colors', !selectedSubspecialty && 'text-foreground font-semibold')}
+                >
+                  {selectedSpecialty}
+                </button>
+              </>
+            )}
+            {selectedSubspecialty && (
+              <>
+                <ChevronRight className="h-3 w-3 opacity-40 shrink-0" />
+                <span className="text-foreground font-semibold">{selectedSubspecialty}</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Level 1: Especialidade */}
+        {!selectedSpecialty && (
           <div>
             <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">Especialidade</p>
             <div className="grid grid-cols-2 gap-1.5">
               {byArea.map((area, idx) => (
                 <AreaCard
                   key={area.area}
-                  area={area.area}
-                  score={area.score}
+                  label={area.area}
                   correct={area.correct}
                   questions={area.questions}
+                  score={area.score}
                   isBest={idx === 0}
                   isWorst={idx === byArea.length - 1}
-                  isSelected={selectedArea === area.area}
+                  isSelected={false}
                   onClick={() => {
-                    setSelectedArea(prev => (prev === area.area ? null : area.area));
+                    setSelectedSpecialty(area.area);
+                    setSelectedSubspecialty(null);
                     setSelectedTheme(null);
                   }}
                   prefersReducedMotion={!!prefersReducedMotion}
@@ -93,40 +144,89 @@ export function DesempenhoSimuladoPanel({
               ))}
             </div>
           </div>
+        )}
 
-          <div>
-            <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">
-              {selectedArea ? `Temas · ${selectedArea}` : 'Temas'}
-            </p>
-            {!selectedArea ? (
-              <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60 text-center px-4">
-                Selecione uma Especialidade
-              </div>
-            ) : themesForArea.length === 0 ? (
-              <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60">
-                Nenhum tema encontrado
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <AnimatePresence initial={false}>
-                  {themesForArea.map(theme => (
-                    <ThemeAccordionRow
-                      key={theme.theme}
-                      theme={theme.theme}
-                      score={theme.score}
-                      isOpen={selectedTheme === theme.theme}
-                      onToggle={() => setSelectedTheme(prev => (prev === theme.theme ? null : theme.theme))}
-                      questionResults={selectedTheme === theme.theme ? questionResultsForTheme : []}
-                      simuladoId={selectedSimuladoId ?? ''}
+        {/* Level 2: Subespecialidade */}
+        {selectedSpecialty && !selectedSubspecialty && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`subspec-${selectedSpecialty}`}
+              initial={prefersReducedMotion ? false : { opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.2 }}
+            >
+              <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">Subespecialidade</p>
+              {subspecialtiesForSpecialty.length === 0 ? (
+                <div className="flex items-center justify-center h-24 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60">
+                  Nenhuma subespecialidade encontrada
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {subspecialtiesForSpecialty.map((sub, idx) => (
+                    <AreaCard
+                      key={sub.subspecialty}
+                      label={sub.subspecialty}
+                      correct={sub.correct}
+                      questions={sub.questions}
+                      score={sub.score}
+                      isBest={idx === 0}
+                      isWorst={idx === subspecialtiesForSpecialty.length - 1}
+                      isSelected={false}
+                      onClick={() => {
+                        setSelectedSubspecialty(sub.subspecialty);
+                        setSelectedTheme(null);
+                      }}
                       prefersReducedMotion={!!prefersReducedMotion}
-                      correcaoVariant={resultNavVariant}
                     />
                   ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
-        </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* Level 3: Tema */}
+        {selectedSpecialty && selectedSubspecialty && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`theme-${selectedSubspecialty}`}
+              initial={prefersReducedMotion ? false : { opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.2 }}
+            >
+              <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">
+                Tema
+              </p>
+              {themesForSubspecialty.length === 0 ? (
+                <div className="flex items-center justify-center h-24 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60">
+                  Nenhum tema encontrado
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <AnimatePresence initial={false}>
+                    {themesForSubspecialty.map(theme => (
+                      <ThemeAccordionRow
+                        key={theme.theme}
+                        theme={theme.theme}
+                        score={theme.score}
+                        correct={theme.correct}
+                        total={theme.total}
+                        isOpen={selectedTheme === theme.theme}
+                        onToggle={() => setSelectedTheme(prev => (prev === theme.theme ? null : theme.theme))}
+                        questionResults={selectedTheme === theme.theme ? questionResultsForTheme : []}
+                        simuladoId={selectedSimuladoId ?? ''}
+                        prefersReducedMotion={!!prefersReducedMotion}
+                        correcaoVariant={resultNavVariant}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
 
         <hr className="border-border/40" />
 
@@ -216,9 +316,9 @@ function HeroSection({
 }
 
 function AreaCard({
-  area, score, correct, questions, isBest, isWorst, isSelected, onClick, prefersReducedMotion,
+  label, score, correct, questions, isBest, isWorst, isSelected, onClick, prefersReducedMotion,
 }: {
-  area: string; score: number; correct: number; questions: number;
+  label: string; score: number; correct: number; questions: number;
   isBest: boolean; isWorst: boolean; isSelected: boolean;
   onClick: () => void; prefersReducedMotion: boolean;
 }) {
@@ -247,9 +347,9 @@ function AreaCard({
         borderClass,
       )}
     >
-      <p className="text-[9px] text-muted-foreground truncate mb-1">{area}</p>
+      <p className="text-[9px] text-muted-foreground truncate mb-1">{label}</p>
       <p className={cn('text-[20px] font-black tracking-[-0.8px] leading-none tabular-nums', scoreColor)}>{correct}/{questions}</p>
-      <p className="text-[8px] text-muted-foreground/70 mt-0.5">{correct}/{questions} questões</p>
+      <p className="text-[8px] text-muted-foreground/60 mt-0.5">{questions} questões</p>
       <div className="h-[3px] rounded-full bg-border/40 mt-1.5 overflow-hidden">
         <div className={cn('h-full rounded-full', barColor)} style={{ width: `${score}%` }} />
       </div>
@@ -258,9 +358,9 @@ function AreaCard({
 }
 
 function ThemeAccordionRow({
-  theme, score, isOpen, onToggle, questionResults, simuladoId, prefersReducedMotion, correcaoVariant,
+  theme, score, correct, total, isOpen, onToggle, questionResults, simuladoId, prefersReducedMotion, correcaoVariant,
 }: {
-  theme: string; score: number; isOpen: boolean; onToggle: () => void;
+  theme: string; score: number; correct: number; total: number; isOpen: boolean; onToggle: () => void;
   questionResults: Array<{ questionId: string; number: number | null; text: string; isCorrect: boolean; wasAnswered: boolean }>;
   simuladoId: string; prefersReducedMotion: boolean;
   correcaoVariant: 'public' | 'admin';
@@ -287,8 +387,7 @@ function ThemeAccordionRow({
           <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
           <span>{theme}</span>
         </span>
-        <span className={cn('text-[12px] font-bold tabular-nums', scoreColor)}>{score}%</span>
-
+        <span className={cn('text-[12px] font-bold tabular-nums', scoreColor)}>{correct}/{total}</span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -388,7 +487,7 @@ function EvoBars({
                   <span className="text-[12px] font-medium text-foreground">{area.area}</span>
                 </div>
                 <span className="text-[12px] font-bold text-foreground tabular-nums">
-                  {area.correct}/{area.questions} <span className="text-[10px] font-normal text-muted-foreground">· {area.score}%</span>
+                  {area.correct}/{area.questions}
                 </span>
               </div>
               <div className="h-[6px] bg-primary/[0.08] rounded-full overflow-hidden">

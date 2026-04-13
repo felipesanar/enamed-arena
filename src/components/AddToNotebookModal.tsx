@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, X, Sparkles } from 'lucide-react';
+import { BookOpen, X, Sparkles, Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { simuladosApi } from '@/services/simuladosApi';
 import { toast } from '@/hooks/use-toast';
@@ -23,15 +23,24 @@ interface AddToNotebookModalProps {
   wasCorrect: boolean;
   userId: string;
   onAdded?: () => void;
+  selectedHighlight?: string;
 }
 
 export function AddToNotebookModal({
   open, onClose, questionId, simuladoId, simuladoTitle,
   area, theme, questionNumber, questionText, wasCorrect, userId, onAdded,
+  selectedHighlight,
 }: AddToNotebookModalProps) {
   const [reason, setReason] = useState<LocalReason | null>(null);
   const [learningNote, setLearningNote] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setReason(null);
+    setLearningNote(selectedHighlight ? `"${selectedHighlight}"\n\n` : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleSubmit = async () => {
     if (!reason || !userId) return;
@@ -53,8 +62,6 @@ export function AddToNotebookModal({
       toast({ title: 'Salvo no Caderno de Erros', description: 'Questão adicionada com sucesso.' });
       onAdded?.();
       onClose();
-      setReason(null);
-      setLearningNote('');
     } catch (err) {
       console.error('[AddToNotebookModal] Error:', err);
       toast({ title: 'Erro ao salvar', description: 'Tente novamente.', variant: 'destructive' });
@@ -99,6 +106,14 @@ export function AddToNotebookModal({
 
             <div className="mb-5">
               <p className="text-body-sm font-semibold text-foreground mb-2">Anotação de aprendizado <span className="text-muted-foreground font-normal">(opcional)</span></p>
+              {selectedHighlight && (
+                <div className="mb-2 rounded-xl bg-primary/5 border border-primary/15 p-3">
+                  <p className="text-caption font-semibold text-primary mb-1.5 flex items-center gap-1.5">
+                    <Quote className="h-3.5 w-3.5" /> Trecho do comentário
+                  </p>
+                  <p className="text-body-sm text-muted-foreground leading-relaxed italic line-clamp-3">"{selectedHighlight}"</p>
+                </div>
+              )}
               <textarea
                 value={learningNote}
                 onChange={e => setLearningNote(e.target.value)}

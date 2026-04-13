@@ -317,7 +317,11 @@ export function RankingView({
   const perfSubtext =
     perfState === 'good'
       ? `Você está no ${percentil}º percentil — acima de ${100 - percentil}% dos candidatos.`
-      : `Você está abaixo de ${percentil}% dos candidatos — tudo bem, é aqui que começa a virada!`;
+      : currentUser && currentUser.score < 40
+        ? `Você está formando sua base — cada questão revisada é progresso real. Todo aprovado passou por aqui.`
+        : currentUser && currentUser.score < 60
+          ? `Você está em desenvolvimento — com simulados regulares a nota sobe consistentemente. Não desanime!`
+          : `Você está abaixo de ${percentil}% dos candidatos nesse recorte — é aqui que começa a virada!`;
 
   const delta = currentUser ? currentUser.score - stats.notaMedia : 0;
   const deltaPrefix = delta >= 0 ? '▲' : '▼';
@@ -336,6 +340,18 @@ export function RankingView({
 
   const lowConfidence = filteredParticipants.length > 0 && filteredParticipants.length < 30;
   const tableRows = buildTableRows(filteredParticipants, currentUser);
+
+  // ── Cutoff comfort messages (fail state, categorized by gap) ─────────────
+
+  function cutoffComfortMessage(gap: number): { body: string } {
+    if (gap <= 5) {
+      return { body: 'Você está muito perto do corte. Mais uma rodada focada e você chega lá — o esforço já é visível!' };
+    }
+    if (gap <= 15) {
+      return { body: 'Você está no caminho certo. Cada simulado te aproxima do corte — continue com consistência e não desanime.' };
+    }
+    return { body: 'Toda aprovação começa exatamente aqui. A distância de hoje é o combustível de amanhã — você está construindo sua base.' };
+  }
 
   // ── Theme tokens ──────────────────────────────────────────────────────────
 
@@ -572,7 +588,7 @@ export function RankingView({
                       className="text-xs font-semibold mt-0.5"
                       style={{ color: deltaColor }}
                     >
-                      {deltaPrefix} {Math.abs(delta)}pp {delta >= 0 ? 'acima' : 'abaixo'}
+                      {deltaPrefix} {Math.abs(delta)}% {delta >= 0 ? 'acima da média' : 'abaixo da média'}
                     </p>
                   </div>
                 </div>
@@ -815,23 +831,29 @@ export function RankingView({
                         Nota de corte
                       </p>
                       <p
-                        className="font-bold leading-snug mb-[5px]"
+                        className="font-bold leading-snug mb-[4px]"
                         style={{ fontSize: '0.95rem', color: t.kpiCutFailVal }}
                       >
-                        Ainda não ✗
+                        Ainda não passou
                       </p>
                       <p
-                        className="leading-snug"
+                        className="leading-snug mb-[5px]"
                         style={{ fontSize: '0.62rem', color: t.kpiCutFailSub }}
                       >
-                        Faltam{' '}
+                        Sua nota é{' '}
                         <strong style={{ color: t.kpiCutFailGap }}>
-                          {cutoff.cutoff_score_general - currentUser.score}pp
+                          {cutoff.cutoff_score_general - currentUser.score}% abaixo
                         </strong>{' '}
-                        para o corte geral de{' '}
+                        do corte geral de{' '}
                         <strong style={{ color: t.kpiCutFailStrong }}>
                           {cutoff.cutoff_score_general}%
                         </strong>
+                      </p>
+                      <p
+                        className="leading-snug"
+                        style={{ fontSize: '0.6rem', color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontStyle: 'italic' }}
+                      >
+                        {cutoffComfortMessage(cutoff.cutoff_score_general - currentUser.score).body}
                       </p>
                     </div>
                     <button
@@ -864,15 +886,15 @@ export function RankingView({
                 aria-hidden
               />
               <p className="text-xs leading-relaxed" style={{ color: t.bannerText }}>
-                <strong style={{ color: t.text1 }}>Ranking com poucos participantes</strong> — com menos
-                de 30 candidatos, os resultados podem não refletir o desempenho real.{' '}
+                <strong style={{ color: t.text1 }}>Poucos candidatos nesse recorte</strong> — com menos de 30 inscritos, esses dados podem não ser estatisticamente representativos.{' '}
+                Nesse caso, o dado mais valioso é a{' '}
                 <button
                   type="button"
                   onClick={() => setCutoffModalOpen(true)}
-                  className="underline underline-offset-2 transition-colors hover:text-white"
+                  className="underline underline-offset-2 transition-colors font-semibold"
                   style={{ color: '#fb923c' }}
                 >
-                  Consulte a nota de corte oficial →
+                  nota de corte do ano passado →
                 </button>
               </p>
             </div>
