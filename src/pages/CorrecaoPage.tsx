@@ -477,6 +477,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
           </div>
         </aside>
       </div>
+      </div>
 
       {/* Mobile navigator */}
       <AnimatePresence>
