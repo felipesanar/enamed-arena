@@ -1,40 +1,54 @@
 
 
-# Fix: DesempenhoPage data + layout
+# Fix: DesempenhoPage full-width (remove outer padding)
 
-## Problem 1: All scores show 0 (CRITICAL)
+## Problem
 
-**Root cause**: `rowsToQuestion()` in `simuladosApi.ts` always sets `correctOptionId: ''` (line 150). It never fetches `is_correct` from `question_options`. So `computePerformanceBreakdown` compares user answers against `''` and everything shows as incorrect.
+The `DashboardLayout` wraps all page content in a `<main>` with `px-4 md:px-8 py-6 md:py-8` padding (line 91). This creates the white borders visible in the screenshot. The DesempenhoPage needs to be treated as a "full-bleed" route like the arena/exam routes.
 
-Additionally, `getQuestions()` only selects `id, question_id, label, text` from `question_options` — missing the `is_correct` column.
+## Solution
 
-The DesempenhoPage calls `useSimuladoDetail()` without `includeCorrectAnswers=true`, and even if it did, the function ignores that flag.
+### File: `src/components/premium/DashboardLayout.tsx`
 
-**Fix**:
-1. **`src/services/simuladosApi.ts`**: 
-   - Add `is_correct` to `QuestionOptionRow` interface
-   - In `getQuestions()`, when `includeCorrectAnswers=true`, select `is_correct` from `question_options`
-   - In `rowsToQuestion()`, when `includeCorrectAnswers=true`, find the option with `is_correct=true` and set `correctOptionId` to its `id`
+Add a `isFullBleedRoute` check that matches `/desempenho` (and potentially `/comparativo`). When active, the `<main>` gets `p-0` instead of the default padding — same pattern already used for `isArenaRoute`.
 
-2. **`src/pages/DesempenhoPage.tsx`**: Call `useSimuladoDetail(selectedSimuladoId, true)` to request correct answers
+```tsx
+const isFullBleedRoute = useMemo(
+  () => /^\/(desempenho|comparativo)(?:\/|$)/.test(location.pathname),
+  [location.pathname]
+);
+```
 
-## Problem 2: Layout — card should be full-width
+Then update the `<main>` className (line 91):
 
-**Current**: `DesempenhoSimuladoPanel` is a rounded card (`rounded-[22px]`) centered in the page, with `PageHeader` outside it.
+```tsx
+isExamRoute ? "p-0 overflow-hidden"
+  : isArenaRoute || isFullBleedRoute ? "p-0"
+  : "px-4 md:px-8 py-6 md:py-8"
+```
 
-**Fix in `src/pages/DesempenhoPage.tsx`**: Remove `PageHeader` and pass title info into the panel.
+Mobile top/bottom padding still applies via the existing mobile block — no change needed there, but we should also skip the mobile top/bottom padding for full-bleed routes to avoid gaps on mobile:
 
-**Fix in `src/components/desempenho/DesempenhoSimuladoPanel.tsx`**:
-- Remove the outer `rounded-[22px]` border/shadow wrapper — make it full-width
-- Move the page title ("Desempenho" / "Sua evolução por área e tema.") into the hero header section
-- The hero gradient becomes the page header, spanning full width
-- The white content area below also spans full width (no rounded corners on the outer container)
+Update the mobile padding condition (line 92-100) to also exclude `isFullBleedRoute`.
 
-## Files to edit
+### File: `src/components/desempenho/DesempenhoSimuladoPanel.tsx`
+
+The white body section (line 89) already has its own `px-4 py-5 md:px-5 md:py-6`. This stays as-is — it provides internal content padding within the full-bleed container. No changes needed here.
+
+### File: `src/pages/DesempenhoPage.tsx`
+
+The skeleton/empty states currently have no outer wrapper. Add mobile-safe top padding to the skeleton and empty states so they don't hide under the mobile header:
+
+```tsx
+<div className="px-4 md:px-8 py-6 md:py-8">
+  {/* skeleton or empty state content */}
+</div>
+```
+
+## Summary
 
 | File | Change |
 |------|--------|
-| `src/services/simuladosApi.ts` | Add `is_correct` to option row type + query; use it in `rowsToQuestion` when flag is true |
-| `src/pages/DesempenhoPage.tsx` | Pass `includeCorrectAnswers=true` to hook; remove `PageHeader`; remove it from skeleton/empty states too or integrate into panel |
-| `src/components/desempenho/DesempenhoSimuladoPanel.tsx` | Remove rounded card wrapper; integrate page title into hero header; make layout full-width |
+| `DashboardLayout.tsx` | Add `isFullBleedRoute` for `/desempenho`; apply `p-0` to `<main>` |
+| `DesempenhoPage.tsx` | Wrap skeleton/empty states in padding div |
 
