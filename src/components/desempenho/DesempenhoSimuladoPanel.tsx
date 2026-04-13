@@ -64,7 +64,7 @@ export function DesempenhoSimuladoPanel({
       initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[22px] overflow-hidden border border-white/[0.07] shadow-[0_20px_40px_-16px_rgba(142,31,61,0.25),0_6px_16px_-8px_rgba(0,0,0,0.08)]"
+      className="overflow-hidden"
     >
       <HeroSection
         simuladosWithResults={simuladosWithResults}
