@@ -205,6 +205,7 @@ export function RankingView({
   toolbar,
 }: RankingViewProps) {
   const mountedAtRef = useRef<number>(Date.now());
+  const shimmerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isDark, setIsDark] = useState(
     () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
   );
@@ -286,6 +287,12 @@ export function RankingView({
       trackEvent('ranking_engagement_time', { seconds, source: trackSource });
     };
   }, [trackSource]);
+
+  useEffect(() => {
+    return () => {
+      if (shimmerTimerRef.current) clearTimeout(shimmerTimerRef.current);
+    };
+  }, []);
 
   function participantLabel(item: RankingParticipant): string {
     if (participantDisplay === 'admin') return item.name || `Candidato #${item.position}`;
@@ -425,8 +432,12 @@ export function RankingView({
   };
 
   const triggerShimmer = (id: string) => {
+    if (shimmerTimerRef.current) clearTimeout(shimmerTimerRef.current);
     setShimmeringPillId(id);
-    setTimeout(() => setShimmeringPillId((cur) => (cur === id ? null : cur)), 750);
+    shimmerTimerRef.current = setTimeout(
+      () => setShimmeringPillId((cur) => (cur === id ? null : cur)),
+      750,
+    );
   };
 
   const getPillStyle = (isActive: boolean, isPro = false): React.CSSProperties => {
@@ -1027,33 +1038,25 @@ export function RankingView({
                 </div>
 
                 {/* Active filter summary */}
-                {(rankingComparison.bySpecialty || rankingComparison.byInstitution) && (
+                {rankingComparison.bySpecialty && (
                   <p
                     className="text-xs mt-2.5 leading-snug"
                     style={{ color: t.filterLabel }}
                   >
                     <span style={{ color: '#7a1a32', marginRight: '4px' }}>●</span>
-                    {rankingComparison.bySpecialty && userSpecialty && rankingComparison.byInstitution && userInstitutions[0] ? (
+                    {rankingComparison.byInstitution && userInstitutions[0] ? (
                       <>
                         Comparando com candidatos de{' '}
                         <span style={{ color: t.text2 }}>{userSpecialty}</span>
                         {' · '}
                         <span style={{ color: t.text2 }}>{userInstitutions[0]}</span>
                       </>
-                    ) : rankingComparison.bySpecialty && userSpecialty && !rankingComparison.byInstitution ? (
+                    ) : (
                       <>
                         Comparando com candidatos de{' '}
                         <span style={{ color: t.text2 }}>{userSpecialty}</span>
                         <span style={{ color: t.filterLabel }}> (todas as instituições)</span>
                       </>
-                    ) : !rankingComparison.bySpecialty && rankingComparison.byInstitution && userInstitutions[0] ? (
-                      <>
-                        Comparando com candidatos da{' '}
-                        <span style={{ color: t.text2 }}>{userInstitutions[0]}</span>
-                        <span style={{ color: t.filterLabel }}> (todas as especialidades)</span>
-                      </>
-                    ) : (
-                      <span>Configure sua especialidade nas Configurações para usar este filtro.</span>
                     )}
                   </p>
                 )}
