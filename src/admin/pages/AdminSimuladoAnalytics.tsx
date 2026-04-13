@@ -63,8 +63,8 @@ export default function AdminSimuladoAnalytics() {
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             {/* Header */}
             <div className="grid border-b border-border text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wide"
-              style={{ gridTemplateColumns: '40px 1fr 160px 100px 120px' }}>
-              {['Q', 'Enunciado', 'Taxa de acerto', 'Discriminação', 'Erro mais comum'].map(h => (
+              style={{ gridTemplateColumns: '40px 1fr 160px 140px 120px' }}>
+              {['Q', 'Enunciado', 'Taxa de acerto', 'Qualidade da questão', 'Erro mais comum'].map(h => (
                 <div key={h} className="px-3 py-2">{h}</div>
               ))}
             </div>
@@ -78,7 +78,7 @@ export default function AdminSimuladoAnalytics() {
                 <div
                   key={q.question_number}
                   className="grid border-b border-border/40 last:border-0 hover:bg-muted/20 items-center"
-                  style={{ gridTemplateColumns: '40px 1fr 160px 100px 120px' }}
+                  style={{ gridTemplateColumns: '40px 1fr 160px 140px 120px' }}
                 >
                   <div className="px-3 py-2.5 text-xs font-bold text-muted-foreground">
                     Q{q.question_number}
@@ -96,9 +96,9 @@ export default function AdminSimuladoAnalytics() {
                       </span>
                     </div>
                   </div>
-                  <div className="px-3 py-2.5">
+                  <div className="px-3 py-2.5" title={disc.description}>
                     <span className={cn('text-[11px] font-semibold', disc.cls)}>{disc.label}</span>
-                    <p className="text-[9px] text-muted-foreground">{q.discrimination_index.toFixed(1)}pp</p>
+                    <p className="text-[9px] text-muted-foreground">{disc.description}</p>
                   </div>
                   <div className="px-3 py-2.5">
                     {q.most_common_wrong_label ? (
