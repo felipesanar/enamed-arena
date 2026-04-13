@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
+
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import type { Question } from '@/types';
 import { cn } from '@/lib/utils';
