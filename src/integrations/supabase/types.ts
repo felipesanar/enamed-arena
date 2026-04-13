@@ -1265,6 +1265,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_any_simulado_window_open: {
+        Args: { p_now?: string }
+        Returns: boolean
+      }
       log_analytics_event: {
         Args: { p_event_name: string; p_payload?: Json }
         Returns: undefined
