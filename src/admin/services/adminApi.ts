@@ -330,6 +330,9 @@ export const adminApi = {
       discrimination_index: Number(r.discrimination_index),
       most_common_wrong_label: r.most_common_wrong_label as string | null,
       most_common_wrong_pct: r.most_common_wrong_pct != null ? Number(r.most_common_wrong_pct) : null,
+      area: r.area as string,
+      theme: r.theme as string,
+      total_responses: Number(r.total_responses),
     }))
   },
 

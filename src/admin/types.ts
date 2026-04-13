@@ -106,6 +106,9 @@ export interface SimuladoQuestionStat {
   discrimination_index: number
   most_common_wrong_label: string | null
   most_common_wrong_pct: number | null
+  area: string
+  theme: string
+  total_responses: number
 }
 
 export interface AttemptListKpis {
