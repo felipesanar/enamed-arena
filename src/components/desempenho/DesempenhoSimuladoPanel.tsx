@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
+
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import type { Question } from '@/types';
 import { cn } from '@/lib/utils';
@@ -80,11 +80,6 @@ export function DesempenhoSimuladoPanel({
         worstArea={worstArea}
       />
 
-      {selectedSimuladoId && (
-        <div className="bg-white border-b border-border/40 px-4 py-3">
-          <SimuladoResultNav simuladoId={selectedSimuladoId} variant={resultNavVariant} />
-        </div>
-      )}
 
       <div className="bg-white px-4 py-5 md:px-5 md:py-6 space-y-5">
 
