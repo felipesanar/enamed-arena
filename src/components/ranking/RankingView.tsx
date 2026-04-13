@@ -10,7 +10,6 @@ import React, {
   type SetStateAction,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { useTheme } from 'next-themes';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -203,8 +202,15 @@ export function RankingView({
   toolbar,
 }: RankingViewProps) {
   const mountedAtRef = useRef<number>(Date.now());
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const [isDark, setIsDark] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  );
+  useEffect(() => {
+    const update = () => setIsDark(document.documentElement.classList.contains('dark'));
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
   const [cutoffModalOpen, setCutoffModalOpen] = useState(false);
 
