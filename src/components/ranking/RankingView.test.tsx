@@ -12,7 +12,7 @@ vi.mock('@/hooks/useCutoffScore', () => ({
   useCutoffScore: vi.fn(() => ({ loading: false, cutoff: null })),
 }));
 vi.mock('./CutoffScoreModal', () => ({
-  CutoffScoreModal: () => null,
+  CutoffScoreModal: (): null => null,
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ function makeParticipant(
 const defaultStats: RankingStats = { totalCandidatos: 20, notaMedia: 60, notaCorte: 85 };
 
 function renderView(overrides: Partial<Parameters<typeof RankingView>[0]> = {}) {
-  const props = {
+  const props: Parameters<typeof RankingView>[0] = {
     loading: false,
     simuladosWithResults: [{ id: 's1', title: 'Simulado #1', sequence_number: 1 }],
     selectedSimuladoId: 's1',
