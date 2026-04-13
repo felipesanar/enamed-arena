@@ -1,54 +1,42 @@
 
 
-# Fix: DesempenhoPage full-width (remove outer padding)
+# Fix: DesempenhoPage not showing data for offline attempts
 
-## Problem
+## Root Cause
 
-The `DashboardLayout` wraps all page content in a `<main>` with `px-4 md:px-8 py-6 md:py-8` padding (line 91). This creates the white borders visible in the screenshot. The DesempenhoPage needs to be treated as a "full-bleed" route like the arena/exam routes.
+`useExamResult.ts` line 69 hardcodes `attempt_type = 'online'`:
 
-## Solution
-
-### File: `src/components/premium/DashboardLayout.tsx`
-
-Add a `isFullBleedRoute` check that matches `/desempenho` (and potentially `/comparativo`). When active, the `<main>` gets `p-0` instead of the default padding — same pattern already used for `isArenaRoute`.
-
-```tsx
-const isFullBleedRoute = useMemo(
-  () => /^\/(desempenho|comparativo)(?:\/|$)/.test(location.pathname),
-  [location.pathname]
-);
+```typescript
+const attempt = await simuladosApi.getAttempt(config.id, user.id, 'online');
 ```
 
-Then update the `<main>` className (line 91):
+For users who completed the exam in offline mode (like this student), `getAttempt` returns `null` → no exam state → no breakdown → empty performance page. This affects **all offline-only students**.
 
-```tsx
-isExamRoute ? "p-0 overflow-hidden"
-  : isArenaRoute || isFullBleedRoute ? "p-0"
-  : "px-4 md:px-8 py-6 md:py-8"
+## Fix
+
+### File: `src/hooks/useExamResult.ts` (line 69)
+
+Fetch both online and offline attempts, then pick the most relevant one using the existing `pickMostRelevantAttempt` helper (already used in `useSimulados`):
+
+```typescript
+import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
+
+// Replace line 69:
+const attempt = await simuladosApi.getAttempt(config.id, user.id, 'online');
+
+// With:
+const [onlineAttempt, offlineAttempt] = await Promise.all([
+  simuladosApi.getAttempt(config.id, user.id, 'online'),
+  simuladosApi.getAttempt(config.id, user.id, 'offline'),
+]);
+const attempt = pickMostRelevantAttempt(onlineAttempt, offlineAttempt) ?? null;
 ```
 
-Mobile top/bottom padding still applies via the existing mobile block — no change needed there, but we should also skip the mobile top/bottom padding for full-bleed routes to avoid gaps on mobile:
+This ensures the hook finds the best completed attempt regardless of mode, using the same priority logic already established in the codebase (finished attempts win over in-progress; most recent wins ties).
 
-Update the mobile padding condition (line 92-100) to also exclude `isFullBleedRoute`.
+## Impact
 
-### File: `src/components/desempenho/DesempenhoSimuladoPanel.tsx`
-
-The white body section (line 89) already has its own `px-4 py-5 md:px-5 md:py-6`. This stays as-is — it provides internal content padding within the full-bleed container. No changes needed here.
-
-### File: `src/pages/DesempenhoPage.tsx`
-
-The skeleton/empty states currently have no outer wrapper. Add mobile-safe top padding to the skeleton and empty states so they don't hide under the mobile header:
-
-```tsx
-<div className="px-4 md:px-8 py-6 md:py-8">
-  {/* skeleton or empty state content */}
-</div>
-```
-
-## Summary
-
-| File | Change |
-|------|--------|
-| `DashboardLayout.tsx` | Add `isFullBleedRoute` for `/desempenho`; apply `p-0` to `<main>` |
-| `DesempenhoPage.tsx` | Wrap skeleton/empty states in padding div |
+- Fixes performance page for all offline-only students
+- No changes to the API layer or database
+- Single file edit, ~5 lines changed
 
