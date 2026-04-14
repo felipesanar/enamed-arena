@@ -272,21 +272,20 @@ export async function fetchCutoffScore(
   specialty: string,
   institution: string,
 ): Promise<CutoffScoreRow | null> {
-  logger.log('[rankingApi] Fetching cutoff score');
-  const { data, error } = await supabase
-    .from('enamed_cutoff_scores')
-    .select(
-      'institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
-    )
-    .ilike('specialty_name', specialty.trim())
-    .ilike('institution_name', `%${institution.trim()}%`)
-    .maybeSingle();
+  logger.log('[rankingApi] Fetching cutoff score (normalized match)');
+
+  const { data, error } = await (supabase.rpc as any)('match_cutoff_score', {
+    p_specialty: specialty.trim(),
+    p_institution: institution.trim(),
+  });
 
   if (error) {
     logger.error('[rankingApi] Error fetching cutoff score:', error);
     return null;
   }
-  return data as CutoffScoreRow | null;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as CutoffScoreRow) ?? null;
 }
 
 /**
