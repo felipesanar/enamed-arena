@@ -52,6 +52,20 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
     });
   }, [loading, examState, attempt, id, questions, segment]);
 
+  const breakdown = useMemo(() => {
+    if (!examState || (examState.status !== 'submitted' && examState.status !== 'expired') || !questions.length) return null;
+    return computePerformanceBreakdown(examState, questions);
+  }, [examState, questions]);
+
+  const pdf = usePdfDownload({
+    simuladoId: id ?? '',
+    simuladoTitle: simulado?.title ?? '',
+    studentName: profile?.name ?? 'Aluno',
+    questions,
+    examState: examState ?? null,
+    breakdown,
+  });
+
   const [ringOffset, setRingOffset] = useState(RING_CIRCUMFERENCE);
 
   useEffect(() => {
