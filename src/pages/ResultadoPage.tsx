@@ -157,6 +157,15 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const officialIncorrect = officialAnswered - officialCorrect;
   const officialUnanswered = overall.totalQuestions - officialAnswered;
 
+  const pdf = usePdfDownload({
+    simuladoId: id ?? '',
+    simuladoTitle: simulado.title,
+    studentName: profile?.name ?? 'Aluno',
+    questions,
+    examState,
+    breakdown,
+  });
+
   const RING_SIZE = 120;
   const RING_SIZE_SM = 140;
   const ringR = 60;
