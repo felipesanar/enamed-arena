@@ -4,32 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CutoffScoreModal } from './CutoffScoreModal';
 
-const ROWS = [
-  {
-    institution_name: 'Hospital das Clínicas FMUSP',
-    practice_scenario: 'HC',
-    specialty_name: 'Clínica Médica',
-    cutoff_score_general: 91,
-    cutoff_score_quota: 78,
-  },
-  {
-    institution_name: 'UFBA',
-    practice_scenario: 'HC',
-    specialty_name: 'Pediatria',
-    cutoff_score_general: 70,
-    cutoff_score_quota: 60,
-  },
-  {
-    institution_name: 'USP',
-    practice_scenario: 'HCFMUSP',
-    specialty_name: 'Cirurgia',
-    cutoff_score_general: 80,
-    cutoff_score_quota: null,
-  },
-];
-
-vi.mock('@/services/rankingApi', () => ({
-  fetchAllCutoffScores: vi.fn().mockResolvedValue([
+vi.mock('@/services/rankingApi', () => {
+  const rows = [
     {
       institution_name: 'Hospital das Clínicas FMUSP',
       practice_scenario: 'HC',
@@ -51,8 +27,9 @@ vi.mock('@/services/rankingApi', () => ({
       cutoff_score_general: 80,
       cutoff_score_quota: null,
     },
-  ]),
-}));
+  ];
+  return { fetchAllCutoffScores: vi.fn().mockResolvedValue(rows) };
+});
 
 function wrapper({ children }: { children?: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -71,9 +48,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof CutoffScoreModal
 
 describe('CutoffScoreModal', () => {
   it('does not render when open=false', () => {
-    render(
-      React.createElement(wrapper, {}, React.createElement(CutoffScoreModal, { open: false, onClose: vi.fn() })),
-    );
+    renderModal({ open: false });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -104,8 +79,10 @@ describe('CutoffScoreModal', () => {
 
   it('shows hero card with cutoff numbers when userInstitution matches a row', async () => {
     renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP' });
-    await waitFor(() => expect(screen.getByText('Sua nota de corte')).toBeTruthy());
-    expect(screen.getByText('91%')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('Sua nota de corte')).toBeTruthy();
+      expect(screen.getByText('91%')).toBeTruthy();
+    });
   });
 
   it('shows PASSARIA badge when currentUserScore >= cutoff_score_general', async () => {
@@ -120,8 +97,10 @@ describe('CutoffScoreModal', () => {
 
   it('shows no pass/fail badge when currentUserScore is not provided', async () => {
     renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP' });
-    await waitFor(() => expect(screen.getByText('Sua nota de corte')).toBeTruthy());
-    expect(screen.queryByText(/PASSARIA/)).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByText('Sua nota de corte')).toBeTruthy();
+      expect(screen.queryByText(/PASSARIA/)).toBeNull();
+    });
   });
 
   it('pins user institution row with "Sua instituição" separator', async () => {
