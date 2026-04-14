@@ -52,6 +52,20 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
     });
   }, [loading, examState, attempt, id, questions, segment]);
 
+  const breakdown = useMemo(() => {
+    if (!examState || (examState.status !== 'submitted' && examState.status !== 'expired') || !questions.length) return null;
+    return computePerformanceBreakdown(examState, questions);
+  }, [examState, questions]);
+
+  const pdf = usePdfDownload({
+    simuladoId: id ?? '',
+    simuladoTitle: simulado?.title ?? '',
+    studentName: profile?.name ?? 'Aluno',
+    questions,
+    examState: examState ?? null,
+    breakdown,
+  });
+
   const [ringOffset, setRingOffset] = useState(RING_CIRCUMFERENCE);
 
   useEffect(() => {
@@ -147,8 +161,7 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
     );
   }
 
-  const breakdown = computePerformanceBreakdown(examState, questions);
-  const { overall } = breakdown;
+  const { overall } = breakdown!;
   const officialCorrect = attempt?.total_correct ?? overall.totalCorrect;
   const officialAnswered = attempt?.total_answered ?? overall.totalAnswered;
   const officialPercentage = attempt?.score_percentage != null
@@ -156,15 +169,6 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
     : overall.percentageScore;
   const officialIncorrect = officialAnswered - officialCorrect;
   const officialUnanswered = overall.totalQuestions - officialAnswered;
-
-  const pdf = usePdfDownload({
-    simuladoId: id ?? '',
-    simuladoTitle: simulado.title,
-    studentName: profile?.name ?? 'Aluno',
-    questions,
-    examState,
-    breakdown,
-  });
 
   const RING_SIZE = 120;
   const RING_SIZE_SM = 140;
