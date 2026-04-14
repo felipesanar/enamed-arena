@@ -130,8 +130,6 @@ export function CutoffScoreModal({
   const normalizedSpecialty = userSpecialty?.toLowerCase() ?? '';
   const resultCount = filteredRows.length + (userRow ? 1 : 0);
 
-  if (!open) return null;
-
   return (
     <AnimatePresence>
       {open && (
@@ -331,6 +329,7 @@ export function CutoffScoreModal({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Buscar instituição ou especialidade..."
+                  aria-label="Buscar instituição ou especialidade"
                   className="w-full h-9 pl-9 pr-4 rounded-[10px] text-[12.5px] text-white outline-none transition-all duration-200"
                   style={{
                     background: 'rgba(255,255,255,0.06)',
@@ -507,7 +506,7 @@ export function CutoffScoreModal({
                 </div>
               )}
 
-              {!isLoading && (rows.length > 0 || userRow) && (
+              {!isLoading && (filteredRows.length > 0 || userRow) && (
                 <div>
                   {/* ── Pinned user row ──────────────────────────────────── */}
                   {userRow && (
