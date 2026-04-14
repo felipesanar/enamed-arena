@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { PageTransition } from '@/components/premium/PageTransition';
-
+import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { DesempenhoSimuladoPanel } from '@/components/desempenho/DesempenhoSimuladoPanel';
@@ -60,6 +60,12 @@ export default function DesempenhoPage() {
   if (loading && !breakdown) {
     return (
       <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8 space-y-3">
+        <PageHeader
+          title="Desempenho"
+          subtitle="Análise detalhada do seu desempenho por especialidade e tema."
+          subtitlePlacement="inline-end"
+          badge="ENAMED 2026"
+        />
         <SkeletonCard className="h-[140px] rounded-[22px] bg-primary/[0.06]" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <SkeletonCard className="h-[280px]" />
