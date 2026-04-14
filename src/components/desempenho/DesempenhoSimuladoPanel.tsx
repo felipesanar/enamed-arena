@@ -4,8 +4,10 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import type { Question } from '@/types';
+import type { ExamState } from '@/types/exam';
 import { cn } from '@/lib/utils';
-import { Star, TrendingDown, Stethoscope, ChevronRight } from 'lucide-react';
+import { Star, TrendingDown, Stethoscope, ChevronRight, Download, Loader2, FileText } from 'lucide-react';
+import { usePdfDownload, getStageLabel } from '@/hooks/usePdfDownload';
 
 export type DesempenhoSimuladoPanelProps = {
   simuladosWithResults: Array<{ id: string; title: string }>;
@@ -13,6 +15,8 @@ export type DesempenhoSimuladoPanelProps = {
   onSelectSimulado: (id: string) => void;
   breakdown: PerformanceBreakdown;
   questions: Question[];
+  examState?: ExamState | null;
+  studentName?: string;
   resultNavVariant?: 'public' | 'admin';
 };
 
