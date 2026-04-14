@@ -81,11 +81,11 @@ export function DesempenhoSimuladoPanel({
       />
 
 
-      <div className="bg-white px-4 py-5 md:px-5 md:py-6 space-y-5">
+      <div className="bg-white px-5 py-6 md:px-6 md:py-7 space-y-6">
 
         {/* Breadcrumb */}
         {(selectedSpecialty || selectedSubspecialty) && (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
             <button
               type="button"
               onClick={() => { setSelectedSpecialty(null); setSelectedSubspecialty(null); setSelectedTheme(null); }}
@@ -117,8 +117,8 @@ export function DesempenhoSimuladoPanel({
         {/* Level 1: Especialidade */}
         {!selectedSpecialty && (
           <div>
-            <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">Especialidade</p>
-            <div className="grid grid-cols-2 gap-1.5">
+            <p className="text-[11px] uppercase tracking-[1.2px] text-muted-foreground font-semibold mb-3">Especialidade</p>
+            <div className="grid grid-cols-2 gap-2">
               {byArea.map((area, idx) => (
                 <AreaCard
                   key={area.area}
@@ -151,13 +151,13 @@ export function DesempenhoSimuladoPanel({
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.2 }}
             >
-              <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">Subespecialidade</p>
+              <p className="text-[11px] uppercase tracking-[1.2px] text-muted-foreground font-semibold mb-3">Subespecialidade</p>
               {subspecialtiesForSpecialty.length === 0 ? (
-                <div className="flex items-center justify-center h-24 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60">
+                <div className="flex items-center justify-center h-24 rounded-xl border border-dashed border-border/40 text-[13px] text-muted-foreground/60">
                   Nenhuma subespecialidade encontrada
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   {subspecialtiesForSpecialty.map((sub, idx) => (
                     <AreaCard
                       key={sub.subspecialty}
@@ -191,11 +191,11 @@ export function DesempenhoSimuladoPanel({
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.2 }}
             >
-              <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-2">
+              <p className="text-[11px] uppercase tracking-[1.2px] text-muted-foreground font-semibold mb-3">
                 Tema
               </p>
               {themesForSubspecialty.length === 0 ? (
-                <div className="flex items-center justify-center h-24 rounded-xl border border-dashed border-border/40 text-[12px] text-muted-foreground/60">
+                <div className="flex items-center justify-center h-24 rounded-xl border border-dashed border-border/40 text-[13px] text-muted-foreground/60">
                   Nenhum tema encontrado
                 </div>
               ) : (
@@ -344,14 +344,14 @@ function AreaCard({
       whileHover={prefersReducedMotion ? undefined : { y: -2 }}
       transition={{ duration: 0.15 }}
       className={cn(
-        'w-full text-left bg-white border rounded-[10px] p-2.5 cursor-pointer transition-all duration-200',
+        'w-full text-left bg-white border rounded-[12px] p-3.5 cursor-pointer transition-all duration-200',
         borderClass,
       )}
     >
-      <p className="text-[9px] text-muted-foreground truncate mb-1">{label}</p>
-      <p className={cn('text-[20px] font-black tracking-[-0.8px] leading-none tabular-nums', scoreColor)}>{correct}/{questions}</p>
-      <p className="text-[8px] text-muted-foreground/60 mt-0.5">{questions} questões</p>
-      <div className="h-[3px] rounded-full bg-border/40 mt-1.5 overflow-hidden">
+      <p className="text-[11px] text-muted-foreground truncate mb-1">{label}</p>
+      <p className={cn('text-[24px] font-black tracking-[-0.8px] leading-none tabular-nums', scoreColor)}>{correct}/{questions}</p>
+      <p className="text-[10px] text-muted-foreground/60 mt-0.5">{questions} questões</p>
+      <div className="h-[4px] rounded-full bg-border/40 mt-2 overflow-hidden">
         <div className={cn('h-full rounded-full', barColor)} style={{ width: `${score}%` }} />
       </div>
     </motion.button>
@@ -382,13 +382,13 @@ function ThemeAccordionRow({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex justify-between items-center px-3 py-2.5 text-left"
+        className="w-full flex justify-between items-center px-3.5 py-3 text-left"
       >
-        <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+        <span className="text-[13px] font-semibold text-foreground flex items-center gap-1.5">
           <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
           <span>{theme}</span>
         </span>
-        <span className={cn('text-[12px] font-bold tabular-nums', scoreColor)}>{correct}/{total}</span>
+        <span className={cn('text-[13px] font-bold tabular-nums', scoreColor)}>{correct}/{total}</span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -401,7 +401,7 @@ function ThemeAccordionRow({
             transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-primary/10 px-2.5 py-1.5 flex flex-col gap-0.5">
+            <div className="border-t border-primary/10 px-3 py-2 flex flex-col gap-0.5">
               {questionResults.map((q, idx) => {
                 const badgeClass = q.isCorrect
                   ? 'bg-success/10 text-success'
@@ -415,10 +415,10 @@ function ThemeAccordionRow({
                     to={`${correcaoBase}?q=${q.number ?? idx + 1}`}
                     className="flex items-center justify-between gap-2 py-1.5 border-b border-border/[0.06] last:border-b-0 no-underline hover:bg-accent/20 rounded px-1 transition-colors"
                   >
-                    <span className="text-[10px] text-foreground truncate flex-1">
+                    <span className="text-[12px] text-foreground truncate flex-1">
                       {q.text || `Questão ${q.number ?? idx + 1}`}
                     </span>
-                    <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded-[5px] shrink-0', badgeClass)}>
+                    <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-[5px] shrink-0', badgeClass)}>
                       {badgeText}
                     </span>
                   </Link>
@@ -440,22 +440,22 @@ function SummarySection({
 }) {
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-3">Resumo do desempenho</p>
+      <p className="text-[11px] uppercase tracking-[1.2px] text-muted-foreground font-semibold mb-3">Resumo do desempenho</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-xl border border-success/20 bg-success/[0.03] p-4">
-          <h4 className="font-semibold flex items-center gap-2 text-success text-[12px] mb-2">
-            <Star className="h-3.5 w-3.5" aria-hidden /> Onde você brilha
+        <div className="rounded-xl border border-success/20 bg-success/[0.03] p-5">
+          <h4 className="font-semibold flex items-center gap-2 text-success text-[14px] mb-2">
+            <Star className="h-4 w-4" aria-hidden /> Onde você brilha
           </h4>
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             {`Sua principal fortaleza foi em ${bestArea} com ${bestCorrect}/${bestTotal} acertos.`}
           </p>
         </div>
-        <div className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4">
-          <h4 className="font-semibold flex items-center gap-2 text-destructive text-[12px] mb-2">
-            <TrendingDown className="h-3.5 w-3.5" aria-hidden /> Próximo foco
+        <div className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-5">
+          <h4 className="font-semibold flex items-center gap-2 text-destructive text-[14px] mb-2">
+            <TrendingDown className="h-4 w-4" aria-hidden /> Próximo foco
           </h4>
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             {`A especialidade com maior oportunidade é ${worstArea} com ${worstCorrect}/${worstTotal} acertos.`}
           </p>
         </div>
@@ -473,8 +473,8 @@ function EvoBars({
   const lastIdx = byArea.length - 1;
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-[1.2px] text-muted-foreground mb-3">Evolução por especialidade</p>
-      <div className="space-y-3">
+      <p className="text-[11px] uppercase tracking-[1.2px] text-muted-foreground font-semibold mb-3">Evolução por especialidade</p>
+      <div className="space-y-3.5">
         {byArea.map((area, i) => {
           const isWorst = i === lastIdx;
           const fillClass = isWorst
@@ -484,14 +484,14 @@ function EvoBars({
             <div key={area.area}>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <Stethoscope className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" aria-hidden />
-                  <span className="text-[12px] font-medium text-foreground">{area.area}</span>
+                  <Stethoscope className="h-4 w-4 text-muted-foreground/50 shrink-0" aria-hidden />
+                  <span className="text-[13px] font-medium text-foreground">{area.area}</span>
                 </div>
-                <span className="text-[12px] font-bold text-foreground tabular-nums">
+                <span className="text-[13px] font-bold text-foreground tabular-nums">
                   {area.correct}/{area.questions}
                 </span>
               </div>
-              <div className="h-[6px] bg-primary/[0.08] rounded-full overflow-hidden">
+              <div className="h-[7px] bg-primary/[0.08] rounded-full overflow-hidden">
                 <motion.div
                   className={cn('h-full rounded-full', fillClass)}
                   initial={{ width: prefersReducedMotion ? `${area.score}%` : '0%' }}
