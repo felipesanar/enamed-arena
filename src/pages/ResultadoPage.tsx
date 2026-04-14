@@ -352,23 +352,6 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
               <span className="relative z-10">Ir para correção comentada</span>
               <ArrowRight className="h-4 w-4 sm:h-[18px] sm:w-[18px] relative z-10 ml-auto opacity-50" aria-hidden />
             </Link>
-            <button
-              onClick={pdf.downloadGabarito}
-              disabled={pdf.downloading}
-              className="flex items-center justify-center gap-2 w-full mt-2.5 py-2.5 px-4 rounded-xl text-caption font-semibold transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: 'rgba(255,255,255,0.55)',
-              }}
-            >
-              {pdf.downloading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5" />
-              )}
-              Baixar Gabarito (PDF)
-            </button>
           </div>
         </div>
       </motion.div>
