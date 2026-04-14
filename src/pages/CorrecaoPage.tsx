@@ -11,13 +11,14 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { canViewResultsOrAdminPreview, areResultsReleased } from '@/lib/simulado-helpers';
-import { computeSimuladoScore } from '@/lib/resultHelpers';
+import { computeSimuladoScore, computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
+import { usePdfDownload, getStageLabel } from '@/hooks/usePdfDownload';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles, Lock,
+  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles, Lock, Download, Loader2,
 } from 'lucide-react';
 import { QuestionImage } from '@/components/exam/QuestionImage';
 
