@@ -84,6 +84,20 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     return computeSimuladoScore(examState, questionsWithCorrection);
   }, [examState, questionsWithCorrection]);
 
+  const breakdown = useMemo(() => {
+    if (!examState || !questionsWithCorrection.length) return null;
+    return computePerformanceBreakdown(examState, questionsWithCorrection);
+  }, [examState, questionsWithCorrection]);
+
+  const pdf = usePdfDownload({
+    simuladoId: id ?? '',
+    simuladoTitle: simulado?.title ?? '',
+    studentName: profile?.name ?? 'Aluno',
+    questions: questionsWithCorrection,
+    examState,
+    breakdown,
+  });
+
   useEffect(() => {
     if (!id || !simulado) return;
     trackEvent('correction_viewed', {
