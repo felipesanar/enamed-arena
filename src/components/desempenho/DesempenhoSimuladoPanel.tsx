@@ -26,6 +26,8 @@ export function DesempenhoSimuladoPanel({
   onSelectSimulado,
   breakdown,
   questions,
+  examState,
+  studentName,
   resultNavVariant = 'public',
 }: DesempenhoSimuladoPanelProps) {
   const prefersReducedMotion = useReducedMotion();
