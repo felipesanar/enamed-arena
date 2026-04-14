@@ -9,12 +9,26 @@ interface CutoffScoreModalProps {
   open: boolean;
   onClose: () => void;
   userSpecialty?: string;
+  userInstitution?: string;   // first institution from onboarding
+  currentUserScore?: number;  // user's score % for pass/fail badge (same unit as cutoff_score_general)
 }
 
-export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreModalProps) {
+function scoreTint(score: number): 'high' | 'mid' | 'low' {
+  if (score >= 80) return 'high';
+  if (score >= 74) return 'mid';
+  return 'low';
+}
+
+export function CutoffScoreModal({
+  open,
+  onClose,
+  userSpecialty,
+  userInstitution,
+  currentUserScore,
+}: CutoffScoreModalProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [search, setSearch] = useState('');
-  const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
+  const [specialtyFilter, setSpecialtyFilter] = useState<string>(userSpecialty ?? 'all');
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: rows = [], isLoading } = useQuery({
@@ -24,16 +38,17 @@ export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreMo
     enabled: open,
   });
 
-  // Reset filters on close
+  // Reset / initialize filters on open/close — auto-selects user's specialty on open
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setSpecialtyFilter(userSpecialty ?? 'all');
+      closeBtnRef.current?.focus();
+    } else {
       setSearch('');
       setSpecialtyFilter('all');
       setShowFilters(false);
-    } else {
-      closeBtnRef.current?.focus();
     }
-  }, [open]);
+  }, [open, userSpecialty]);
 
   // Close on Escape
   useEffect(() => {
@@ -45,21 +60,45 @@ export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreMo
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Extract unique specialties
+  // Extract unique specialties for filter pills
   const specialties = useMemo(() => {
     const set = new Set(rows.map(r => r.specialty_name));
     return Array.from(set).sort();
   }, [rows]);
 
-  // Normalize for search
-  const normalize = (s: string) =>
-    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-–—]/g, '-');
+  // User's own cutoff row — pinned at top, derived without an extra query
+  const userRow = useMemo(() => {
+    if (!userSpecialty || !userInstitution) return null;
+    return (
+      rows.find(
+        r =>
+          r.specialty_name.toLowerCase() === userSpecialty.toLowerCase() &&
+          r.institution_name.toLowerCase().includes(userInstitution.toLowerCase().trim()),
+      ) ?? null
+    );
+  }, [rows, userSpecialty, userInstitution]);
 
-  // Filter rows
+  // Hero card state
+  const heroState: 'no_data' | 'no_score' | 'pass' | 'fail' =
+    !userRow
+      ? 'no_data'
+      : currentUserScore == null
+      ? 'no_score'
+      : currentUserScore >= userRow.cutoff_score_general
+      ? 'pass'
+      : 'fail';
+
+  // Normalize for accent-insensitive search
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[-–—]/g, '-');
+
+  // Filtered rows — excludes the pinned userRow
   const filteredRows = useMemo(() => {
     const normalizedSearch = normalize(search);
-    const normalizedSpecialty = userSpecialty?.toLowerCase() ?? '';
-
     let filtered = rows;
 
     if (specialtyFilter !== 'all') {
@@ -67,24 +106,29 @@ export function CutoffScoreModal({ open, onClose, userSpecialty }: CutoffScoreMo
     }
 
     if (normalizedSearch) {
-      filtered = filtered.filter(r =>
-        normalize(r.institution_name).includes(normalizedSearch) ||
-        normalize(r.specialty_name).includes(normalizedSearch)
+      filtered = filtered.filter(
+        r =>
+          normalize(r.institution_name).includes(normalizedSearch) ||
+          normalize(r.specialty_name).includes(normalizedSearch),
       );
     }
 
-    // Sort: user's specialty first, then alphabetical
-    if (normalizedSpecialty) {
-      const mine = filtered.filter(r => r.specialty_name.toLowerCase() === normalizedSpecialty);
-      const others = filtered.filter(r => r.specialty_name.toLowerCase() !== normalizedSpecialty);
-      return [...mine, ...others];
+    // Exclude the pinned user row from the scrollable list
+    if (userRow) {
+      filtered = filtered.filter(
+        r =>
+          !(
+            r.institution_name === userRow.institution_name &&
+            r.specialty_name === userRow.specialty_name
+          ),
+      );
     }
 
     return filtered;
-  }, [rows, search, specialtyFilter, userSpecialty]);
+  }, [rows, search, specialtyFilter, userRow]);
 
   const normalizedSpecialty = userSpecialty?.toLowerCase() ?? '';
-  const resultCount = filteredRows.length;
+  const resultCount = filteredRows.length + (userRow ? 1 : 0);
 
   if (!open) return null;
 
