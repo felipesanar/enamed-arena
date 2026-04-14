@@ -1276,6 +1276,17 @@ export type Database = {
         Args: { p_event_name: string; p_payload?: Json }
         Returns: undefined
       }
+      match_cutoff_score: {
+        Args: { p_institution: string; p_specialty: string }
+        Returns: {
+          cutoff_score_general: number
+          cutoff_score_quota: number
+          institution_name: string
+          practice_scenario: string
+          specialty_name: string
+        }[]
+      }
+      normalize_text_for_match: { Args: { input: string }; Returns: string }
       process_attempt_reprocessing_queue: {
         Args: { p_limit?: number }
         Returns: {
