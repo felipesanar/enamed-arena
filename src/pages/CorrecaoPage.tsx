@@ -11,13 +11,14 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { canViewResultsOrAdminPreview, areResultsReleased } from '@/lib/simulado-helpers';
-import { computeSimuladoScore } from '@/lib/resultHelpers';
+import { computeSimuladoScore, computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
+import { usePdfDownload, getStageLabel } from '@/hooks/usePdfDownload';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles, Lock,
+  FileText, BookOpen, Flag, Zap, Grid3X3, Sparkles, Lock, Download, Loader2,
 } from 'lucide-react';
 import { QuestionImage } from '@/components/exam/QuestionImage';
 
@@ -82,6 +83,20 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     if (!examState || !questionsWithCorrection.length) return null;
     return computeSimuladoScore(examState, questionsWithCorrection);
   }, [examState, questionsWithCorrection]);
+
+  const breakdown = useMemo(() => {
+    if (!examState || !questionsWithCorrection.length) return null;
+    return computePerformanceBreakdown(examState, questionsWithCorrection);
+  }, [examState, questionsWithCorrection]);
+
+  const pdf = usePdfDownload({
+    simuladoId: id ?? '',
+    simuladoTitle: simulado?.title ?? '',
+    studentName: profile?.name ?? 'Aluno',
+    questions: questionsWithCorrection,
+    examState,
+    breakdown,
+  });
 
   useEffect(() => {
     if (!id || !simulado) return;
@@ -218,6 +233,16 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold bg-warning/10 text-warning">
               — {score.totalUnanswered}
             </span>
+            <div className="w-px h-4 bg-border mx-1" />
+            <button
+              onClick={pdf.downloadProvaRevisada}
+              disabled={pdf.downloading}
+              title={pdf.stage ? getStageLabel(pdf.stage) : 'Baixar Prova Revisada (PDF)'}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {pdf.downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+              PDF
+            </button>
             <div className="w-px h-4 bg-border mx-1" />
             <span className="text-heading-3 font-bold text-primary tabular-nums">
               {attempt?.score_percentage != null

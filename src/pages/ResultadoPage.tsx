@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 const RING_CIRCUMFERENCE = 376.99;
 import { useParams, Link, Navigate } from 'react-router-dom';
@@ -10,9 +10,10 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { canViewResultsOrAdminPreview, areResultsReleased } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { trackEvent } from '@/lib/analytics';
+import { usePdfDownload } from '@/hooks/usePdfDownload';
 import {
   Trophy, CheckCircle2, XCircle, MinusCircle,
-  FileText, ArrowLeft, ArrowRight, BookOpen,
+  FileText, ArrowLeft, ArrowRight, BookOpen, Download, Loader2,
 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 
@@ -155,6 +156,15 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
     : overall.percentageScore;
   const officialIncorrect = officialAnswered - officialCorrect;
   const officialUnanswered = overall.totalQuestions - officialAnswered;
+
+  const pdf = usePdfDownload({
+    simuladoId: id ?? '',
+    simuladoTitle: simulado.title,
+    studentName: profile?.name ?? 'Aluno',
+    questions,
+    examState,
+    breakdown,
+  });
 
   const RING_SIZE = 120;
   const RING_SIZE_SM = 140;
@@ -342,6 +352,23 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
               <span className="relative z-10">Ir para correção comentada</span>
               <ArrowRight className="h-4 w-4 sm:h-[18px] sm:w-[18px] relative z-10 ml-auto opacity-50" aria-hidden />
             </Link>
+            <button
+              onClick={pdf.downloadGabarito}
+              disabled={pdf.downloading}
+              className="flex items-center justify-center gap-2 w-full mt-2.5 py-2.5 px-4 rounded-xl text-caption font-semibold transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.55)',
+              }}
+            >
+              {pdf.downloading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              Baixar Gabarito (PDF)
+            </button>
           </div>
         </div>
       </motion.div>

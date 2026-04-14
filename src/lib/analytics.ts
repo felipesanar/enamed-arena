@@ -63,7 +63,9 @@ export type AnalyticsEventName =
   | "exam_storage_fallback"
   | "exam_storage_retry"
   | "auth_profile_load_failed"
-  | "error_boundary_triggered";
+  | "error_boundary_triggered"
+  // PDF downloads
+  | "pdf_downloaded";
 
 export type AnalyticsPayload = Record<string, string | number | boolean | null | undefined>;
 

@@ -4,8 +4,10 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import type { Question } from '@/types';
+import type { ExamState } from '@/types/exam';
 import { cn } from '@/lib/utils';
-import { Star, TrendingDown, Stethoscope, ChevronRight } from 'lucide-react';
+import { Star, TrendingDown, Stethoscope, ChevronRight, Download, Loader2, FileText } from 'lucide-react';
+import { usePdfDownload, getStageLabel } from '@/hooks/usePdfDownload';
 
 export type DesempenhoSimuladoPanelProps = {
   simuladosWithResults: Array<{ id: string; title: string }>;
@@ -13,6 +15,8 @@ export type DesempenhoSimuladoPanelProps = {
   onSelectSimulado: (id: string) => void;
   breakdown: PerformanceBreakdown;
   questions: Question[];
+  examState?: ExamState | null;
+  studentName?: string;
   resultNavVariant?: 'public' | 'admin';
 };
 
@@ -22,6 +26,8 @@ export function DesempenhoSimuladoPanel({
   onSelectSimulado,
   breakdown,
   questions,
+  examState,
+  studentName,
   resultNavVariant = 'public',
 }: DesempenhoSimuladoPanelProps) {
   const prefersReducedMotion = useReducedMotion();
@@ -78,6 +84,11 @@ export function DesempenhoSimuladoPanel({
         overall={overall}
         bestArea={bestArea}
         worstArea={worstArea}
+        simuladoTitle={simuladosWithResults.find(s => s.id === selectedSimuladoId)?.title ?? ''}
+        questions={questions}
+        examState={examState ?? null}
+        studentName={studentName ?? 'Aluno'}
+        breakdown={breakdown}
       />
 
 
@@ -251,6 +262,11 @@ function HeroSection({
   overall,
   bestArea,
   worstArea,
+  simuladoTitle,
+  questions,
+  examState,
+  studentName,
+  breakdown,
 }: {
   simuladosWithResults: Array<{ id: string; title: string }>;
   selectedSimuladoId: string | null;
@@ -258,7 +274,21 @@ function HeroSection({
   overall: { percentageScore: number; totalCorrect: number; totalQuestions: number };
   bestArea: { area: string; score: number; correct: number; questions: number } | null;
   worstArea: { area: string; score: number; correct: number; questions: number } | null;
+  simuladoTitle: string;
+  questions: Question[];
+  examState: ExamState | null;
+  studentName: string;
+  breakdown: PerformanceBreakdown;
 }) {
+  const pdf = usePdfDownload({
+    simuladoId: selectedSimuladoId ?? '',
+    simuladoTitle,
+    studentName,
+    questions,
+    examState,
+    breakdown,
+  });
+
   return (
     <div className="relative overflow-hidden bg-[linear-gradient(135deg,#421424_0%,hsl(340,58%,14%)_50%,#0f111a_100%)] px-5 py-6 md:px-8 md:py-8 rounded-[22px] md:rounded-[28px]">
       <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[hsl(345,72%,48%)] blur-[60px] opacity-25" />
@@ -311,6 +341,26 @@ function HeroSection({
             </div>
           )}
         </div>
+      </div>
+
+      {/* PDF Download buttons */}
+      <div className="flex gap-2 mt-4 relative z-10">
+        <button
+          onClick={pdf.downloadGabarito}
+          disabled={pdf.downloading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold bg-white/[0.10] border border-white/[0.15] text-white/70 hover:text-white hover:bg-white/[0.15] transition-all disabled:opacity-50"
+        >
+          {pdf.downloading && !pdf.stage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+          Gabarito PDF
+        </button>
+        <button
+          onClick={pdf.downloadProvaRevisada}
+          disabled={pdf.downloading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold bg-white/[0.10] border border-white/[0.15] text-white/70 hover:text-white hover:bg-white/[0.15] transition-all disabled:opacity-50"
+        >
+          {pdf.downloading && pdf.stage ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+          {pdf.stage ? getStageLabel(pdf.stage) + (pdf.progress ? ` (${pdf.progress.current}/${pdf.progress.total})` : '') : 'Prova Revisada PDF'}
+        </button>
       </div>
     </div>
   );
