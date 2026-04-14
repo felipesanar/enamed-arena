@@ -90,6 +90,12 @@ export default function DesempenhoPage() {
 
   return (
     <PageTransition>
+      <PageHeader
+        title="Desempenho"
+        subtitle="Análise detalhada do seu desempenho por especialidade e tema."
+        subtitlePlacement="inline-end"
+        badge="ENAMED 2026"
+      />
       <DesempenhoSimuladoPanel
         simuladosWithResults={simuladosWithResults}
         selectedSimuladoId={selectedSimuladoId}
