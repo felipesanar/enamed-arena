@@ -234,6 +234,16 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
               — {score.totalUnanswered}
             </span>
             <div className="w-px h-4 bg-border mx-1" />
+            <button
+              onClick={pdf.downloadProvaRevisada}
+              disabled={pdf.downloading}
+              title={pdf.stage ? getStageLabel(pdf.stage) : 'Baixar Prova Revisada (PDF)'}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {pdf.downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+              PDF
+            </button>
+            <div className="w-px h-4 bg-border mx-1" />
             <span className="text-heading-3 font-bold text-primary tabular-nums">
               {attempt?.score_percentage != null
                 ? Math.round(Number(attempt.score_percentage))
