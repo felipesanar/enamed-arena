@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 const RING_CIRCUMFERENCE = 376.99;
 import { useParams, Link, Navigate } from 'react-router-dom';
@@ -10,9 +10,10 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { canViewResultsOrAdminPreview, areResultsReleased } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { trackEvent } from '@/lib/analytics';
+import { usePdfDownload } from '@/hooks/usePdfDownload';
 import {
   Trophy, CheckCircle2, XCircle, MinusCircle,
-  FileText, ArrowLeft, ArrowRight, BookOpen,
+  FileText, ArrowLeft, ArrowRight, BookOpen, Download, Loader2,
 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 
