@@ -39,9 +39,10 @@ export default function RankingPage() {
     return (
       <>
         <PageHeader
-          title="Ranking ENAMED"
-          subtitle="Compare seu desempenho com milhares de candidatos."
-          badge="Ranking Geral"
+          title="Ranking"
+          subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
+          subtitlePlacement="inline-end"
+          badge="ENAMED 2026"
         />
         <EmptyState
           icon={Trophy}
@@ -54,6 +55,12 @@ export default function RankingPage() {
 
   return (
     <PageTransition>
+      <PageHeader
+        title="Ranking"
+        subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
+        subtitlePlacement="inline-end"
+        badge="ENAMED 2026"
+      />
       <RankingView
         loading={loading}
         simuladosWithResults={simuladosWithResults}
