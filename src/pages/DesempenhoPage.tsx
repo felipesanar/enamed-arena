@@ -9,12 +9,14 @@ import { useSimulados } from '@/hooks/useSimulados';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useUserPerformance } from '@/hooks/useUserPerformance';
+import { useUser } from '@/contexts/UserContext';
 import { canViewResults } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import { BarChart3 } from 'lucide-react';
 
 export default function DesempenhoPage() {
+  const { profile } = useUser();
   const { simulados, loading: loadingSimulados } = useSimulados();
   const { history: _history } = useUserPerformance();
   const simuladosWithResults = useMemo(
@@ -110,6 +112,8 @@ export default function DesempenhoPage() {
         onSelectSimulado={setSelectedSimuladoId}
         breakdown={breakdown}
         questions={questions}
+        examState={examState}
+        studentName={profile?.name ?? 'Aluno'}
         resultNavVariant="public"
       />
     </PageTransition>
