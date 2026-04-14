@@ -913,15 +913,15 @@ export function RankingView({
             <>
               {/* ── Filter bar ────────────────────────────────────────────── */}
               <div
-                className="px-4 py-3.5 mb-4 rounded-[15px]"
+                className="px-5 py-4 mb-4 rounded-[16px]"
                 style={{ background: t.surfaceBg, border: t.surfaceBorder }}
               >
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5">
 
                   {/* ─ Comparar group ─ */}
                   <span
                     className="shrink-0 whitespace-nowrap"
-                    style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
+                    style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
                   >
                     Comparar
                   </span>
@@ -935,7 +935,7 @@ export function RankingView({
                     }}
                     aria-pressed={!rankingComparison.bySpecialty && !rankingComparison.byInstitution}
                     aria-label="Todos os candidatos"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
                     style={getPillStyle(!rankingComparison.bySpecialty && !rankingComparison.byInstitution)}
                     data-shimmer={shimmeringPillId === 'comp-all' ? '1' : undefined}
                     whileHover={{ y: -1 }}
@@ -947,7 +947,7 @@ export function RankingView({
                       whileHover={{ scale: 1.15 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                     >
-                      <Users className="h-3.5 w-3.5" aria-hidden />
+                      <Users className="h-4 w-4" aria-hidden />
                     </motion.span>
                     Todos
                   </motion.button>
@@ -962,7 +962,7 @@ export function RankingView({
                       }}
                       aria-pressed={rankingComparison.bySpecialty}
                       aria-label={`Filtrar por especialidade: ${userSpecialty}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
                       style={getPillStyle(rankingComparison.bySpecialty)}
                       data-shimmer={shimmeringPillId === 'comp-specialty' ? '1' : undefined}
                       whileHover={{ y: -1 }}
@@ -974,7 +974,7 @@ export function RankingView({
                         whileHover={{ scale: 1.15 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                       >
-                        <Stethoscope className="h-3.5 w-3.5" aria-hidden />
+                        <Stethoscope className="h-4 w-4" aria-hidden />
                       </motion.span>
                       {userSpecialty}
                     </motion.button>
@@ -992,7 +992,7 @@ export function RankingView({
                         }}
                         aria-pressed={rankingComparison.byInstitution}
                         aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium max-w-[12rem]"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium max-w-[14rem]"
                         style={getPillStyle(rankingComparison.byInstitution)}
                         data-shimmer={shimmeringPillId === 'comp-institution' ? '1' : undefined}
                         initial={{ opacity: 0, x: -8, scale: 0.88 }}
@@ -1007,7 +1007,7 @@ export function RankingView({
                           whileHover={{ scale: 1.15 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                         >
-                          <Building className="h-3.5 w-3.5" aria-hidden />
+                          <Building className="h-4 w-4" aria-hidden />
                         </motion.span>
                         <span className="truncate">{userInstitutions[0]}</span>
                       </motion.button>
@@ -1017,14 +1017,14 @@ export function RankingView({
                   {/* Vertical divider */}
                   <div
                     className="shrink-0"
-                    style={{ width: '1px', height: '22px', background: t.borderColor, borderRadius: '1px' }}
+                    style={{ width: '1px', height: '26px', background: t.borderColor, borderRadius: '1px' }}
                     aria-hidden
                   />
 
                   {/* ─ Segmento group ─ */}
                   <span
                     className="shrink-0 whitespace-nowrap"
-                    style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
+                    style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
                   >
                     Segmento
                   </span>
@@ -1039,7 +1039,7 @@ export function RankingView({
                       }}
                       aria-pressed={segmentFilter === f.key}
                       aria-label={f.label}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.73rem] font-medium"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
                       style={getPillStyle(segmentFilter === f.key, f.key === 'pro' && segmentFilter !== f.key)}
                       data-shimmer={shimmeringPillId === `seg-${f.key}` ? '1' : undefined}
                       whileHover={{ y: -1 }}
@@ -1051,7 +1051,7 @@ export function RankingView({
                         whileHover={{ scale: 1.15 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                       >
-                        <f.icon className="h-3.5 w-3.5" aria-hidden />
+                        <f.icon className="h-4 w-4" aria-hidden />
                       </motion.span>
                       <span className="hidden sm:inline">{f.label}</span>
                     </motion.button>
