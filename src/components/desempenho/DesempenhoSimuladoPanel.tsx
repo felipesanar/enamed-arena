@@ -84,6 +84,11 @@ export function DesempenhoSimuladoPanel({
         overall={overall}
         bestArea={bestArea}
         worstArea={worstArea}
+        simuladoTitle={simuladosWithResults.find(s => s.id === selectedSimuladoId)?.title ?? ''}
+        questions={questions}
+        examState={examState ?? null}
+        studentName={studentName ?? 'Aluno'}
+        breakdown={breakdown}
       />
 
 
