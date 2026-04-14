@@ -506,7 +506,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
           open={notebookModal}
           onClose={() => { setNotebookModal(false); setSelectedHighlight(null); setHighlightAnchor(null); }}
           questionId={question.id}
-          simuladoId={id}
+          simuladoId={simulado.id}
           simuladoTitle={simulado.title}
           area={question.area}
           theme={question.theme}
