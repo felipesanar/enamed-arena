@@ -346,14 +346,6 @@ function HeroSection({
       {/* PDF Download buttons */}
       <div className="flex gap-2 mt-4 relative z-10">
         <button
-          onClick={pdf.downloadGabarito}
-          disabled={pdf.downloading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold bg-white/[0.10] border border-white/[0.15] text-white/70 hover:text-white hover:bg-white/[0.15] transition-all disabled:opacity-50"
-        >
-          {pdf.downloading && !pdf.stage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-          Gabarito PDF
-        </button>
-        <button
           onClick={pdf.downloadProvaRevisada}
           disabled={pdf.downloading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold bg-white/[0.10] border border-white/[0.15] text-white/70 hover:text-white hover:bg-white/[0.15] transition-all disabled:opacity-50"
