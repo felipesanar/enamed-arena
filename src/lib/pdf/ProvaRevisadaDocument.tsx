@@ -10,6 +10,8 @@ import { StyleSheet } from '@react-pdf/renderer';
 import type { Question } from '@/types';
 import type { PerformanceBreakdown, QuestionResult } from '@/lib/resultHelpers';
 import type { ExamState } from '@/types/exam';
+import { SANARFLIX_LOGO_WHITE_BASE64 } from './logoBase64';
+import type { ExamState } from '@/types/exam';
 
 // ─── Font Registration ───
 Font.register({
