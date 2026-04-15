@@ -582,7 +582,7 @@ export function CutoffScoreModal({
                           className="text-[12px] font-bold text-right tabular-nums"
                           style={{ color: '#ffcbd8' }}
                         >
-                          {userRow.cutoff_score_general}%
+                          {userRow.cutoff_score_general}
                         </span>
                         <span
                           className="text-[10.5px] text-right tabular-nums"
