@@ -147,7 +147,10 @@ function CoverPage({ simuladoTitle, studentName, overall, byArea }: {
   return (
     <Page size="A4" style={s.coverPage}>
       <View style={s.coverContent}>
-        <Text style={s.coverTitle}>Prova Revisada</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+          <Text style={s.coverTitle}>Prova Revisada</Text>
+          <Image src={SANARFLIX_LOGO_WHITE_BASE64} style={{ width: 140, height: 40 }} />
+        </View>
         <Text style={s.coverSubtitle}>{simuladoTitle}</Text>
 
         <View style={s.coverCard}>
