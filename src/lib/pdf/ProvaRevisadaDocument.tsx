@@ -334,24 +334,28 @@ export function ProvaRevisadaDocument({
         byArea={byArea}
       />
 
-      {/* Questions — each starts on its own page, but content can wrap */}
-      {questions.map((q, i) => {
-        const result = overall.questionResults[i];
-        if (!result) return null;
-        const answer = examState.answers[q.id];
+      {/* Questions — continuous flow, no forced page breaks */}
+      <Page size="A4" style={s.page}>
+        {questions.map((q, i) => {
+          const result = overall.questionResults[i];
+          if (!result) return null;
 
-        return (
-          <Page key={q.id} size="A4" style={s.page}>
-            <QuestionBlock
-              question={q}
-              result={result}
-              answer={answer}
-              imageBase64={imageMap.get(q.id)}
-            />
-            <PageFooter />
-          </Page>
-        );
-      })}
+          return (
+            <View key={q.id} style={{ marginBottom: 20 }}>
+              <QuestionBlock
+                question={q}
+                result={result}
+                answer={examState.answers[q.id]}
+                imageBase64={imageMap.get(q.id)}
+              />
+              {i < questions.length - 1 && (
+                <View style={{ borderBottomWidth: 0.5, borderBottomColor: C.gray200, marginTop: 16 }} />
+              )}
+            </View>
+          );
+        })}
+        <PageFooter />
+      </Page>
 
       {/* Analysis page */}
       <Page size="A4" style={s.page}>
