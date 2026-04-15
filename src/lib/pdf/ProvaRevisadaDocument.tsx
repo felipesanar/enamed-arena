@@ -7,7 +7,6 @@ import {
   Document, Page, Text, View, Image, Font, Svg, Defs,
   LinearGradient, Stop, Rect,
 } from '@react-pdf/renderer';
-import { createTw } from 'react-pdf-tailwind';
 import { StyleSheet } from '@react-pdf/renderer';
 import type { Question } from '@/types';
 import type { PerformanceBreakdown, QuestionResult } from '@/lib/resultHelpers';
@@ -156,7 +155,7 @@ function CoverPage({ simuladoTitle, studentName, overall, byArea }: {
     <Page size="A4" style={s.coverPage}>
       <Svg style={s.coverBg} viewBox="0 0 595 842">
         <Defs>
-          <LinearGradient id="bg" x1="0" y1="0" x2="595" y2="842" gradientUnits="userSpaceOnUse">
+          <LinearGradient id="bg" x1="0" y1="0" x2="595" y2="842">
             <Stop offset="0%" stopColor="#2a0c17" />
             <Stop offset="50%" stopColor={C.wineDark} />
             <Stop offset="100%" stopColor="#5c1a2e" />
