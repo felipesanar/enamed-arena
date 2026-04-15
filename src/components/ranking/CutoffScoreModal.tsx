@@ -266,7 +266,7 @@ export function CutoffScoreModal({
                           color: heroState === 'fail' ? '#f87171' : '#7dd3fc',
                         }}
                       >
-                        {userRow.cutoff_score_general}%
+                        {userRow.cutoff_score_general}
                       </span>
                       <span
                         className="text-[8.5px] uppercase tracking-[1.2px] mt-[3px]"
@@ -286,7 +286,7 @@ export function CutoffScoreModal({
                             className="font-bold leading-none"
                             style={{ fontSize: '1.4rem', color: 'rgba(255,255,255,0.65)' }}
                           >
-                            {userRow.cutoff_score_quota}%
+                            {userRow.cutoff_score_quota}
                           </span>
                           <span
                             className="text-[8.5px] uppercase tracking-[1.2px] mt-[3px]"
