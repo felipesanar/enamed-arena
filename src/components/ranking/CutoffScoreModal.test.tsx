@@ -74,7 +74,10 @@ describe('CutoffScoreModal', () => {
 
   it('does not show hero card when userInstitution is not provided', async () => {
     renderModal({ userSpecialty: 'Clínica Médica' });
-    await waitFor(() => expect(screen.queryByText('Sua nota de corte')).toBeNull());
+    // Wait for data to load (institution row appears)
+    await waitFor(() => expect(screen.getByText('Hospital das Clínicas FMUSP')).toBeTruthy());
+    // Hero card should not be present even after data loaded
+    expect(screen.queryByText('Sua nota de corte')).toBeNull();
   });
 
   it('shows hero card with cutoff numbers when userInstitution matches a row', async () => {
@@ -111,5 +114,12 @@ describe('CutoffScoreModal', () => {
   it('does not show "Sua instituição" separator when userInstitution is not provided', async () => {
     renderModal({ userSpecialty: 'Clínica Médica' });
     await waitFor(() => expect(screen.queryByText('Sua instituição')).toBeNull());
+  });
+
+  it('auto-filters to userSpecialty on open', async () => {
+    renderModal({ userSpecialty: 'Pediatria' });
+    await waitFor(() => expect(screen.getByText('UFBA')).toBeTruthy());
+    // HC FMUSP is Clínica Médica — should be filtered out
+    expect(screen.queryByText('Hospital das Clínicas FMUSP')).toBeNull();
   });
 });
