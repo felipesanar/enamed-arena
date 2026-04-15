@@ -54,7 +54,7 @@ export async function generateProvaRevisadaPdf(input: ProvaRevisadaInput): Promi
     imageMap,
   });
 
-  const blob = await pdf(element).toBlob();
+  const blob = await (pdf as any)(element).toBlob();
 
   onProgress?.('complete', 1, 1);
   return blob;
