@@ -382,6 +382,27 @@ export function CutoffScoreModal({
                     )}
                   />
                 </button>
+                {/* Active filter pill showing which specialty is selected */}
+                {specialtyFilter !== 'all' && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-[4px] rounded-full text-[10.5px] font-medium"
+                    style={{
+                      background: 'rgba(122,26,50,0.5)',
+                      border: '1px solid rgba(255,150,170,0.2)',
+                      color: '#ffcbd8',
+                    }}
+                  >
+                    {specialtyFilter}
+                    <button
+                      type="button"
+                      onClick={() => setSpecialtyFilter('all')}
+                      className="ml-0.5 hover:opacity-80 transition-opacity"
+                      aria-label={`Remover filtro ${specialtyFilter}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
                 <span
                   className="text-[10.5px] tabular-nums"
                   style={{ color: hasActiveFilters ? 'rgba(255,203,216,0.7)' : 'rgba(255,255,255,0.25)' }}
