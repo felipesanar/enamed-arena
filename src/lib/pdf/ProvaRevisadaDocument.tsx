@@ -26,8 +26,8 @@ Font.register({
 Font.register({
   family: 'PlusJakarta',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/plusjakartasans/v8/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_qU79TR_V.woff2', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/plusjakartasans/v8/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_907_TR_V.woff2', fontWeight: 700 },
+    { src: 'https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2', fontWeight: 700 },
   ],
 });
 
