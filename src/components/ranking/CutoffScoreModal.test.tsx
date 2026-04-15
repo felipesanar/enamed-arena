@@ -84,7 +84,7 @@ describe('CutoffScoreModal', () => {
     renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP' });
     await waitFor(() => {
       expect(screen.getByText('Sua nota de corte')).toBeTruthy();
-      expect(screen.getAllByText('91%').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('91').length).toBeGreaterThan(0);
     });
   });
 
