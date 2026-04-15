@@ -10,6 +10,7 @@ import { StyleSheet } from '@react-pdf/renderer';
 import type { Question } from '@/types';
 import type { PerformanceBreakdown, QuestionResult } from '@/lib/resultHelpers';
 import type { ExamState } from '@/types/exam';
+import { SANARFLIX_LOGO_WHITE_BASE64 } from './logoBase64';
 
 // ─── Font Registration ───
 Font.register({
@@ -146,7 +147,10 @@ function CoverPage({ simuladoTitle, studentName, overall, byArea }: {
   return (
     <Page size="A4" style={s.coverPage}>
       <View style={s.coverContent}>
-        <Text style={s.coverTitle}>Prova Revisada</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+          <Text style={s.coverTitle}>Prova Revisada</Text>
+          <Image src={SANARFLIX_LOGO_WHITE_BASE64} style={{ width: 140, height: 40 }} />
+        </View>
         <Text style={s.coverSubtitle}>{simuladoTitle}</Text>
 
         <View style={s.coverCard}>
