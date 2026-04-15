@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import "@/sandbox/caderno/tokens.css";
+import { CadernoSandboxPage } from "@/sandbox/caderno/CadernoSandboxPage";
 
 export default function SandboxCadernoPage() {
   useEffect(() => {
@@ -13,9 +13,5 @@ export default function SandboxCadernoPage() {
     };
   }, []);
 
-  return (
-    <div className="caderno-sandbox" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <p style={{ padding: 32, color: "var(--wine)" }}>Sandbox Caderno — tokens loaded ✓</p>
-    </div>
-  );
+  return <CadernoSandboxPage />;
 }
