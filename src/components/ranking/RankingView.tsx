@@ -469,9 +469,9 @@ export function RankingView({
       };
     if (isPro)
       return {
-        background: 'rgba(196,181,253,0.08)',
-        border: '1px solid rgba(196,181,253,0.2)',
-        color: '#c4b5fd',
+        background: 'rgba(122,26,50,0.08)',
+        border: '1px solid rgba(122,26,50,0.2)',
+        color: '#7a1a32',
         transition: PILL_TRANSITION,
         position: 'relative',
         overflow: 'hidden',
