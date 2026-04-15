@@ -129,6 +129,7 @@ export function CutoffScoreModal({
 
   const normalizedSpecialty = userSpecialty?.toLowerCase() ?? '';
   const resultCount = filteredRows.length + (userRow ? 1 : 0);
+  const hasActiveFilters = specialtyFilter !== 'all' || search.trim() !== '';
 
   return (
     <AnimatePresence>
@@ -351,9 +352,9 @@ export function CutoffScoreModal({
                 <button
                   type="button"
                   onClick={() => setShowFilters(f => !f)}
-                  className="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full text-[12px] font-medium transition-all duration-200"
+                  className="relative inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full text-[12px] font-medium transition-all duration-200"
                   style={
-                    showFilters
+                    showFilters || hasActiveFilters
                       ? {
                           background: 'rgba(122,26,50,0.85)',
                           border: '1px solid rgba(255,150,170,0.25)',
@@ -368,6 +369,12 @@ export function CutoffScoreModal({
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5" />
                   Filtrar
+                  {hasActiveFilters && !showFilters && (
+                    <span
+                      className="absolute -top-[3px] -right-[3px] h-[8px] w-[8px] rounded-full"
+                      style={{ background: '#ffcbd8', boxShadow: '0 0 4px rgba(255,203,216,0.5)' }}
+                    />
+                  )}
                   <ChevronDown
                     className={cn(
                       'h-3 w-3 transition-transform duration-200',
@@ -377,10 +384,23 @@ export function CutoffScoreModal({
                 </button>
                 <span
                   className="text-[10.5px] tabular-nums"
-                  style={{ color: 'rgba(255,255,255,0.25)' }}
+                  style={{ color: hasActiveFilters ? 'rgba(255,203,216,0.7)' : 'rgba(255,255,255,0.25)' }}
                 >
                   {resultCount} {resultCount === 1 ? 'resultado' : 'resultados'}
                 </span>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch('');
+                      setSpecialtyFilter('all');
+                    }}
+                    className="text-[10.5px] underline underline-offset-2 transition-colors"
+                    style={{ color: 'rgba(255,150,170,0.5)' }}
+                  >
+                    Limpar filtros
+                  </button>
+                )}
               </div>
 
               {/* ── Specialty filter pills ─────────────────────────────── */}
@@ -569,7 +589,7 @@ export function CutoffScoreModal({
                           style={{ color: 'rgba(255,255,255,0.3)' }}
                         >
                           {userRow.cutoff_score_quota != null
-                            ? `${userRow.cutoff_score_quota}%`
+                            ? `${userRow.cutoff_score_quota}`
                             : '—'}
                         </span>
                       </div>
@@ -630,13 +650,13 @@ export function CutoffScoreModal({
                           className="text-[12px] font-bold text-right tabular-nums"
                           style={{ color: scoreColor }}
                         >
-                          {row.cutoff_score_general}%
+                          {row.cutoff_score_general}
                         </span>
                         <span
                           className="text-[10.5px] text-right tabular-nums"
                           style={{ color: 'rgba(255,255,255,0.3)' }}
                         >
-                          {row.cutoff_score_quota != null ? `${row.cutoff_score_quota}%` : '—'}
+                          {row.cutoff_score_quota != null ? `${row.cutoff_score_quota}` : '—'}
                         </span>
                       </div>
                     );
