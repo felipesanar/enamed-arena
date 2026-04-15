@@ -1,28 +1,71 @@
 
 
-# Correções no Drawer de Notas de Corte
+# PDF Premium: Prova Revisada via `@react-pdf/renderer`
 
-## Problemas identificados
+## Contexto
 
-1. **Notas exibidas com `%`**: Os valores `cutoff_score_general` e `cutoff_score_quota` são números absolutos (ex: 77.0, 83.0), não percentuais. Todas as ocorrências de `{value}%` devem exibir apenas `{value}`.
-2. **Sem feedback visual de filtros ativos**: Quando o usuário seleciona uma especialidade ou digita na busca, não há indicação clara de que filtros estão aplicados (ex: badge, cor diferente no botão "Filtrar", botão "Limpar filtros").
-3. **Limite de 1000 registros**: Supabase retorna no máximo 1000 rows por default. A tabela tem 1058 registros. A query precisa de `.limit(2000)` ou paginação range-based.
+O PDF atual usa **jsPDF** no client-side — fonte Helvetica sem kerning, sem fontes customizadas, sem gradientes, tipografia mecânica. Puppeteer não roda em Edge Functions do Supabase e exigiria infraestrutura externa (Railway/Fly.io), o que adiciona complexidade desnecessária.
+
+A melhor solução **dentro da arquitetura atual** (client-side, sem microserviço extra) é **`@react-pdf/renderer`**: biblioteca React que gera PDFs com fontes customizadas (Inter/Plus Jakarta Sans), flexbox layout, gradientes via SVG, e tipografia real. Roda 100% no browser.
+
+## Resultado esperado
+
+- Fontes Inter (body) e Plus Jakarta Sans (headings) com kerning nativo
+- Capa full-bleed bordô com gradiente (SVG)
+- Cards de questão com bordas arredondadas, alternativas coloridas (verde/vermelho)
+- Comentário do professor com estilo distinto
+- Barras de desempenho por especialidade
+- Imagens do enunciado incorporadas
+- Quebra de página inteligente (`break-inside: avoid`)
+- Progress tracking mantido (etapas: preparando, carregando imagens, gerando, completo)
 
 ## Plano
 
-### 1. Remover `%` de todas as notas
-- **Arquivo:** `src/components/ranking/CutoffScoreModal.tsx`
-- Remover o sufixo `%` nas linhas 268, 289, 565, 572, 633, 639 (hero card scores, user row, other rows)
+### 1. Instalar `@react-pdf/renderer`
+- `npm install @react-pdf/renderer`
+- Registrar fontes Inter e Plus Jakarta Sans via `Font.register()` usando Google Fonts CDN
 
-### 2. Feedback visual de filtros ativos
-- **Arquivo:** `src/components/ranking/CutoffScoreModal.tsx`
-- Computar `hasActiveFilters = specialtyFilter !== 'all' || search.trim() !== ''`
-- Quando `hasActiveFilters`:
-  - Mostrar um dot/badge wine no botão "Filtrar"
-  - Exibir um botão "Limpar filtros" inline ao lado do contador de resultados
-  - Alterar a cor do contador de resultados para wine quando filtrado
+### 2. Criar template React do PDF
+- **Arquivo:** `src/lib/pdf/ProvaRevisadaDocument.tsx`
+- Componente `<Document>` com páginas:
+  - **Capa**: fundo bordô escuro (#421424), título do simulado, nome do aluno, score em destaque, stats (acertos/erros/branco), barras de desempenho por especialidade
+  - **Questões** (1 por página ou com smart break): número + área/tema, badge ACERTOU/ERROU/EM BRANCO, enunciado com tipografia 10pt, imagem (se houver), alternativas com fundo colorido (verde = correta, vermelho = errou, branco = outras), círculo com letra A-D
+  - **Comentário do professor**: caixa com fundo lilás claro, borda, título "Comentário do Professor"
+  - **Página de análise**: stats gerais, barras horizontais por especialidade
+  - **Footer**: "ENAMED Arena — data" + "Página X de Y"
 
-### 3. Buscar todos os registros (>1000)
-- **Arquivo:** `src/services/rankingApi.ts`
-- Na função `fetchAllCutoffScores`, adicionar `.range(0, 1999)` para garantir que todos os 1058+ registros sejam retornados (Supabase precisa de range explícito para ultrapassar o default de 1000)
+### 3. Reescrever `provaRevisadaPdf.ts`
+- **Arquivo:** `src/lib/pdf/provaRevisadaPdf.ts`
+- Substituir toda a geração jsPDF por:
+  1. Carregar imagens como base64 (reutilizar `loadImageAsBase64` com retry)
+  2. Renderizar `<ProvaRevisadaDocument>` via `pdf().toBlob()`
+  3. Manter a interface `ProvaRevisadaInput` e `ProgressCallback` iguais
+- O hook `usePdfDownload` e os botões **não precisam de mudança** — a API permanece idêntica
+
+### 4. Remover dependências antigas (se não usadas em outro lugar)
+- `gabaritoPdf.ts` e `pdfHelpers.ts` — verificar se ainda são usados; se não, remover
+- `jspdf` — remover do `package.json` se não usado em nenhum outro arquivo
+
+### 5. CSS/Estilo no template
+- Cores: `#421424` (wineDark), `#7a1a32` (wine), `#ffcbd8` (wineLight)
+- Alternativa correta: `#F0FDF4` bg, `#22C55E` borda
+- Alternativa errada: `#FFF1F2` bg, `#F43F5E` borda
+- Explicação: `#F5F0F8` bg, `#C8B4DC` borda
+- `page-break-inside: avoid` em blocos de questão
+- Tipografia: Inter 400/500/600/700, Plus Jakarta Sans para headings
+
+### Restrições técnicas
+- `@react-pdf/renderer` não suporta gradientes CSS — usar `<Svg>` + `<Defs>` + `<LinearGradient>` para o fundo da capa
+- Imagens precisam ser base64 data URIs (já é o caso atual)
+- Fontes são carregadas via HTTP na primeira geração (cache automático depois)
+
+### Arquivos afetados
+
+| Arquivo | Ação |
+|---------|------|
+| `package.json` | Instalar `@react-pdf/renderer` |
+| `src/lib/pdf/ProvaRevisadaDocument.tsx` | **Novo** — template React do PDF |
+| `src/lib/pdf/provaRevisadaPdf.ts` | Reescrever — usar react-pdf em vez de jsPDF |
+| `src/lib/pdf/pdfHelpers.ts` | Verificar se ainda usado, possivelmente remover |
+| `src/lib/pdf/gabaritoPdf.ts` | Verificar se ainda usado, possivelmente remover |
 
