@@ -32,6 +32,7 @@ const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ComparativoPage = lazy(() => import("./pages/ComparativoPage"));
 const CadernoErrosPage = lazy(() => import("./pages/CadernoErrosPage"));
 const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
+const SandboxCadernoPage = lazy(() => import("./pages/SandboxCadernoPage"));
 
 // Page lazy imports — named exports
 const HomePagePremium = lazy(() =>
@@ -149,6 +150,7 @@ const App = () => (
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />
               </Route>
               <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />
+              <Route path="/sandbox/caderno" element={<Suspense fallback={<PageShell />}><SandboxCadernoPage /></Suspense>} />
               <Route path="*" element={<Suspense fallback={<PageShell />}><NotFound /></Suspense>} />
             </Routes>
             </BrowserRouter>
