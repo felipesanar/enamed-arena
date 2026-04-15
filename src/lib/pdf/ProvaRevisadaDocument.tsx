@@ -4,8 +4,7 @@
  */
 import React from 'react';
 import {
-  Document, Page, Text, View, Image, Font, Svg, Defs,
-  LinearGradient, Stop, Rect,
+  Document, Page, Text, View, Image, Font,
 } from '@react-pdf/renderer';
 import { StyleSheet } from '@react-pdf/renderer';
 import type { Question } from '@/types';
@@ -65,33 +64,26 @@ function scoreColor(score: number): string {
   return C.redDark;
 }
 
-function scoreBg(score: number): string {
-  if (score >= 70) return C.greenBg;
-  if (score >= 50) return C.amberBg;
-  return C.redBg;
-}
-
 // ─── Styles ───
 const s = StyleSheet.create({
   page: { fontFamily: 'Inter', fontSize: 9, color: C.gray800, paddingTop: 40, paddingBottom: 50, paddingHorizontal: 36 },
   // Cover
-  coverPage: { fontFamily: 'Inter', padding: 0 },
-  coverBg: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
-  coverContent: { paddingHorizontal: 48, paddingTop: 72, flex: 1, justifyContent: 'space-between', paddingBottom: 30 },
-  coverTitle: { fontFamily: 'PlusJakarta', fontSize: 28, fontWeight: 700, color: C.white, marginBottom: 4 },
-  coverSubtitle: { fontSize: 12, color: C.wineLight, marginBottom: 24 },
-  coverCard: { backgroundColor: C.white, borderRadius: 12, padding: 24, marginBottom: 20 },
-  coverName: { fontFamily: 'PlusJakarta', fontSize: 14, fontWeight: 600, color: C.gray800, textAlign: 'center', marginBottom: 10 },
-  coverScore: { fontFamily: 'PlusJakarta', fontSize: 36, fontWeight: 700, color: C.wine, textAlign: 'center' },
-  coverScoreSub: { fontSize: 9, color: C.gray500, textAlign: 'center', marginTop: 2 },
-  coverStatsRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  coverStat: { flex: 1, backgroundColor: C.gray50, borderRadius: 8, padding: 10, alignItems: 'center' },
-  coverStatValue: { fontFamily: 'PlusJakarta', fontSize: 18, fontWeight: 700 },
+  coverPage: { fontFamily: 'Inter', backgroundColor: C.wineDark, padding: 0 },
+  coverContent: { paddingHorizontal: 48, paddingTop: 56, paddingBottom: 30 },
+  coverTitle: { fontFamily: 'PlusJakarta', fontSize: 26, fontWeight: 700, color: C.white, marginBottom: 2 },
+  coverSubtitle: { fontSize: 11, color: C.wineLight, marginBottom: 20 },
+  coverCard: { backgroundColor: C.white, borderRadius: 12, padding: 20, marginBottom: 18 },
+  coverName: { fontFamily: 'PlusJakarta', fontSize: 13, fontWeight: 600, color: C.gray800, textAlign: 'center', marginBottom: 8 },
+  coverScore: { fontFamily: 'PlusJakarta', fontSize: 32, fontWeight: 700, color: C.wine, textAlign: 'center' },
+  coverScoreSub: { fontSize: 8, color: C.gray500, textAlign: 'center', marginTop: 2 },
+  coverStatsRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
+  coverStat: { flex: 1, backgroundColor: C.gray50, borderRadius: 8, padding: 8, alignItems: 'center' },
+  coverStatValue: { fontFamily: 'PlusJakarta', fontSize: 16, fontWeight: 700 },
   coverStatLabel: { fontSize: 7, color: C.gray500, marginTop: 2 },
   // Area bars on cover
-  coverAreaTitle: { fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: 600, color: C.wineLight, marginBottom: 8 },
-  areaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 6 },
-  areaName: { fontSize: 7, color: C.wineLight, width: 120 },
+  coverAreaTitle: { fontFamily: 'PlusJakarta', fontSize: 10, fontWeight: 600, color: C.wineLight, marginBottom: 6, marginTop: 4 },
+  areaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, gap: 6 },
+  areaName: { fontSize: 7, color: C.wineLight, width: 110 },
   areaBarBg: { flex: 1, height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3 },
   areaBarFill: { height: 5, borderRadius: 3 },
   areaScore: { fontSize: 7, fontWeight: 600, width: 28, textAlign: 'right' },
@@ -153,58 +145,43 @@ function CoverPage({ simuladoTitle, studentName, overall, byArea }: {
 
   return (
     <Page size="A4" style={s.coverPage}>
-      <Svg style={s.coverBg} viewBox="0 0 595 842">
-        <Defs>
-          <LinearGradient id="bg" x1="0" y1="0" x2="595" y2="842">
-            <Stop offset="0%" stopColor="#2a0c17" />
-            <Stop offset="50%" stopColor={C.wineDark} />
-            <Stop offset="100%" stopColor="#5c1a2e" />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="595" height="842" fill="url(#bg)" />
-      </Svg>
-
       <View style={s.coverContent}>
-        <View>
-          <Text style={s.coverTitle}>Prova Revisada</Text>
-          <Text style={s.coverSubtitle}>{simuladoTitle}</Text>
+        <Text style={s.coverTitle}>Prova Revisada</Text>
+        <Text style={s.coverSubtitle}>{simuladoTitle}</Text>
 
-          <View style={s.coverCard}>
-            <Text style={s.coverName}>{studentName || 'Aluno'}</Text>
-            <Text style={s.coverScore}>{overall.percentageScore}%</Text>
-            <Text style={s.coverScoreSub}>
-              {overall.totalCorrect} de {overall.totalQuestions} questões corretas
-            </Text>
-            <View style={s.coverStatsRow}>
-              {stats.map((st, i) => (
-                <View key={i} style={s.coverStat}>
-                  <Text style={[s.coverStatValue, { color: st.color }]}>{st.value}</Text>
-                  <Text style={s.coverStatLabel}>{st.label}</Text>
-                </View>
-              ))}
-            </View>
+        <View style={s.coverCard}>
+          <Text style={s.coverName}>{studentName || 'Aluno'}</Text>
+          <Text style={s.coverScore}>{overall.percentageScore}%</Text>
+          <Text style={s.coverScoreSub}>
+            {overall.totalCorrect} de {overall.totalQuestions} questões corretas
+          </Text>
+          <View style={s.coverStatsRow}>
+            {stats.map((st, i) => (
+              <View key={i} style={s.coverStat}>
+                <Text style={[s.coverStatValue, { color: st.color }]}>{st.value}</Text>
+                <Text style={s.coverStatLabel}>{st.label}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        <View>
-          <Text style={s.coverAreaTitle}>Desempenho por Especialidade</Text>
-          {byArea.slice(0, 8).map((area, i) => (
-            <View key={i} style={s.areaRow}>
-              <Text style={s.areaName}>{area.area}</Text>
-              <View style={s.areaBarBg}>
-                <View style={[s.areaBarFill, {
-                  width: `${Math.max(2, area.score)}%`,
-                  backgroundColor: area.score >= 70 ? '#86efac' : area.score >= 50 ? '#fbbf24' : '#fca5a5',
-                }]} />
-              </View>
-              <Text style={[s.areaScore, { color: area.score >= 70 ? '#86efac' : area.score >= 50 ? '#fbbf24' : '#fca5a5' }]}>
-                {area.score}%
-              </Text>
+        <Text style={s.coverAreaTitle}>Desempenho por Especialidade</Text>
+        {byArea.slice(0, 10).map((area, i) => (
+          <View key={i} style={s.areaRow}>
+            <Text style={s.areaName}>{area.area}</Text>
+            <View style={s.areaBarBg}>
+              <View style={[s.areaBarFill, {
+                width: `${Math.max(2, area.score)}%`,
+                backgroundColor: area.score >= 70 ? '#86efac' : area.score >= 50 ? '#fbbf24' : '#fca5a5',
+              }]} />
             </View>
-          ))}
-        </View>
+            <Text style={[s.areaScore, { color: area.score >= 70 ? '#86efac' : area.score >= 50 ? '#fbbf24' : '#fca5a5' }]}>
+              {area.score}%
+            </Text>
+          </View>
+        ))}
 
-        <Text style={{ fontSize: 7, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+        <Text style={{ fontSize: 7, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 16 }}>
           Gerado em {new Date().toLocaleDateString('pt-BR')} · ENAMED Arena
         </Text>
       </View>
@@ -212,7 +189,7 @@ function CoverPage({ simuladoTitle, studentName, overall, byArea }: {
   );
 }
 
-// ─── Question Page ───
+// ─── Question Block ───
 function QuestionBlock({ question, result, answer, imageBase64 }: {
   question: Question;
   result: QuestionResult;
@@ -227,9 +204,9 @@ function QuestionBlock({ question, result, answer, imageBase64 }: {
   const badge = getBadgeStyle();
 
   return (
-    <View wrap={false}>
-      {/* Header */}
-      <View style={s.qHeader}>
+    <View>
+      {/* Header — keep together */}
+      <View style={s.qHeader} wrap={false}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={s.qNumber}>Questão {question.number}</Text>
           <Text style={s.qMeta}>{question.area} · {question.theme}</Text>
@@ -247,7 +224,7 @@ function QuestionBlock({ question, result, answer, imageBase64 }: {
         <Image src={imageBase64} style={[s.qImage, { maxWidth: 340, maxHeight: 200 }]} />
       )}
 
-      {/* Options */}
+      {/* Options — each row kept together */}
       {question.options.map(opt => {
         const isCorrect = opt.id === result.correctOptionId;
         const isUserSelection = opt.id === result.selectedOptionId;
@@ -261,7 +238,7 @@ function QuestionBlock({ question, result, answer, imageBase64 }: {
         else if (isWrong) { borderColor = C.redBorder; bgColor = C.redBg; circleBg = C.redDark; }
 
         return (
-          <View key={opt.id} style={[s.optionRow, { borderColor, backgroundColor: bgColor }]}>
+          <View key={opt.id} style={[s.optionRow, { borderColor, backgroundColor: bgColor }]} wrap={false}>
             <View style={[s.optionCircle, { backgroundColor: circleBg }]}>
               <Text style={s.optionLabel}>{opt.label}</Text>
             </View>
@@ -272,9 +249,9 @@ function QuestionBlock({ question, result, answer, imageBase64 }: {
         );
       })}
 
-      {/* Explanation */}
+      {/* Explanation — allows wrapping across pages */}
       {question.explanation && (
-        <View style={s.explBox}>
+        <View style={s.explBox} minPresenceAhead={40}>
           <Text style={s.explTitle}>Comentário do Professor</Text>
           <Text style={s.explText}>{question.explanation}</Text>
         </View>
@@ -357,7 +334,7 @@ export function ProvaRevisadaDocument({
         byArea={byArea}
       />
 
-      {/* Questions — each on its own page */}
+      {/* Questions — each starts on its own page, but content can wrap */}
       {questions.map((q, i) => {
         const result = overall.questionResults[i];
         if (!result) return null;
