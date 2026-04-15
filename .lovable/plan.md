@@ -1,41 +1,49 @@
 
 
-# Fix PDF Layout Issues
+# Fix: Eliminar páginas em branco entre questões
 
-## Problems
+## Problema
 
-1. **Cover page blank**: The SVG gradient background renders but the content (title, card, stats) doesn't appear over it — likely the absolute-positioned SVG covers the content layer, or `flex: 1` + `justifyContent: space-between` breaks in react-pdf.
+Cada questão é renderizada em seu próprio `<Page>` (linha 344). Quando um comentário longo quebra para a próxima página, o restante dessa página fica vazio — a próxima questão começa em uma **nova** `<Page>`, desperdiçando espaço. Para quem imprime, isso gera folhas quase vazias.
 
-2. **Content split across 2 pages**: The cover card (name, score, stats) and the area bars end up on a second page with very low contrast (pink on white instead of on the dark background). These should be one unified cover page.
+## Solução
 
-3. **Comments overflow/cut off**: `wrap={false}` on the entire `QuestionBlock` (line 230) prevents page breaks within any question. Long explanations (like the ones in the screenshots) exceed the page boundary and get clipped.
+Colocar **todas as questões em uma única `<Page>`** e deixar o `@react-pdf/renderer` gerenciar as quebras de página automaticamente. Questões fluirão uma após a outra, preenchendo o espaço disponível.
 
-## Plan
+## Mudança
 
-### 1. Fix Cover Page — merge everything into one page
+**Arquivo:** `src/lib/pdf/ProvaRevisadaDocument.tsx`
 
-**File:** `src/lib/pdf/ProvaRevisadaDocument.tsx`
+### Estrutura atual (simplificada):
+```tsx
+{questions.map(q => (
+  <Page key={q.id} size="A4" style={s.page}>
+    <QuestionBlock ... />
+    <PageFooter />
+  </Page>
+))}
+```
 
-- Remove the SVG gradient approach (it's not layering properly with content)
-- Use a simple `backgroundColor` on the Page style instead: `backgroundColor: '#421424'`
-- Put all cover content (title, subtitle, white card with score/stats, area bars, footer text) in a single View with proper spacing — no `flex: 1` / `space-between` which causes content to be pushed off-page
-- Use compact spacing to ensure everything fits on one A4 page
+### Estrutura nova:
+```tsx
+<Page size="A4" style={s.page}>
+  {questions.map((q, i) => (
+    <View key={q.id} style={{ marginBottom: 20 }}>
+      <QuestionBlock ... />
+      {/* Separador visual entre questões */}
+      {i < questions.length - 1 && (
+        <View style={{ borderBottom: 0.5, borderColor: '#e5e7eb', marginTop: 16 }} />
+      )}
+    </View>
+  ))}
+  <PageFooter />
+</Page>
+```
 
-### 2. Fix Question Blocks — allow wrapping for long explanations
+- O `<PageFooter fixed>` aparece em todas as páginas automaticamente (prop `fixed` já existe)
+- `wrap={false}` nos headers e options mantém esses elementos atômicos
+- O `explBox` continua sem `wrap={false}`, permitindo quebra natural
+- Separador visual (linha fina) entre questões para clareza
 
-- Remove `wrap={false}` from the outer `<View>` in `QuestionBlock` (line 230)
-- Add `wrap={false}` only to individual sub-sections that must stay together: the header row, each option row
-- The explanation `<View style={s.explBox}>` must NOT have `wrap={false}` — long professor comments need to flow across pages
-- Add `minPresenceAhead={40}` on the explBox to avoid orphaned title
-
-### 3. Improve cover contrast
-
-- Area bars on cover: use white/light text on dark background (already using `C.wineLight` but bars are `#fca5a5` which is low contrast on white — fix to only show on dark bg)
-- Keep the white card for score/stats section for contrast
-
-### Files affected
-
-| File | Change |
-|------|--------|
-| `src/lib/pdf/ProvaRevisadaDocument.tsx` | Fix cover layout, fix wrap behavior |
+Resultado: comentários longos quebram normalmente, e a próxima questão começa logo abaixo — sem páginas em branco desperdiçadas.
 
