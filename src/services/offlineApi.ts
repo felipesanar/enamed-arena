@@ -76,24 +76,37 @@ export const offlineApi = {
 
   /**
    * Triggers PDF generation via Edge Function and returns a signed download URL.
-   * The Edge Function caches the PDF in Storage after the first generation.
+   * The Edge Function runs generation in background (waitUntil) and returns
+   * { status: "processing" } until ready. We poll until the URL is available.
    */
   async getSignedPdfUrl(simuladoId: string, force = false): Promise<string> {
     logger.log('[OfflineApi] Requesting signed PDF URL for simulado:', simuladoId);
-    const { data, error } = await supabase.functions.invoke('generate-exam-pdf', {
-      body: { simulado_id: simuladoId, force },
-    });
-    if (error) {
-      logger.error('[OfflineApi] Error generating PDF:', error);
-      throw error;
+
+    const MAX_ATTEMPTS = 30; // ~90s total
+    const POLL_INTERVAL_MS = 3000;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const { data, error } = await supabase.functions.invoke('generate-exam-pdf', {
+        body: { simulado_id: simuladoId, force: force && attempt === 0 },
+      });
+      if (error) {
+        logger.error('[OfflineApi] Error generating PDF:', error);
+        throw error;
+      }
+      const result = data as { status?: string; url?: string };
+      if (result?.status === 'ready' && result.url) {
+        trackEvent('offline_pdf_generated', {
+          simulado_id: simuladoId,
+          forced_regeneration: force,
+          poll_attempts: attempt + 1,
+        });
+        return result.url;
+      }
+      // status === 'processing' → wait and retry
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
     }
-    const url = (data as { url?: string })?.url;
-    if (!url) throw new Error('PDF URL not returned from edge function');
-    trackEvent('offline_pdf_generated', {
-      simulado_id: simuladoId,
-      forced_regeneration: force,
-    });
-    return url;
+
+    throw new Error('A geração do PDF está demorando mais do que o esperado. Tente novamente em alguns instantes.');
   },
 
   /**

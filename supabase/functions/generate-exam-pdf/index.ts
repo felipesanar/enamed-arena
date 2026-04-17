@@ -452,6 +452,88 @@ function getAdminClient() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 }
 
+// ─── Background generation worker ─────────────────────────────────────────────
+
+async function buildAndUploadPdf(simulado_id: string, pdfPath: string, lockPath: string): Promise<void> {
+  const supabase = getAdminClient();
+  try {
+    const { data: simuladoRow, error: simErr } = await supabase
+      .from("simulados")
+      .select("id, title, slug, sequence_number, questions_count, duration_minutes")
+      .eq("id", simulado_id).single();
+    if (simErr || !simuladoRow) throw new Error("Simulado not found");
+
+    const { data: questionRows, error: qErr } = await supabase
+      .from("questions").select("id, question_number, text, image_url")
+      .eq("simulado_id", simulado_id).order("question_number", { ascending: true }).limit(300);
+    if (qErr || !questionRows) throw qErr ?? new Error("Failed to load questions");
+
+    const questionIds = (questionRows as QuestionRow[]).map(q => q.id);
+    const { data: optionRows, error: optErr } = await supabase
+      .from("question_options").select("question_id, label, text")
+      .in("question_id", questionIds).in("label", ["A", "B", "C", "D"]);
+    if (optErr) throw optErr;
+
+    const questions: Question[] = (questionRows as QuestionRow[]).map(q => ({
+      number: q.question_number,
+      text: q.text,
+      options: ((optionRows as OptionRow[]) ?? [])
+        .filter(o => o.question_id === q.id)
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map(o => ({ label: o.label, text: o.text })),
+    }));
+
+    const pdfDoc = await PDFDocument.create();
+    const qRows = questionRows as QuestionRow[];
+    const imageQuestions = qRows.filter(q => q.image_url).slice(0, MAX_IMAGES);
+    const failedImages: string[] = [];
+    let embeddedCount = 0;
+
+    if (imageQuestions.length > 0) {
+      console.log(`[generate-exam-pdf:bg] Processing ${imageQuestions.length} images...`);
+      const FETCH_BATCH_SIZE = 8;
+      const fetchedBytes: Array<{ q: typeof imageQuestions[number]; bytes: Uint8Array | null }> = [];
+      for (let i = 0; i < imageQuestions.length; i += FETCH_BATCH_SIZE) {
+        const batch = imageQuestions.slice(i, i + FETCH_BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map(async q => ({ q, bytes: await fetchImageWithTimeout(q.image_url!, q.question_number) })),
+        );
+        fetchedBytes.push(...results);
+      }
+      for (const { q, bytes } of fetchedBytes) {
+        if (!bytes) { failedImages.push(`Q${q.question_number}: fetch failed`); continue; }
+        try {
+          const embedded = await embedImage(pdfDoc, bytes, q.image_url!, q.question_number);
+          if (embedded) {
+            const qObj = questions.find(qq => qq.number === q.question_number);
+            if (qObj) {
+              qObj.image = { pdfImage: embedded, width: embedded.width, height: embedded.height };
+              embeddedCount++;
+            }
+          } else {
+            failedImages.push(`Q${q.question_number}: embed failed`);
+          }
+        } catch (e) {
+          failedImages.push(`Q${q.question_number}: ${String(e)}`);
+        }
+      }
+      console.log(`[generate-exam-pdf:bg] Embedded ${embeddedCount}/${imageQuestions.length} (${failedImages.length} failed)`);
+    }
+
+    const pdfBytes = await generatePdfWithDoc(pdfDoc, simuladoRow as SimuladoRow, questions);
+
+    const { error: uploadError } = await supabase.storage.from(BUCKET)
+      .upload(pdfPath, pdfBytes, { contentType: "application/pdf", upsert: true });
+    if (uploadError) throw uploadError;
+    console.log(`[generate-exam-pdf:bg] Uploaded ${pdfPath} (${pdfBytes.byteLength} bytes)`);
+  } catch (err) {
+    console.error("[generate-exam-pdf:bg] Failed:", err);
+  } finally {
+    // Always release lock
+    try { await supabase.storage.from(BUCKET).remove([lockPath]); } catch { /* ignore */ }
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -477,121 +559,57 @@ serve(async (req) => {
 
     const supabase = getAdminClient();
 
-    // Cache check
     const { data: simMeta, error: simMetaErr } = await supabase.from("simulados").select("updated_at").eq("id", simulado_id).single();
     if (simMetaErr || !simMeta) {
       return new Response(JSON.stringify({ error: "Simulado not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const pdfPath = `${simulado_id}_${new Date(simMeta.updated_at).getTime()}.pdf`;
+    const versionTs = new Date(simMeta.updated_at).getTime();
+    const pdfPath  = `${simulado_id}_${versionTs}.pdf`;
+    const lockPath = `${simulado_id}_${versionTs}.lock`;
 
+    // 1) PDF ready? Return signed URL.
     const forceRegenerate = force === true;
     if (!forceRegenerate) {
       const { data: existing } = await supabase.storage.from(BUCKET).list("", { search: pdfPath });
       if (existing?.some(f => f.name === pdfPath)) {
         const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET).createSignedUrl(pdfPath, SIGNED_URL_EXPIRY);
         if (signedError) throw signedError;
-        return new Response(JSON.stringify({ url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ status: "ready", url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
-    // Fetch simulado
-    const { data: simuladoRow, error: simErr } = await supabase
-      .from("simulados")
-      .select("id, title, slug, sequence_number, questions_count, duration_minutes")
-      .eq("id", simulado_id).single();
-    if (simErr || !simuladoRow) throw new Error("Simulado not found");
-
-    // Fetch questions + options
-    const { data: questionRows, error: qErr } = await supabase
-      .from("questions").select("id, question_number, text, image_url")
-      .eq("simulado_id", simulado_id).order("question_number", { ascending: true }).limit(300);
-    if (qErr || !questionRows) throw qErr ?? new Error("Failed to load questions");
-
-    const questionIds = (questionRows as QuestionRow[]).map(q => q.id);
-    const { data: optionRows, error: optErr } = await supabase
-      .from("question_options").select("question_id, label, text")
-      .in("question_id", questionIds).in("label", ["A", "B", "C", "D"]);
-    if (optErr) throw optErr;
-
-    // Build questions array
-    const questions: Question[] = (questionRows as QuestionRow[]).map(q => ({
-      number: q.question_number,
-      text: q.text,
-      options: ((optionRows as OptionRow[]) ?? [])
-        .filter(o => o.question_id === q.id)
-        .sort((a, b) => a.label.localeCompare(b.label))
-        .map(o => ({ label: o.label, text: o.text })),
-    }));
-
-    // Generate PDF with image embedding inside
-    const pdfDoc = await PDFDocument.create();
-
-    // Fetch and embed images (sequentially to control memory)
-    const qRows = questionRows as QuestionRow[];
-    const imageQuestions = qRows.filter(q => q.image_url).slice(0, MAX_IMAGES);
-    const failedImages: string[] = [];
-    let embeddedCount = 0;
-
-    if (imageQuestions.length > 0) {
-      console.log(`[generate-exam-pdf] Processing ${imageQuestions.length} images (of ${qRows.filter(q => q.image_url).length} total with URLs) in parallel batches...`);
-
-      // Parallel fetch in batches of 8 (network-bound; reduces total wall time
-      // significantly so we don't exceed Edge Function CPU/wall budget).
-      const FETCH_BATCH_SIZE = 8;
-      const fetchedBytes: Array<{ q: typeof imageQuestions[number]; bytes: Uint8Array | null }> = [];
-      for (let i = 0; i < imageQuestions.length; i += FETCH_BATCH_SIZE) {
-        const batch = imageQuestions.slice(i, i + FETCH_BATCH_SIZE);
-        const results = await Promise.all(
-          batch.map(async q => ({
-            q,
-            bytes: await fetchImageWithTimeout(q.image_url!, q.question_number),
-          })),
-        );
-        fetchedBytes.push(...results);
+    // 2) Already generating? Return processing.
+    const { data: lockExisting } = await supabase.storage.from(BUCKET).list("", { search: lockPath });
+    const lockFile = lockExisting?.find(f => f.name === lockPath);
+    if (lockFile && !forceRegenerate) {
+      // Stale lock detection: if lock is older than 90s, assume previous worker died and re-trigger.
+      const lockAge = Date.now() - new Date(lockFile.created_at ?? lockFile.updated_at ?? Date.now()).getTime();
+      if (lockAge < 90_000) {
+        return new Response(JSON.stringify({ status: "processing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-
-      // Embed sequentially (CPU-bound; pdf-lib is not thread-safe across same doc)
-      for (const { q, bytes } of fetchedBytes) {
-        if (!bytes) {
-          failedImages.push(`Q${q.question_number}: fetch failed`);
-          continue;
-        }
-        try {
-          const embedded = await embedImage(pdfDoc, bytes, q.image_url!, q.question_number);
-          if (embedded) {
-            const qObj = questions.find(qq => qq.number === q.question_number);
-            if (qObj) {
-              qObj.image = {
-                pdfImage: embedded,
-                width: embedded.width,
-                height: embedded.height,
-              };
-              embeddedCount++;
-            }
-          } else {
-            failedImages.push(`Q${q.question_number}: embed failed`);
-          }
-        } catch (e) {
-          console.error(`[generate-exam-pdf] Image for Q${q.question_number} unexpected error:`, e);
-          failedImages.push(`Q${q.question_number}: ${String(e)}`);
-        }
-      }
-
-      console.log(`[generate-exam-pdf] Image summary: ${imageQuestions.length} found, ${embeddedCount} embedded, ${failedImages.length} failed${failedImages.length > 0 ? ` (${failedImages.join('; ')})` : ''}`);
+      console.log(`[generate-exam-pdf] Stale lock detected (${lockAge}ms), re-triggering generation`);
+      try { await supabase.storage.from(BUCKET).remove([lockPath]); } catch { /* ignore */ }
     }
 
-    // Now generate using the shared pdfDoc
-    const pdfBytes = await generatePdfWithDoc(pdfDoc, simuladoRow as SimuladoRow, questions);
+    // 3) Acquire lock and start background work.
+    const { error: lockErr } = await supabase.storage.from(BUCKET)
+      .upload(lockPath, new Uint8Array([1]), { contentType: "application/octet-stream", upsert: true });
+    if (lockErr) {
+      console.warn("[generate-exam-pdf] Failed to acquire lock:", lockErr);
+    }
 
-    // Upload
-    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(pdfPath, pdfBytes, { contentType: "application/pdf", upsert: true });
-    if (uploadError) throw uploadError;
+    // EdgeRuntime.waitUntil keeps the worker alive after the response is sent.
+    // deno-lint-ignore no-explicit-any
+    const runtime = (globalThis as any).EdgeRuntime;
+    if (runtime?.waitUntil) {
+      runtime.waitUntil(buildAndUploadPdf(simulado_id, pdfPath, lockPath));
+    } else {
+      // Fallback: fire and forget (best effort)
+      buildAndUploadPdf(simulado_id, pdfPath, lockPath);
+    }
 
-    const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET).createSignedUrl(pdfPath, SIGNED_URL_EXPIRY);
-    if (signedError) throw signedError;
-
-    return new Response(JSON.stringify({ url: signedData.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ status: "processing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     console.error("[generate-exam-pdf]", err);
     return new Response(JSON.stringify({ error: (err as Error)?.message ?? "Internal error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
