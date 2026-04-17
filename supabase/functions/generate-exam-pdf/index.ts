@@ -534,10 +534,25 @@ serve(async (req) => {
     let embeddedCount = 0;
 
     if (imageQuestions.length > 0) {
-      console.log(`[generate-exam-pdf] Processing ${imageQuestions.length} images (of ${qRows.filter(q => q.image_url).length} total with URLs)...`);
+      console.log(`[generate-exam-pdf] Processing ${imageQuestions.length} images (of ${qRows.filter(q => q.image_url).length} total with URLs) in parallel batches...`);
 
-      for (const q of imageQuestions) {
-        const bytes = await fetchImageWithTimeout(q.image_url!, q.question_number);
+      // Parallel fetch in batches of 8 (network-bound; reduces total wall time
+      // significantly so we don't exceed Edge Function CPU/wall budget).
+      const FETCH_BATCH_SIZE = 8;
+      const fetchedBytes: Array<{ q: typeof imageQuestions[number]; bytes: Uint8Array | null }> = [];
+      for (let i = 0; i < imageQuestions.length; i += FETCH_BATCH_SIZE) {
+        const batch = imageQuestions.slice(i, i + FETCH_BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map(async q => ({
+            q,
+            bytes: await fetchImageWithTimeout(q.image_url!, q.question_number),
+          })),
+        );
+        fetchedBytes.push(...results);
+      }
+
+      // Embed sequentially (CPU-bound; pdf-lib is not thread-safe across same doc)
+      for (const { q, bytes } of fetchedBytes) {
         if (!bytes) {
           failedImages.push(`Q${q.question_number}: fetch failed`);
           continue;
