@@ -45,6 +45,20 @@ export const offlineApi = {
    */
   async createOfflineAttempt(simuladoId: string): Promise<OfflineAttemptCreated> {
     logger.log('[OfflineApi] Creating offline attempt for simulado:', simuladoId);
+
+    // Defensive: ensure user is authenticated. In-app browsers (Instagram,
+    // Facebook) sometimes wipe localStorage between navigations, leaving the
+    // client logged-out while the UI still believes there's a session. Without
+    // this check, the RPC sees auth.uid() = NULL and the INSERT fails with a
+    // not-null constraint on user_id — which surfaces a confusing error.
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      logger.error('[OfflineApi] No authenticated user when creating offline attempt:', authError);
+      throw new Error(
+        'Sua sessão expirou. Abra o link em um navegador (Chrome/Safari) e faça login novamente.',
+      );
+    }
+
     const { data, error } = await rpc('create_offline_attempt_guarded', {
       p_simulado_id: simuladoId,
     });
