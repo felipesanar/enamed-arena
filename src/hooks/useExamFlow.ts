@@ -111,7 +111,18 @@ export function useExamFlow(): UseExamFlowReturn {
 
   // ── Init or resume attempt ──
   useEffect(() => {
-    if (!simulado || !id || loadingSimulado || questions.length === 0) return;
+    if (!simulado || !id || loadingSimulado) return;
+    if (questions.length === 0) {
+      logger.error('[useExamFlow] Simulado has no questions, redirecting');
+      toast({
+        title: 'Simulado indisponível',
+        description: 'Este simulado ainda não tem questões cadastradas.',
+        variant: 'destructive',
+      });
+      navigate(`/simulados/${id}`, { replace: true });
+      setInitLoading(false);
+      return;
+    }
 
     let cancelled = false;
     (async () => {
