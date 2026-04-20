@@ -194,10 +194,10 @@ export function deriveHomeHeroState({
     return {
       scenario: "late_training",
       tone: "calm",
-      eyebrow: "Modo treino",
-      headline: "Treino extra para manter tração",
-      description: `"${availableLate.title}" segue aberto para prática. Não entra no ranking, mas fortalece sua preparação.`,
-      ctaLabel: "Treinar agora",
+      eyebrow: "Sua chance de evoluir",
+      headline: "Cada questão te aproxima da aprovação",
+      description: `"${availableLate.title}" continua disponível. Treine agora, identifique pontos fracos e chegue mais forte no próximo simulado oficial.`,
+      ctaLabel: "Bora treinar",
       ctaTo: `/simulados?openModal=${availableLate.id}`,
     };
   }
