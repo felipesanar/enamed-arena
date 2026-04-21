@@ -45,7 +45,6 @@ export default defineConfig(({ mode }) => ({
             return "vendor-pdf-xlsx";
           }
           if (id.includes("framer-motion")) return "vendor-framer";
-          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
           if (id.includes("@radix-ui")) return "vendor-radix";
           if (id.includes("lucide-react")) return "vendor-lucide";
           if (id.includes("@supabase")) return "vendor-supabase";
