@@ -767,7 +767,7 @@ export function RankingView({
                       <p
                         className="font-bold uppercase mb-[7px]"
                         style={{
-                          fontSize: '0.56rem',
+                          fontSize: '0.65rem',
                           letterSpacing: '.09em',
                           color: t.kpiCutPassTag,
                         }}
@@ -776,13 +776,13 @@ export function RankingView({
                       </p>
                       <p
                         className="font-bold leading-snug mb-[5px]"
-                        style={{ fontSize: '0.95rem', color: t.kpiCutPassVal }}
+                        style={{ fontSize: '1.1rem', color: t.kpiCutPassVal }}
                       >
                         Passaria ✓
                       </p>
                       <p
                         className="leading-snug"
-                        style={{ fontSize: '0.62rem', color: t.kpiCutPassSub }}
+                        style={{ fontSize: '0.72rem', color: t.kpiCutPassSub }}
                       >
                         Corte geral:{' '}
                         <strong style={{ color: t.kpiCutPassStrong }}>
@@ -803,7 +803,7 @@ export function RankingView({
                       type="button"
                       onClick={() => setCutoffModalOpen(true)}
                       className="relative z-10 inline-flex items-center gap-[3px] mt-[7px]"
-                      style={{ fontSize: '0.58rem', color: t.kpiCutPassLink }}
+                      style={{ fontSize: '0.68rem', color: t.kpiCutPassLink }}
                     >
                       Ver todas as notas ↗
                     </button>
