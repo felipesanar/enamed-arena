@@ -103,7 +103,7 @@ function EntryRow({
       opacity: resolved ? 0.45 : 1, minHeight: 44,
     }}>
       {/* Accent bar */}
-      <div style={{ width: 3, height: 32, borderRadius: 99, background: meta.colorBase, flexShrink: 0 }} />
+      <div style={{ width: 3, height: resolved ? 32 : 48, borderRadius: 99, background: meta.colorBase, flexShrink: 0, alignSelf: 'stretch' }} />
 
       {/* Main */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -119,6 +119,15 @@ function EntryRow({
             ? `resolvida em ${fmtDate(entry.resolvedAt)}`
             : `${entry.simuladoTitle ?? 'Simulado'} · ${fmtDate(entry.addedAt)}`}
         </div>
+        {!resolved && meta.strategy && (
+          <div style={{
+            fontSize: 11, fontWeight: 600, color: meta.colorText,
+            marginTop: 5, lineHeight: 1.4,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            → {meta.strategy}
+          </div>
+        )}
       </div>
 
       {/* Type badge */}
@@ -210,6 +219,32 @@ function HeroCard({
           </div>
           <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.6, fontStyle: 'italic' }}>
             {entry.learningNote}
+          </div>
+        </div>
+      )}
+
+      {/* Strategy hint (from reason) */}
+      {meta.strategy && (
+        <div style={{
+          background: `${meta.colorBase}14`,
+          border: `1px solid ${meta.colorBase}38`,
+          borderRadius: 9,
+          padding: '10px 13px',
+          marginBottom: 14,
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8,
+        }}>
+          <span aria-hidden style={{ color: `${meta.colorBase}cc`, fontWeight: 800, lineHeight: 1.4, fontSize: 12 }}>→</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase' as const, color: `${meta.colorBase}cc`, marginBottom: 3 }}>
+              Como revisar
+            </div>
+            <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5, fontWeight: 600 }}>
+              {meta.strategy}
+            </div>
           </div>
         </div>
       )}
