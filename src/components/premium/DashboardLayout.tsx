@@ -33,7 +33,7 @@ export function DashboardLayout() {
     [location.pathname, isExamRoute]
   );
   const isFullBleedRoute = useMemo(
-    () => /^\/(desempenho|comparativo)(?:\/|$)/.test(location.pathname),
+    () => /^\/(comparativo)(?:\/|$)/.test(location.pathname),
     [location.pathname]
   );
   useEffect(() => {
