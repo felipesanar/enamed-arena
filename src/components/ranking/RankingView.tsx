@@ -1099,6 +1099,52 @@ export function RankingView({
               </div>
 
               {/* ── Table ─────────────────────────────────────────────────── */}
+              {filteredParticipants.length === 0 ? (
+                <div
+                  className="rounded-[16px] flex flex-col items-center text-center"
+                  style={{
+                    background: t.surfaceBg,
+                    border: t.surfaceBorder,
+                    padding: '32px 20px',
+                  }}
+                >
+                  <div
+                    className="h-10 w-10 rounded-full flex items-center justify-center mb-3"
+                    style={{
+                      background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                    }}
+                    aria-hidden
+                  >
+                    <Users className="h-5 w-5" style={{ color: t.text2 }} />
+                  </div>
+                  <p
+                    className="font-semibold mb-1"
+                    style={{ fontSize: '0.9rem', color: t.text1 }}
+                  >
+                    Nenhum participante neste recorte
+                  </p>
+                  <p
+                    className="leading-snug mb-4 max-w-sm"
+                    style={{ fontSize: '0.72rem', color: t.text2 }}
+                  >
+                    Os filtros aplicados não retornaram candidatos. Ajuste ou limpe os filtros para ver o ranking completo.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleClearAllFilters}
+                    className="font-semibold rounded-full transition-colors"
+                    style={{
+                      padding: '7px 16px',
+                      fontSize: '0.7rem',
+                      background: 'rgba(122,26,50,0.85)',
+                      color: 'white',
+                      border: '1px solid rgba(255,150,170,0.25)',
+                    }}
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              ) : (
               <div
                 className="relative overflow-hidden"
                 style={{
