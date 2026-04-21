@@ -499,7 +499,7 @@ function MiniStat({
         <span className="text-white/35">/</span>
         {total}
       </span>
-      <span className="truncate max-w-[140px] text-[10px] font-medium text-white/55" title={area}>
+      <span className="truncate max-w-[110px] text-[10px] font-medium text-white/55" title={area}>
         {area}
       </span>
     </div>
