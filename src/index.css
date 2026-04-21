@@ -9,6 +9,9 @@
 
 @layer base {
   :root {
+    /* Mobile shell — header height token (synced with MobileDashboardHeader). */
+    --mobile-header-h: 56px;
+
     /* Base surfaces */
     --background: 0 0% 98.5%;
     --foreground: 220 20% 10%;

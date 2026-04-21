@@ -276,7 +276,7 @@ export function HomePagePremium() {
       initial={prefersReducedMotion ? false : skipHomeStagger ? { opacity: 0 } : "hidden"}
       animate={skipHomeStagger ? { opacity: 1 } : "visible"}
       transition={skipHomeStagger ? { duration: 0.28, ease: "easeOut" } : undefined}
-      className="space-y-4 max-md:space-y-4 md:space-y-6"
+      className="space-y-4 md:space-y-6"
     >
       {/* Layer 0: Notification banner — always on top */}
       <motion.div variants={itemVariants}>
@@ -310,7 +310,7 @@ export function HomePagePremium() {
               segment={segment}
             />
           </div>
-          <div className="lg:col-span-7 lg:min-h-0">
+          <div className="lg:col-span-7 lg:min-h-0 min-w-0">
             <HeroPerformanceCard
               lastScore={lastScore}
               scoreDelta={scoreDelta}
@@ -438,10 +438,10 @@ function HeroPerformanceCard({
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_18%_12%,rgba(255,255,255,0.09)_0%,transparent_55%)]" />
           <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
 
-          <div className="relative z-10">
+          <div className="relative z-10 space-y-3">
             <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[20px] md:text-[22px] font-bold leading-none tracking-[-0.02em] text-white">
+              <div className="min-w-0">
+                <p className="text-[18px] sm:text-[20px] md:text-[22px] font-bold leading-none tracking-[-0.02em] text-white">
                   Seu caminho até aqui
                 </p>
                 <p className="mt-1 text-[11px] text-white/45">
@@ -483,7 +483,7 @@ function HeroPerformanceCard({
 
             {/* Mini chart — 6 bars */}
             <div
-              className="mt-4 flex items-end gap-1 max-md:gap-0.5 sm:gap-[6px]"
+              className="mt-4 flex items-end gap-[3px] sm:gap-[6px]"
               style={{ height: 76 }}
               aria-hidden
             >

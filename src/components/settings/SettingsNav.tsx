@@ -93,7 +93,7 @@ export function SettingsNav({ sections, activeId, onSelect }: SettingsNavProps) 
       {/* Mobile — chips rolagem horizontal sticky */}
       <nav
         aria-label="Navegação de configurações"
-        className="lg:hidden sticky top-[60px] -mx-4 sm:mx-0 z-10 mb-6"
+        className="lg:hidden sticky top-[calc(var(--mobile-header-h,56px)+env(safe-area-inset-top,0px)+8px)] -mx-4 sm:mx-0 z-10 mb-6"
       >
         <div className="px-4 sm:px-0">
           <div

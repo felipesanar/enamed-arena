@@ -180,8 +180,8 @@ function TimelineItem({
                 {variant.label}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold leading-snug text-foreground">{sim.title}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="line-clamp-1 min-w-0 flex-1 text-sm font-semibold leading-snug text-foreground">{sim.title}</p>
               {sim.dbStatus === 'test' && (
                 <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-warning/15 text-warning border border-warning/30 uppercase tracking-wide">
                   Teste
