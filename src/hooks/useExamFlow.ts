@@ -114,7 +114,18 @@ export function useExamFlow(): UseExamFlowReturn {
 
   // ── Init or resume attempt ──
   useEffect(() => {
-    if (!simulado || !id || loadingSimulado || questions.length === 0) return;
+    if (!simulado || !id || loadingSimulado) return;
+    if (questions.length === 0) {
+      logger.error('[useExamFlow] Simulado has no questions, redirecting');
+      toast({
+        title: 'Simulado indisponível',
+        description: 'Este simulado ainda não tem questões cadastradas.',
+        variant: 'destructive',
+      });
+      navigate(`/simulados/${id}`, { replace: true });
+      setInitLoading(false);
+      return;
+    }
 
     let cancelled = false;
     (async () => {
@@ -165,12 +176,10 @@ export function useExamFlow(): UseExamFlowReturn {
             toast({ title: 'Prova retomada', description: 'Suas respostas foram recuperadas automaticamente.' });
           }
         } else if (!existing || existing.status === 'not_started') {
-          // Guard: don't start if window already closed
-          if (simulado.executionWindowEnd && new Date(simulado.executionWindowEnd) <= new Date()) {
-            logger.log('[useExamFlow] Window already closed, cannot start exam');
-            navigate(`/simulados/${id}`, { replace: true });
-            return;
-          }
+          // Note: starting outside the official window is allowed (treino mode).
+          // The RPC create_attempt_guarded sets is_within_window=false so it
+          // does not enter the ranking. Blocking here would break the
+          // documented business rule (constraints/regras-de-negocio-simulados).
           try {
             const fresh = await storage.initializeState(
               questions.length,

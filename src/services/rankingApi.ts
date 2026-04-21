@@ -300,7 +300,8 @@ export async function fetchAllCutoffScores(): Promise<CutoffScoreRow[]> {
       'institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
     )
     .order('institution_name')
-    .order('specialty_name');
+    .order('specialty_name')
+    .range(0, 1999);
 
   if (error) {
     logger.error('[rankingApi] Error fetching all cutoff scores:', error);
