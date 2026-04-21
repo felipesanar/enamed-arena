@@ -915,7 +915,7 @@ export function RankingView({
           )}
 
           {/* ── Empty state ───────────────────────────────────────────────── */}
-          {filteredParticipants.length === 0 && !currentUser && (
+          {filteredParticipants.length === 0 && !currentUser && !hasActiveFilters && (
             <EmptyState
               icon={Users}
               title="Sem participantes"
@@ -923,7 +923,7 @@ export function RankingView({
             />
           )}
 
-          {filteredParticipants.length > 0 && (
+          {(filteredParticipants.length > 0 || hasActiveFilters) && (
             <>
               {/* ── Filter bar ────────────────────────────────────────────── */}
               <div
