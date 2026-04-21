@@ -239,11 +239,12 @@ export function DesempenhoSimuladoPanel({
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.22 }}
             >
-              <SectionHeader title="Tema" />
-              {themesForSubspecialty.length === 0 ? (
-                <EmptyDrill label="Nenhum tema encontrado." />
-              ) : (
-                <div className="flex flex-col gap-2">
+              <section aria-label="Tema" className="rounded-2xl border border-border bg-card p-4 md:p-5">
+                <SectionHeader title="Tema" />
+                {themesForSubspecialty.length === 0 ? (
+                  <EmptyDrill label="Nenhum tema encontrado." />
+                ) : (
+                  <div className="flex flex-col gap-2">
                   <AnimatePresence initial={false}>
                     {themesForSubspecialty.map((theme) => (
                       <ThemeAccordionRow
@@ -267,8 +268,9 @@ export function DesempenhoSimuladoPanel({
                       />
                     ))}
                   </AnimatePresence>
-                </div>
-              )}
+                  </div>
+                )}
+              </section>
             </motion.div>
           </AnimatePresence>
         </StaggerItem>
