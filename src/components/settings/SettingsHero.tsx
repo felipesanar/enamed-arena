@@ -22,14 +22,14 @@ const SEGMENT_ACCENT: Record<UserSegment, {
 }> = {
   guest: {
     label: SEGMENT_LABELS.guest,
-    chipClass: "bg-muted text-muted-foreground border-border",
+    chipClass: "bg-muted/70 text-muted-foreground border-border/70",
     ringClass: "ring-border",
     crownClass: "bg-muted text-muted-foreground",
     glowClass: "from-muted/40 to-transparent",
   },
   standard: {
     label: SEGMENT_LABELS.standard,
-    chipClass: "bg-accent text-accent-foreground border-primary/20",
+    chipClass: "bg-accent/80 text-accent-foreground border-primary/15",
     ringClass: "ring-primary/30",
     crownClass: "bg-primary/10 text-primary",
     glowClass: "from-primary/15 via-primary/5 to-transparent",
@@ -37,7 +37,7 @@ const SEGMENT_ACCENT: Record<UserSegment, {
   pro: {
     label: SEGMENT_LABELS.pro,
     chipClass:
-      "bg-gradient-to-r from-primary to-wine-hover text-primary-foreground border-transparent shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.55)]",
+      "bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--wine-hover))_100%)] text-primary-foreground border-transparent shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.4)]",
     ringClass: "ring-primary/50",
     crownClass: "bg-primary text-primary-foreground",
     glowClass: "from-primary/25 via-primary/8 to-transparent",
@@ -141,21 +141,22 @@ export function SettingsHero({
 
         {/* Identity */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className="text-heading-1 md:text-[2rem] leading-tight tracking-tight text-foreground truncate">
+              {displayName}
+            </h1>
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-micro-label uppercase tracking-wider",
+                "inline-flex items-center gap-1 px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] leading-none",
                 accent.chipClass,
               )}
+              aria-label={`Plano ${accent.label}`}
             >
-              {segment === "pro" && <Sparkles className="h-3 w-3" aria-hidden="true" />}
+              {segment === "pro" && <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />}
               {accent.label}
             </span>
           </div>
-          <h1 className="text-heading-1 md:text-[2rem] leading-tight tracking-tight text-foreground truncate">
-            {displayName}
-          </h1>
-          <p className="mt-1 text-body-sm md:text-body text-muted-foreground truncate">
+          <p className="mt-1.5 text-body-sm md:text-body text-muted-foreground truncate">
             {email}
           </p>
 
