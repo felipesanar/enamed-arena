@@ -491,7 +491,7 @@ export const simuladosApi = {
       question_id: entry.questionId,
       area: entry.area,
       theme: entry.theme,
-      reason: entry.reason,
+      reason: entry.reason as TablesInsert<'error_notebook'>['reason'],
       learning_text: entry.learningText,
       was_correct: entry.wasCorrect,
       question_number: entry.questionNumber ?? null,
