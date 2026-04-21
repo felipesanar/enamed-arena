@@ -61,7 +61,8 @@ export function AdminDataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div className={shell}>
+    <div className={cn(shell, 'overflow-x-auto')}>
+      <div className="min-w-[640px] md:min-w-0">
       {/* Header */}
       <div className="grid border-b border-border" style={gridStyle}>
         {columns.map(c => (
@@ -103,6 +104,7 @@ export function AdminDataTable<T extends Record<string, unknown>>({
           {footer}
         </div>
       )}
+      </div>
     </div>
   )
 }
