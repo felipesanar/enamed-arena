@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Shield,
   User,
@@ -52,7 +52,7 @@ const NAV_SECTIONS: SettingsNavSection[] = [
   {
     id: "preferencias",
     label: "Preferências",
-    description: "Tema e notificações",
+    description: "Aparência",
     icon: SlidersHorizontal,
   },
   { id: "suporte", label: "Ajuda & suporte", description: "Canais de contato", icon: LifeBuoy },
@@ -90,6 +90,7 @@ export default function ConfiguracoesPage() {
 
   const [editingAcademic, setEditingAcademic] = useState(false);
   const [savingAcademic, setSavingAcademic] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("conta");
 
   const navSections = useMemo(
     () =>
@@ -98,6 +99,13 @@ export default function ConfiguracoesPage() {
       ),
     [isOnboardingComplete, onboarding],
   );
+
+  // Saneamento: se a aba ativa não existe mais (ex.: perfil-academico filtrado), volta para conta.
+  useEffect(() => {
+    if (!navSections.some((s) => s.id === activeSection)) {
+      setActiveSection("conta");
+    }
+  }, [navSections, activeSection]);
 
   const memberSinceLabel = useMemo(() => {
     const iso =
