@@ -120,7 +120,7 @@ export function DesempenhoSimuladoPanel({
   };
 
   return (
-    <StaggerContainer className="space-y-5 md:space-y-6">
+    <StaggerContainer className="space-y-6 md:space-y-8">
       {/* Tabs de simulado (apenas quando > 1) */}
       {simuladosWithResults.length > 1 && (
         <StaggerItem>
@@ -239,11 +239,12 @@ export function DesempenhoSimuladoPanel({
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.22 }}
             >
-              <SectionHeader title="Tema" />
-              {themesForSubspecialty.length === 0 ? (
-                <EmptyDrill label="Nenhum tema encontrado." />
-              ) : (
-                <div className="flex flex-col gap-2">
+              <section aria-label="Tema" className="rounded-2xl border border-border bg-card p-4 md:p-5">
+                <SectionHeader title="Tema" />
+                {themesForSubspecialty.length === 0 ? (
+                  <EmptyDrill label="Nenhum tema encontrado." />
+                ) : (
+                  <div className="flex flex-col gap-2">
                   <AnimatePresence initial={false}>
                     {themesForSubspecialty.map((theme) => (
                       <ThemeAccordionRow
@@ -267,8 +268,9 @@ export function DesempenhoSimuladoPanel({
                       />
                     ))}
                   </AnimatePresence>
-                </div>
-              )}
+                  </div>
+                )}
+              </section>
             </motion.div>
           </AnimatePresence>
         </StaggerItem>
@@ -359,7 +361,7 @@ function PerformanceHeroCard({
     : 'Prova Revisada PDF';
 
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-5 md:p-7 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)]">
+    <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-5 md:p-6 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)]">
       {/* Atmospheric layers */}
       <div
         aria-hidden
@@ -499,7 +501,7 @@ function MiniStat({
         <span className="text-white/35">/</span>
         {total}
       </span>
-      <span className="truncate max-w-[140px] text-[10px] font-medium text-white/55" title={area}>
+      <span className="truncate max-w-[110px] text-[10px] font-medium text-white/55" title={area}>
         {area}
       </span>
     </div>
