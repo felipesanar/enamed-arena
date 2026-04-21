@@ -453,6 +453,15 @@
       margin-bottom: var(--section-breathe-md);
     }
   }
+
+  /* Scroll horizontal invisível (chips de navegação em mobile) */
+  .settings-nav-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .settings-nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes fadeIn {

@@ -1,23 +1,81 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  Shield,
+  User,
+  Mail,
+  GraduationCap,
+  Building2,
+  Edit3,
+  LogOut,
+  SlidersHorizontal,
+  LifeBuoy,
+  MessageCircle,
+  HelpCircle,
+  Lock,
+  ExternalLink,
+  Calendar,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
+
 import { PageTransition } from "@/components/premium/PageTransition";
-import { PageHeader } from "@/components/PageHeader";
-import { PremiumCard } from "@/components/PremiumCard";
-import { SectionHeader } from "@/components/SectionHeader";
 import { AcademicProfileEditor } from "@/components/profile/AcademicProfileEditor";
+import { SettingsHero } from "@/components/settings/SettingsHero";
+import { SettingsNav, type SettingsNavSection } from "@/components/settings/SettingsNav";
+import { SettingsSection } from "@/components/settings/SettingsSection";
+import { SettingsCardGroup, SettingsRow } from "@/components/settings/SettingsRow";
+import { PlanBillboard } from "@/components/settings/PlanBillboard";
+import { PreferencesSection } from "@/components/settings/PreferencesSection";
+import { LogoutConfirm } from "@/components/settings/LogoutConfirm";
+import { InlineNameEdit } from "@/components/settings/InlineNameEdit";
+import { CopyableText } from "@/components/settings/CopyableText";
+import { InstitutionChip } from "@/components/settings/InstitutionChip";
+
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SEGMENT_LABELS } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { SANARFLIX_PRO_ENAMED_URL } from "@/lib/sanarflix";
-import {
-  Shield, User, GraduationCap, Building2, Edit3, LogOut,
-  Save, X, Camera,
-} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 
+const NAV_SECTIONS: SettingsNavSection[] = [
+  { id: "conta", label: "Conta", description: "Dados pessoais", icon: User },
+  { id: "plano", label: "Plano", description: "Assinatura e benefícios", icon: Shield },
+  {
+    id: "perfil-academico",
+    label: "Perfil acadêmico",
+    description: "Especialidade e instituições",
+    icon: GraduationCap,
+  },
+  {
+    id: "preferencias",
+    label: "Preferências",
+    description: "Tema e notificações",
+    icon: SlidersHorizontal,
+  },
+  { id: "suporte", label: "Ajuda & suporte", description: "Canais de contato", icon: LifeBuoy },
+  { id: "sessao", label: "Sessão", description: "Encerrar acesso", icon: LogOut },
+];
+
+const HELP_LINKS = [
+  {
+    icon: HelpCircle,
+    label: "Central de ajuda",
+    description: "Respostas rápidas sobre simulados, plano e correção.",
+    href: "https://sanarflix.com.br/central-ajuda",
+  },
+  {
+    icon: MessageCircle,
+    label: "Falar com a equipe SanarFlix",
+    description: "Atendimento em dias úteis — respondemos em até 1 dia.",
+    href: "https://sanarflix.com.br/contato",
+  },
+];
+
 export default function ConfiguracoesPage() {
+  const reduced = useReducedMotion();
   const {
     profile,
     onboarding,
@@ -28,235 +86,381 @@ export default function ConfiguracoesPage() {
     refreshProfile,
   } = useUser();
   const { user: authUser, signOut } = useAuth();
-  const segment = profile?.segment ?? 'guest';
+  const segment = profile?.segment ?? "guest";
 
-  // Edit mode for personal data
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(profile?.name || '');
-  const [saving, setSaving] = useState(false);
-
-  // Edit mode for academic profile
   const [editingAcademic, setEditingAcademic] = useState(false);
   const [savingAcademic, setSavingAcademic] = useState(false);
 
-  const handleSave = async () => {
-    if (!authUser || !editName.trim()) return;
-    setSaving(true);
+  const navSections = useMemo(
+    () =>
+      NAV_SECTIONS.filter(
+        (s) => s.id !== "perfil-academico" || (isOnboardingComplete && !!onboarding),
+      ),
+    [isOnboardingComplete, onboarding],
+  );
+
+  const memberSinceLabel = useMemo(() => {
+    const iso =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (authUser as any)?.created_at ?? (profile as any)?.createdAt;
+    if (!iso) return null;
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: editName.trim() })
-        .eq('id', authUser.id);
-      if (error) throw error;
-      toast({ title: 'Nome atualizado com sucesso.' });
-      setEditing(false);
-      refreshProfile?.();
-    } catch (err) {
-      logger.error('[ConfiguracoesPage] Error saving name:', err);
-      toast({
-        title: 'Erro ao salvar',
-        description: 'Tente novamente em instantes.',
-        variant: 'destructive',
+      return new Date(iso).toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
       });
-    } finally {
-      setSaving(false);
+    } catch {
+      return null;
     }
+  }, [authUser, profile]);
+
+  const handleSaveName = async (nextName: string) => {
+    if (!authUser) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: nextName })
+      .eq("id", authUser.id);
+    if (error) {
+      logger.error("[ConfiguracoesPage] Error saving name:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+    toast({ title: "Nome atualizado com sucesso." });
+    refreshProfile?.();
   };
+
+  const nextEditableFormatted = onboardingNextEditableAt
+    ? new Date(onboardingNextEditableAt).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   return (
     <PageTransition>
-      <PageHeader
-        title="Configurações"
-        subtitle="Seu perfil e preferências da plataforma."
+      {/* HERO */}
+      <SettingsHero
+        name={profile?.name || ""}
+        email={authUser?.email || ""}
+        segment={segment}
+        specialty={onboarding?.specialty}
+        institutionsCount={onboarding?.targetInstitutions?.length}
+        avatarUrl={profile?.avatarUrl}
       />
 
-      {authUser && (
-        <>
-          <SectionHeader title="Sua conta" />
-          <PremiumCard className="p-5 mb-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  {editing ? (
-                    <div className="flex items-center gap-2">
-                      <label htmlFor="profile-name-input" className="sr-only">
-                        Seu nome completo
-                      </label>
-                      <input
-                        id="profile-name-input"
-                        type="text"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        aria-label="Seu nome completo"
-                        className="text-body font-semibold text-foreground bg-muted px-3 py-1.5 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving || !editName.trim()}
-                        aria-label="Salvar nome"
-                        title="Salvar nome"
-                        className="h-8 w-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors disabled:opacity-40"
-                      >
-                        <Save className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setEditing(false); setEditName(profile?.name || ''); }}
-                        aria-label="Cancelar edição do nome"
-                        title="Cancelar edição"
-                        className="h-8 w-8 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 flex items-center justify-center transition-colors"
-                      >
-                        <X className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <p className="text-body font-semibold text-foreground">{profile?.name || 'Sem nome'}</p>
-                      <button
-                        type="button"
-                        onClick={() => { setEditName(profile?.name || ''); setEditing(true); }}
-                        aria-label="Editar nome"
-                        title="Editar nome"
-                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center transition-colors"
-                      >
-                        <Edit3 className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      </button>
-                    </div>
-                  )}
-                  <p className="text-body-sm text-muted-foreground">{authUser.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={signOut}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border text-body-sm font-medium text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Sair
-              </button>
-            </div>
-          </PremiumCard>
-        </>
-      )}
+      {/* 2-col shell: sidebar + stack */}
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-6 lg:gap-10">
+        <SettingsNav sections={navSections} />
 
-      <SectionHeader title="Seu plano" />
-      <PremiumCard className="p-5 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-            <Shield className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-body font-semibold text-foreground">{SEGMENT_LABELS[segment]}</p>
-            <p className="text-body-sm text-muted-foreground">
-              {segment === 'guest'
-                ? 'Acesso gratuito aos simulados. Para upgrade, entre em contato com a equipe SanarFlix.'
-                : segment === 'standard'
-                ? 'Aluno SanarFlix — acesso a simulados, ranking e comparativos.'
-                : 'Aluno PRO — acesso completo à plataforma.'}
-            </p>
-          </div>
-          {segment === 'guest' && (
-            <a
-              href={SANARFLIX_PRO_ENAMED_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-body-sm font-semibold hover:bg-wine-hover transition-colors shrink-0"
+        <motion.div
+          initial={reduced ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08 }}
+          className="space-y-10 md:space-y-12 min-w-0"
+        >
+          {/* === CONTA === */}
+          {authUser && (
+            <SettingsSection
+              id="conta"
+              title="Conta"
+              description="Dados pessoais usados em simulados, correções e ranking."
             >
-              Conhecer o PRO
-            </a>
-          )}
-        </div>
-      </PremiumCard>
-
-       {isOnboardingComplete && onboarding && (
-        <>
-          <SectionHeader
-            title="Seu perfil acadêmico"
-            action={
-              editingAcademic ? null :
-              onboardingEditLocked ? (
-                <span className="inline-flex items-center gap-1.5 text-body-sm text-warning font-semibold">
-                  <Edit3 className="h-3.5 w-3.5" />
-                  Edição bloqueada em janela ativa
-                </span>
-              ) : (
-                <button
-                  onClick={() => setEditingAcademic(true)}
-                  className="inline-flex items-center gap-1.5 text-body-sm text-primary hover:text-wine-hover transition-colors font-semibold"
-                >
-                  <Edit3 className="h-3.5 w-3.5" />
-                  Editar
-                </button>
-              )
-            }
-          />
-          {onboardingEditLocked && !editingAcademic && (
-            <p className="text-caption text-warning mb-3">
-              Você poderá editar novamente entre janelas de simulado.
-              {onboardingNextEditableAt ? ` Liberação prevista: ${new Date(onboardingNextEditableAt).toLocaleString('pt-BR')}.` : ''}
-            </p>
-          )}
-
-          {editingAcademic ? (
-            <PremiumCard className="p-5 mb-8">
-              <AcademicProfileEditor
-                initialSpecialty={onboarding.specialty}
-                initialInstitutions={onboarding.targetInstitutions}
-                saving={savingAcademic}
-                onCancel={() => setEditingAcademic(false)}
-                onSave={async (data) => {
-                  setSavingAcademic(true);
-                  try {
-                    await saveOnboarding(data);
-                    toast({ title: 'Perfil acadêmico atualizado!' });
-                    setEditingAcademic(false);
-                  } catch (err) {
-                    logger.error('[ConfiguracoesPage] Error saving academic profile:', err);
-                    toast({
-                      title: 'Erro ao salvar',
-                      description: 'Tente novamente em instantes.',
-                      variant: 'destructive',
-                    });
-                  } finally {
-                    setSavingAcademic(false);
+              <SettingsCardGroup>
+                <SettingsRow
+                  icon={User}
+                  label="Nome completo"
+                  description="Exibido no ranking e nos resultados oficiais."
+                  value={
+                    <InlineNameEdit
+                      value={profile?.name || ""}
+                      onSave={handleSaveName}
+                      emptyLabel="Adicionar nome"
+                    />
                   }
-                }}
-              />
-            </PremiumCard>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <PremiumCard className="p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                    <GraduationCap className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-overline uppercase text-muted-foreground">Especialidade</p>
-                </div>
-                <p className="text-body font-semibold text-foreground">{onboarding.specialty}</p>
-              </PremiumCard>
-              <PremiumCard className="p-5" delay={0.06}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-overline uppercase text-muted-foreground">Instituições</p>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {onboarding.targetInstitutions.map(inst => (
-                    <span key={inst} className="px-2.5 py-1 rounded-lg bg-accent text-accent-foreground text-caption font-medium">
-                      {inst}
+                />
+                <SettingsRow
+                  icon={Mail}
+                  label="E-mail"
+                  description="Usado para login e comunicações importantes."
+                  value={
+                    <CopyableText
+                      value={authUser.email || ""}
+                      label="Copiar e-mail"
+                    />
+                  }
+                  action={
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success px-2 py-0.5 text-micro-label font-bold uppercase tracking-wider ring-1 ring-success/20">
+                      <Check className="h-2.5 w-2.5" aria-hidden="true" />
+                      Verificado
                     </span>
-                  ))}
-                </div>
-              </PremiumCard>
-            </div>
+                  }
+                />
+                {memberSinceLabel && (
+                  <SettingsRow
+                    icon={Calendar}
+                    label="Membro desde"
+                    value={
+                      <span className="capitalize text-muted-foreground">
+                        {memberSinceLabel}
+                      </span>
+                    }
+                    divider={false}
+                  />
+                )}
+              </SettingsCardGroup>
+            </SettingsSection>
           )}
-        </>
-      )}
+
+          {/* === PLANO === */}
+          <SettingsSection
+            id="plano"
+            title="Plano & benefícios"
+            description={
+              segment === "pro"
+                ? "Você tem acesso completo à plataforma ENAMED."
+                : "Veja o que você tem e o que pode desbloquear com o PRO."
+            }
+            badge={
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro-label font-bold uppercase tracking-wider ring-1",
+                  segment === "pro"
+                    ? "bg-primary/10 text-primary ring-primary/20"
+                    : "bg-muted text-muted-foreground ring-border",
+                )}
+              >
+                {SEGMENT_LABELS[segment]}
+              </span>
+            }
+          >
+            <PlanBillboard segment={segment} />
+          </SettingsSection>
+
+          {/* === PERFIL ACADÊMICO === */}
+          {isOnboardingComplete && onboarding && (
+            <SettingsSection
+              id="perfil-academico"
+              title="Perfil acadêmico"
+              description="Direciona o ranking comparativo e os insights de desempenho."
+              action={
+                !editingAcademic && !onboardingEditLocked ? (
+                  <button
+                    onClick={() => setEditingAcademic(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-body-sm font-semibold text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Editar
+                  </button>
+                ) : undefined
+              }
+              badge={
+                onboardingEditLocked && !editingAcademic ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning px-2 py-0.5 text-micro-label font-bold uppercase tracking-wider ring-1 ring-warning/20">
+                    <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+                    Bloqueado
+                  </span>
+                ) : null
+              }
+            >
+              {onboardingEditLocked && !editingAcademic && (
+                <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/5 px-4 py-3 text-body-sm text-foreground">
+                  <AlertTriangle
+                    className="mt-0.5 h-4 w-4 text-warning shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="font-semibold">Edição bloqueada durante janela ativa</p>
+                    <p className="text-muted-foreground mt-0.5">
+                      Preservamos seu perfil enquanto um simulado oficial está em
+                      andamento.{" "}
+                      {nextEditableFormatted && (
+                        <>
+                          Você poderá editar novamente a partir de{" "}
+                          <span className="font-semibold text-foreground">
+                            {nextEditableFormatted}
+                          </span>
+                          .
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {editingAcademic ? (
+                <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-6 shadow-[0_1px_2px_rgba(20,20,30,0.03),0_8px_24px_-12px_rgba(20,20,30,0.06)]">
+                  <AcademicProfileEditor
+                    initialSpecialty={onboarding.specialty}
+                    initialInstitutions={onboarding.targetInstitutions}
+                    saving={savingAcademic}
+                    onCancel={() => setEditingAcademic(false)}
+                    onSave={async (data) => {
+                      setSavingAcademic(true);
+                      try {
+                        await saveOnboarding(data);
+                        toast({ title: "Perfil acadêmico atualizado!" });
+                        setEditingAcademic(false);
+                      } catch (err) {
+                        logger.error(
+                          "[ConfiguracoesPage] Error saving academic profile:",
+                          err,
+                        );
+                        toast({
+                          title: "Erro ao salvar",
+                          description: "Tente novamente em instantes.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setSavingAcademic(false);
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Especialidade */}
+                  <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-[0_1px_2px_rgba(20,20,30,0.03),0_8px_24px_-12px_rgba(20,20,30,0.06)]">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary"
+                      >
+                        <GraduationCap className="h-4 w-4" />
+                      </span>
+                      <p className="text-overline uppercase text-muted-foreground font-bold tracking-wider">
+                        Especialidade
+                      </p>
+                    </div>
+                    <p className="text-heading-3 text-foreground leading-snug">
+                      {onboarding.specialty}
+                    </p>
+                    <p className="mt-1 text-caption text-muted-foreground">
+                      Define sua trilha recomendada e relatórios por área.
+                    </p>
+                  </div>
+
+                  {/* Instituições */}
+                  <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-[0_1px_2px_rgba(20,20,30,0.03),0_8px_24px_-12px_rgba(20,20,30,0.06)]">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary"
+                        >
+                          <Building2 className="h-4 w-4" />
+                        </span>
+                        <p className="text-overline uppercase text-muted-foreground font-bold tracking-wider">
+                          Instituições alvo
+                        </p>
+                      </div>
+                      <span className="text-caption text-muted-foreground tabular-nums">
+                        {onboarding.targetInstitutions.length}{" "}
+                        {onboarding.targetInstitutions.length === 1
+                          ? "selecionada"
+                          : "selecionadas"}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {onboarding.targetInstitutions.length > 0 ? (
+                        onboarding.targetInstitutions.map((inst) => (
+                          <InstitutionChip key={inst} name={inst} />
+                        ))
+                      ) : (
+                        <p className="text-body-sm text-muted-foreground italic">
+                          Nenhuma instituição selecionada.
+                        </p>
+                      )}
+                    </div>
+                    <p className="mt-3 text-caption text-muted-foreground">
+                      Comparamos seu desempenho com outros candidatos dessas
+                      instituições.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </SettingsSection>
+          )}
+
+          {/* === PREFERÊNCIAS === */}
+          <SettingsSection
+            id="preferencias"
+            title="Preferências"
+            description="Personalize a experiência para combinar com seu ritmo de estudo."
+          >
+            <PreferencesSection />
+          </SettingsSection>
+
+          {/* === SUPORTE === */}
+          <SettingsSection
+            id="suporte"
+            title="Ajuda & suporte"
+            description="Está com dúvida? Nosso time médico-acadêmico te responde."
+          >
+            <SettingsCardGroup>
+              {HELP_LINKS.map((link, idx) => {
+                const Icon = link.icon;
+                return (
+                  <SettingsRow
+                    key={link.href}
+                    icon={Icon}
+                    label={link.label}
+                    description={link.description}
+                    divider={idx < HELP_LINKS.length - 1}
+                    action={
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={link.label}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-body-sm font-semibold text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        Abrir
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                    }
+                  />
+                );
+              })}
+            </SettingsCardGroup>
+          </SettingsSection>
+
+          {/* === SESSÃO === */}
+          {authUser && (
+            <SettingsSection
+              id="sessao"
+              title="Sessão"
+              description="Encerre o acesso neste dispositivo."
+            >
+              <SettingsCardGroup>
+                <SettingsRow
+                  icon={LogOut}
+                  tone="danger"
+                  label="Sair da conta"
+                  description="Você precisará fazer login novamente para voltar."
+                  divider={false}
+                  action={
+                    <LogoutConfirm onConfirm={signOut}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-background px-3 py-2 text-body-sm font-semibold text-destructive hover:bg-destructive/10 hover:border-destructive/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+                      >
+                        <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+                        Sair
+                      </button>
+                    </LogoutConfirm>
+                  }
+                />
+              </SettingsCardGroup>
+            </SettingsSection>
+          )}
+        </motion.div>
+      </div>
     </PageTransition>
   );
 }
