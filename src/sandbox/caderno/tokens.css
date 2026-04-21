@@ -1,0 +1,66 @@
+/* src/sandbox/caderno/tokens.css */
+.caderno-sandbox {
+  /* Brand */
+  --wine:       #a03050;
+  --wine-mid:   #7c2d44;
+  --wine-dark:  #4a1628;
+  --wine-glow:  rgba(160, 48, 80, 0.22);
+
+  /* Dark surfaces */
+  --ink:        #0f0a0d;
+  --ink-2:      #1a1018;
+  --ink-3:      #261720;
+
+  /* Light surfaces */
+  --surface:    #ffffff;
+  --s2:         #f8f9fb;
+  --s3:         #f1f3f6;
+
+  /* Borders */
+  --border:     #e5e7eb;
+  --border-strong: #d1d5db;
+
+  /* Text */
+  --t1: #111827;
+  --t2: #374151;
+  --t3: #6b7280;
+  --t4: #9ca3af;
+
+  /* Status */
+  --success:    #10b981;
+  --warn:       #f59e0b;
+
+  /* Error type colors */
+  --lacuna-base:  #f43f5e;
+  --lacuna-bg:    #fff1f2;
+  --lacuna-border:#fecdd3;
+  --lacuna-text:  #be123c;
+
+  --memoria-base:  #8b5cf6;
+  --memoria-bg:    #f5f3ff;
+  --memoria-border:#ddd6fe;
+  --memoria-text:  #6d28d9;
+
+  --diferencial-base:  #3b82f6;
+  --diferencial-bg:    #eff6ff;
+  --diferencial-border:#bfdbfe;
+  --diferencial-text:  #1d4ed8;
+
+  --atencao-base:  #f59e0b;
+  --atencao-bg:    #fffbeb;
+  --atencao-border:#fde68a;
+  --atencao-text:  #854d0e;
+
+  --chute-base:  #eab308;
+  --chute-bg:    #fefce8;
+  --chute-border:#fde047;
+  --chute-text:  #854d0e;
+
+  /* Radii */
+  --radius-sm:  8px;
+  --radius-md:  11px;
+  --radius-lg:  14px;
+  --radius-xl:  18px;
+  --radius-2xl: 20px;
+  --radius-pill: 99px;
+}

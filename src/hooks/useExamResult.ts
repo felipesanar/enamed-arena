@@ -3,7 +3,7 @@
  * Used by ResultadoPage, CorrecaoPage, DesempenhoPage.
  * This hook only trusts server-side persisted data.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
 import {
   simuladosApi,
@@ -49,21 +49,33 @@ export function useExamResult(simuladoId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Counter used to ignore out-of-order responses when simuladoId/user change
+  // during an inflight fetch.
+  const reqIdRef = useRef(0);
+
   const fetchData = useCallback(async () => {
     if (!simuladoId || !user) {
+      setAttempt(null);
+      setExamState(null);
+      setAttemptId(null);
       setAttemptQuestionResults({});
+      setError(null);
       setLoading(false);
       return;
     }
 
+    const reqId = ++reqIdRef.current;
     setLoading(true);
+    setError(null);
+
     try {
       const config = await simuladosApi.getSimulado(simuladoId);
+      if (reqId !== reqIdRef.current) return;
       if (!config) {
         setAttempt(null);
         setExamState(null);
+        setAttemptId(null);
         setAttemptQuestionResults({});
-        setLoading(false);
         return;
       }
 
@@ -71,31 +83,42 @@ export function useExamResult(simuladoId: string | undefined) {
         simuladosApi.getAttempt(config.id, user.id, 'online'),
         simuladosApi.getAttempt(config.id, user.id, 'offline'),
       ]);
-      const attempt = pickMostRelevantAttempt(onlineAttempt, offlineAttempt) ?? null;
-      if (!attempt) {
+      if (reqId !== reqIdRef.current) return;
+
+      const chosen = pickMostRelevantAttempt(onlineAttempt, offlineAttempt) ?? null;
+      if (!chosen) {
         setAttempt(null);
         setExamState(null);
+        setAttemptId(null);
         setAttemptQuestionResults({});
-        setLoading(false);
         return;
       }
 
-      setAttempt(attempt);
-      setAttemptId(attempt.id);
-      const answerRows = await simuladosApi.getAnswers(attempt.id);
-      const questionResults = await simuladosApi.getAttemptQuestionResults(attempt.id);
+      const [answerRows, questionResults] = await Promise.all([
+        simuladosApi.getAnswers(chosen.id),
+        simuladosApi.getAttemptQuestionResults(chosen.id),
+      ]);
+      if (reqId !== reqIdRef.current) return;
+
       const questionResultsMap = questionResults.reduce<Record<string, AttemptQuestionResultRow>>((acc, row) => {
         acc[row.question_id] = row;
         return acc;
       }, {});
-      setAttemptQuestionResults(questionResultsMap);
 
-      setExamState(answersToExamState(attempt, answerRows));
+      setAttempt(chosen);
+      setAttemptId(chosen.id);
+      setAttemptQuestionResults(questionResultsMap);
+      setExamState(answersToExamState(chosen, answerRows));
     } catch (err: unknown) {
+      if (reqId !== reqIdRef.current) return;
       logger.error('[useExamResult] Error:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar resultado');
+      // Do NOT clear previously-loaded data; the UI may prefer to show stale
+      // data with a non-blocking error banner. Consumers can choose via `error`.
     } finally {
-      setLoading(false);
+      if (reqId === reqIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [simuladoId, user]);
 

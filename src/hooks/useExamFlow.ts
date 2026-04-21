@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
@@ -19,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { simuladosApi } from '@/services/simuladosApi';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UseExamFlowReturn {
   // Data
@@ -83,6 +85,7 @@ const emptySummary = {
 export function useExamFlow(): UseExamFlowReturn {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isOnboardingComplete, profile } = useUser();
 
   const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
@@ -203,44 +206,63 @@ export function useExamFlow(): UseExamFlowReturn {
     setIsWithinWindow(true);
   }, [simulado?.id]);
 
-  const focusControl = useFocusControl({
-    onTabExit: () => {
-      storage.registerTabExit();
-      if (state && simulado) {
-        const timeRemainingS = state.effectiveDeadline
-          ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000))
-          : 0;
-        trackEvent('exam_integrity_event', {
-          simulado_id: simulado.id,
-          attempt_id: storage.attemptId.current ?? '',
-          event_type: 'tab_exit',
-          count_so_far: (state.tabExitCount ?? 0) + 1,
-          time_remaining_seconds: timeRemainingS,
-        });
-      }
-    },
-    onTabReturn: () => {},
-    onFullscreenExit: () => {
-      storage.registerFullscreenExit();
-      setState(prev => prev ? { ...prev, fullscreenExitCount: prev.fullscreenExitCount + 1 } : prev);
-      if (state && simulado) {
-        const timeRemainingS = state.effectiveDeadline
-          ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000))
-          : 0;
-        trackEvent('exam_integrity_event', {
-          simulado_id: simulado.id,
-          attempt_id: storage.attemptId.current ?? '',
-          event_type: 'fullscreen_exit',
-          count_so_far: (state.fullscreenExitCount ?? 0) + 1,
-          time_remaining_seconds: timeRemainingS,
-        });
-      }
-      toast({
-        title: 'Você saiu da tela cheia',
-        description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
-        variant: 'destructive',
+  // Stable callback pattern: the focus/fullscreen handlers read from refs
+  // that we keep fresh every render. This prevents useFocusControl from
+  // re-registering window listeners every time `state` or `simulado` changes
+  // (i.e. on every answered question).
+  const stateRef = useRef(state);
+  const simuladoRef = useRef(simulado);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => { simuladoRef.current = simulado; }, [simulado]);
+
+  const onTabExit = useCallback(() => {
+    storage.registerTabExit();
+    const s = stateRef.current;
+    const sim = simuladoRef.current;
+    if (s && sim) {
+      const timeRemainingS = s.effectiveDeadline
+        ? Math.max(0, Math.round((new Date(s.effectiveDeadline).getTime() - Date.now()) / 1000))
+        : 0;
+      trackEvent('exam_integrity_event', {
+        simulado_id: sim.id,
+        attempt_id: storage.attemptId.current ?? '',
+        event_type: 'tab_exit',
+        count_so_far: (s.tabExitCount ?? 0) + 1,
+        time_remaining_seconds: timeRemainingS,
       });
-    },
+    }
+  }, [storage]);
+
+  const onTabReturn = useCallback(() => {}, []);
+
+  const onFullscreenExit = useCallback(() => {
+    storage.registerFullscreenExit();
+    setState(prev => prev ? { ...prev, fullscreenExitCount: prev.fullscreenExitCount + 1 } : prev);
+    const s = stateRef.current;
+    const sim = simuladoRef.current;
+    if (s && sim) {
+      const timeRemainingS = s.effectiveDeadline
+        ? Math.max(0, Math.round((new Date(s.effectiveDeadline).getTime() - Date.now()) / 1000))
+        : 0;
+      trackEvent('exam_integrity_event', {
+        simulado_id: sim.id,
+        attempt_id: storage.attemptId.current ?? '',
+        event_type: 'fullscreen_exit',
+        count_so_far: (s.fullscreenExitCount ?? 0) + 1,
+        time_remaining_seconds: timeRemainingS,
+      });
+    }
+    toast({
+      title: 'Você saiu da tela cheia',
+      description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
+      variant: 'destructive',
+    });
+  }, [storage]);
+
+  const focusControl = useFocusControl({
+    onTabExit,
+    onTabReturn,
+    onFullscreenExit,
   });
 
   const finalize = useCallback(async (isAutoSubmit = false) => {
@@ -301,6 +323,13 @@ export function useExamFlow(): UseExamFlowReturn {
       });
       setShowSubmitModal(false);
       toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
+
+      // Invalidate caches so the user sees fresh data on next screen
+      // (ResultadoPage, CorrecaoPage, SimuladosPage list, performance summary).
+      queryClient.invalidateQueries({ queryKey: ['simulado', simulado.id] });
+      queryClient.invalidateQueries({ queryKey: ['simulados'] });
+      queryClient.invalidateQueries({ queryKey: ['user-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['user-attempts'] });
     } catch (err) {
       trackEvent('exam_submit_failed', {
         simulado_id: simulado.id,
@@ -313,7 +342,7 @@ export function useExamFlow(): UseExamFlowReturn {
     } finally {
       setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, profile?.id]);
+  }, [state, simulado, storage, questionIds.length, profile?.id, queryClient]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     setNotificationSaving(true);
@@ -368,19 +397,40 @@ export function useExamFlow(): UseExamFlowReturn {
     paused: state?.status !== 'in_progress',
   });
 
+  // Keep the JWT access_token fresh so beforeunload can use it (it fires
+  // synchronously — we can't await getSession() at that moment).
+  const accessTokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) accessTokenRef.current = data.session?.access_token ?? null;
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      accessTokenRef.current = session?.access_token ?? null;
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasFinalized.current || state?.status !== 'in_progress') return;
+      if (hasFinalized.current || stateRef.current?.status !== 'in_progress') return;
       storage.flushPendingState();
 
-      // sendBeacon: fire-and-forget sync to server as last resort
+      // Fire-and-forget sync as last resort. Uses the user's access_token so
+      // RLS policies see auth.uid() correctly (anon key would be rejected
+      // or associated with the anon role, losing the write).
       const aid = storage.attemptId.current;
-      if (aid && state) {
+      const currentState = stateRef.current;
+      const accessToken = accessTokenRef.current;
+      if (aid && currentState && accessToken) {
         try {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
           const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
           if (supabaseUrl && supabaseKey) {
-            const rows = Object.entries(state.answers).map(([questionId, ans]) => ({
+            const rows = Object.entries(currentState.answers).map(([questionId, ans]) => ({
               attempt_id: aid,
               question_id: questionId,
               selected_option_id: ans.selectedOption,
@@ -391,14 +441,14 @@ export function useExamFlow(): UseExamFlowReturn {
             }));
             if (rows.length > 0) {
               const url = `${supabaseUrl}/rest/v1/answers?on_conflict=attempt_id,question_id`;
-              // Use fetch+keepalive instead of sendBeacon so we can set headers
-              // (sendBeacon appends the apikey to the URL, exposing it in server logs)
+              // fetch+keepalive so we can set Authorization with the user's JWT
+              // (sendBeacon cannot set custom headers).
               fetch(url, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'apikey': supabaseKey,
-                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Authorization': `Bearer ${accessToken}`,
                   'Prefer': 'resolution=merge-duplicates',
                 },
                 body: JSON.stringify(rows),
@@ -416,7 +466,7 @@ export function useExamFlow(): UseExamFlowReturn {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [state?.status, state, storage]);
+  }, [storage]);
 
   const currentIndex = state?.currentQuestionIndex ?? 0;
   const currentQuestion = questions[currentIndex];

@@ -1348,6 +1348,8 @@ export type Database = {
         | "did_not_remember"
         | "did_not_understand"
         | "guessed_correctly"
+        | "reading_error"
+        | "confused_alternatives"
       onboarding_status: "pending" | "completed"
       simulado_status: "draft" | "published" | "archived" | "test"
       user_segment: "guest" | "standard" | "pro"
@@ -1496,6 +1498,8 @@ export const Constants = {
         "did_not_remember",
         "did_not_understand",
         "guessed_correctly",
+        "reading_error",
+        "confused_alternatives",
       ],
       onboarding_status: ["pending", "completed"],
       simulado_status: ["draft", "published", "archived", "test"],

@@ -3,7 +3,7 @@
  * Supports 1-5 for alternatives (A-E), arrows, F for review, H for high-confidence, Esc for finalize.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 type KeyAction = () => void;
 
@@ -18,31 +18,45 @@ interface UseKeyboardShortcutsOptions {
 
 export function useKeyboardShortcuts(
   shortcuts: KeyboardShortcuts,
-  options: UseKeyboardShortcutsOptions = {}
+  options: UseKeyboardShortcutsOptions = {},
 ) {
   const { enabled = true, preventInInputs = true } = options;
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!enabled) return;
-
-    if (preventInInputs) {
-      const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-    }
-
-    const action = shortcuts[event.key];
-    if (action) {
-      event.preventDefault();
-      action();
-    }
-  }, [enabled, preventInInputs, shortcuts]);
+  // Keep the latest shortcuts map in a ref so the keydown listener can read
+  // fresh values without re-registering. This avoids add/removeEventListener
+  // churn every time the parent rebuilds the shortcuts object (e.g. on every
+  // question change during an exam).
+  const shortcutsRef = useRef(shortcuts);
+  useEffect(() => {
+    shortcutsRef.current = shortcuts;
+  }, [shortcuts]);
 
   useEffect(() => {
+    if (!enabled) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (preventInInputs) {
+        const target = event.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+      }
+
+      const action = shortcutsRef.current[event.key];
+      if (action) {
+        event.preventDefault();
+        action();
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, [enabled, preventInInputs]);
 }
 
 export const KEY_TO_OPTION_INDEX: Record<string, number> = {

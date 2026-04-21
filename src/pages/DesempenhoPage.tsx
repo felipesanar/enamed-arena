@@ -41,8 +41,9 @@ export default function DesempenhoPage() {
     }
   }, [simuladosWithResults, selectedSimuladoId]);
 
-  const { questions, loading: loadingDetail } = useSimuladoDetail(selectedSimuladoId || undefined);
-  const { examState, attemptQuestionResults, loading: loadingExam } = useExamResult(selectedSimuladoId || undefined);
+  const { questions, loading: loadingDetail, error: errorDetail, refetch: refetchDetail } = useSimuladoDetail(selectedSimuladoId || undefined);
+  const { examState, attemptQuestionResults, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(selectedSimuladoId || undefined);
+  const loadError = errorDetail ?? errorExam;
 
   const performanceQuestions = useMemo(
     () => questions.map((question) => ({
@@ -74,6 +75,25 @@ export default function DesempenhoPage() {
           <SkeletonCard className="h-[280px]" />
         </div>
         <SkeletonCard className="h-[160px]" />
+      </div>
+    );
+  }
+
+  if (loadError && !breakdown) {
+    return (
+      <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8">
+        <PageHeader
+          title="Desempenho"
+          subtitle="Análise detalhada do seu desempenho por especialidade e tema."
+          subtitlePlacement="inline-end"
+          badge="ENAMED 2026"
+        />
+        <EmptyState
+          variant="error"
+          title="Não foi possível carregar o desempenho"
+          description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
+          onRetry={() => { refetchDetail?.(); refetchExam(); }}
+        />
       </div>
     );
   }

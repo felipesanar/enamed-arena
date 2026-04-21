@@ -3,11 +3,24 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const NOVU_EMAIL_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/novu-email`;
-const DEFAULT_RESET_URL = "https://enamed-arena.lovable.app/reset-password";
+// Production default. Override via PASSWORD_RESET_DEFAULT_URL env var for
+// deploys that should point users elsewhere (e.g. simulados.sanar.com.br).
+const DEFAULT_RESET_URL =
+  Deno.env.get("PASSWORD_RESET_DEFAULT_URL")
+  ?? "https://simulados.sanar.com.br/reset-password";
 
-const DIRECT_HOSTS = new Set([
+// Optional comma-separated allowlist for redirect hostnames.
+// Example: PASSWORD_RESET_ALLOWED_HOSTS="simulados.sanar.com.br,app.sanaflix.com"
+const EXTRA_HOSTS = (Deno.env.get("PASSWORD_RESET_ALLOWED_HOSTS") ?? "")
+  .split(",")
+  .map((h) => h.trim().toLowerCase())
+  .filter(Boolean);
+
+const DIRECT_HOSTS = new Set<string>([
   "enamed-arena.lovable.app",
   "preview--enamed-arena.lovable.app",
+  "simulados.sanar.com.br",
+  ...EXTRA_HOSTS,
 ]);
 
 function isAllowedPreviewHost(hostname: string) {

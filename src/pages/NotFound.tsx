@@ -2,13 +2,14 @@ import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 const NotFound = () => {
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    console.error("[NotFound] 404 — Rota não encontrada:", location.pathname);
+    logger.warn("[NotFound] 404 — Rota não encontrada:", location.pathname);
   }, [location.pathname]);
 
   return (

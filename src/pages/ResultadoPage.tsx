@@ -28,10 +28,15 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const segment = profile?.segment ?? 'guest';
   const prefersReducedMotion = useReducedMotion();
 
-  const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { examState, attempt, loading: loadingExam } = useExamResult(id);
+  const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
+  const { examState, attempt, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(id);
 
   const loading = loadingSim || loadingExam;
+  const loadError = errorSim ?? errorExam;
+  const retry = () => {
+    refetchSim?.();
+    refetchExam();
+  };
 
   const resultTracked = useRef(false);
   useEffect(() => {
@@ -89,6 +94,22 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
           <SkeletonCard />
         </div>
+      </>
+    );
+  }
+
+  // Fetch failure: show retryable error instead of the "no data" empty state.
+  if (loadError && !simulado && !examState) {
+    return (
+      <>
+        <EmptyState
+          variant="error"
+          title="Não foi possível carregar o resultado"
+          description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
+          onRetry={retry}
+          backHref="/simulados"
+          backLabel="Voltar ao calendário"
+        />
       </>
     );
   }

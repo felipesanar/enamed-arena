@@ -34,6 +34,13 @@ export const adminApi = {
       supabase.from('attempts').select('id', { count: 'exact' }),
     ]);
 
+    // Surface DB errors instead of silently returning zeros. Any partial
+    // failure makes the whole dashboard misleading, so we throw the first
+    // one and let the caller (useQuery) handle retry/UI feedback.
+    if (simulados.error) throw simulados.error;
+    if (profiles.error) throw profiles.error;
+    if (attempts.error) throw attempts.error;
+
     const now = new Date().toISOString();
     const allSimulados = simulados.data ?? [];
     const active = allSimulados.filter(s => s.execution_window_start <= now && s.execution_window_end >= now);

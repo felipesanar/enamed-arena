@@ -35,28 +35,30 @@ import {
 interface UseRankingReturn {
   // Loading states
   loading: boolean;
-  
+  /** Human-readable error message (null = no error). Consumers should surface it. */
+  error: string | null;
+
   // Simulado selection
   simuladosWithResults: Array<{ id: string; title: string; sequence_number: number }>;
   selectedSimuladoId: string | null;
   setSelectedSimuladoId: (id: string) => void;
-  
+
   // Ranking data
   allParticipants: RankingParticipant[];
   filteredParticipants: RankingParticipant[];
   currentUser: RankingParticipant | undefined;
   stats: RankingStats;
-  
+
   // Filters
   rankingComparison: RankingComparisonSelection;
   setRankingComparison: Dispatch<SetStateAction<RankingComparisonSelection>>;
   segmentFilter: SegmentFilter;
   setSegmentFilter: (f: SegmentFilter) => void;
-  
+
   // User context
   userSpecialty: string;
   userInstitutions: string[];
-  
+
   // Actions
   refetch: () => void;
 }
@@ -66,6 +68,7 @@ export function useRanking(): UseRankingReturn {
   const { onboarding } = useUser();
   
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [simuladosWithResults, setSimuladosWithResults] = useState<
     Array<{ id: string; title: string; sequence_number: number }>
   >([]);
@@ -111,7 +114,8 @@ export function useRanking(): UseRankingReturn {
       try {
         const sims = await fetchSimuladosWithResults();
         if (cancelled) return;
-        
+
+        setError(null);
         setSimuladosWithResults(sims);
         if (sims.length > 0 && !selectedSimuladoId) {
           setSelectedSimuladoId(sims[0].id);
@@ -119,8 +123,11 @@ export function useRanking(): UseRankingReturn {
           setLoading(false);
         }
       } catch (err) {
-        console.error('[useRanking] Error loading simulados:', err);
-        if (!cancelled) setLoading(false);
+        logger.error('[useRanking] Error loading simulados:', err);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Não foi possível carregar os simulados do ranking.');
+          setLoading(false);
+        }
       }
     }
     
@@ -136,12 +143,17 @@ export function useRanking(): UseRankingReturn {
     
     async function loadRanking() {
       setLoading(true);
+      setError(null);
       try {
         const data = await fetchRankingForSimulado(selectedSimuladoId!);
         if (cancelled) return;
         setRawRanking(data);
       } catch (err) {
-        console.error('[useRanking] Error loading ranking:', err);
+        logger.error('[useRanking] Error loading ranking:', err);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Não foi possível carregar o ranking.');
+          setRawRanking([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -185,15 +197,22 @@ export function useRanking(): UseRankingReturn {
     if (selectedSimuladoId) {
       setRawRanking([]);
       setLoading(true);
+      setError(null);
       fetchRankingForSimulado(selectedSimuladoId)
-        .then(setRawRanking)
-        .catch(console.error)
+        .then((data) => {
+          setRawRanking(data);
+        })
+        .catch((err) => {
+          logger.error('[useRanking] Refetch error:', err);
+          setError(err instanceof Error ? err.message : 'Não foi possível carregar o ranking.');
+        })
         .finally(() => setLoading(false));
     }
   }, [selectedSimuladoId]);
 
   return {
     loading,
+    error,
     simuladosWithResults,
     selectedSimuladoId,
     setSelectedSimuladoId,

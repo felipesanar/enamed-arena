@@ -114,7 +114,7 @@ export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; t
 
   if (error) {
     logger.error('[rankingApi] Error fetching released-result simulados:', error);
-    return [];
+    throw error;
   }
 
   return (data || []).map((row) => ({
@@ -281,7 +281,7 @@ export async function fetchCutoffScore(
 
   if (error) {
     logger.error('[rankingApi] Error fetching cutoff score:', error);
-    return null;
+    throw error;
   }
 
   const row = Array.isArray(data) ? data[0] : data;
@@ -304,7 +304,7 @@ export async function fetchAllCutoffScores(): Promise<CutoffScoreRow[]> {
 
   if (error) {
     logger.error('[rankingApi] Error fetching all cutoff scores:', error);
-    return [];
+    throw error;
   }
   return (data || []) as CutoffScoreRow[];
 }

@@ -35,8 +35,13 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   const segment = profile?.segment ?? 'guest';
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
 
-  const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { examState, attempt, attemptQuestionResults, loading: loadingExam } = useExamResult(id);
+  const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
+  const { examState, attempt, attemptQuestionResults, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(id);
+  const loadError = errorSim ?? errorExam;
+  const retryLoad = () => {
+    refetchSim?.();
+    refetchExam();
+  };
 
   const initialQuestionParam = Number(searchParams.get('q') || '1');
   const [currentIndex, setCurrentIndex] = useState(Math.max(0, initialQuestionParam - 1));
@@ -109,6 +114,21 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
 
   if (loading) {
     return <><div className="space-y-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div></>;
+  }
+
+  if (loadError && !simulado && !examState) {
+    return (
+      <>
+        <EmptyState
+          variant="error"
+          title="Não foi possível carregar a correção"
+          description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
+          onRetry={retryLoad}
+          backHref="/simulados"
+          backLabel="Voltar ao calendário"
+        />
+      </>
+    );
   }
 
   if (!simulado) {
@@ -379,9 +399,17 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
 
               {(question.explanation || question.explanationImageUrl) && (
                 <PremiumCard className="p-5 md:p-6 mb-4 border-primary/10 bg-primary/[0.02]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                    <h3 className="text-body font-bold text-primary">Comentário do Professor</h3>
+                  <div className="flex items-center justify-between mb-3 gap-3">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                      <h3 className="text-body font-bold text-primary">Comentário do Professor</h3>
+                    </div>
+                    {canUseNotebook && (
+                      <span className="text-caption text-muted-foreground/50 hidden sm:inline-flex items-center gap-1 shrink-0 select-none">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        Selecione um trecho para anotar
+                      </span>
+                    )}
                   </div>
                   {question.explanation && (
                     <div className="relative">

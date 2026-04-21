@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useCallback, useState, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface UseFocusControlProps {
   onTabExit: () => void;
@@ -42,7 +43,7 @@ export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit }: Us
     setIsFullscreenLost(!isFs);
 
     if (wasFs && !isFs && onFullscreenExit) {
-      console.log('[FocusControl] Fullscreen exit detected');
+      logger.log('[FocusControl] Fullscreen exit detected');
       onFullscreenExit();
     }
   }, [onFullscreenExit]);
@@ -52,7 +53,7 @@ export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit }: Us
       await document.documentElement.requestFullscreen();
       setIsFullscreenLost(false);
     } catch (e) {
-      console.error('[FocusControl] Fullscreen request failed:', e);
+      logger.error('[FocusControl] Fullscreen request failed:', e);
     }
   }, []);
 

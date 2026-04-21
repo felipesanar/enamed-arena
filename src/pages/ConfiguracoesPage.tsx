@@ -14,7 +14,7 @@ import {
   Shield, User, GraduationCap, Building2, Edit3, LogOut,
   Save, X, Camera,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 
 export default function ConfiguracoesPage() {
@@ -48,12 +48,16 @@ export default function ConfiguracoesPage() {
         .update({ full_name: editName.trim() })
         .eq('id', authUser.id);
       if (error) throw error;
-      toast.success('Nome atualizado com sucesso.');
+      toast({ title: 'Nome atualizado com sucesso.' });
       setEditing(false);
       refreshProfile?.();
     } catch (err) {
-      console.error('[ConfiguracoesPage] Error saving name:', err);
-      toast.error('Erro ao salvar. Tente novamente.');
+      logger.error('[ConfiguracoesPage] Error saving name:', err);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Tente novamente em instantes.',
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
     }
@@ -78,36 +82,49 @@ export default function ConfiguracoesPage() {
                 <div>
                   {editing ? (
                     <div className="flex items-center gap-2">
+                      <label htmlFor="profile-name-input" className="sr-only">
+                        Seu nome completo
+                      </label>
                       <input
+                        id="profile-name-input"
                         type="text"
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
+                        aria-label="Seu nome completo"
                         className="text-body font-semibold text-foreground bg-muted px-3 py-1.5 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
                         autoFocus
                       />
                       <button
+                        type="button"
                         onClick={handleSave}
                         disabled={saving || !editName.trim()}
+                        aria-label="Salvar nome"
+                        title="Salvar nome"
                         className="h-8 w-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors disabled:opacity-40"
                       >
-                        <Save className="h-3.5 w-3.5" />
+                        <Save className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => { setEditing(false); setEditName(profile?.name || ''); }}
+                        aria-label="Cancelar edição do nome"
+                        title="Cancelar edição"
                         className="h-8 w-8 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 flex items-center justify-center transition-colors"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <p className="text-body font-semibold text-foreground">{profile?.name || 'Sem nome'}</p>
                       <button
+                        type="button"
                         onClick={() => { setEditName(profile?.name || ''); setEditing(true); }}
-                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center transition-colors"
+                        aria-label="Editar nome"
                         title="Editar nome"
+                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center transition-colors"
                       >
-                        <Edit3 className="h-3 w-3 text-muted-foreground" />
+                        <Edit3 className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                       </button>
                     </div>
                   )}
@@ -195,11 +212,15 @@ export default function ConfiguracoesPage() {
                   setSavingAcademic(true);
                   try {
                     await saveOnboarding(data);
-                    toast.success('Perfil acadêmico atualizado!');
+                    toast({ title: 'Perfil acadêmico atualizado!' });
                     setEditingAcademic(false);
                   } catch (err) {
                     logger.error('[ConfiguracoesPage] Error saving academic profile:', err);
-                    toast.error('Erro ao salvar. Tente novamente.');
+                    toast({
+                      title: 'Erro ao salvar',
+                      description: 'Tente novamente em instantes.',
+                      variant: 'destructive',
+                    });
                   } finally {
                     setSavingAcademic(false);
                   }

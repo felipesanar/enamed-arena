@@ -16,6 +16,7 @@ import { RankingView } from '@/components/ranking/RankingView';
 export default function RankingPage() {
   const {
     loading,
+    error,
     simuladosWithResults,
     selectedSimuladoId,
     setSelectedSimuladoId,
@@ -28,12 +29,32 @@ export default function RankingPage() {
     setSegmentFilter,
     userSpecialty,
     userInstitutions,
+    refetch,
   } = useRanking();
 
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
 
   const allowedSegments = useMemo(() => getAllowedRankingSegmentFilters(segment), [segment]);
+
+  if (!loading && error && simuladosWithResults.length === 0) {
+    return (
+      <>
+        <PageHeader
+          title="Ranking"
+          subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
+          subtitlePlacement="inline-end"
+          badge="ENAMED 2026"
+        />
+        <EmptyState
+          variant="error"
+          title="Não foi possível carregar o ranking"
+          description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
+          onRetry={refetch}
+        />
+      </>
+    );
+  }
 
   if (!loading && simuladosWithResults.length === 0) {
     return (

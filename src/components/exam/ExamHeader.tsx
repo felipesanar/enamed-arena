@@ -48,8 +48,12 @@ export function ExamHeader({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                  <Keyboard className="h-4 w-4" />
+                <button
+                  type="button"
+                  aria-label="Ver atalhos de teclado"
+                  className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <Keyboard className="h-4 w-4" aria-hidden="true" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">

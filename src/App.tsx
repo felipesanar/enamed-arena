@@ -2,7 +2,6 @@ import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -32,6 +31,10 @@ const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ComparativoPage = lazy(() => import("./pages/ComparativoPage"));
 const CadernoErrosPage = lazy(() => import("./pages/CadernoErrosPage"));
 const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
+// Sandbox pages are only bundled in dev builds.
+const SandboxCadernoPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/SandboxCadernoPage"))
+  : null;
 
 // Page lazy imports — named exports
 const HomePagePremium = lazy(() =>
@@ -72,6 +75,17 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000,
+      // Avoid retrying on client errors (4xx) — those won't succeed on retry
+      // and just delay the error reaching the UI.
+      retry: (failureCount, error) => {
+        const status = (error as { status?: number })?.status
+          ?? Number((error as { code?: string })?.code);
+        if (typeof status === "number" && status >= 400 && status < 500) return false;
+        return failureCount < 2;
+      },
+    },
+    mutations: {
+      retry: false,
     },
   },
 });
@@ -95,7 +109,6 @@ const App = () => (
         <AuthProvider>
           <UserProvider>
             <Toaster />
-            <Sonner />
             <BrowserRouter>
             <Routes>
               {/* Public — own Suspense boundary */}
@@ -133,7 +146,7 @@ const App = () => (
               </Route>
 
               {/* Protected — DashboardLayout stays mounted, Suspense is inside DashboardOutlet */}
-              <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+              <Route element={<ProtectedRoute><ErrorBoundary fallbackTitle="Algo deu errado nesta seção"><DashboardLayout /></ErrorBoundary></ProtectedRoute>}>
                 <Route index element={<HomePagePremium />} />
                 <Route path="simulados" element={<SimuladosPage />} />
                 <Route path="simulados/:id/start" element={<SimuladoDetailPage />} />
@@ -149,6 +162,9 @@ const App = () => (
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />
               </Route>
               <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />
+              {SandboxCadernoPage ? (
+                <Route path="/sandbox/caderno" element={<Suspense fallback={<PageShell />}><SandboxCadernoPage /></Suspense>} />
+              ) : null}
               <Route path="*" element={<Suspense fallback={<PageShell />}><NotFound /></Suspense>} />
             </Routes>
             </BrowserRouter>
