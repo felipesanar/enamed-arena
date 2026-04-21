@@ -837,7 +837,7 @@ export function RankingView({
                       <p
                         className="font-bold uppercase mb-[7px]"
                         style={{
-                          fontSize: '0.56rem',
+                          fontSize: '0.65rem',
                           letterSpacing: '.09em',
                           color: t.kpiCutFailTag,
                         }}
@@ -846,13 +846,13 @@ export function RankingView({
                       </p>
                       <p
                         className="font-bold leading-snug mb-[4px]"
-                        style={{ fontSize: '0.95rem', color: t.kpiCutFailVal }}
+                        style={{ fontSize: '1.1rem', color: t.kpiCutFailVal }}
                       >
                         Ainda não passou
                       </p>
                       <p
                         className="leading-snug mb-[5px]"
-                        style={{ fontSize: '0.62rem', color: t.kpiCutFailSub }}
+                        style={{ fontSize: '0.72rem', color: t.kpiCutFailSub }}
                       >
                         Sua nota é{' '}
                         <strong style={{ color: t.kpiCutFailGap }}>
@@ -865,7 +865,7 @@ export function RankingView({
                       </p>
                       <p
                         className="leading-snug"
-                        style={{ fontSize: '0.6rem', color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontStyle: 'italic' }}
+                        style={{ fontSize: '0.7rem', color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontStyle: 'italic' }}
                       >
                         {cutoffComfortMessage(cutoff.cutoff_score_general - currentUser.score).body}
                       </p>
@@ -874,7 +874,7 @@ export function RankingView({
                       type="button"
                       onClick={() => setCutoffModalOpen(true)}
                       className="relative z-10 inline-flex items-center gap-[3px] mt-[7px]"
-                      style={{ fontSize: '0.58rem', color: t.kpiCutFailLink }}
+                      style={{ fontSize: '0.68rem', color: t.kpiCutFailLink }}
                     >
                       Ver todas as notas ↗
                     </button>
