@@ -1275,6 +1275,7 @@ export function RankingView({
                   </div>
                 )}
               </div>
+              )}
             </>
           )}
         </>
