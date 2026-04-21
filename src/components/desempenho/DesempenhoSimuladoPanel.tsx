@@ -385,7 +385,7 @@ function PerformanceHeroCard({
             Aproveitamento geral
           </p>
           <div className="mt-2 flex items-baseline gap-3">
-            <p className="text-[44px] font-extrabold leading-none tracking-[-0.035em] text-white tabular-nums sm:text-[52px] md:text-[56px]">
+            <p className="text-[36px] font-extrabold leading-none tracking-[-0.035em] text-white tabular-nums sm:text-[44px] md:text-[52px] lg:text-[56px]">
               {overall.totalCorrect}
               <span className="text-white/30">/</span>
               {overall.totalQuestions}
@@ -487,7 +487,7 @@ function MiniStat({
   return (
     <div
       className={cn(
-        'flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2 min-w-[120px]',
+        'flex min-w-0 flex-col items-start gap-0.5 rounded-xl border px-3 py-2',
         toneClasses,
       )}
     >

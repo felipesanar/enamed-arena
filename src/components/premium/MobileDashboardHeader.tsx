@@ -49,6 +49,13 @@ export function MobileDashboardHeader({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Sync the real header height with the global CSS var so sticky elements
+  // (ex.: SettingsNav chips) can align without overlap/gap.
+  useEffect(() => {
+    const h = isCompact ? 50 : 56;
+    document.documentElement.style.setProperty("--mobile-header-h", `${h}px`);
+  }, [isCompact]);
+
   return (
     <div
       className={cn(

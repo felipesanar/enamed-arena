@@ -615,7 +615,7 @@ export function RankingView({
                   className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
                   style={{
                     padding: '15px 13px 13px',
-                    minHeight: '110px',
+                    minHeight: 'clamp(96px, 26vw, 130px)',
                     background: perfState === 'good' ? t.kpiPerfGoodBg : t.kpiPerfBadBg,
                     border: perfState === 'good' ? t.kpiPerfGoodBorder : t.kpiPerfBadBorder,
                     boxShadow: perfState === 'good' ? t.kpiPerfGoodShadow : t.kpiPerfBadShadow,
@@ -668,7 +668,7 @@ export function RankingView({
                     className="rounded-[18px] relative overflow-hidden flex flex-col"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: '110px',
+                      minHeight: 'clamp(96px, 26vw, 130px)',
                       background: t.kpiEmptyBg,
                       border: t.kpiEmptyBorder,
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
@@ -729,7 +729,7 @@ export function RankingView({
                     className="rounded-[18px] flex items-center justify-center"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: '110px',
+                      minHeight: 'clamp(96px, 26vw, 130px)',
                       background: t.kpiEmptyBg,
                       border: t.kpiEmptyBorder,
                     }}
@@ -745,7 +745,7 @@ export function RankingView({
                     className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: '110px',
+                      minHeight: 'clamp(96px, 26vw, 130px)',
                       background: t.kpiCutPassBg,
                       border: t.kpiCutPassBorder,
                       boxShadow: t.kpiCutPassShadow,
@@ -815,7 +815,7 @@ export function RankingView({
                     className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: '110px',
+                      minHeight: 'clamp(96px, 26vw, 130px)',
                       background: t.kpiCutFailBg,
                       border: t.kpiCutFailBorder,
                       boxShadow: t.kpiCutFailShadow,
