@@ -336,18 +336,18 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                       <button
                         onClick={() => { setSelectedHighlight(null); setNotebookModal(true); }}
                         aria-label="Adicionar ao caderno de erros"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-secondary text-secondary-foreground hover:bg-muted border border-border/50"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-caption font-semibold transition-all bg-primary/10 text-primary border border-primary/30 shadow-sm hover:bg-primary/15 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
                       >
-                        <BookOpen className="h-3.5 w-3.5" />
+                        <BookOpen className="h-4 w-4" />
                         Adicionar ao caderno de erros
                       </button>
                     ) : (
                       <button
                         onClick={() => setUpsellOpen(true)}
                         aria-label="Adicionar ao caderno de erros"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-all bg-accent/50 border border-primary/10 text-muted-foreground hover:bg-accent"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-caption font-semibold transition-all bg-primary/5 border border-primary/25 text-foreground/80 hover:bg-primary/10 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
                       >
-                        <Lock className="h-3.5 w-3.5 text-primary" />
+                        <Lock className="h-4 w-4 text-primary" />
                         Adicionar ao caderno de erros
                       </button>
                     )}
