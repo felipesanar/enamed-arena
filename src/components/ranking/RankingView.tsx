@@ -677,7 +677,7 @@ export function RankingView({
                     <p
                       className="font-bold uppercase mb-[7px] relative z-10"
                       style={{
-                        fontSize: '0.56rem',
+                        fontSize: '0.65rem',
                         letterSpacing: '.09em',
                         color: t.kpiEmptyTag,
                       }}
@@ -685,19 +685,19 @@ export function RankingView({
                       Nota de corte
                     </p>
                     <div className="relative z-10 flex flex-col gap-[5px] flex-1 justify-center">
-                      <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>🎯</span>
+                      <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>🎯</span>
                       {cutoffState === 'no_profile' ? (
                         <>
                           <p
                             className="leading-snug"
-                            style={{ fontSize: '0.62rem', color: t.kpiEmptyText }}
+                            style={{ fontSize: '0.72rem', color: t.kpiEmptyText }}
                           >
                             Preencha sua especialidade e instituição para ver se você passaria.
                           </p>
                           <Link
                             to="/configuracoes"
                             className="font-semibold inline-flex items-center gap-[3px]"
-                            style={{ fontSize: '0.6rem', color: t.kpiEmptyCta }}
+                            style={{ fontSize: '0.7rem', color: t.kpiEmptyCta }}
                           >
                             Completar perfil →
                           </Link>
@@ -706,7 +706,7 @@ export function RankingView({
                         <>
                           <p
                             className="leading-snug"
-                            style={{ fontSize: '0.62rem', color: t.kpiEmptyText }}
+                            style={{ fontSize: '0.72rem', color: t.kpiEmptyText }}
                           >
                             Não encontramos nota de corte para sua combinação.
                           </p>
@@ -714,7 +714,7 @@ export function RankingView({
                             type="button"
                             onClick={() => setCutoffModalOpen(true)}
                             className="font-semibold inline-flex items-center gap-[3px] text-left"
-                            style={{ fontSize: '0.6rem', color: t.kpiEmptyCta }}
+                            style={{ fontSize: '0.7rem', color: t.kpiEmptyCta }}
                           >
                             Ver todas →
                           </button>
@@ -734,7 +734,7 @@ export function RankingView({
                       border: t.kpiEmptyBorder,
                     }}
                   >
-                    <p style={{ fontSize: '0.62rem', color: t.kpiEmptyText }}>
+                    <p style={{ fontSize: '0.72rem', color: t.kpiEmptyText }}>
                       Carregando...
                     </p>
                   </div>
