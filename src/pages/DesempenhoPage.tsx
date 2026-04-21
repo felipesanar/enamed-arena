@@ -62,26 +62,29 @@ export default function DesempenhoPage() {
 
   if (loading && !breakdown) {
     return (
-      <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8 space-y-3">
+      <PageTransition>
         <PageHeader
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
           subtitlePlacement="inline-end"
           badge="ENAMED 2026"
         />
-        <SkeletonCard className="h-[140px] rounded-[22px] bg-primary/[0.06]" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SkeletonCard className="h-[280px]" />
-          <SkeletonCard className="h-[280px]" />
+        <div className="space-y-4 md:space-y-5">
+          <SkeletonCard className="h-[180px] rounded-[22px] bg-primary/[0.06]" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <SkeletonCard className="h-[140px]" />
+            <SkeletonCard className="h-[140px]" />
+            <SkeletonCard className="h-[140px]" />
+          </div>
+          <SkeletonCard className="h-[200px]" />
         </div>
-        <SkeletonCard className="h-[160px]" />
-      </div>
+      </PageTransition>
     );
   }
 
   if (loadError && !breakdown) {
     return (
-      <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8">
+      <PageTransition>
         <PageHeader
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
@@ -94,13 +97,13 @@ export default function DesempenhoPage() {
           description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
           onRetry={() => { refetchDetail?.(); refetchExam(); }}
         />
-      </div>
+      </PageTransition>
     );
   }
 
   if (simuladosWithResults.length === 0 || !breakdown) {
     return (
-      <div className="px-4 md:px-8 py-6 md:py-8 pt-[calc(3.5rem+env(safe-area-inset-top,0px)+1.5rem)] md:pt-8">
+      <PageTransition>
         <PageHeader
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
@@ -112,20 +115,18 @@ export default function DesempenhoPage() {
           title="Sem dados de desempenho"
           description="Complete um simulado e aguarde a liberação do resultado para ver sua análise de desempenho."
         />
-      </div>
+      </PageTransition>
     );
   }
 
   return (
     <PageTransition>
-      <div className="px-4 md:px-8 pt-6 md:pt-8">
-        <PageHeader
-          title="Desempenho"
-          subtitle="Análise detalhada do seu desempenho por especialidade e tema."
-          subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
-        />
-      </div>
+      <PageHeader
+        title="Desempenho"
+        subtitle="Análise detalhada do seu desempenho por especialidade e tema."
+        subtitlePlacement="inline-end"
+        badge="ENAMED 2026"
+      />
       <DesempenhoSimuladoPanel
         simuladosWithResults={simuladosWithResults}
         selectedSimuladoId={selectedSimuladoId}
