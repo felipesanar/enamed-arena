@@ -341,6 +341,20 @@ export function RankingView({
   const lowConfidence = filteredParticipants.length > 0 && filteredParticipants.length < 30;
   const tableRows = buildTableRows(filteredParticipants, currentUser);
 
+  const hasActiveFilters =
+    rankingComparison.bySpecialty ||
+    rankingComparison.byInstitution ||
+    segmentFilter !== 'all';
+
+  const handleClearAllFilters = () => {
+    if (rankingComparison.bySpecialty || rankingComparison.byInstitution) {
+      applyComparisonUpdate(RANKING_COMPARISON_DEFAULT);
+    }
+    if (segmentFilter !== 'all') {
+      handleSegmentFilterChange('all');
+    }
+  };
+
   // ── Cutoff comfort messages (fail state, categorized by gap) ─────────────
 
   function cutoffComfortMessage(gap: number): { body: string } {
