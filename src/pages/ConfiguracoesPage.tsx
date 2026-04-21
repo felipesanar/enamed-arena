@@ -10,7 +10,6 @@ import {
   LogOut,
   LifeBuoy,
   MessageCircle,
-  HelpCircle,
   Lock,
   ExternalLink,
   Calendar,
