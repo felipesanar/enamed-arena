@@ -120,7 +120,7 @@ export function DesempenhoSimuladoPanel({
   };
 
   return (
-    <StaggerContainer className="space-y-5 md:space-y-6">
+    <StaggerContainer className="space-y-6 md:space-y-8">
       {/* Tabs de simulado (apenas quando > 1) */}
       {simuladosWithResults.length > 1 && (
         <StaggerItem>
