@@ -8,7 +8,6 @@ import {
   Building2,
   Edit3,
   LogOut,
-  SlidersHorizontal,
   LifeBuoy,
   MessageCircle,
   HelpCircle,
@@ -26,7 +25,6 @@ import { SettingsNav, type SettingsNavSection } from "@/components/settings/Sett
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsCardGroup, SettingsRow } from "@/components/settings/SettingsRow";
 import { PlanBillboard } from "@/components/settings/PlanBillboard";
-import { PreferencesSection } from "@/components/settings/PreferencesSection";
 import { LogoutConfirm } from "@/components/settings/LogoutConfirm";
 import { InlineNameEdit } from "@/components/settings/InlineNameEdit";
 import { CopyableText } from "@/components/settings/CopyableText";
@@ -48,12 +46,6 @@ const NAV_SECTIONS: SettingsNavSection[] = [
     label: "Perfil acadêmico",
     description: "Especialidade e instituições",
     icon: GraduationCap,
-  },
-  {
-    id: "preferencias",
-    label: "Preferências",
-    description: "Aparência",
-    icon: SlidersHorizontal,
   },
   { id: "suporte", label: "Ajuda & suporte", description: "Canais de contato", icon: LifeBuoy },
   { id: "sessao", label: "Sessão", description: "Encerrar acesso", icon: LogOut },
@@ -403,17 +395,6 @@ export default function ConfiguracoesPage() {
                 </div>
               )}
             </SettingsSection>
-          )}
-
-          {/* === PREFERÊNCIAS === */}
-          {activeSection === "preferencias" && (
-          <SettingsSection
-            id="preferencias"
-            title="Preferências"
-            description="Tema da interface."
-          >
-            <PreferencesSection />
-          </SettingsSection>
           )}
 
           {/* === SUPORTE === */}

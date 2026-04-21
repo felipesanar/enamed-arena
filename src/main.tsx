@@ -4,6 +4,9 @@ import "./index.css";
 import { registerAnalyticsHandler, setSuperProperties } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 
+// Force light mode globally — dark theme temporarily disabled.
+document.documentElement.classList.remove("dark");
+
 function getSessionId(): string {
   const key = "_ea_sid";
   let sid = sessionStorage.getItem(key);
