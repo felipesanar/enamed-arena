@@ -406,15 +406,18 @@ export default function ConfiguracoesPage() {
           )}
 
           {/* === PREFERÊNCIAS === */}
+          {activeSection === "preferencias" && (
           <SettingsSection
             id="preferencias"
             title="Preferências"
-            description="Personalize a experiência para combinar com seu ritmo de estudo."
+            description="Tema da interface."
           >
             <PreferencesSection />
           </SettingsSection>
+          )}
 
           {/* === SUPORTE === */}
+          {activeSection === "suporte" && (
           <SettingsSection
             id="suporte"
             title="Ajuda & suporte"
@@ -447,9 +450,10 @@ export default function ConfiguracoesPage() {
               })}
             </SettingsCardGroup>
           </SettingsSection>
+          )}
 
           {/* === SESSÃO === */}
-          {authUser && (
+          {activeSection === "sessao" && authUser && (
             <SettingsSection
               id="sessao"
               title="Sessão"
@@ -477,7 +481,9 @@ export default function ConfiguracoesPage() {
               </SettingsCardGroup>
             </SettingsSection>
           )}
-        </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </PageTransition>
   );
