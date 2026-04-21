@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Shield,
   User,
@@ -52,7 +52,7 @@ const NAV_SECTIONS: SettingsNavSection[] = [
   {
     id: "preferencias",
     label: "Preferências",
-    description: "Tema e notificações",
+    description: "Aparência",
     icon: SlidersHorizontal,
   },
   { id: "suporte", label: "Ajuda & suporte", description: "Canais de contato", icon: LifeBuoy },
@@ -90,6 +90,7 @@ export default function ConfiguracoesPage() {
 
   const [editingAcademic, setEditingAcademic] = useState(false);
   const [savingAcademic, setSavingAcademic] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("conta");
 
   const navSections = useMemo(
     () =>
@@ -98,6 +99,13 @@ export default function ConfiguracoesPage() {
       ),
     [isOnboardingComplete, onboarding],
   );
+
+  // Saneamento: se a aba ativa não existe mais (ex.: perfil-academico filtrado), volta para conta.
+  useEffect(() => {
+    if (!navSections.some((s) => s.id === activeSection)) {
+      setActiveSection("conta");
+    }
+  }, [navSections, activeSection]);
 
   const memberSinceLabel = useMemo(() => {
     const iso =
@@ -156,16 +164,23 @@ export default function ConfiguracoesPage() {
 
       {/* 2-col shell: sidebar + stack */}
       <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-6 lg:gap-10">
-        <SettingsNav sections={navSections} />
+        <SettingsNav
+          sections={navSections}
+          activeId={activeSection}
+          onSelect={setActiveSection}
+        />
 
-        <motion.div
-          initial={reduced ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.08 }}
-          className="space-y-10 md:space-y-12 min-w-0"
-        >
+        <div className="min-w-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={reduced ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduced ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
           {/* === CONTA === */}
-          {authUser && (
+          {activeSection === "conta" && authUser && (
             <SettingsSection
               id="conta"
               title="Conta"
@@ -195,29 +210,31 @@ export default function ConfiguracoesPage() {
                     />
                   }
                   action={
-                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success px-2 py-0.5 text-micro-label font-bold uppercase tracking-wider ring-1 ring-success/20">
-                      <Check className="h-2.5 w-2.5" aria-hidden="true" />
-                      Verificado
-                    </span>
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (authUser as any)?.email_confirmed_at ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success px-2 py-0.5 text-micro-label font-bold uppercase tracking-wider ring-1 ring-success/20">
+                        <Check className="h-2.5 w-2.5" aria-hidden="true" />
+                        Verificado
+                      </span>
+                    ) : null
                   }
                 />
-                {memberSinceLabel && (
-                  <SettingsRow
-                    icon={Calendar}
-                    label="Membro desde"
-                    value={
-                      <span className="capitalize text-muted-foreground">
-                        {memberSinceLabel}
-                      </span>
-                    }
-                    divider={false}
-                  />
-                )}
+                <SettingsRow
+                  icon={Calendar}
+                  label="Membro desde"
+                  value={
+                    <span className="capitalize text-muted-foreground">
+                      {memberSinceLabel ?? "—"}
+                    </span>
+                  }
+                  divider={false}
+                />
               </SettingsCardGroup>
             </SettingsSection>
           )}
 
           {/* === PLANO === */}
+          {activeSection === "plano" && (
           <SettingsSection
             id="plano"
             title="Plano & benefícios"
@@ -241,9 +258,10 @@ export default function ConfiguracoesPage() {
           >
             <PlanBillboard segment={segment} />
           </SettingsSection>
+          )}
 
           {/* === PERFIL ACADÊMICO === */}
-          {isOnboardingComplete && onboarding && (
+          {activeSection === "perfil-academico" && isOnboardingComplete && onboarding && (
             <SettingsSection
               id="perfil-academico"
               title="Perfil acadêmico"
@@ -388,15 +406,18 @@ export default function ConfiguracoesPage() {
           )}
 
           {/* === PREFERÊNCIAS === */}
+          {activeSection === "preferencias" && (
           <SettingsSection
             id="preferencias"
             title="Preferências"
-            description="Personalize a experiência para combinar com seu ritmo de estudo."
+            description="Tema da interface."
           >
             <PreferencesSection />
           </SettingsSection>
+          )}
 
           {/* === SUPORTE === */}
+          {activeSection === "suporte" && (
           <SettingsSection
             id="suporte"
             title="Ajuda & suporte"
@@ -429,9 +450,10 @@ export default function ConfiguracoesPage() {
               })}
             </SettingsCardGroup>
           </SettingsSection>
+          )}
 
           {/* === SESSÃO === */}
-          {authUser && (
+          {activeSection === "sessao" && authUser && (
             <SettingsSection
               id="sessao"
               title="Sessão"
@@ -459,7 +481,9 @@ export default function ConfiguracoesPage() {
               </SettingsCardGroup>
             </SettingsSection>
           )}
-        </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </PageTransition>
   );

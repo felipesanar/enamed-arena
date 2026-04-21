@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -13,48 +12,18 @@ export interface SettingsNavSection {
 
 interface SettingsNavProps {
   sections: SettingsNavSection[];
-  /** Offset em pixels para compensar a topbar ao usar scroll-spy. */
-  scrollOffset?: number;
+  /** ID da seção ativa (controlado). */
+  activeId: string;
+  /** Callback quando o usuário seleciona uma seção. */
+  onSelect: (id: string) => void;
 }
 
 /**
- * Navegação lateral sticky com scroll-spy. Em telas ≥ lg aparece como
- * coluna lateral; em mobile cai para chips horizontais rolagem-scroll.
+ * Navegação lateral controlada por abas. Em telas ≥ lg aparece como
+ * coluna lateral sticky; em mobile cai para chips horizontais sticky.
  */
-export function SettingsNav({ sections, scrollOffset = 96 }: SettingsNavProps) {
-  const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? "");
-
-  useEffect(() => {
-    const elements = sections
-      .map((s) => document.getElementById(s.id))
-      .filter((el): el is HTMLElement => Boolean(el));
-
-    if (elements.length === 0) return;
-
-    const onScroll = () => {
-      const y = window.scrollY + scrollOffset + 24;
-      let current = elements[0].id;
-      for (const el of elements) {
-        if (el.offsetTop <= y) {
-          current = el.id;
-        } else {
-          break;
-        }
-      }
-      setActiveId((prev) => (prev === current ? prev : current));
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [sections, scrollOffset]);
-
-  const handleJump = (id: string) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - scrollOffset;
-    window.scrollTo({ top, behavior: "smooth" });
-  };
+export function SettingsNav({ sections, activeId, onSelect }: SettingsNavProps) {
+  const handleSelect = (id: string) => onSelect(id);
 
   return (
     <>
@@ -71,7 +40,7 @@ export function SettingsNav({ sections, scrollOffset = 96 }: SettingsNavProps) {
               <li key={section.id}>
                 <button
                   type="button"
-                  onClick={() => handleJump(section.id)}
+                  onClick={() => handleSelect(section.id)}
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
                     "group relative w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all",
@@ -137,7 +106,7 @@ export function SettingsNav({ sections, scrollOffset = 96 }: SettingsNavProps) {
                 <button
                   type="button"
                   key={section.id}
-                  onClick={() => handleJump(section.id)}
+                  onClick={() => handleSelect(section.id)}
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
                     "relative shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-body-sm font-semibold transition-colors",

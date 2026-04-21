@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Mail, Bell, Volume2, Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Switch } from "@/components/ui/switch";
 import { SettingsCardGroup, SettingsRow } from "./SettingsRow";
 import { logger } from "@/lib/logger";
 
@@ -9,18 +8,12 @@ type ThemePreference = "light" | "dark" | "system";
 
 interface PreferencesState {
   theme: ThemePreference;
-  emailNotifications: boolean;
-  examReminders: boolean;
-  soundEffects: boolean;
 }
 
 const STORAGE_KEY = "enamed.preferences.v1";
 
 const DEFAULT_STATE: PreferencesState = {
   theme: "light",
-  emailNotifications: true,
-  examReminders: true,
-  soundEffects: false,
 };
 
 function loadPreferences(): PreferencesState {
@@ -80,51 +73,9 @@ export function PreferencesSection() {
         icon={state.theme === "dark" ? Moon : state.theme === "system" ? Monitor : Sun}
         label="Tema"
         description="Escolha a aparência que combina com seu ritmo de estudo."
-        action={
-          <ThemeToggle value={state.theme} onChange={(v) => updateField("theme", v)} />
-        }
-      />
-
-      {/* Email notifications */}
-      <SettingsRow
-        icon={Mail}
-        label="Resumos e novidades por email"
-        description="Receba comunicados de novos simulados, resultados e aulas."
-        action={
-          <Switch
-            checked={state.emailNotifications}
-            onCheckedChange={(v) => updateField("emailNotifications", v)}
-            aria-label="Ativar emails de novidades"
-          />
-        }
-      />
-
-      {/* Exam reminders */}
-      <SettingsRow
-        icon={Bell}
-        label="Lembretes de simulado"
-        description="Avisos antes do início da janela do próximo simulado oficial."
-        action={
-          <Switch
-            checked={state.examReminders}
-            onCheckedChange={(v) => updateField("examReminders", v)}
-            aria-label="Ativar lembretes de simulado"
-          />
-        }
-      />
-
-      {/* Sound */}
-      <SettingsRow
-        icon={Volume2}
-        label="Efeitos sonoros"
-        description="Feedback sonoro ao responder questões e finalizar simulados."
         divider={false}
         action={
-          <Switch
-            checked={state.soundEffects}
-            onCheckedChange={(v) => updateField("soundEffects", v)}
-            aria-label="Ativar efeitos sonoros"
-          />
+          <ThemeToggle value={state.theme} onChange={(v) => updateField("theme", v)} />
         }
       />
     </SettingsCardGroup>
