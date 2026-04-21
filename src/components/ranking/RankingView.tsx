@@ -637,7 +637,7 @@ export function RankingView({
                     <p
                       className="font-bold uppercase mb-[7px]"
                       style={{
-                        fontSize: '0.56rem',
+                        fontSize: '0.65rem',
                         letterSpacing: '.09em',
                         color: perfState === 'good' ? t.kpiPerfGoodTag : t.kpiPerfBadTag,
                       }}
@@ -647,7 +647,7 @@ export function RankingView({
                     <p
                       className="font-bold leading-snug mb-[5px]"
                       style={{
-                        fontSize: '0.95rem',
+                        fontSize: '1.1rem',
                         color: perfState === 'good' ? t.kpiPerfGoodVal : t.kpiPerfBadVal,
                       }}
                     >
@@ -655,7 +655,7 @@ export function RankingView({
                     </p>
                     <p
                       className="leading-snug"
-                      style={{ fontSize: '0.62rem', color: t.kpiPerfSubtext }}
+                      style={{ fontSize: '0.72rem', color: t.kpiPerfSubtext }}
                     >
                       {perfSubtext}
                     </p>
