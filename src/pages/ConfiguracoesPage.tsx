@@ -10,7 +10,6 @@ import {
   LogOut,
   LifeBuoy,
   MessageCircle,
-  HelpCircle,
   Lock,
   ExternalLink,
   Calendar,
@@ -53,16 +52,10 @@ const NAV_SECTIONS: SettingsNavSection[] = [
 
 const HELP_LINKS = [
   {
-    icon: HelpCircle,
-    label: "Central de ajuda",
-    description: "Respostas rápidas sobre simulados, plano e correção.",
-    href: "https://sanarflix.com.br/central-ajuda",
-  },
-  {
     icon: MessageCircle,
     label: "Falar com a equipe SanarFlix",
-    description: "Atendimento em dias úteis — respondemos em até 1 dia.",
-    href: "https://sanarflix.com.br/contato",
+    description: "Atendimento via WhatsApp em dias úteis — respondemos em até 1 dia.",
+    href: "https://api.whatsapp.com/send?phone=5571986775003",
   },
 ];
 
