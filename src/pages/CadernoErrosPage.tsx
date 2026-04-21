@@ -103,7 +103,7 @@ function EntryRow({
       opacity: resolved ? 0.45 : 1, minHeight: 44,
     }}>
       {/* Accent bar */}
-      <div style={{ width: 3, height: 32, borderRadius: 99, background: meta.colorBase, flexShrink: 0 }} />
+      <div style={{ width: 3, height: resolved ? 32 : 48, borderRadius: 99, background: meta.colorBase, flexShrink: 0, alignSelf: 'stretch' }} />
 
       {/* Main */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -119,6 +119,15 @@ function EntryRow({
             ? `resolvida em ${fmtDate(entry.resolvedAt)}`
             : `${entry.simuladoTitle ?? 'Simulado'} · ${fmtDate(entry.addedAt)}`}
         </div>
+        {!resolved && meta.strategy && (
+          <div style={{
+            fontSize: 11, fontWeight: 600, color: meta.colorText,
+            marginTop: 5, lineHeight: 1.4,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            → {meta.strategy}
+          </div>
+        )}
       </div>
 
       {/* Type badge */}
