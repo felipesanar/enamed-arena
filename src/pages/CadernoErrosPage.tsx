@@ -214,6 +214,32 @@ function HeroCard({
         </div>
       )}
 
+      {/* Strategy hint (from reason) */}
+      {meta.strategy && (
+        <div style={{
+          background: `${meta.colorBase}14`,
+          border: `1px solid ${meta.colorBase}38`,
+          borderRadius: 9,
+          padding: '10px 13px',
+          marginBottom: 14,
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8,
+        }}>
+          <span aria-hidden style={{ color: `${meta.colorBase}cc`, fontWeight: 800, lineHeight: 1.4, fontSize: 12 }}>→</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase' as const, color: `${meta.colorBase}cc`, marginBottom: 3 }}>
+              Como revisar
+            </div>
+            <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5, fontWeight: 600 }}>
+              {meta.strategy}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, position: 'relative', zIndex: 1 }}>
         <button
