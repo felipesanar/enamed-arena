@@ -63,6 +63,7 @@ export default function DesempenhoPage() {
   if (loading && !breakdown) {
     return (
       <PageTransition>
+        <div className="mx-auto w-full min-w-0 max-w-[1280px]">
         <PageHeader
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
@@ -78,6 +79,7 @@ export default function DesempenhoPage() {
           </div>
           <SkeletonCard className="h-[200px]" />
         </div>
+        </div>
       </PageTransition>
     );
   }
@@ -85,6 +87,7 @@ export default function DesempenhoPage() {
   if (loadError && !breakdown) {
     return (
       <PageTransition>
+        <div className="mx-auto w-full min-w-0 max-w-[1280px]">
         <PageHeader
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
@@ -97,6 +100,7 @@ export default function DesempenhoPage() {
           description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
           onRetry={() => { refetchDetail?.(); refetchExam(); }}
         />
+        </div>
       </PageTransition>
     );
   }
@@ -104,6 +108,7 @@ export default function DesempenhoPage() {
   if (simuladosWithResults.length === 0 || !breakdown) {
     return (
       <PageTransition>
+        <div className="mx-auto w-full min-w-0 max-w-[1280px]">
         <PageHeader
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
@@ -115,6 +120,7 @@ export default function DesempenhoPage() {
           title="Sem dados de desempenho"
           description="Complete um simulado e aguarde a liberação do resultado para ver sua análise de desempenho."
         />
+        </div>
       </PageTransition>
     );
   }
