@@ -91,9 +91,14 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
             className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4"
             style={{ color: "rgba(255,255,255,.3)" }}
           />
+          <label htmlFor="specialty-search" className="sr-only">
+            Buscar especialidade
+          </label>
           <input
+            id="specialty-search"
             type="text"
             placeholder="Buscar especialidade..."
+            aria-label="Buscar especialidade"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-[42px] pl-10 pr-10 rounded-[13px] text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#e83862]/35 transition-all"
@@ -105,11 +110,14 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch("")}
+              aria-label="Limpar busca"
+              title="Limpar busca"
               className="absolute right-3.5 top-1/2 -translate-y-1/2"
               style={{ color: "rgba(255,255,255,.3)" }}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>

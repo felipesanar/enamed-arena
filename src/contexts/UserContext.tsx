@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import type { UserProfile, OnboardingProfile, UserSegment, OnboardingStatus } from '@/types';
 import { SEGMENT_ACCESS } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -224,23 +224,40 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (authUser) await fetchUserData(authUser.id, true);
   }, [authUser, fetchUserData]);
 
+  const contextValue = useMemo<UserContextValue>(() => ({
+    profile,
+    onboarding,
+    isLoading,
+    isOnboardingComplete,
+    profileError,
+    dataSource,
+    onboardingEditLocked,
+    onboardingEditReason,
+    onboardingNextEditableAt,
+    saveOnboarding,
+    updateProfile,
+    resetOnboarding,
+    refreshProfile,
+    refreshOnboardingEditGuard: fetchOnboardingEditGuard,
+  }), [
+    profile,
+    onboarding,
+    isLoading,
+    isOnboardingComplete,
+    profileError,
+    dataSource,
+    onboardingEditLocked,
+    onboardingEditReason,
+    onboardingNextEditableAt,
+    saveOnboarding,
+    updateProfile,
+    resetOnboarding,
+    refreshProfile,
+    fetchOnboardingEditGuard,
+  ]);
+
   return (
-    <UserContext.Provider value={{
-      profile,
-      onboarding,
-      isLoading,
-      isOnboardingComplete,
-      profileError,
-      dataSource,
-      onboardingEditLocked,
-      onboardingEditReason,
-      onboardingNextEditableAt,
-      saveOnboarding,
-      updateProfile,
-      resetOnboarding,
-      refreshProfile,
-      refreshOnboardingEditGuard: fetchOnboardingEditGuard,
-    }}>
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );

@@ -64,16 +64,82 @@ Deno.serve(async (req) => {
   let email: string;
   let fullName: string;
   let segment: string;
+  let signature: string;
+  let timestamp: string;
   try {
     const body = await req.json();
     email = (body.email || "").trim().toLowerCase();
     fullName = (body.name || "").trim();
     segment = (body.segment || "").trim().toLowerCase();
+    signature = typeof body.signature === "string" ? body.signature : "";
+    timestamp = typeof body.timestamp === "string" ? body.timestamp : "";
     if (!email || !email.includes("@")) {
       return new Response(JSON.stringify({ error: "Email inválido" }), { status: 400, headers });
     }
   } catch {
     return new Response(JSON.stringify({ error: "Body inválido" }), { status: 400, headers });
+  }
+
+  // --- HMAC signature verification for segment elevation ---
+  // If the caller wants to set segment=standard|pro, it MUST sign the request
+  // with SSO_SIGNING_SECRET (shared between SanarFlix backend and this function).
+  // The raw message signed is: `${email}|${segment}|${timestamp}` (ms epoch).
+  // Signatures older than 5 minutes are rejected to prevent replay.
+  //
+  // If no SSO_SIGNING_SECRET is configured, segment is IGNORED (safe default).
+  const ssoSigningSecret = Deno.env.get("SSO_SIGNING_SECRET") ?? "";
+  let segmentTrusted = false;
+
+  if (segment && ["standard", "pro"].includes(segment)) {
+    if (!ssoSigningSecret) {
+      console.warn("[sso-magic-link] Segment elevation requested but SSO_SIGNING_SECRET not configured — ignoring segment");
+      segment = "";
+    } else if (!signature || !timestamp) {
+      console.warn("[sso-magic-link] Segment requested without signature/timestamp — ignoring segment");
+      segment = "";
+    } else {
+      const ts = Number(timestamp);
+      const now = Date.now();
+      if (!Number.isFinite(ts) || Math.abs(now - ts) > 5 * 60 * 1000) {
+        console.warn("[sso-magic-link] Signature timestamp stale or invalid — ignoring segment");
+        segment = "";
+      } else {
+        try {
+          const keyBytes = new TextEncoder().encode(ssoSigningSecret);
+          const msgBytes = new TextEncoder().encode(`${email}|${segment}|${timestamp}`);
+          const key = await crypto.subtle.importKey(
+            "raw",
+            keyBytes,
+            { name: "HMAC", hash: "SHA-256" },
+            false,
+            ["sign"],
+          );
+          const sigBuf = await crypto.subtle.sign("HMAC", key, msgBytes);
+          const expectedHex = Array.from(new Uint8Array(sigBuf))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+
+          // Constant-time compare
+          if (expectedHex.length !== signature.length) {
+            segment = "";
+          } else {
+            let diff = 0;
+            for (let i = 0; i < expectedHex.length; i++) {
+              diff |= expectedHex.charCodeAt(i) ^ signature.charCodeAt(i);
+            }
+            if (diff === 0) {
+              segmentTrusted = true;
+            } else {
+              console.warn("[sso-magic-link] Signature mismatch — ignoring segment");
+              segment = "";
+            }
+          }
+        } catch (err) {
+          console.error("[sso-magic-link] Signature verify error:", err);
+          segment = "";
+        }
+      }
+    }
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -181,7 +247,8 @@ Deno.serve(async (req) => {
     const profileUpdates: Record<string, string> = {};
     const validSegments = ["standard", "pro"];
 
-    if (segment && validSegments.includes(segment)) {
+    // Only apply segment if signature was trusted
+    if (segmentTrusted && segment && validSegments.includes(segment)) {
       profileUpdates.segment = segment;
     }
     if (fullName) {

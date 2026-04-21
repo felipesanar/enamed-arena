@@ -248,13 +248,18 @@ export const simuladosApi = {
     return data as AttemptRow | null;
   },
 
-  async getUserAttempts(userId: string, attemptType: 'online' | 'offline' = 'online'): Promise<AttemptRow[]> {
+  async getUserAttempts(
+    userId: string,
+    attemptType: 'online' | 'offline' = 'online',
+    limit = 200,
+  ): Promise<AttemptRow[]> {
     const { data, error } = await supabase
       .from('attempts')
       .select('*')
       .eq('user_id', userId)
       .eq('attempt_type', attemptType)
-      .order('started_at', { ascending: false });
+      .order('started_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
     return (data || []) as AttemptRow[];
@@ -307,15 +312,14 @@ export const simuladosApi = {
       return;
     }
 
-    const { error } = await supabase
-      .from('attempts')
-      .update({ ...updates, last_saved_at: new Date().toISOString() })
-      .eq('id', attemptId);
-
-    if (error) {
-      logger.error('[SimuladosApi] Error updating attempt:', error);
-      throw error;
-    }
+    // Anything that touches score/status/finished_at MUST go through the
+    // finalize RPC. Direct client-side updates to `attempts` are rejected by
+    // the `prevent_direct_attempts_update` trigger and violate the data
+    // contract in CLAUDE.md.
+    throw new Error(
+      '[SimuladosApi] updateAttempt: non-progress updates are not allowed. ' +
+      'Use finalize_attempt_with_results via simuladosApi.submitAttempt for score/status changes.',
+    );
   },
 
   async upsertAnswer(
@@ -468,7 +472,13 @@ export const simuladosApi = {
     questionId: string | null;
     area: string | null;
     theme: string | null;
-    reason: 'did_not_know' | 'did_not_remember' | 'did_not_understand' | 'guessed_correctly';
+    reason:
+      | 'did_not_know'
+      | 'did_not_remember'
+      | 'reading_error'
+      | 'confused_alternatives'
+      | 'did_not_understand'
+      | 'guessed_correctly';
     learningText: string | null;
     wasCorrect: boolean;
     questionNumber?: number;
