@@ -397,17 +397,6 @@ export default function ConfiguracoesPage() {
             </SettingsSection>
           )}
 
-          {/* === PREFERÊNCIAS === */}
-          {activeSection === "preferencias" && (
-          <SettingsSection
-            id="preferencias"
-            title="Preferências"
-            description="Tema da interface."
-          >
-            <PreferencesSection />
-          </SettingsSection>
-          )}
-
           {/* === SUPORTE === */}
           {activeSection === "suporte" && (
           <SettingsSection
