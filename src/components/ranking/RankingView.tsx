@@ -536,8 +536,7 @@ export function RankingView({
                 style={{
                   background:
                     'linear-gradient(155deg, #7a1a32 0%, #5c1225 45%, #3d0b18 100%)',
-                  boxShadow:
-                    '0 24px 56px -14px rgba(142,31,61,0.65), inset 0 1px 0 rgba(255,255,255,0.08)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
                 }}
               >
                 <div
