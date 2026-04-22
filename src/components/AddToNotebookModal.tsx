@@ -326,11 +326,6 @@ export function AddToNotebookModal({
                           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4, paddingLeft: 37, lineHeight: 1.5 }}>
                             {meta.hint}
                           </div>
-                          {selected && (
-                            <div style={{ fontSize: 11, fontWeight: 600, marginTop: 5, paddingLeft: 37, color: meta.colorText }}>
-                              → {meta.strategy}
-                            </div>
-                          )}
                         </button>
                       );
                     })}
