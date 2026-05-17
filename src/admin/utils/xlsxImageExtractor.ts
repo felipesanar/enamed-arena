@@ -161,20 +161,24 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       }
 
       const drawingXml = await drawingFile.async('text');
-      const anchorRegex = /<xdr:(twoCellAnchor|oneCellAnchor)[^>]*>([\s\S]*?)<\/xdr:\1>/g;
+      // Drawings may use the xdr: prefix OR be unprefixed depending on the writer
+      const anchorRegex = /<(?:xdr:)?(twoCellAnchor|oneCellAnchor)[^>]*>([\s\S]*?)<\/(?:xdr:)?\1>/g;
       let anchorMatch;
       const anchorDebug: Array<{ row: number; col: number; hasBlip: boolean }> = [];
 
       while ((anchorMatch = anchorRegex.exec(drawingXml)) !== null) {
         const block = anchorMatch[2];
-        const fromRowMatch = block.match(/<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/);
-        const fromColMatch = block.match(/<xdr:from>[\s\S]*?<xdr:col>(\d+)<\/xdr:col>/);
+        const fromBlock = block.match(/<(?:xdr:)?from>([\s\S]*?)<\/(?:xdr:)?from>/);
+        if (!fromBlock) continue;
+        const fromRowMatch = fromBlock[1].match(/<(?:xdr:)?row>(\d+)<\/(?:xdr:)?row>/);
+        const fromColMatch = fromBlock[1].match(/<(?:xdr:)?col>(\d+)<\/(?:xdr:)?col>/);
         if (!fromRowMatch || !fromColMatch) continue;
 
         const row = parseInt(fromRowMatch[1], 10);
         const col = parseInt(fromColMatch[1], 10);
 
-        const blipMatch = block.match(/r:embed="(rId\d+)"/);
+        // Embed attribute may use r: prefix or default ns
+        const blipMatch = block.match(/(?:r:)?embed="(rId\d+)"/);
         anchorDebug.push({ row, col, hasBlip: !!blipMatch });
         if (!blipMatch) continue;
         const mediaPath = rIdToMedia.get(blipMatch[1]);
