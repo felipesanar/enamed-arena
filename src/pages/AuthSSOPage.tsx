@@ -90,6 +90,11 @@ export default function AuthSSOPage() {
     }
 
     handleSSO();
+    // Intentional: name/segment are read once from query params when the
+    // page mounts. They don't change after that (URL is stable on this
+    // route). Including them would trigger an extra SSO call if React
+    // strict-mode re-runs the effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, navigate]);
 
   return (
@@ -114,8 +119,11 @@ export default function AuthSSOPage() {
         {/* State content */}
         <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
           {(state === 'loading' || state === 'redirecting') && (
-            <div className="space-y-4">
-              <div className="h-10 w-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+            <div className="space-y-4" role="status" aria-live="polite">
+              <div
+                className="h-10 w-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"
+                aria-hidden="true"
+              />
               <p className="text-body text-foreground font-medium">
                 {state === 'loading' ? 'Entrando na sua conta...' : 'Redirecionando...'}
               </p>

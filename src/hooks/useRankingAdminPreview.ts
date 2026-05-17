@@ -85,7 +85,11 @@ export function useRankingAdminPreview(): UseRankingAdminPreviewReturn {
   );
 
   const userSpecialty = onboarding?.specialty || '';
-  const userInstitutions = onboarding?.targetInstitutions || [];
+  // Memoize so downstream useMemo deps don't see a fresh `[]` every render.
+  const userInstitutions = useMemo(
+    () => onboarding?.targetInstitutions || [],
+    [onboarding?.targetInstitutions],
+  );
 
   useEffect(() => {
     if (!user) {

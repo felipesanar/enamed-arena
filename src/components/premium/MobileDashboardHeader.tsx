@@ -36,9 +36,13 @@ export function MobileDashboardHeader({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
 
-  const scenario = loading
-    ? { type: "no_upcoming" as const }
-    : deriveScenario(simulados);
+  // Wrapped in useMemo so the object identity is stable across renders —
+  // otherwise the `scenario` reference would change every render and force
+  // notificationHub's useMemo to recompute (defeating its purpose).
+  const scenario = useMemo(
+    () => (loading ? { type: "no_upcoming" as const } : deriveScenario(simulados)),
+    [loading, simulados],
+  );
   const showDot = notificationBellDotVisible(scenario);
   const notificationHub = useMemo(() => getNotificationHubContent(scenario), [scenario]);
 

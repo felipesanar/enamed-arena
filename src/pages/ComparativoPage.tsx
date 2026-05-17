@@ -143,6 +143,28 @@ function ComparativoContent() {
     });
   }, [loading, entries.length, profile?.segment]);
 
+  // Memos hoisted ABOVE the early returns so hook order stays stable across
+  // every render (rules-of-hooks). They're cheap when entries is empty.
+  const sorted = useMemo(
+    () => [...entries].sort((a, b) => a.sequenceNumber - b.sequenceNumber),
+    [entries],
+  );
+  const allAreas = useMemo(() => {
+    const areaSet = new Set<string>();
+    sorted.forEach(e => Object.keys(e.areaScores).forEach(a => areaSet.add(a)));
+    return Array.from(areaSet).sort();
+  }, [sorted]);
+  const areaComparisonData = useMemo(() => {
+    if (allAreas.length === 0) return [];
+    return allAreas.map(area => {
+      const row: Record<string, string | number> = { area };
+      sorted.forEach(e => {
+        row[`#${e.sequenceNumber}`] = e.areaScores[area] ?? 0;
+      });
+      return row;
+    });
+  }, [allAreas, sorted]);
+
   if (loading) {
     return (
       <>
@@ -179,32 +201,15 @@ function ComparativoContent() {
     );
   }
 
-  const sorted = [...entries].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+  // sorted / allAreas / areaComparisonData are hoisted above the early
+  // returns (see the top of this function). Below we just derive the
+  // remaining bits that don't need a hook.
   const scoreChartData = sorted.map(e => ({
     name: `#${e.sequenceNumber}`,
     score: e.percentageScore,
   }));
 
   const avg = Math.round(sorted.reduce((a, e) => a + e.percentageScore, 0) / sorted.length);
-
-  // Collect all unique areas across entries for area comparison
-  const allAreas = useMemo(() => {
-    const areaSet = new Set<string>();
-    sorted.forEach(e => Object.keys(e.areaScores).forEach(a => areaSet.add(a)));
-    return Array.from(areaSet).sort();
-  }, [sorted]);
-
-  // Build area comparison data: for each area, show score per simulado
-  const areaComparisonData = useMemo(() => {
-    if (allAreas.length === 0) return [];
-    return allAreas.map(area => {
-      const row: Record<string, string | number> = { area };
-      sorted.forEach(e => {
-        row[`#${e.sequenceNumber}`] = e.areaScores[area] ?? 0;
-      });
-      return row;
-    });
-  }, [allAreas, sorted]);
 
   const hasAreaData = areaComparisonData.length > 0 && sorted.some(e => Object.keys(e.areaScores).length > 0);
 

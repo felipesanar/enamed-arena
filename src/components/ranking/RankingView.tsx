@@ -282,8 +282,13 @@ export function RankingView({
   }, [selectedSimuladoId, rankingComparison, segmentFilter, trackSource]);
 
   useEffect(() => {
+    // Capture into a local so the cleanup function reads the timestamp from
+    // when the effect ran, not whatever the ref points to at unmount time
+    // (the React lint rule's concern). For this analytics event they're
+    // effectively the same — but the local makes that invariant explicit.
+    const startedAt = mountedAtRef.current;
     return () => {
-      const seconds = Math.max(1, Math.round((Date.now() - mountedAtRef.current) / 1000));
+      const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
       trackEvent('ranking_engagement_time', { seconds, source: trackSource });
     };
   }, [trackSource]);

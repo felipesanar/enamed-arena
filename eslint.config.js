@@ -35,7 +35,12 @@ export default tseslint.config(
       "no-control-regex": "warn",
       // Critical — must be error. Detects state bugs that aren't caught by typecheck.
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      // Promoted from "warn" to "error" because stale-closure bugs in hooks
+      // (especially useExamFlow / useExamStorageReal) are the kind of issue
+      // that only shows up under specific timing in production. Suppress
+      // intentionally with an inline `// eslint-disable-next-line` plus a
+      // brief rationale explaining WHY the dep is missing.
+      "react-hooks/exhaustive-deps": "error",
       // Catch accidental console.* (use the logger instead). Warn to ease migration.
       "no-console": ["warn", { allow: ["warn", "error"] }],
       // Bans hard-coded alert/confirm except via explicit inline-comment disable.

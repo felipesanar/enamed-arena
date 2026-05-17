@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import type { UserProfile, OnboardingProfile, UserSegment, OnboardingStatus } from '@/types';
-import { SEGMENT_ACCESS } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
@@ -19,7 +18,9 @@ interface UserContextValue {
   onboardingNextEditableAt: string | null;
 
   saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
-  updateProfile: (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => void;
+  updateProfile: (
+    data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>,
+  ) => Promise<{ error: string | null }>;
   resetOnboarding: () => void;
   refreshProfile: () => Promise<void>;
   refreshOnboardingEditGuard: () => Promise<void>;
@@ -188,8 +189,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     logger.log('[UserContext] Onboarding saved to Supabase');
   }, [authUser, fetchOnboardingEditGuard]);
 
-  const updateProfile = useCallback(async (data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>) => {
-    if (!authUser) return;
+  const updateProfile = useCallback(async (
+    data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>,
+  ): Promise<{ error: string | null }> => {
+    if (!authUser) return { error: 'not_authenticated' };
 
     // Capture previous state for rollback on error
     let previousProfile: UserProfile | null = null;
@@ -202,18 +205,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (data.name !== undefined) updates.full_name = data.name;
     if (data.avatarUrl !== undefined) updates.avatar_url = data.avatarUrl;
 
-    if (Object.keys(updates).length > 0) {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', authUser.id);
+    if (Object.keys(updates).length === 0) return { error: null };
 
-      if (error) {
-        logger.error('[UserContext] Profile update error:', error);
-        // Rollback optimistic update
-        if (previousProfile) setProfile(previousProfile);
-      }
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', authUser.id);
+
+    if (error) {
+      logger.error('[UserContext] Profile update error:', error);
+      // Rollback optimistic update
+      if (previousProfile) setProfile(previousProfile);
+      return { error: error.message };
     }
+    return { error: null };
   }, [authUser]);
 
   const resetOnboarding = useCallback(async () => {
@@ -271,12 +276,8 @@ export function useUser() {
   return context;
 }
 
-export function useSegment(): UserSegment {
-  const { profile } = useUser();
-  return profile?.segment ?? 'guest';
-}
-
-export function useHasAccess(feature: keyof typeof SEGMENT_ACCESS['guest']): boolean {
-  const segment = useSegment();
-  return SEGMENT_ACCESS[segment]?.[feature] ?? false;
-}
+// `useSegment` / `useHasAccess` live in ./userHooks.ts so this file only
+// exports the Provider + base context hook. Re-exported here for backward
+// compatibility with existing import sites; new code should import from
+// './userHooks' directly.
+export { useSegment, useHasAccess } from './userHooks';

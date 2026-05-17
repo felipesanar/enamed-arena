@@ -14,10 +14,18 @@ export function ProtectedRoute({ children, skipOnboardingCheck = false }: Protec
 
   if (loading || userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div
+        className="min-h-screen flex items-center justify-center bg-background"
+        role="status"
+        aria-live="polite"
+      >
         <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div
+            className="h-10 w-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin"
+            aria-hidden="true"
+          />
           <p className="text-body text-muted-foreground">Carregando...</p>
+          <span className="sr-only">Carregando sua sessão, aguarde.</span>
         </div>
       </div>
     );

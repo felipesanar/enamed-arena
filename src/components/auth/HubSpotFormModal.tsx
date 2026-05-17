@@ -55,14 +55,17 @@ export function HubSpotFormModal({
   const scriptLoadedRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [showSkip, setShowSkip] = useState(false);
+  // Skip button is visible from t=0 so users without a mouse (or with the
+  // HubSpot embed blocked) always have a way out. The previous behaviour
+  // hid it for 8s, trapping keyboard users inside an unreachable form.
+  const [showSkip, setShowSkip] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!open) {
       setSubmitted(false);
       setLoadFailed(false);
-      setShowSkip(false);
+      setShowSkip(true);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return;
     }
@@ -134,11 +137,8 @@ export function HubSpotFormModal({
     };
     document.body.appendChild(script);
 
-    const skipTimer = setTimeout(() => setShowSkip(true), 8000);
-
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      clearTimeout(skipTimer);
     };
   }, [open, prefillEmail, prefillName]);
 

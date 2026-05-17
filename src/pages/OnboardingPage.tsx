@@ -114,6 +114,9 @@ export default function OnboardingPage() {
       segment,
       from_sso: false,
     });
+    // Intentional: fire-once analytics event at mount. The `segment` captured
+    // is the value at first render; we don't want to re-track if it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -121,6 +124,9 @@ export default function OnboardingPage() {
       step: (step + 1) as 1 | 2 | 3,
       step_name: STEP_NAMES[step],
     });
+    // STEP_NAMES is a module-level constant — including it would only add
+    // noise. Effect depends only on the step index.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const nextEditableText = onboardingNextEditableAt

@@ -98,7 +98,11 @@ export function useRanking(): UseRankingReturn {
   const [segmentFilter, setSegmentFilter] = usePersistedState<SegmentFilter>('ranking:segment', 'all');
   
   const userSpecialty = onboarding?.specialty || '';
-  const userInstitutions = onboarding?.targetInstitutions || [];
+  // Memoize so downstream useMemo deps don't see a fresh `[]` every render.
+  const userInstitutions = useMemo(
+    () => onboarding?.targetInstitutions || [],
+    [onboarding?.targetInstitutions],
+  );
 
   // Fetch available simulados
   useEffect(() => {
@@ -133,6 +137,11 @@ export function useRanking(): UseRankingReturn {
     
     load();
     return () => { cancelled = true; };
+    // Intentional: re-run only when the user identity changes. The setter
+    // (setSelectedSimuladoId) is stable, and the initial-selection guard
+    // already uses the current `selectedSimuladoId` snapshot. Adding it
+    // would cause the simulado list to refetch on every selection change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Fetch ranking when simulado changes
