@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import { adminApi } from '../services/adminApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageExtractor';
+import { parseXlsxFirstWorksheetRows } from '../utils/xlsxTextParser';
 
 interface ParsedRow {
   numero: number;
@@ -92,100 +92,7 @@ export default function AdminUploadQuestions() {
 
     const arrayBuffer = await file.arrayBuffer();
 
-    // Strip drawings/media from a copy of the buffer before handing to ExcelJS.
-    // ExcelJS has a known bug ("Cannot read properties of undefined (reading 'anchors')")
-    // when reconciling certain drawing XMLs. We extract images separately via JSZip below,
-    // so ExcelJS only needs the textual cells.
-    let textBuffer: ArrayBuffer = arrayBuffer;
-    try {
-      const zip = await JSZip.loadAsync(arrayBuffer);
-      const toRemove: string[] = [];
-      zip.forEach((path) => {
-        if (
-          path.startsWith('xl/drawings/') ||
-          path.startsWith('xl/media/') ||
-          path.startsWith('xl/charts/')
-        ) {
-          toRemove.push(path);
-        }
-      });
-      toRemove.forEach((p) => zip.remove(p));
-      // Remove drawing references from worksheet rels and sheet XML so ExcelJS doesn't
-      // try to resolve them.
-      const relsFiles: string[] = [];
-      zip.forEach((path) => {
-        if (path.startsWith('xl/worksheets/_rels/') && path.endsWith('.rels')) {
-          relsFiles.push(path);
-        }
-      });
-      for (const relPath of relsFiles) {
-        const f = zip.file(relPath);
-        if (!f) continue;
-        const xml = await f.async('text');
-        const cleaned = xml.replace(/<Relationship[^>]*Target="[^"]*drawings\/[^"]*"[^/]*\/>/g, '');
-        zip.file(relPath, cleaned);
-      }
-      const sheetFiles: string[] = [];
-      zip.forEach((path) => {
-        if (path.startsWith('xl/worksheets/') && path.endsWith('.xml')) {
-          sheetFiles.push(path);
-        }
-      });
-      for (const sheetPath of sheetFiles) {
-        const f = zip.file(sheetPath);
-        if (!f) continue;
-        const xml = await f.async('text');
-        const cleaned = xml.replace(/<drawing[^/]*\/>/g, '');
-        zip.file(sheetPath, cleaned);
-      }
-      textBuffer = await zip.generateAsync({ type: 'arraybuffer' });
-    } catch (stripErr) {
-      console.warn('[AdminUploadQuestions] Could not strip drawings, loading raw:', stripErr);
-    }
-
-    // Parse text data with ExcelJS (replaces SheetJS / `xlsx`, which carries
-    // CVE-2023-30533). We read the first worksheet, treat row 1 as headers,
-    // and produce a record per data row that maps header → cell text.
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(textBuffer);
-    const sheet = wb.worksheets[0];
-    const rows: ParsedRow[] = [];
-    if (sheet) {
-      // Collect header cell values from row 1.
-      const headers: string[] = [];
-      const headerRow = sheet.getRow(1);
-      headerRow.eachCell({ includeEmpty: true }, (cell: ExcelJS.Cell, col: number) => {
-        headers[col - 1] = String(cell.value ?? '').trim();
-      });
-
-      sheet.eachRow({ includeEmpty: false }, (row: ExcelJS.Row, rowNumber: number) => {
-        if (rowNumber === 1) return; // skip header
-        const record: Record<string, unknown> = {};
-        row.eachCell({ includeEmpty: true }, (cell: ExcelJS.Cell, col: number) => {
-          const key = headers[col - 1];
-          if (!key) return;
-          // Cell.value can be {richText}, {hyperlink}, {formula}, etc.
-          // For our import (text-only schema) we coerce to string.
-          let value: unknown = cell.value;
-          if (value && typeof value === 'object') {
-            if ('richText' in value && Array.isArray((value as { richText: unknown }).richText)) {
-              value = (value as { richText: { text: string }[] }).richText.map(r => r.text).join('');
-            } else if ('text' in value) {
-              value = (value as { text: string }).text;
-            } else if ('hyperlink' in value) {
-              value = (value as { text?: string }).text ?? (value as { hyperlink: string }).hyperlink;
-            } else if ('result' in value) {
-              value = (value as { result: unknown }).result;
-            }
-          }
-          record[key] = value ?? '';
-        });
-        // Two-step cast: ExcelJS gives us an open Record, ParsedRow asserts
-        // the columns we expect. The downstream normalizeRow() is responsible
-        // for validating missing fields and reporting them to the admin user.
-        rows.push(record as unknown as ParsedRow);
-      });
-    }
+    const rows = (await parseXlsxFirstWorksheetRows(arrayBuffer)) as ParsedRow[];
     setParsedRows(rows);
 
     // Extract embedded images with JSZip
