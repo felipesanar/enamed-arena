@@ -82,6 +82,14 @@ export interface FinalizedAttemptResult {
   total_correct: number;
   total_answered: number;
   total_questions: number;
+  /**
+   * Set by the finalize RPC based on whether the attempt finished within the
+   * official execution window. When false, the attempt does NOT enter ranking
+   * (treino mode). Reading this from the same RPC payload (vs. issuing a
+   * follow-up SELECT against `attempts`) eliminates a read-after-write race
+   * with replicas and saves a round-trip.
+   */
+  is_within_window: boolean;
 }
 
 export interface UserPerformanceSummaryRow {
@@ -113,6 +121,37 @@ export interface AttemptQuestionResultRow {
 }
 
 // ─── Converters ───
+
+// Question images are stored as URLs in the DB. Even though the CSP already
+// restricts img-src to https:, validating at the API boundary gives us:
+//  (a) defense-in-depth — bad URL never reaches the renderer;
+//  (b) a single auditable list of allowed hosts;
+//  (c) we transparently drop tracking-pixel hosts that an attacker (or an
+//      admin with hacked machine) might try to slip into the questions table.
+const ALLOWED_IMAGE_HOST_PATTERNS: ReadonlyArray<RegExp> = [
+  /^([a-z0-9-]+\.)*supabase\.co$/i,        // storage public URLs
+  /^([a-z0-9-]+\.)*supabase\.in$/i,
+  /^([a-z0-9-]+\.)*sanar\.com\.br$/i,
+  /^([a-z0-9-]+\.)*sanaflix\.com$/i,
+  /^([a-z0-9-]+\.)*lovable\.app$/i,
+  /^([a-z0-9-]+\.)*lovableproject\.com$/i,
+];
+
+function isAllowedImageUrl(value: string | null | undefined): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    return ALLOWED_IMAGE_HOST_PATTERNS.some((rx) => rx.test(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
+/** Returns the URL only if it passes the allowlist; otherwise null. */
+function safeImageUrl(value: string | null | undefined): string | null {
+  return isAllowedImageUrl(value) ? (value as string) : null;
+}
 
 function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
     return {
@@ -146,8 +185,8 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
     area: qRow.area,
     theme: qRow.theme,
     difficulty: qRow.difficulty ?? null,
-    imageUrl: qRow.image_url ?? null,
-    explanationImageUrl: qRow.explanation_image_url ?? null,
+    imageUrl: safeImageUrl(qRow.image_url),
+    explanationImageUrl: safeImageUrl(qRow.explanation_image_url),
     options: qOptions.map(o => ({ id: o.id, label: o.label, text: o.text })),
     correctOptionId: correctOption?.id ?? '',
     explanation: qRow.explanation || undefined,
@@ -199,34 +238,33 @@ export const simuladosApi = {
   },
 
   async getQuestions(simuladoId: string, includeCorrectAnswers = false): Promise<Question[]> {
-    const { data: questionsData, error: questionsError } = await supabase
+    // PostgREST embed: one round-trip instead of two (questions then options).
+    // Note: is_correct is only requested when includeCorrectAnswers is true —
+    // RLS on question_options still gates access; this just avoids sending
+    // the flag over the wire when not needed.
+    const optionsSelect = includeCorrectAnswers
+      ? 'id, question_id, label, text, is_correct'
+      : 'id, question_id, label, text';
+
+    const { data, error } = await supabase
       .from('questions')
-      .select('*')
+      .select(`*, question_options(${optionsSelect})`)
       .eq('simulado_id', simuladoId)
       .order('question_number', { ascending: true })
       .limit(300);
 
-    if (questionsError) {
-      logger.error('[SimuladosApi] Error fetching questions:', questionsError);
-      throw questionsError;
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching questions:', error);
+      throw error;
     }
 
-    const questions = (questionsData || []) as QuestionRow[];
-    if (questions.length === 0) return [];
+    const rows = (data || []) as Array<QuestionRow & { question_options: QuestionOptionRow[] }>;
+    if (rows.length === 0) return [];
 
-    const questionIds = questions.map(q => q.id);
-    const { data: optionsData, error: optionsError } = await supabase
-      .from('question_options')
-      .select('id, question_id, label, text')
-      .in('question_id', questionIds);
-
-    if (optionsError) {
-      logger.error('[SimuladosApi] Error fetching question options:', optionsError);
-      throw optionsError;
-    }
-
-    const options = (optionsData || []) as unknown as QuestionOptionRow[];
-    return questions.map(q => rowsToQuestion(q, options, includeCorrectAnswers));
+    return rows.map((row) => {
+      const { question_options, ...qRow } = row;
+      return rowsToQuestion(qRow, question_options ?? [], includeCorrectAnswers);
+    });
   },
 
   async getAttempt(simuladoId: string, userId: string, attemptType: 'online' | 'offline' = 'online'): Promise<AttemptRow | null> {

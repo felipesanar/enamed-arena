@@ -30,8 +30,11 @@ export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit }: Us
     } else {
       setIsTabAway(false);
       onTabReturn();
-      // Only re-enable interaction if fullscreen is active (or not required)
-      setCanInteract(true);
+      // Re-enable interaction ONLY if the integrity contract is satisfied:
+      // i.e. the user is back in fullscreen. Otherwise we keep interaction
+      // disabled until they re-enter fullscreen (the integrity overlay UI
+      // shows the prompt for that).
+      setCanInteract(!!document.fullscreenElement);
     }
   }, [onTabExit, onTabReturn]);
 

@@ -26,6 +26,14 @@ export function deriveSimuladoStatus(
     return 'closed_waiting';
   }
 
+  // Window closed, results already released (public answer-key time) and user
+  // never finished. The user should be able to see the gabarito — but the
+  // attempt won't count for ranking (still treino).
+  // NOTE: kept BEFORE `available_late` so the gabarito CTA wins when both apply.
+  if (isAfter(now, windowEnd) && isAfter(now, resultsAt)) {
+    return 'results_available';
+  }
+
   // Window closed, user never finished → available as practice
   if (isAfter(now, windowEnd)) {
     return 'available_late';

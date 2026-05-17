@@ -18,7 +18,6 @@ import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exa
 import type { Question } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
-import { simuladosApi } from '@/services/simuladosApi';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -86,7 +85,7 @@ export function useExamFlow(): UseExamFlowReturn {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOnboardingComplete, profile } = useUser();
+  const { isOnboardingComplete } = useUser();
 
   const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
@@ -196,8 +195,9 @@ export function useExamFlow(): UseExamFlowReturn {
           if (!cancelled) setState(existing);
         }
 
-        const notifEnabled = await storage.getResultNotificationPreference();
-        if (!cancelled) setNotifyResultByEmailState(notifEnabled);
+        // loadState already returns notifyResultEmail from the same DB row —
+        // no follow-up query needed.
+        if (!cancelled) setNotifyResultByEmailState(result.notifyResultEmail);
       } catch (err) {
         logger.error('[useExamFlow] Init failed:', err);
         navigate(`/simulados/${id}`, { replace: true });
@@ -207,9 +207,14 @@ export function useExamFlow(): UseExamFlowReturn {
     })();
 
     return () => { cancelled = true; };
-    // Intentionally re-run only when simulado or questions change; storage/setState are stable.
+    // Intentionally re-run only on simulado identity change. Including
+    // `questions.length` here previously caused redundant re-initialization
+    // whenever the questions query cache refreshed mid-attempt — in the worst
+    // case spawning a second `create_attempt_guarded` call. The questions
+    // emptiness check is still inside the effect body, so the user still
+    // bounces back to the detail page if no questions exist.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [simulado?.id, loadingSimulado, questions.length]);
+  }, [simulado?.id, loadingSimulado]);
 
   useEffect(() => {
     setIsWithinWindow(true);
@@ -296,24 +301,15 @@ export function useExamFlow(): UseExamFlowReturn {
     }
 
     try {
-      await storage.submitAttempt(state);
+      // submitAttempt now returns is_within_window + score_percentage in the
+      // same payload (see migration 20260516000000), so we don't need a
+      // follow-up SELECT against `attempts` — that eliminated a wasted round
+      // trip and a read-after-write race with replicas.
+      const result = await storage.submitAttempt(state);
       setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
 
-      let withinRankingWindow = true;
-      let scorePercentage = 0;
-      if (profile?.id) {
-        try {
-          const attempt = await simuladosApi.getAttempt(simulado.id, profile.id, 'online');
-          if (attempt && typeof attempt.is_within_window === 'boolean') {
-            withinRankingWindow = attempt.is_within_window;
-          }
-          if (attempt && typeof attempt.score_percentage === 'number') {
-            scorePercentage = attempt.score_percentage;
-          }
-        } catch (e) {
-          logger.error('[useExamFlow] Não foi possível ler is_within_window da tentativa:', e);
-        }
-      }
+      const withinRankingWindow = result?.is_within_window ?? true;
+      const scorePercentage = result?.score_percentage ?? 0;
       setIsWithinWindow(withinRankingWindow);
 
       const durationMinutes = state.startedAt
@@ -351,7 +347,7 @@ export function useExamFlow(): UseExamFlowReturn {
     } finally {
       setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, profile?.id, queryClient]);
+  }, [state, simulado, storage, questionIds.length, queryClient]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     setNotificationSaving(true);
@@ -492,26 +488,31 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const handleSelectOption = useCallback((optionId: string) => {
     if (!currentQuestion) return;
-    const answer: ExamAnswer = {
-      ...(state?.answers[currentQuestion.id] ?? {
+    // Single source of truth: updateState → debounced bulk upsert.
+    // We mark the answer dirty so the next debounced sync ships only this
+    // row instead of re-uploading every answer.
+    storage.markAnswerDirty(currentQuestion.id);
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] ?? {
         questionId: currentQuestion.id,
         selectedOption: null,
         markedForReview: false,
         highConfidence: false,
         eliminatedAlternatives: [],
-      }),
-      questionId: currentQuestion.id,
-      selectedOption: optionId,
-    };
-    storage.trackAnswer(currentQuestion.id, answer);
-    updateState(prev => ({
-      ...prev,
-      answers: { ...prev.answers, [currentQuestion.id]: answer },
-    }));
-  }, [currentQuestion, state?.answers, updateState, storage]);
+      };
+      return {
+        ...prev,
+        answers: {
+          ...prev.answers,
+          [currentQuestion.id]: { ...existing, selectedOption: optionId },
+        },
+      };
+    });
+  }, [currentQuestion, updateState, storage]);
 
   const handleEliminateOption = useCallback((optionId: string) => {
     if (!currentQuestion) return;
+    storage.markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? {
         questionId: currentQuestion.id,
@@ -527,7 +528,6 @@ export function useExamFlow(): UseExamFlowReturn {
           ? existing.eliminatedAlternatives.filter(i => i !== optionId)
           : [...existing.eliminatedAlternatives, optionId],
       };
-      storage.trackAnswer(currentQuestion.id, answer);
       return { ...prev, answers: { ...prev.answers, [currentQuestion.id]: answer } };
     });
   }, [currentQuestion, updateState, storage]);
@@ -547,6 +547,7 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const toggleReview = useCallback(() => {
     if (!currentQuestion) return;
+    storage.markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? {
         questionId: currentQuestion.id,
@@ -562,10 +563,11 @@ export function useExamFlow(): UseExamFlowReturn {
         answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal } },
       };
     });
-  }, [currentQuestion, updateState]);
+  }, [currentQuestion, updateState, storage]);
 
   const toggleHighConfidence = useCallback(() => {
     if (!currentQuestion) return;
+    storage.markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? {
         questionId: currentQuestion.id,
@@ -579,7 +581,7 @@ export function useExamFlow(): UseExamFlowReturn {
         answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
       };
     });
-  }, [currentQuestion, updateState]);
+  }, [currentQuestion, updateState, storage]);
 
   const shortcuts = useMemo(() => {
     const map: Record<string, () => void> = {
