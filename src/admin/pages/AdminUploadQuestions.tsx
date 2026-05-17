@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -91,11 +92,62 @@ export default function AdminUploadQuestions() {
 
     const arrayBuffer = await file.arrayBuffer();
 
+    // Strip drawings/media from a copy of the buffer before handing to ExcelJS.
+    // ExcelJS has a known bug ("Cannot read properties of undefined (reading 'anchors')")
+    // when reconciling certain drawing XMLs. We extract images separately via JSZip below,
+    // so ExcelJS only needs the textual cells.
+    let textBuffer: ArrayBuffer = arrayBuffer;
+    try {
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const toRemove: string[] = [];
+      zip.forEach((path) => {
+        if (
+          path.startsWith('xl/drawings/') ||
+          path.startsWith('xl/media/') ||
+          path.startsWith('xl/charts/')
+        ) {
+          toRemove.push(path);
+        }
+      });
+      toRemove.forEach((p) => zip.remove(p));
+      // Remove drawing references from worksheet rels and sheet XML so ExcelJS doesn't
+      // try to resolve them.
+      const relsFiles: string[] = [];
+      zip.forEach((path) => {
+        if (path.startsWith('xl/worksheets/_rels/') && path.endsWith('.rels')) {
+          relsFiles.push(path);
+        }
+      });
+      for (const relPath of relsFiles) {
+        const f = zip.file(relPath);
+        if (!f) continue;
+        const xml = await f.async('text');
+        const cleaned = xml.replace(/<Relationship[^>]*Target="[^"]*drawings\/[^"]*"[^/]*\/>/g, '');
+        zip.file(relPath, cleaned);
+      }
+      const sheetFiles: string[] = [];
+      zip.forEach((path) => {
+        if (path.startsWith('xl/worksheets/') && path.endsWith('.xml')) {
+          sheetFiles.push(path);
+        }
+      });
+      for (const sheetPath of sheetFiles) {
+        const f = zip.file(sheetPath);
+        if (!f) continue;
+        const xml = await f.async('text');
+        const cleaned = xml.replace(/<drawing[^/]*\/>/g, '');
+        zip.file(sheetPath, cleaned);
+      }
+      textBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+    } catch (stripErr) {
+      console.warn('[AdminUploadQuestions] Could not strip drawings, loading raw:', stripErr);
+    }
+
     // Parse text data with ExcelJS (replaces SheetJS / `xlsx`, which carries
     // CVE-2023-30533). We read the first worksheet, treat row 1 as headers,
     // and produce a record per data row that maps header → cell text.
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(arrayBuffer);
+    await wb.xlsx.load(textBuffer);
     const sheet = wb.worksheets[0];
     const rows: ParsedRow[] = [];
     if (sheet) {
