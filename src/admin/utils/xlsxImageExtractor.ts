@@ -3,6 +3,7 @@
  * Maps images to specific rows/columns via the drawing XML anchors.
  */
 import JSZip from 'jszip';
+import { logger } from '@/lib/logger';
 
 export interface ExtractedImage {
   base64: string;
@@ -26,6 +27,34 @@ function normalize(s: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+}
+
+function normalizeZipPath(target: string | null | undefined): string {
+  if (!target) return '';
+
+  const cleaned = target
+    .replace(/^\/+/, '')
+    .replace(/^\.\.\//, '')
+    .replace(/^xl\//, '');
+
+  return cleaned ? `xl/${cleaned}` : '';
+}
+
+function getElementsByLocalName(parent: Document | Element, localName: string): Element[] {
+  return Array.from(parent.getElementsByTagName('*')).filter((node) => node.localName === localName) as Element[];
+}
+
+function buildWorksheetRowIndexMap(worksheetXml: string): Map<number, number> {
+  const doc = parseXml(worksheetXml);
+  const rows = getElementsByLocalName(doc, 'row');
+  const rowIndexMap = new Map<number, number>();
+
+  rows.slice(1).forEach((row, dataIndex) => {
+    const excelRowNumber = Number(row.getAttribute('r') ?? dataIndex + 2);
+    rowIndexMap.set(excelRowNumber, dataIndex);
+  });
+
+  return rowIndexMap;
 }
 
 async function getSharedStrings(zip: JSZip): Promise<string[]> {
