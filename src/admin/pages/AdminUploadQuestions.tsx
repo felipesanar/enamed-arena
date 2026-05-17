@@ -109,7 +109,7 @@ export default function AdminUploadQuestions() {
   const handleUpload = async () => {
     if (!simuladoId || parsedRows.length === 0) return;
     setUploading(true);
-    setUploadProgress({ step: 'Preparando imagens...', percent: 5 });
+    setUploadProgress({ step: 'Preparando upload...', percent: 2 });
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -117,24 +117,67 @@ export default function AdminUploadQuestions() {
 
       const normalized = parsedRows.map(normalizeRow);
 
-      // Build images payload: { [questionNumber]: { enunciado?: {...}, comentario?: {...} } }
-      const images: Record<number, {
-        enunciado?: { data: string; mime: string };
-        comentario?: { data: string; mime: string };
-      }> = {};
-
+      // Collect images to upload
+      const imageJobs: Array<{ qNum: number; kind: 'enunciado' | 'comentario'; img: ExtractedImage }> = [];
       parsedRows.forEach((row, index) => {
         const qNum = Number(row.numero);
         const eImg = enunciadoImages.get(index);
         const cImg = comentarioImages.get(index);
-        if (eImg || cImg) {
-          images[qNum] = {};
-          if (eImg) images[qNum].enunciado = { data: eImg.base64, mime: eImg.mimeType };
-          if (cImg) images[qNum].comentario = { data: cImg.base64, mime: cImg.mimeType };
-        }
+        if (eImg) imageJobs.push({ qNum, kind: 'enunciado', img: eImg });
+        if (cImg) imageJobs.push({ qNum, kind: 'comentario', img: cImg });
       });
 
-      setUploadProgress({ step: 'Enviando questões e imagens...', percent: 25 });
+      const imageUrls: Record<number, { enunciado_url?: string; comentario_url?: string }> = {};
+
+      const mimeToExt = (mime: string) => {
+        if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+        if (mime.includes('png')) return 'png';
+        if (mime.includes('gif')) return 'gif';
+        if (mime.includes('webp')) return 'webp';
+        return 'png';
+      };
+
+      const base64ToBytes = (b64: string) => {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return arr;
+      };
+
+      // Upload images in parallel (limit concurrency = 4)
+      let done = 0;
+      const total = imageJobs.length;
+      const concurrency = 4;
+      let cursor = 0;
+
+      async function worker() {
+        while (cursor < imageJobs.length) {
+          const my = cursor++;
+          const job = imageJobs[my];
+          if (!job) return;
+          const ext = mimeToExt(job.img.mimeType);
+          const path = `${simuladoId}/${job.qNum}_${job.kind}.${ext}`;
+          const bytes = base64ToBytes(job.img.base64);
+          const { error } = await supabase.storage
+            .from('question-images')
+            .upload(path, bytes, { contentType: job.img.mimeType, upsert: true });
+          if (error) throw new Error(`Falha ao enviar imagem ${job.qNum} (${job.kind}): ${error.message}`);
+          const { data: pub } = supabase.storage.from('question-images').getPublicUrl(path);
+          if (!imageUrls[job.qNum]) imageUrls[job.qNum] = {};
+          if (job.kind === 'enunciado') imageUrls[job.qNum].enunciado_url = pub.publicUrl;
+          else imageUrls[job.qNum].comentario_url = pub.publicUrl;
+          done++;
+          if (total > 0) {
+            setUploadProgress({
+              step: `Enviando imagens (${done}/${total})...`,
+              percent: 5 + Math.round((done / total) * 60),
+            });
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(concurrency, imageJobs.length || 1) }, worker));
+
+      setUploadProgress({ step: 'Salvando questões no servidor...', percent: 75 });
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/admin-upload-questions`, {
@@ -143,13 +186,16 @@ export default function AdminUploadQuestions() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ simulado_id: simuladoId, questions: normalized, images }),
+        body: JSON.stringify({ simulado_id: simuladoId, questions: normalized, image_urls: imageUrls }),
       });
 
-      setUploadProgress({ step: 'Processando no servidor...', percent: 70 });
-
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Erro HTTP ${res.status}: ${text.slice(0, 120)}`);
+      }
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Erro no upload');
+      if (!res.ok) throw new Error(result.error || `Erro HTTP ${res.status}`);
 
       setUploadProgress({ step: 'Finalizado!', percent: 100 });
       toast({ title: `${result.inserted} questões inseridas com sucesso!` });
