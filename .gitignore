@@ -20,6 +20,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# Alternative lockfiles — npm is the canonical package manager for this repo.
+# Keep package-lock.json only; remove bun.lock(b) / yarn.lock / pnpm-lock.yaml.
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

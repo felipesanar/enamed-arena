@@ -1,7 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
+
+// lovable-tagger is a Lovable-platform-only devDep. Resolve it lazily so a
+// dev environment without it (e.g. fresh `npm ci --omit=optional`) still
+// builds — instead of failing at config-load time.
+function tryLoadComponentTagger(): unknown {
+  try {
+    return require("lovable-tagger").componentTagger;
+  } catch {
+    return null;
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -28,7 +38,14 @@ export default defineConfig(({ mode }) => ({
       ].join("; "),
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: (() => {
+    const list: unknown[] = [react()];
+    if (mode === "development") {
+      const tagger = tryLoadComponentTagger();
+      if (typeof tagger === "function") list.push((tagger as () => unknown)());
+    }
+    return list.filter(Boolean) as never[];
+  })(),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -41,7 +58,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           // Keep heavy, rarely-used libs out of the main bundle.
-          if (id.includes("jspdf") || id.includes("xlsx") || id.includes("jszip")) {
+          if (id.includes("jspdf") || id.includes("exceljs") || id.includes("jszip")) {
             return "vendor-pdf-xlsx";
           }
           if (id.includes("framer-motion")) return "vendor-framer";

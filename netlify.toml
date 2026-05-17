@@ -1,0 +1,16 @@
+# Netlify deploy config
+# Headers also live in public/_headers (they get copied to dist/_headers at build).
+# This file documents build settings for the Netlify CLI / dashboard.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback so deep links don't 404
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

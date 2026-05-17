@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -91,10 +91,49 @@ export default function AdminUploadQuestions() {
 
     const arrayBuffer = await file.arrayBuffer();
 
-    // Parse text data with SheetJS
-    const wb = XLSX.read(arrayBuffer, { type: 'array' });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<ParsedRow>(sheet);
+    // Parse text data with ExcelJS (replaces SheetJS / `xlsx`, which carries
+    // CVE-2023-30533). We read the first worksheet, treat row 1 as headers,
+    // and produce a record per data row that maps header → cell text.
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(arrayBuffer);
+    const sheet = wb.worksheets[0];
+    const rows: ParsedRow[] = [];
+    if (sheet) {
+      // Collect header cell values from row 1.
+      const headers: string[] = [];
+      const headerRow = sheet.getRow(1);
+      headerRow.eachCell({ includeEmpty: true }, (cell: ExcelJS.Cell, col: number) => {
+        headers[col - 1] = String(cell.value ?? '').trim();
+      });
+
+      sheet.eachRow({ includeEmpty: false }, (row: ExcelJS.Row, rowNumber: number) => {
+        if (rowNumber === 1) return; // skip header
+        const record: Record<string, unknown> = {};
+        row.eachCell({ includeEmpty: true }, (cell: ExcelJS.Cell, col: number) => {
+          const key = headers[col - 1];
+          if (!key) return;
+          // Cell.value can be {richText}, {hyperlink}, {formula}, etc.
+          // For our import (text-only schema) we coerce to string.
+          let value: unknown = cell.value;
+          if (value && typeof value === 'object') {
+            if ('richText' in value && Array.isArray((value as { richText: unknown }).richText)) {
+              value = (value as { richText: { text: string }[] }).richText.map(r => r.text).join('');
+            } else if ('text' in value) {
+              value = (value as { text: string }).text;
+            } else if ('hyperlink' in value) {
+              value = (value as { text?: string }).text ?? (value as { hyperlink: string }).hyperlink;
+            } else if ('result' in value) {
+              value = (value as { result: unknown }).result;
+            }
+          }
+          record[key] = value ?? '';
+        });
+        // Two-step cast: ExcelJS gives us an open Record, ParsedRow asserts
+        // the columns we expect. The downstream normalizeRow() is responsible
+        // for validating missing fields and reporting them to the admin user.
+        rows.push(record as unknown as ParsedRow);
+      });
+    }
     setParsedRows(rows);
 
     // Extract embedded images with JSZip
