@@ -16,7 +16,7 @@ dist-ssr
 *.local
 
 # Environment — never commit secrets
-# .env committed for Vite build
+.env
 .env.*
 !.env.example
 
