@@ -158,9 +158,10 @@ export default function AdminUploadQuestions() {
           const ext = mimeToExt(job.img.mimeType);
           const path = `${simuladoId}/${job.qNum}_${job.kind}.${ext}`;
           const bytes = base64ToBytes(job.img.base64);
+          const blob = new Blob([bytes], { type: job.img.mimeType });
           const { error } = await supabase.storage
             .from('question-images')
-            .upload(path, bytes, { contentType: job.img.mimeType, upsert: true });
+            .upload(path, blob, { contentType: job.img.mimeType, upsert: true });
           if (error) throw new Error(`Falha ao enviar imagem ${job.qNum} (${job.kind}): ${error.message}`);
           const { data: pub } = supabase.storage.from('question-images').getPublicUrl(path);
           if (!imageUrls[job.qNum]) imageUrls[job.qNum] = {};
