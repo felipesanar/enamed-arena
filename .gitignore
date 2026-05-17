@@ -15,7 +15,19 @@ dist
 dist-ssr
 *.local
 
-# Environment — never commit secrets
+# ─────────────────────────────────────────────────────────────────────────
+#  Environment files — NEVER COMMIT, EVER
+# ─────────────────────────────────────────────────────────────────────────
+#  This rule applies to humans AND automated agents (Lovable, IDE bots,
+#  CI workers). If you find yourself with .env staged, STOP. Even values
+#  that look "public" (anon keys, project URLs) belong outside the repo so
+#  the muscle memory doesn't slip when a real secret needs to live nearby.
+#  Real secrets go in Edge Function / GitHub / Vercel / Netlify secret
+#  stores — never in a versioned file.
+#
+#  History note: .env was tracked here in early commits. It carried only
+#  Supabase URL + anon JWT (both public-by-design) — no service_role or
+#  HMAC secrets ever shipped through it. Audit: 2026-05-17.
 .env
 .env.*
 !.env.example
