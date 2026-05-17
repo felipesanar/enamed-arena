@@ -44,6 +44,37 @@ interface NormalizedQuestion {
   correta: string;
 }
 
+function normalizeStoragePublicUrl(value: string | undefined | null): string {
+  const raw = value?.trim();
+  if (!raw) return '';
+
+  const toPublicUrl = (path: string) => supabase.storage.from('question-images').getPublicUrl(path).data.publicUrl;
+
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      const url = new URL(raw);
+      const objectMarker = '/storage/v1/object/';
+      const publicMarker = '/storage/v1/object/public/';
+
+      if (url.pathname.includes(publicMarker)) return raw;
+
+      if (url.pathname.includes(objectMarker)) {
+        const storagePath = url.pathname.split(objectMarker)[1] ?? '';
+        const [, ...pathParts] = storagePath.split('/');
+        const objectPath = pathParts.join('/');
+        return objectPath ? toPublicUrl(objectPath) : raw;
+      }
+    } catch {
+      return raw;
+    }
+
+    return raw;
+  }
+
+  const objectPath = raw.replace(/^question-images\//, '').replace(/^\/+/, '');
+  return objectPath ? toPublicUrl(objectPath) : '';
+}
+
 function normalizeRow(row: ParsedRow): NormalizedQuestion {
   const especialidade = row.Especialidade || '';
   const tema = row.Tema || '';
@@ -58,7 +89,7 @@ function normalizeRow(row: ParsedRow): NormalizedQuestion {
     tema: composedTheme,
     dificuldade: 'medium',
     explicacao: row['Comentário'] || '',
-    image_url: row['Imagem do Enunciado'] || '',
+    image_url: normalizeStoragePublicUrl(row['Imagem do Enunciado']),
     alternativa_a: row['Alternativa A'] || '',
     alternativa_b: row['Alternativa B'] || '',
     alternativa_c: row['Alternativa C'] || '',
