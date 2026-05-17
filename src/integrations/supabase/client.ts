@@ -2,8 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Publishable (anon) credentials — safe to ship to the browser.
+// Hardcoded as fallback so production builds work even when `.env` isn't present
+// (`.env` is gitignored). Local dev still wins via `import.meta.env`.
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ?? "https://lljnbysgcwvkhlnaqxtt.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxsam5ieXNnY3d2a2hsbmFxeHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NDgyMjQsImV4cCI6MjA4OTAyNDIyNH0.sCYdAHzP9SMizifcxmTb9wO11gbXiR4a7lDknf4cuNM";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
