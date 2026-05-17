@@ -3,6 +3,7 @@
  * Maps images to specific rows/columns via the drawing XML anchors.
  */
 import JSZip from 'jszip';
+import { logger } from '@/lib/logger';
 
 export interface ExtractedImage {
   base64: string;
@@ -26,6 +27,34 @@ function normalize(s: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+}
+
+function normalizeZipPath(target: string | null | undefined): string {
+  if (!target) return '';
+
+  const cleaned = target
+    .replace(/^\/+/, '')
+    .replace(/^\.\.\//, '')
+    .replace(/^xl\//, '');
+
+  return cleaned ? `xl/${cleaned}` : '';
+}
+
+function getElementsByLocalName(parent: Document | Element, localName: string): Element[] {
+  return Array.from(parent.getElementsByTagName('*')).filter((node) => node.localName === localName) as Element[];
+}
+
+function buildWorksheetRowIndexMap(worksheetXml: string): Map<number, number> {
+  const doc = parseXml(worksheetXml);
+  const rows = getElementsByLocalName(doc, 'row');
+  const rowIndexMap = new Map<number, number>();
+
+  rows.slice(1).forEach((row, dataIndex) => {
+    const excelRowNumber = Number(row.getAttribute('r') ?? dataIndex + 2);
+    rowIndexMap.set(excelRowNumber, dataIndex);
+  });
+
+  return rowIndexMap;
 }
 
 async function getSharedStrings(zip: JSZip): Promise<string[]> {
@@ -103,7 +132,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
     zip.forEach((path) => {
       if (path.startsWith('xl/')) zipEntries.push(path);
     });
-    console.info('[xlsxImageExtractor] zip xl/ entries:', zipEntries);
+    logger.info('[xlsxImageExtractor] zip xl/ entries:', zipEntries);
 
     // Collect media files
     const mediaFiles = new Map<string, JSZip.JSZipObject>();
@@ -132,17 +161,21 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       const { enunciadoCol, comentarioCol } = findImageColumns(wsXml, sharedStrings);
       if (enunciadoCol < 0 && comentarioCol < 0) continue;
 
+      const rowIndexMap = buildWorksheetRowIndexMap(wsXml);
+
       // Locate sheet rels
       const wsName = wsPath.split('/').pop()!;
       const relsPath = `xl/worksheets/_rels/${wsName}.rels`;
       const relsFile = zip.file(relsPath);
       if (!relsFile) continue;
       const relsXml = await relsFile.async('text');
-      const drawingMatch = relsXml.match(/Target="[^"]*drawings\/(drawing\d+\.xml)"/);
-      if (!drawingMatch) continue;
+      const drawingRelationship = getElementsByLocalName(parseXml(relsXml), 'Relationship').find((node) =>
+        node.getAttribute('Type')?.includes('/drawing'),
+      );
+      const drawingPath = normalizeZipPath(drawingRelationship?.getAttribute('Target'));
+      if (!drawingPath) continue;
 
-      const drawingFileName = drawingMatch[1];
-      const drawingPath = `xl/drawings/${drawingFileName}`;
+      const drawingFileName = drawingPath.split('/').pop()!;
       const drawingFile = zip.file(drawingPath);
       if (!drawingFile) continue;
 
@@ -152,13 +185,11 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       const drawingRelsXml = await drawingRelsFile.async('text');
 
       const rIdToMedia = new Map<string, string>();
-      const relRegex = /Id="(rId\d+)"[^>]*Target="([^"]+)"/g;
-      let relMatch;
-      while ((relMatch = relRegex.exec(drawingRelsXml)) !== null) {
-        const target = relMatch[2].replace(/^\.\.\//, '');
-        const mediaPath = target.startsWith('xl/') ? target : `xl/${target}`;
-        rIdToMedia.set(relMatch[1], mediaPath);
-      }
+      getElementsByLocalName(parseXml(drawingRelsXml), 'Relationship').forEach((node) => {
+        const id = node.getAttribute('Id');
+        const mediaPath = normalizeZipPath(node.getAttribute('Target'));
+        if (id && mediaPath) rIdToMedia.set(id, mediaPath);
+      });
 
       const drawingXml = await drawingFile.async('text');
       // Drawings may use the xdr: prefix OR be unprefixed depending on the writer
@@ -196,8 +227,9 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
           : 'image/png';
 
         const image: ExtractedImage = { base64: imageData, mimeType };
-        const dataRow = row - 1; // header is row 0
-        if (dataRow < 0) continue;
+        const excelRowNumber = row + 1;
+        const dataRow = rowIndexMap.get(excelRowNumber);
+        if (dataRow === undefined) continue;
 
         if (enunciadoCol >= 0 && col === enunciadoCol) {
           enunciadoImages.set(dataRow, image);
@@ -213,7 +245,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         }
       }
 
-      console.info('[xlsxImageExtractor]', {
+      logger.info('[xlsxImageExtractor]', {
         worksheet: wsPath,
         enunciadoCol,
         comentarioCol,
@@ -226,7 +258,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       });
     }
   } catch (err) {
-    console.error('[xlsxImageExtractor] Error extracting images:', err);
+    logger.error('[xlsxImageExtractor] Error extracting images:', err);
   }
 
   return { enunciadoImages, comentarioImages };
