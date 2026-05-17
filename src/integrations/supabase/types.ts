@@ -1196,6 +1196,7 @@ export type Database = {
       finalize_attempt_with_results: {
         Args: { p_attempt_id: string }
         Returns: {
+          is_within_window: boolean
           score_percentage: number
           total_answered: number
           total_correct: number
