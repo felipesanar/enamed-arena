@@ -132,6 +132,15 @@ export default function AdminUploadQuestions() {
     setEnunciadoImages(eImgs);
     setComentarioImages(cImgs);
 
+    // TODO: remover log [upload-debug] após validação do pipeline
+    console.log('[upload-debug] EXTRACTOR resultado:', {
+      enunciadoSize: eImgs.size,
+      comentarioSize: cImgs.size,
+      enunciadoKeys: Array.from(eImgs.keys()).slice(0, 10),
+      comentarioKeys: Array.from(cImgs.keys()).slice(0, 10),
+      totalRows: rows.length,
+    });
+
     if (eImgs.size > 0 || cImgs.size > 0) {
       toast({ title: `${eImgs.size + cImgs.size} imagens extraídas da planilha` });
     }
@@ -156,6 +165,14 @@ export default function AdminUploadQuestions() {
         const cImg = comentarioImages.get(index);
         if (eImg) imageJobs.push({ qNum, kind: 'enunciado', img: eImg });
         if (cImg) imageJobs.push({ qNum, kind: 'comentario', img: cImg });
+      });
+
+      // TODO: remover log [upload-debug] após validação do pipeline
+      console.log('[upload-debug] JOBS montados:', {
+        imageJobsLength: imageJobs.length,
+        jobsSample: imageJobs.slice(0, 5).map(j => ({ qNum: j.qNum, kind: j.kind, mime: j.img.mimeType })),
+        enunciadoImagesSize: enunciadoImages.size,
+        comentarioImagesSize: comentarioImages.size,
       });
 
       const imageUrls: Record<number, { enunciado_url?: string; comentario_url?: string }> = {};
@@ -210,6 +227,14 @@ export default function AdminUploadQuestions() {
       await Promise.all(Array.from({ length: Math.min(concurrency, imageJobs.length || 1) }, worker));
 
       setUploadProgress({ step: 'Salvando questões no servidor...', percent: 75 });
+
+      // TODO: remover log [upload-debug] após validação do pipeline
+      console.log('[upload-debug] PAYLOAD invoke:', {
+        simulado_id: simuladoId,
+        questionsCount: normalized.length,
+        imageUrlsKeysCount: Object.keys(imageUrls).length,
+        imageUrlsSample: Object.entries(imageUrls).slice(0, 3),
+      });
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('admin-upload-questions', {
         body: {
