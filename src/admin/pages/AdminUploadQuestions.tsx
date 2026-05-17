@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import JSZip from 'jszip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -92,7 +91,7 @@ export default function AdminUploadQuestions() {
 
     const arrayBuffer = await file.arrayBuffer();
 
-    const rows = (await parseXlsxFirstWorksheetRows(arrayBuffer)) as ParsedRow[];
+    const rows = (await parseXlsxFirstWorksheetRows(arrayBuffer)) as unknown as ParsedRow[];
     setParsedRows(rows);
 
     // Extract embedded images with JSZip
