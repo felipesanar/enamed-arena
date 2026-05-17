@@ -258,7 +258,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       });
     }
   } catch (err) {
-    console.error('[xlsxImageExtractor] Error extracting images:', err);
+    logger.error('[xlsxImageExtractor] Error extracting images:', err);
   }
 
   return { enunciadoImages, comentarioImages };
