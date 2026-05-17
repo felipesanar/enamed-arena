@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageExtractor';
 import { parseXlsxFirstWorksheetRows } from '../utils/xlsxTextParser';
+import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
 
 interface ParsedRow {
   numero: number;
@@ -77,6 +78,7 @@ export default function AdminUploadQuestions() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ step: string; percent: number } | null>(null);
   const [fileName, setFileName] = useState('');
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!simuladoId) return;
@@ -278,7 +280,11 @@ export default function AdminUploadQuestions() {
                     const hasEnunciado = enunciadoImages.has(i);
                     const hasComentario = comentarioImages.has(i);
                     return (
-                      <TableRow key={i}>
+                      <TableRow
+                        key={i}
+                        onClick={() => setPreviewIndex(i)}
+                        className="cursor-pointer hover:bg-muted/40"
+                      >
                         <TableCell>{q.numero}</TableCell>
                         <TableCell className="text-xs max-w-[400px] truncate">{q.Enunciado}</TableCell>
                         <TableCell><Badge variant="secondary" className="text-xs">{q['Grande Área']}</Badge></TableCell>
@@ -307,6 +313,14 @@ export default function AdminUploadQuestions() {
           </CardContent>
         </Card>
       )}
+
+      <QuestionPreviewModal
+        open={previewIndex !== null}
+        onOpenChange={(open) => !open && setPreviewIndex(null)}
+        row={previewIndex !== null ? parsedRows[previewIndex] : null}
+        enunciadoImage={previewIndex !== null ? enunciadoImages.get(previewIndex) : undefined}
+        comentarioImage={previewIndex !== null ? comentarioImages.get(previewIndex) : undefined}
+      />
     </div>
   );
 }
