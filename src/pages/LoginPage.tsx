@@ -107,7 +107,7 @@ export default function LoginPage() {
 
     if (mode === "signup") {
       if (!fullName.trim()) { setError("Informe seu nome completo."); return; }
-      if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
+      if (password.length < 10) { setError("A senha deve ter pelo menos 10 caracteres."); return; }
     }
 
     setFlowState("sending");

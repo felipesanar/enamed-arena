@@ -1,16 +1,56 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+// CORS is restrictive: the only legitimate caller is the admin app (browser
+// with admin JWT) and our own server-side jobs (with internal secret). No
+// wildcard, no public access.
+const ALLOWED_ORIGINS = new Set<string>([
+  "https://simulados.sanar.com.br",
+  "https://enamed-arena.lovable.app",
+]);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return (
+      /^id-preview--[a-z0-9-]+\.lovable\.app$/i.test(url.hostname) ||
+      url.hostname.endsWith(".sanar.com.br")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  const allowed = origin && isAllowedOrigin(origin) ? origin : "null";
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-internal-secret",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+}
 
 const HUBSPOT_WEBHOOK_URL =
   "https://api-na1.hubapi.com/automation/v4/webhook-triggers/9321751/E0lS7db";
+
+// Internal-secret for scheduled server-side jobs (e.g. nightly bulk sync).
+// Browser admin callers don't use this — they authenticate via their JWT.
+const INTERNAL_SECRET = Deno.env.get("HUBSPOT_SYNC_SECRET") ?? "";
 
 function subscriberType(segment?: string): string {
   if (segment === "pro") return "Aluno PRO";
   if (segment === "standard") return "Aluno SanarFlix";
   return "Não assinante";
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 interface UserPayload {
@@ -21,17 +61,84 @@ interface UserPayload {
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const headers = corsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
+  }
+
+  // ── Caller authorization ──────────────────────────────────────────────────
+  // Two legitimate paths:
+  //  (1) Admin JWT in Authorization header (browser caller from /admin UI).
+  //  (2) Shared HUBSPOT_SYNC_SECRET in x-internal-secret header (server jobs).
+  //
+  // Without one of these the request is rejected — this endpoint reads
+  // profiles with service-role privileges, so unauthenticated access leaks
+  // the full user list.
+  const internalSecretHeader = req.headers.get("x-internal-secret") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+
+  const hasValidInternalSecret =
+    INTERNAL_SECRET.length > 0 &&
+    internalSecretHeader.length > 0 &&
+    constantTimeEqual(internalSecretHeader, INTERNAL_SECRET);
+
+  let authorizedAsAdmin = false;
+  if (!hasValidInternalSecret && authHeader.startsWith("Bearer ")) {
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await callerClient.auth.getUser();
+      if (user) {
+        const adminClient = createClient(supabaseUrl, serviceRoleKey);
+        const { data: isAdmin } = await adminClient.rpc("has_role", {
+          _user_id: user.id,
+          _role: "admin",
+        });
+        authorizedAsAdmin = isAdmin === true;
+      }
+    } catch (err) {
+      console.error("[hubspot-contact-sync] Auth check failed:", err);
+    }
+  }
+
+  if (!hasValidInternalSecret && !authorizedAsAdmin) {
+    console.warn("[hubspot-contact-sync] Rejected: no valid credential");
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
   }
 
   try {
     const body = await req.json();
 
-    // Mode: "bulk" syncs all existing users, "single" syncs one user
+    // Mode: "bulk" syncs all existing users, "single" syncs one user.
+    // Bulk is restricted to internal-secret callers (cron/scheduled jobs) to
+    // avoid letting an admin trigger a multi-thousand-row scan from the UI.
     const mode: string = body.mode || "single";
 
     if (mode === "bulk") {
+      if (!hasValidInternalSecret) {
+        console.warn("[hubspot-contact-sync] Bulk denied: admin JWT cannot trigger bulk");
+        return new Response(
+          JSON.stringify({ error: "Bulk mode requires internal-secret" }),
+          { status: 403, headers: { ...headers, "Content-Type": "application/json" } }
+        );
+      }
+
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -97,17 +204,17 @@ Deno.serve(async (req) => {
           sent: successCount,
           failed: failCount,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...headers, "Content-Type": "application/json" } }
       );
     }
 
     // Single user mode
     const { email, full_name, segment, created_at } = body as UserPayload;
 
-    if (!email) {
+    if (!email || !/^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/.test(email)) {
       return new Response(
-        JSON.stringify({ error: "email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "valid email is required" }),
+        { status: 400, headers: { ...headers, "Content-Type": "application/json" } }
       );
     }
 
@@ -120,7 +227,7 @@ Deno.serve(async (req) => {
       source: "enamed-arena",
     };
 
-    console.log("Sending to HubSpot:", JSON.stringify(hubspotPayload));
+    console.log("Sending to HubSpot for email hash prefix:", email.slice(0, 3) + "***");
 
     const hubspotRes = await fetch(HUBSPOT_WEBHOOK_URL, {
       method: "POST",
@@ -129,27 +236,24 @@ Deno.serve(async (req) => {
     });
 
     const status = hubspotRes.status;
-    let responseBody: string;
-    try {
-      responseBody = await hubspotRes.text();
-    } catch {
-      responseBody = "";
-    }
 
-    console.log(`HubSpot response: ${status} - ${responseBody}`);
+    if (!hubspotRes.ok) {
+      const text = await hubspotRes.text().catch(() => "");
+      console.error(`HubSpot non-ok response: ${status} - ${text.slice(0, 200)}`);
+    }
 
     return new Response(
       JSON.stringify({ success: hubspotRes.ok, hubspot_status: status }),
       {
         status: hubspotRes.ok ? 200 : 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
       }
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(
       JSON.stringify({ error: "Internal error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...headers, "Content-Type": "application/json" } }
     );
   }
 });

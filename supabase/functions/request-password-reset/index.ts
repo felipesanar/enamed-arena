@@ -163,9 +163,19 @@ Deno.serve(async (req) => {
 
     console.log(`[request-password-reset] Recovery link generated for ${email}`);
 
+    // novu-email is gated by NOVU_RELAY_SECRET. Both functions read the same
+    // env var; keep them in sync when rotating the secret.
+    const novuRelaySecret = Deno.env.get("NOVU_RELAY_SECRET") ?? "";
+    if (!novuRelaySecret) {
+      console.error("[request-password-reset] NOVU_RELAY_SECRET missing — cannot deliver email");
+    }
+
     void fetch(NOVU_EMAIL_FUNCTION_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": novuRelaySecret,
+      },
       body: JSON.stringify(payload),
     })
       .then(async (response) => {

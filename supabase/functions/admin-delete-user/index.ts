@@ -1,11 +1,41 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Even though this endpoint already validates the admin JWT, leaving CORS
+// open as "*" lets a malicious site bait an authenticated admin into making
+// the call (CSRF-ish). Restricting origin removes that vector entirely.
+const ALLOWED_ORIGINS = new Set<string>([
+  "https://simulados.sanar.com.br",
+  "https://enamed-arena.lovable.app",
+]);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return (
+      /^id-preview--[a-z0-9-]+\.lovable\.app$/i.test(url.hostname) ||
+      url.hostname.endsWith(".sanar.com.br")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function buildCorsHeaders(origin: string | null): Record<string, string> {
+  const allowed = origin && isAllowedOrigin(origin) ? origin : "null";
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+}
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = buildCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

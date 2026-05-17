@@ -2,11 +2,36 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const NOVU_TRIGGER_URL = "https://kong.app-prod.sanar.cloud/novu/fallback/v1/events/trigger";
 
+// This function is invoked by Supabase Auth Hooks (server-to-server). It must
+// validate the Supabase signing secret (Standard Webhooks spec): otherwise
+// any caller can POST and trigger arbitrary Sanar-branded emails to any
+// address — i.e. open-relay phishing.
+//
+// Configure SEND_EMAIL_HOOK_SECRET to match the value in Supabase Dashboard
+// → Authentication → Hooks → Send Email Hook → Signing Secret.
+const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "";
+
+// No legitimate browser caller exists for this endpoint.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "null",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// HTML-escape any user-controlled string before interpolating into templates.
+function htmlEscape(value: string): string {
+  return String(value).replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default: return c;
+    }
+  });
+}
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const parts = (fullName || "Usuário").trim().split(/\s+/);
@@ -14,6 +39,56 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
     firstName: parts[0] || "Usuário",
     lastName: parts.slice(1).join(" ") || "",
   };
+}
+
+// Standard Webhooks signature verification (Supabase uses this format):
+// https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md
+async function verifyStandardWebhook(
+  req: Request,
+  rawBody: string,
+  secret: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  // Secret format from Supabase: "v1,whsec_<base64>"
+  const cleanSecret = secret.startsWith("v1,whsec_") ? secret.slice("v1,whsec_".length) : secret;
+  let keyBytes: Uint8Array;
+  try {
+    keyBytes = Uint8Array.from(atob(cleanSecret), c => c.charCodeAt(0));
+  } catch {
+    return { ok: false, reason: "bad_secret_format" };
+  }
+
+  const webhookId = req.headers.get("webhook-id") ?? "";
+  const webhookTimestamp = req.headers.get("webhook-timestamp") ?? "";
+  const webhookSignature = req.headers.get("webhook-signature") ?? "";
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    return { ok: false, reason: "missing_signature_headers" };
+  }
+
+  // Replay protection: tolerate at most 5 minutes of clock skew.
+  const tsSec = Number(webhookTimestamp);
+  if (!Number.isFinite(tsSec) || Math.abs(Date.now() / 1000 - tsSec) > 300) {
+    return { ok: false, reason: "timestamp_skew" };
+  }
+
+  const signedPayload = `${webhookId}.${webhookTimestamp}.${rawBody}`;
+  const key = await crypto.subtle.importKey(
+    "raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedPayload));
+  const expectedB64 = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+
+  // The header may contain multiple space-separated signatures: "v1,<b64> v1,<b64>"
+  const candidates = webhookSignature.split(" ").map(s => s.replace(/^v1,/, ""));
+  for (const candidate of candidates) {
+    if (candidate.length === expectedB64.length) {
+      let diff = 0;
+      for (let i = 0; i < candidate.length; i++) {
+        diff |= candidate.charCodeAt(i) ^ expectedB64.charCodeAt(i);
+      }
+      if (diff === 0) return { ok: true };
+    }
+  }
+  return { ok: false, reason: "signature_mismatch" };
 }
 
 // ─── Premium HTML Layout ───
@@ -84,15 +159,15 @@ function buildEmailHtml(type: string, firstName: string, actionUrl: string): { s
     const html = baseLayout(`<div class="container">
   ${emailHeader()}
   <div class="body">
-    <h3>Bem-vindo(a), ${firstName}</h3>
+    <h3>Bem-vindo(a), ${htmlEscape(firstName)}</h3>
     <p>Sua conta na plataforma <strong>PRO: ENAMED</strong> foi criada com sucesso. Para começar a acessar os simulados, confirme seu endereço de email.</p>
-    <div class="cta-wrap"><a href="${actionUrl}" class="cta" target="_blank">Confirmar email</a></div>
+    <div class="cta-wrap"><a href="${htmlEscape(actionUrl)}" class="cta" target="_blank">Confirmar email</a></div>
     <div class="note"><p>Este link expira em <strong>1 hora</strong>. Após esse prazo, solicite um novo na página de login.</p></div>
     <div class="divider"></div>
     <p style="font-size:13px;color:#9a9090">Se você não criou esta conta, nenhuma ação é necessária.</p>
   </div>
   ${emailFooter()}
-</div>`, `${firstName}, confirme seu email para acessar PRO: ENAMED`);
+</div>`, `${htmlEscape(firstName)}, confirme seu email para acessar PRO: ENAMED`);
     return { subject, html };
   }
 
@@ -102,15 +177,15 @@ function buildEmailHtml(type: string, firstName: string, actionUrl: string): { s
   ${emailHeader()}
   <div class="body">
     <h3>Redefinição de senha</h3>
-    <p>Olá, <strong>${firstName}</strong>. Recebemos uma solicitação de redefinição de senha para sua conta na plataforma PRO: ENAMED.</p>
+    <p>Olá, <strong>${htmlEscape(firstName)}</strong>. Recebemos uma solicitação de redefinição de senha para sua conta na plataforma PRO: ENAMED.</p>
     <p>Clique no botão abaixo para criar uma nova senha:</p>
-    <div class="cta-wrap"><a href="${actionUrl}" class="cta" target="_blank">Redefinir senha</a></div>
+    <div class="cta-wrap"><a href="${htmlEscape(actionUrl)}" class="cta" target="_blank">Redefinir senha</a></div>
     <div class="note"><p>Este link expira em <strong>1 hora</strong>. Se você não fez essa solicitação, nenhuma ação é necessária.</p></div>
     <div class="divider"></div>
     <p style="font-size:13px;color:#9a9090">Em caso de dúvidas, entre em contato com nosso suporte.</p>
   </div>
   ${emailFooter()}
-</div>`, `${firstName}, redefina sua senha na PRO: ENAMED`);
+</div>`, `${htmlEscape(firstName)}, redefina sua senha na PRO: ENAMED`);
     return { subject, html };
   }
 
@@ -120,12 +195,12 @@ function buildEmailHtml(type: string, firstName: string, actionUrl: string): { s
   ${emailHeader()}
   <div class="body">
     <h3>Seu link de acesso</h3>
-    <p>Olá, <strong>${firstName}</strong>. Use o botão abaixo para acessar sua conta de forma segura:</p>
-    <div class="cta-wrap"><a href="${actionUrl}" class="cta" target="_blank">Acessar plataforma</a></div>
+    <p>Olá, <strong>${htmlEscape(firstName)}</strong>. Use o botão abaixo para acessar sua conta de forma segura:</p>
+    <div class="cta-wrap"><a href="${htmlEscape(actionUrl)}" class="cta" target="_blank">Acessar plataforma</a></div>
     <div class="note"><p>Link de uso único, válido por <strong>1 hora</strong>.</p></div>
   </div>
   ${emailFooter()}
-</div>`, `${firstName}, aqui está seu link de acesso`);
+</div>`, `${htmlEscape(firstName)}, aqui está seu link de acesso`);
     return { subject, html };
   }
 
@@ -134,8 +209,8 @@ function buildEmailHtml(type: string, firstName: string, actionUrl: string): { s
   const html = baseLayout(`<div class="container">
   ${emailHeader()}
   <div class="body">
-    <p>Olá, <strong>${firstName}</strong>.</p>
-    <div class="cta-wrap"><a href="${actionUrl}" class="cta" target="_blank">Acessar</a></div>
+    <p>Olá, <strong>${htmlEscape(firstName)}</strong>.</p>
+    <div class="cta-wrap"><a href="${htmlEscape(actionUrl)}" class="cta" target="_blank">Acessar</a></div>
   </div>
   ${emailFooter()}
 </div>`, "Notificação PRO: ENAMED");
@@ -149,9 +224,40 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // ── Signature verification ────────────────────────────────────────────────
+  // The hook secret comes from the Supabase Auth Hooks UI. Any request that
+  // isn't signed by Supabase is rejected — this closes the open-relay vector.
+  if (!HOOK_SECRET) {
+    console.error("[auth-email-hook] SEND_EMAIL_HOOK_SECRET not configured");
+    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // We must read the raw body BEFORE parsing JSON, because the signature is
+  // computed over the byte-exact request body. Re-serializing JSON changes it.
+  const rawBody = await req.text();
+  const verifyResult = await verifyStandardWebhook(req, rawBody, HOOK_SECRET);
+  if (!verifyResult.ok) {
+    console.warn("[auth-email-hook] Rejected:", verifyResult.reason);
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
-    const payload = await req.json();
-    console.log("[auth-email-hook] Full payload:", JSON.stringify(payload));
+    const payload = JSON.parse(rawBody);
+    // Don't log full payload — it contains tokens. Log just the type.
+    console.log("[auth-email-hook] Event:", payload?.email_data?.email_action_type ?? payload?.type ?? "unknown");
 
     const user = payload.user || {};
     const emailData = payload.email_data || {};

@@ -150,8 +150,26 @@ Deno.serve(async (req) => {
     const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
     const captchaToken = typeof body?.captchaToken === "string" ? body.captchaToken : "";
 
-    if (!email || !email.includes("@")) return json({ error: "Email é obrigatório" }, 400, cors);
-    if (!password || password.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 400, cors);
+    // Email shape check: rejects header-injection vectors (newline, quotes).
+    if (!email || !/^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/.test(email)) {
+      return json({ error: "Email inválido" }, 400, cors);
+    }
+    // NIST SP 800-63B minimum is 8; we use 10 to leave headroom and still be
+    // user-friendly. Length is the strongest single factor — character class
+    // rules don't add real entropy and hurt UX.
+    if (!password || password.length < 10) {
+      return json({ error: "Senha deve ter pelo menos 10 caracteres" }, 400, cors);
+    }
+    // Reject the most trivial passwords up-front. A full breach-corpus check
+    // (e.g. HaveIBeenPwned k-anonymity) would be ideal but adds a network
+    // hop per signup; this is a cheap baseline.
+    const trivialPasswords = new Set([
+      "1234567890", "123456789", "0000000000", "qwertyuiop",
+      "password12", "senha12345", "abcdefghij",
+    ]);
+    if (trivialPasswords.has(password.toLowerCase())) {
+      return json({ error: "Senha muito fraca. Escolha uma combinação menos comum." }, 400, cors);
+    }
     if (!fullName) return json({ error: "Nome é obrigatório" }, 400, cors);
 
     // If captcha secrets are configured, a valid token is MANDATORY.

@@ -2,11 +2,74 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const NOVU_TRIGGER_URL = "https://kong.app-prod.sanar.cloud/novu/fallback/v1/events/trigger";
 
+// ─── Auth: shared internal secret ────────────────────────────────────────────
+// This function is an internal relay between Supabase auth flows and Novu.
+// It must NOT be callable from the public internet — otherwise it becomes an
+// open relay that spammers can use to send phishing emails from the Sanar
+// domain (which has DKIM/SPF aligned with our infra).
+//
+// Callers are expected to send header `x-internal-secret: <NOVU_RELAY_SECRET>`.
+// Use the same value in request-password-reset / auth-email-hook when they
+// invoke this function. Keep the secret out of any browser bundle.
+const INTERNAL_SECRET = Deno.env.get("NOVU_RELAY_SECRET") ?? "";
+
+// CORS is intentionally restrictive: only OPTIONS requires CORS headers, and
+// even then we don't echo arbitrary origins. There's no legitimate browser
+// caller for this endpoint.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "null",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-internal-secret",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// ─── Action URL allowlist ────────────────────────────────────────────────────
+// The action URL is inserted into the email body — it MUST point to a domain
+// we control. Otherwise a caller (or attacker who got the secret) could send
+// emails branded as Sanar that link to phishing destinations.
+const ALLOWED_ACTION_HOSTS: ReadonlyArray<RegExp> = [
+  /^simulados\.sanar\.com\.br$/i,
+  /^([a-z0-9-]+\.)*sanar\.com\.br$/i,
+  /^([a-z0-9-]+\.)*sanaflix\.com$/i,
+  /^enamed-arena\.lovable\.app$/i,
+  /^id-preview--[a-z0-9-]+\.lovable\.app$/i,
+  /^([a-z0-9-]+\.)*supabase\.co$/i, // for direct verify links
+];
+
+function isAllowedActionUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    return ALLOWED_ACTION_HOSTS.some((rx) => rx.test(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
+// ─── HTML escape ─────────────────────────────────────────────────────────────
+// Email templates are built via string interpolation. Without escaping, a
+// crafted firstName like `<script>` or actionUrl with HTML inside would inject
+// arbitrary markup into the rendered email (rendered by mail clients that
+// support HTML, which is virtually all of them).
+function htmlEscape(value: string): string {
+  return String(value).replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default: return c;
+    }
+  });
+}
+
+// URLs going into href="..." need stricter handling: must be http(s) and
+// already pass the allowlist. We still HTML-escape to neutralize quote breakouts.
+function safeHref(value: string): string {
+  if (!isAllowedActionUrl(value)) return "#";
+  return htmlEscape(value);
+}
 
 // ─── Helpers ───
 
@@ -83,13 +146,15 @@ function emailFooter(): string {
 // ─── Email Templates ───
 
 function welcomeEmailHtml(firstName: string, confirmationUrl: string): string {
+  const safeName = htmlEscape(firstName);
+  const safeUrl = safeHref(confirmationUrl);
   const content = `<div class="container">
   ${emailHeader()}
   <div class="body">
-    <h3>Bem-vindo(a), ${firstName}</h3>
+    <h3>Bem-vindo(a), ${safeName}</h3>
     <p>Sua conta na plataforma <strong>PRO: ENAMED</strong> foi criada com sucesso. Para começar a acessar os simulados, confirme seu endereço de email.</p>
     <div class="cta-wrap">
-      <a href="${confirmationUrl}" class="cta" target="_blank">Confirmar email</a>
+      <a href="${safeUrl}" class="cta" target="_blank">Confirmar email</a>
     </div>
     <div class="note">
       <p>Este link expira em <strong>1 hora</strong>. Após esse prazo, solicite um novo na página de login.</p>
@@ -99,18 +164,20 @@ function welcomeEmailHtml(firstName: string, confirmationUrl: string): string {
   </div>
   ${emailFooter()}
 </div>`;
-  return baseLayout(content, `${firstName}, confirme seu email para acessar a plataforma PRO: ENAMED`);
+  return baseLayout(content, `${safeName}, confirme seu email para acessar a plataforma PRO: ENAMED`);
 }
 
 function recoveryEmailHtml(firstName: string, recoveryUrl: string): string {
+  const safeName = htmlEscape(firstName);
+  const safeUrl = safeHref(recoveryUrl);
   const content = `<div class="container">
   ${emailHeader()}
   <div class="body">
     <h3>Redefinição de senha</h3>
-    <p>Olá, <strong>${firstName}</strong>. Recebemos uma solicitação de redefinição de senha para sua conta na plataforma PRO: ENAMED.</p>
+    <p>Olá, <strong>${safeName}</strong>. Recebemos uma solicitação de redefinição de senha para sua conta na plataforma PRO: ENAMED.</p>
     <p>Clique no botão abaixo para criar uma nova senha:</p>
     <div class="cta-wrap">
-      <a href="${recoveryUrl}" class="cta" target="_blank">Redefinir senha</a>
+      <a href="${safeUrl}" class="cta" target="_blank">Redefinir senha</a>
     </div>
     <div class="note">
       <p>Este link expira em <strong>1 hora</strong>. Se você não fez essa solicitação, nenhuma ação é necessária — sua senha permanecerá inalterada.</p>
@@ -120,17 +187,19 @@ function recoveryEmailHtml(firstName: string, recoveryUrl: string): string {
   </div>
   ${emailFooter()}
 </div>`;
-  return baseLayout(content, `${firstName}, redefina sua senha na plataforma PRO: ENAMED`);
+  return baseLayout(content, `${safeName}, redefina sua senha na plataforma PRO: ENAMED`);
 }
 
 function magicLinkEmailHtml(firstName: string, magicLinkUrl: string): string {
+  const safeName = htmlEscape(firstName);
+  const safeUrl = safeHref(magicLinkUrl);
   const content = `<div class="container">
   ${emailHeader()}
   <div class="body">
     <h3>Seu link de acesso</h3>
-    <p>Olá, <strong>${firstName}</strong>. Use o botão abaixo para acessar sua conta de forma segura:</p>
+    <p>Olá, <strong>${safeName}</strong>. Use o botão abaixo para acessar sua conta de forma segura:</p>
     <div class="cta-wrap">
-      <a href="${magicLinkUrl}" class="cta" target="_blank">Acessar plataforma</a>
+      <a href="${safeUrl}" class="cta" target="_blank">Acessar plataforma</a>
     </div>
     <div class="note">
       <p>Link de uso único, válido por <strong>1 hora</strong>.</p>
@@ -138,7 +207,7 @@ function magicLinkEmailHtml(firstName: string, magicLinkUrl: string): string {
   </div>
   ${emailFooter()}
 </div>`;
-  return baseLayout(content, `${firstName}, aqui está seu link de acesso à plataforma PRO: ENAMED`);
+  return baseLayout(content, `${safeName}, aqui está seu link de acesso à plataforma PRO: ENAMED`);
 }
 
 // ─── Novu Trigger ───
@@ -226,9 +295,48 @@ async function triggerNovu(payload: NovuPayload): Promise<Response> {
 
 // ─── Handler ───
 
+// Constant-time string compare (avoid timing attacks on the secret)
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // ── Internal-secret gate ─────────────────────────────────────────────────
+  // Without this, the function is a public open relay that lets any caller
+  // send a Sanar-branded email to any address — i.e. perfect phishing
+  // infrastructure. The secret is shared only with our other Edge Functions
+  // (request-password-reset, auth-email-hook, create-guest-account).
+  if (!INTERNAL_SECRET) {
+    console.error("[novu-email] NOVU_RELAY_SECRET not configured — refusing");
+    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const provided = req.headers.get("x-internal-secret") ?? "";
+  if (!constantTimeEqual(provided, INTERNAL_SECRET)) {
+    console.warn("[novu-email] Rejected: missing or invalid x-internal-secret");
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -241,12 +349,31 @@ serve(async (req) => {
       );
     }
 
+    // Reject any actionUrl that doesn't point to a Sanar-controlled domain.
+    // This is the second layer (the first being the internal secret): even
+    // if a relay caller is compromised, it can't redirect users elsewhere.
+    if (!isAllowedActionUrl(body.actionUrl)) {
+      console.warn("[novu-email] Rejected: actionUrl not in allowlist:", body.actionUrl.slice(0, 100));
+      return new Response(
+        JSON.stringify({ error: "actionUrl not allowed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Basic email validation — prevents header injection via newline characters.
+    if (!/^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/.test(body.email)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return await triggerNovu(body);
   } catch (error) {
     console.error("[novu-email] Error:", error);
-    const msg = error instanceof Error ? error.message : "Unknown error";
+    // Do NOT echo error message back — avoids leaking stack traces / internal paths
     return new Response(
-      JSON.stringify({ error: msg }),
+      JSON.stringify({ error: "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
