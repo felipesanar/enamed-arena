@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    const { simulado_id, questions, images } = await req.json();
+    const { simulado_id, questions, images, image_urls } = await req.json();
     if (!simulado_id || !Array.isArray(questions) || questions.length === 0) {
       return new Response(JSON.stringify({ error: "simulado_id and questions array required" }), { status: 400, headers: corsHeaders });
     }
@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
       D: "alternativa_d",
     };
 
-    // Type for images payload
+    // New (preferred) payload: client uploaded images directly to Storage and sends only URLs.
+    const urlMap: Record<number, { enunciado_url?: string; comentario_url?: string }> = image_urls || {};
+    // Legacy fallback: base64 payload (kept for backward compatibility).
     const imageMap: Record<number, {
       enunciado?: { data: string; mime: string };
       comentario?: { data: string; mime: string };
@@ -73,6 +75,10 @@ Deno.serve(async (req) => {
       // Upload images to Storage if present
       let imageUrl: string | null = q.image_url || null;
       let explanationImageUrl: string | null = null;
+
+      const urls = urlMap[qNum];
+      if (urls?.enunciado_url) imageUrl = urls.enunciado_url;
+      if (urls?.comentario_url) explanationImageUrl = urls.comentario_url;
 
       const qImages = imageMap[qNum];
 
