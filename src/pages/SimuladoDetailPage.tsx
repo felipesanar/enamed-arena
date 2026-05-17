@@ -130,7 +130,9 @@ export default function SimuladoDetailPage() {
 
   // Detect veteran: user who has completed at least one exam
   const { simulados: allSimulados } = useSimulados();
-  const isVeteran = allSimulados.some(s => s.userState?.finished === true);
+  // Always require the confirmation checklist before starting a simulado,
+  // regardless of whether the user has finished previous ones.
+  const isVeteran = false;
   const [showFullChecklist, setShowFullChecklist] = useState(false);
 
   const { simulado, loading, error, refetch } = useSimuladoDetail(id);
