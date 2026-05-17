@@ -156,6 +156,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       const drawingXml = await drawingFile.async('text');
       const anchorRegex = /<xdr:(twoCellAnchor|oneCellAnchor)[^>]*>([\s\S]*?)<\/xdr:\1>/g;
       let anchorMatch;
+      const anchorDebug: Array<{ row: number; col: number; hasBlip: boolean }> = [];
 
       while ((anchorMatch = anchorRegex.exec(drawingXml)) !== null) {
         const block = anchorMatch[2];
@@ -167,6 +168,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         const col = parseInt(fromColMatch[1], 10);
 
         const blipMatch = block.match(/r:embed="(rId\d+)"/);
+        anchorDebug.push({ row, col, hasBlip: !!blipMatch });
         if (!blipMatch) continue;
         const mediaPath = rIdToMedia.get(blipMatch[1]);
         if (!mediaPath) continue;
@@ -206,6 +208,10 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         comentarioCol,
         enunciadoFound: enunciadoImages.size,
         comentarioFound: comentarioImages.size,
+        drawingPath,
+        anchorsCount: anchorDebug.length,
+        anchorsSample: anchorDebug.slice(0, 5),
+        drawingXmlHead: drawingXml.slice(0, 400),
       });
     }
   } catch (err) {
