@@ -44,6 +44,37 @@ interface NormalizedQuestion {
   correta: string;
 }
 
+function normalizeStoragePublicUrl(value: string | undefined | null): string {
+  const raw = value?.trim();
+  if (!raw) return '';
+
+  const toPublicUrl = (path: string) => supabase.storage.from('question-images').getPublicUrl(path).data.publicUrl;
+
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      const url = new URL(raw);
+      const objectMarker = '/storage/v1/object/';
+      const publicMarker = '/storage/v1/object/public/';
+
+      if (url.pathname.includes(publicMarker)) return raw;
+
+      if (url.pathname.includes(objectMarker)) {
+        const storagePath = url.pathname.split(objectMarker)[1] ?? '';
+        const [, ...pathParts] = storagePath.split('/');
+        const objectPath = pathParts.join('/');
+        return objectPath ? toPublicUrl(objectPath) : raw;
+      }
+    } catch {
+      return raw;
+    }
+
+    return raw;
+  }
+
+  const objectPath = raw.replace(/^question-images\//, '').replace(/^\/+/, '');
+  return objectPath ? toPublicUrl(objectPath) : '';
+}
+
 function normalizeRow(row: ParsedRow): NormalizedQuestion {
   const especialidade = row.Especialidade || '';
   const tema = row.Tema || '';
@@ -58,7 +89,7 @@ function normalizeRow(row: ParsedRow): NormalizedQuestion {
     tema: composedTheme,
     dificuldade: 'medium',
     explicacao: row['Comentário'] || '',
-    image_url: row['Imagem do Enunciado'] || '',
+    image_url: normalizeStoragePublicUrl(row['Imagem do Enunciado']),
     alternativa_a: row['Alternativa A'] || '',
     alternativa_b: row['Alternativa B'] || '',
     alternativa_c: row['Alternativa C'] || '',
@@ -180,23 +211,20 @@ export default function AdminUploadQuestions() {
 
       setUploadProgress({ step: 'Salvando questões no servidor...', percent: 75 });
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${supabaseUrl}/functions/v1/admin-upload-questions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-upload-questions', {
+        body: {
+          simulado_id: simuladoId,
+          questions: normalized,
+          image_urls: imageUrls,
         },
-        body: JSON.stringify({ simulado_id: simuladoId, questions: normalized, image_urls: imageUrls }),
       });
 
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        const text = await res.text();
-        throw new Error(`Erro HTTP ${res.status}: ${text.slice(0, 120)}`);
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Falha ao salvar questões no servidor');
       }
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || `Erro HTTP ${res.status}`);
+      if (!result || typeof result.inserted !== 'number') {
+        throw new Error('Resposta inválida da função de upload');
+      }
 
       setUploadProgress({ step: 'Finalizado!', percent: 100 });
       toast({ title: `${result.inserted} questões inseridas com sucesso!` });
