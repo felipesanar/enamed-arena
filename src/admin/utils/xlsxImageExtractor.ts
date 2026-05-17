@@ -98,6 +98,13 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
   try {
     const zip = await JSZip.loadAsync(buffer);
 
+    // DEBUG: list all xl/ entries to understand structure
+    const zipEntries: string[] = [];
+    zip.forEach((path) => {
+      if (path.startsWith('xl/')) zipEntries.push(path);
+    });
+    console.info('[xlsxImageExtractor] zip xl/ entries:', zipEntries);
+
     // Collect media files
     const mediaFiles = new Map<string, JSZip.JSZipObject>();
     zip.forEach((path, file) => {
