@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
     try {
       const result = await resetPassword(trimmed);
       if (result.error) {
-        setError(result.error);
+        setError(translateResetError(result.error));
         setFlowState("idle");
         return;
       }
@@ -48,6 +48,17 @@ export default function ForgotPasswordPage() {
       setFlowState("idle");
     }
   };
+
+  function translateResetError(raw: string): string {
+    const lower = raw.toLowerCase();
+    if (lower.includes("rate limit") || lower.includes("over_email") || lower.includes("for security purposes")) {
+      return "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.";
+    }
+    if (lower.includes("non-2xx") || lower.includes("erro interno") || lower.includes("configuração")) {
+      return "Não conseguimos enviar o link agora. Tente novamente em alguns minutos ou fale com o suporte.";
+    }
+    return raw;
+  }
 
   return (
     <AuthShell

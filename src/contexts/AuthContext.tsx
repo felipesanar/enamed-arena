@@ -26,6 +26,27 @@ function getRedirectUrl(): string {
   return `${origin}/auth/callback`;
 }
 
+/**
+ * supabase.functions.invoke() returns a generic "Edge Function returned a non-2xx
+ * status code" message for any HTTP error, hiding the actual server message.
+ * The body is available via error.context (Response). Try to read it so we
+ * surface the friendly message the function actually returned.
+ */
+async function extractInvokeErrorMessage(fnError: unknown, fallback: string): Promise<string> {
+  const ctx = (fnError as { context?: Response | { json?: () => Promise<unknown> } })?.context;
+  if (ctx && typeof (ctx as Response).clone === 'function') {
+    try {
+      const body = await (ctx as Response).clone().json();
+      const serverMsg = (body as { error?: string })?.error;
+      if (serverMsg) return serverMsg;
+    } catch {
+      // fall through
+    }
+  }
+  const msg = (fnError as { message?: string })?.message;
+  return msg && !msg.includes('non-2xx') ? msg : fallback;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -101,8 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (fnError) {
-        logger.log('[AuthContext] Edge function invocation error:', fnError.message);
-        return { error: fnError.message };
+        const msg = await extractInvokeErrorMessage(fnError, 'Erro ao criar conta. Tente novamente em alguns instantes.');
+        logger.log('[AuthContext] Edge function invocation error:', fnError.message, '→', msg);
+        return { error: msg };
       }
 
       if (data?.error) {
@@ -167,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logger.log('[AuthContext] Requesting password reset');
 
     const redirectTo = `${window.location.origin}/reset-password`;
-    const { error } = await supabase.functions.invoke('request-password-reset', {
+    const { data, error } = await supabase.functions.invoke('request-password-reset', {
       body: {
         email: normalizedEmail,
         redirectTo,
@@ -175,8 +197,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      logger.log('[AuthContext] Password reset error:', error.message);
-      return { error: error.message };
+      const msg = await extractInvokeErrorMessage(error, 'Não foi possível enviar o link agora. Tente novamente em alguns instantes ou fale com o suporte.');
+      logger.log('[AuthContext] Password reset error:', error.message, '→', msg);
+      return { error: msg };
+    }
+
+    if (data?.error) {
+      logger.log('[AuthContext] Password reset server error:', data.error);
+      return { error: data.error };
     }
 
     return { error: null };

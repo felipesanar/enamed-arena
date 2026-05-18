@@ -55,6 +55,12 @@ function translateError(msg: string): string {
   for (const [key, value] of map) {
     if (lower.includes(key)) return value;
   }
+  // If the message looks like a friendly PT-BR server message, pass it through.
+  // Otherwise show the generic fallback to avoid leaking technical jargon.
+  const technicalMarkers = ["non-2xx", "undefined", "cors", "failed to", "functionserror", "abort", "syntaxerror", "typeerror"];
+  if (!technicalMarkers.some((t) => lower.includes(t)) && /[áéíóúâêôãõç]/i.test(msg)) {
+    return msg;
+  }
   return "Ocorreu um erro inesperado. Tente novamente em alguns instantes.";
 }
 
