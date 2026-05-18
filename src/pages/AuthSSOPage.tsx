@@ -49,12 +49,19 @@ export default function AuthSSOPage() {
 
       logger.log('[AuthSSO] Requesting magic link for:', email);
 
-      try {
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+      if (!supabaseUrl || !anonKey) {
+        logger.error('[AuthSSO] Missing Supabase env vars', { hasUrl: !!supabaseUrl, hasKey: !!anonKey });
+        setState('error');
+        setErrorMessage('Configuração de acesso indisponível. Avise o suporte.');
+        return;
+      }
+
+      try {
         const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/sso-magic-link`,
+          `${supabaseUrl}/functions/v1/sso-magic-link`,
           {
             method: 'POST',
             headers: {
@@ -65,12 +72,20 @@ export default function AuthSSOPage() {
           }
         );
 
-        const data = await res.json();
+        let data: { url?: string; error?: string } = {};
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          logger.error('[AuthSSO] Failed to parse response:', res.status, parseErr);
+          setState('error');
+          setErrorMessage(`Resposta inválida do servidor (status ${res.status}). Tente novamente em alguns instantes.`);
+          return;
+        }
 
         if (!res.ok) {
           logger.error('[AuthSSO] Error response:', res.status, data);
           setState('error');
-          setErrorMessage(data.error || 'Erro ao gerar link de acesso.');
+          setErrorMessage(data.error || `Erro ao gerar link de acesso (status ${res.status}).`);
           return;
         }
 
@@ -85,7 +100,12 @@ export default function AuthSSOPage() {
       } catch (err) {
         logger.error('[AuthSSO] Fetch error:', err);
         setState('error');
-        setErrorMessage('Erro de conexão. Verifique sua internet e tente novamente.');
+        const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        setErrorMessage(
+          isOffline
+            ? 'Você está sem conexão. Verifique sua internet e tente novamente.'
+            : 'Não conseguimos contatar o servidor. Pode ser uma extensão do navegador, rede corporativa ou bloqueio de DNS. Tente em uma aba anônima ou em outra rede.'
+        );
       }
     }
 
