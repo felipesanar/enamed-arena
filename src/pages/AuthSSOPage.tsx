@@ -49,63 +49,42 @@ export default function AuthSSOPage() {
 
       logger.log('[AuthSSO] Requesting magic link for:', email);
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      if (!supabaseUrl || !anonKey) {
-        logger.error('[AuthSSO] Missing Supabase env vars', { hasUrl: !!supabaseUrl, hasKey: !!anonKey });
-        setState('error');
-        setErrorMessage('Configuração de acesso indisponível. Avise o suporte.');
-        return;
-      }
-
       try {
-        const res = await fetch(
-          `${supabaseUrl}/functions/v1/sso-magic-link`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': anonKey,
-            },
-            body: JSON.stringify({ email, name, segment }),
-          }
+        const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>(
+          'sso-magic-link',
+          { body: { email, name, segment } }
         );
 
-        let data: { url?: string; error?: string } = {};
-        try {
-          data = await res.json();
-        } catch (parseErr) {
-          logger.error('[AuthSSO] Failed to parse response:', res.status, parseErr);
+        if (error) {
+          logger.error('[AuthSSO] Invoke error:', error);
           setState('error');
-          setErrorMessage(`Resposta inválida do servidor (status ${res.status}). Tente novamente em alguns instantes.`);
+          const isNetwork = error.name === 'FunctionsFetchError';
+          if (isNetwork) {
+            const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+            setErrorMessage(
+              isOffline
+                ? 'Você está sem conexão. Verifique sua internet e tente novamente.'
+                : 'Não conseguimos contatar o servidor. Pode ser uma extensão do navegador, rede corporativa ou bloqueio de DNS. Tente em uma aba anônima ou em outra rede.'
+            );
+          } else {
+            setErrorMessage(data?.error || error.message || 'Erro ao gerar link de acesso.');
+          }
           return;
         }
 
-        if (!res.ok) {
-          logger.error('[AuthSSO] Error response:', res.status, data);
-          setState('error');
-          setErrorMessage(data.error || `Erro ao gerar link de acesso (status ${res.status}).`);
-          return;
-        }
-
-        if (data.url) {
+        if (data?.url) {
           logger.log('[AuthSSO] Redirecting to magic link');
           setState('redirecting');
           window.location.href = data.url;
         } else {
+          logger.error('[AuthSSO] Unexpected response:', data);
           setState('error');
-          setErrorMessage('Resposta inesperada do servidor.');
+          setErrorMessage(data?.error || 'Resposta inesperada do servidor.');
         }
       } catch (err) {
-        logger.error('[AuthSSO] Fetch error:', err);
+        logger.error('[AuthSSO] Unexpected error:', err);
         setState('error');
-        const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
-        setErrorMessage(
-          isOffline
-            ? 'Você está sem conexão. Verifique sua internet e tente novamente.'
-            : 'Não conseguimos contatar o servidor. Pode ser uma extensão do navegador, rede corporativa ou bloqueio de DNS. Tente em uma aba anônima ou em outra rede.'
-        );
+        setErrorMessage('Erro inesperado. Tente novamente em alguns instantes.');
       }
     }
 
