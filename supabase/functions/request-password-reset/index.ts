@@ -1,4 +1,7 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+// Pinned to avoid silent regressions when Supabase Edge runtime resolves a new
+// minor/patch. The Mar→May 2026 incident was caused by an unpinned `@2`
+// re-resolving to a gotrue error-shape change. Bump deliberately, never auto.
+import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
