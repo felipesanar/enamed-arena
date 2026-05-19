@@ -77,9 +77,18 @@ function buildRecoveryUrl(redirectTo: string, properties: { action_link?: string
   return properties.action_link ?? redirectTo;
 }
 
-function isSilentAuthError(message: string) {
-  const normalized = message.toLowerCase();
-  return normalized.includes("user not found") || normalized.includes("unable to find user");
+function isSilentAuthError(message: string, status?: number, code?: string) {
+  const normalized = (message ?? "").toLowerCase();
+  // Status 404 from auth admin = user doesn't exist (new in supabase-js >= 2.5x)
+  if (status === 404) return true;
+  // Error codes returned by gotrue for missing users
+  if (code === "user_not_found" || code === "auth_user_not_found") return true;
+  return (
+    normalized.includes("user not found") ||
+    normalized.includes("unable to find user") ||
+    normalized.includes("no rows returned") ||
+    normalized.includes("user does not exist")
+  );
 }
 
 function getFullName(user: { email?: string; user_metadata?: { full_name?: string } } | null, email: string) {
@@ -130,18 +139,29 @@ Deno.serve(async (req) => {
     });
 
     if (error) {
-      if (isSilentAuthError(error.message)) {
+      // supabase-js >= 2.5x exposes status/code on AuthError; older versions only have message.
+      const errStatus = (error as { status?: number }).status;
+      const errCode = (error as { code?: string }).code;
+      if (isSilentAuthError(error.message, errStatus, errCode)) {
         console.log(`[request-password-reset] Silent success for unknown user: ${email}`);
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...getCorsHeaders(new URL(redirectTo).origin), "Content-Type": "application/json" },
         });
       }
 
-      console.error("[request-password-reset] generateLink error:", error.message);
-      return new Response(JSON.stringify({ success: false, error: "Erro ao gerar link de recuperação" }), {
-        status: 500,
-        headers: { ...getCorsHeaders(new URL(redirectTo).origin), "Content-Type": "application/json" },
-      });
+      console.error(`[request-password-reset] generateLink error: status=${errStatus} code=${errCode} message=${error.message}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Erro ao gerar link de recuperação",
+          // Detalhe técnico para debug — não revela existência do usuário.
+          debug: { status: errStatus, code: errCode, message: error.message },
+        }),
+        {
+          status: 500,
+          headers: { ...getCorsHeaders(new URL(redirectTo).origin), "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (!data?.properties) {
