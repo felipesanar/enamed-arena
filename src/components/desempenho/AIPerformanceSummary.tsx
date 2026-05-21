@@ -31,10 +31,10 @@ export function AIPerformanceSummary({ studentName, simuladoTitle, breakdown }: 
             percentageScore: breakdown.overall.percentageScore,
           },
           byArea: breakdown.byArea.map((a) => ({
-            area: a.area, total: a.total, correct: a.correct, score: a.score,
+            area: a.area, total: a.questions, correct: a.correct, score: a.score,
           })),
           bySubspecialty: breakdown.bySubspecialty.map((s) => ({
-            specialty: s.specialty, subTopic: s.subTopic, total: s.total, correct: s.correct, score: s.score,
+            specialty: s.specialty, subTopic: s.subspecialty, total: s.questions, correct: s.correct, score: s.score,
           })),
         },
       });
