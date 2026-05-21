@@ -468,6 +468,30 @@ export type Database = {
           },
         ]
       }
+      guest_signup_rate_limit: {
+        Row: {
+          attempts: number
+          bucket_key: string
+          bucket_type: string
+          last_event_at: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          bucket_key: string
+          bucket_type: string
+          last_event_at?: string
+          window_start?: string
+        }
+        Update: {
+          attempts?: number
+          bucket_key?: string
+          bucket_type?: string
+          last_event_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       onboarding_profiles: {
         Row: {
           completed_at: string | null
@@ -1155,6 +1179,14 @@ export type Database = {
           theme: string
           total_responses: number
         }[]
+      }
+      bump_guest_signup_bucket: {
+        Args: {
+          p_bucket_key: string
+          p_bucket_type: string
+          p_window_ms?: number
+        }
+        Returns: number
       }
       create_attempt_guarded: {
         Args: { p_simulado_id: string }
