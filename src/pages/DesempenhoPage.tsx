@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { DesempenhoSimuladoPanel } from '@/components/desempenho/DesempenhoSimuladoPanel';
+import { AIPerformanceSummary } from '@/components/desempenho/AIPerformanceSummary';
 import { useSimulados } from '@/hooks/useSimulados';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
@@ -137,6 +138,13 @@ export default function DesempenhoPage() {
           studentName={profile?.name ?? 'Aluno'}
           resultNavVariant="public"
         />
+      <div className="mt-5">
+        <AIPerformanceSummary
+          studentName={profile?.name ?? 'Aluno'}
+          simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
+          breakdown={breakdown}
+        />
+      </div>
     </PageTransition>
   );
 }
