@@ -112,6 +112,31 @@ export interface UserPerformanceHistoryRow {
   finished_at: string;
 }
 
+export interface UserAreaScoreRow {
+  simulado_id: string;
+  area: string;
+  total: number;
+  correct: number;
+  score_percentage: number;
+}
+
+export interface UserAttemptBehaviorRow {
+  attempt_id: string;
+  simulado_id: string;
+  total_questions: number;
+  total_answered: number;
+  total_correct: number;
+  total_marked_for_review: number;
+  total_high_confidence: number;
+  high_confidence_correct: number;
+  high_confidence_wrong: number;
+  tab_exit_count: number;
+  fullscreen_exit_count: number;
+  duration_seconds: number | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
 export interface AttemptQuestionResultRow {
   question_id: string;
   selected_option_id: string | null;
@@ -500,6 +525,28 @@ export const simuladosApi = {
       throw error;
     }
     return (data || []) as UserPerformanceHistoryRow[];
+  },
+
+  async getUserAreaScoresBySimulado(userId: string): Promise<UserAreaScoreRow[]> {
+    const { data, error } = await supabase.rpc('get_user_area_scores_by_simulado', {
+      p_user_id: userId,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching user area scores:', error);
+      throw error;
+    }
+    return (data || []) as UserAreaScoreRow[];
+  },
+
+  async getUserAttemptBehaviorStats(userId: string): Promise<UserAttemptBehaviorRow[]> {
+    const { data, error } = await supabase.rpc('get_user_attempt_behavior_stats', {
+      p_user_id: userId,
+    });
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching attempt behavior stats:', error);
+      throw error;
+    }
+    return (data || []) as UserAttemptBehaviorRow[];
   },
 
   // ─── Error Notebook ───

@@ -104,15 +104,18 @@ export function useRanking(): UseRankingReturn {
     [onboarding?.targetInstitutions],
   );
 
-  // Fetch available simulados
+  // Fetch available simulados — dep é user.id, não o objeto user (que troca de
+  // referência em token refresh do Supabase). Sem isso, voltar pra aba do navegador
+  // forçava refetch e flash de loading desnecessário.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setLoading(false);
       return;
     }
-    
+
     let cancelled = false;
-    
+
     async function load() {
       logger.log('[useRanking] Loading simulados with results');
       try {
@@ -134,15 +137,11 @@ export function useRanking(): UseRankingReturn {
         }
       }
     }
-    
+
     load();
     return () => { cancelled = true; };
-    // Intentional: re-run only when the user identity changes. The setter
-    // (setSelectedSimuladoId) is stable, and the initial-selection guard
-    // already uses the current `selectedSimuladoId` snapshot. Adding it
-    // would cause the simulado list to refetch on every selection change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [userId]);
 
   // Fetch ranking when simulado changes
   useEffect(() => {

@@ -7,6 +7,26 @@ import { supabase } from "@/integrations/supabase/client";
 // Force light mode globally — dark theme temporarily disabled.
 document.documentElement.classList.remove("dark");
 
+// Cache buster do Prof. Sanor: quando o usuário recarrega a página (F5 / Ctrl+R
+// / Ctrl+Shift+R), limpamos todas as análises cacheadas em sessionStorage com
+// prefixo "sanor:". O cache continua funcionando enquanto a aba existir sem
+// reload (trocar de aba do navegador não dispara isso), mas qualquer recarga
+// força regeneração — comportamento esperado de "atualizar".
+try {
+  const nav = performance.getEntriesByType?.('navigation') as PerformanceNavigationTiming[] | undefined;
+  const isReload = nav?.[0]?.type === 'reload';
+  if (isReload && typeof sessionStorage !== 'undefined') {
+    const toRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('sanor:')) toRemove.push(k);
+    }
+    toRemove.forEach(k => sessionStorage.removeItem(k));
+  }
+} catch {
+  // ignora ambientes sem performance API ou sem sessionStorage
+}
+
 function getSessionId(): string {
   const key = "_ea_sid";
   let sid = sessionStorage.getItem(key);

@@ -32,9 +32,12 @@ export function DashboardLayout() {
     () => /^\/simulados\/[^/]+(?:\/start)?(?:\/|$)/.test(location.pathname) && !isExamRoute,
     [location.pathname, isExamRoute]
   );
+  // Rotas que devem ocupar toda a área útil (sem padding lateral do <main>).
+  // /comparativo NÃO entra mais aqui — usa o layout-padrão das demais páginas
+  // do dashboard (px-4 md:px-8 py-6 md:py-8).
   const isFullBleedRoute = useMemo(
-    () => /^\/(comparativo)(?:\/|$)/.test(location.pathname),
-    [location.pathname]
+    () => false,
+    []
   );
   useEffect(() => {
     if (isArenaRoute && !isMobile) {

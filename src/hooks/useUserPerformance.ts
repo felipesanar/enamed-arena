@@ -9,12 +9,15 @@ import { logger } from '@/lib/logger';
 
 export function useUserPerformance() {
   const { user } = useAuth();
+  const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<UserPerformanceSummaryRow | null>(null);
   const [history, setHistory] = useState<UserPerformanceHistoryRow[]>([]);
 
+  // Dep é user.id (não o objeto user) — Supabase recria o user em token refresh
+  // e nesse caso não queremos refetch desnecessário.
   const refetch = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setSummary(null);
       setHistory([]);
       setLoading(false);
@@ -24,8 +27,8 @@ export function useUserPerformance() {
     setLoading(true);
     try {
       const [summaryRow, historyRows] = await Promise.all([
-        simuladosApi.getUserPerformanceSummary(user.id),
-        simuladosApi.getUserPerformanceHistory(user.id, 12),
+        simuladosApi.getUserPerformanceSummary(userId),
+        simuladosApi.getUserPerformanceHistory(userId, 12),
       ]);
       setSummary(summaryRow);
       setHistory(historyRows);
@@ -36,7 +39,7 @@ export function useUserPerformance() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     refetch();
