@@ -47,6 +47,10 @@ export type AnalyticsEventName =
   // Error notebook
   | "caderno_erros_viewed"
   | "caderno_erros_filtered"
+  | "caderno_revisao_cta_clicked"
+  | "caderno_revisao_started"
+  | "caderno_revisao_ai_generated"
+  | "caderno_revisao_marked_resolved"
   // Monetization
   | "upsell_clicked"
   | "feature_gate_seen"
