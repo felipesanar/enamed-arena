@@ -66,7 +66,7 @@ function NavIconButton({
           >
             <Icon strokeWidth={ICON_STROKE} className="h-[18px] w-[18px] shrink-0" aria-hidden />
           </span>
-          <span className="max-w-full truncate text-center">{label}</span>
+          <span className="max-w-[56px] truncate text-center leading-none">{label}</span>
         </>
       )}
     </NavLink>
@@ -132,7 +132,7 @@ export function MobileBottomNav() {
                   aria-hidden
                 />
               </span>
-              <span className="max-w-full truncate text-center">Ranking</span>
+              <span className="max-w-[56px] truncate text-center leading-none">Ranking</span>
             </button>
 
             <NavIconButton

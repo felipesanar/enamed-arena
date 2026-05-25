@@ -517,7 +517,8 @@ export function RankingView({
         <>
           {/* ── Simulado selector chips ────────────────────────────────────── */}
           {simuladosWithResults.length > 1 && (
-            <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
+            <div className="relative mb-5 after:absolute after:right-0 after:top-0 after:h-[calc(100%-8px)] after:w-10 after:bg-gradient-to-l after:from-[hsl(var(--background)/0.95)] after:to-transparent after:pointer-events-none after:content-['']">
+              <div className="flex gap-2 overflow-x-auto pb-2 pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
               {simuladosWithResults.map((s) => (
                 <button
                   key={s.id}
@@ -529,6 +530,7 @@ export function RankingView({
                   {s.title}
                 </button>
               ))}
+              </div>
             </div>
           )}
 
@@ -619,7 +621,7 @@ export function RankingView({
                   className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
                   style={{
                     padding: '15px 13px 13px',
-                    minHeight: 'clamp(96px, 26vw, 130px)',
+                    minHeight: '96px',
                     background: perfState === 'good' ? t.kpiPerfGoodBg : t.kpiPerfBadBg,
                     border: perfState === 'good' ? t.kpiPerfGoodBorder : t.kpiPerfBadBorder,
                     boxShadow: perfState === 'good' ? t.kpiPerfGoodShadow : t.kpiPerfBadShadow,
@@ -672,7 +674,7 @@ export function RankingView({
                     className="rounded-[18px] relative overflow-hidden flex flex-col"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: 'clamp(96px, 26vw, 130px)',
+                      minHeight: '96px',
                       background: t.kpiEmptyBg,
                       border: t.kpiEmptyBorder,
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
@@ -733,7 +735,7 @@ export function RankingView({
                     className="rounded-[18px] flex items-center justify-center"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: 'clamp(96px, 26vw, 130px)',
+                      minHeight: '96px',
                       background: t.kpiEmptyBg,
                       border: t.kpiEmptyBorder,
                     }}
@@ -749,7 +751,7 @@ export function RankingView({
                     className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: 'clamp(96px, 26vw, 130px)',
+                      minHeight: '96px',
                       background: t.kpiCutPassBg,
                       border: t.kpiCutPassBorder,
                       boxShadow: t.kpiCutPassShadow,
@@ -819,7 +821,7 @@ export function RankingView({
                     className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
                     style={{
                       padding: '15px 13px 13px',
-                      minHeight: 'clamp(96px, 26vw, 130px)',
+                      minHeight: '96px',
                       background: t.kpiCutFailBg,
                       border: t.kpiCutFailBorder,
                       boxShadow: t.kpiCutFailShadow,

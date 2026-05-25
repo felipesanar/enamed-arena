@@ -10,6 +10,11 @@ import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "enamed-premium-sidebar-collapsed";
 
+// Alturas dos componentes mobile — manter sincronizado com MobileDashboardHeader e MobileBottomNav
+const MOBILE_HEADER_H = '3.5rem';      // MobileDashboardHeader
+const MOBILE_UPSELL_H = '3.25rem';     // UpsellBanner (guest only)
+const MOBILE_BOTTOM_NAV_H = '5.75rem'; // MobileBottomNav + tab bar area
+
 function readSidebarCollapsed(): boolean {
   try {
     return localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "1";
@@ -102,8 +107,11 @@ export function DashboardLayout() {
               !isFullBleedRoute &&
               cn(
                 isGuestMobile
+                  // MOBILE_HEADER_H + MOBILE_UPSELL_H + safe-area + gap
                   ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"
+                  // MOBILE_HEADER_H + safe-area + gap
                   : "pt-[calc(3.5rem+env(safe-area-inset-top,0px)+0.75rem)]",
+                // MOBILE_BOTTOM_NAV_H + safe-area bottom
                 "pb-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
               )
           )}

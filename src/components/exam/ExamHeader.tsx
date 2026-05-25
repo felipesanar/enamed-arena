@@ -20,6 +20,20 @@ export function ExamHeader({
       className="sticky top-0 z-40 border-b border-[hsl(var(--exam-border))]"
       style={{ backgroundColor: 'hsl(var(--exam-header-bg))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
     >
+      {/* Mobile title strip — contexto do simulado visível em telas pequenas */}
+      <div
+        className="flex items-center justify-between gap-2 px-4 py-1.5 sm:hidden border-b border-[hsl(var(--exam-border))]/40"
+      >
+        <p className="flex-1 min-w-0 text-[13px] font-semibold text-foreground truncate">{title}</p>
+        <span className={cn(
+          'flex shrink-0 items-center gap-1 text-[10px] transition-opacity duration-300',
+          saving ? 'text-primary opacity-100' : 'text-muted-foreground/50 opacity-100',
+        )}>
+          <Check className={cn('h-3 w-3', saving && 'animate-pulse')} />
+          {saving ? 'Salvando' : 'Salvo'}
+        </span>
+      </div>
+
       <div className="flex items-center justify-between px-4 md:px-6 h-14">
         <div className="flex items-center gap-3 min-w-0">
           <div className="min-w-0 hidden sm:flex items-center gap-2">

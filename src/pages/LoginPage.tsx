@@ -410,7 +410,7 @@ export default function LoginPage() {
                   onSubmit={handlePasswordSubmit}
                   className="mt-3 space-y-3"
                 >
-                  <TextField label="Seu e-mail" icon={Mail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" labelClassName="text-auth-form-label" />
+                  <TextField label="Seu e-mail" icon={Mail} type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" labelClassName="text-auth-form-label" />
                   <PasswordField label="Sua senha" value={password} onChange={setPassword} showPassword={showPassword} onTogglePassword={() => setShowPassword((s) => !s)} labelClassName="text-auth-form-label" />
                   {error && <FormFeedback tone="error" message={error} />}
                   <button type="submit" disabled={flowState === "sending"} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
@@ -432,7 +432,7 @@ export default function LoginPage() {
                   onSubmit={handleMagicLinkSubmit}
                   className="mt-3 space-y-3"
                 >
-                  <TextField label="Seu e-mail" icon={Mail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" hint="Enviamos um link seguro para seu e-mail." labelClassName="text-auth-form-label" />
+                  <TextField label="Seu e-mail" icon={Mail} type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" hint="Enviamos um link seguro para seu e-mail." labelClassName="text-auth-form-label" />
                   {error && <FormFeedback tone="error" message={error} />}
                   <button type="submit" disabled={flowState === "sending"} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
                     {flowState === "sending" ? <Spinner /> : <>Receber link de acesso <Mail className="h-4 w-4" /></>}
@@ -454,8 +454,8 @@ export default function LoginPage() {
                   onSubmit={handlePasswordSubmit}
                   className="mt-3 space-y-3"
                 >
-                  <TextField label="Como você gosta de ser chamado(a)" icon={User} type="text" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Seu nome" labelClassName="text-auth-form-label" />
-                  <TextField label="Seu e-mail" icon={Mail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" labelClassName="text-auth-form-label" />
+                  <TextField label="Como você gosta de ser chamado(a)" icon={User} type="text" inputMode="text" autoComplete="given-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Seu nome" labelClassName="text-auth-form-label" />
+                  <TextField label="Seu e-mail" icon={Mail} type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@exemplo.com.br" labelClassName="text-auth-form-label" />
                   <PasswordField label="Crie uma senha" value={password} onChange={setPassword} showPassword={showPassword} onTogglePassword={() => setShowPassword((s) => !s)} placeholder="Mínimo de 6 caracteres" labelClassName="text-auth-form-label" />
                   {error && <FormFeedback tone="error" message={error} />}
                   <button type="submit" disabled={flowState === "sending"} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-body font-semibold uppercase tracking-[0.02em] text-primary-foreground transition-all hover:bg-wine-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-55 lg:h-9 lg:rounded-md lg:gap-1.5 lg:text-[12px]">
