@@ -37,8 +37,8 @@ export function FloatingProfSan({ children, storageKey, defaultOpen = true, labe
     <div
       className={cn(
         'fixed z-40 pointer-events-none',
-        // Posição: respeita safe-area no mobile, fica acima de FABs comuns.
-        'bottom-4 right-4 md:bottom-6 md:right-6',
+        // Posição: no mobile sobe acima da bottom nav (~64px + safe-area).
+        'bottom-24 right-4 md:bottom-6 md:right-6',
       )}
     >
       <AnimatePresence mode="wait" initial={false}>
