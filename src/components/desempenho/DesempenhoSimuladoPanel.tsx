@@ -11,6 +11,7 @@ import {
   Check,
   X,
   Minus,
+  BookOpen,
 } from 'lucide-react';
 
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
