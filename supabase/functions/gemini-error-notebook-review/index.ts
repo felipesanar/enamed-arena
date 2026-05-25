@@ -38,8 +38,8 @@ function stripEmDashes(text: string): string {
   return text
     .replace(/\s+[—–]\s+/g, '. ')
     .replace(/[—–]/g, ',')
-    .replace(/\.\s+\./g, '.')
-    .replace(/\s{2,}/g, ' ');
+    .replace(/\.[ \t]+\./g, '.')
+    .replace(/[ \t]{2,}/g, ' ');
 }
 
 Deno.serve(async (req) => {
