@@ -279,10 +279,22 @@ export function ProfSanorPerformance({ studentName, simuladoId, simuladoTitle, b
             )}
 
             {!loading && !markdown && (
-              <p className="text-body-sm text-muted-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                {studentName.split(' ')[0]}, posso analisar essa prova com você?
-              </p>
+              <div className="flex gap-4 items-start">
+                <div className="mt-0.5 shrink-0 h-9 w-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-primary/70" />
+                </div>
+                <p className="text-[15px] leading-relaxed text-foreground/80">
+                  Oi, {studentName.split(' ')[0]}! Clique em{' '}
+                  <button
+                    type="button"
+                    onClick={generate}
+                    className="font-bold text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary transition-all cursor-pointer"
+                  >
+                    Pedir análise
+                  </button>{' '}
+                  que eu olho seus simulados com você.
+                </p>
+              </div>
             )}
           </motion.div>
         </div>
