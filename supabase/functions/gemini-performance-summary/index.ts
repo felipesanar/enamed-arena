@@ -17,10 +17,10 @@ interface RequestBody {
 /** Sanitiza travessões da resposta. Prof. Sanor não usa em hipótese alguma. */
 function stripEmDashes(text: string): string {
   return text
-    .replace(/\s+[—–]\s+/g, '. ')  // " — " → ". "
-    .replace(/[—–]/g, ',')          // qualquer travessão solto → vírgula
-    .replace(/\.\s+\./g, '.')       // colapsa ". ."
-    .replace(/\s{2,}/g, ' ');       // espaços duplicados
+    .replace(/\s+[—–]\s+/g, '. ')   // " — " → ". "
+    .replace(/[—–]/g, ',')           // qualquer travessão solto → vírgula
+    .replace(/\.[ \t]+\./g, '.')     // colapsa ". ." preservando quebras
+    .replace(/[ \t]{2,}/g, ' ');     // espaços/tabs duplicados (preserva \n)
 }
 
 Deno.serve(async (req) => {
