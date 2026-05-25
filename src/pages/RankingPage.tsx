@@ -12,6 +12,7 @@ import { Trophy } from 'lucide-react';
 import { getAllowedRankingSegmentFilters } from '@/services/rankingApi';
 import { useUser } from '@/contexts/UserContext';
 import { RankingView } from '@/components/ranking/RankingView';
+import { ProfSanorRanking } from '@/components/ranking/ProfSanorRanking';
 
 export default function RankingPage() {
   const {
@@ -82,6 +83,19 @@ export default function RankingPage() {
         subtitlePlacement="inline-end"
         badge="ENAMED 2026"
       />
+      {currentUser && (
+        <div className="mb-6">
+          <ProfSanorRanking
+            studentName={profile?.name ?? 'Aluno'}
+            simuladoId={selectedSimuladoId}
+            simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
+            currentUser={currentUser}
+            stats={stats}
+            userSpecialty={userSpecialty}
+            userInstitutions={userInstitutions}
+          />
+        </div>
+      )}
       <RankingView
         loading={loading}
         simuladosWithResults={simuladosWithResults}
