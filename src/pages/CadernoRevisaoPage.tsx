@@ -33,6 +33,7 @@ import { logger } from '@/lib/logger';
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 import { getReasonMeta } from '@/lib/errorNotebookReasons';
+import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import type { Question } from '@/types';
 
 interface PendingEntry {
@@ -530,15 +531,21 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
               </div>
             </div>
 
-            {/* Card Prof. Sanor */}
+            {/* Card Prof. San */}
             <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.04] to-primary/[0.08] p-5 md:p-6">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-primary/10 p-2.5">
-                    <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+                  <div className="relative shrink-0">
+                    <div className="rounded-full bg-primary/[0.04] border-2 border-background shadow-sm overflow-hidden">
+                      <ProfSanorAvatar size={48} animated={generatingAi} />
+                    </div>
+                    <span
+                      className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-background"
+                      aria-hidden
+                    />
                   </div>
                   <div>
-                    <h3 className="text-heading-3 text-foreground">Prof. Sanor</h3>
+                    <h3 className="text-heading-3 font-bold text-primary tracking-tight">Prof. San</h3>
                     <p className="text-caption text-muted-foreground mt-0.5">
                       Análise personalizada dessa questão.
                     </p>

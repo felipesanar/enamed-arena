@@ -30,6 +30,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { simuladosApi } from '@/services/simuladosApi';
 import { SEGMENT_ACCESS } from '@/types';
 import { getReasonMeta, type DbReason } from '@/lib/errorNotebookReasons';
+import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Types
@@ -1002,12 +1003,18 @@ function CadernoContent({ userId }: { userId: string }) {
             className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.06] via-primary/[0.04] to-transparent px-5 py-4 no-underline transition-all duration-200 hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_hsl(345_65%_30%/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+              <div className="relative shrink-0">
+                <div className="rounded-full bg-primary/[0.04] border-2 border-background shadow-sm overflow-hidden">
+                  <ProfSanorAvatar size={44} />
+                </div>
+                <span
+                  className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-success border-2 border-background"
+                  aria-hidden
+                />
               </div>
               <div className="min-w-0">
                 <p className="text-body font-bold text-foreground">
-                  Modo revisão com Prof. Sanor
+                  Modo revisão com Prof. San
                 </p>
                 <p className="text-caption text-muted-foreground">
                   Revise as {totalPending} {pluralize(totalPending, 'pendente', 'pendentes')} uma a uma com análise da IA.
