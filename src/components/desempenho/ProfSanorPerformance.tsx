@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, Loader2, Activity, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
