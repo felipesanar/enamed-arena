@@ -30,6 +30,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { simuladosApi } from '@/services/simuladosApi';
 import { SEGMENT_ACCESS } from '@/types';
 import { getReasonMeta, type DbReason } from '@/lib/errorNotebookReasons';
+import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Types
