@@ -608,10 +608,10 @@ Comece direto pelo nome ${firstName}. Sem preâmbulo, sem "claro!", sem "aqui es
     // Cuidamos pra não estragar números negativos: só substitui quando o
     // travessão aparece cercado por espaços (sintaxe típica de aposto).
     const markdown = rawMarkdown
-      .replace(/\s+[—–]\s+/g, '. ')  // " — " ou " – " → ". "
-      .replace(/[—–]/g, ',')          // qualquer outro travessão solto → vírgula
-      .replace(/\.\s+\./g, '.')                  // colapsa ". ." que pode aparecer
-      .replace(/\s{2,}/g, ' ');                  // espaços duplicados
+      .replace(/\s+[—–]\s+/g, '. ')   // " — " ou " – " → ". "
+      .replace(/[—–]/g, ',')           // qualquer outro travessão solto → vírgula
+      .replace(/\.[ \t]+\./g, '.')     // colapsa ". ." preservando quebras
+      .replace(/[ \t]{2,}/g, ' ');     // espaços/tabs duplicados (preserva \n)
 
     return new Response(JSON.stringify({ markdown }), {
       status: 200,

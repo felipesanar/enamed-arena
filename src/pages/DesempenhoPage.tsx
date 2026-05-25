@@ -158,6 +158,16 @@ export default function DesempenhoPage() {
             </Link>
           ) : undefined}
         />
+      {/* Prof. San primeiro — conversa antes do detalhe técnico. */}
+      <div className="mb-6">
+        <ProfSanorPerformance
+          studentName={profile?.name ?? 'Aluno'}
+          simuladoId={selectedSimuladoId ?? undefined}
+          simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
+          breakdown={breakdown}
+        />
+      </div>
+
       <DesempenhoSimuladoPanel
           simuladosWithResults={simuladosWithResults}
           selectedSimuladoId={selectedSimuladoId}
@@ -168,16 +178,6 @@ export default function DesempenhoPage() {
           studentName={profile?.name ?? 'Aluno'}
           resultNavVariant="public"
         />
-
-      {/* Prof. Sanor logo abaixo do panel — conversa depois do detalhe técnico. */}
-      <div className="mt-6">
-        <ProfSanorPerformance
-          studentName={profile?.name ?? 'Aluno'}
-          simuladoId={selectedSimuladoId ?? undefined}
-          simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
-          breakdown={breakdown}
-        />
-      </div>
     </PageTransition>
   );
 }
