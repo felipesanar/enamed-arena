@@ -13,6 +13,7 @@ import { getAllowedRankingSegmentFilters } from '@/services/rankingApi';
 import { useUser } from '@/contexts/UserContext';
 import { RankingView } from '@/components/ranking/RankingView';
 import { ProfSanorRanking } from '@/components/ranking/ProfSanorRanking';
+import { FloatingProfSan } from '@/components/FloatingProfSan';
 
 export default function RankingPage() {
   const {
@@ -84,7 +85,7 @@ export default function RankingPage() {
         badge="ENAMED 2026"
       />
       {currentUser && (
-        <div className="mb-4">
+        <FloatingProfSan storageKey="profsan:ranking:open">
           <ProfSanorRanking
             compact
             studentName={profile?.name ?? 'Aluno'}
@@ -95,7 +96,7 @@ export default function RankingPage() {
             userSpecialty={userSpecialty}
             userInstitutions={userInstitutions}
           />
-        </div>
+        </FloatingProfSan>
       )}
       <RankingView
         loading={loading}
