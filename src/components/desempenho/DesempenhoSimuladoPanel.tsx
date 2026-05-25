@@ -11,6 +11,7 @@ import {
   Check,
   X,
   Minus,
+  BookOpen,
 } from 'lucide-react';
 
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
@@ -140,6 +141,8 @@ export function DesempenhoSimuladoPanel({
           worstArea={worstArea}
           prefersReducedMotion={!!prefersReducedMotion}
           pdf={pdf}
+          simuladoId={selectedSimuladoId ?? ''}
+          correcaoVariant={resultNavVariant}
         />
       </StaggerItem>
 
@@ -348,17 +351,25 @@ function PerformanceHeroCard({
   worstArea,
   prefersReducedMotion,
   pdf,
+  simuladoId,
+  correcaoVariant,
 }: {
   overall: { percentageScore: number; totalCorrect: number; totalQuestions: number };
   bestArea: { area: string; score: number; correct: number; questions: number } | null;
   worstArea: { area: string; score: number; correct: number; questions: number } | null;
   prefersReducedMotion: boolean;
   pdf: ReturnType<typeof usePdfDownload>;
+  simuladoId: string;
+  correcaoVariant: 'public' | 'admin';
 }) {
   const pct = overall.percentageScore;
   const pdfLabel = pdf.stage
     ? `${getStageLabel(pdf.stage)}${pdf.progress ? ` (${pdf.progress.current}/${pdf.progress.total})` : ''}`
     : 'Prova Revisada PDF';
+  const correcaoHref =
+    correcaoVariant === 'admin'
+      ? `/admin/preview/simulados/${simuladoId}/correcao`
+      : `/simulados/${simuladoId}/correcao`;
 
   return (
     <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-5 md:p-6 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)]">
@@ -449,6 +460,16 @@ function PerformanceHeroCard({
             </div>
           )}
 
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center md:justify-end">
+          {simuladoId && (
+            <Link
+              to={correcaoHref}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/[0.22] bg-white/[0.12] px-4 py-2.5 text-[12px] font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/[0.35] hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#11192A]"
+            >
+              <BookOpen className="h-3.5 w-3.5" aria-hidden />
+              Ver correção comentada
+            </Link>
+          )}
           <button
             type="button"
             onClick={pdf.downloadProvaRevisada}
@@ -462,6 +483,7 @@ function PerformanceHeroCard({
             )}
             {pdfLabel}
           </button>
+          </div>
         </div>
       </div>
     </div>
