@@ -419,6 +419,8 @@ export type Database = {
       }
       error_notebook: {
         Row: {
+          ai_review_generated_at: string | null
+          ai_review_md: string | null
           area: string | null
           created_at: string
           deleted_at: string | null
@@ -437,6 +439,8 @@ export type Database = {
           was_correct: boolean
         }
         Insert: {
+          ai_review_generated_at?: string | null
+          ai_review_md?: string | null
           area?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -455,6 +459,8 @@ export type Database = {
           was_correct?: boolean
         }
         Update: {
+          ai_review_generated_at?: string | null
+          ai_review_md?: string | null
           area?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -1433,6 +1439,8 @@ export type Database = {
         | "did_not_remember"
         | "did_not_understand"
         | "guessed_correctly"
+        | "reading_error"
+        | "confused_alternatives"
       onboarding_status: "pending" | "completed"
       simulado_status: "draft" | "published" | "archived" | "test"
       user_segment: "guest" | "standard" | "pro"
@@ -1581,6 +1589,8 @@ export const Constants = {
         "did_not_remember",
         "did_not_understand",
         "guessed_correctly",
+        "reading_error",
+        "confused_alternatives",
       ],
       onboarding_status: ["pending", "completed"],
       simulado_status: ["draft", "published", "archived", "test"],
