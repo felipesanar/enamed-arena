@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { DesempenhoSimuladoPanel } from '@/components/desempenho/DesempenhoSimuladoPanel';
 import { ProfSanorPerformance } from '@/components/desempenho/ProfSanorPerformance';
+import { FloatingProfSan } from '@/components/FloatingProfSan';
 import { useSimulados } from '@/hooks/useSimulados';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
@@ -158,15 +159,14 @@ export default function DesempenhoPage() {
             </Link>
           ) : undefined}
         />
-      {/* Prof. San primeiro — conversa antes do detalhe técnico. */}
-      <div className="mb-6">
+      <FloatingProfSan storageKey="profsan:desempenho:open">
         <ProfSanorPerformance
           studentName={profile?.name ?? 'Aluno'}
           simuladoId={selectedSimuladoId ?? undefined}
           simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
           breakdown={breakdown}
         />
-      </div>
+      </FloatingProfSan>
 
       <DesempenhoSimuladoPanel
           simuladosWithResults={simuladosWithResults}
