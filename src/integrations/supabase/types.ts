@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      _questions_area_backup_20260522: {
+        Row: {
+          area_after: string | null
+          area_before: string
+          backed_up_at: string
+          question_id: string
+        }
+        Insert: {
+          area_after?: string | null
+          area_before: string
+          backed_up_at?: string
+          question_id: string
+        }
+        Update: {
+          area_after?: string | null
+          area_before?: string
+          backed_up_at?: string
+          question_id?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -857,6 +878,7 @@ export type Database = {
       }
     }
     Functions: {
+      _norm_match: { Args: { t: string }; Returns: string }
       admin_analytics_funnel: {
         Args: { p_days?: number }
         Returns: {
@@ -1270,6 +1292,36 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_area_scores_by_simulado: {
+        Args: { p_user_id?: string }
+        Returns: {
+          area: string
+          correct: number
+          score_percentage: number
+          simulado_id: string
+          total: number
+        }[]
+      }
+      get_user_attempt_behavior_stats: {
+        Args: { p_user_id?: string }
+        Returns: {
+          attempt_id: string
+          duration_seconds: number
+          finished_at: string
+          fullscreen_exit_count: number
+          high_confidence_correct: number
+          high_confidence_wrong: number
+          simulado_id: string
+          started_at: string
+          tab_exit_count: number
+          total_answered: number
+          total_correct: number
+          total_high_confidence: number
+          total_marked_for_review: number
+          total_questions: number
+        }[]
+      }
+      get_user_cutoff_context: { Args: { p_user_id?: string }; Returns: Json }
       get_user_performance_history: {
         Args: { p_limit?: number; p_user_id?: string }
         Returns: {
@@ -1280,39 +1332,6 @@ export type Database = {
           total_answered: number
           total_correct: number
           total_questions: number
-        }[]
-      }
-      get_user_cutoff_context: {
-        Args: { p_user_id?: string }
-        Returns: unknown
-      }
-      get_user_area_scores_by_simulado: {
-        Args: { p_user_id?: string }
-        Returns: {
-          simulado_id: string
-          area: string
-          total: number
-          correct: number
-          score_percentage: number
-        }[]
-      }
-      get_user_attempt_behavior_stats: {
-        Args: { p_user_id?: string }
-        Returns: {
-          attempt_id: string
-          simulado_id: string
-          total_questions: number
-          total_answered: number
-          total_correct: number
-          total_marked_for_review: number
-          total_high_confidence: number
-          high_confidence_correct: number
-          high_confidence_wrong: number
-          tab_exit_count: number
-          fullscreen_exit_count: number
-          duration_seconds: number | null
-          started_at: string
-          finished_at: string | null
         }[]
       }
       get_user_performance_summary: {
