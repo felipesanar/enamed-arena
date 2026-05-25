@@ -30,6 +30,7 @@ const DesempenhoPage = lazy(() => import("./pages/DesempenhoPage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ComparativoPage = lazy(() => import("./pages/ComparativoPage"));
 const CadernoErrosPage = lazy(() => import("./pages/CadernoErrosPage"));
+const CadernoRevisaoPage = lazy(() => import("./pages/CadernoRevisaoPage"));
 const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
 // Sandbox pages are only bundled in dev builds.
 const SandboxCadernoPage = import.meta.env.DEV
@@ -159,6 +160,7 @@ const App = () => (
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="comparativo" element={<ComparativoPage />} />
                 <Route path="caderno-erros" element={<CadernoErrosPage />} />
+                <Route path="caderno-erros/revisao" element={<CadernoRevisaoPage />} />
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />
               </Route>
               <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />

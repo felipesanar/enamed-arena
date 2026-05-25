@@ -622,4 +622,87 @@ export const simuladosApi = {
 
     if (error) throw error;
   },
+
+  /**
+   * Carrega uma entrada do caderno com todo o contexto necessário pro modo de
+   * revisão guiada: enunciado da questão, alternativas, gabarito, alternativa
+   * marcada pelo aluno (do último attempt no simulado correspondente) e o
+   * markdown da análise IA cacheada (se existir).
+   */
+  async getErrorNotebookEntryForReview(entryId: string, userId: string) {
+    const { data: entry, error: entryErr } = await supabase
+      .from('error_notebook')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select('*, ai_review_md, ai_review_generated_at' as any)
+      .eq('id', entryId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (entryErr) throw entryErr;
+    if (!entry) return null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entryAny = entry as any;
+    const questionId = entryAny.question_id as string | null;
+    const simuladoId = entryAny.simulado_id as string | null;
+
+    let question: Question | null = null;
+    if (questionId && simuladoId) {
+      // Reaproveita o caminho proven da CorrecaoPage: busca todas as questões
+      // do simulado e filtra a desejada. Mais bytes que um targeted SELECT,
+      // mas evita peculiaridades de RLS/embed pra fetch single-row.
+      try {
+        const all = await simuladosApi.getQuestions(simuladoId, true);
+        question = all.find((q) => q.id === questionId) ?? null;
+      } catch (qErr) {
+        logger.error('[SimuladosApi] Error fetching review question:', qErr);
+      }
+    }
+
+    // Procura a resposta do aluno no último attempt dele nesse simulado.
+    let userSelectedOptionId: string | null = null;
+    if (questionId && simuladoId) {
+      const { data: attemptRows } = await supabase
+        .from('attempts')
+        .select('id, finished_at')
+        .eq('user_id', userId)
+        .eq('simulado_id', simuladoId)
+        .order('finished_at', { ascending: false, nullsFirst: false })
+        .limit(1);
+
+      const attemptId = attemptRows?.[0]?.id;
+      if (attemptId) {
+        const { data: aqr } = await supabase
+          .from('attempt_question_results')
+          .select('selected_option_id')
+          .eq('attempt_id', attemptId)
+          .eq('question_id', questionId)
+          .maybeSingle();
+        userSelectedOptionId = aqr?.selected_option_id ?? null;
+      }
+    }
+
+    return {
+      entry: entryAny,
+      question,
+      userSelectedOptionId,
+      aiReviewMd: (entryAny.ai_review_md as string | null) ?? null,
+      aiReviewGeneratedAt: (entryAny.ai_review_generated_at as string | null) ?? null,
+    };
+  },
+
+  async saveErrorNotebookAiReview(entryId: string, userId: string, markdown: string): Promise<void> {
+    const { error } = await supabase
+      .from('error_notebook')
+      .update({
+        ai_review_md: markdown,
+        ai_review_generated_at: new Date().toISOString(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      .eq('id', entryId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  },
 };

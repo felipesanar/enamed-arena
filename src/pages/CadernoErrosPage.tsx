@@ -11,6 +11,7 @@ import {
   Sparkles,
   RotateCcw,
   ChevronDown,
+  Play,
 } from 'lucide-react';
 
 import { trackEvent } from '@/lib/analytics';
@@ -985,6 +986,39 @@ function CadernoContent({ userId }: { userId: string }) {
               Limpar filtros
             </button>
           </div>
+        </StaggerItem>
+      )}
+
+      {!allResolved && totalPending > 0 && (
+        <StaggerItem>
+          <Link
+            to="/caderno-erros/revisao"
+            onClick={() =>
+              trackEvent('caderno_revisao_cta_clicked', {
+                source: 'caderno_hero',
+                pending: totalPending,
+              })
+            }
+            className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.06] via-primary/[0.04] to-transparent px-5 py-4 no-underline transition-all duration-200 hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_hsl(345_65%_30%/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+              </div>
+              <div className="min-w-0">
+                <p className="text-body font-bold text-foreground">
+                  Modo revisão com Prof. Sanor
+                </p>
+                <p className="text-caption text-muted-foreground">
+                  Revise as {totalPending} {pluralize(totalPending, 'pendente', 'pendentes')} uma a uma com análise da IA.
+                </p>
+              </div>
+            </div>
+            <div className="hidden sm:flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_hsl(345_65%_30%/0.4)] transition-transform group-hover:scale-[1.02]">
+              <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
+              Iniciar
+            </div>
+          </Link>
         </StaggerItem>
       )}
 
