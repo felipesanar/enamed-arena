@@ -84,8 +84,9 @@ export default function RankingPage() {
         badge="ENAMED 2026"
       />
       {currentUser && (
-        <div className="mb-6">
+        <div className="mb-4">
           <ProfSanorRanking
+            compact
             studentName={profile?.name ?? 'Aluno'}
             simuladoId={selectedSimuladoId}
             simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}

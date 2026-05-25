@@ -18,6 +18,7 @@ interface Props {
   stats: RankingStats;
   userSpecialty?: string;
   userInstitutions?: string[];
+  compact?: boolean;
 }
 
 function buildCacheKey(simuladoId: string | null | undefined, score: number, position: number): string {
@@ -46,6 +47,7 @@ export function ProfSanorRanking({
   stats,
   userSpecialty,
   userInstitutions,
+  compact = false,
 }: Props) {
   const { cutoffContext, loading: cutoffLoading } = useCutoffContext();
 
@@ -163,20 +165,20 @@ export function ProfSanorRanking({
       transition={{ duration: 0.45, ease: 'easeOut' }}
     >
       <div className="w-full">
-        <div className="flex items-center justify-between gap-3 mb-3 md:mb-4 px-1 flex-wrap">
+        <div className={`flex items-center justify-between gap-3 ${compact ? 'mb-2' : 'mb-3 md:mb-4'} px-1 flex-wrap`}>
           <div className="flex items-center gap-3">
             <div className="relative shrink-0">
               <div className="rounded-full bg-primary/[0.04] border-2 border-background shadow-sm overflow-hidden">
-                <ProfSanorAvatar size={56} animated={loading} />
+                <ProfSanorAvatar size={compact ? 36 : 56} animated={loading} />
               </div>
               <span
-                className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-success border-2 border-background shadow-sm animate-pulse"
+                className={`absolute bottom-0 right-0 ${compact ? 'h-2.5 w-2.5' : 'h-3.5 w-3.5'} rounded-full bg-success border-2 border-background shadow-sm animate-pulse`}
                 aria-hidden
               />
             </div>
             <div className="leading-tight">
-              <p className="text-heading-3 font-bold text-primary tracking-tight">Prof. San</p>
-              <p className="text-caption text-muted-foreground tracking-wide">
+              <p className={`${compact ? 'text-sm' : 'text-heading-3'} font-bold text-primary tracking-tight`}>Prof. San</p>
+              <p className={`${compact ? 'text-[11px]' : 'text-caption'} text-muted-foreground tracking-wide`}>
                 {loading ? LOADING_PHRASES[loadingPhase] : markdown ? 'analisou sua posição' : 'pronto pra olhar o ranking'}
               </p>
             </div>
@@ -218,7 +220,7 @@ export function ProfSanorRanking({
           <motion.div
             initial={false}
             animate={{ opacity: 1 }}
-            className="relative z-10 rounded-2xl border border-border/60 bg-card px-5 md:px-6 py-4 md:py-5 shadow-[0_10px_40px_-15px_hsl(var(--primary)/0.18)] group-hover/bubble:shadow-[0_15px_50px_-10px_hsl(var(--primary)/0.22)] transition-shadow"
+            className={`relative z-10 rounded-2xl border border-border/60 bg-card ${compact ? 'px-4 py-3' : 'px-5 md:px-6 py-4 md:py-5'} shadow-[0_10px_40px_-15px_hsl(var(--primary)/0.18)] group-hover/bubble:shadow-[0_15px_50px_-10px_hsl(var(--primary)/0.22)] transition-shadow`}
           >
             {loading && !markdown && (
               <div className="space-y-2.5 py-1">
