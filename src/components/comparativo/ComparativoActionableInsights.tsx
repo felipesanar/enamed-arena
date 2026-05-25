@@ -52,7 +52,13 @@ const STYLES: Record<ActionableSeverity, {
 };
 
 export function ComparativoActionableInsights({ entries }: Props) {
-  const insights = computeActionableInsights(entries);
+  const allInsights = computeActionableInsights(entries);
+
+  // Limita a 3 cards: 1 crítico + 1 atenção + 1 positivo (na ordem).
+  // Pega o primeiro de cada severidade conforme a ordem retornada pelo helper.
+  const insights = (['critical', 'attention', 'positive'] as const)
+    .map((sev) => allInsights.find((i) => i.severity === sev))
+    .filter((i): i is NonNullable<typeof i> => Boolean(i));
 
   if (insights.length === 0) {
     return null;
@@ -72,7 +78,7 @@ export function ComparativoActionableInsights({ entries }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         {insights.map((insight, idx) => {
           const style = STYLES[insight.severity];
           const Icon = style.icon;
