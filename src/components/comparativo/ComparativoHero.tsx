@@ -202,7 +202,7 @@ export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, 
               <ProfSanorAvatar size={36} animated={loading} className="sm:hidden" />
               <div className="leading-tight">
                 <p className="text-body font-semibold text-foreground">
-                  Prof. Sanor
+                  Prof. San
                 </p>
                 <p className="text-caption text-muted-foreground">
                   {loading ? LOADING_PHRASES[loadingPhase] : markdown ? 'seu mentor virtual' : 'pronto pra conversar'}
@@ -293,7 +293,7 @@ export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, 
                 {markdown && displayMarkdown === markdown && (
                   <p className="mt-4 pt-3 border-t border-border/60 text-caption text-muted-foreground flex items-center gap-1.5">
                     <Sparkles className="h-3 w-3 text-primary/60" />
-                    <span>Prof. Sanor — análise gerada agora</span>
+                    <span>Prof. San — análise gerada agora</span>
                   </p>
                 )}
               </motion.div>

@@ -17,7 +17,7 @@ export function ProfSanorAvatar({ size = 56, className, animated = false }: Prop
     <div
       className={cn('relative inline-flex items-center justify-center shrink-0', className)}
       style={{ width: size, height: size }}
-      aria-label="Prof. Sanor"
+      aria-label="Prof. San"
       role="img"
     >
       {animated && (
