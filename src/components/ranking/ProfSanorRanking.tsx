@@ -18,6 +18,7 @@ interface Props {
   stats: RankingStats;
   userSpecialty?: string;
   userInstitutions?: string[];
+  compact?: boolean;
 }
 
 function buildCacheKey(simuladoId: string | null | undefined, score: number, position: number): string {
@@ -46,6 +47,7 @@ export function ProfSanorRanking({
   stats,
   userSpecialty,
   userInstitutions,
+  compact = false,
 }: Props) {
   const { cutoffContext, loading: cutoffLoading } = useCutoffContext();
 
