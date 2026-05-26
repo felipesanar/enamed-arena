@@ -826,3 +826,43 @@
     animation: none;
   }
 }
+
+/* ── Print styles: Force light mode ─────────────────────────────────────── */
+@media print {
+  :root {
+    /* Force light mode colors for printing */
+    --background: 0 0% 98.5%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --muted: 220 10% 93%;
+    --muted-foreground: 220 10% 46%;
+    --border: 220 12% 90%;
+    --exam-bg: 210 15% 97.5%;
+    --exam-surface: 0 0% 100%;
+    --exam-text: 210 20% 15%;
+    --exam-text-secondary: 210 10% 45%;
+  }
+
+  body, html {
+    background-color: white;
+    color: black;
+  }
+
+  .dark {
+    /* Override dark mode styles for print */
+    --background: 0 0% 98.5%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --muted: 220 10% 93%;
+    --muted-foreground: 220 10% 46%;
+    --border: 220 12% 90%;
+    --exam-bg: 210 15% 97.5%;
+    --exam-surface: 0 0% 100%;
+    --exam-text: 210 20% 15%;
+    --exam-text-secondary: 210 10% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 10%;
+  }
+}
