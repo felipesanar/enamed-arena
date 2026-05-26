@@ -367,15 +367,15 @@ function HeroStatusCard({
   const progressPct = total === 0 ? 0 : Math.round((resolved / total) * 100);
 
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-4 md:p-6 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)]">
+    <div className="hero-status-card">
       {/* Atmospheric layers */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-[rgba(232,56,98,0.16)] blur-[60px]"
+        className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-primary/10 blur-[60px] dark:bg-[rgba(232,56,98,0.16)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-[rgba(12,18,32,0.55)] blur-[40px]"
+        className="pointer-events-none absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-primary/5 blur-[40px] dark:bg-[rgba(12,18,32,0.55)]"
       />
       <div
         aria-hidden

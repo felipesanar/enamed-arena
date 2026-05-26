@@ -27,9 +27,9 @@ export function EvolutionBlock({
     >
       {/* Ranking card — premium dark treatment */}
       <div className="md:col-span-7">
-        <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#180A10_0%,#2A0F1B_46%,#1A0D14_100%)] p-6 md:p-7 shadow-[0_20px_40px_-24px_rgba(30,10,18,0.85),0_6px_16px_-10px_rgba(50,14,28,0.4)] min-h-[180px]">
-          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[rgba(200,40,76,0.14)] blur-[50px]" />
-          <div className="pointer-events-none absolute -left-16 -bottom-12 h-48 w-48 rounded-full bg-[rgba(10,14,24,0.5)] blur-[40px]" />
+        <div className="hero-status-card min-h-[180px]">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-[50px] dark:bg-[rgba(200,40,76,0.14)]" />
+          <div className="pointer-events-none absolute -left-16 -bottom-12 h-48 w-48 rounded-full bg-primary/5 blur-[40px] dark:bg-[rgba(10,14,24,0.5)]" />
 
           <div className="relative z-10">
             <div className="flex items-center gap-2.5 mb-5">

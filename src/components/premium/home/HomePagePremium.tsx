@@ -448,12 +448,12 @@ function HeroPerformanceCard({
   })();
 
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-4 md:p-5 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)] lg:h-full">
+    <div className="hero-status-card lg:h-full">
           {/* Atmospheric layers */}
-          <div className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full bg-[rgba(232,56,98,0.16)] blur-[60px]" />
-          <div className="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 rounded-full bg-[rgba(12,18,32,0.55)] blur-[40px]" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_18%_12%,rgba(255,255,255,0.09)_0%,transparent_55%)]" />
-          <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          <div className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full bg-primary/10 blur-[60px] dark:bg-[rgba(232,56,98,0.16)]" />
+          <div className="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 rounded-full bg-primary/5 blur-[40px] dark:bg-[rgba(12,18,32,0.55)]" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent dark:bg-[radial-gradient(ellipse_70%_50%_at_18%_12%,rgba(255,255,255,0.09)_0%,transparent_55%)]" />
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/10 to-transparent dark:via-white/[0.06]" />
 
           <div className="relative z-10 space-y-3">
             <div className="flex items-end justify-between gap-4">

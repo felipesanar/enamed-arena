@@ -5,6 +5,30 @@ import { X, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { fetchAllCutoffScores } from '@/services/rankingApi';
 import { cn } from '@/lib/utils';
 
+function getThemeAwareColors() {
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  return {
+    isDark,
+    containerBg: isDark ? '#100910' : '#ffffff',
+    borderColor: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.08)',
+    text1: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+    text2: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
+    text3: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
+    inputBg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    inputBorder: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.1)',
+    inputBorderFocus: isDark ? 'rgba(255,150,170,0.3)' : 'rgba(122,26,50,0.2)',
+    inputBgFocus: isDark ? 'rgba(255,150,170,0.08)' : 'rgba(122,26,50,0.08)',
+    surfaceBg: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+    tableHeaderBg: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+    tableHeaderText: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)',
+    tableRowBorder: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)',
+    tableRowHover: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.02)',
+    userRowBg: isDark ? 'rgba(122,26,50,0.28)' : 'rgba(122,26,50,0.08)',
+    dividerBg: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+    footerBg: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+  };
+}
+
 interface CutoffScoreModalProps {
   open: boolean;
   onClose: () => void;
@@ -30,6 +54,16 @@ export function CutoffScoreModal({
   const [search, setSearch] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>(userSpecialty ?? 'all');
   const [showFilters, setShowFilters] = useState(false);
+  const [isDark, setIsDark] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  );
+
+  useEffect(() => {
+    const update = () => setIsDark(document.documentElement.classList.contains('dark'));
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['all-cutoff-scores'],
@@ -130,6 +164,7 @@ export function CutoffScoreModal({
   const normalizedSpecialty = userSpecialty?.toLowerCase() ?? '';
   const resultCount = filteredRows.length + (userRow ? 1 : 0);
   const hasActiveFilters = specialtyFilter !== 'all' || search.trim() !== '';
+  const t = getThemeAwareColors();
 
   return (
     <AnimatePresence>
@@ -158,8 +193,8 @@ export function CutoffScoreModal({
             aria-label="Notas de Corte ENAMED"
             className="relative w-full max-w-lg h-full flex flex-col overflow-hidden"
             style={{
-              background: '#100910',
-              borderLeft: '1px solid rgba(255,255,255,0.07)',
+              background: t.containerBg,
+              borderLeft: t.borderColor,
             }}
           >
 
@@ -169,11 +204,11 @@ export function CutoffScoreModal({
                 <div>
                   <p
                     className="text-[9px] uppercase tracking-[2.5px] font-bold mb-1"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    style={{ color: t.text3 }}
                   >
                     ENAMED 2026
                   </p>
-                  <h2 className="text-[17px] font-extrabold tracking-tight text-white">
+                  <h2 className="text-[17px] font-extrabold tracking-tight" style={{ color: t.text1 }}>
                     Notas de Corte
                   </h2>
                 </div>
@@ -184,9 +219,9 @@ export function CutoffScoreModal({
                   aria-label="Fechar"
                   className="h-8 w-8 rounded-[9px] flex items-center justify-center transition-all duration-200"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.09)',
-                    color: 'rgba(255,255,255,0.5)',
+                    background: t.inputBg,
+                    border: t.inputBorder,
+                    color: t.text2,
                   }}
                 >
                   <X className="h-4 w-4" />
@@ -233,7 +268,7 @@ export function CutoffScoreModal({
                   <div className="relative z-10 flex items-start justify-between mb-2">
                     <p
                       className="text-[8.5px] uppercase tracking-[2px]"
-                      style={{ color: 'rgba(255,255,255,0.25)' }}
+                      style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.35)' }}
                     >
                       Sua nota de corte
                     </p>
@@ -270,7 +305,7 @@ export function CutoffScoreModal({
                       </span>
                       <span
                         className="text-[8.5px] uppercase tracking-[1.2px] mt-[3px]"
-                        style={{ color: 'rgba(255,255,255,0.4)' }}
+                        style={{ color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.45)' }}
                       >
                         Geral
                       </span>
@@ -279,18 +314,18 @@ export function CutoffScoreModal({
                       <>
                         <div
                           className="w-px mb-[5px]"
-                          style={{ height: '28px', background: 'rgba(255,255,255,0.1)' }}
+                          style={{ height: '28px', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
                         />
                         <div className="flex flex-col">
                           <span
                             className="font-bold leading-none"
-                            style={{ fontSize: '1.4rem', color: 'rgba(255,255,255,0.65)' }}
+                            style={{ fontSize: '1.4rem', color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)' }}
                           >
                             {userRow.cutoff_score_quota}
                           </span>
                           <span
                             className="text-[8.5px] uppercase tracking-[1.2px] mt-[3px]"
-                            style={{ color: 'rgba(255,255,255,0.4)' }}
+                            style={{ color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.45)' }}
                           >
                             Cotas
                           </span>
@@ -301,10 +336,10 @@ export function CutoffScoreModal({
 
                   {/* Institution + specialty pill */}
                   <div className="relative z-10 flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.55)' }}>
                       {userRow.institution_name}
                     </span>
-                    <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                    <span style={{ color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)' }}>·</span>
                     <span
                       className="inline-flex px-[9px] py-[2px] rounded-full text-[8px] font-bold uppercase tracking-[0.3px]"
                       style={{
@@ -323,7 +358,7 @@ export function CutoffScoreModal({
               <div className="relative mb-[9px]">
                 <Search
                   className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-                  style={{ color: 'rgba(255,255,255,0.25)' }}
+                  style={{ color: t.text3 }}
                 />
                 <input
                   type="text"
@@ -331,17 +366,18 @@ export function CutoffScoreModal({
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Buscar instituição ou especialidade..."
                   aria-label="Buscar instituição ou especialidade"
-                  className="w-full h-9 pl-9 pr-4 rounded-[10px] text-[12.5px] text-white outline-none transition-all duration-200"
+                  className="w-full h-9 pl-9 pr-4 rounded-[10px] text-[12.5px] outline-none transition-all duration-200"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.09)',
+                    background: t.inputBg,
+                    border: t.inputBorder,
+                    color: t.text1,
                   }}
                   onFocus={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,150,170,0.3)';
-                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(255,150,170,0.08)';
+                    e.currentTarget.style.borderColor = t.inputBorderFocus;
+                    e.currentTarget.style.boxShadow = `0 0 0 2px ${t.inputBgFocus}`;
                   }}
                   onBlur={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)';
+                    e.currentTarget.style.borderColor = t.inputBorder.split(' ')[2];
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
@@ -361,9 +397,9 @@ export function CutoffScoreModal({
                           color: 'white',
                         }
                       : {
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(255,255,255,0.09)',
-                          color: 'rgba(255,255,255,0.5)',
+                          background: t.inputBg,
+                          border: t.inputBorder,
+                          color: t.text2,
                         }
                   }
                 >
@@ -387,9 +423,9 @@ export function CutoffScoreModal({
                   <span
                     className="inline-flex items-center gap-1 px-2.5 py-[4px] rounded-full text-[10.5px] font-medium"
                     style={{
-                      background: 'rgba(122,26,50,0.5)',
+                      background: isDark ? 'rgba(122,26,50,0.5)' : 'rgba(122,26,50,0.1)',
                       border: '1px solid rgba(255,150,170,0.2)',
-                      color: '#ffcbd8',
+                      color: isDark ? '#ffcbd8' : '#7a1a32',
                     }}
                   >
                     {specialtyFilter}
@@ -405,7 +441,7 @@ export function CutoffScoreModal({
                 )}
                 <span
                   className="text-[10.5px] tabular-nums"
-                  style={{ color: hasActiveFilters ? 'rgba(255,203,216,0.7)' : 'rgba(255,255,255,0.25)' }}
+                  style={{ color: hasActiveFilters ? 'rgba(255,203,216,0.7)' : t.text3 }}
                 >
                   {resultCount} {resultCount === 1 ? 'resultado' : 'resultados'}
                 </span>
@@ -447,9 +483,9 @@ export function CutoffScoreModal({
                                 color: 'white',
                               }
                             : {
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid rgba(255,255,255,0.09)',
-                                color: 'rgba(255,255,255,0.5)',
+                                background: t.inputBg,
+                                border: t.inputBorder,
+                                color: t.text2,
                               }
                         }
                       >
@@ -472,11 +508,9 @@ export function CutoffScoreModal({
                                     color: 'white',
                                   }
                                 : {
-                                    background: 'rgba(255,255,255,0.06)',
-                                    border: '1px solid rgba(255,255,255,0.09)',
-                                    color: isMine
-                                      ? 'rgba(255,255,255,0.7)'
-                                      : 'rgba(255,255,255,0.5)',
+                                    background: t.inputBg,
+                                    border: t.inputBorder,
+                                    color: isMine ? t.text1 : t.text2,
                                   }
                             }
                           >
@@ -492,15 +526,15 @@ export function CutoffScoreModal({
             </div>
 
             {/* ── Divider ───────────────────────────────────────────────── */}
-            <div className="shrink-0 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+            <div className="shrink-0 h-px" style={{ background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' }} />
 
             {/* ── Table column header (sticky) ───────────────────────────── */}
             <div
               className="shrink-0 grid px-5 py-2"
               style={{
                 gridTemplateColumns: '1fr 88px 56px 52px',
-                background: 'rgba(255,255,255,0.03)',
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                background: t.tableHeaderBg,
+                borderBottom: t.tableRowBorder,
               }}
             >
               {(['Instituição', 'Especialidade', 'Geral', 'Cotas'] as const).map((h, i) => (
@@ -510,7 +544,7 @@ export function CutoffScoreModal({
                     'text-[8.5px] uppercase tracking-[1.3px] font-bold',
                     i >= 2 && 'text-right',
                   )}
-                  style={{ color: 'rgba(255,255,255,0.25)' }}
+                  style={{ color: t.tableHeaderText }}
                 >
                   {h}
                 </span>
@@ -521,14 +555,14 @@ export function CutoffScoreModal({
             <div className="flex-1 overflow-y-auto">
               {isLoading && (
                 <div className="flex items-center justify-center py-16">
-                  <div className="h-6 w-6 rounded-full border-2 border-white/10 border-t-white/40 animate-spin" />
+                  <div className={cn("h-6 w-6 rounded-full border-2 animate-spin", isDark ? "border-white/10 border-t-white/40" : "border-black/10 border-t-black/40")} />
                 </div>
               )}
 
               {!isLoading && filteredRows.length === 0 && !userRow && (
                 <div className="flex flex-col items-center justify-center py-16 gap-2">
-                  <Search className="h-8 w-8" style={{ color: 'rgba(255,255,255,0.12)' }} />
-                  <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <Search className="h-8 w-8" style={{ color: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)' }} />
+                  <p className="text-[13px]" style={{ color: t.text3 }}>
                     Nenhum resultado encontrado.
                   </p>
                   {search && (
@@ -555,19 +589,19 @@ export function CutoffScoreModal({
                       <div
                         className="flex items-center px-5 py-[5px]"
                         style={{
-                          background: 'rgba(255,255,255,0.02)',
-                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                          background: t.dividerBg,
+                          borderBottom: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(0,0,0,0.05)',
                         }}
                       >
                         <span
                           className="text-[8px] uppercase tracking-[1.5px] font-semibold"
-                          style={{ color: 'rgba(255,255,255,0.2)' }}
+                          style={{ color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)' }}
                         >
                           Sua instituição
                         </span>
                         <div
                           className="flex-1 ml-2"
-                          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                          style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)' }}
                         />
                       </div>
 
@@ -575,13 +609,13 @@ export function CutoffScoreModal({
                         className="grid px-5 py-[9px] items-center"
                         style={{
                           gridTemplateColumns: '1fr 88px 56px 52px',
-                          background: 'rgba(122,26,50,0.28)',
-                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          background: t.userRowBg,
+                          borderBottom: t.tableRowBorder,
                         }}
                       >
                         <span
                           className="text-[11px] pr-2 leading-snug"
-                          style={{ color: 'rgba(255,255,255,0.85)' }}
+                          style={{ color: t.text1 }}
                         >
                           {userRow.institution_name}
                         </span>
@@ -601,7 +635,7 @@ export function CutoffScoreModal({
                         </span>
                         <span
                           className="text-[12px] font-bold text-right tabular-nums"
-                          style={{ color: '#ffcbd8' }}
+                          style={{ color: isDark ? '#ffcbd8' : '#7a1a32' }}
                         >
                           {userRow.cutoff_score_general}
                         </span>
@@ -622,19 +656,19 @@ export function CutoffScoreModal({
                     <div
                       className="flex items-center px-5 py-[5px]"
                       style={{
-                        background: 'rgba(255,255,255,0.02)',
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        background: t.dividerBg,
+                        borderBottom: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(0,0,0,0.05)',
                       }}
                     >
                       <span
                         className="text-[8px] uppercase tracking-[1.5px] font-semibold"
-                        style={{ color: 'rgba(255,255,255,0.2)' }}
+                        style={{ color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)' }}
                       >
                         {userRow ? 'Outras instituições' : 'Instituições'}
                       </span>
                       <div
                         className="flex-1 ml-2"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                        style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)' }}
                       />
                     </div>
                   )}
@@ -652,19 +686,22 @@ export function CutoffScoreModal({
                     return (
                       <div
                         key={`${row.institution_name}-${row.specialty_name}`}
-                        className="grid px-5 py-[9px] items-center transition-colors duration-150 hover:bg-white/[0.025]"
+                        className="grid px-5 py-[9px] items-center transition-colors duration-150"
                         style={{
                           gridTemplateColumns: '1fr 88px 56px 52px',
-                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          borderBottom: t.tableRowBorder,
+                          backgroundColor: 'transparent',
                         }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = t.tableRowHover; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                       >
                         <span
                           className="text-[11px] pr-2 leading-snug"
-                          style={{ color: 'rgba(255,255,255,0.7)' }}
+                          style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }}
                         >
                           {row.institution_name}
                         </span>
-                        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                        <span className="text-[10px]" style={{ color: t.text2 }}>
                           {row.specialty_name}
                         </span>
                         <span
@@ -690,11 +727,11 @@ export function CutoffScoreModal({
             <div
               className="shrink-0 px-5 py-3 text-center"
               style={{
-                background: 'rgba(255,255,255,0.02)',
-                borderTop: '1px solid rgba(255,255,255,0.07)',
+                background: t.footerBg,
+                borderTop: t.borderColor,
               }}
             >
-              <p className="text-[9.5px]" style={{ color: 'rgba(255,255,255,0.18)' }}>
+              <p className="text-[9.5px]" style={{ color: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.25)' }}>
                 Dados referentes ao último processo seletivo ENAMED disponível.
               </p>
             </div>

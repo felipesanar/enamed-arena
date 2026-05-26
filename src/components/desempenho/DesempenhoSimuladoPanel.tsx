@@ -372,23 +372,23 @@ function PerformanceHeroCard({
       : `/simulados/${simuladoId}/correcao`;
 
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-5 md:p-6 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85),0_8px_20px_-12px_rgba(60,12,32,0.45)]">
+    <div className="hero-status-card">
       {/* Atmospheric layers */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[rgba(232,56,98,0.18)] blur-[70px]"
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/15 blur-[70px] dark:bg-[rgba(232,56,98,0.18)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-12 -bottom-12 h-44 w-44 rounded-full bg-[rgba(12,18,32,0.55)] blur-[50px]"
+        className="pointer-events-none absolute -left-12 -bottom-12 h-44 w-44 rounded-full bg-primary/10 blur-[50px] dark:bg-[rgba(12,18,32,0.55)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_50%_at_18%_12%,rgba(255,255,255,0.08)_0%,transparent_55%)]"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent dark:bg-[radial-gradient(ellipse_72%_50%_at_18%_12%,rgba(255,255,255,0.08)_0%,transparent_55%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/10 to-transparent dark:via-white/[0.08]"
       />
 
       <div className="relative z-10 grid gap-6 md:grid-cols-[1fr_auto] md:items-end md:gap-8">

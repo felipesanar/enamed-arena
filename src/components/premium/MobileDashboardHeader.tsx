@@ -11,6 +11,7 @@ import {
 import { BrandIcon } from "@/components/brand/BrandMark";
 import { useUser } from "@/contexts/UserContext";
 import { useSimulados } from "@/hooks/useSimulados";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   type BannerScenario,
   deriveScenario,
@@ -71,10 +72,10 @@ export function MobileDashboardHeader({
       {/* Superfície do header: compacta ao scroll com sombra/raio refinados */}
       <div
         className={cn(
-          "mx-2 overflow-hidden border border-[#E5DEE3]/90 bg-[#F4F1F3]/94 backdrop-blur-lg transition-all duration-300",
+          "mx-2 overflow-hidden border border-border/60 bg-card/94 backdrop-blur-lg transition-all duration-300",
           isCompact
-            ? "rounded-b-xl shadow-[0_8px_22px_-16px_rgba(26,34,51,0.25)]"
-            : "rounded-b-2xl shadow-[0_10px_26px_-18px_rgba(26,34,51,0.18)]"
+            ? "rounded-b-xl shadow-md"
+            : "rounded-b-2xl shadow-lg"
         )}
       >
         <div
@@ -86,11 +87,11 @@ export function MobileDashboardHeader({
           <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
           <Link
             to="/"
-            className="group flex w-fit max-w-full items-center gap-3 rounded-2xl py-0.5 pr-2 no-underline outline-none focus-visible:ring-2 focus-visible:ring-[rgba(142,31,61,0.28)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F4F1F3]"
+            className="group flex w-fit max-w-full items-center gap-3 rounded-2xl py-0.5 pr-2 no-underline outline-none focus-visible:ring-2 focus-visible:ring-primary/24 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Início"
           >
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/12 bg-[linear-gradient(145deg,rgba(253,240,244,0.95)_0%,rgba(245,228,234,0.85)_100%)] shadow-[0_2px_10px_-4px_rgba(142,31,61,0.18),inset_0_1px_0_rgba(255,255,255,0.65)]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/12 bg-gradient-to-b from-accent to-accent/70 shadow-sm"
               aria-hidden
             >
               <Stethoscope className="h-[19px] w-[19px] text-primary" strokeWidth={1.75} />
@@ -116,24 +117,26 @@ export function MobileDashboardHeader({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle variant="icon" />
+
             <button
               type="button"
               onClick={() => {
                 setNotificationsOpen(true);
                 trackEvent("ranking_viewed", { source: "mobile_header_bell" });
               }}
-              className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E8E1E5]/90 bg-white text-primary shadow-[0_1px_3px_rgba(26,34,51,0.06)] transition-colors hover:bg-[#FAF7F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(142,31,61,0.24)] focus-visible:ring-offset-2"
+              className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-border/60 bg-card text-primary shadow-sm transition-colors hover:bg-card dark:hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label="Abrir central de notificações"
             >
               <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
               {showDot && (
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#E83862] ring-2 ring-white" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
               )}
             </button>
 
             <Link
               to="/configuracoes"
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/14 bg-[linear-gradient(145deg,rgba(253,240,244,0.95)_0%,rgba(245,228,234,0.75)_100%)] text-[13px] font-bold text-primary shadow-[0_2px_8px_-4px_rgba(142,31,61,0.2)] transition-colors hover:border-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/14 bg-accent text-[13px] font-bold text-primary shadow-sm transition-colors hover:border-primary/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label="Conta e configurações"
             >
               {initial}
@@ -142,7 +145,7 @@ export function MobileDashboardHeader({
         </div>
 
         {isGuest && (
-          <div className="border-t border-primary/10 bg-[linear-gradient(90deg,rgba(142,31,61,0.08)_0%,rgba(142,31,61,0.04)_50%,rgba(142,31,61,0.07)_100%)] px-4 pb-2 pt-1.5">
+          <div className="border-t border-border/30 bg-primary/5 px-4 pb-2 pt-1.5">
             <a
               href={SANARFLIX_PRO_ENAMED_URL}
               target="_blank"
@@ -153,7 +156,7 @@ export function MobileDashboardHeader({
                   cta_to: SANARFLIX_PRO_ENAMED_URL,
                 })
               }
-              className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-center text-[11px] font-bold leading-tight text-primary-foreground shadow-[0_4px_14px_-6px_hsl(345_65%_30%/0.55)] transition-[transform,filter] hover:brightness-105 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:text-xs"
+              className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-center text-[11px] font-bold leading-tight text-primary-foreground shadow-glow-wine transition-[transform,filter] hover:brightness-105 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:text-xs"
             >
               <span className="line-clamp-2">
                 Acessar o Sanarflix PRO ENAMED
@@ -167,7 +170,7 @@ export function MobileDashboardHeader({
       <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
         <SheetContent
           side="top"
-          className="rounded-b-2xl border-b border-[#E5DEE3]/90 bg-[#F4F1F3]/98 px-4 pb-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] shadow-[0_18px_36px_-24px_rgba(26,34,51,0.25)]"
+          className="rounded-b-2xl border-b border-border/60 bg-card/98 px-4 pb-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] shadow-lg"
         >
           <SheetHeader className="text-left">
             <SheetTitle className="text-base">Central de notificações</SheetTitle>
@@ -228,7 +231,7 @@ function HubLink({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-xl border border-[#E8E1E5]/85 bg-white/80 px-3 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card/80 px-3 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Icon className="h-4 w-4 text-primary" aria-hidden />
       {label}

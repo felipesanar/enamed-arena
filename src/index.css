@@ -84,6 +84,26 @@
     --exam-option-selected-bg: 345 65% 30% / 0.04;
     --exam-shadow-selected: 0 2px 8px -2px hsl(345 65% 30% / 0.08);
 
+    /* Hero premium surfaces & gradients */
+    --hero-premium-bg: linear-gradient(148deg, hsl(345 65% 30%) 0%, hsl(345 60% 25%) 38%, hsl(345 50% 35%) 72%, hsl(345 45% 40%) 100%);
+    --hero-premium-border: 345 65% 30% / 0.2;
+    --hero-premium-glow: 345 65% 30% / 0.16;
+    --hero-premium-text-muted: 345 50% 62%;
+
+    /* Trend indicators */
+    --trend-up: 152 60% 36%;
+    --trend-down: 0 72% 51%;
+
+    /* Medal colors */
+    --medal-gold: 38 92% 50%;
+    --medal-silver: 220 10% 60%;
+    --medal-bronze: 20 70% 50%;
+
+    /* Success/warning/info surfaces */
+    --success-surface: 152 60% 36% / 0.06;
+    --warning-surface: 38 92% 50% / 0.06;
+    --info-surface: 210 80% 52% / 0.06;
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.04);
     --shadow-md: 0 4px 12px -2px hsl(220 20% 10% / 0.06), 0 2px 4px -2px hsl(220 20% 10% / 0.04);
@@ -175,6 +195,26 @@
     --exam-header-bg: 220 18% 8% / 0.92;
     --exam-option-selected-bg: 345 55% 50% / 0.06;
     --exam-shadow-selected: 0 2px 8px -2px hsl(345 55% 50% / 0.12);
+
+    /* Hero premium surfaces & gradients (dark) */
+    --hero-premium-bg: linear-gradient(148deg, hsl(220 22% 12%) 0%, hsl(220 20% 10%) 38%, hsl(345 30% 18%) 72%, hsl(345 35% 22%) 100%);
+    --hero-premium-border: 345 55% 50% / 0.18;
+    --hero-premium-glow: 345 55% 50% / 0.12;
+    --hero-premium-text-muted: 345 55% 65%;
+
+    /* Trend indicators (dark) */
+    --trend-up: 152 65% 45%;
+    --trend-down: 0 65% 55%;
+
+    /* Medal colors (dark) */
+    --medal-gold: 38 85% 55%;
+    --medal-silver: 220 15% 65%;
+    --medal-bronze: 20 75% 60%;
+
+    /* Success/warning/info surfaces (dark) */
+    --success-surface: 152 65% 45% / 0.08;
+    --warning-surface: 38 85% 55% / 0.08;
+    --info-surface: 210 80% 62% / 0.08;
 
     --auth-bg-base: 220 22% 7%;
     --auth-bg-soft: 220 18% 10%;
@@ -425,6 +465,44 @@
 
   .exam-bg { background-color: hsl(var(--exam-bg)); }
   .exam-surface { background-color: hsl(var(--exam-surface)); }
+
+  /* Hero premium background surface — light (accent tone) vs dark (gradient) */
+  .hero-premium-surface {
+    background: linear-gradient(
+      135deg,
+      hsl(345 65% 30%) 0%,
+      hsl(345 60% 25%) 38%,
+      hsl(345 50% 35%) 72%,
+      hsl(345 45% 40%) 100%
+    );
+  }
+
+  .dark .hero-premium-surface {
+    background:
+      radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%),
+      radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%),
+      linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%);
+  }
+
+  /* Hero status card — compact hero in dark mode, accent in light */
+  .hero-status-card {
+    @apply relative overflow-hidden rounded-[22px] border border-primary/20 p-4 md:p-6 shadow-sm;
+    background: linear-gradient(
+      135deg,
+      hsl(345 65% 30%) 0%,
+      hsl(345 60% 25%) 38%,
+      hsl(345 50% 35%) 72%,
+      hsl(345 45% 40%) 100%
+    );
+  }
+
+  .dark .hero-status-card {
+    @apply border-white/[0.07];
+    background:
+      linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%);
+    box-shadow: 0 20px 40px -20px rgba(10,14,26,0.85), 0 8px 20px -12px rgba(60,12,32,0.45);
+  }
 
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;
@@ -746,5 +824,45 @@
 @media (prefers-reduced-motion: reduce) {
   [data-shimmer="1"]::before {
     animation: none;
+  }
+}
+
+/* ── Print styles: Force light mode ─────────────────────────────────────── */
+@media print {
+  :root {
+    /* Force light mode colors for printing */
+    --background: 0 0% 98.5%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --muted: 220 10% 93%;
+    --muted-foreground: 220 10% 46%;
+    --border: 220 12% 90%;
+    --exam-bg: 210 15% 97.5%;
+    --exam-surface: 0 0% 100%;
+    --exam-text: 210 20% 15%;
+    --exam-text-secondary: 210 10% 45%;
+  }
+
+  body, html {
+    background-color: white;
+    color: black;
+  }
+
+  .dark {
+    /* Override dark mode styles for print */
+    --background: 0 0% 98.5%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --muted: 220 10% 93%;
+    --muted-foreground: 220 10% 46%;
+    --border: 220 12% 90%;
+    --exam-bg: 210 15% 97.5%;
+    --exam-surface: 0 0% 100%;
+    --exam-text: 210 20% 15%;
+    --exam-text-secondary: 210 10% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 10%;
   }
 }

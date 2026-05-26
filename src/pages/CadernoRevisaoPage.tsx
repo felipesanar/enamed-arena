@@ -208,10 +208,10 @@ function SessionSummary({
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-6 md:p-8 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85)]">
+      <div className="hero-status-card">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-[rgba(232,56,98,0.16)] blur-[60px]"
+          className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-primary/10 blur-[60px] dark:bg-[rgba(232,56,98,0.16)]"
         />
         <div className="relative">
           <div className="inline-flex items-center gap-2 rounded-full bg-success/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-success border border-success/25">
