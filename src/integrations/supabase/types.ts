@@ -419,6 +419,8 @@ export type Database = {
       }
       error_notebook: {
         Row: {
+          ai_option_rationales: Json | null
+          ai_practice: Json | null
           ai_review_generated_at: string | null
           ai_review_md: string | null
           area: string | null
@@ -426,6 +428,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           learning_text: string | null
+          next_review_at: string | null
           question_id: string | null
           question_number: number | null
           question_text: string | null
@@ -439,6 +442,8 @@ export type Database = {
           was_correct: boolean
         }
         Insert: {
+          ai_option_rationales?: Json | null
+          ai_practice?: Json | null
           ai_review_generated_at?: string | null
           ai_review_md?: string | null
           area?: string | null
@@ -446,6 +451,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           learning_text?: string | null
+          next_review_at?: string | null
           question_id?: string | null
           question_number?: number | null
           question_text?: string | null
@@ -459,6 +465,8 @@ export type Database = {
           was_correct?: boolean
         }
         Update: {
+          ai_option_rationales?: Json | null
+          ai_practice?: Json | null
           ai_review_generated_at?: string | null
           ai_review_md?: string | null
           area?: string | null
@@ -466,6 +474,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           learning_text?: string | null
+          next_review_at?: string | null
           question_id?: string | null
           question_number?: number | null
           question_text?: string | null
@@ -1407,6 +1416,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      snooze_error_notebook_entry: {
+        Args: { p_days?: number; p_entry_id: string }
+        Returns: string
       }
       submit_offline_answers_guarded: {
         Args: { p_answers: Json; p_attempt_id: string }
