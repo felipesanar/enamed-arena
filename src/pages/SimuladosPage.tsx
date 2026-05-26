@@ -94,7 +94,10 @@ export default function SimuladosPage() {
       .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
     const finished = simulados
       .filter(s =>
-        s.status === "closed_waiting" || s.status === "completed" || s.status === "available_late"
+        s.status === "closed_waiting" ||
+        s.status === "completed" ||
+        s.status === "results_available" ||
+        s.status === "available_late"
       )
       .sort((a, b) => Date.parse(b.executionWindowStart) - Date.parse(a.executionWindowStart));
     const upcoming = simulados

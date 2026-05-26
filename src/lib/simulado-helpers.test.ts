@@ -85,15 +85,11 @@ describe('deriveSimuladoStatus', () => {
     expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('completed');
   });
 
-  it('returns results_available when results date passed but user finished (edge)', () => {
-    const now = new Date('2025-06-02T13:00:00Z');
-    const userState: SimuladoUserState = {
-      simuladoId: 's1',
-      started: true,
-      finished: true,
-      finishedAt: '2025-06-01T13:00:00Z',
-    };
-    expect(deriveSimuladoStatus(baseConfig, userState, now)).toBe('completed');
+  it('returns available_late when results date passed but user never finished', () => {
+    // Antes retornava `results_available`; agora todo simulado passado fica
+    // disponível como treino para quem não fez.
+    const now = new Date('2025-06-03T12:00:00Z');
+    expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('available_late');
   });
 });
 

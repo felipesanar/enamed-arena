@@ -72,8 +72,8 @@ const TIMELINE_VARIANT = {
   },
   available_late: {
     Icon: Coffee,
-    label: "Fora da janela",
-    dotClass: "border-border bg-muted/90",
+    label: "Disponível como treino",
+    dotClass: "border-info/40 bg-info/15",
     labelEmphasis: false,
   },
   upcoming: {
@@ -225,7 +225,9 @@ function TimelineItem({
             {(isAvailable || isAvailableLate) && (
               <div className="flex flex-col items-end gap-0.5">
                 <Link to={simuladoTakeExamHref(sim)} className={linkClass}>
-                  {simuladoTakeExamLinkLabel(sim)}{" "}
+                  {isAvailableLate && sim.userState?.started !== true
+                    ? "Fazer como treino"
+                    : simuladoTakeExamLinkLabel(sim)}{" "}
                   <ArrowRight className="h-3.5 w-3.5 opacity-80" />
                 </Link>
                 {isAvailableLate && (
@@ -283,7 +285,8 @@ export function SimuladosTimelineSection({
           compact ? "mb-3" : "mb-5",
         )}
       >
-        Ordenado do mais recente para o mais antigo.
+        Ordenado do mais recente para o mais antigo. Simulados com janela
+        encerrada continuam disponíveis como treino — não contam no ranking.
       </p>
 
       <div className="relative pl-1">

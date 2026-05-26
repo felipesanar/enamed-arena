@@ -26,15 +26,12 @@ export function deriveSimuladoStatus(
     return 'closed_waiting';
   }
 
-  // Window closed, results already released (public answer-key time) and user
-  // never finished. The user should be able to see the gabarito — but the
-  // attempt won't count for ranking (still treino).
-  // NOTE: kept BEFORE `available_late` so the gabarito CTA wins when both apply.
-  if (isAfter(now, windowEnd) && isAfter(now, resultsAt)) {
-    return 'results_available';
-  }
-
-  // Window closed, user never finished → available as practice
+  // Window closed and user never finished → sempre disponível como treino
+  // (não entra no ranking). Antes, quando `resultsReleaseAt` já tinha passado,
+  // o status virava `results_available` (apenas gabarito) e o card sumia da
+  // listagem para quem não tinha feito o simulado. Agora todo simulado
+  // publicado fica acessível a qualquer momento; a única regra é a entrada
+  // ou não no ranking nacional.
   if (isAfter(now, windowEnd)) {
     return 'available_late';
   }
@@ -106,7 +103,7 @@ export const STATUS_CONFIG: Record<SimuladoStatus, {
     description: 'A janela de execução está aberta. Você pode iniciar agora.',
   },
   available_late: {
-    label: 'Disponível',
+    label: 'Treino',
     badgeClass: 'bg-info/10 text-info',
     description:
       'Mesmo simulado completo para preparo; a realização após o fim da janela oficial não entra no ranking nacional.',
