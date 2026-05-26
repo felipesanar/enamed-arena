@@ -225,7 +225,9 @@ function TimelineItem({
             {(isAvailable || isAvailableLate) && (
               <div className="flex flex-col items-end gap-0.5">
                 <Link to={simuladoTakeExamHref(sim)} className={linkClass}>
-                  {simuladoTakeExamLinkLabel(sim)}{" "}
+                  {isAvailableLate && sim.userState?.started !== true
+                    ? "Fazer como treino"
+                    : simuladoTakeExamLinkLabel(sim)}{" "}
                   <ArrowRight className="h-3.5 w-3.5 opacity-80" />
                 </Link>
                 {isAvailableLate && (
