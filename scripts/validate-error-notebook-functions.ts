@@ -234,10 +234,25 @@ async function testChat() {
   }
 
   const wordCount = b.reply.split(/\s+/).length;
-  if (wordCount > 180) {
-    fail(`reply excedeu 180 palavras (${wordCount}) — prompt promete máx 120`);
+  if (wordCount > 200) {
+    fail(`reply excedeu 200 palavras (${wordCount}) — prompt promete máx 140`);
   } else {
     pass(`reply dentro do limite (${wordCount} palavras)`);
+  }
+
+  // Padrões banidos explicitamente pelo prompt
+  const bannedOpenings = [
+    /^essa\s+é\s+uma\s+(?:excelente|boa|ótima|interessante|pertinente)\s+pergunta/i,
+    /^(?:excelente|boa|ótima|interessante|pertinente|muito\s+boa)\s+pergunta/i,
+    /^pergunta\s+(?:excelente|boa|ótima|interessante)/i,
+    /^(?:claro|perfeito|com\s+certeza|honestamente|na\s+verdade|vamos\s+lá)[\s!.,:]/i,
+    /^(?:olá|ola|oi|opa|e\s+aí|e\s+ai)[\s!.,:]/i,
+  ];
+  const offending = bannedOpenings.find((re) => re.test(b.reply!.trim()));
+  if (offending) {
+    fail(`reply começa com padrão banido: "${b.reply!.slice(0, 60)}..."`);
+  } else {
+    pass('reply não começa com elogio/saudação banidos');
   }
 
   // 2. Segundo turno — passa o histórico
@@ -270,16 +285,57 @@ async function testChat() {
     }
   }
 
-  // 3. Payload inválido — sem question
-  const { status: s3, body: b3 } = await callFunction('gemini-error-notebook-chat', {
+  // 3. Pergunta-conceito provocadora — força o cenário do bug original
+  //    ("Por que X em vez de Y, que tem indicação Classe I?")
+  //    O LLM tende a abrir com "Essa é uma excelente pergunta".
+  const { status: s3b, body: b3b } = await callFunction('gemini-error-notebook-chat', {
+    studentName: samplePayload.studentName,
+    questionStem: samplePayload.questionStem,
+    options: samplePayload.options,
+    correctLabel: samplePayload.correctLabel,
+    userLabel: samplePayload.userLabel,
+    area: samplePayload.area,
+    theme: samplePayload.theme,
+    reason: samplePayload.reason,
+    learningNote: samplePayload.learningNote,
+    aiReviewMd: null,
+    history: [],
+    question: 'Por que aumentar a losartana em vez de iniciar sacubitril-valsartana, que tem indicação Classe I na ICFER?',
+  });
+  if (s3b === 200) {
+    const r = (b3b as { reply?: string }).reply ?? '';
+    const bannedOpenings = [
+      /^essa\s+é\s+uma\s+(?:excelente|boa|ótima|interessante|pertinente)\s+pergunta/i,
+      /^(?:excelente|boa|ótima|interessante|pertinente|muito\s+boa)\s+pergunta/i,
+    ];
+    if (bannedOpenings.some((re) => re.test(r.trim()))) {
+      fail(`pergunta-conceito ainda escapa com elogio: "${r.slice(0, 80)}"`);
+    } else {
+      pass('pergunta-conceito sem abertura elogiosa');
+    }
+    // Verifica se elevou nível citando referência canônica
+    const hasReference =
+      /paradigm|pioneer|dapa|emperor|classe\s+i|classe\s+i{1,3}/i.test(r) ||
+      /dose[\s-]?alvo|subdose|titula/i.test(r);
+    if (hasReference) {
+      pass('pergunta-conceito menciona referência canônica ou dose-alvo');
+    } else {
+      fail(`pergunta-conceito sem framework/ensaio/dose-alvo citado: "${r.slice(0, 120)}..."`);
+    }
+  } else {
+    fail(`pergunta-conceito retornou ${s3b}`, b3b);
+  }
+
+  // 4. Payload inválido — sem question
+  const { status: s4, body: b4 } = await callFunction('gemini-error-notebook-chat', {
     ...samplePayload,
     history: [],
     question: '',
   });
-  if (s3 === 400) {
-    pass(`pergunta vazia retorna 400 (${(b3 as { error?: string })?.error ?? ''})`);
+  if (s4 === 400) {
+    pass(`pergunta vazia retorna 400 (${(b4 as { error?: string })?.error ?? ''})`);
   } else {
-    fail(`pergunta vazia deveria retornar 400, retornou ${s3}`, b3);
+    fail(`pergunta vazia deveria retornar 400, retornou ${s4}`, b4);
   }
 }
 

@@ -49,6 +49,46 @@ function stripEmDashes(text: string): string {
     .replace(/[ \t]{2,}/g, ' ');
 }
 
+/**
+ * Defesa em profundidade contra elogios à pergunta que escapem do prompt.
+ * Remove abertura tipo "Excelente pergunta. ..." preservando o restante.
+ * Tolera variações ("Essa é uma excelente pergunta!", "Boa pergunta —",
+ * "Ótima pergunta:", etc.) e pontuação subsequente.
+ */
+function stripOpeningCompliments(text: string): string {
+  const patterns: RegExp[] = [
+    // "Essa é uma (excelente|boa|ótima|interessante|pertinente) pergunta..."
+    /^\s*(?:essa\s+(?:é|e)\s+(?:uma|a)?\s*)?(?:excelente|ótima|otima|boa|interessante|pertinente|muito\s+boa|grande)\s+pergunta[\s!.,:;…]+/i,
+    // "Pergunta excelente/ótima/..."
+    /^\s*pergunta\s+(?:excelente|ótima|otima|boa|interessante|pertinente)[\s!.,:;…]+/i,
+    // Aberturas de meta-comentário
+    /^\s*(?:claro|perfeito|com\s+certeza|certamente|sem\s+dúvida|sem\s+duvida|honestamente|na\s+verdade|vamos\s+lá|vamos\s+la|deixa\s+eu\s+(?:te\s+)?explicar)[\s!.,:;…]+/i,
+    // Saudações
+    /^\s*(?:olá|ola|oi|opa|e\s+aí|e\s+ai|fala)[\s!.,:;…]+/i,
+  ];
+
+  let out = text;
+  // Aplica em loop pra cobrir empilhamento ("Olá! Excelente pergunta. ...").
+  for (let i = 0; i < 4; i++) {
+    let changed = false;
+    for (const re of patterns) {
+      const next = out.replace(re, '');
+      if (next !== out) {
+        out = next;
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+
+  // Capitaliza primeira letra se ficou minúscula após a remoção.
+  if (out.length > 0 && /^[a-záéíóúâêôãõç]/.test(out)) {
+    out = out[0].toUpperCase() + out.slice(1);
+  }
+
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -142,21 +182,38 @@ ${reviewLine}
 
 # COMO RESPONDER
 
-✅ Máximo **120 palavras**, parágrafo único ou bullets curtos.
-✅ Ancore a resposta na questão específica.
+✅ Máximo **140 palavras**, parágrafo único ou bullets curtos.
+✅ **Ancore nos dados específicos do caso** (cite PA, FC, idade, dose, achado de exame quando relevante). Resposta que serve pra qualquer paciente vale pouco.
 ✅ Cite alternativa por label (A, B…) quando for o caso.
 ✅ Use markdown leve (negrito em palavras-chave, no máximo 2 trechos).
 
-🚫 BANIDO:
-- Saudações, despedidas, meta-comentários ("ótima pergunta", "vamos lá").
-- Repetir a análise já enviada palavra por palavra.
-- Recusar respostas em pretexto de "não sou médico de verdade". Você é o Prof. Sanor.
-- Inventar dados clínicos não presentes na questão; quando não tiver certeza, diga.
-- TRAVESSÃO em qualquer lugar.
+# PROFUNDIDADE TÉCNICA
+
+Quando ${firstName} pedir um **critério, conceito ou comparação clínica**, eleve o nível com referências canônicas, sempre que couberem ao caso:
+
+- **Perfis clínico-hemodinâmicos** quando a pergunta for sobre IC/choque: Stevenson (A/B/C/L = quente-seco, quente-úmido, frio-úmido, frio-seco), Forrester quando aplicável.
+- **Classes funcionais e de recomendação**: NYHA I-IV, Classe I/IIa/IIb/III da SBC/ESC/AHA quando justificar conduta.
+- **Ensaios pivotais** quando a pergunta cobrar comparação entre drogas/condutas (ex.: PARADIGM-HF, PIONEER-HF, DAPA-HF, EMPEROR-Reduced, PARTNER, ISCHEMIA, etc.). Cite só o que for diretamente relevante, sem "decorar bula".
+- **Doses-alvo vs doses subterapêuticas** quando a pergunta envolver titulação (ex.: losartana alvo 100mg/d; carvedilol alvo 25mg 2×; enalapril alvo 10-20mg 2×). Se o paciente está em subdose, **aponte explicitamente**.
+
+Não force framework se a pergunta for direta de fato/condução. Profundidade vale quando agrega.
+
+# BANIDO
+
+🚫 **Elogiar a pergunta**. Nada de "excelente pergunta", "ótima pergunta", "boa pergunta", "interessante", "muito bom", "pertinente", "essa é uma ótima/excelente/boa pergunta". **Comece direto pela resposta.**
+🚫 Saudações ("Olá", "Oi", "E aí", "Opa") e despedidas ("Espero ter ajudado", "Qualquer dúvida").
+🚫 Meta-comentário ("vamos lá", "claro!", "perfeito", "honestamente", "na verdade", "deixa eu te explicar").
+🚫 Clichês ("parabéns", "continue assim", "não desanime").
+🚫 Burocratês ("o paciente apresenta", "observa-se", "trata-se de", "no que se refere a").
+🚫 Gíria forçada ("Cara,", "Mano,", "Tipo assim").
+🚫 Repetir a análise já enviada palavra por palavra (ela está no contexto pra você diferenciar; não regurgite).
+🚫 Recusar resposta com "não sou médico de verdade" ou "consulte um especialista". **Você é o Prof. Sanor**. Quando não tiver certeza, diga "não tenho certeza sobre X, o que sei é Y".
+🚫 Inventar dados clínicos não presentes no enunciado. Se a pergunta pede algo fora do caso, ancore no que tem.
+🚫 **TRAVESSÃO** em qualquer lugar (— ou –). Use ponto, vírgula, "que", "porque", "e", parênteses.
 
 # COMECE
 
-Responda direto à dúvida de ${firstName} sem chamar o nome dele.`;
+Responda direto à dúvida de ${firstName} sem chamar o nome dele. **A primeira palavra é a resposta, não um adjetivo sobre a pergunta.**`;
 
     // Constrói o histórico para Gemini: system instruction + turns + nova pergunta.
     const geminiContents = [
@@ -177,7 +234,7 @@ Responda direto à dúvida de ${firstName} sem chamar o nome dele.`;
           contents: geminiContents,
           generationConfig: {
             temperature: 0.5,
-            maxOutputTokens: 700,
+            maxOutputTokens: 900,
             topP: 0.9,
             thinkingConfig: { thinkingBudget: 0 },
           },
@@ -197,7 +254,7 @@ Responda direto à dúvida de ${firstName} sem chamar o nome dele.`;
     const data = await r.json();
     const raw =
       data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
-    const reply = stripEmDashes(raw).trim();
+    const reply = stripOpeningCompliments(stripEmDashes(raw)).trim();
 
     if (!reply) {
       return new Response(JSON.stringify({ error: 'Resposta vazia da IA' }), {

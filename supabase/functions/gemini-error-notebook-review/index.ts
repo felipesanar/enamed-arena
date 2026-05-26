@@ -42,6 +42,35 @@ function stripEmDashes(text: string): string {
     .replace(/[ \t]{2,}/g, ' ');
 }
 
+/**
+ * Remove aberturas do tipo elogio à pergunta / saudação / meta-comentário
+ * que possam escapar do prompt. Roda em loop pra cobrir empilhamentos.
+ */
+function stripOpeningCompliments(text: string): string {
+  const patterns: RegExp[] = [
+    /^\s*(?:essa\s+(?:é|e)\s+(?:uma|a)?\s*)?(?:excelente|ótima|otima|boa|interessante|pertinente|muito\s+boa|grande)\s+pergunta[\s!.,:;…]+/i,
+    /^\s*pergunta\s+(?:excelente|ótima|otima|boa|interessante|pertinente)[\s!.,:;…]+/i,
+    /^\s*(?:claro|perfeito|com\s+certeza|certamente|sem\s+dúvida|sem\s+duvida|honestamente|na\s+verdade|vamos\s+lá|vamos\s+la|deixa\s+eu\s+(?:te\s+)?explicar)[\s!.,:;…]+/i,
+    /^\s*(?:olá|ola|oi|opa|e\s+aí|e\s+ai|fala)[\s!.,:;…]+/i,
+  ];
+  let out = text;
+  for (let i = 0; i < 4; i++) {
+    let changed = false;
+    for (const re of patterns) {
+      const next = out.replace(re, '');
+      if (next !== out) {
+        out = next;
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+  if (out.length > 0 && /^[a-záéíóúâêôãõç]/.test(out)) {
+    out = out[0].toUpperCase() + out.slice(1);
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -140,16 +169,27 @@ ${explanationLine}
 ✅ 2ª pessoa direta, conversa de café.
 ✅ Conectores naturais (no máximo 1 por seção): "Olha", "Repara", "Sabe o que pegou aqui", "A pegadinha foi", "Pra fixar".
 ✅ Cite alternativa pelo label (A, B, C…) quando for útil.
+✅ **Ancore nos dados do caso** (PA, FC, idade, dose, achado) sempre que reforçar o raciocínio. Resposta genérica vale pouco.
 ✅ Recomendação prática quando couber: o que revisar, quantas questões.
+
+# PROFUNDIDADE TÉCNICA (quando couber)
+
+Eleve o nível com referências canônicas quando a questão pedir conceito/critério, sem forçar:
+
+- **Frameworks clínicos**: Stevenson (A/B/C/L), Forrester, NYHA I-IV, classificação Killip, escalas de risco (GRACE, CHA₂DS₂-VASc, HAS-BLED) — cite quando o raciocínio depender disso.
+- **Classes de recomendação**: Classe I/IIa/IIb/III da SBC/ESC/AHA quando justificar conduta.
+- **Ensaios pivotais**: só os que mudam a conduta dessa questão específica (ex.: PARADIGM-HF, PIONEER-HF, DAPA-HF, EMPEROR-Reduced, ISCHEMIA, COMPASS, etc.). Sem "decorar bula".
+- **Doses-alvo vs subdoses**: se o paciente está em subdose de uma droga modificadora de prognóstico, **aponte** (ex.: losartana alvo 100mg/d, carvedilol alvo 25mg 2×, enalapril 10-20mg 2×).
 
 🚫 BANIDO:
 - **TRAVESSÃO em qualquer lugar.**
-- Saudações ("Olá", "Oi", "E aí").
-- Meta-comentário ("vamos lá", "claro!", "perfeito", "honestamente").
-- Clichês ("parabéns", "continue assim", "não desanime").
-- Burocratês ("o paciente apresenta", "observa-se", "trata-se de").
+- **Elogios à questão ou ao aluno**: nada de "boa observação", "ótimo ponto", "interessante", "muito bom". Comece pela análise.
+- Saudações ("Olá", "Oi", "E aí", "Opa").
+- Meta-comentário ("vamos lá", "claro!", "perfeito", "honestamente", "na verdade").
+- Clichês ("parabéns", "continue assim", "não desanime", "espero ter ajudado").
+- Burocratês ("o paciente apresenta", "observa-se", "trata-se de", "no que se refere a").
 - Drama ("preocupante", "alarmante").
-- Gíria forçada ("Cara,", "Mano,").
+- Gíria forçada ("Cara,", "Mano,", "Tipo assim").
 - Copiar literalmente o comentário oficial. Use como referência, reescreva na sua voz.
 
 # FORMATO DE SAÍDA
@@ -268,7 +308,7 @@ Retorne o JSON. Sem preâmbulo. Sem chamar o nome do aluno (a página já mostra
       parsed = { markdown: rawJson };
     }
 
-    const markdown = stripEmDashes(parsed.markdown ?? '');
+    const markdown = stripOpeningCompliments(stripEmDashes(parsed.markdown ?? ''));
 
     const practice = parsed.practice
       ? {
