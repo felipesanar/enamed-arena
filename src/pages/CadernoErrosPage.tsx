@@ -1077,33 +1077,15 @@ function CadernoContent({ userId }: { userId: string }) {
         </StaggerItem>
       )}
 
-      {!allResolved && filtered.length > 0 && heroEntry && (
-        <StaggerItem>
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-primary" aria-hidden />
-              <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
-                Próxima para revisar
-              </span>
-            </div>
-            <NextUpCard
-              entry={heroEntry}
-              onRemove={handleRemove}
-              onToggleResolved={handleToggleResolved}
-            />
-          </div>
-        </StaggerItem>
-      )}
-
-      {!allResolved && pending.length > 1 && (
+      {!allResolved && pending.length > 0 && (
         <StaggerItem>
           <div>
             <div className="mb-2.5 flex items-center justify-between">
               <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
-                Na fila
+                Pendentes
               </span>
               <span className="text-caption text-muted-foreground">
-                {pending.length - 1} {pluralize(pending.length - 1, 'restante', 'restantes')}
+                {pending.length} {pluralize(pending.length, 'questão', 'questões')}
               </span>
             </div>
             <motion.div
@@ -1117,7 +1099,7 @@ function CadernoContent({ userId }: { userId: string }) {
                 hidden: {},
               }}
             >
-              {pending.slice(1).map((entry) => (
+              {pending.map((entry) => (
                 <motion.div
                   key={entry.id}
                   variants={{
