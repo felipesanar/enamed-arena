@@ -487,11 +487,11 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
         <div className="flex flex-wrap gap-2 items-center">
           <button
             disabled
-            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-not-allowed opacity-50"
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-not-allowed"
             style={{
-              background: "rgba(255,255,255,.06)",
-              border: "1px solid rgba(255,255,255,.08)",
-              color: "rgba(255,255,255,.5)",
+              background: "rgba(255,255,255,.08)",
+              border: "1px solid rgba(255,255,255,.15)",
+              color: "rgba(255,255,255,.65)",
             }}
           >
             <Lock className="w-4 h-4" />

@@ -62,14 +62,14 @@ export function KpiGrid({
           tag="Temporada atual"
         />
       </div>
-      <div className="mt-3 rounded-2xl border border-[#E8E1E5] bg-white/80 p-3 md:p-4">
-        <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[#8C93A3] mb-2">
+      <div className="mt-3 rounded-2xl border border-border bg-card/80 p-3 md:p-4">
+        <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground mb-2">
           Inteligência do momento
         </p>
-        <p className="text-[13px] text-[#1A2233] leading-relaxed mb-1">
+        <p className="text-[13px] text-foreground leading-relaxed mb-1">
           {insightPrincipal}
         </p>
-        <p className="text-[12px] text-[#5F6778] leading-relaxed">
+        <p className="text-[12px] text-muted-foreground leading-relaxed">
           {insightSecundario}
         </p>
       </div>

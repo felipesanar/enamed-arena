@@ -20,7 +20,7 @@ const barExpanded =
   "gap-2.5 px-3 py-2.5 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:px-2 [@media(max-height:700px)]:py-1.5 [@media(max-height:700px)]:text-[12px] before:left-1.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2";
 
 const activeBar =
-  "border-white/[0.14] bg-[linear-gradient(135deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.06)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_2px_10px_-4px_rgba(0,0,0,0.4)] before:opacity-100 before:scale-y-100";
+  "border-[rgba(232,56,98,0.22)] bg-[linear-gradient(135deg,rgba(232,56,98,0.18)_0%,rgba(232,56,98,0.08)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_2px_10px_-4px_rgba(232,56,98,0.3)] before:opacity-100 before:scale-y-100";
 
 export function NavItem({ to, end, icon: Icon, label, className, collapsed }: NavItemProps) {
   if (collapsed) {

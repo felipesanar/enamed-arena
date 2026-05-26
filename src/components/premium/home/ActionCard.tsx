@@ -40,7 +40,7 @@ const variantStyles: Record<
   },
   context: {
     container:
-      "border-[#E8E1E5]/60 bg-[#FCFAFB]/80 shadow-[0_4px_12px_-8px_rgba(30,20,26,0.08)] hover:border-[#E8E1E5] hover:shadow-[0_8px_20px_-12px_rgba(30,20,26,0.12)]",
+      "border-border/60 bg-card/80 shadow-[0_4px_12px_-8px_rgba(30,20,26,0.08)] hover:border-border hover:shadow-[0_8px_20px_-12px_rgba(30,20,26,0.12)] dark:hover:shadow-[0_8px_20px_-12px_rgba(0,0,0,0.3)]",
     icon: "from-muted/60 to-muted/40 border-border/60",
     cta: "text-muted-foreground hover:text-foreground",
   },
