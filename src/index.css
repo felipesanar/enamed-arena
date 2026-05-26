@@ -162,17 +162,32 @@
     --secondary-foreground: 220 10% 85%;
 
     --muted: 220 15% 16%;
-    --muted-foreground: 220 10% 55%;
+    --muted-foreground: 220 10% 65%;
 
     --accent: 345 40% 15%;
     --accent-foreground: 345 55% 65%;
 
-    --destructive: 0 62% 30%;
+    /* Destructive dark: aumenta L e reduz S pra não competir com primary (rosa).
+       Usado em badges "Errou", alertas e estados negativos. */
+    --destructive: 0 55% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 16%;
-    --input: 220 15% 16%;
+    --border: 220 14% 22%;
+    --input: 220 15% 18%;
     --ring: 345 55% 50%;
+
+    /* Elevation system — 3 níveis pra evitar cards "vazando" no bg */
+    --surface-elevated: 220 17% 13%;
+    --surface-sunken: 220 22% 5%;
+
+    /* Feedback semântico dark-tuned (mais luminoso, ligeiramente menos saturado
+       que light pra reduzir fadiga visual em fundo escuro). */
+    --success: 152 55% 48%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 88% 60%;
+    --warning-foreground: 220 20% 10%;
+    --info: 210 78% 62%;
+    --info-foreground: 0 0% 100%;
 
     --sidebar-background: 220 22% 5%;
     --sidebar-foreground: 220 10% 65%;
