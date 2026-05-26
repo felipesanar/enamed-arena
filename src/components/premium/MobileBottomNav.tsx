@@ -83,7 +83,7 @@ export function MobileBottomNav() {
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/10 bg-white pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_16px_-6px_rgba(0,0,0,0.1)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/30 bg-card pb-[env(safe-area-inset-bottom,0px)] shadow-sm md:hidden"
         aria-label="Navegação principal"
       >
         <div className="mx-auto flex max-w-[1280px] items-stretch justify-between gap-0.5 px-1 pt-1.5">
@@ -147,13 +147,13 @@ export function MobileBottomNav() {
       <Sheet open={rankingOpen} onOpenChange={setRankingOpen}>
         <SheetContent
           side="bottom"
-          className="rounded-t-[24px] border border-white/10 bg-[linear-gradient(180deg,#161a24_0%,#0c0e14_100%)] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 text-zinc-100 shadow-[0_-24px_60px_-16px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+          className="rounded-t-[24px] border-t border-border/30 bg-card px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-lg dark:bg-gradient-to-b dark:from-muted dark:to-muted/80"
         >
           <SheetHeader className="space-y-1 pb-2 text-left">
-            <SheetTitle className="text-base font-semibold text-white">
+            <SheetTitle className="text-base font-semibold">
               Ranking e comparativo
             </SheetTitle>
-            <SheetDescription className="text-zinc-400">
+            <SheetDescription>
               Escolha onde deseja ir
             </SheetDescription>
           </SheetHeader>

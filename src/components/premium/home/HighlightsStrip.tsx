@@ -112,7 +112,7 @@ function HighlightCard({ item }: { item: HighlightItem }) {
       className="group block no-underline"
       aria-label={`${item.label}: ${item.value}`}
     >
-      <div className="relative overflow-hidden rounded-2xl border border-[#E8E1E5]/70 bg-white/90 p-4 lg:p-5 shadow-[0_2px_8px_-2px_rgba(30,20,26,0.06)] backdrop-blur-sm transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_8px_24px_-8px_hsl(345_65%_30%/0.15),0_2px_6px_-2px_rgba(30,20,26,0.08)]">
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 lg:p-5 shadow-sm backdrop-blur-sm transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         <div className="relative z-10">
@@ -127,8 +127,8 @@ function HighlightCard({ item }: { item: HighlightItem }) {
               <div
                 className={`flex items-center gap-0.5 text-[11px] font-semibold ${
                   item.trend === "up"
-                    ? "text-emerald-600"
-                    : "text-red-500"
+                    ? "text-[hsl(var(--trend-up))]"
+                    : "text-[hsl(var(--trend-down))]"
                 }`}
               >
                 <TrendIcon className="h-3 w-3" aria-hidden />

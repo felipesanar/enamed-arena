@@ -30,7 +30,7 @@ export function TopUtilityBar({ className }: TopUtilityBarProps) {
       )}
 
       <span
-        className="hidden sm:inline rounded-md border border-[#E8E1E5]/70 bg-white/70 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70 backdrop-blur-sm"
+        className="hidden sm:inline rounded-md border border-border/60 bg-card/70 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70 backdrop-blur-sm"
         aria-label="Segmento"
       >
         {SEGMENT_LABELS[segment]}
