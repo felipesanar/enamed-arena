@@ -8,7 +8,6 @@ import {
   Trash2,
   ArrowRight,
   Flame,
-  Sparkles,
   RotateCcw,
   ChevronDown,
   Play,
