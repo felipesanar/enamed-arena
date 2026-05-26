@@ -793,20 +793,20 @@ function KpiGridSection({
         const isCount = kpi.valueKind === "count";
 
         const cardInner = (
-          <div className="relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-primary/20 bg-[linear-gradient(165deg,rgba(142,31,61,0.06)_0%,#FFFFFF_44%,#FAF5F7_100%)] p-2.5 sm:p-3 shadow-[0_8px_18px_-14px_hsl(345_60%_30%/0.35),0_2px_6px_hsl(220_20%_10%/0.04)] transition-all duration-[240ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/28 hover:shadow-[0_12px_22px_-16px_hsl(345_60%_30%/0.42),0_4px_10px_-8px_hsl(345_60%_30%/0.12)]">
+          <div className="relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-primary/20 bg-[linear-gradient(165deg,hsl(var(--primary)/0.06)_0%,hsl(var(--card))_44%,hsl(var(--muted)/0.3)_100%)] p-2.5 sm:p-3 shadow-[0_8px_18px_-14px_hsl(var(--primary)/0.35),0_2px_6px_hsl(220_20%_10%/0.04)] dark:shadow-[0_8px_18px_-14px_rgba(0,0,0,0.5),0_2px_6px_rgba(0,0,0,0.25)] transition-all duration-[240ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/28 hover:shadow-[0_12px_22px_-16px_hsl(var(--primary)/0.42),0_4px_10px_-8px_hsl(var(--primary)/0.12)]">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
             <div className="pointer-events-none absolute -right-5 -top-5 h-16 w-16 rounded-full bg-primary/[0.05] blur-xl" />
             <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             {kpi.locked && (
               <div className="group/lock absolute inset-0 z-20 rounded-[16px] bg-background/40 backdrop-blur-[1px] flex items-center justify-center cursor-pointer">
-                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-primary/20 bg-white/90 px-3 py-2 shadow-sm transition-all duration-200 group-hover/lock:scale-105 group-hover/lock:shadow-md">
+                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-primary/20 bg-card/90 px-3 py-2 shadow-sm transition-all duration-200 group-hover/lock:scale-105 group-hover/lock:shadow-md">
                   <Lock className="h-4 w-4 text-primary" aria-hidden />
                   <span className="text-[9px] font-bold text-primary/75 uppercase tracking-[0.14em]">
                     PRO
                   </span>
                 </div>
-                <div className="pointer-events-none absolute inset-x-2 bottom-2 rounded-lg border border-primary/15 bg-white/95 px-2.5 py-2 opacity-0 shadow-lg transition-all duration-200 group-hover/lock:opacity-100 group-hover/lock:translate-y-0 translate-y-1">
+                <div className="pointer-events-none absolute inset-x-2 bottom-2 rounded-lg border border-primary/15 bg-card/95 px-2.5 py-2 opacity-0 shadow-lg transition-all duration-200 group-hover/lock:opacity-100 group-hover/lock:translate-y-0 translate-y-1">
                   <p className="text-[10px] font-semibold text-foreground leading-tight mb-0.5">Exclusivo para assinantes PRO</p>
                   <p className="text-[9px] text-muted-foreground leading-snug">Assine o SanarFlix Pro e desbloqueie o Caderno de Erros e recursos avançados.</p>
                 </div>
@@ -818,7 +818,7 @@ function KpiGridSection({
                 <div className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-primary/18 bg-gradient-to-br from-primary/[0.1] to-primary/[0.18] shadow-[0_6px_14px_-10px_hsl(345_65%_30%/0.4)]">
                   <kpi.icon className="h-3.5 w-3.5 text-primary" aria-hidden />
                 </div>
-                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/50 bg-white/90 text-muted-foreground/65 shadow-sm transition-all duration-200 group-hover:border-primary/25 group-hover:text-primary">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/50 bg-card/90 text-muted-foreground/65 shadow-sm transition-all duration-200 group-hover:border-primary/25 group-hover:text-primary">
                   <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
                 </span>
               </div>

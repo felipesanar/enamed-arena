@@ -25,7 +25,7 @@ export function QuickActionCard({
       className={cn("block h-full group no-underline", className)}
       aria-label={`${title}: ${ctaLabel}`}
     >
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[22px] border border-[#E9E1E6] bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFAFB_100%)] p-6 shadow-[0_14px_28px_-24px_rgba(58,22,34,0.5),0_2px_8px_rgba(58,22,34,0.05)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:border-primary/24 hover:shadow-[0_20px_34px_-24px_rgba(58,22,34,0.62),0_6px_14px_-10px_rgba(58,22,34,0.14)] md:p-7">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[22px] border border-border bg-[linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--muted)/0.3)_100%)] p-6 shadow-[0_14px_28px_-24px_rgba(58,22,34,0.5),0_2px_8px_rgba(58,22,34,0.05)] dark:shadow-[0_14px_28px_-24px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:border-primary/24 hover:shadow-[0_20px_34px_-24px_rgba(58,22,34,0.62),0_6px_14px_-10px_rgba(58,22,34,0.14)] dark:hover:shadow-[0_20px_34px_-24px_rgba(0,0,0,0.6),0_6px_14px_-10px_rgba(0,0,0,0.35)] md:p-7">
         {/* Hover gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 

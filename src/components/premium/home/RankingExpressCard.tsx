@@ -20,7 +20,7 @@ export function RankingExpressCard() {
       className="block h-full group no-underline"
       aria-label="Ver ranking completo"
     >
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[22px] border border-primary/24 bg-[linear-gradient(165deg,rgba(142,31,61,0.08)_0%,#FFFFFF_42%,#FBF7F9_100%)] shadow-[0_16px_34px_-24px_hsl(345_60%_30%/0.5),0_2px_8px_hsl(220_20%_10%/0.05)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_24px_40px_-24px_hsl(345_60%_30%/0.62),0_8px_16px_-12px_hsl(345_60%_30%/0.2)]">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[22px] border border-primary/24 bg-[linear-gradient(165deg,hsl(var(--primary)/0.08)_0%,hsl(var(--card))_42%,hsl(var(--muted)/0.3)_100%)] shadow-[0_16px_34px_-24px_hsl(var(--primary)/0.5),0_2px_8px_hsl(220_20%_10%/0.05)] dark:shadow-[0_16px_34px_-24px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-[280ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_24px_40px_-24px_hsl(var(--primary)/0.62),0_8px_16px_-12px_hsl(var(--primary)/0.2)]">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100" />
 
@@ -50,7 +50,7 @@ export function RankingExpressCard() {
             </div>
           ) : hasRanking ? (
             <div className="mb-5 flex-1 space-y-3">
-              <div className="flex items-end gap-4 rounded-xl border border-[#E8DEE3] bg-white/88 px-3 py-2.5">
+              <div className="flex items-end gap-4 rounded-xl border border-border bg-card/88 px-3 py-2.5">
                 <div>
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Posição</p>
                   <span className="text-3xl font-extrabold text-primary tabular-nums leading-none">

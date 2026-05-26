@@ -101,7 +101,7 @@ export function EvolutionBlock({
 
       {/* Performance summary */}
       <div className="md:col-span-5">
-        <div className="relative overflow-hidden rounded-[22px] border border-[#E8E1E5]/70 bg-white/90 p-6 md:p-7 shadow-[0_8px_24px_-12px_rgba(30,20,26,0.1)] h-full backdrop-blur-sm">
+        <div className="relative overflow-hidden rounded-[22px] border border-border/70 bg-card/90 p-6 md:p-7 shadow-[0_8px_24px_-12px_rgba(30,20,26,0.1)] dark:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.4)] h-full backdrop-blur-sm">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent" />
 
           <div className="relative z-10">

@@ -22,13 +22,13 @@ const variantStyles: Record<
 > = {
   highlight: {
     container:
-      "border-primary/20 bg-[linear-gradient(165deg,rgba(142,31,61,0.06)_0%,#FFFFFF_40%,#FBF7F9_100%)] shadow-[0_16px_34px_-20px_hsl(345_60%_30%/0.45),0_2px_8px_hsl(220_20%_10%/0.05)] hover:border-primary/30 hover:shadow-[0_22px_40px_-20px_hsl(345_60%_30%/0.55),0_6px_14px_-8px_hsl(345_60%_30%/0.15)]",
+      "border-primary/20 bg-[linear-gradient(165deg,hsl(var(--primary)/0.06)_0%,hsl(var(--card))_40%,hsl(var(--muted)/0.3)_100%)] shadow-[0_16px_34px_-20px_hsl(var(--primary)/0.45),0_2px_8px_hsl(220_20%_10%/0.05)] hover:border-primary/30 hover:shadow-[0_22px_40px_-20px_hsl(var(--primary)/0.55),0_6px_14px_-8px_hsl(var(--primary)/0.15)]",
     icon: "from-primary/[0.1] to-primary/[0.18] border-primary/16",
     cta: "text-primary",
   },
   routine: {
     container:
-      "border-[#E9E1E6] bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFAFB_100%)] shadow-[0_10px_24px_-20px_rgba(58,22,34,0.4),0_2px_6px_rgba(58,22,34,0.04)] hover:border-primary/20 hover:shadow-[0_16px_30px_-20px_rgba(58,22,34,0.52),0_4px_10px_-6px_rgba(58,22,34,0.1)]",
+      "border-border bg-[linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--muted)/0.3)_100%)] shadow-[0_10px_24px_-20px_rgba(58,22,34,0.4),0_2px_6px_rgba(58,22,34,0.04)] dark:shadow-[0_10px_24px_-20px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.25)] hover:border-primary/20 hover:shadow-[0_16px_30px_-20px_rgba(58,22,34,0.52),0_4px_10px_-6px_rgba(58,22,34,0.1)] dark:hover:shadow-[0_16px_30px_-20px_rgba(0,0,0,0.5),0_4px_10px_-6px_rgba(0,0,0,0.3)]",
     icon: "from-primary/[0.06] to-primary/[0.12] border-primary/10",
     cta: "text-primary",
   },
