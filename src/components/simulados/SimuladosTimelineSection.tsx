@@ -72,8 +72,8 @@ const TIMELINE_VARIANT = {
   },
   available_late: {
     Icon: Coffee,
-    label: "Fora da janela",
-    dotClass: "border-border bg-muted/90",
+    label: "Disponível como treino",
+    dotClass: "border-info/40 bg-info/15",
     labelEmphasis: false,
   },
   upcoming: {
@@ -283,7 +283,8 @@ export function SimuladosTimelineSection({
           compact ? "mb-3" : "mb-5",
         )}
       >
-        Ordenado do mais recente para o mais antigo.
+        Ordenado do mais recente para o mais antigo. Simulados com janela
+        encerrada continuam disponíveis como treino — não contam no ranking.
       </p>
 
       <div className="relative pl-1">
