@@ -198,8 +198,18 @@ async function testReview() {
 async function testChat() {
   section('gemini-error-notebook-chat');
 
-  // 1. Primeira pergunta — histórico vazio
-  const { status, body } = await callFunction('gemini-error-notebook-chat', {
+  // Payload base — precisa de entryId real pra validar auth + rate limit.
+  // Use a env CHAT_ENTRY_ID com o UUID de uma entrada do caderno do usuário
+  // atualmente autenticado pelo SUPABASE_ANON_KEY (token sob Authorization).
+  const entryId = Deno.env.get('CHAT_ENTRY_ID') ?? '00000000-0000-0000-0000-000000000000';
+  if (entryId === '00000000-0000-0000-0000-000000000000') {
+    console.log(
+      `${C.yellow}⚠${C.reset}  CHAT_ENTRY_ID não setado — testes de auth/rate-limit vão falhar como esperado.`,
+    );
+  }
+
+  const chatPayload = {
+    entryId,
     studentName: samplePayload.studentName,
     questionStem: samplePayload.questionStem,
     options: samplePayload.options,
@@ -210,6 +220,11 @@ async function testChat() {
     reason: samplePayload.reason,
     learningNote: samplePayload.learningNote,
     aiReviewMd: null,
+  };
+
+  // 1. Primeira pergunta — histórico vazio
+  const { status, body } = await callFunction('gemini-error-notebook-chat', {
+    ...chatPayload,
     history: [],
     question: 'Qual a diferença prática entre PrEP e PEP nessa decisão?',
   });
@@ -234,24 +249,41 @@ async function testChat() {
   }
 
   const wordCount = b.reply.split(/\s+/).length;
-  if (wordCount > 180) {
-    fail(`reply excedeu 180 palavras (${wordCount}) — prompt promete máx 120`);
+  if (wordCount > 200) {
+    fail(`reply excedeu 200 palavras (${wordCount}) — prompt promete máx 140`);
   } else {
     pass(`reply dentro do limite (${wordCount} palavras)`);
   }
 
+  // Padrões banidos explicitamente pelo prompt
+  const bannedOpenings = [
+    /^essa\s+é\s+uma\s+(?:excelente|boa|ótima|interessante|pertinente)\s+pergunta/i,
+    /^(?:excelente|boa|ótima|interessante|pertinente|muito\s+boa)\s+pergunta/i,
+    /^pergunta\s+(?:excelente|boa|ótima|interessante)/i,
+    /^(?:claro|perfeito|com\s+certeza|honestamente|na\s+verdade|vamos\s+lá)[\s!.,:]/i,
+    /^(?:olá|ola|oi|opa|e\s+aí|e\s+ai)[\s!.,:]/i,
+  ];
+  const offending = bannedOpenings.find((re) => re.test(b.reply!.trim()));
+  if (offending) {
+    fail(`reply começa com padrão banido: "${b.reply!.slice(0, 60)}..."`);
+  } else {
+    pass('reply não começa com elogio/saudação banidos');
+  }
+
+  // Checagem dos campos de rate limit no response
+  const meta = body as { remaining?: number; limit?: number; used?: number; offTopic?: boolean };
+  if (typeof meta.remaining !== 'number' || typeof meta.limit !== 'number' || typeof meta.used !== 'number') {
+    fail('faltam campos remaining/limit/used na resposta', body);
+  } else {
+    pass(`rate limit: ${meta.used}/${meta.limit} (restam ${meta.remaining})`);
+    if (meta.offTopic === true) {
+      fail('marcou pergunta clínica válida como offTopic');
+    }
+  }
+
   // 2. Segundo turno — passa o histórico
   const { status: s2, body: b2 } = await callFunction('gemini-error-notebook-chat', {
-    studentName: samplePayload.studentName,
-    questionStem: samplePayload.questionStem,
-    options: samplePayload.options,
-    correctLabel: samplePayload.correctLabel,
-    userLabel: samplePayload.userLabel,
-    area: samplePayload.area,
-    theme: samplePayload.theme,
-    reason: samplePayload.reason,
-    learningNote: samplePayload.learningNote,
-    aiReviewMd: null,
+    ...chatPayload,
     history: [
       { role: 'user', content: 'Qual a diferença prática entre PrEP e PEP nessa decisão?' },
       { role: 'assistant', content: b.reply },
@@ -270,16 +302,98 @@ async function testChat() {
     }
   }
 
-  // 3. Payload inválido — sem question
-  const { status: s3, body: b3 } = await callFunction('gemini-error-notebook-chat', {
-    ...samplePayload,
+  // 3. Pergunta-conceito provocadora — força o cenário do bug original
+  //    ("Por que X em vez de Y, que tem indicação Classe I?")
+  //    O LLM tende a abrir com "Essa é uma excelente pergunta".
+  const { status: s3b, body: b3b } = await callFunction('gemini-error-notebook-chat', {
+    ...chatPayload,
+    history: [],
+    question: 'Por que aumentar a losartana em vez de iniciar sacubitril-valsartana, que tem indicação Classe I na ICFER?',
+  });
+  if (s3b === 200) {
+    const r = (b3b as { reply?: string }).reply ?? '';
+    const bannedOpenings = [
+      /^essa\s+é\s+uma\s+(?:excelente|boa|ótima|interessante|pertinente)\s+pergunta/i,
+      /^(?:excelente|boa|ótima|interessante|pertinente|muito\s+boa)\s+pergunta/i,
+    ];
+    if (bannedOpenings.some((re) => re.test(r.trim()))) {
+      fail(`pergunta-conceito ainda escapa com elogio: "${r.slice(0, 80)}"`);
+    } else {
+      pass('pergunta-conceito sem abertura elogiosa');
+    }
+    // Verifica se elevou nível citando referência canônica
+    const hasReference =
+      /paradigm|pioneer|dapa|emperor|classe\s+i|classe\s+i{1,3}/i.test(r) ||
+      /dose[\s-]?alvo|subdose|titula/i.test(r);
+    if (hasReference) {
+      pass('pergunta-conceito menciona referência canônica ou dose-alvo');
+    } else {
+      fail(`pergunta-conceito sem framework/ensaio/dose-alvo citado: "${r.slice(0, 120)}..."`);
+    }
+  } else {
+    fail(`pergunta-conceito retornou ${s3b}`, b3b);
+  }
+
+  // 4. Off-topic — pergunta totalmente fora do escopo médico
+  const { status: s4, body: b4 } = await callFunction('gemini-error-notebook-chat', {
+    ...chatPayload,
+    history: [],
+    question: 'Me conta uma piada sobre médicos.',
+  });
+  if (s4 === 200) {
+    const b4x = b4 as { offTopic?: boolean; reply?: string };
+    if (b4x.offTopic === true) {
+      pass('pergunta off-topic detectada (offTopic=true)');
+      if (typeof b4x.reply === 'string' && /medic|chat|escopo|quest/i.test(b4x.reply)) {
+        pass('reply de off-topic explica o escopo');
+      } else {
+        fail('reply de off-topic não menciona escopo', b4x.reply);
+      }
+    } else {
+      fail('pergunta off-topic não foi marcada como offTopic', b4);
+    }
+  } else {
+    fail(`off-topic retornou status ${s4}`, b4);
+  }
+
+  // 5. Off-topic mas com aparência médica — pedido de redação/produção
+  const { status: s5, body: b5 } = await callFunction('gemini-error-notebook-chat', {
+    ...chatPayload,
+    history: [],
+    question: 'Escreve pra mim uma redação de 300 palavras sobre a história da medicina.',
+  });
+  if (s5 === 200) {
+    const b5x = b5 as { offTopic?: boolean };
+    if (b5x.offTopic === true) {
+      pass('pedido de redação tratado como off-topic');
+    } else {
+      fail('pedido de redação NÃO foi marcado como off-topic', b5);
+    }
+  }
+
+  // 6. Payload inválido — sem question
+  const { status: s6, body: b6 } = await callFunction('gemini-error-notebook-chat', {
+    ...chatPayload,
     history: [],
     question: '',
   });
-  if (s3 === 400) {
-    pass(`pergunta vazia retorna 400 (${(b3 as { error?: string })?.error ?? ''})`);
+  if (s6 === 400) {
+    pass(`pergunta vazia retorna 400 (${(b6 as { error?: string })?.error ?? ''})`);
   } else {
-    fail(`pergunta vazia deveria retornar 400, retornou ${s3}`, b3);
+    fail(`pergunta vazia deveria retornar 400, retornou ${s6}`, b6);
+  }
+
+  // 7. Payload inválido — sem entryId
+  const { status: s7, body: b7 } = await callFunction('gemini-error-notebook-chat', {
+    ...chatPayload,
+    entryId: '',
+    history: [],
+    question: 'pergunta qualquer',
+  });
+  if (s7 === 400) {
+    pass(`entryId vazio retorna 400 (${(b7 as { error?: string })?.error ?? ''})`);
+  } else {
+    fail(`entryId vazio deveria retornar 400, retornou ${s7}`, b7);
   }
 }
 
