@@ -31,16 +31,16 @@ export function ResumeCard({
         interactive
         className="p-6 md:p-8 h-full flex flex-col"
       >
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#F3ECEF] border border-[#E8E1E5]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] mb-5">
-          <Icon className="h-7 w-7 text-[#5F6778]" aria-hidden />
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted/70 border border-border/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] mb-5">
+          <Icon className="h-7 w-7 text-muted-foreground" aria-hidden />
         </div>
-        <h3 className="text-xl font-semibold text-[#1A2233] mb-2 leading-tight">
+        <h3 className="text-xl font-semibold text-foreground mb-2 leading-tight">
           {title}
         </h3>
-        <p className="text-[15px] text-[#5F6778] leading-relaxed flex-1 mb-6">
+        <p className="text-[15px] text-muted-foreground leading-relaxed flex-1 mb-6">
           {copy}
         </p>
-        <span className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#8E1F3D] group-hover:gap-3 transition-all duration-[220ms] ease-out">
+        <span className="inline-flex items-center gap-2 text-[15px] font-semibold text-primary group-hover:gap-3 transition-all duration-[220ms] ease-out">
           {ctaLabel}
           <ArrowRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
         </span>

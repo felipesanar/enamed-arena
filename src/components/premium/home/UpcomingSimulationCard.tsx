@@ -26,17 +26,17 @@ export function UpcomingSimulationCard({
   return (
     <SurfaceCard radius="large" className="overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-5 p-4 md:p-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F3ECEF] border border-[#E8E1E5]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-          <CalendarDays className="h-6 w-6 text-[#5F6778]" aria-hidden />
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted/70 border border-border/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <CalendarDays className="h-6 w-6 text-muted-foreground" aria-hidden />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg md:text-xl font-semibold text-[#1A2233] mb-1 leading-tight">
+          <h2 className="text-lg md:text-xl font-semibold text-foreground mb-1 leading-tight">
             Próximo simulado disponível
           </h2>
-          <p className="text-[13px] text-[#5F6778] leading-relaxed mb-1">
+          <p className="text-[13px] text-muted-foreground leading-relaxed mb-1">
             📅 {nextDate}
           </p>
-          <p className="text-[13px] text-[#5F6778] leading-relaxed">
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
             Você já completou {simuladosRealizados} simulado
             {simuladosRealizados !== 1 ? "s" : ""}. O próximo estará disponível em{" "}
             {nextDate}.

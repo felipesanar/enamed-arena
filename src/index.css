@@ -302,6 +302,22 @@
 }
 
 @layer utilities {
+  /* Background do shell do dashboard (logado).
+     Light: rosa-claro com glows wine sutis.
+     Dark: usa --background sólido com radial primary low-opacity. */
+  .dashboard-page-bg {
+    background:
+      radial-gradient(120% 100% at 80% 0%, hsl(var(--primary) / 0.07) 0%, hsl(var(--primary) / 0) 35%),
+      radial-gradient(80% 60% at 0% 100%, hsl(var(--primary) / 0.04) 0%, transparent 50%),
+      hsl(var(--background));
+  }
+  .dark .dashboard-page-bg {
+    background:
+      radial-gradient(120% 100% at 80% 0%, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0) 40%),
+      radial-gradient(80% 60% at 0% 100%, hsl(var(--primary) / 0.06) 0%, transparent 50%),
+      hsl(var(--background));
+  }
+
   .premium-card {
     @apply bg-card rounded-xl border border-border;
     box-shadow: var(--shadow-md);

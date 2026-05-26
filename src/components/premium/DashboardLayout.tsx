@@ -63,7 +63,7 @@ export function DashboardLayout() {
   }, [sidebarCollapsed]);
 
   return (
-    <div className="flex min-h-screen w-full bg-[radial-gradient(120%_100%_at_80%_0%,rgba(142,31,61,0.07)_0%,rgba(142,31,61,0)_35%),radial-gradient(80%_60%_at_0%_100%,rgba(142,31,61,0.04)_0%,transparent_50%),#F4F1F3]">
+    <div className="dashboard-page-bg flex min-h-screen w-full">
       {!isMobile && !isExamRoute && (
         <div
           className={cn(

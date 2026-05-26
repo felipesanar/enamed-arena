@@ -25,18 +25,18 @@ export function KpiCard({
   const content = (
     <>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F3ECEF] border border-[#E8E1E5]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-          <Icon className="h-5 w-5 text-[#5F6778]" aria-hidden />
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/70 border border-border/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
         </div>
-        <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[#8C93A3] rounded-full border border-[#E8E1E5]/80 bg-[#FCFAFB] px-2.5 py-1">
+        <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground rounded-full border border-border/80 bg-background/60 px-2.5 py-1">
           {tag}
         </span>
       </div>
-      <p className="text-[12px] font-medium text-[#5F6778] mb-1">{label}</p>
-      <p className="text-3xl md:text-4xl font-semibold tracking-[-0.03em] text-[#1A2233] mb-2 leading-tight">
+      <p className="text-[12px] font-medium text-muted-foreground mb-1">{label}</p>
+      <p className="text-3xl md:text-4xl font-semibold tracking-[-0.03em] text-foreground mb-2 leading-tight">
         {value}
       </p>
-      <p className="text-[13px] text-[#8C93A3] leading-snug">{supportingText}</p>
+      <p className="text-[13px] text-muted-foreground leading-snug">{supportingText}</p>
     </>
   );
 
