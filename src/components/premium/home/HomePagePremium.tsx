@@ -370,9 +370,26 @@ function HeroPerformanceCard({
       return [safeScore, 16, 22, 18, 28, 24];
     return [12, 18, 15, 22, 26, 30];
   })();
+  // Always show at least 6 bars: real scores on the left, placeholders on the right
+  // so the user keeps seeing the "remaining simulados" visualization.
+  const TOTAL_BARS = 6;
+  const placeholderPool = [16, 22, 18, 28, 24, 20, 26];
+  const paddedBars =
+    chartBars.length >= TOTAL_BARS
+      ? chartBars
+      : [
+          ...chartBars,
+          ...placeholderPool.slice(0, TOTAL_BARS - chartBars.length),
+        ];
+  const realCount =
+    historyMode === "multi"
+      ? recentScores.length
+      : historyMode === "single"
+      ? 1
+      : 0;
   const maxBar = Math.max(...chartBars, 1);
   const focusIdx =
-    historyMode === "multi" ? chartBars.length - 1 : 0;
+    historyMode === "multi" ? recentScores.length - 1 : 0;
 
   const progressPct = hasScore
     ? Math.max(14, Math.min(96, safeScore))
@@ -487,12 +504,10 @@ function HeroPerformanceCard({
               style={{ height: 76 }}
               aria-hidden
             >
-              {chartBars.map((val, idx) => {
+              {paddedBars.map((val, idx) => {
                 const isFocused = idx === focusIdx;
                 const pct = Math.max(18, Math.round((val / maxBar) * 100));
-                const isReal =
-                  historyMode === "multi" ||
-                  (historyMode === "single" && idx === 0);
+                const isReal = idx < realCount;
 
                 let bg: string;
                 let shadow: string | undefined;
