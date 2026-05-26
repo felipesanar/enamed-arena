@@ -51,6 +51,7 @@ interface NotebookEntry {
   wasCorrect: boolean;
   addedAt: string;
   resolvedAt: string | null;
+  nextReviewAt: string | null;
 }
 
 type TypeFilter = 'all' | DbReason;
@@ -775,6 +776,8 @@ function CadernoContent({ userId }: { userId: string }) {
           wasCorrect: row.was_correct,
           addedAt: row.created_at,
           resolvedAt: row.resolved_at || null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          nextReviewAt: ((row as any).next_review_at as string | null) || null,
         })),
       );
     } catch (err) {
@@ -808,14 +811,30 @@ function CadernoContent({ userId }: { userId: string }) {
     );
   }, [entries, typeFilter, specFilter]);
 
-  const pending = useMemo(() => filtered.filter((e) => !e.resolvedAt), [filtered]);
+  // Snoozed = next_review_at no futuro. Saem da fila ativa mas continuam
+  // visíveis numa seção própria pra evitar surpresa do tipo "sumiu".
+  const now = Date.now();
+  const isSnoozed = (e: NotebookEntry) =>
+    !!e.nextReviewAt && new Date(e.nextReviewAt).getTime() > now;
+
+  const pending = useMemo(
+    () => filtered.filter((e) => !e.resolvedAt && !isSnoozed(e)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered],
+  );
+  const snoozed = useMemo(
+    () => filtered.filter((e) => !e.resolvedAt && isSnoozed(e)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered],
+  );
   const resolved = useMemo(() => filtered.filter((e) => !!e.resolvedAt), [filtered]);
   const streak = useMemo(() => calcStreak(entries), [entries]);
   const heroEntry = pending[0] ?? null;
 
-  const totalPending = entries.filter((e) => !e.resolvedAt).length;
+  const totalPending = entries.filter((e) => !e.resolvedAt && !isSnoozed(e)).length;
   const totalResolved = entries.filter((e) => !!e.resolvedAt).length;
-  const allResolved = entries.length > 0 && totalPending === 0;
+  const totalSnoozed = entries.filter((e) => !e.resolvedAt && isSnoozed(e)).length;
+  const allResolved = entries.length > 0 && totalPending === 0 && totalSnoozed === 0;
 
   const typeOptions = useMemo(
     () => Array.from(new Set(entries.map((e) => e.reason as DbReason))),
@@ -1114,6 +1133,57 @@ function CadernoContent({ userId }: { userId: string }) {
                 </motion.div>
               ))}
             </motion.div>
+          </div>
+        </StaggerItem>
+      )}
+
+      {/* Snoozed section — questões agendadas pra revisar mais tarde */}
+      {snoozed.length > 0 && (
+        <StaggerItem>
+          <div>
+            <div className="mb-2.5 flex items-center justify-between">
+              <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
+                Agendadas para revisar
+              </span>
+              <span className="text-caption text-muted-foreground">
+                {snoozed.length} {pluralize(snoozed.length, 'agendada', 'agendadas')}
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {snoozed.map((entry) => {
+                const meta = getReasonMeta(entry.reason);
+                const daysUntil = entry.nextReviewAt
+                  ? Math.max(
+                      1,
+                      Math.ceil(
+                        (new Date(entry.nextReviewAt).getTime() - Date.now()) /
+                          (1000 * 60 * 60 * 24),
+                      ),
+                    )
+                  : 0;
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-stretch gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5 opacity-80"
+                  >
+                    <div
+                      aria-hidden
+                      className="w-[3px] shrink-0 self-stretch rounded-full"
+                      style={{ background: meta.colorBase }}
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                      <div className="truncate text-[13px] font-semibold text-foreground">
+                        Q{entry.questionNumber ?? '?'} · {entry.area ?? '—'}
+                        {entry.theme ? ` — ${entry.theme}` : ''}
+                      </div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        Volta em {daysUntil} {pluralize(daysUntil, 'dia', 'dias')}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </StaggerItem>
       )}

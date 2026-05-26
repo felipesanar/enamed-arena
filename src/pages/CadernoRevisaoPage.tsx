@@ -25,6 +25,14 @@ import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ToastAction } from '@/components/ui/toast';
 import { QuestionImage } from '@/components/exam/QuestionImage';
 
@@ -337,8 +345,15 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     setListError(false);
     try {
       const rows = await simuladosApi.getErrorNotebook(userId);
+      const now = Date.now();
       const pending = rows
         .filter((row) => !row.resolved_at)
+        .filter((row) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const nr = (row as any).next_review_at as string | null | undefined;
+          if (!nr) return true;
+          return new Date(nr).getTime() <= now;
+        })
         .map((row) => ({
           id: row.id,
           questionId: row.question_id,
@@ -551,30 +566,47 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     }
   };
 
-  // Snooze local — manda a questão para o fim da fila sem persistir nada.
-  const handleSnooze = () => {
+  // Snooze persistido via RPC; remove a questão da fila atual desta sessão
+  // e marca next_review_at no banco. Quando days é undefined (atalho J ou
+  // botão default), aplica o intervalo padrão de 3 dias.
+  const handleSnooze = async (days = 3) => {
     if (!currentEntry) return;
+    const target = currentEntry;
+
+    // Otimista: tira da fila desta sessão imediatamente.
     setEntries((prev) => {
-      if (prev.length <= 1) return prev;
-      const idx = prev.findIndex((e) => e.id === currentEntry.id);
-      if (idx === -1) return prev;
-      const next = [...prev];
-      const [item] = next.splice(idx, 1);
-      next.push(item);
+      const next = prev.filter((e) => e.id !== target.id);
+      if (currentIndex >= next.length) {
+        setCurrentIndex(Math.max(0, next.length - 1));
+      }
       return next;
     });
-    if (!snoozedIdsRef.current.has(currentEntry.id)) {
-      snoozedIdsRef.current.add(currentEntry.id);
+    if (!snoozedIdsRef.current.has(target.id)) {
+      snoozedIdsRef.current.add(target.id);
       setSessionSnoozedCount((n) => n + 1);
     }
+
     trackEvent('caderno_revisao_snoozed', {
-      reason: currentEntry.reason,
-      area: currentEntry.area ?? 'unknown',
+      reason: target.reason,
+      area: target.area ?? 'unknown',
+      days,
     });
-    toast({
-      title: 'Vamos voltar nela depois',
-      description: 'A questão foi pro fim da fila desta sessão.',
-    });
+
+    try {
+      await simuladosApi.snoozeErrorNotebookEntry(target.id, days);
+      const label = days === 1 ? 'amanhã' : `em ${days} dias`;
+      toast({
+        title: `Vai voltar ${label}`,
+        description: 'A questão sai da fila ativa até lá.',
+      });
+    } catch (err) {
+      logger.error('[CadernoRevisao] snooze error:', err);
+      toast({
+        title: 'Não consegui agendar a revisão',
+        description: 'A questão segue só pro fim da fila desta sessão.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleRemove = async () => {
@@ -1148,23 +1180,50 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
           </div>
 
           <div className="flex items-center gap-2">
-            <Tooltip delayDuration={250}>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleSnooze}
-                  variant="ghost"
-                  size="sm"
-                  disabled={entries.length <= 1}
-                  className="text-muted-foreground hover:text-foreground"
+            <DropdownMenu>
+              <Tooltip delayDuration={250}>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Clock className="h-4 w-4 mr-1.5" />
+                      Revisar depois
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  Agenda pra revisar mais tarde{' '}
+                  <kbd className="ml-1 rounded bg-muted px-1 text-[10px]">J</kbd>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Volta na fila ativa em
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleSnooze(1)}>
+                  Amanhã
+                  <span className="ml-auto text-[10px] text-muted-foreground">1 dia</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSnooze(3)}>
+                  Em alguns dias
+                  <span className="ml-auto text-[10px] text-muted-foreground">3 dias</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSnooze(7)}>
+                  Próxima semana
+                  <span className="ml-auto text-[10px] text-muted-foreground">7 dias</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleSnooze(3)}
+                  className="text-[11px] text-muted-foreground"
                 >
-                  <Clock className="h-4 w-4 mr-1.5" />
-                  Revisar depois
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                Manda pro fim da fila <kbd className="ml-1 rounded bg-muted px-1 text-[10px]">J</kbd>
-              </TooltipContent>
-            </Tooltip>
+                  Padrão (3 dias)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Tooltip delayDuration={250}>
               <TooltipTrigger asChild>

@@ -603,6 +603,21 @@ export const simuladosApi = {
     return data || [];
   },
 
+  /**
+   * Snooze persistido: marca a entrada pra reaparecer só daqui a N dias.
+   * Implementado via RPC SECURITY DEFINER (snooze_error_notebook_entry) que
+   * valida o ownership e clampa days em [1, 30]. Retorna o timestamp.
+   */
+  async snoozeErrorNotebookEntry(entryId: string, days: number): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('snooze_error_notebook_entry', {
+      p_entry_id: entryId,
+      p_days: days,
+    });
+    if (error) throw error;
+    return data as string;
+  },
+
   async deleteErrorNotebookEntry(entryId: string, userId: string): Promise<void> {
     const { error } = await supabase
       .from('error_notebook')
