@@ -513,11 +513,13 @@ function HeroPerformanceCard({
                 let shadow: string | undefined;
                 let border: string | undefined;
                 if (isFocused && isReal) {
-                  bg = "linear-gradient(180deg, #FF4D7A 0%, #B81A40 100%)";
-                  shadow = "0 10px 22px -6px rgba(232,56,98,0.75)";
+                  // Focused: rosa muito luminoso + glow + outline branco pra cravar contra o wine
+                  bg = "linear-gradient(180deg, #FFB3C9 0%, #FF4D7A 35%, #D11C4E 100%)";
+                  shadow = "inset 0 1px 0 rgba(255,255,255,0.45), 0 0 0 1px rgba(255,255,255,0.3), 0 12px 26px -6px rgba(255,77,122,0.7), 0 0 26px -4px rgba(255,138,171,0.5)";
                 } else if (isReal) {
-                  bg =
-                    "linear-gradient(180deg, rgba(232,56,98,0.7) 0%, rgba(164,21,58,0.5) 100%)";
+                  // Não-focused mas com dado: rosa sólido (não translúcido) + outline sutil
+                  bg = "linear-gradient(180deg, #FF6E96 0%, #E83862 55%, #A4153A 100%)";
+                  shadow = "inset 0 1px 0 rgba(255,255,255,0.2), 0 0 0 1px rgba(255,255,255,0.1), 0 6px 14px -4px rgba(232,56,98,0.45)";
                 } else if (isFocused) {
                   bg = "rgba(15,12,22,0.85)";
                   border = "1px solid rgba(255,255,255,0.22)";
