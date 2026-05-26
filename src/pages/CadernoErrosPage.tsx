@@ -6,7 +6,7 @@ import {
   Zap,
   Check,
   Trash2,
-  ExternalLink,
+  ArrowRight,
   Flame,
   Sparkles,
   RotateCcw,
@@ -17,7 +17,9 @@ import {
 import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { PageHeader } from '@/components/PageHeader';
@@ -180,22 +182,35 @@ function QueueRow({
 
       {/* Actions */}
       <div className="flex shrink-0 items-center gap-1.5 self-center">
-        <CheckButton
-          done={resolved}
-          onToggle={() => onToggleResolved(entry.id, !resolved)}
-          label={`Marcar questão ${entry.questionNumber ?? ''} como ${
-            resolved ? 'pendente' : 'resolvida'
-          }`}
-        />
-        <button
-          type="button"
-          onClick={() => onRemove(entry.id)}
-          title="Remover do caderno"
-          aria-label={`Remover questão ${entry.questionNumber ?? ''} do caderno`}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <Trash2 className="h-3.5 w-3.5" aria-hidden />
-        </button>
+        <Tooltip delayDuration={250}>
+          <TooltipTrigger asChild>
+            <span>
+              <CheckButton
+                done={resolved}
+                onToggle={() => onToggleResolved(entry.id, !resolved)}
+                label={`Marcar questão ${entry.questionNumber ?? ''} como ${
+                  resolved ? 'pendente' : 'resolvida'
+                }`}
+              />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {resolved ? 'Marcar como pendente' : 'Marcar como resolvida'}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip delayDuration={250}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onRemove(entry.id)}
+              aria-label={`Remover questão ${entry.questionNumber ?? ''} do caderno`}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Remover do caderno</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
@@ -287,26 +302,31 @@ function NextUpCard({
           </div>
         )}
 
-        {/* Footer actions */}
+        {/* Footer actions — uma única ação primária (CTA "Iniciar" acima é o primário da página);
+            aqui "Marcar como resolvida" vira secundário outline para não competir. */}
         <div className="mt-5 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onToggleResolved(entry.id, true)}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_hsl(345_65%_30%/0.4)] transition-all duration-200 hover:bg-wine-hover hover:shadow-[0_6px_18px_-4px_hsl(345_65%_30%/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.99] sm:flex-none"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/[0.04] px-4 py-2.5 text-[13px] font-semibold text-primary transition-all duration-200 hover:border-primary/50 hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.99] sm:flex-none"
             >
               <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
               Marcar como resolvida
             </button>
-            <button
-              type="button"
-              onClick={() => onRemove(entry.id)}
-              title="Remover do caderno"
-              aria-label="Remover do caderno"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden />
-            </button>
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onRemove(entry.id)}
+                  aria-label="Remover do caderno"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Remover do caderno</TooltipContent>
+            </Tooltip>
           </div>
 
           {entry.simuladoId && entry.questionNumber && (
@@ -315,7 +335,7 @@ function NextUpCard({
               className="inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-primary no-underline"
             >
               Ver questão completa
-              <ExternalLink className="h-3 w-3" aria-hidden />
+              <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
           )}
         </div>
@@ -375,11 +395,6 @@ function HeroStatusCard({
             <p className="mt-1 text-[18px] font-bold leading-tight tracking-[-0.015em] text-white md:text-[20px]">
               Seu progresso no Caderno
             </p>
-            <p className="mt-1 text-[12px] text-white/55">
-              {total > 0
-                ? `${total} ${pluralize(total, 'questão salva', 'questões salvas')} · ${pending} ${pluralize(pending, 'pendente', 'pendentes')}`
-                : 'Sem questões salvas ainda.'}
-            </p>
           </div>
 
           {streak > 0 && (
@@ -399,16 +414,16 @@ function HeroStatusCard({
 
         {/* Progress bar — protagonista visual */}
         <div className="mt-5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[11px] font-medium text-white/60">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[12px] font-medium text-white/65">
               {resolved} de {total} {pluralize(total, 'resolvida', 'resolvidas')}
             </span>
-            <span className="text-[13px] font-bold tabular-nums text-white">
+            <span className="text-[15px] font-extrabold tabular-nums text-white tracking-[-0.02em]">
               {progressPct}%
             </span>
           </div>
           <div
-            className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-white/[0.08]"
+            className="mt-2 h-[6px] overflow-hidden rounded-full bg-white/[0.08]"
             role="progressbar"
             aria-valuenow={resolved}
             aria-valuemax={total}
@@ -425,60 +440,50 @@ function HeroStatusCard({
               }}
             />
           </div>
-        </div>
 
-        {/* Stats inline — grid 2×2 em mobile, linha em desktop */}
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-3">
-          <StatPill label="Pendentes" value={pending} tone="warning" />
-          <StatPill label="Resolvidas" value={resolved} tone="success" />
-          <StatPill
-            label={pluralize(specialties, 'Especialidade', 'Especialidades')}
-            value={specialties}
-            tone="neutral"
-            className="col-span-2 sm:col-span-1"
-          />
+          {/* Legenda compacta — métricas como apoio, sem repetição */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]">
+            <StatLegend
+              label={pluralize(pending, 'pendente', 'pendentes')}
+              value={pending}
+              dotClass="bg-orange-400"
+              valueClass="text-orange-300"
+            />
+            <StatLegend
+              label={pluralize(resolved, 'resolvida', 'resolvidas')}
+              value={resolved}
+              dotClass="bg-emerald-400"
+              valueClass="text-emerald-300"
+            />
+            <span className="text-white/45">·</span>
+            <span className="text-white/65">
+              <span className="font-bold tabular-nums text-white">{specialties}</span>{' '}
+              {pluralize(specialties, 'especialidade', 'especialidades')}
+            </span>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function StatPill({
+function StatLegend({
   label,
   value,
-  tone,
-  className,
+  dotClass,
+  valueClass,
 }: {
   label: string;
   value: number;
-  tone: 'warning' | 'success' | 'neutral';
-  className?: string;
+  dotClass: string;
+  valueClass: string;
 }) {
-  const colors = {
-    warning: 'text-orange-300',
-    success: 'text-emerald-300',
-    neutral: 'text-white',
-  };
-
   return (
-    <div
-      className={cn(
-        'flex items-baseline justify-between gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2',
-        className,
-      )}
-    >
-      <span className="text-[10px] font-medium uppercase tracking-wide text-white/50">
-        {label}
-      </span>
-      <span
-        className={cn(
-          'text-[18px] font-extrabold leading-none tracking-[-0.02em] tabular-nums',
-          colors[tone],
-        )}
-      >
-        {value}
-      </span>
-    </div>
+    <span className="inline-flex items-center gap-1.5 text-white/65">
+      <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
+      <span className={cn('font-bold tabular-nums', valueClass)}>{value}</span>
+      <span>{label}</span>
+    </span>
   );
 }
 
@@ -507,7 +512,7 @@ function FilterBar({
     <div className="flex flex-col gap-2.5">
       {/* Type chips */}
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
-        <span className="shrink-0 text-overline font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="shrink-0 text-overline font-bold uppercase tracking-wider text-muted-foreground w-[44px]">
           Tipo
         </span>
         <div
@@ -546,7 +551,7 @@ function FilterBar({
       {/* Specialty chips (only when multiple) */}
       {specialties.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
-          <span className="shrink-0 text-overline font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="shrink-0 text-overline font-bold uppercase tracking-wider text-muted-foreground w-[44px]">
             Área
           </span>
           <div
@@ -622,12 +627,16 @@ function FilterChip({
         !active && 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
       )}
     >
-      {dotColor && (
-        <span
-          aria-hidden
-          className="h-1.5 w-1.5 rounded-full"
-          style={{ background: dotColor }}
-        />
+      {active ? (
+        <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+      ) : (
+        dotColor && (
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: dotColor }}
+          />
+        )
       )}
       {label}
       {typeof count === 'number' && (
@@ -847,25 +856,45 @@ function CadernoContent({ userId }: { userId: string }) {
   }, [typeFilter, specFilter, loading, filtered.length]);
 
   const handleRemove = async (id: string) => {
-    const confirmed = window.confirm(
-      'Tem certeza que deseja remover este item do caderno? Essa ação não pode ser desfeita.',
-    );
-    if (!confirmed) return;
-
     const previousEntries = entries;
+    const target = entries.find((e) => e.id === id);
+    if (!target) return;
+
     setEntries((prev) => prev.filter((e) => e.id !== id));
-    try {
-      await simuladosApi.deleteErrorNotebookEntry(id, userId);
-      toast({ title: 'Item removido do caderno' });
-    } catch (err) {
-      logger.error('[CadernoErrosPage] Error removing:', err);
-      setEntries(previousEntries);
-      toast({
-        title: 'Não foi possível remover',
-        description: 'Tente novamente em instantes.',
-        variant: 'destructive',
-      });
-    }
+
+    let undone = false;
+    const t = toast({
+      title: 'Item removido do caderno',
+      description: `Q${target.questionNumber ?? '?'} · ${target.area ?? '—'}`,
+      duration: 5000,
+      action: (
+        <ToastAction
+          altText="Desfazer remoção"
+          onClick={() => {
+            undone = true;
+            setEntries(previousEntries);
+            t.dismiss();
+          }}
+        >
+          Desfazer
+        </ToastAction>
+      ),
+    });
+
+    setTimeout(async () => {
+      if (undone) return;
+      try {
+        await simuladosApi.deleteErrorNotebookEntry(id, userId);
+      } catch (err) {
+        logger.error('[CadernoErrosPage] Error removing:', err);
+        setEntries(previousEntries);
+        toast({
+          title: 'Não foi possível remover',
+          description: 'Tente novamente em instantes.',
+          variant: 'destructive',
+        });
+      }
+    }, 5000);
   };
 
   const handleToggleResolved = async (id: string, resolvedNow: boolean) => {
@@ -1156,7 +1185,6 @@ export default function CadernoErrosPage() {
       <PageHeader
         title="Caderno de Erros"
         subtitle="Sua ferramenta de revisão ativa para dominar o que importa."
-        subtitlePlacement="inline-end"
         badge="PRO: ENAMED Exclusivo"
       />
 
