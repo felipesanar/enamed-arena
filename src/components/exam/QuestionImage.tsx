@@ -18,7 +18,7 @@ export function QuestionImage({ src, alt, className }: QuestionImageProps) {
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
-          className="relative group cursor-zoom-in rounded-xl overflow-hidden border-2 border-border/40 bg-muted/30 p-2 shadow-sm w-fit max-w-full transition-colors hover:border-border/60"
+          className="relative group cursor-zoom-in rounded-xl overflow-hidden border-2 border-border/40 bg-white p-2 shadow-sm w-fit max-w-full transition-colors hover:border-border/60"
         >
           <img
             src={src}
@@ -26,8 +26,8 @@ export function QuestionImage({ src, alt, className }: QuestionImageProps) {
             className="max-w-full max-h-[320px] object-contain mx-auto"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors flex items-center justify-center">
-            <ZoomIn className="h-5 w-5 text-foreground/0 group-hover:text-foreground/50 transition-colors" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+            <ZoomIn className="h-5 w-5 text-black/0 group-hover:text-black/40 transition-colors" />
           </div>
         </button>
       </div>
