@@ -5,7 +5,6 @@ import {
   ExternalLink,
   ArrowRight,
   CalendarDays,
-  Stethoscope,
   Trophy,
 } from "lucide-react";
 import { BrandIcon } from "@/components/brand/BrandMark";
@@ -94,7 +93,7 @@ export function MobileDashboardHeader({
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/12 bg-gradient-to-b from-accent to-accent/70 shadow-sm"
               aria-hidden
             >
-              <Stethoscope className="h-[19px] w-[19px] text-primary" strokeWidth={1.75} />
+              <BrandIcon size="sm" className="h-[22px] w-[22px]" />
             </div>
             <div className="min-w-0 text-left">
               <span className="block text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-muted-foreground/90">
