@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -67,8 +67,244 @@ interface ReviewData {
   aiReviewMd: string | null;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * SessionPanel — fila visual da sessão de revisão (desktop only)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+function SessionPanel({
+  entries,
+  currentIndex,
+  onJump,
+  dominatedIds,
+  snoozedIds,
+  sessionDominated,
+  initialTotal,
+}: {
+  entries: PendingEntry[];
+  currentIndex: number;
+  onJump: (index: number) => void;
+  dominatedIds: Set<string>;
+  snoozedIds: Set<string>;
+  sessionDominated: number;
+  initialTotal: number;
+}) {
+  const completionPct = initialTotal === 0 ? 0 : Math.round((sessionDominated / initialTotal) * 100);
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm flex flex-col max-h-[calc(100vh-9rem)]">
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
+            Sessão
+          </span>
+          <span className="text-caption font-bold tabular-nums text-foreground">
+            {sessionDominated}/{initialTotal}
+          </span>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-success transition-[width] duration-500 ease-out"
+            style={{ width: `${completionPct}%` }}
+          />
+        </div>
+      </div>
+
+      <ul className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+        {entries.length === 0 && (
+          <li className="px-3 py-6 text-center text-caption text-muted-foreground">
+            Fila vazia.
+          </li>
+        )}
+        {entries.map((e, i) => {
+          const isCurrent = i === currentIndex;
+          const isSnoozed = snoozedIds.has(e.id);
+          const meta = getReasonMeta(e.reason);
+          return (
+            <li key={e.id}>
+              <button
+                type="button"
+                onClick={() => onJump(i)}
+                className={cn(
+                  'group w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
+                  isCurrent
+                    ? 'bg-primary/[0.08] ring-1 ring-primary/30'
+                    : 'hover:bg-muted/60',
+                )}
+                aria-current={isCurrent ? 'true' : undefined}
+              >
+                <span
+                  aria-hidden
+                  className="h-6 w-[3px] shrink-0 rounded-full"
+                  style={{ background: meta.colorBase }}
+                />
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      'block truncate text-[12px] font-semibold',
+                      isCurrent ? 'text-foreground' : 'text-foreground/85',
+                    )}
+                  >
+                    Q{e.questionNumber ?? '?'} · {e.area ?? '—'}
+                  </span>
+                  <span className="block truncate text-[10px] text-muted-foreground">
+                    {e.theme ?? meta.badge}
+                  </span>
+                </span>
+                {isSnoozed && (
+                  <Clock className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+                )}
+                {isCurrent && (
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {sessionDominated > 0 && (
+        <div className="border-t border-border px-4 py-2.5 text-caption text-success font-semibold flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+          {sessionDominated} dominada{sessionDominated > 1 ? 's' : ''} nesta sessão
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * SessionSummary — dashboard pós-sessão
+ * ────────────────────────────────────────────────────────────────────────── */
+
+function SessionSummary({
+  dominated,
+  snoozed,
+  remaining,
+  initialTotal,
+  elapsedMs,
+  topAreas,
+}: {
+  dominated: number;
+  snoozed: number;
+  remaining: number;
+  initialTotal: number;
+  elapsedMs: number;
+  topAreas: [string, number][];
+}) {
+  const completionPct = initialTotal === 0 ? 0 : Math.round((dominated / initialTotal) * 100);
+  const minutes = Math.max(1, Math.round(elapsedMs / 60000));
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-5">
+      <div className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%)] p-6 md:p-8 shadow-[0_20px_40px_-20px_rgba(10,14,26,0.85)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-[rgba(232,56,98,0.16)] blur-[60px]"
+        />
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 rounded-full bg-success/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-success border border-success/25">
+            <CheckCircle2 className="h-3 w-3" aria-hidden />
+            Sessão concluída
+          </div>
+          <h2 className="mt-3 text-heading-1 text-white tracking-[-0.015em]">
+            {dominated > 0 ? 'Mandou bem!' : 'Sessão encerrada.'}
+          </h2>
+          <p className="mt-1 text-body text-white/65">
+            {dominated > 0
+              ? `Você dominou ${dominated} ${dominated === 1 ? 'questão' : 'questões'} em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}.`
+              : 'Você não marcou nenhuma como dominada. Sem stress — bora retomar quando der.'}
+          </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <SummaryStat label="Dominadas" value={dominated} accent="text-success" />
+            <SummaryStat label="Revisar depois" value={snoozed} accent="text-orange-300" />
+            <SummaryStat label="Restantes" value={remaining} accent="text-white" />
+            <SummaryStat label="Tempo" value={`${minutes}m`} accent="text-white/80" />
+          </div>
+
+          {initialTotal > 0 && (
+            <div className="mt-5">
+              <div className="flex justify-between text-[11px] text-white/60">
+                <span>{completionPct}% da meta da sessão</span>
+                <span className="tabular-nums">
+                  {dominated}/{initialTotal}
+                </span>
+              </div>
+              <div className="mt-1.5 h-[6px] overflow-hidden rounded-full bg-white/[0.08]">
+                <div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#8E1F3D_0%,#E83862_100%)]"
+                  style={{ width: `${completionPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {topAreas.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <p className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
+            Áreas trabalhadas nesta sessão
+          </p>
+          <div className="mt-3 space-y-2">
+            {topAreas.map(([area, count]) => (
+              <div key={area} className="flex items-center justify-between">
+                <span className="text-body-sm font-semibold text-foreground truncate pr-3">
+                  {area}
+                </span>
+                <span className="inline-flex items-center gap-1 text-caption font-bold text-success tabular-nums">
+                  <CheckCircle2 className="h-3 w-3" aria-hidden />
+                  {count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+        <Link
+          to="/caderno-erros"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted no-underline"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Voltar ao caderno
+        </Link>
+        <Link
+          to="/simulados"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_hsl(345_65%_30%/0.4)] transition-all hover:bg-wine-hover no-underline"
+        >
+          <Zap className="h-4 w-4" aria-hidden />
+          Treinar mais um simulado
+          <ChevronRight className="h-4 w-4" aria-hidden />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function SummaryStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  accent: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+      <div className={cn('text-[20px] font-extrabold leading-none tracking-[-0.02em] tabular-nums', accent)}>
+        {value}
+      </div>
+      <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-white/55">
+        {label}
+      </div>
+    </div>
+  );
+}
+
 function CadernoRevisaoContent({ userId, studentName }: { userId: string; studentName: string }) {
-  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
 
   const [entries, setEntries] = useState<PendingEntry[]>([]);
@@ -82,6 +318,14 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
   const [sessionDominated, setSessionDominated] = useState(0);
   const [dominatedPulse, setDominatedPulse] = useState(0);
+  const [sessionSnoozedCount, setSessionSnoozedCount] = useState(0);
+  const [finished, setFinished] = useState(false);
+
+  const dominatedIdsRef = useRef<Set<string>>(new Set());
+  const snoozedIdsRef = useRef<Set<string>>(new Set());
+  const sessionStartRef = useRef<number>(Date.now());
+  const initialTotalRef = useRef<number | null>(null);
+  const sessionAreasRef = useRef<Map<string, number>>(new Map());
 
   const generatedFor = useRef<Set<string>>(new Set());
 
@@ -122,8 +366,13 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
   useEffect(() => {
     if (loadingList || listError) return;
+    if (initialTotalRef.current === null) {
+      initialTotalRef.current = entries.length;
+      sessionStartRef.current = Date.now();
+    }
     trackEvent('caderno_revisao_started', { total_pending: entries.length });
-  }, [loadingList, listError, entries.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingList, listError]);
 
   const currentEntry = entries[currentIndex] ?? null;
 
@@ -245,10 +494,9 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     if (currentIndex < entries.length - 1) {
       setCurrentIndex((i) => i + 1);
     } else {
-      // Acabou — manda de volta pro caderno
-      navigate('/caderno-erros');
+      setFinished(true);
     }
-  }, [currentIndex, entries.length, navigate]);
+  }, [currentIndex, entries.length]);
 
   const handleResolved = async () => {
     if (!currentEntry) return;
@@ -260,6 +508,11 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
       });
       setSessionDominated((n) => n + 1);
       setDominatedPulse((n) => n + 1);
+      dominatedIdsRef.current.add(currentEntry.id);
+      if (currentEntry.area) {
+        const map = sessionAreasRef.current;
+        map.set(currentEntry.area, (map.get(currentEntry.area) ?? 0) + 1);
+      }
       toast({ title: 'Mandou bem! Marcada como dominada.' });
       setEntries((prev) => {
         const next = prev.filter((e) => e.id !== currentEntry.id);
@@ -290,6 +543,10 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
       next.push(item);
       return next;
     });
+    if (!snoozedIdsRef.current.has(currentEntry.id)) {
+      snoozedIdsRef.current.add(currentEntry.id);
+      setSessionSnoozedCount((n) => n + 1);
+    }
     trackEvent('caderno_revisao_snoozed', {
       reason: currentEntry.reason,
       area: currentEntry.area ?? 'unknown',
@@ -403,6 +660,25 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     );
   }
 
+  // Se acabou (botão Finalizar) ou esvaziou após dominar tudo — dashboard de sessão
+  const sessionHadActivity =
+    sessionDominated > 0 || sessionSnoozedCount > 0 || dominatedIdsRef.current.size > 0;
+
+  if (finished || (entries.length === 0 && sessionHadActivity)) {
+    return (
+      <SessionSummary
+        dominated={sessionDominated}
+        snoozed={sessionSnoozedCount}
+        remaining={entries.length}
+        initialTotal={initialTotalRef.current ?? sessionDominated + entries.length}
+        elapsedMs={Date.now() - sessionStartRef.current}
+        topAreas={Array.from(sessionAreasRef.current.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)}
+      />
+    );
+  }
+
   if (entries.length === 0) {
     return (
       <EmptyState
@@ -464,6 +740,8 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
         </div>
       </div>
 
+      <div className="lg:flex lg:items-start lg:gap-6">
+        <div className="min-w-0 flex-1 space-y-4">
       {/* Loading da questão */}
       {loadingReview && (
         <div className="space-y-4 animate-pulse">
@@ -770,6 +1048,21 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
           </motion.div>
         )}
       </AnimatePresence>
+        </div>
+
+        {/* Painel lateral — fila da sessão (desktop) */}
+        <aside className="hidden lg:block lg:w-72 lg:shrink-0 lg:sticky lg:top-16 lg:self-start lg:max-h-[calc(100vh-9rem)]">
+          <SessionPanel
+            entries={entries}
+            currentIndex={currentIndex}
+            onJump={(i) => setCurrentIndex(i)}
+            dominatedIds={dominatedIdsRef.current}
+            snoozedIds={snoozedIdsRef.current}
+            sessionDominated={sessionDominated}
+            initialTotal={initialTotalRef.current ?? entries.length}
+          />
+        </aside>
+      </div>
 
       {/* Action bar */}
       <div className="sticky bottom-0 -mx-4 md:-mx-6 bg-background/95 px-4 md:px-6 py-3 backdrop-blur-sm border-t border-border">
