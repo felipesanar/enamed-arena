@@ -461,7 +461,7 @@ function HeroPerformanceCard({
                 <p className="text-[18px] sm:text-[20px] md:text-[22px] font-bold leading-none tracking-[-0.02em] text-white">
                   Seu caminho até aqui
                 </p>
-                <p className="mt-1 text-[11px] text-white/45">
+                <p className="mt-1.5 text-[12px] font-medium text-white/75">
                   {hasScore ? `Sua média: ${safeScore}%` : "Início da sua trajetória"}
                 </p>
               </div>
@@ -470,19 +470,19 @@ function HeroPerformanceCard({
                 <div
                   className={`mb-1.5 rounded-md border px-2 py-1 ${
                     scoreDelta > 0
-                      ? "border-emerald-500/20 bg-emerald-500/[0.08]"
+                      ? "border-emerald-400/40 bg-emerald-500/15"
                       : scoreDelta < 0
-                      ? "border-red-400/20 bg-red-400/[0.08]"
-                      : "border-white/10 bg-white/[0.05]"
+                      ? "border-red-400/40 bg-red-500/15"
+                      : "border-white/20 bg-white/10"
                   }`}
                 >
                   <span
                     className={`text-[11px] font-semibold tabular-nums ${
                       scoreDelta > 0
-                        ? "text-emerald-400"
+                        ? "text-emerald-300"
                         : scoreDelta < 0
-                        ? "text-red-400"
-                        : "text-white/55"
+                        ? "text-red-300"
+                        : "text-white/80"
                     }`}
                   >
                     {scoreDelta > 0 ? "+" : ""}
@@ -490,7 +490,7 @@ function HeroPerformanceCard({
                   </span>
                 </div>
               ) : (
-                <span className="mb-1.5 text-[11px] font-medium text-white/35">
+                <span className="mb-1.5 text-[11px] font-medium text-white/55">
                   {historyMode === "single"
                     ? "1º resultado"
                     : "início da jornada"}
@@ -511,16 +511,19 @@ function HeroPerformanceCard({
 
                 let bg: string;
                 let shadow: string | undefined;
+                let border: string | undefined;
                 if (isFocused && isReal) {
-                  bg = "linear-gradient(180deg, #E83862 0%, #A4153A 100%)";
-                  shadow = "0 10px 18px -8px rgba(232,56,98,0.65)";
+                  bg = "linear-gradient(180deg, #FF4D7A 0%, #B81A40 100%)";
+                  shadow = "0 10px 22px -6px rgba(232,56,98,0.75)";
                 } else if (isReal) {
                   bg =
-                    "linear-gradient(180deg, rgba(232,56,98,0.55) 0%, rgba(164,21,58,0.35) 100%)";
+                    "linear-gradient(180deg, rgba(232,56,98,0.7) 0%, rgba(164,21,58,0.5) 100%)";
                 } else if (isFocused) {
-                  bg = "rgba(255,255,255,0.18)";
+                  bg = "rgba(255,255,255,0.22)";
+                  border = "1px solid rgba(255,255,255,0.28)";
                 } else {
-                  bg = "rgba(255,255,255,0.1)";
+                  bg = "rgba(255,255,255,0.14)";
+                  border = "1px solid rgba(255,255,255,0.18)";
                 }
 
                 const tooltipText = isReal
@@ -541,13 +544,14 @@ function HeroPerformanceCard({
                         height: `${pct}%`,
                         background: bg,
                         boxShadow: shadow,
+                        border,
                       }}
                     />
                     <span className="pointer-events-none absolute -top-11 left-1/2 z-20 w-max max-w-[180px] -translate-x-1/2 rounded-md border border-white/12 bg-[#0C1320]/95 px-2 py-1 text-[9px] leading-snug text-white/85 opacity-0 shadow-[0_8px_20px_-12px_rgba(0,0,0,0.65)] transition-opacity duration-200 group-hover/bar:opacity-100">
                       {tooltipText}
                     </span>
                     {isFocused && hasScore && (
-                      <span className="absolute -top-4 text-[8px] font-bold text-[#E83862] tabular-nums">
+                      <span className="absolute -top-4 text-[9px] font-bold text-[#FF99B0] tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                         {val}%
                       </span>
                     )}
@@ -558,7 +562,7 @@ function HeroPerformanceCard({
 
             <Link
               to="/desempenho"
-              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/70 hover:text-white transition-colors duration-200 no-underline group"
+              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/85 hover:text-white transition-colors duration-200 no-underline group"
             >
               {hasScore
                 ? "Ver desempenho completo"
@@ -582,50 +586,50 @@ function HeroPerformanceCard({
             {/* Ranking snapshot */}
             {!hasRankingConfig ? (
               /* Empty state: no simulados with released results yet */
-              <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-4 text-center">
-                <p className="text-[13px] font-semibold text-[rgba(245,241,238,0.85)] mb-1">
+              <div className="mt-3 rounded-xl border border-white/[0.18] bg-[rgba(12,8,16,0.4)] p-4 text-center backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <p className="text-[13px] font-semibold text-white mb-1">
                   Você ainda não configurou seu ranking
                 </p>
-                <p className="text-[11px] text-[rgba(245,241,238,0.55)] leading-relaxed mb-3">
+                <p className="text-[11px] text-white/75 leading-relaxed mb-3">
                   Escolha um ranking para acompanhar sua evolução e ver sua posição entre os participantes.
                 </p>
                 <Link
                   to="/ranking"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[rgba(232,56,98,0.3)] bg-[rgba(232,56,98,0.15)] px-3.5 py-1.5 text-[12px] font-semibold text-[#e83862] no-underline transition-colors hover:bg-[rgba(232,56,98,0.22)]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#FF6B8A]/45 bg-[rgba(232,56,98,0.22)] px-3.5 py-1.5 text-[12px] font-semibold text-[#FFB3C5] no-underline transition-colors hover:bg-[rgba(232,56,98,0.32)]"
                 >
                   Ir para o Ranking →
                 </Link>
               </div>
             ) : rankPosition === null ? (
               /* Has results but user not yet ranked */
-              <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-4 text-center">
-                <p className="text-[13px] font-semibold text-[rgba(245,241,238,0.85)] mb-1">
+              <div className="mt-3 rounded-xl border border-white/[0.18] bg-[rgba(12,8,16,0.4)] p-4 text-center backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <p className="text-[13px] font-semibold text-white mb-1">
                   Veja como você está no ranking
                 </p>
-                <p className="text-[11px] text-[rgba(245,241,238,0.55)] leading-relaxed mb-3">
+                <p className="text-[11px] text-white/75 leading-relaxed mb-3">
                   Acesse a aba Ranking para escolher um simulado e ver sua posição entre os participantes.
                 </p>
                 <Link
                   to="/ranking"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[rgba(232,56,98,0.3)] bg-[rgba(232,56,98,0.15)] px-3.5 py-1.5 text-[12px] font-semibold text-[#e83862] no-underline transition-colors hover:bg-[rgba(232,56,98,0.22)]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#FF6B8A]/45 bg-[rgba(232,56,98,0.22)] px-3.5 py-1.5 text-[12px] font-semibold text-[#FFB3C5] no-underline transition-colors hover:bg-[rgba(232,56,98,0.32)]"
                 >
                   Ir para o Ranking →
                 </Link>
               </div>
             ) : (
               /* Ranked: show position with descriptive label */
-              <div className="mt-3 rounded-xl border border-[rgba(245,241,238,0.12)] bg-[rgba(245,241,238,0.06)] p-3 backdrop-blur-sm text-[rgba(245,241,238,0.92)]">
-                <div className="mb-1 flex items-start justify-between gap-3">
-                  <p className="min-w-0 flex-1 text-[12px] leading-snug text-[rgba(245,241,238,0.96)]">
+              <div className="mt-3 rounded-xl border border-white/[0.18] bg-[rgba(12,8,16,0.4)] p-3.5 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] text-white">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <p className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-white">
                     {rankPosition !== null && rankTotal !== null
                       ? `Você está em ${rankPosition}º de ${rankTotal} participantes`
                       : "Complete um simulado para entrar no ranking"}
                   </p>
                   <div className="shrink-0 text-right">
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[rgba(245,241,238,0.62)]">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/65">
                       Variação
                     </p>
-                    <p className={`mt-0.5 text-[11px] font-bold tabular-nums ${variationState.tone}`}>
+                    <p className={`mt-0.5 text-[12px] font-bold tabular-nums ${variationState.tone}`}>
                       {variationState.value}
                     </p>
                   </div>
@@ -633,31 +637,31 @@ function HeroPerformanceCard({
 
                 <div className="space-y-1">
                   <p
-                    className="text-[10px] leading-snug text-[rgba(245,241,238,0.78)] max-md:line-clamp-2 md:truncate"
+                    className="text-[11px] leading-snug text-white/85 max-md:line-clamp-2 md:truncate"
                     title={`Sua chave no ranking: ${rankingCompetitionLine}`}
                   >
-                    <span className="text-[rgba(245,241,238,0.55)]">
+                    <span className="text-white/60">
                       Sua chave no ranking:{" "}
                     </span>
                     {rankingCompetitionLine}
                   </p>
-                  <p className="text-[9px] leading-snug text-[rgba(245,241,238,0.68)]">
+                  <p className="text-[10px] leading-snug text-white/75">
                     {variationState.helper}
                   </p>
                 </div>
 
-                <div className="my-1.5 h-[3px] rounded-full bg-[rgba(245,241,238,0.14)] overflow-hidden">
+                <div className="my-2 h-[4px] rounded-full bg-white/[0.16] overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,#8E1F3D_0%,#E83862_100%)] transition-all duration-700"
+                    className="h-full rounded-full bg-[linear-gradient(90deg,#A4153A_0%,#FF4D7A_100%)] transition-all duration-700"
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-3 text-[10px] text-[rgba(245,241,238,0.88)]">
-                  <span className="font-medium tabular-nums">
+                <div className="flex items-center justify-between gap-3 text-[11px] text-white/90">
+                  <span className="font-semibold tabular-nums">
                     {rankLabel ?? "Sem colocação"}
                   </span>
-                  <span className="truncate text-[rgba(245,241,238,0.72)]">
+                  <span className="truncate text-white/75">
                     {rankPosition !== null ? tierLabel : nextTier}
                   </span>
                 </div>
@@ -666,7 +670,7 @@ function HeroPerformanceCard({
 
             <Link
               to="/ranking"
-              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/70 hover:text-white transition-colors duration-200 no-underline group"
+              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/85 hover:text-white transition-colors duration-200 no-underline group"
             >
               Ver ranking completo
               <svg
