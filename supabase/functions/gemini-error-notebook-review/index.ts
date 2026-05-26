@@ -154,6 +154,10 @@ ${explanationLine}
 
 # FORMATO DE SAÍDA
 
+Você vai retornar **JSON** com três campos: \`markdown\`, \`practice\` e \`optionRationales\`.
+
+## Campo "markdown"
+
 Markdown com 3 seções H3, **80-130 palavras totais**, NEGRITO em no máximo 3 trechos.
 
 ### 🎯 O que essa questão cobra
@@ -165,9 +169,59 @@ Markdown com 3 seções H3, **80-130 palavras totais**, NEGRITO em no máximo 3 
 ### 📌 Pra não repetir
 1-2 frases. Uma dica concreta de fixação. Pode ser: revisar critério X, treinar Y questões do tema, mnemônico curto. **Sem genérico** ("estude mais"). Termine sem despedida.
 
+## Campo "practice"
+
+Objeto com sugestão concreta de prática:
+- **topic**: nome curto do subtópico clínico específico pra treinar (ex.: "PrEP/PEP", "Sepse neonatal", "Bloqueios atrioventriculares"). Não repetir o tema genérico se houver subtópico mais preciso.
+- **area**: a grande área (use exatamente "${area ?? ''}" se informada).
+- **theme**: o tema (use exatamente "${theme ?? ''}" se informado).
+- **suggestedCount**: número inteiro entre 3 e 10 de questões sugeridas. Default 5.
+
+## Campo "optionRationales"
+
+Objeto com chaves = labels das alternativas **incorretas** (não inclua o gabarito), valores = explicação curtíssima (uma frase, no máximo 18 palavras) de por que aquela alternativa está errada. Cobrir TODAS as alternativas incorretas listadas.
+
+# REGRAS DE FORMATO JSON
+
+- Saída **deve ser JSON válido**, sem markdown wrapping, sem comentários.
+- Strings dentro do JSON também seguem a regra do travessão (**proibido**).
+- O conteúdo do campo \`markdown\` é uma string com markdown dentro.
+
 # COMECE
 
-Direto na primeira seção. Sem preâmbulo. Sem chamar o nome do aluno aqui (a página já mostra o contexto). **Sem travessão.**`;
+Retorne o JSON. Sem preâmbulo. Sem chamar o nome do aluno (a página já mostra o contexto). **Sem travessão em lugar nenhum.**`;
+
+    const incorrectLabels = options
+      .filter((o) => {
+        if (correctLabel) return o.label !== correctLabel;
+        return !o.isCorrect;
+      })
+      .map((o) => o.label);
+
+    const responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        markdown: { type: 'STRING' },
+        practice: {
+          type: 'OBJECT',
+          properties: {
+            topic: { type: 'STRING' },
+            area: { type: 'STRING' },
+            theme: { type: 'STRING' },
+            suggestedCount: { type: 'INTEGER' },
+          },
+          required: ['topic', 'suggestedCount'],
+        },
+        optionRationales: {
+          type: 'OBJECT',
+          // Gemini não aceita additionalProperties em responseSchema; deixamos livre.
+          properties: Object.fromEntries(
+            incorrectLabels.map((label) => [label, { type: 'STRING' }]),
+          ),
+        },
+      },
+      required: ['markdown'],
+    };
 
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -178,9 +232,11 @@ Direto na primeira seção. Sem preâmbulo. Sem chamar o nome do aluno aqui (a p
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.55,
-            maxOutputTokens: 900,
+            maxOutputTokens: 1400,
             topP: 0.9,
             thinkingConfig: { thinkingBudget: 0 },
+            responseMimeType: 'application/json',
+            responseSchema,
           },
         }),
       },
@@ -196,15 +252,52 @@ Direto na primeira seção. Sem preâmbulo. Sem chamar o nome do aluno aqui (a p
     }
 
     const data = await r.json();
-    const rawMarkdown =
+    const rawJson =
       data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
 
-    const markdown = stripEmDashes(rawMarkdown);
+    let parsed: {
+      markdown?: string;
+      practice?: { topic?: string; area?: string; theme?: string; suggestedCount?: number };
+      optionRationales?: Record<string, string>;
+    } = {};
+    try {
+      parsed = JSON.parse(rawJson);
+    } catch (parseErr) {
+      console.error('[gemini-error-notebook-review] JSON parse error', parseErr, rawJson.slice(0, 500));
+      // Fallback: trata o texto inteiro como markdown.
+      parsed = { markdown: rawJson };
+    }
 
-    return new Response(JSON.stringify({ markdown }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    const markdown = stripEmDashes(parsed.markdown ?? '');
+
+    const practice = parsed.practice
+      ? {
+          topic: stripEmDashes(parsed.practice.topic ?? '').trim() || null,
+          area: parsed.practice.area?.trim() || area || null,
+          theme: parsed.practice.theme?.trim() || theme || null,
+          suggestedCount: Math.min(10, Math.max(3, Math.round(parsed.practice.suggestedCount ?? 5))),
+        }
+      : null;
+
+    const optionRationales: Record<string, string> | null = parsed.optionRationales
+      ? Object.fromEntries(
+          Object.entries(parsed.optionRationales)
+            .filter(([k, v]) => typeof v === 'string' && incorrectLabels.includes(k))
+            .map(([k, v]) => [k, stripEmDashes(v as string).trim()]),
+        )
+      : null;
+
+    return new Response(
+      JSON.stringify({
+        markdown,
+        practice,
+        optionRationales: optionRationales && Object.keys(optionRationales).length > 0 ? optionRationales : null,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
   } catch (err) {
     console.error('[gemini-error-notebook-review] error', err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'unknown' }), {

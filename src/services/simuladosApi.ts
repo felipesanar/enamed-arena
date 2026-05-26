@@ -689,15 +689,27 @@ export const simuladosApi = {
       userSelectedOptionId,
       aiReviewMd: (entryAny.ai_review_md as string | null) ?? null,
       aiReviewGeneratedAt: (entryAny.ai_review_generated_at as string | null) ?? null,
+      aiPractice: (entryAny.ai_practice as AiPractice | null) ?? null,
+      aiOptionRationales: (entryAny.ai_option_rationales as Record<string, string> | null) ?? null,
     };
   },
 
-  async saveErrorNotebookAiReview(entryId: string, userId: string, markdown: string): Promise<void> {
+  async saveErrorNotebookAiReview(
+    entryId: string,
+    userId: string,
+    payload: {
+      markdown: string;
+      practice?: AiPractice | null;
+      optionRationales?: Record<string, string> | null;
+    },
+  ): Promise<void> {
     const { error } = await supabase
       .from('error_notebook')
       .update({
-        ai_review_md: markdown,
+        ai_review_md: payload.markdown,
         ai_review_generated_at: new Date().toISOString(),
+        ai_practice: payload.practice ?? null,
+        ai_option_rationales: payload.optionRationales ?? null,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       .eq('id', entryId)
@@ -706,3 +718,10 @@ export const simuladosApi = {
     if (error) throw error;
   },
 };
+
+export interface AiPractice {
+  topic: string | null;
+  area: string | null;
+  theme: string | null;
+  suggestedCount: number;
+}

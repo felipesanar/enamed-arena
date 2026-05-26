@@ -31,7 +31,7 @@ import { QuestionImage } from '@/components/exam/QuestionImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
-import { simuladosApi } from '@/services/simuladosApi';
+import { simuladosApi, type AiPractice } from '@/services/simuladosApi';
 import { SEGMENT_ACCESS } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
@@ -65,6 +65,8 @@ interface ReviewData {
   question: Question | null;
   userSelectedOptionId: string | null;
   aiReviewMd: string | null;
+  aiPractice: AiPractice | null;
+  aiOptionRationales: Record<string, string> | null;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -394,6 +396,8 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
           question: res.question,
           userSelectedOptionId: res.userSelectedOptionId,
           aiReviewMd: res.aiReviewMd,
+          aiPractice: res.aiPractice,
+          aiOptionRationales: res.aiOptionRationales,
         });
       })
       .catch((err) => {
@@ -459,11 +463,27 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
       if (error) throw error;
       const markdown = data?.markdown as string | undefined;
       if (!markdown) throw new Error('Resposta vazia da IA');
+      const practice = (data?.practice as AiPractice | null | undefined) ?? null;
+      const optionRationales =
+        (data?.optionRationales as Record<string, string> | null | undefined) ?? null;
 
-      setReviewData((prev) => (prev ? { ...prev, aiReviewMd: markdown } : prev));
+      setReviewData((prev) =>
+        prev
+          ? {
+              ...prev,
+              aiReviewMd: markdown,
+              aiPractice: practice,
+              aiOptionRationales: optionRationales,
+            }
+          : prev,
+      );
 
       try {
-        await simuladosApi.saveErrorNotebookAiReview(currentEntry.id, userId, markdown);
+        await simuladosApi.saveErrorNotebookAiReview(currentEntry.id, userId, {
+          markdown,
+          practice,
+          optionRationales,
+        });
       } catch (cacheErr) {
         logger.error('[CadernoRevisao] cache save error:', cacheErr);
       }
@@ -871,6 +891,10 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                   const isUserChoice = opt.id === userSelectedId;
                   const userWasWrong = isUserChoice && !isCorrect;
                   const userWasRight = isUserChoice && isCorrect;
+                  const rationale =
+                    !isCorrect && reviewData?.aiOptionRationales
+                      ? reviewData.aiOptionRationales[opt.label]
+                      : null;
 
                   return (
                     <div
@@ -922,6 +946,17 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                               </span>
                             )}
                           </div>
+                        )}
+                        {rationale && (
+                          <p
+                            className={cn(
+                              'mt-2 flex items-start gap-1.5 text-[12px] leading-snug',
+                              userWasWrong ? 'text-destructive/90' : 'text-muted-foreground',
+                            )}
+                          >
+                            <XCircle className="mt-0.5 h-3 w-3 shrink-0 opacity-70" aria-hidden />
+                            <span>{rationale}</span>
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1022,26 +1057,42 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                     <ReactMarkdown>{reviewData.aiReviewMd}</ReactMarkdown>
                   </div>
 
-                  {/* Fechamento do ciclo: CTA pra treinar mais do mesmo tema */}
-                  {(currentEntry.theme || currentEntry.area) && (
-                    <Link
-                      to="/simulados"
-                      onClick={() =>
-                        trackEvent('caderno_revisao_train_more_clicked', {
-                          area: currentEntry.area ?? 'unknown',
-                          theme: currentEntry.theme ?? 'unknown',
-                        })
-                      }
-                      className="mt-5 inline-flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-2.5 text-[13px] font-semibold text-primary transition-all duration-200 hover:border-primary/45 hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 no-underline"
-                    >
-                      <Zap className="h-3.5 w-3.5" aria-hidden />
-                      Treinar mais questões de{' '}
-                      <span className="font-extrabold">
-                        {currentEntry.theme ?? currentEntry.area}
-                      </span>
-                      <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                    </Link>
-                  )}
+                  {/* Fechamento do ciclo: CTA pra treinar mais do mesmo tema/subtópico.
+                      Quando a IA extrai um subtópico específico (ai_practice.topic),
+                      priorizamos ele; senão caímos no tema/área da própria questão. */}
+                  {(() => {
+                    const practice = reviewData.aiPractice;
+                    const topic =
+                      practice?.topic ?? currentEntry.theme ?? currentEntry.area ?? null;
+                    if (!topic) return null;
+                    const count = practice?.suggestedCount ?? 5;
+                    const params = new URLSearchParams();
+                    if (practice?.area ?? currentEntry.area)
+                      params.set('area', practice?.area ?? currentEntry.area ?? '');
+                    if (practice?.theme ?? currentEntry.theme)
+                      params.set('theme', practice?.theme ?? currentEntry.theme ?? '');
+                    if (practice?.topic) params.set('topic', practice.topic);
+
+                    return (
+                      <Link
+                        to={`/simulados?${params.toString()}`}
+                        onClick={() =>
+                          trackEvent('caderno_revisao_train_more_clicked', {
+                            area: practice?.area ?? currentEntry.area ?? 'unknown',
+                            theme: practice?.theme ?? currentEntry.theme ?? 'unknown',
+                            topic: practice?.topic ?? null,
+                            suggested_count: count,
+                          })
+                        }
+                        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-2.5 text-[13px] font-semibold text-primary transition-all duration-200 hover:border-primary/45 hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 no-underline"
+                      >
+                        <Zap className="h-3.5 w-3.5" aria-hidden />
+                        Treinar <span className="font-extrabold tabular-nums">{count}</span>{' '}
+                        questões de <span className="font-extrabold">{topic}</span>
+                        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                      </Link>
+                    );
+                  })()}
                 </>
               )}
             </div>
