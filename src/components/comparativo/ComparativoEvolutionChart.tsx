@@ -5,7 +5,8 @@ import {
 import { MousePointerClick } from 'lucide-react';
 import { PremiumCard } from '@/components/PremiumCard';
 import {
-  CHART_COLORS, getChartTickStyle, getChartGridProps, getChartTooltipContentStyle,
+  getChartTickStyle, getChartGridProps, getChartTooltipContentStyle,
+  getChartSemanticColors,
 } from '@/lib/chartTheme';
 import { SimuladoSnapshotDrawer } from './SimuladoSnapshotDrawer';
 import type { ComparativeEntryRich, SimuladoSlot } from '@/hooks/useComparativeData';
@@ -20,6 +21,7 @@ interface Props {
 
 export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const chartColors = getChartSemanticColors();
 
   // Dados pra Recharts: 1 ponto por simulado da plataforma.
   // Quando o aluno não fez aquele simulado, score = null → Recharts pula
@@ -79,12 +81,12 @@ export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }:
               <XAxis dataKey="name" tick={getChartTickStyle()} />
               <YAxis domain={[yMin, yMax]} tick={getChartTickStyle()} />
 
-              {/* Faixa de meta */}
+              {/* Faixa de meta — opacidade menor em dark pra não poluir */}
               <ReferenceArea
                 y1={goalScore}
                 y2={yMax}
-                fill={CHART_COLORS.success ?? '#10B981'}
-                fillOpacity={0.06}
+                fill={chartColors.success}
+                fillOpacity={0.05}
                 stroke="none"
               />
 
@@ -113,7 +115,7 @@ export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }:
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke={CHART_COLORS.primary}
+                stroke={chartColors.primary}
                 strokeWidth={3}
                 // Não atravessa nulls — linha para no último simulado feito
                 connectNulls={false}
@@ -128,7 +130,7 @@ export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }:
                         cx={cx}
                         cy={cy}
                         r={6}
-                        fill={CHART_COLORS.primary}
+                        fill={chartColors.primary}
                         stroke="#fff"
                         strokeWidth={2}
                         style={{ cursor: 'pointer' }}

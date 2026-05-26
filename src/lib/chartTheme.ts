@@ -4,8 +4,12 @@
  * Ref: docs/DIRECAO_UI_CARDS.md
  */
 
-/** Core semantic colors used across all charts */
-export const CHART_COLORS_BASE = {
+function isDarkMode(): boolean {
+  return typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+}
+
+/** Core semantic colors used across all charts — light mode defaults */
+const CHART_COLORS_LIGHT = {
   primary: "hsl(345, 65%, 30%)",
   success: "hsl(152, 60%, 36%)",
   destructive: "hsl(0, 72%, 51%)",
@@ -14,14 +18,28 @@ export const CHART_COLORS_BASE = {
   info: "hsl(210, 80%, 52%)",
 } as const;
 
+/** Dark mode: cores mais claras e levemente menos saturadas
+   pra contrastar com bg dark sem vibrar. */
+const CHART_COLORS_DARK = {
+  primary: "hsl(345, 55%, 58%)",
+  success: "hsl(152, 50%, 55%)",
+  destructive: "hsl(0, 60%, 60%)",
+  muted: "hsl(220, 10%, 65%)",
+  warning: "hsl(38, 80%, 62%)",
+  info: "hsl(210, 75%, 65%)",
+} as const;
+
+/** Backwards-compat: CHART_COLORS_BASE expõe a versão atual (light/dark). */
+export const CHART_COLORS_BASE = isDarkMode() ? CHART_COLORS_DARK : CHART_COLORS_LIGHT;
+
 /** Get theme-aware grid and tooltip colors */
 function getThemeAwareColors() {
-  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const isDark = isDarkMode();
 
   return {
-    grid: isDark ? "hsl(220, 15%, 16%)" : "hsl(220, 12%, 90%)",
+    grid: isDark ? "hsl(220, 14%, 22%)" : "hsl(220, 12%, 90%)",
     tooltipBg: isDark ? "hsl(220, 18%, 10%)" : "hsl(0, 0%, 100%)",
-    tooltipBorder: isDark ? "hsl(220, 15%, 16%)" : "hsl(220, 12%, 90%)",
+    tooltipBorder: isDark ? "hsl(220, 14%, 22%)" : "hsl(220, 12%, 90%)",
   };
 }
 
@@ -29,6 +47,11 @@ export const CHART_COLORS = {
   ...CHART_COLORS_BASE,
   ...getThemeAwareColors(),
 } as const;
+
+/** Use this to obter cores semânticas frescas (re-avalia o tema) */
+export function getChartSemanticColors() {
+  return isDarkMode() ? CHART_COLORS_DARK : CHART_COLORS_LIGHT;
+}
 
 /** Corpo de texto em eixos e labels */
 export const CHART_FONT_SIZE_AXIS = 12;
@@ -38,7 +61,7 @@ export const CHART_FONT_SIZE_TOOLTIP = 13;
 export function getChartTickStyle() {
   return {
     fontSize: CHART_FONT_SIZE_AXIS,
-    fill: CHART_COLORS_BASE.muted,
+    fill: getChartSemanticColors().muted,
   };
 }
 
