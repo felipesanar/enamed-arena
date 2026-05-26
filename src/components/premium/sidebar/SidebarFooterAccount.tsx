@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/contexts/UserContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
 
@@ -59,6 +60,18 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
             <p className="font-semibold text-white">{name}</p>
             {email ? <p className="mt-0.5 text-[10px] text-white/50">{email}</p> : null}
             {isPro && <p className="mt-1 text-[10px] font-semibold text-[#E8839B]">PRO</p>}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Theme Toggle */}
+        <Tooltip delayDuration={200}>
+          <TooltipTrigger asChild>
+            <div className={railIconBtn}>
+              <ThemeToggle variant="icon" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={10} className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg">
+            Tema
           </TooltipContent>
         </Tooltip>
 
@@ -132,6 +145,11 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
           <Settings className="h-3.5 w-3.5 shrink-0 opacity-80 [@media(max-height:700px)]:h-3 [@media(max-height:700px)]:w-3" aria-hidden />
           Configurações
         </Link>
+
+        <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-white/55 transition-all duration-[220ms] ease-out hover:bg-white/[0.06] hover:text-white/80 [@media(max-height:700px)]:gap-1 [@media(max-height:700px)]:px-1.5 [@media(max-height:700px)]:py-1">
+          <ThemeToggle variant="icon" />
+        </div>
+
         <button
           type="button"
           onClick={signOut}
