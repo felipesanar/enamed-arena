@@ -829,7 +829,6 @@ function CadernoContent({ userId }: { userId: string }) {
   );
   const resolved = useMemo(() => filtered.filter((e) => !!e.resolvedAt), [filtered]);
   const streak = useMemo(() => calcStreak(entries), [entries]);
-  const heroEntry = pending[0] ?? null;
 
   const totalPending = entries.filter((e) => !e.resolvedAt && !isSnoozed(e)).length;
   const totalResolved = entries.filter((e) => !!e.resolvedAt).length;
