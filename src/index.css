@@ -531,7 +531,7 @@
   .dark .hero-status-card {
     @apply border-white/[0.08];
     background:
-      linear-gradient(148deg,#0A0E18_0%,#0F1626_38%,#1E0712_72%,#2A0A1A_100%);
+      linear-gradient(148deg,#080A14_0%,#0C1020_30%,#1A0816_60%,#2E0C20_85%,#3A0E24_100%);
     box-shadow: 0 20px 40px -20px rgba(0,0,0,0.9), 0 8px 20px -12px rgba(40,8,22,0.5);
   }
 

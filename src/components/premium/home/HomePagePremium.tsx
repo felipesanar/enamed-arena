@@ -519,11 +519,11 @@ function HeroPerformanceCard({
                   bg =
                     "linear-gradient(180deg, rgba(232,56,98,0.7) 0%, rgba(164,21,58,0.5) 100%)";
                 } else if (isFocused) {
-                  bg = "rgba(255,255,255,0.22)";
-                  border = "1px solid rgba(255,255,255,0.28)";
+                  bg = "rgba(15,12,22,0.85)";
+                  border = "1px solid rgba(255,255,255,0.22)";
                 } else {
-                  bg = "rgba(255,255,255,0.14)";
-                  border = "1px solid rgba(255,255,255,0.18)";
+                  bg = "rgba(15,12,22,0.7)";
+                  border = "1px solid rgba(255,255,255,0.12)";
                 }
 
                 const tooltipText = isReal
@@ -586,7 +586,7 @@ function HeroPerformanceCard({
             {/* Ranking snapshot */}
             {!hasRankingConfig ? (
               /* Empty state: no simulados with released results yet */
-              <div className="mt-3 rounded-xl border border-white/[0.18] bg-[rgba(12,8,16,0.4)] p-4 text-center backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="mt-3 rounded-xl border border-white/[0.10] bg-[rgba(8,10,18,0.88)] p-4 text-center backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-8px_rgba(0,0,0,0.5)]">
                 <p className="text-[13px] font-semibold text-white mb-1">
                   Você ainda não configurou seu ranking
                 </p>
@@ -602,7 +602,7 @@ function HeroPerformanceCard({
               </div>
             ) : rankPosition === null ? (
               /* Has results but user not yet ranked */
-              <div className="mt-3 rounded-xl border border-white/[0.18] bg-[rgba(12,8,16,0.4)] p-4 text-center backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="mt-3 rounded-xl border border-white/[0.10] bg-[rgba(8,10,18,0.88)] p-4 text-center backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-8px_rgba(0,0,0,0.5)]">
                 <p className="text-[13px] font-semibold text-white mb-1">
                   Veja como você está no ranking
                 </p>
@@ -618,7 +618,7 @@ function HeroPerformanceCard({
               </div>
             ) : (
               /* Ranked: show position with descriptive label */
-              <div className="mt-3 rounded-xl border border-white/[0.18] bg-[rgba(12,8,16,0.4)] p-3.5 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] text-white">
+              <div className="mt-3 rounded-xl border border-white/[0.10] bg-[rgba(8,10,18,0.88)] p-3.5 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-8px_rgba(0,0,0,0.5)] text-white">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <p className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-white">
                     {rankPosition !== null && rankTotal !== null
