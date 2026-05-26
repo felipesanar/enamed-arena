@@ -8,7 +8,6 @@ import {
   Trash2,
   ArrowRight,
   Flame,
-  Sparkles,
   RotateCcw,
   ChevronDown,
   Play,
@@ -212,134 +211,6 @@ function QueueRow({
           </TooltipTrigger>
           <TooltipContent side="top">Remover do caderno</TooltipContent>
         </Tooltip>
-      </div>
-    </div>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────────────────
- * NextUpCard — "Próxima para revisar" (card premium claro com acento wine)
- * ────────────────────────────────────────────────────────────────────────── */
-
-function NextUpCard({
-  entry,
-  onRemove,
-  onToggleResolved,
-}: {
-  entry: NotebookEntry;
-  onRemove: (id: string) => void;
-  onToggleResolved: (id: string, resolved: boolean) => void;
-}) {
-  const meta = getReasonMeta(entry.reason);
-
-  return (
-    <div className="premium-card-hero relative overflow-hidden rounded-[20px] p-5 md:p-6">
-      {/* Left accent bar — wine gradient */}
-      <div
-        aria-hidden
-        className="absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-primary to-wine-hover"
-      />
-      {/* Subtle wine glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/[0.05] blur-2xl"
-      />
-
-      <div className="relative">
-        {/* Top row: title + type chip */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-foreground md:text-[16px]">
-              Q{entry.questionNumber ?? '?'} · {entry.area ?? '—'}
-              {entry.theme ? ` — ${entry.theme}` : ''}
-            </p>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              {entry.simuladoTitle ?? 'Simulado'} · {fmtDate(entry.addedAt)}
-            </p>
-          </div>
-          <span
-            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
-            style={{
-              background: meta.colorBg,
-              color: meta.colorText,
-              borderColor: meta.colorBorder,
-            }}
-          >
-            <span
-              aria-hidden
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ background: meta.colorBase }}
-            />
-            {meta.badge}
-          </span>
-        </div>
-
-        {/* Learning note */}
-        {entry.learningNote && (
-          <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-3">
-            <p className="text-overline font-semibold uppercase text-muted-foreground">
-              Sua anotação
-            </p>
-            <p className="mt-1 text-[13px] italic leading-relaxed text-foreground/90">
-              {entry.learningNote}
-            </p>
-          </div>
-        )}
-
-        {/* Review strategy */}
-        {meta.strategy && (
-          <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-primary/15 bg-primary/[0.04] p-3">
-            <div className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="h-3 w-3 text-primary" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-overline font-semibold uppercase text-primary">
-                Como revisar
-              </p>
-              <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">
-                {meta.strategy}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Footer actions — uma única ação primária (CTA "Iniciar" acima é o primário da página);
-            aqui "Marcar como resolvida" vira secundário outline para não competir. */}
-        <div className="mt-5 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onToggleResolved(entry.id, true)}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/[0.04] px-4 py-2.5 text-[13px] font-semibold text-primary transition-all duration-200 hover:border-primary/50 hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.99] sm:flex-none"
-            >
-              <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-              Marcar como resolvida
-            </button>
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => onRemove(entry.id)}
-                  aria-label="Remover do caderno"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Remover do caderno</TooltipContent>
-            </Tooltip>
-          </div>
-
-          {entry.simuladoId && entry.questionNumber && (
-            <Link
-              to={`/simulados/${entry.simuladoId}/correcao?q=${entry.questionNumber}`}
-              className="inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-primary no-underline"
-            >
-              Ver questão completa
-              <ArrowRight className="h-3 w-3" aria-hidden />
-            </Link>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -829,7 +700,6 @@ function CadernoContent({ userId }: { userId: string }) {
   );
   const resolved = useMemo(() => filtered.filter((e) => !!e.resolvedAt), [filtered]);
   const streak = useMemo(() => calcStreak(entries), [entries]);
-  const heroEntry = pending[0] ?? null;
 
   const totalPending = entries.filter((e) => !e.resolvedAt && !isSnoozed(e)).length;
   const totalResolved = entries.filter((e) => !!e.resolvedAt).length;
@@ -1077,33 +947,15 @@ function CadernoContent({ userId }: { userId: string }) {
         </StaggerItem>
       )}
 
-      {!allResolved && filtered.length > 0 && heroEntry && (
-        <StaggerItem>
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-primary" aria-hidden />
-              <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
-                Próxima para revisar
-              </span>
-            </div>
-            <NextUpCard
-              entry={heroEntry}
-              onRemove={handleRemove}
-              onToggleResolved={handleToggleResolved}
-            />
-          </div>
-        </StaggerItem>
-      )}
-
-      {!allResolved && pending.length > 1 && (
+      {!allResolved && pending.length > 0 && (
         <StaggerItem>
           <div>
             <div className="mb-2.5 flex items-center justify-between">
               <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
-                Na fila
+                Pendentes
               </span>
               <span className="text-caption text-muted-foreground">
-                {pending.length - 1} {pluralize(pending.length - 1, 'restante', 'restantes')}
+                {pending.length} {pluralize(pending.length, 'questão', 'questões')}
               </span>
             </div>
             <motion.div
@@ -1117,7 +969,7 @@ function CadernoContent({ userId }: { userId: string }) {
                 hidden: {},
               }}
             >
-              {pending.slice(1).map((entry) => (
+              {pending.map((entry) => (
                 <motion.div
                   key={entry.id}
                   variants={{
