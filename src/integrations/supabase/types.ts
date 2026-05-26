@@ -424,6 +424,7 @@ export type Database = {
           ai_review_generated_at: string | null
           ai_review_md: string | null
           area: string | null
+          chat_count: number
           created_at: string
           deleted_at: string | null
           id: string
@@ -447,6 +448,7 @@ export type Database = {
           ai_review_generated_at?: string | null
           ai_review_md?: string | null
           area?: string | null
+          chat_count?: number
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -470,6 +472,7 @@ export type Database = {
           ai_review_generated_at?: string | null
           ai_review_md?: string | null
           area?: string | null
+          chat_count?: number
           created_at?: string
           deleted_at?: string | null
           id?: string
