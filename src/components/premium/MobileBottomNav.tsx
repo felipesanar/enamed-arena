@@ -161,7 +161,7 @@ export function MobileBottomNav() {
             <Link
               to="/ranking"
               onClick={() => setRankingOpen(false)}
-              className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-4 py-3.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 no-underline"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3.5 text-sm font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 no-underline"
             >
               <Trophy
                 strokeWidth={ICON_STROKE}
@@ -173,7 +173,7 @@ export function MobileBottomNav() {
             <Link
               to="/comparativo"
               onClick={() => setRankingOpen(false)}
-              className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-4 py-3.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 no-underline"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3.5 text-sm font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 no-underline"
             >
               <GitCompareArrows
                 strokeWidth={ICON_STROKE}
