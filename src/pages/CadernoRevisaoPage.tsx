@@ -77,7 +77,10 @@ interface ReviewData {
   aiReviewMd: string | null;
   aiPractice: AiPractice | null;
   aiOptionRationales: Record<string, string> | null;
+  chatCount: number;
 }
+
+const CHAT_LIMIT_PER_ENTRY = 10;
 
 /* ──────────────────────────────────────────────────────────────────────────
  * SessionPanel — fila visual da sessão de revisão (desktop only)
@@ -425,6 +428,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
           aiReviewMd: res.aiReviewMd,
           aiPractice: res.aiPractice,
           aiOptionRationales: res.aiOptionRationales,
+          chatCount: res.chatCount ?? 0,
         });
       })
       .catch((err) => {
@@ -537,6 +541,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     if (!currentEntry || !reviewData?.question) return;
     const trimmed = chatInput.trim();
     if (!trimmed || chatLoading) return;
+    if (reviewData.chatCount >= CHAT_LIMIT_PER_ENTRY) return;
 
     const userTurn: ChatTurn = { role: 'user', content: trimmed };
     const nextHistory = [...chatMessages, userTurn];
@@ -552,6 +557,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
       const { data, error } = await supabase.functions.invoke('gemini-error-notebook-chat', {
         body: {
+          entryId: currentEntry.id,
           studentName,
           questionStem: q.text,
           options: q.options.map((o) => ({
@@ -570,14 +576,39 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
           question: trimmed,
         },
       });
+
+      // 429 do edge function (rate limit). supabase-js coloca o status no error.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const statusCode = (error as any)?.context?.status as number | undefined;
+      if (statusCode === 429) {
+        setReviewData((prev) =>
+          prev ? { ...prev, chatCount: CHAT_LIMIT_PER_ENTRY } : prev,
+        );
+        toast({
+          title: 'Limite de perguntas atingido',
+          description: `Você usou as ${CHAT_LIMIT_PER_ENTRY} perguntas dessa questão.`,
+          variant: 'destructive',
+        });
+        setChatMessages(chatMessages);
+        setChatInput(trimmed);
+        return;
+      }
+
       if (error) throw error;
       const reply = (data?.reply as string | undefined)?.trim();
       if (!reply) throw new Error('Resposta vazia');
 
+      const offTopic = !!data?.offTopic;
+      const used = (data?.used as number | undefined) ?? reviewData.chatCount + 1;
+
       setChatMessages([...nextHistory, { role: 'assistant', content: reply }]);
+      setReviewData((prev) => (prev ? { ...prev, chatCount: used } : prev));
+
       trackEvent('caderno_revisao_chat_message_sent', {
         area: currentEntry.area ?? 'unknown',
         history_length: nextHistory.length,
+        off_topic: offTopic,
+        used,
       });
     } catch (err) {
       logger.error('[CadernoRevisao] chat error:', err);
@@ -586,7 +617,6 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
         description: 'Tente de novo em instantes.',
         variant: 'destructive',
       });
-      // Rola pra trás a mensagem do usuário pra ele poder reenviar.
       setChatMessages(chatMessages);
       setChatInput(trimmed);
     } finally {
@@ -1217,23 +1247,43 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                       </button>
                     ) : (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <p className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
                             Conversa com o Prof. San
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setChatOpen(false)}
-                            className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            Fechar
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                'rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums',
+                                reviewData.chatCount >= CHAT_LIMIT_PER_ENTRY
+                                  ? 'bg-destructive/10 text-destructive'
+                                  : reviewData.chatCount >= CHAT_LIMIT_PER_ENTRY - 2
+                                    ? 'bg-warning/10 text-warning'
+                                    : 'bg-muted text-muted-foreground',
+                              )}
+                              title="Perguntas usadas nesta questão"
+                            >
+                              {reviewData.chatCount}/{CHAT_LIMIT_PER_ENTRY}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setChatOpen(false)}
+                              className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              Fechar
+                            </button>
+                          </div>
                         </div>
 
                         {chatMessages.length === 0 && !chatLoading && (
                           <p className="text-caption text-muted-foreground italic">
-                            Pergunte qualquer coisa sobre essa questão. O histórico fica só
-                            nessa sessão.
+                            Pergunte sobre essa questão ou sobre conteúdo de medicina
+                            relacionado. Você tem{' '}
+                            <strong className="text-foreground">
+                              {Math.max(0, CHAT_LIMIT_PER_ENTRY - reviewData.chatCount)} pergunta
+                              {CHAT_LIMIT_PER_ENTRY - reviewData.chatCount === 1 ? '' : 's'}
+                            </strong>{' '}
+                            nessa questão.
                           </p>
                         )}
 
@@ -1267,38 +1317,48 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                           )}
                         </div>
 
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            void sendChatMessage();
-                          }}
-                          className="flex items-end gap-2"
-                        >
-                          <textarea
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                void sendChatMessage();
-                              }
+                        {reviewData.chatCount >= CHAT_LIMIT_PER_ENTRY ? (
+                          <div className="rounded-xl border border-warning/30 bg-warning/[0.06] px-3 py-2.5 text-[12px] text-foreground">
+                            <p className="font-semibold">Limite de perguntas atingido</p>
+                            <p className="mt-0.5 text-muted-foreground">
+                              Você já fez {CHAT_LIMIT_PER_ENTRY} perguntas sobre essa questão.
+                              Quando dominar, pode treinar mais com os simulados sugeridos.
+                            </p>
+                          </div>
+                        ) : (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              void sendChatMessage();
                             }}
-                            rows={1}
-                            maxLength={600}
-                            placeholder="Pergunte sobre essa questão…"
-                            disabled={chatLoading}
-                            className="flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                          />
-                          <Button
-                            type="submit"
-                            size="sm"
-                            disabled={chatLoading || !chatInput.trim()}
-                            className="!text-white"
+                            className="flex items-end gap-2"
                           >
-                            <Send className="h-3.5 w-3.5" aria-hidden />
-                            <span className="sr-only">Enviar</span>
-                          </Button>
-                        </form>
+                            <textarea
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  void sendChatMessage();
+                                }
+                              }}
+                              rows={1}
+                              maxLength={600}
+                              placeholder="Pergunte sobre essa questão…"
+                              disabled={chatLoading}
+                              className="flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                            />
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={chatLoading || !chatInput.trim()}
+                              className="!text-white"
+                            >
+                              <Send className="h-3.5 w-3.5" aria-hidden />
+                              <span className="sr-only">Enviar</span>
+                            </Button>
+                          </form>
+                        )}
                       </div>
                     )}
                   </div>

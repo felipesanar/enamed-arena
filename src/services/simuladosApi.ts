@@ -706,6 +706,7 @@ export const simuladosApi = {
       aiReviewGeneratedAt: (entryAny.ai_review_generated_at as string | null) ?? null,
       aiPractice: (entryAny.ai_practice as AiPractice | null) ?? null,
       aiOptionRationales: (entryAny.ai_option_rationales as Record<string, string> | null) ?? null,
+      chatCount: ((entryAny.chat_count as number | null) ?? 0) as number,
     };
   },
 
