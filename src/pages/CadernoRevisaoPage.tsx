@@ -18,6 +18,8 @@ import {
   Clock,
   Flame,
   Zap,
+  MessageCircle,
+  Send,
 } from 'lucide-react';
 
 import { PageTransition } from '@/components/premium/PageTransition';
@@ -331,6 +333,13 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
   const [sessionSnoozedCount, setSessionSnoozedCount] = useState(0);
   const [finished, setFinished] = useState(false);
 
+  // Chat efêmero com o Prof. Sanor — histórico em memória, reseta a cada entry.
+  type ChatTurn = { role: 'user' | 'assistant'; content: string };
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatTurn[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
   const dominatedIdsRef = useRef<Set<string>>(new Set());
   const snoozedIdsRef = useRef<Set<string>>(new Set());
   const sessionStartRef = useRef<number>(Date.now());
@@ -402,6 +411,9 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     let cancelled = false;
     setLoadingReview(true);
     setReviewData(null);
+    setChatMessages([]);
+    setChatInput('');
+    setChatOpen(false);
 
     simuladosApi
       .getErrorNotebookEntryForReview(currentEntry.id, userId)
@@ -518,6 +530,67 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
       generatedFor.current.delete(currentEntry.id);
     } finally {
       setGeneratingAi(false);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!currentEntry || !reviewData?.question) return;
+    const trimmed = chatInput.trim();
+    if (!trimmed || chatLoading) return;
+
+    const userTurn: ChatTurn = { role: 'user', content: trimmed };
+    const nextHistory = [...chatMessages, userTurn];
+    setChatMessages(nextHistory);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const q = reviewData.question;
+      const correctLabel = q.options.find((o) => o.id === q.correctOptionId)?.label ?? null;
+      const userLabel =
+        q.options.find((o) => o.id === reviewData.userSelectedOptionId)?.label ?? null;
+
+      const { data, error } = await supabase.functions.invoke('gemini-error-notebook-chat', {
+        body: {
+          studentName,
+          questionStem: q.text,
+          options: q.options.map((o) => ({
+            label: o.label,
+            text: o.text,
+            isCorrect: o.id === q.correctOptionId,
+          })),
+          correctLabel,
+          userLabel,
+          area: currentEntry.area,
+          theme: currentEntry.theme,
+          reason: currentEntry.reason,
+          learningNote: currentEntry.learningNote,
+          aiReviewMd: reviewData.aiReviewMd,
+          history: chatMessages,
+          question: trimmed,
+        },
+      });
+      if (error) throw error;
+      const reply = (data?.reply as string | undefined)?.trim();
+      if (!reply) throw new Error('Resposta vazia');
+
+      setChatMessages([...nextHistory, { role: 'assistant', content: reply }]);
+      trackEvent('caderno_revisao_chat_message_sent', {
+        area: currentEntry.area ?? 'unknown',
+        history_length: nextHistory.length,
+      });
+    } catch (err) {
+      logger.error('[CadernoRevisao] chat error:', err);
+      toast({
+        title: 'Não consegui responder agora',
+        description: 'Tente de novo em instantes.',
+        variant: 'destructive',
+      });
+      // Rola pra trás a mensagem do usuário pra ele poder reenviar.
+      setChatMessages(chatMessages);
+      setChatInput(trimmed);
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -1125,6 +1198,110 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                       </Link>
                     );
                   })()}
+
+                  {/* Chat efêmero com o Prof. Sanor */}
+                  <div className="mt-5 border-t border-primary/10 pt-4">
+                    {!chatOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChatOpen(true);
+                          trackEvent('caderno_revisao_chat_opened', {
+                            area: currentEntry.area ?? 'unknown',
+                          });
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5 text-primary" aria-hidden />
+                        Tirar uma dúvida com o Prof. San
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
+                            Conversa com o Prof. San
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setChatOpen(false)}
+                            className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            Fechar
+                          </button>
+                        </div>
+
+                        {chatMessages.length === 0 && !chatLoading && (
+                          <p className="text-caption text-muted-foreground italic">
+                            Pergunte qualquer coisa sobre essa questão. O histórico fica só
+                            nessa sessão.
+                          </p>
+                        )}
+
+                        <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                          {chatMessages.map((m, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                'rounded-xl px-3 py-2 text-[13px] leading-relaxed',
+                                m.role === 'user'
+                                  ? 'ml-6 bg-primary/[0.08] text-foreground'
+                                  : 'mr-6 border border-border bg-card text-foreground',
+                              )}
+                            >
+                              {m.role === 'assistant' ? (
+                                <div className="prose prose-sm max-w-none prose-p:my-1 prose-p:text-[13px] prose-strong:text-foreground prose-li:text-[13px]">
+                                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                                </div>
+                              ) : (
+                                <p>{m.content}</p>
+                              )}
+                            </div>
+                          ))}
+                          {chatLoading && (
+                            <div className="mr-6 rounded-xl border border-border bg-card px-3 py-2">
+                              <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                                Prof. San pensando…
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            void sendChatMessage();
+                          }}
+                          className="flex items-end gap-2"
+                        >
+                          <textarea
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                void sendChatMessage();
+                              }
+                            }}
+                            rows={1}
+                            maxLength={600}
+                            placeholder="Pergunte sobre essa questão…"
+                            disabled={chatLoading}
+                            className="flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                          />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            disabled={chatLoading || !chatInput.trim()}
+                            className="!text-white"
+                          >
+                            <Send className="h-3.5 w-3.5" aria-hidden />
+                            <span className="sr-only">Enviar</span>
+                          </Button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
