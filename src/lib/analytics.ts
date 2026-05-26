@@ -51,6 +51,10 @@ export type AnalyticsEventName =
   | "caderno_revisao_started"
   | "caderno_revisao_ai_generated"
   | "caderno_revisao_marked_resolved"
+  | "caderno_revisao_snoozed"
+  | "caderno_revisao_chat_opened"
+  | "caderno_revisao_chat_message_sent"
+  | "caderno_revisao_train_more_clicked"
   // Monetization
   | "upsell_clicked"
   | "feature_gate_seen"
