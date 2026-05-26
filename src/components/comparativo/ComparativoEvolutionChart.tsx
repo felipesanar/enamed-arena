@@ -5,7 +5,7 @@ import {
 import { MousePointerClick } from 'lucide-react';
 import { PremiumCard } from '@/components/PremiumCard';
 import {
-  CHART_COLORS, chartTickStyle, chartGridProps, chartTooltipContentStyle,
+  CHART_COLORS, getChartTickStyle, getChartGridProps, getChartTooltipContentStyle,
 } from '@/lib/chartTheme';
 import { SimuladoSnapshotDrawer } from './SimuladoSnapshotDrawer';
 import type { ComparativeEntryRich, SimuladoSlot } from '@/hooks/useComparativeData';
@@ -75,9 +75,9 @@ export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }:
         <div className="h-[300px] md:h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 12, right: 24, left: 0, bottom: 8 }}>
-              <CartesianGrid {...chartGridProps} />
-              <XAxis dataKey="name" tick={chartTickStyle} />
-              <YAxis domain={[yMin, yMax]} tick={chartTickStyle} />
+              <CartesianGrid {...getChartGridProps()} />
+              <XAxis dataKey="name" tick={getChartTickStyle()} />
+              <YAxis domain={[yMin, yMax]} tick={getChartTickStyle()} />
 
               {/* Faixa de meta */}
               <ReferenceArea
@@ -103,7 +103,7 @@ export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }:
               />
 
               <Tooltip
-                contentStyle={chartTooltipContentStyle}
+                contentStyle={getChartTooltipContentStyle()}
                 formatter={(v: number) => [`${v}%`, 'Score']}
                 labelFormatter={(label, payload) => {
                   const p = payload?.[0]?.payload;

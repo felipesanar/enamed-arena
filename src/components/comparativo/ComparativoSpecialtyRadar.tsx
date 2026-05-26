@@ -5,7 +5,7 @@ import {
 import { TrendingUp, TrendingDown, Equal } from 'lucide-react';
 import { PremiumCard } from '@/components/PremiumCard';
 import { cn } from '@/lib/utils';
-import { CHART_COLORS, chartTooltipContentStyle } from '@/lib/chartTheme';
+import { CHART_COLORS, getChartTooltipContentStyle } from '@/lib/chartTheme';
 import type { ComparativeEntryRich } from '@/hooks/useComparativeData';
 
 interface AreaListItem {
@@ -318,7 +318,7 @@ export function ComparativoSpecialtyRadar({ entries }: Props) {
                   dot={{ r: 3 }}
                 />
               ))}
-              <Tooltip contentStyle={chartTooltipContentStyle} formatter={(v: number) => `${v}%`} />
+              <Tooltip contentStyle={getChartTooltipContentStyle()} formatter={(v: number) => `${v}%`} />
               <Legend
                 iconType="circle"
                 wrapperStyle={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', paddingTop: 8 }}
