@@ -50,13 +50,6 @@ function SimuladoDetailPaddedShell({ children, className }: { children: ReactNod
   );
 }
 
-const ARENA_PREMIUM_BG = [
-  "radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%)",
-  "radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%)",
-  "radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%)",
-  "linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%)",
-].join(", ");
-
 function PreExamArenaGradient({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const { profile } = useUser();
@@ -65,7 +58,7 @@ function PreExamArenaGradient({ children }: { children: ReactNode }) {
     <div
       data-testid="arena-card"
       className={cn(
-        "relative w-full flex flex-col min-h-[100dvh] md:min-h-screen",
+        "hero-premium-surface relative w-full flex flex-col min-h-[100dvh] md:min-h-screen",
         isMobile &&
           cn(
             isGuestMobile
@@ -74,10 +67,6 @@ function PreExamArenaGradient({ children }: { children: ReactNode }) {
             "pb-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
           )
       )}
-      style={{
-        background: ARENA_PREMIUM_BG,
-        borderLeft: "none",
-      }}
     >
       {children}
     </div>

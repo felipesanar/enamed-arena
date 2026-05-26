@@ -466,6 +466,44 @@
   .exam-bg { background-color: hsl(var(--exam-bg)); }
   .exam-surface { background-color: hsl(var(--exam-surface)); }
 
+  /* Hero premium background surface — light (accent tone) vs dark (gradient) */
+  .hero-premium-surface {
+    background: linear-gradient(
+      135deg,
+      hsl(345 65% 30%) 0%,
+      hsl(345 60% 25%) 38%,
+      hsl(345 50% 35%) 72%,
+      hsl(345 45% 40%) 100%
+    );
+  }
+
+  .dark .hero-premium-surface {
+    background:
+      radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%),
+      radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%),
+      linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%);
+  }
+
+  /* Hero status card — compact hero in dark mode, accent in light */
+  .hero-status-card {
+    @apply relative overflow-hidden rounded-[22px] border border-primary/20 p-4 md:p-6 shadow-sm;
+    background: linear-gradient(
+      135deg,
+      hsl(345 65% 30%) 0%,
+      hsl(345 60% 25%) 38%,
+      hsl(345 50% 35%) 72%,
+      hsl(345 45% 40%) 100%
+    );
+  }
+
+  .dark .hero-status-card {
+    @apply border-white/[0.07];
+    background:
+      linear-gradient(148deg,#0C1220_0%,#11192A_38%,#2E0C1E_72%,#3F1028_100%);
+    box-shadow: 0 20px 40px -20px rgba(10,14,26,0.85), 0 8px 20px -12px rgba(60,12,32,0.45);
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;
   }
