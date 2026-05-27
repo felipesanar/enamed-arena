@@ -167,7 +167,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
                 </div>
                 <p className="text-body font-semibold text-foreground">Experiência offline</p>
                 <p className="text-body-sm text-muted-foreground leading-snug">
-                  PDF pra imprimir; depois você envia o gabarito aqui. Prazo pro ranking: até o{" "}
+                  PDF pra imprimir (disponível sempre, mesmo fora da janela). Depois você envia o gabarito aqui. Prazo pro ranking: até o{" "}
                   <span className="font-medium text-foreground/90">fim da janela de execução</span> — sem
                   relógio da prova no app.
                 </p>
