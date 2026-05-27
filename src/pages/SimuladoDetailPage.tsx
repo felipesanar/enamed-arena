@@ -25,6 +25,7 @@ import type { SimuladoWithStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { trackEvent } from '@/lib/analytics';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { OfflineModeSimpleDialog } from "@/components/simulados/OfflineModeSimpleDialog";
 
 /** Padding que o DashboardLayout aplicava ao `main`; necessário na rota arena (`main` com `p-0`). */
 function SimuladoDetailPaddedShell({ children, className }: { children: ReactNode; className?: string }) {
@@ -116,6 +117,7 @@ export default function SimuladoDetailPage() {
   const prefersReducedMotion = useReducedMotion();
   const { isOnboardingComplete } = useUser();
   const [checkedItems, setCheckedItems] = useState<Set<ChecklistKey>>(new Set());
+  const [showModeModal, setShowModeModal] = useState(false);
 
   // Detect veteran: user who has completed at least one exam
   const { simulados: allSimulados } = useSimulados();
