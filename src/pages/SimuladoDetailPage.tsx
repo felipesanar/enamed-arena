@@ -678,6 +678,14 @@ export default function SimuladoDetailPage() {
         </SimuladoDetailPaddedShell>
       )}
 
+      {simulado && (
+        <OfflineModeSimpleDialog
+          open={showModeModal}
+          onOpenChange={setShowModeModal}
+          sim={simulado}
+        />
+      )}
+
     </PageTransition>
   );
 }
