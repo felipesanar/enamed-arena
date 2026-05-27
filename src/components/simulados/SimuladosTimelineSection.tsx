@@ -24,6 +24,8 @@ export type SimuladosTimelineSectionProps = {
   embedded?: boolean;
   /** Espaçamento mais compacto em painéis laterais. */
   compact?: boolean;
+  /** Callback para iniciar simulado novo — dispara o modal de escolha online/offline na página pai. */
+  onStartSimulado?: (sim: SimuladoWithStatus) => void;
 };
 
 /** Link para iniciar ou retomar (janela aberta, após janela em modo treino, ou prova em andamento). */
@@ -89,11 +91,13 @@ function TimelineItem({
   index,
   reduced,
   compact,
+  onStartSimulado,
 }: {
   sim: SimuladoWithStatus;
   index: number;
   reduced: boolean;
   compact?: boolean;
+  onStartSimulado?: (sim: SimuladoWithStatus) => void;
 }) {
   const variant = TIMELINE_VARIANT[sim.status as keyof typeof TIMELINE_VARIANT];
   if (!variant) return null;
@@ -113,6 +117,8 @@ function TimelineItem({
 
   const linkClass =
     "inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+
+  const resume = sim.userState?.started === true && sim.userState?.finished !== true;
 
   const topRail = compact ? "top-[21px] sm:top-[22px]" : "top-[23px] sm:top-[24px]";
   const dotTop = compact ? "top-[17px]" : "top-[19px]";
@@ -224,12 +230,23 @@ function TimelineItem({
             )}
             {(isAvailable || isAvailableLate) && (
               <div className="flex flex-col items-end gap-0.5">
-                <Link to={simuladoTakeExamHref(sim)} className={linkClass}>
-                  {isAvailableLate && sim.userState?.started !== true
-                    ? "Fazer como treino"
-                    : simuladoTakeExamLinkLabel(sim)}{" "}
-                  <ArrowRight className="h-3.5 w-3.5 opacity-80" />
-                </Link>
+                {resume || !onStartSimulado ? (
+                  <Link to={simuladoTakeExamHref(sim)} className={linkClass}>
+                    {isAvailableLate && sim.userState?.started !== true
+                      ? "Fazer como treino"
+                      : simuladoTakeExamLinkLabel(sim)}{" "}
+                    <ArrowRight className="h-3.5 w-3.5 opacity-80" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onStartSimulado(sim)}
+                    className={linkClass}
+                  >
+                    {isAvailableLate ? "Fazer como treino" : "Fazer simulado"}{" "}
+                    <ArrowRight className="h-3.5 w-3.5 opacity-80" />
+                  </button>
+                )}
                 {isAvailableLate && (
                   <span className="max-w-[11rem] text-[11px] leading-snug text-muted-foreground">
                     Não entra no ranking
@@ -261,6 +278,7 @@ export function SimuladosTimelineSection({
   className,
   embedded = false,
   compact = false,
+  onStartSimulado,
 }: SimuladosTimelineSectionProps) {
   const headingId = useId();
 
@@ -306,6 +324,7 @@ export function SimuladosTimelineSection({
               index={index}
               reduced={reduced}
               compact={compact}
+              onStartSimulado={onStartSimulado}
             />
           ))}
         </div>
