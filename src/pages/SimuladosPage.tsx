@@ -49,6 +49,9 @@ export default function SimuladosPage() {
   );
   const [autoModalOpen, setAutoModalOpen] = useState(false);
 
+  // Modal de escolha online/offline disparado por cards da timeline.
+  const [timelineModeSim, setTimelineModeSim] = useState<SimuladoWithStatus | null>(null);
+
   useEffect(() => {
     if (openModalSim && !loading) {
       setAutoModalOpen(true);
@@ -205,7 +208,19 @@ export default function SimuladosPage() {
       )}
 
       {timelineItems.length > 0 && (
-        <SimuladosTimelineSection items={timelineItems} reduced={!!prefersReducedMotion} />
+        <SimuladosTimelineSection
+          items={timelineItems}
+          reduced={!!prefersReducedMotion}
+          onStartSimulado={(sim) => setTimelineModeSim(sim)}
+        />
+      )}
+
+      {timelineModeSim && (
+        <OfflineModeSimpleDialog
+          open={!!timelineModeSim}
+          onOpenChange={(open) => { if (!open) setTimelineModeSim(null); }}
+          sim={timelineModeSim}
+        />
       )}
 
       {/* Auto-open modal from ?openModal= query param (e.g. from Home hero CTA) */}
