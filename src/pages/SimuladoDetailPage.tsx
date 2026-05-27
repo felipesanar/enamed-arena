@@ -404,7 +404,7 @@ export default function SimuladoDetailPage() {
                   {/* Veteran CTA — immediately active */}
                   <button
                     type="button"
-                    onClick={() => navigate(`/simulados/${id}/prova`)}
+                    onClick={() => setShowModeModal(true)}
                     className="inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(345,65%,62%)] focus-visible:ring-offset-2"
                     style={{
                       padding: "17px 56px",
@@ -537,7 +537,7 @@ export default function SimuladoDetailPage() {
                   <div className="text-center">
                     <button
                       type="button"
-                      onClick={() => navigate(`/simulados/${id}/prova`)}
+                      onClick={() => setShowModeModal(true)}
                       // Veterans bypass the checklist requirement — CTA always active
                       disabled={!ctaActive}
                       className={cn(
