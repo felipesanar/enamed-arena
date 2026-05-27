@@ -25,6 +25,7 @@ import type { SimuladoWithStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { trackEvent } from '@/lib/analytics';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { OfflineModeSimpleDialog } from "@/components/simulados/OfflineModeSimpleDialog";
 
 /** Padding que o DashboardLayout aplicava ao `main`; necessário na rota arena (`main` com `p-0`). */
 function SimuladoDetailPaddedShell({ children, className }: { children: ReactNode; className?: string }) {
@@ -116,6 +117,7 @@ export default function SimuladoDetailPage() {
   const prefersReducedMotion = useReducedMotion();
   const { isOnboardingComplete } = useUser();
   const [checkedItems, setCheckedItems] = useState<Set<ChecklistKey>>(new Set());
+  const [showModeModal, setShowModeModal] = useState(false);
 
   // Detect veteran: user who has completed at least one exam
   const { simulados: allSimulados } = useSimulados();
@@ -402,7 +404,7 @@ export default function SimuladoDetailPage() {
                   {/* Veteran CTA — immediately active */}
                   <button
                     type="button"
-                    onClick={() => navigate(`/simulados/${id}/prova`)}
+                    onClick={() => setShowModeModal(true)}
                     className="inline-flex items-center gap-2.5 rounded-[14px] font-bold transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(345,65%,62%)] focus-visible:ring-offset-2"
                     style={{
                       padding: "17px 56px",
@@ -535,7 +537,7 @@ export default function SimuladoDetailPage() {
                   <div className="text-center">
                     <button
                       type="button"
-                      onClick={() => navigate(`/simulados/${id}/prova`)}
+                      onClick={() => setShowModeModal(true)}
                       // Veterans bypass the checklist requirement — CTA always active
                       disabled={!ctaActive}
                       className={cn(
@@ -674,6 +676,14 @@ export default function SimuladoDetailPage() {
             </p>
           </PremiumCard>
         </SimuladoDetailPaddedShell>
+      )}
+
+      {simulado && (
+        <OfflineModeSimpleDialog
+          open={showModeModal}
+          onOpenChange={setShowModeModal}
+          sim={simulado}
+        />
       )}
 
     </PageTransition>
