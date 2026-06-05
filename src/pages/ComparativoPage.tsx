@@ -57,7 +57,7 @@ export default function ComparativoPage() {
 
 function ComparativoContent() {
   const { entries, allSlots, loading } = useComparativeData();
-  const { profile } = useUser();
+  const { profile, onboarding } = useUser();
   const [showDetails, setShowDetails] = useState(false);
 
   // Sort ascending by sequenceNumber for everything downstream
@@ -138,7 +138,7 @@ function ComparativoContent() {
             studentName={profile?.name ?? 'Aluno'}
             entries={sorted}
             totalSimuladosPlatform={allSlots.length}
-            intendedSpecialty={null /* TODO: vir do onboarding_profiles.specialty quando útil */}
+            intendedSpecialty={onboarding?.specialty ?? null}
           />
         </div>
         <div className="lg:col-span-7 min-w-0">

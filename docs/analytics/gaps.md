@@ -203,7 +203,11 @@ registerAnalyticsHandler((event) => {
 });
 ```
 
-**Status: PARTIALLY RESOLVED** — Implementado no plano de instrumentação 2026-04-05. Handler de desenvolvimento adicionado em `src/main.tsx` (console.groupCollapsed em modo DEV). Handler de produção (Posthog/Amplitude) pendente — requer decisão de provider e configuração de `VITE_POSTHOG_KEY` ou equivalente. Ref: Task 1.
+**Status: RESOLVED (first-party) — atualizado 2026-06-05.** Há **dois** handlers registrados em `src/main.tsx`:
+1. **DEV** — `console.groupCollapsed`/`console.table` (só em `import.meta.env.DEV`).
+2. **Produção (first-party)** — `registerAnalyticsHandler` que chama a RPC `log_analytics_event(p_event_name, p_payload)`, persistindo na tabela `analytics_events`. Confirmado em produção (`lljnbysgcwvkhlnaqxtt`): a RPC e a tabela existem, e os RPCs `admin_*` (dashboard/funnel/marketing/produto) leem de `analytics_events`.
+
+Ou seja, o pipeline de analytics está **ativo em produção** via Supabase — os eventos chegam ao banco e alimentam os dashboards admin. Um provider externo (PostHog/Amplitude) permanece **opcional**: se desejado, basta registrar um terceiro handler em `main.tsx` gated por `VITE_POSTHOG_KEY`. Não é bloqueador.
 
 ---
 
