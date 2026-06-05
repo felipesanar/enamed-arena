@@ -6,37 +6,64 @@
 
 ---
 
-## 🔴 Bloqueador #1 — O MCP do Supabase aponta para o projeto ERRADO
+## 🔴 ACHADO #1 (CRÍTICO/SEGURANÇA) — `security_hardening` nunca surtiu efeito em produção
 
-Durante a auditoria, descobrimos que o servidor MCP do Supabase conectado a esta
-sessão **não é o projeto do enamed-arena**:
+> Histórico: a auditoria inicial estava bloqueada porque o MCP apontava para o
+> projeto errado (`gvqvrmkizemwsasmupmo`, da plataforma SanarFlix/Cetrus). Após
+> reconfigurar o MCP para `lljnbysgcwvkhlnaqxtt` (produção do enamed-arena),
+> a auditoria read-only foi concluída. Tudo verificado pelos **objetos reais do
+> banco** (não pela tabela `migrations`, que é não-confiável — Lovable aplica
+> schema fora de banda).
 
-| | Project ref | Identidade |
+A migration **`20260420000000_security_hardening`** existe no git mas seus
+objetos **NÃO estão presentes em produção**. Verificado em prod:
+
+| Verificação (em prod) | Resultado | Implicação |
 |---|---|---|
-| **App (produção)** | `lljnbysgcwvkhlnaqxtt` | Hardcoded em `src/integrations/supabase/client.ts:9` e `supabase/config.toml` |
-| **MCP conectado** | `gvqvrmkizemwsasmupmo` | Outro produto — plataforma SanarFlix/Cetrus |
+| Trigger `trg_prevent_direct_attempts_update` em `attempts` | ❌ **ausente** (a tabela não tem nenhum trigger) | — |
+| Policy de escrita em `attempts` | `Users can update own attempts [UPDATE]` existe | **Sem o trigger, um usuário autenticado pode dar UPDATE direto em `score_percentage`, `status`, `finished_at`, `is_within_window` da própria tentativa → adulteração de nota/ranking.** |
+| `get_ranking_for_simulado` filtra por `results_release_at` | ❌ **não** | Gate de embargo de resultados via ranking ausente (pode haver outra checagem, mas o hardening não está lá). |
+| Função `current_user_has_role` | ❌ **ausente** | Helper de RLS do hardening não criado. |
+| `has_role` executável por `authenticated` | ⚠️ **sim** (deveria ter sido revogado) | Info-leak de baixo risco (probe de roles). |
 
-O projeto do MCP (`gvqvrmkizemwsasmupmo`) contém 47 tabelas de **outro sistema**
-(`ies`, `users` com 7.421 linhas, `conteudos` com 13.277, `Simulados` com "S"
-maiúsculo, `b2c-signup`, `enamed-proxy`…) e **6 das 7 RPCs-chave do enamed-arena
-nem existem lá** (`finalize_attempt_with_results`, `create_attempt_guarded`,
-`update_attempt_progress_guarded`, `save_onboarding_guarded`,
-`get_ranking_for_simulado`, `bump_guest_signup_bucket` — todas ausentes; só
-`has_role` existe, por coincidência de nome).
+**As outras 3 migrations "críticas" do incidente ESTÃO em produção:**
 
-**Consequência:** não foi possível medir o drift real contra a produção do
-enamed-arena. Não há Supabase CLI nem `SUPABASE_ACCESS_TOKEN` neste ambiente,
-então também não dá para rodar `supabase migration list --linked`.
+| Migration | Verificação em prod | Status |
+|---|---|---|
+| `20260420000100_guest_signup_rate_limit` | tabela `guest_signup_rate_limit` ✅ + RPC `bump_guest_signup_bucket` ✅ | ✅ aplicada |
+| `20260420001000_expand_error_reason_enum` | enum `error_reason` inclui `reading_error`, `confused_alternatives` ✅ | ✅ aplicada |
+| `20260516000000_finalize_returns_is_within_window` | `finalize_attempt_with_results` retorna `...is_within_window boolean` ✅ | ✅ aplicada |
 
-**Decisão necessária (ação do usuário) — escolha um caminho para destravar:**
-1. Reconfigurar o MCP do Supabase para o projeto `lljnbysgcwvkhlnaqxtt`; ou
-2. Fornecer um Personal Access Token (`SUPABASE_ACCESS_TOKEN`) + instalar a CLI
-   para rodar `supabase migration list --linked`; ou
-3. Colar a saída de `supabase migration list --linked` (executada por alguém com
-   acesso) para fazermos o diff local-vs-remoto.
+Todas as **7 RPCs-chave** e todos os RPCs `admin_*` existem em prod — ou seja, as
+migrations de abril (admin/analytics) **foram aplicadas** apesar das *version
+strings* não baterem com o git. Isso confirma que o drift NÃO é "tudo de abril
+faltando" — é **cirúrgico**: só os objetos da `security_hardening` faltam.
 
-> ⚠️ **Nunca** cole um PAT em chat/print/doc (o `INCIDENTE_2026_05_17.md` registra
-> um PAT vazado em debug). Configure via variável de ambiente e revogue se exposto.
+**Ação recomendada (requer aprovação explícita — é mudança em PRODUÇÃO):**
+aplicar `supabase/migrations/20260420000000_security_hardening.sql` em prod
+(idealmente após revisar idempotência e testar em staging). Como a migration faz
+`DROP/CREATE` em `get_ranking_for_simulado` e adiciona trigger, revisar o corpo
+antes de aplicar via `apply_migration`/`db push`. **Nada foi aplicado nesta auditoria.**
+
+---
+
+## Advisors de produção (resumo)
+
+**Security:** 0 ERROR · 98 WARN · 1 INFO. Destaques:
+- `anon_security_definer_function_executable` + `authenticated_...` (48 funções cada,
+  incl. todas as `admin_*`): EXECUTE concedido a `anon`/`authenticated`. As `admin_*`
+  têm guarda interna `has_role('admin')`, mas falta defense-in-depth (revogar EXECUTE).
+- `function_search_path_mutable`: `public._norm_match` (sem `SET search_path`).
+- `auth_leaked_password_protection`: **desativado** (já rastreado em `docs/security/LEAKED_PASSWORD_PROTECTION.md` — item de auth, fora deste escopo).
+- `rls_enabled_no_policy` (INFO): `_questions_area_backup_20260522` (backup, deny-all — ok).
+
+**Performance:** 0 ERROR · 46 WARN · 14 INFO. Destaques:
+- `auth_rls_initplan` (45×): policies re-avaliam `auth.uid()` por linha em quase todas
+  as tabelas (`attempts`, `answers`, `profiles`, `error_notebook`, admin policies…).
+  Fix barato e de alto impacto: trocar `auth.uid()` por `(select auth.uid())`.
+- `multiple_permissive_policies`: `simulados` SELECT/authenticated tem 3 policies permissivas.
+- `unindexed_foreign_keys` (14×): FKs sem índice (`answers`, `attempt_question_results`,
+  `error_notebook`, `user_performance_*`…).
 
 ---
 
@@ -80,32 +107,37 @@ completo). Demais deps externas também pinadas (`deno.land/std@0.168.0`,
 
 ---
 
-## 🔭 Snapshot do projeto do MCP (`gvqvrmkizemwsasmupmo` — NÃO é prod do enamed)
+## 🔭 Nota: mismatch de projeto do MCP (resolvido)
 
-Registrado apenas para diagnóstico do mismatch — **não usar para decisões de
-schema do enamed-arena**:
-- 146 migrations aplicadas (naming/datas desde 2025-08, totalmente diferentes).
-- 47 tabelas, 35 Edge Functions, extensões: `pg_cron`, `pg_net`, `pgcrypto`, `unaccent` não consta, `supabase_vault`.
-- Advisors: **115 security** / **251 performance** issues (deste outro produto).
+A 1ª rodada da auditoria pegou o MCP apontado para `gvqvrmkizemwsasmupmo`
+(plataforma SanarFlix/Cetrus — outro produto, 47 tabelas tipo `ies`/`users`/
+`conteudos`, sem as RPCs do enamed). Foi reconfigurado para
+`lljnbysgcwvkhlnaqxtt` (produção real) e a auditoria refeita. **Lição:** confirmar
+sempre `get_project_url` antes de qualquer operação no Supabase via MCP.
 
 ---
 
-## 🛠️ Processo recomendado para acabar com o drift (git = fonte da verdade)
+## 🛠️ Remediação recomendada (priorizada)
 
-Depende de destravar o Bloqueador #1. Plano:
+1. **[P0 segurança] Aplicar `security_hardening` em prod** — fecha a adulteração
+   de nota (trigger em `attempts`) + gate de release no ranking. Revisar o SQL
+   (faz DROP/CREATE em `get_ranking_for_simulado`), testar em staging, aplicar via
+   `apply_migration`/`db push`. **Requer aprovação explícita.**
+2. **[P1 perf] `auth_rls_initplan`** — migration que troca `auth.uid()` por
+   `(select auth.uid())` nas ~45 policies. Ganho grande, risco baixo, idempotente.
+3. **[P2 segurança] Defense-in-depth nas `admin_*`** — `REVOKE EXECUTE` de
+   `anon`/`authenticated` (a guarda interna `has_role` permanece). + `SET search_path`
+   em `_norm_match`. + revogar `has_role` de `authenticated`.
+4. **[P2 perf] Índices nas 14 FKs** + consolidar policies permissivas de `simulados`.
 
-1. **Diff inicial** — com acesso a `lljnbysgcwvkhlnaqxtt`, rodar
-   `supabase migration list --linked` e cruzar com as 85 locais. Classificar:
-   - *local-only* (no git, não aplicada) → revisar e aplicar via `supabase db push`.
-   - *remote-only* (aplicada, sem arquivo no git) → "puxar" para o git
-     (`supabase db pull`/`db diff`) e versionar.
-2. **Aplicar as 4 críticas primeiro** (se ausentes), em staging antes de prod.
-3. **Travar o processo no CI:** job que roda `supabase migration list --linked`
-   e **falha** se houver divergência (exige secret `SUPABASE_ACCESS_TOKEN` no
-   GitHub). Toda mudança de schema vai ao git **e** ao remoto via `db push`.
-4. **Disciplina Lovable:** se o Lovable continua aplicando schema direto no
-   remoto, ele precisa commitar a migration correspondente no git — senão o
-   drift volta.
+## 🔒 Processo anti-drift (git = fonte da verdade)
+
+1. **Diff periódico:** `supabase db diff --linked` (ou comparar objetos reais,
+   como nesta auditoria) — a tabela `migrations` é não-confiável aqui.
+2. **CI gate:** job que roda `supabase migration list --linked` / `db diff` e
+   **falha** em divergência (exige secret `SUPABASE_ACCESS_TOKEN`).
+3. **Disciplina Lovable:** todo schema aplicado direto no remoto precisa ser
+   commitado como migration no git — senão o drift volta.
 
 ---
 
@@ -115,6 +147,7 @@ Depende de destravar o Bloqueador #1. Plano:
 |---|---|
 | Pinning de Edge Functions | ✅ Já pinado + trava de CI adicionada nesta fase |
 | Inventário de migrations locais | ✅ Completo (85, com criticidade e mapa de RPCs) |
-| Drift local-vs-produção | ⛔ **Bloqueado** — MCP no projeto errado, sem CLI/token |
-| Aplicar migrations faltantes | ⛔ Bloqueado (depende do diff) + decisão de produto/ambiente |
-| Processo anti-drift no CI | 📝 Especificado; implementação depende de destravar acesso |
+| Drift local-vs-produção | ✅ Auditado (via objetos reais). Drift cirúrgico: só `security_hardening` faltando |
+| Aplicar `security_hardening` em prod | ⏸️ Pendente de **aprovação** (mudança em produção) |
+| Advisors de produção | ✅ Coletados (0 ERROR; WARNs de RLS initplan, EXECUTE de admin_*, leaked-pw) |
+| Processo anti-drift no CI | 📝 Especificado (depende de secret `SUPABASE_ACCESS_TOKEN` no GitHub) |
