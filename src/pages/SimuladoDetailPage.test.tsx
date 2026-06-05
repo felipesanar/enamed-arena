@@ -147,7 +147,7 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
     ).not.toBeDisabled();
   });
 
-  it("active CTA navigates to the exam", () => {
+  it("active CTA opens the mode-choice modal (online vs offline) instead of navigating directly", () => {
     renderPage();
     [
       "Duração da prova",
@@ -159,31 +159,35 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
       fireEvent.click(screen.getByText(title).closest("button")!)
     );
     fireEvent.click(screen.getByRole("button", { name: /iniciar simulado/i }));
-    expect(mockNavigate).toHaveBeenCalledWith("/simulados/sim-8/prova");
+    // The CTA now opens OfflineModeSimpleDialog; navigation happens from inside the modal.
+    expect(screen.getByText("Como deseja realizar o simulado?")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalledWith("/simulados/sim-8/prova");
   });
 });
 
-describe("SimuladoDetailPage — Veteran mode", () => {
+// The "veteran shortcut" (skip checklist for users who already finished a simulado)
+// was intentionally removed — the confirmation checklist is now ALWAYS required
+// (see SimuladoDetailPage: `const isVeteran = false`). These tests document that decision.
+describe("SimuladoDetailPage — checklist always required (no veteran shortcut)", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
-    // veteran = has at least one finished simulado
+    // A user who has already finished a simulado — previously a "veteran".
     setupMocks({
       simulados: [{ ...baseSimulado, userState: { simuladoId: "sim-8", started: true, finished: true } }],
     });
   });
 
-  it("veteran CTA is immediately enabled (no checklist required)", () => {
+  it("CTA is disabled until the checklist is completed, even for returning users", () => {
     renderPage();
     expect(
       screen.getByRole("button", { name: /iniciar simulado/i })
-    ).not.toBeDisabled();
+    ).toBeDisabled();
   });
 
-  it("veteran can toggle to show full checklist", () => {
+  it("shows the full checklist immediately (no 'ver detalhes' toggle)", () => {
     renderPage();
-    expect(screen.queryByText("Duração da prova")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText(/ver detalhes/i));
     expect(screen.getByText("Duração da prova")).toBeInTheDocument();
+    expect(screen.queryByText(/ver detalhes/i)).not.toBeInTheDocument();
   });
 });
 

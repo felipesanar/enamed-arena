@@ -155,24 +155,17 @@ describe('ResultadoPage — hero card', () => {
 describe('ResultadoPage — stat cards', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('exibe os 4 stat cards com labels', () => {
+  it('exibe os 3 stat cards com labels', () => {
     renderPage()
     expect(screen.getByText('Acertos')).toBeTruthy()
     expect(screen.getByText('Erros')).toBeTruthy()
     expect(screen.getByText('Em branco')).toBeTruthy()
-    expect(screen.getByText('Respondidas')).toBeTruthy()
   })
 })
 
-describe('ResultadoPage — highlights', () => {
-  beforeEach(() => { vi.clearAllMocks() })
-
-  it('exibe Ponto forte e Oportunidade quando há mais de 1 área', () => {
-    renderPage()
-    expect(screen.getByText('Ponto forte')).toBeTruthy()
-    expect(screen.getByText('Oportunidade')).toBeTruthy()
-  })
-})
+// O bloco de highlights "Ponto forte / Oportunidade" foi removido desta página no
+// redesign — o destaque de melhor/pior área agora vive em DesempenhoPage
+// ("Onde você brilha" / "Próximo foco"). Cobertura mantida em DesempenhoPage.test.tsx.
 
 describe('ResultadoPage — CTA', () => {
   beforeEach(() => { vi.clearAllMocks() })

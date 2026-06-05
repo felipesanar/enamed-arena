@@ -127,7 +127,7 @@ describe('RankingView', () => {
 
   it('shows low confidence banner when fewer than 30 participants', () => {
     renderView({ filteredParticipants: Array.from({ length: 15 }, (_, i) => makeParticipant(i + 1)) });
-    expect(screen.getByText('Ranking com poucos participantes')).toBeTruthy();
+    expect(screen.getByText('Poucos candidatos nesse recorte')).toBeTruthy();
   });
 
   it('does not show low confidence banner when 30 or more participants', () => {
