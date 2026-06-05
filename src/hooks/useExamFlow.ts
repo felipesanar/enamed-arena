@@ -15,6 +15,7 @@ import { useExamTimer } from '@/hooks/useExamTimer';
 import { useFocusControl } from '@/hooks/useFocusControl';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useExamAnswers } from '@/hooks/exam/useExamAnswers';
+import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
 import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
 import type { Question } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -230,54 +231,11 @@ export function useExamFlow(): UseExamFlowReturn {
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { simuladoRef.current = simulado; }, [simulado]);
 
-  const onTabExit = useCallback(() => {
-    storage.registerTabExit();
-    const s = stateRef.current;
-    const sim = simuladoRef.current;
-    if (s && sim) {
-      const timeRemainingS = s.effectiveDeadline
-        ? Math.max(0, Math.round((new Date(s.effectiveDeadline).getTime() - Date.now()) / 1000))
-        : 0;
-      trackEvent('exam_integrity_event', {
-        simulado_id: sim.id,
-        attempt_id: storage.attemptId.current ?? '',
-        event_type: 'tab_exit',
-        count_so_far: (s.tabExitCount ?? 0) + 1,
-        time_remaining_seconds: timeRemainingS,
-      });
-    }
-  }, [storage]);
-
-  const onTabReturn = useCallback(() => {}, []);
-
-  const onFullscreenExit = useCallback(() => {
-    storage.registerFullscreenExit();
-    setState(prev => prev ? { ...prev, fullscreenExitCount: prev.fullscreenExitCount + 1 } : prev);
-    const s = stateRef.current;
-    const sim = simuladoRef.current;
-    if (s && sim) {
-      const timeRemainingS = s.effectiveDeadline
-        ? Math.max(0, Math.round((new Date(s.effectiveDeadline).getTime() - Date.now()) / 1000))
-        : 0;
-      trackEvent('exam_integrity_event', {
-        simulado_id: sim.id,
-        attempt_id: storage.attemptId.current ?? '',
-        event_type: 'fullscreen_exit',
-        count_so_far: (s.fullscreenExitCount ?? 0) + 1,
-        time_remaining_seconds: timeRemainingS,
-      });
-    }
-    toast({
-      title: 'Você saiu da tela cheia',
-      description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
-      variant: 'destructive',
-    });
-  }, [storage]);
-
-  const focusControl = useFocusControl({
-    onTabExit,
-    onTabReturn,
-    onFullscreenExit,
+  const focusControl = useExamIntegrity({
+    stateRef,
+    simuladoRef,
+    storage,
+    setState,
   });
 
   const finalize = useCallback(async (isAutoSubmit = false) => {
