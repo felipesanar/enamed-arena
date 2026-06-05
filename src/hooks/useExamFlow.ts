@@ -57,7 +57,7 @@ export interface UseExamFlowReturn {
   toggleHighConfidence: () => void;
 
   // Derived for current question
-  summary: ReturnType<typeof computeExamSummary> | null;
+  summary: ReturnType<typeof computeExamSummary>;
   currentIndex: number;
   currentQuestion: Question | undefined;
   currentAnswer: ExamAnswer | undefined;
