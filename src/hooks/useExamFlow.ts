@@ -14,6 +14,7 @@ import { canAccessSimulado } from '@/lib/simulado-helpers';
 import { useExamTimer } from '@/hooks/useExamTimer';
 import { useFocusControl } from '@/hooks/useFocusControl';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useExamAnswers } from '@/hooks/exam/useExamAnswers';
 import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
 import type { Question } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -486,102 +487,22 @@ export function useExamFlow(): UseExamFlowReturn {
     });
   }, [storage]);
 
-  const handleSelectOption = useCallback((optionId: string) => {
-    if (!currentQuestion) return;
-    // Single source of truth: updateState → debounced bulk upsert.
-    // We mark the answer dirty so the next debounced sync ships only this
-    // row instead of re-uploading every answer.
-    storage.markAnswerDirty(currentQuestion.id);
-    updateState(prev => {
-      const existing = prev.answers[currentQuestion.id] ?? {
-        questionId: currentQuestion.id,
-        selectedOption: null,
-        markedForReview: false,
-        highConfidence: false,
-        eliminatedAlternatives: [],
-      };
-      return {
-        ...prev,
-        answers: {
-          ...prev.answers,
-          [currentQuestion.id]: { ...existing, selectedOption: optionId },
-        },
-      };
-    });
-  }, [currentQuestion, updateState, storage]);
-
-  const handleEliminateOption = useCallback((optionId: string) => {
-    if (!currentQuestion) return;
-    storage.markAnswerDirty(currentQuestion.id);
-    updateState(prev => {
-      const existing = prev.answers[currentQuestion.id] ?? {
-        questionId: currentQuestion.id,
-        selectedOption: null,
-        markedForReview: false,
-        highConfidence: false,
-        eliminatedAlternatives: [],
-      };
-      const isEliminated = existing.eliminatedAlternatives.includes(optionId);
-      const answer: ExamAnswer = {
-        ...existing,
-        eliminatedAlternatives: isEliminated
-          ? existing.eliminatedAlternatives.filter(i => i !== optionId)
-          : [...existing.eliminatedAlternatives, optionId],
-      };
-      return { ...prev, answers: { ...prev.answers, [currentQuestion.id]: answer } };
-    });
-  }, [currentQuestion, updateState, storage]);
-
-  const handleNavigate = useCallback((index: number) => {
-    updateState(prev => ({ ...prev, currentQuestionIndex: index }));
-    setShowNavigator(false);
-  }, [updateState]);
-
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) handleNavigate(currentIndex - 1);
-  }, [currentIndex, handleNavigate]);
-
-  const handleNext = useCallback(() => {
-    if (currentIndex < questions.length - 1) handleNavigate(currentIndex + 1);
-  }, [currentIndex, questions.length, handleNavigate]);
-
-  const toggleReview = useCallback(() => {
-    if (!currentQuestion) return;
-    storage.markAnswerDirty(currentQuestion.id);
-    updateState(prev => {
-      const existing = prev.answers[currentQuestion.id] ?? {
-        questionId: currentQuestion.id,
-        selectedOption: null,
-        markedForReview: false,
-        highConfidence: false,
-        eliminatedAlternatives: [],
-      };
-      const newVal = !existing.markedForReview;
-      toast({ title: newVal ? 'Questão marcada para revisão' : 'Marcação removida' });
-      return {
-        ...prev,
-        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal } },
-      };
-    });
-  }, [currentQuestion, updateState, storage]);
-
-  const toggleHighConfidence = useCallback(() => {
-    if (!currentQuestion) return;
-    storage.markAnswerDirty(currentQuestion.id);
-    updateState(prev => {
-      const existing = prev.answers[currentQuestion.id] ?? {
-        questionId: currentQuestion.id,
-        selectedOption: null,
-        markedForReview: false,
-        highConfidence: false,
-        eliminatedAlternatives: [],
-      };
-      return {
-        ...prev,
-        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
-      };
-    });
-  }, [currentQuestion, updateState, storage]);
+  const {
+    handleSelectOption,
+    handleEliminateOption,
+    handleNavigate,
+    handlePrev,
+    handleNext,
+    toggleReview,
+    toggleHighConfidence,
+  } = useExamAnswers({
+    currentQuestion,
+    currentIndex,
+    questionsLength: questions.length,
+    updateState,
+    markAnswerDirty: storage.markAnswerDirty,
+    setShowNavigator,
+  });
 
   const shortcuts = useMemo(() => {
     const map: Record<string, () => void> = {
