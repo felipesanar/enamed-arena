@@ -39,11 +39,27 @@ migrations de abril (admin/analytics) **foram aplicadas** apesar das *version
 strings* não baterem com o git. Isso confirma que o drift NÃO é "tudo de abril
 faltando" — é **cirúrgico**: só os objetos da `security_hardening` faltam.
 
-**Ação recomendada (requer aprovação explícita — é mudança em PRODUÇÃO):**
-aplicar `supabase/migrations/20260420000000_security_hardening.sql` em prod
-(idealmente após revisar idempotência e testar em staging). Como a migration faz
-`DROP/CREATE` em `get_ranking_for_simulado` e adiciona trigger, revisar o corpo
-antes de aplicar via `apply_migration`/`db push`. **Nada foi aplicado nesta auditoria.**
+**⚠️ A migration original está BUGADA — não aplicar como está.** Ao revisar o SQL antes
+de aplicar, encontramos 2 defeitos que quebrariam produção:
+- **Seção 2 (trigger):** checa `session_user`. As RPCs (`finalize_attempt_with_results`
+  etc.) são owned por `postgres` + SECURITY DEFINER → dentro delas `current_user='postgres'`
+  mas `session_user` continua o papel da conexão. O guard original **bloquearia o próprio
+  finalize**. Correção: checar `current_user`.
+- **Seção 4 (`REVOKE has_role`):** há **24 políticas RLS** (em `simulados`, `questions`,
+  `question_options`, `enamed_*`, `user_roles`) que chamam `has_role()`. Revogar EXECUTE de
+  `authenticated` **quebraria a avaliação dessas RLS** para usuários comuns.
+
+**✅ O que FOI aplicado em produção (2026-06-05):** apenas o P0 real — o trigger
+anti-adulteração, **corrigido** (`current_user`), em
+`supabase/migrations/20260605120000_prevent_direct_attempts_update_trigger.sql`
+(verificado: `trg_prevent_direct_attempts_update` instalado, owner `postgres`).
+Isso fecha a adulteração de nota sem afetar o fluxo legítimo (RPCs rodam como `postgres`).
+
+**⏸️ Deferido (re-trabalho + staging):** Seção 4 (revoke — precisa reescrever as 24
+policies para `current_user_has_role` antes), Seção 3 (gate de ranking por
+`results_release_at` — mudança de comportamento visível), Seções 1/5 (guard +
+rate-limit). A migration original `20260420000000` recebeu um header **"NÃO APLICAR
+COMO ESTÁ"**.
 
 ---
 
@@ -148,6 +164,7 @@ sempre `get_project_url` antes de qualquer operação no Supabase via MCP.
 | Pinning de Edge Functions | ✅ Já pinado + trava de CI adicionada nesta fase |
 | Inventário de migrations locais | ✅ Completo (85, com criticidade e mapa de RPCs) |
 | Drift local-vs-produção | ✅ Auditado (via objetos reais). Drift cirúrgico: só `security_hardening` faltando |
-| Aplicar `security_hardening` em prod | ⏸️ Pendente de **aprovação** (mudança em produção) |
+| P0 — trigger anti-adulteração de nota | ✅ **Aplicado em prod** (versão corrigida, 20260605120000) |
+| Resto da `security_hardening` (revoke/ranking-gate) | ⏸️ Deferido (bugado/risco — re-trabalho + staging) |
 | Advisors de produção | ✅ Coletados (0 ERROR; WARNs de RLS initplan, EXECUTE de admin_*, leaked-pw) |
 | Processo anti-drift no CI | 📝 Especificado (depende de secret `SUPABASE_ACCESS_TOKEN` no GitHub) |
