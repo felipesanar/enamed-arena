@@ -1,11 +1,11 @@
 /**
- * FlashcardReviewSession — sessão SRS de revisão de flashcards devidos.
+ * FlashcardReviewSession — sessão SRS premium de revisão de flashcards.
  *
- * Fluxo: frente → "Mostrar resposta" (flip animado) → verso → 4 botões de
- * autoavaliação (Errei / Difícil / Bom / Fácil) → scheduleFlashcardReview → próximo.
+ * Desktop: card central grande com flip 3D, 4 botões de autoavaliação grandes.
+ * Mobile: tela cheia, flip por tap, botões grandes em BottomActionBar.
+ *         Atalhos de teclado: Espaço = revelar, 1/2/3/4 = grade.
  *
- * Respeita prefers-reduced-motion: sem flip quando ativo.
- * Dispara: caderno_flashcard_reviewed
+ * PRESERVADO: scheduleFlashcardReview, eventos analytics, keyboard shortcuts, SrsState.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -26,15 +26,18 @@ import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { simuladosApi } from '@/services/simuladosApi';
 import { Button } from '@/components/ui/button';
+import { BottomActionBar, ProgressBar } from '@/components/caderno/ui';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Flashcard, FlashcardReviewOutcome, SrsState } from '@/types/caderno';
 
-/* ── Self-grade button config ── */
+/* ── Grade options config ── */
 
 interface GradeOption {
   outcome: FlashcardReviewOutcome;
   label: string;
   sublabel: string;
   colorClass: string;
+  bgClass: string;
   borderClass: string;
   icon: React.ReactNode;
 }
@@ -44,33 +47,37 @@ const GRADE_OPTIONS: GradeOption[] = [
     outcome: 'errei',
     label: 'Errei',
     sublabel: 'Não lembrei',
-    colorClass: 'text-red-400',
-    borderClass: 'border-red-500/30 bg-red-500/10 hover:bg-red-500/15',
-    icon: <XCircle className="h-4 w-4" aria-hidden />,
+    colorClass: 'text-red-500',
+    bgClass: 'bg-red-500/10',
+    borderClass: 'border-red-500/25 hover:border-red-500/50 hover:bg-red-500/15',
+    icon: <XCircle className="h-5 w-5" aria-hidden />,
   },
   {
     outcome: 'dificil',
     label: 'Difícil',
-    sublabel: 'Lembrei com esforço',
-    colorClass: 'text-orange-400',
-    borderClass: 'border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/15',
-    icon: <RotateCcw className="h-4 w-4" aria-hidden />,
+    sublabel: 'Com esforço',
+    colorClass: 'text-orange-500',
+    bgClass: 'bg-orange-500/10',
+    borderClass: 'border-orange-500/25 hover:border-orange-500/50 hover:bg-orange-500/15',
+    icon: <RotateCcw className="h-5 w-5" aria-hidden />,
   },
   {
     outcome: 'bom',
     label: 'Bom',
     sublabel: 'Lembrei',
-    colorClass: 'text-blue-400',
-    borderClass: 'border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/15',
-    icon: <CheckCircle2 className="h-4 w-4" aria-hidden />,
+    colorClass: 'text-blue-500',
+    bgClass: 'bg-blue-500/10',
+    borderClass: 'border-blue-500/25 hover:border-blue-500/50 hover:bg-blue-500/15',
+    icon: <CheckCircle2 className="h-5 w-5" aria-hidden />,
   },
   {
     outcome: 'facil',
     label: 'Fácil',
     sublabel: 'Muito fácil',
-    colorClass: 'text-emerald-400',
-    borderClass: 'border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15',
-    icon: <Star className="h-4 w-4" aria-hidden />,
+    colorClass: 'text-emerald-500',
+    bgClass: 'bg-emerald-500/10',
+    borderClass: 'border-emerald-500/25 hover:border-emerald-500/50 hover:bg-emerald-500/15',
+    icon: <Star className="h-5 w-5" aria-hidden />,
   },
 ];
 
@@ -80,32 +87,54 @@ interface CardFaceProps {
   md: string;
   imageUrl: string | null;
   faceLabel: 'Frente' | 'Verso';
+  isMobile: boolean;
 }
 
-function CardFace({ md, imageUrl, faceLabel }: CardFaceProps) {
+function CardFace({ md, imageUrl, faceLabel, isMobile }: CardFaceProps) {
+  const isBack = faceLabel === 'Verso';
   return (
-    <div className="flex min-h-[200px] flex-col gap-4 p-6 sm:min-h-[260px] sm:p-8">
-      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/50">
+    <div
+      className={cn(
+        'flex flex-col gap-4',
+        isMobile ? 'min-h-[240px] p-6' : 'min-h-[280px] p-8 sm:min-h-[320px]',
+      )}
+    >
+      {/* Face label badge */}
+      <span
+        className={cn(
+          'self-start rounded-[var(--c-radius-pill)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]',
+          isBack
+            ? 'bg-[var(--c-surface-2)] text-[var(--c-muted)]'
+            : 'bg-[var(--c-wine-50)] text-[var(--c-wine-600)]',
+        )}
+      >
         {faceLabel}
       </span>
 
+      {/* Image */}
       {imageUrl ? (
-        <div className="overflow-hidden rounded-xl border border-border/60">
+        <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
           <img
             src={imageUrl}
             alt={`Imagem do ${faceLabel.toLowerCase()} do flashcard`}
-            className="max-h-44 w-full object-contain"
+            className="max-h-48 w-full object-contain"
           />
         </div>
       ) : null}
 
+      {/* Content */}
       {md.trim() ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none flex-1 text-[14px] leading-relaxed">
+        <div
+          className={cn(
+            'prose dark:prose-invert max-w-none flex-1',
+            isMobile ? 'prose-sm text-[14px] leading-relaxed' : 'prose-base text-[15px] leading-relaxed',
+          )}
+        >
           <ReactMarkdown>{md}</ReactMarkdown>
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground/40">
-          <ImageIcon className="h-4 w-4" aria-hidden />
+        <div className="flex flex-1 items-center justify-center gap-2 text-[var(--c-muted-2)]">
+          <ImageIcon className="h-5 w-5" aria-hidden />
           <span className="text-[13px] italic">(conteúdo vazio)</span>
         </div>
       )}
@@ -124,41 +153,59 @@ interface SessionSummaryProps {
 function SessionSummary({ total, results, onFinish }: SessionSummaryProps) {
   const mastered = (results.bom ?? 0) + (results.facil ?? 0);
   return (
-    <div className="flex flex-col items-center gap-6 py-12 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-500/10">
-        <CheckCircle2 className="h-10 w-10 text-emerald-400" aria-hidden />
-      </div>
+    <div className="flex flex-col items-center gap-8 py-16 text-center">
+      {/* Icon celebratório */}
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+        className="flex h-24 w-24 items-center justify-center rounded-3xl bg-emerald-500/10"
+      >
+        <CheckCircle2 className="h-12 w-12 text-emerald-500" aria-hidden />
+      </motion.div>
+
       <div>
-        <h3 className="text-[22px] font-extrabold tracking-tight text-foreground">
+        <h3 className="text-[24px] font-extrabold tracking-tight text-[var(--c-ink)]">
           Sessão concluída!
         </h3>
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1.5 text-[14px] text-[var(--c-muted)]">
           {total} {total === 1 ? 'flashcard revisado' : 'flashcards revisados'}
         </p>
       </div>
 
-      <div className="grid w-full max-w-xs grid-cols-4 gap-2">
-        {GRADE_OPTIONS.map((g) => (
-          <div
+      {/* Grid de resultados */}
+      <div className="grid w-full max-w-sm grid-cols-4 gap-3">
+        {GRADE_OPTIONS.map((g, i) => (
+          <motion.div
             key={g.outcome}
-            className={cn('flex flex-col items-center gap-1 rounded-xl border p-3', g.borderClass)}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 + i * 0.05, duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              'flex flex-col items-center gap-2 rounded-[var(--c-radius-card)] border p-4',
+              g.borderClass,
+              g.bgClass,
+            )}
           >
-            <span className={cn('text-[20px] font-extrabold tabular-nums', g.colorClass)}>
+            <span className={cn('text-[22px] font-extrabold tabular-nums', g.colorClass)}>
               {results[g.outcome] ?? 0}
             </span>
-            <span className="text-[10px] font-semibold text-muted-foreground">{g.label}</span>
-          </div>
+            <span className="text-[10px] font-semibold text-[var(--c-muted)]">{g.label}</span>
+          </motion.div>
         ))}
       </div>
 
       {mastered > 0 && (
-        <p className="text-[13px] text-muted-foreground">
-          <span className="font-bold text-foreground">{mastered}</span>{' '}
+        <p className="text-[13px] text-[var(--c-muted)]">
+          <span className="font-bold text-[var(--c-ink)]">{mastered}</span>{' '}
           {mastered === 1 ? 'card com bom desempenho' : 'cards com bom desempenho'} — SRS atualizado.
         </p>
       )}
 
-      <Button onClick={onFinish} className="px-8">
+      <Button
+        onClick={onFinish}
+        className="min-w-[180px] bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)] hover:opacity-90"
+      >
         Voltar para Flashcards
       </Button>
     </div>
@@ -174,50 +221,40 @@ export interface FlashcardReviewSessionProps {
 
 export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessionProps) {
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [grading, setGrading] = useState(false);
+  const [flipDir, setFlipDir] = useState<'forward' | 'back'>('forward');
   const [results, setResults] = useState<Record<FlashcardReviewOutcome, number>>({
-    errei: 0,
-    dificil: 0,
-    bom: 0,
-    facil: 0,
+    errei: 0, dificil: 0, bom: 0, facil: 0,
   });
   const [done, setDone] = useState(false);
 
   const currentCard = cards[currentIndex];
+  const progressPct = (currentIndex / cards.length) * 100;
 
-  // Keep a ref to the latest handleGrade to avoid stale closures in the keyboard handler
   const handleGradeRef = useRef<(outcome: FlashcardReviewOutcome) => Promise<void>>(
-    async () => { /* placeholder, replaced below */ },
+    async () => { /* placeholder */ },
   );
 
-  // Keyboard shortcut — 1/2/3/4 for grade after reveal
+  // Keyboard: Espaço = revelar | 1/2/3/4 = grade
   useEffect(() => {
-    if (!revealed || grading || done) return;
+    if (done) return;
     const handler = (e: KeyboardEvent) => {
-      const map: Record<string, FlashcardReviewOutcome> = {
-        '1': 'errei',
-        '2': 'dificil',
-        '3': 'bom',
-        '4': 'facil',
-      };
-      if (map[e.key]) {
+      if (e.key === ' ' && !revealed && !grading) {
         e.preventDefault();
-        handleGradeRef.current(map[e.key]);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [revealed, grading, done]);
-
-  // Space to reveal
-  useEffect(() => {
-    if (revealed || done) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !grading) {
-        e.preventDefault();
+        setFlipDir('forward');
         setRevealed(true);
+        return;
+      }
+      if (revealed && !grading) {
+        const map: Record<string, FlashcardReviewOutcome> = { '1': 'errei', '2': 'dificil', '3': 'bom', '4': 'facil' };
+        if (map[e.key]) {
+          e.preventDefault();
+          handleGradeRef.current(map[e.key]);
+        }
       }
     };
     window.addEventListener('keydown', handler);
@@ -239,19 +276,15 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
         });
       } catch (err) {
         logger.error('[FlashcardReviewSession] Error scheduling review:', err);
-        toast({
-          title: 'Erro ao registrar avaliação',
-          description: 'Tente novamente.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Erro ao registrar avaliação', description: 'Tente novamente.', variant: 'destructive' });
         setGrading(false);
         return;
       }
-
       const next = currentIndex + 1;
       if (next >= cards.length) {
         setDone(true);
       } else {
+        setFlipDir('back');
         setCurrentIndex(next);
         setRevealed(false);
       }
@@ -260,76 +293,161 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
     [currentCard, currentIndex, cards.length, grading],
   );
 
-  // Keep ref in sync with latest handleGrade to avoid stale closure in keyboard listener
   handleGradeRef.current = handleGrade;
 
   if (done) {
-    return (
-      <SessionSummary
-        total={cards.length}
-        results={results}
-        onFinish={onFinish}
-      />
-    );
+    return <SessionSummary total={cards.length} results={results} onFinish={onFinish} />;
   }
 
   if (!currentCard) return null;
 
+  /* ── Flip animation variants ── */
+  const flipVariants = prefersReducedMotion
+    ? {
+        enterFront: {},
+        enterBack: {},
+        center: { opacity: 1, rotateY: 0 },
+        exitFront: {},
+        exitBack: {},
+      }
+    : {
+        enterFront: { opacity: 0, rotateY: -90 },
+        enterBack: { opacity: 0, rotateY: 90 },
+        center: { opacity: 1, rotateY: 0 },
+        exitFront: { opacity: 0, rotateY: 90 },
+        exitBack: { opacity: 0, rotateY: -90 },
+      };
+
+  const gradeButtons = (
+    <div className={cn('grid gap-3', isMobile ? 'grid-cols-4' : 'grid-cols-4')}>
+      {GRADE_OPTIONS.map((g, i) => (
+        <button
+          key={g.outcome}
+          type="button"
+          disabled={grading}
+          onClick={() => handleGrade(g.outcome)}
+          aria-label={`${g.label} — ${g.sublabel} (tecla ${i + 1})`}
+          className={cn(
+            'relative flex flex-col items-center gap-2 rounded-[var(--c-radius-card)] border py-4 transition-all duration-150',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            g.borderClass,
+            g.colorClass,
+            isMobile ? 'px-2 py-3' : 'px-3 py-4',
+          )}
+        >
+          {grading ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+          ) : (
+            g.icon
+          )}
+          <span className={cn('font-bold', isMobile ? 'text-[11px]' : 'text-[13px]')}>
+            {g.label}
+          </span>
+          {!isMobile && (
+            <span className="text-[10px] opacity-60">{g.sublabel}</span>
+          )}
+          {/* Keyboard hint */}
+          <span className="absolute right-1.5 top-1.5 rounded border border-current/20 bg-current/10 px-1 py-0.5 text-[8px] font-mono opacity-40">
+            {i + 1}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className={cn(
+        'caderno-root flex flex-col gap-5',
+        isMobile && 'pb-[calc(120px+env(safe-area-inset-bottom,0px))]',
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={onFinish}
           aria-label="Sair da sessão de revisão"
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] px-2 py-1.5',
+            'text-[12px] font-semibold text-[var(--c-muted)]',
+            'transition-colors hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+          )}
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          Sair da sessão
+          Sair
         </button>
-        <span className="text-[12px] font-semibold tabular-nums text-muted-foreground">
-          {currentIndex + 1} / {cards.length}
+
+        <span className="text-[13px] font-bold tabular-nums text-[var(--c-muted)]">
+          {currentIndex + 1}
+          <span className="font-normal opacity-60"> / {cards.length}</span>
         </span>
       </div>
 
       {/* Progress bar */}
-      <div
-        role="progressbar"
-        aria-valuenow={currentIndex}
-        aria-valuemax={cards.length}
-        aria-label={`${currentIndex} de ${cards.length} flashcards revisados`}
-        className="h-[4px] overflow-hidden rounded-full bg-muted"
-      >
-        <motion.div
-          className="h-full rounded-full bg-primary"
-          animate={{ width: `${(currentIndex / cards.length) * 100}%` }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.4, ease: 'easeOut' }}
-        />
-      </div>
+      <ProgressBar
+        value={progressPct}
+        label={`${currentIndex} de ${cards.length} flashcards revisados`}
+        className="h-[3px]"
+      />
 
-      {/* Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <AnimatePresence mode="wait">
+      {/* Card com flip 3D */}
+      <div
+        style={{ perspective: '1400px' }}
+        className={cn(
+          'relative',
+          isMobile ? '' : 'mx-auto w-full max-w-xl',
+        )}
+      >
+        <AnimatePresence mode="wait" custom={flipDir}>
           {!revealed ? (
             <motion.div
               key={`front-${currentCard.id}`}
-              initial={prefersReducedMotion ? false : { opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, x: -30 }}
-              transition={{ duration: prefersReducedMotion ? 0 : 0.22 }}
+              custom={flipDir}
+              initial={prefersReducedMotion ? false : flipVariants.enterFront}
+              animate={flipVariants.center}
+              exit={prefersReducedMotion ? undefined : flipVariants.exitFront}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
+              onClick={isMobile ? () => setRevealed(true) : undefined}
+              className={cn(
+                'overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-wine-500)]/15 bg-[var(--c-surface)] shadow-[var(--c-shadow-md)]',
+                isMobile && 'cursor-pointer active:scale-[0.99]',
+              )}
             >
-              <CardFace md={currentCard.front_md} imageUrl={currentCard.front_image_url} faceLabel="Frente" />
+              <CardFace
+                md={currentCard.front_md}
+                imageUrl={currentCard.front_image_url}
+                faceLabel="Frente"
+                isMobile={isMobile}
+              />
+
+              {/* "Tap para revelar" hint (mobile only) */}
+              {isMobile && (
+                <div className="flex items-center justify-center gap-1.5 border-t border-[var(--c-border)] py-3">
+                  <span className="text-[11px] font-semibold text-[var(--c-muted)]">
+                    Toque para revelar o verso
+                  </span>
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
               key={`back-${currentCard.id}`}
-              initial={prefersReducedMotion ? false : { opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, x: -30 }}
-              transition={{ duration: prefersReducedMotion ? 0 : 0.22 }}
+              custom={flipDir}
+              initial={prefersReducedMotion ? false : flipVariants.enterBack}
+              animate={flipVariants.center}
+              exit={prefersReducedMotion ? undefined : flipVariants.exitBack}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface-2)] shadow-[var(--c-shadow-md)]"
             >
-              <CardFace md={currentCard.back_md} imageUrl={currentCard.back_image_url} faceLabel="Verso" />
+              <CardFace
+                md={currentCard.back_md}
+                imageUrl={currentCard.back_image_url}
+                faceLabel="Verso"
+                isMobile={isMobile}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -338,70 +456,71 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       {/* Ações */}
       <AnimatePresence mode="wait">
         {!revealed ? (
-          <motion.div
-            key="reveal-btn"
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
-            transition={{ duration: 0.18 }}
-            className="flex justify-center"
-          >
-            <Button
-              size="lg"
-              onClick={() => setRevealed(true)}
-              className="min-w-[200px]"
-              aria-label="Mostrar resposta (Espaço)"
+          !isMobile ? (
+            /* Desktop: botão centralizado */
+            <motion.div
+              key="reveal-desktop"
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="flex justify-center"
             >
-              Mostrar resposta
-              <span className="ml-2 rounded border border-primary-foreground/20 bg-primary-foreground/10 px-1.5 py-0.5 text-[10px] font-mono">
-                Espaço
-              </span>
-            </Button>
-          </motion.div>
+              <Button
+                size="lg"
+                onClick={() => { setFlipDir('forward'); setRevealed(true); }}
+                className="min-w-[220px] bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)] hover:opacity-90"
+                aria-label="Mostrar resposta (Espaço)"
+              >
+                Mostrar resposta
+                <kbd className="ml-2.5 rounded border border-white/20 bg-white/10 px-1.5 py-0.5 text-[10px] font-mono">
+                  Espaço
+                </kbd>
+              </Button>
+            </motion.div>
+          ) : null
         ) : (
-          <motion.div
-            key="grade-btns"
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
-            transition={{ duration: 0.18 }}
-            className="space-y-3"
-          >
-            <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Como foi?
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {GRADE_OPTIONS.map((g, i) => (
-                <button
-                  key={g.outcome}
-                  type="button"
-                  disabled={grading}
-                  onClick={() => handleGrade(g.outcome)}
-                  aria-label={`${g.label} — ${g.sublabel} (tecla ${i + 1})`}
-                  className={cn(
-                    'relative flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    g.borderClass,
-                    g.colorClass,
-                  )}
-                >
-                  {grading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    g.icon
-                  )}
-                  <span className="text-[12px] font-bold">{g.label}</span>
-                  <span className="text-[10px] opacity-70">{g.sublabel}</span>
-                  <span className="absolute right-1.5 top-1.5 rounded border border-current/20 bg-current/10 px-1 py-0.5 text-[9px] font-mono opacity-50">
-                    {i + 1}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
+          !isMobile ? (
+            /* Desktop: grade buttons inline */
+            <motion.div
+              key="grade-desktop"
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-3"
+            >
+              <p className="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--c-muted)]">
+                Como foi?
+              </p>
+              {gradeButtons}
+            </motion.div>
+          ) : null
         )}
       </AnimatePresence>
+
+      {/* Mobile: BottomActionBar com botões */}
+      {isMobile && (
+        <BottomActionBar>
+          {!revealed ? (
+            <Button
+              size="lg"
+              onClick={() => { setFlipDir('forward'); setRevealed(true); }}
+              className="w-full bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)]"
+              aria-label="Mostrar resposta"
+            >
+              Mostrar resposta
+            </Button>
+          ) : (
+            <div className="w-full space-y-2">
+              <p className="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--c-muted)]">
+                Como foi?
+              </p>
+              {gradeButtons}
+            </div>
+          )}
+        </BottomActionBar>
+      )}
     </div>
   );
 }

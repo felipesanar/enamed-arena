@@ -4,13 +4,13 @@
  * Exibe confiança declarada vs acerto real por nível (baixa / média / alta),
  * permitindo ao aluno avaliar sua metacognição:
  *   - Bem calibrado: acerto sobe com a confiança.
- *   - Overconfidence: marcou "alta" mas errou muito (alta_but_wrong).
- *   - Underconfidence: marcou "baixa" mas acertou muito (baixa_but_correct).
- *
- * Estado sem dados: exibe mensagem orientando o aluno a responder simulados
- * informando sua confiança.
+ *   - Overconfidence: marcou "alta" mas errou muito.
+ *   - Underconfidence: marcou "baixa" mas acertou muito.
  *
  * Rastreia `caderno_calibration_viewed` via IntersectionObserver.
+ *
+ * Design: clínico premium — gráfico com cores semânticas, tooltip custom,
+ * tabela resumo com CadernoCard, insights de calibração com banners sutis.
  */
 
 import { useEffect, useRef } from 'react';
@@ -20,7 +20,7 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   CartesianGrid,
   Cell,
   ReferenceLine,
@@ -39,7 +39,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Skeleton } from '@/components/ui/skeleton';
+import { CadernoCard, SectionHeader, SkeletonLine } from '@/components/caderno/ui';
 import type { ConfidenceCalibration, ConfidenceCalibrationBucket } from '@/types/caderno';
 
 // ─── Helpers ───
@@ -50,7 +50,6 @@ const CONFIDENCE_LABEL: Record<string, string> = {
   alta: 'Alta',
 };
 
-/** Ordena os buckets na sequência pedagógica: baixa → media → alta. */
 const CONFIDENCE_ORDER: Record<string, number> = { baixa: 0, media: 1, alta: 2 };
 
 function sortBuckets(buckets: ConfidenceCalibrationBucket[]): ConfidenceCalibrationBucket[] {
@@ -59,9 +58,8 @@ function sortBuckets(buckets: ConfidenceCalibrationBucket[]): ConfidenceCalibrat
   );
 }
 
-/** Cor da barra por nível de confiança (semântica: success / warning / destructive-ish). */
 function barColor(confidence: string, accuracy: number | null): string {
-  if (accuracy == null) return 'hsl(var(--muted-foreground) / 0.4)';
+  if (accuracy == null) return 'hsl(var(--muted-foreground) / 0.3)';
   if (confidence === 'alta' && accuracy < 0.5) return 'hsl(var(--destructive))';
   if (confidence === 'baixa' && accuracy > 0.6) return 'hsl(var(--warning))';
   return 'hsl(var(--success))';
@@ -72,15 +70,15 @@ function toPercent(v: number | null): string {
   return `${Math.round(v * 100)}%`;
 }
 
-// ─── CustomTooltip ───
+// ─── Custom Tooltip ───
 
-function CustomTooltip({ active, payload }: any) {
+function CalibrationTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload as ConfidenceCalibrationBucket & { accuracyPct: number | null };
   return (
     <div
       style={getChartTooltipContentStyle()}
-      className="rounded-xl border border-border px-3 py-2 text-[12px] space-y-1"
+      className="rounded-xl px-3 py-2 text-[12px] space-y-1"
       role="tooltip"
     >
       <p className="font-bold text-foreground">
@@ -111,7 +109,6 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
   const baixaBucket = sorted.find((b) => b.confidence === 'baixa');
   const altaBucket = sorted.find((b) => b.confidence === 'alta');
 
-  // Detectar tendências — exige que todos os buckets tenham ao menos uma resposta
   const isWellCalibrated =
     sorted.length === 3 &&
     sorted.every((b) => b.total > 0) &&
@@ -136,18 +133,20 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
   if (!hasOverconfidence && !hasUnderconfidence && !isWellCalibrated) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {isWellCalibrated && (
         <div
           role="status"
-          className="flex items-start gap-2 rounded-xl bg-success/10 border border-success/20 px-3 py-2.5 text-caption text-success"
+          className={cn(
+            'flex items-start gap-3 rounded-xl',
+            'bg-success/[0.08] border border-success/25',
+            'px-4 py-3 text-caption',
+          )}
         >
-          <span className="mt-0.5 shrink-0" aria-hidden>
-            ✓
-          </span>
-          <span>
-            <strong>Bem calibrado!</strong> Seu acerto sobe junto com a confiança declarada —
-            sinal de boa metacognição.
+          <span className="mt-0.5 shrink-0 text-success font-bold" aria-hidden>✓</span>
+          <span className="text-success">
+            <strong className="font-bold">Bem calibrado!</strong> Seu acerto sobe junto com a
+            confiança declarada — sinal de boa metacognição.
           </span>
         </div>
       )}
@@ -155,14 +154,17 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
       {hasOverconfidence && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-caption text-destructive"
+          className={cn(
+            'flex items-start gap-3 rounded-xl',
+            'bg-destructive/[0.07] border border-destructive/20',
+            'px-4 py-3 text-caption',
+          )}
         >
-          <span className="mt-0.5 shrink-0" aria-hidden>
-            ⚠
-          </span>
-          <span>
-            <strong>Overconfidence detectada.</strong> Você declarou confiança "alta" em{' '}
-            {overall.alta_but_wrong} questões que errou. Revise esses temas com atenção.
+          <span className="mt-0.5 shrink-0 text-destructive" aria-hidden>⚠</span>
+          <span className="text-destructive">
+            <strong className="font-bold">Overconfidence detectada.</strong>{' '}
+            Você declarou confiança "alta" em {overall.alta_but_wrong} questões que errou.
+            Revise esses temas com atenção.
           </span>
         </div>
       )}
@@ -170,14 +172,17 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
       {hasUnderconfidence && (
         <div
           role="status"
-          className="flex items-start gap-2 rounded-xl bg-warning/10 border border-warning/20 px-3 py-2.5 text-caption text-warning"
+          className={cn(
+            'flex items-start gap-3 rounded-xl',
+            'bg-warning/[0.08] border border-warning/20',
+            'px-4 py-3 text-caption',
+          )}
         >
-          <span className="mt-0.5 shrink-0" aria-hidden>
-            💡
-          </span>
-          <span>
-            <strong>Underconfidence detectada.</strong> Você acertou {overall.baixa_but_correct}{' '}
-            questões onde declarou confiança "baixa" — talvez domine mais do que imagina!
+          <span className="mt-0.5 shrink-0 text-warning" aria-hidden>💡</span>
+          <span className="text-warning">
+            <strong className="font-bold">Underconfidence detectada.</strong>{' '}
+            Você acertou {overall.baixa_but_correct} questões onde declarou confiança "baixa" —
+            talvez domine mais do que imagina!
           </span>
         </div>
       )}
@@ -190,6 +195,18 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
 interface CalibrationPanelProps {
   data: ConfidenceCalibration | null;
   loading: boolean;
+}
+
+// ─── Skeleton ───
+
+function CalibrationSkeleton() {
+  return (
+    <section aria-label="Painel de calibração — carregando" className="space-y-4">
+      <SkeletonLine className="h-5 w-56" />
+      <SkeletonLine className="h-[200px] w-full rounded-[var(--c-radius-card)]" />
+      <SkeletonLine className="h-20 w-full rounded-[var(--c-radius-card)]" />
+    </section>
+  );
 }
 
 // ─── Component ───
@@ -224,21 +241,11 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
     return () => observer.disconnect();
   }, [loading, data]);
 
-  // ─── Skeleton ───
-  if (loading) {
-    return (
-      <section aria-label="Painel de calibração — carregando" className="space-y-4">
-        <Skeleton className="h-6 w-56" />
-        <Skeleton className="h-[200px] w-full rounded-2xl" />
-        <Skeleton className="h-16 w-full rounded-2xl" />
-      </section>
-    );
-  }
+  if (loading) return <CalibrationSkeleton />;
 
   const sortedBuckets = sortBuckets(data?.buckets ?? []);
   const hasData = sortedBuckets.length > 0 && sortedBuckets.some((b) => b.total > 0);
 
-  // Chart data: add accuracyPct (0–100) for axis display
   const chartData = sortedBuckets.map((b) => ({
     ...b,
     label: CONFIDENCE_LABEL[b.confidence] ?? b.confidence,
@@ -251,23 +258,31 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
       aria-label="Painel de calibração de confiança"
       className="space-y-5"
     >
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-primary shrink-0" aria-hidden />
-          <h2 className="text-heading-3 font-bold text-foreground">
-            Calibração de Confiança
-          </h2>
+        <div className="flex items-center gap-2.5">
+          <span
+            className="inline-flex items-center justify-center h-8 w-8 rounded-[10px] bg-primary/10 text-primary"
+            aria-hidden
+          >
+            <Brain className="h-4 w-4" />
+          </span>
+          <SectionHeader
+            title="Calibração de Confiança"
+            className="m-0 p-0 border-0"
+          />
         </div>
+
         <UiTooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <button
               type="button"
               aria-label="O que é calibração de confiança?"
               className={cn(
-                'inline-flex items-center justify-center w-7 h-7 rounded-lg',
-                'text-muted-foreground hover:bg-muted hover:text-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors',
+                'inline-flex items-center justify-center h-8 w-8 rounded-lg',
+                'text-muted-foreground transition-colors duration-150',
+                'hover:bg-[var(--c-surface-2)] hover:text-foreground',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               )}
             >
               <Info className="h-4 w-4" aria-hidden />
@@ -280,52 +295,55 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
         </UiTooltip>
       </div>
 
-      {/* Explicação pedagógica */}
+      {/* ── Explicação pedagógica ── */}
       <p className="text-caption text-muted-foreground leading-relaxed">
-        Metacognição é saber o que você sabe. Aqui comparamos sua{' '}
-        <strong className="text-foreground">confiança declarada</strong> (baixa / média / alta)
-        com seu <strong className="text-foreground">acerto real</strong>. Quando as barras sobem
-        da esquerda para a direita, você está bem calibrado.
+        Metacognição é saber o que você sabe. Comparamos sua{' '}
+        <strong className="font-semibold text-foreground">confiança declarada</strong>{' '}
+        (baixa / média / alta) com seu{' '}
+        <strong className="font-semibold text-foreground">acerto real</strong>. Barras
+        crescendo da esquerda para a direita = bem calibrado.
       </p>
 
-      {/* Estado sem dados */}
+      {/* ── Estado sem dados ── */}
       {!hasData ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-10 text-center space-y-2">
-          <p className="text-body font-medium text-foreground">Sem dados de calibração ainda</p>
+        <CadernoCard className="px-6 py-10 text-center space-y-2">
+          <p className="text-body font-semibold text-foreground">Sem dados de calibração ainda</p>
           <p className="text-caption text-muted-foreground max-w-sm mx-auto">
             Responda simulados informando sua confiança em cada questão para ver como sua
             autopercepção se compara ao seu acerto real.
           </p>
-        </div>
+        </CadernoCard>
       ) : (
         <>
-          {/* Gráfico de barras */}
-          <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
-            <p className="text-body-sm font-semibold text-foreground mb-1">
+          {/* ── Gráfico de barras ── */}
+          <CadernoCard className="p-4 md:p-5">
+            <p className="text-[13px] font-semibold text-foreground mb-0.5">
               Acerto por nível de confiança
             </p>
             <p className="text-caption text-muted-foreground mb-4">
               Porcentagem de acerto para cada nível declarado
             </p>
-            <div className="h-[200px]">
+            <div className="h-[160px] md:h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
-                  margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
-                  barCategoryGap="30%"
+                  margin={{ top: 8, right: 12, left: -8, bottom: 4 }}
+                  barCategoryGap="28%"
                 >
                   <CartesianGrid {...getChartGridProps()} />
-                  <XAxis dataKey="label" tick={getChartTickStyle()} />
+                  <XAxis dataKey="label" tick={getChartTickStyle()} tickLine={false} axisLine={false} />
                   <YAxis
                     domain={[0, 100]}
                     tick={getChartTickStyle()}
                     tickFormatter={(v) => `${v}%`}
+                    tickLine={false}
+                    axisLine={false}
                   />
-                  {/* Linha de referência em 50% */}
                   <ReferenceLine
                     y={50}
                     stroke={chartColors.muted}
                     strokeDasharray="4 3"
+                    strokeOpacity={0.5}
                     label={{
                       value: '50%',
                       position: 'insideTopRight',
@@ -333,8 +351,11 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
                       fill: chartColors.muted,
                     }}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.3)' }} />
-                  <Bar dataKey="accuracyPct" name="Acerto" radius={[6, 6, 0, 0]} maxBarSize={64}>
+                  <RechartsTooltip
+                    content={<CalibrationTooltip />}
+                    cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
+                  />
+                  <Bar dataKey="accuracyPct" name="Acerto" radius={[6, 6, 0, 0]} maxBarSize={72}>
                     {chartData.map((entry) => (
                       <Cell
                         key={entry.confidence}
@@ -346,17 +367,17 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </CadernoCard>
 
-          {/* Tabela resumo */}
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-body-sm font-semibold text-foreground">Resumo por nível</p>
+          {/* ── Tabela resumo ── */}
+          <CadernoCard className="overflow-hidden p-0">
+            <div className="px-4 py-3 border-b border-border bg-[var(--c-surface-2)]/50">
+              <p className="text-[13px] font-semibold text-foreground">Resumo por nível</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[320px]">
                 <thead>
-                  <tr className="border-b border-border/50 bg-muted/30">
+                  <tr className="border-b border-border/60 bg-[var(--c-surface-2)]/40">
                     <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Confiança
                     </th>
@@ -375,7 +396,7 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
                   {sortedBuckets.map((b) => (
                     <tr
                       key={b.confidence}
-                      className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors"
+                      className="border-b border-border/50 last:border-0 hover:bg-[var(--c-surface-2)] transition-colors duration-100"
                     >
                       <td className="px-4 py-2.5 text-[13px] font-medium text-foreground">
                         {CONFIDENCE_LABEL[b.confidence] ?? b.confidence}
@@ -404,9 +425,9 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
                 </tbody>
               </table>
             </div>
-          </div>
+          </CadernoCard>
 
-          {/* Insights de calibração */}
+          {/* ── Insights de calibração ── */}
           {data && (
             <CalibrationInsights overall={data.overall} buckets={sortedBuckets} />
           )}

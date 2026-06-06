@@ -1,13 +1,19 @@
 /**
- * NotebookEntryCard — card unificado do Caderno v2.
+ * NotebookEntryCard — card unificado do Caderno v2 (redesign premium).
  *
- * Substitui QueueRow (produção) e EntryCard (sandbox).
- * Spec 05 §3: barra de cor, Q# · Área › Tema, prova · data relativa,
- * preview expansível, badge causa, status SRS, ações com undo+toast.
+ * Visual:
+ *  - CauseBar lateral (4px, cor da causa, full height)
+ *  - Q#·Área›Tema em heading, prova·data relativa em caption
+ *  - Preview expansível do enunciado
+ *  - Badge causa + status SRS + leech badge
+ *  - Ações com hover (desktop) / swipe → resolver / ← adiar (mobile)
+ *  - Checkbox em selection mode
+ *
+ * Props existentes preservadas integralmente.
  */
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   ChevronDown,
@@ -23,6 +29,8 @@ import {
 import { cn } from '@/lib/utils';
 import { getReasonMeta, type DbReason } from '@/lib/errorNotebookReasons';
 import { isLeechEntry } from '@/lib/cadernoStatus';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { CadernoCard, CauseBadge } from '@/components/caderno/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
@@ -48,7 +56,7 @@ export interface NotebookEntry {
   addedAt: string;
   resolvedAt: string | null;
   nextReviewAt: string | null;
-  // SRS fields — may be absent until migration (use `as any` reads, treat undefined gracefully)
+  // SRS fields — may be absent until migration
   srsReps?: number | null;
   srsDueAt?: string | null;
   srsInterval?: number | null;
@@ -101,7 +109,7 @@ function calcSrsStatus(entry: NotebookEntry): { label: string; colorClass: strin
   const diffDays = Math.ceil((dueMs - now) / 86_400_000);
   return {
     label: `volta em ${diffDays}d`,
-    colorClass: 'text-muted-foreground',
+    colorClass: 'text-[var(--c-muted)]',
   };
 }
 
@@ -109,16 +117,78 @@ function calcSrsStatus(entry: NotebookEntry): { label: string; colorClass: strin
 
 export function NotebookEntryCardSkeleton() {
   return (
-    <div className="flex h-[64px] animate-pulse items-stretch gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
-      <div className="w-[3px] shrink-0 self-stretch rounded-full bg-muted/60" />
-      <div className="flex flex-1 flex-col justify-center gap-2">
-        <div className="h-3 w-2/5 rounded-md bg-muted/60" />
-        <div className="h-2.5 w-3/5 rounded-md bg-muted/40" />
+    <div className="flex h-[72px] animate-pulse items-stretch gap-0 rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] overflow-hidden">
+      <div className="w-1 shrink-0 self-stretch bg-[var(--c-surface-2)]" />
+      <div className="flex flex-1 flex-col justify-center gap-2 px-4 py-3">
+        <div className="h-3 w-2/5 rounded-md bg-[var(--c-surface-2)]" />
+        <div className="h-2.5 w-3/5 rounded-md bg-[var(--c-surface-2)]/70" />
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="h-6 w-16 rounded-full bg-muted/60" />
-        <div className="h-7 w-7 rounded-[8px] bg-muted/60" />
+      <div className="flex shrink-0 items-center gap-2 px-3">
+        <div className="h-6 w-14 rounded-full bg-[var(--c-surface-2)]" />
+        <div className="h-8 w-8 rounded-[var(--c-radius-control)] bg-[var(--c-surface-2)]" />
       </div>
+    </div>
+  );
+}
+
+/* ── Swipeable wrapper (mobile only) ── */
+
+interface SwipeableProps {
+  onSwipeRight: () => void;
+  onSwipeLeft: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}
+
+function SwipeableCard({ onSwipeRight, onSwipeLeft, children, disabled }: SwipeableProps) {
+  const prefersReducedMotion = useReducedMotion();
+  const x = useMotionValue(0);
+  const swipeThreshold = 80;
+
+  // Tint the background as the user swipes (green → resolve, amber → snooze)
+  const bgRight = useTransform(x, [0, swipeThreshold], ['rgba(22,163,74,0)', 'rgba(22,163,74,0.12)']);
+  const bgLeft  = useTransform(x, [-swipeThreshold, 0], ['rgba(245,158,11,0.12)', 'rgba(245,158,11,0)']);
+
+  if (disabled || prefersReducedMotion) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-[var(--c-radius-card)]">
+      {/* Hint underlay — resolve (right) */}
+      <motion.div
+        style={{ backgroundColor: bgRight }}
+        className="absolute inset-0 flex items-center pl-5 text-emerald-600 pointer-events-none"
+        aria-hidden
+      >
+        <Check className="h-5 w-5" strokeWidth={2.5} />
+      </motion.div>
+      {/* Hint underlay — snooze (left) */}
+      <motion.div
+        style={{ backgroundColor: bgLeft }}
+        className="absolute inset-0 flex items-center justify-end pr-5 text-amber-500 pointer-events-none"
+        aria-hidden
+      >
+        <AlarmClock className="h-5 w-5" />
+      </motion.div>
+
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: -swipeThreshold * 1.5, right: swipeThreshold * 1.5 }}
+        dragElastic={0.15}
+        onDragEnd={(_, info) => {
+          if (info.offset.x > swipeThreshold) {
+            onSwipeRight();
+          } else if (info.offset.x < -swipeThreshold) {
+            onSwipeLeft();
+          }
+        }}
+        whileDrag={{ scale: 1.01 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+      >
+        {children}
+      </motion.div>
     </div>
   );
 }
@@ -139,6 +209,7 @@ export function NotebookEntryCard({
   onToggleSelect,
 }: NotebookEntryCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const isMobile = useIsMobile();
   const meta = getReasonMeta(entry.reason as DbReason);
   const mastered = !!(
     (entry as any).masteredAt ??
@@ -147,7 +218,6 @@ export function NotebookEntryCard({
   );
   const srsStatus = calcSrsStatus(entry);
 
-  // Derive leech status using cadernoStatus helpers (SRS fields may be snake or camel)
   const srsShape = {
     last_review_outcome: (entry as any).lastReviewOutcome ?? (entry as any).last_review_outcome ?? null,
     srs_lapses: (entry as any).srsLapses ?? (entry as any).srs_lapses ?? null,
@@ -168,8 +238,6 @@ export function NotebookEntryCard({
 
   const handleRemove = () => {
     if (!onRemove) return;
-    // Toast + undo + delayed API delete are managed by the parent (CadernoPage).
-    // The card just signals the intent immediately.
     onRemove(entry.id);
   };
 
@@ -181,13 +249,19 @@ export function NotebookEntryCard({
 
   const isCompact = variant === 'compact';
 
-  return (
-    <div
+  const cardInner = (
+    <CadernoCard
+      variant="interactive"
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200',
-        'border-border hover:border-primary/20 hover:shadow-[0_6px_18px_-12px_hsl(345_65%_30%/0.2)]',
+        'group relative flex flex-col overflow-hidden',
+        // Override radius to match card system but keep sharp look for list items
+        'rounded-[var(--c-radius-card)]',
         mastered && 'opacity-60',
-        selectable && selected && 'border-primary/50 bg-primary/[0.03] ring-1 ring-primary/20',
+        selectable && selected && [
+          'border-[var(--c-wine-400)] bg-[var(--c-wine-50)]',
+          'dark:bg-[var(--c-wine-900)]/20',
+          'ring-1 ring-[var(--c-wine-400)]/30',
+        ],
       )}
     >
       {/* Main row */}
@@ -200,17 +274,19 @@ export function NotebookEntryCard({
             aria-label={selected ? 'Desmarcar questão' : 'Selecionar questão'}
             onClick={() => onToggleSelect?.(entry.id)}
             className={cn(
-              'flex w-9 shrink-0 items-center justify-center self-stretch border-r transition-colors duration-150',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'flex w-10 shrink-0 items-center justify-center self-stretch border-r transition-colors duration-[var(--c-duration-fast)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
               selected
-                ? 'border-primary/30 bg-primary/10 text-primary'
-                : 'border-border/40 bg-muted/20 text-muted-foreground/50 hover:bg-muted/40 hover:text-muted-foreground',
+                ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] dark:bg-[var(--c-wine-900)]/30 text-[var(--c-wine-600)]'
+                : 'border-[var(--c-border)]/60 bg-[var(--c-surface-2)]/40 text-[var(--c-muted)]/50 hover:bg-[var(--c-surface-2)] hover:text-[var(--c-muted)]',
             )}
           >
             <div
               className={cn(
-                'flex h-4 w-4 items-center justify-center rounded border-2 transition-all duration-150',
-                selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40',
+                'flex h-4 w-4 items-center justify-center rounded border-2 transition-all duration-[var(--c-duration-fast)]',
+                selected
+                  ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-500)] text-white'
+                  : 'border-[var(--c-muted)]/40',
               )}
             >
               {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />}
@@ -218,38 +294,38 @@ export function NotebookEntryCard({
           </button>
         )}
 
-        {/* Accent bar */}
+        {/* Cause accent bar — 4px full-height, color of cause */}
         <div
           aria-hidden
-          className="w-[3px] shrink-0 self-stretch"
+          className="w-1 shrink-0 self-stretch"
           style={{ background: meta.colorBase }}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-0 p-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-0 p-3.5">
           {/* Row 1: title + badges */}
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <span
                 className={cn(
-                  'block truncate text-[13px] font-semibold tracking-[-0.005em] text-foreground',
-                  mastered && 'line-through decoration-muted-foreground/50',
+                  'block truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--c-ink)]',
+                  mastered && 'line-through decoration-[var(--c-muted)]/50',
                 )}
               >
                 {title}
               </span>
-              <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+              <span className="mt-0.5 block truncate text-[11px] text-[var(--c-muted)]">
                 {subtitle}
               </span>
             </div>
 
             <div className="flex shrink-0 items-start gap-1.5 self-start">
-              {/* Leech badge — discreto, com tooltip explicativo */}
+              {/* Leech badge */}
               {isLeech && (
                 <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
                     <span
                       aria-label="Questão travada — muitos erros nas revisões"
-                      className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--c-destructive)]/30 bg-[var(--c-destructive)]/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--c-destructive)]"
                     >
                       <ShieldAlert className="h-2.5 w-2.5" aria-hidden />
                       Travada
@@ -261,18 +337,11 @@ export function NotebookEntryCard({
                 </Tooltip>
               )}
 
-              {/* Causa badge */}
+              {/* Causa badge — usa primitivo CauseBadge */}
               <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
-                  <span
-                    className="hidden shrink-0 items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:inline-flex"
-                    style={{
-                      background: meta.colorBg,
-                      color: meta.colorText,
-                      borderColor: meta.colorBorder,
-                    }}
-                  >
-                    {meta.badge}
+                  <span className="hidden sm:inline-flex">
+                    <CauseBadge reason={entry.reason} size="sm" />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="top">{meta.label}</TooltipContent>
@@ -282,14 +351,14 @@ export function NotebookEntryCard({
 
           {/* Row 2: preview expansível */}
           {showPreview && !isCompact && entry.questionText && (
-            <div className="mt-1.5">
+            <div className="mt-2">
               <AnimatePresence initial={false}>
                 <motion.p
                   key={expanded ? 'expanded' : 'collapsed'}
                   initial={false}
                   animate={{ opacity: 1 }}
                   className={cn(
-                    'text-[12px] leading-relaxed text-muted-foreground/80',
+                    'text-[12px] leading-relaxed text-[var(--c-muted)]/80',
                     !expanded && 'line-clamp-2',
                   )}
                 >
@@ -299,17 +368,13 @@ export function NotebookEntryCard({
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
-                className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-wine-hover focus-visible:outline-none focus-visible:underline"
+                className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-wine-600)] hover:text-[var(--c-wine-500)] focus-visible:outline-none focus-visible:underline"
                 aria-label={expanded ? 'Colapsar enunciado' : 'Expandir enunciado'}
               >
                 {expanded ? (
-                  <>
-                    Ver menos <ChevronUp className="h-3 w-3" aria-hidden />
-                  </>
+                  <>Ver menos <ChevronUp className="h-3 w-3" aria-hidden /></>
                 ) : (
-                  <>
-                    Ver mais <ChevronDown className="h-3 w-3" aria-hidden />
-                  </>
+                  <>Ver mais <ChevronDown className="h-3 w-3" aria-hidden /></>
                 )}
               </button>
             </div>
@@ -317,14 +382,20 @@ export function NotebookEntryCard({
 
           {/* Row 3: nota de aprendizado */}
           {!isCompact && entry.learningNote && (
-            <p className="mt-1.5 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1.5 text-[11px] italic leading-relaxed text-muted-foreground/80">
-              "{entry.learningNote}"
+            <p className="mt-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)]/60 bg-[var(--c-surface-2)] px-3 py-2 text-[11px] italic leading-relaxed text-[var(--c-muted)]">
+              &ldquo;{entry.learningNote}&rdquo;
             </p>
           )}
         </div>
 
-        {/* Actions column */}
-        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 border-l border-border/60 px-2.5 py-2">
+        {/* Actions column — visible on hover (desktop) / always (mobile) */}
+        <div
+          className={cn(
+            'flex shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--c-border)]/60 px-2.5 py-2',
+            // Desktop: show on group hover only (subtle)
+            'opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-[var(--c-duration-fast)]',
+          )}
+        >
           {/* Revisar */}
           <Tooltip delayDuration={250}>
             <TooltipTrigger asChild>
@@ -332,7 +403,7 @@ export function NotebookEntryCard({
                 to={`/caderno/revisao?entry=${entry.id}`}
                 onClick={() => onReview?.(entry.id)}
                 aria-label={`Revisar questão ${entry.questionNumber ?? ''}`}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-muted-foreground/70 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-600)] dark:hover:bg-[var(--c-wine-900)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50"
               >
                 <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
               </Link>
@@ -350,11 +421,11 @@ export function NotebookEntryCard({
                   aria-label={mastered ? 'Reabrir questão' : 'Marcar como dominada'}
                   aria-pressed={mastered}
                   className={cn(
-                    'inline-flex h-7 w-7 items-center justify-center rounded-[8px] border transition-all duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] border transition-all duration-[var(--c-duration-fast)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
                     mastered
-                      ? 'border-success/40 bg-success/15 text-success'
-                      : 'border-border bg-muted/50 text-muted-foreground hover:border-success/40 hover:bg-success/10 hover:text-success',
+                      ? 'border-[var(--c-success)]/40 bg-[var(--c-success)]/15 text-[var(--c-success)]'
+                      : 'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)] hover:border-[var(--c-success)]/40 hover:bg-[var(--c-success)]/10 hover:text-[var(--c-success)]',
                   )}
                 >
                   <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden />
@@ -374,7 +445,7 @@ export function NotebookEntryCard({
                   <button
                     type="button"
                     aria-label="Mais ações"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50"
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
                   </button>
@@ -400,7 +471,7 @@ export function NotebookEntryCard({
                 </>
               )}
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
+                className="text-[var(--c-destructive)] focus:text-[var(--c-destructive)]"
                 onClick={handleRemove}
               >
                 <Trash2 className="mr-2 h-3.5 w-3.5" aria-hidden />
@@ -413,13 +484,37 @@ export function NotebookEntryCard({
 
       {/* Footer: SRS status */}
       {showSrsStatus && srsStatus && (
-        <div className="flex items-center justify-end border-t border-border/40 bg-muted/20 px-3 py-1">
+        <div className="flex items-center justify-end border-t border-[var(--c-border)]/40 bg-[var(--c-surface-2)]/50 px-3.5 py-1.5">
           <span className={cn('inline-flex items-center gap-1 text-[10px] font-semibold', srsStatus.colorClass)}>
             <Clock className="h-2.5 w-2.5" aria-hidden />
             {srsStatus.label}
           </span>
         </div>
       )}
-    </div>
+    </CadernoCard>
   );
+
+  // Mobile: enable swipe gestures (→ resolver, ← adiar 1 dia)
+  if (isMobile && !selectable) {
+    return (
+      <SwipeableCard
+        onSwipeRight={() => {
+          if (onToggleMastered) {
+            onToggleMastered(entry.id, true);
+            toast({ title: 'Marcado como dominado' });
+          }
+        }}
+        onSwipeLeft={() => {
+          if (onSnooze) {
+            onSnooze(entry.id, 1);
+            toast({ title: 'Volta em 1 dia' });
+          }
+        }}
+      >
+        {cardInner}
+      </SwipeableCard>
+    );
+  }
+
+  return cardInner;
 }

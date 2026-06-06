@@ -1,20 +1,21 @@
 /**
- * RecallQuestionCard
+ * RecallQuestionCard — Fase 1 e 3 do recall ativo.
  *
- * Renders the question stem + options for the active-recall flow.
- * When `revealCorrect` is false (phases 1-2): all options are neutral.
- * When `revealCorrect` is true (phase 3+): correct/wrong options are highlighted.
- *
- * Handles touch swipe for mobile navigation.
+ * Redesign premium:
+ * - CadernoCard base com radius/shadow do design-language.
+ * - CauseBadge para causa do erro.
+ * - Alternativas: hover elevado, transição suave, reveal com estados claros.
+ * - Suporte a swipe mobile.
  */
 
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, AlertCircle, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Sparkles, ExternalLink } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { QuestionImage } from '@/components/exam/QuestionImage';
+import { CauseBadge } from '@/components/caderno/ui/CauseBadge';
 import { cn } from '@/lib/utils';
-import { getReasonMeta } from '@/lib/errorNotebookReasons';
 import type { Question } from '@/types';
 import type { RecallEntry, EntryReviewData } from '@/hooks/useActiveRecallSession';
 
@@ -23,12 +24,9 @@ interface RecallQuestionCardProps {
   question: Question;
   reviewData: EntryReviewData;
   revealCorrect: boolean;
-  /** Option id selected by student in this recall session (not the original simulado answer) */
   selectedOptionId: string | null;
   onSelectOption: (optionId: string) => void;
-  /** Called when swipe-right (next) */
   onSwipeNext?: () => void;
-  /** Called when swipe-left (prev) */
   onSwipePrev?: () => void;
 }
 
@@ -46,8 +44,6 @@ export function RecallQuestionCard({
   onSwipeNext,
   onSwipePrev,
 }: RecallQuestionCardProps) {
-  const reasonMeta = getReasonMeta(entry.reason);
-
   // Swipe handling
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -61,7 +57,6 @@ export function RecallQuestionCard({
     if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-    // Only horizontal swipes (threshold 60px H, max 30px V)
     if (Math.abs(dx) >= 60 && dy <= 30) {
       if (dx < 0) onSwipeNext?.();
       else onSwipePrev?.();
@@ -70,233 +65,236 @@ export function RecallQuestionCard({
     touchStartY.current = null;
   };
 
+  const daysAgo = daysSince(entry.addedAt);
+
   return (
     <div
-      className="rounded-2xl border border-border bg-card p-5 md:p-6 shadow-sm"
+      className="rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] shadow-[var(--c-shadow-sm)]"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Meta badges */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide cursor-help"
-              style={{
-                background: reasonMeta.colorBg,
-                color: reasonMeta.colorText,
-                borderColor: reasonMeta.colorBorder,
-              }}
-            >
-              <span
-                aria-hidden
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: reasonMeta.colorBase }}
-              />
-              {reasonMeta.badge}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top">Categoria do erro: {reasonMeta.badge.toLowerCase()}</TooltipContent>
-        </Tooltip>
+      {/* ── Meta strip ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--c-border)] px-5 py-3">
+        {/* Cause badge */}
+        <CauseBadge reason={entry.reason} size="sm" />
 
+        {/* Area › theme */}
         {entry.area && (
-          <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
-            <span className="font-bold text-foreground">{entry.area}</span>
+          <span className="inline-flex items-center gap-1 rounded-[var(--c-radius-pill)] bg-[var(--c-surface-2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--c-ink)]">
+            {entry.area}
             {entry.theme && (
               <>
-                <span className="mx-1.5 opacity-50">›</span>
-                {entry.theme}
+                <span className="opacity-40" aria-hidden>›</span>
+                <span className="font-normal text-[var(--c-muted)]">{entry.theme}</span>
               </>
             )}
           </span>
         )}
 
-        <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        {/* Days since added */}
+        <span className="inline-flex items-center gap-1 rounded-[var(--c-radius-pill)] bg-[var(--c-surface-2)] px-2 py-0.5 text-[10px] text-[var(--c-muted)]">
           <Clock className="h-2.5 w-2.5" aria-hidden />
-          {(() => {
-            const d = daysSince(entry.addedAt);
-            if (d === 0) return 'Salva hoje';
-            if (d === 1) return 'Há 1 dia';
-            return `Há ${d} dias`;
-          })()}
+          {daysAgo === 0 ? 'Adicionada hoje' : daysAgo === 1 ? 'Há 1 dia' : `Há ${daysAgo} dias`}
         </span>
 
+        {/* Simulado link */}
         {entry.simuladoTitle && entry.simuladoId && (
-          <Link
-            to={`/simulados/${entry.simuladoId}/correcao?q=${entry.questionNumber ?? ''}`}
-            className="text-caption text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors no-underline"
-          >
-            {entry.simuladoTitle}
-          </Link>
+          <Tooltip delayDuration={250}>
+            <TooltipTrigger asChild>
+              <Link
+                to={`/simulados/${entry.simuladoId}/correcao?q=${entry.questionNumber ?? ''}`}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--c-muted)] transition-colors hover:text-[var(--c-wine-500)] no-underline"
+              >
+                <ExternalLink className="h-2.5 w-2.5" aria-hidden />
+                {entry.simuladoTitle}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="top">Ver correção do simulado</TooltipContent>
+          </Tooltip>
         )}
       </div>
 
-      {/* Question number */}
-      <h2
-        className="text-heading-3 text-foreground"
-        tabIndex={-1}
-        id={`recall-q-${entry.id}`}
-      >
-        Q{entry.questionNumber ?? '?'}
-      </h2>
+      {/* ── Content ────────────────────────────────────────────────────────────── */}
+      <div className="px-5 py-5">
+        {/* Question number heading */}
+        <h2
+          className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--c-muted)] mb-3"
+          tabIndex={-1}
+          id={`recall-q-${entry.id}`}
+        >
+          Questão {entry.questionNumber ?? '?'}
+        </h2>
 
-      {/* Student note */}
-      {entry.learningNote && (
-        <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 p-3">
-          <p className="text-overline font-semibold uppercase text-muted-foreground">Sua anotação</p>
-          <p className="mt-1 text-body-sm italic text-foreground/90">{entry.learningNote}</p>
-        </div>
-      )}
-
-      {/* Stem — constrained height on mobile */}
-      <div className="mt-5 md:max-h-none max-h-[50vh] overflow-y-auto">
-        <p className="text-body text-foreground leading-relaxed whitespace-pre-wrap">
-          {question.text}
-        </p>
-        {question.imageUrl && (
-          <div className="mt-4">
-            <QuestionImage
-              src={question.imageUrl}
-              alt={`Imagem da questão ${entry.questionNumber ?? ''}`}
-            />
+        {/* Student note */}
+        {entry.learningNote && (
+          <div className="mb-4 rounded-[var(--c-radius-control)] border-l-2 border-[var(--c-wine-500)]/40 bg-[var(--c-wine-500)]/[0.04] px-3.5 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-wine-500)]/70 mb-1">
+              Sua anotação
+            </p>
+            <p className="text-caption italic text-[var(--c-ink)]/80">{entry.learningNote}</p>
           </div>
         )}
-      </div>
 
-      {/* Options */}
-      <div
-        className="mt-5 space-y-2"
-        role="radiogroup"
-        aria-label="Alternativas"
-      >
-        {question.options.map((opt) => {
-          const isCorrect = opt.id === question.correctOptionId;
-          const isSelected = opt.id === selectedOptionId;
-          const isWrongChoice = isSelected && !isCorrect;
-          const isRightChoice = isSelected && isCorrect;
-          const rationale =
-            revealCorrect && !isCorrect && reviewData.aiOptionRationales
-              ? reviewData.aiOptionRationales[opt.label]
-              : null;
-
-          // Visual state
-          let borderClass = 'border-border bg-card';
-          let labelClass = 'bg-muted text-muted-foreground';
-
-          if (revealCorrect) {
-            if (isCorrect) {
-              borderClass = 'border-success/40 bg-success/[0.06]';
-              labelClass = 'bg-success text-success-foreground';
-            } else if (isWrongChoice) {
-              borderClass = 'border-destructive/40 bg-destructive/[0.06]';
-              labelClass = 'bg-destructive text-destructive-foreground';
-            }
-          } else if (isSelected) {
-            borderClass = 'border-primary/50 ring-2 ring-primary/60 bg-card';
-            labelClass = 'bg-primary/10 text-primary font-bold';
-          }
-
-          return (
-            <div key={opt.id}>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                onClick={() => !revealCorrect && onSelectOption(opt.id)}
-                disabled={revealCorrect}
-                className={cn(
-                  'w-full flex items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors text-left',
-                  borderClass,
-                  !revealCorrect && 'cursor-pointer hover:border-primary/30 hover:bg-muted/40',
-                  revealCorrect && 'cursor-default',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                )}
-              >
-                <span
-                  className={cn(
-                    'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold',
-                    labelClass,
-                  )}
-                  aria-hidden
-                >
-                  {opt.label}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-body-sm text-foreground leading-relaxed">{opt.text}</p>
-
-                  {/* Reveal badges */}
-                  {revealCorrect && (isSelected || isCorrect) && (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {isSelected && (
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                            isWrongChoice
-                              ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                              : 'border-success/40 bg-success/10 text-success',
-                          )}
-                        >
-                          {isWrongChoice ? (
-                            <XCircle className="h-2.5 w-2.5" aria-hidden />
-                          ) : (
-                            <CheckCircle2 className="h-2.5 w-2.5" aria-hidden />
-                          )}
-                          Sua resposta
-                        </span>
-                      )}
-                      {isCorrect && !isRightChoice && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-success/40 bg-success/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success">
-                          <CheckCircle2 className="h-2.5 w-2.5" aria-hidden />
-                          Resposta correta
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Option rationale (wrong options only) */}
-                  {rationale && (
-                    <p className={cn(
-                      'mt-2 flex items-start gap-1.5 text-[12px] leading-snug',
-                      isWrongChoice ? 'text-destructive/90' : 'text-muted-foreground',
-                    )}>
-                      <XCircle className="mt-0.5 h-3 w-3 shrink-0 opacity-70" aria-hidden />
-                      <span>{rationale}</span>
-                    </p>
-                  )}
-                </div>
-              </button>
+        {/* Stem */}
+        <div className="max-h-[52vh] overflow-y-auto md:max-h-none">
+          <p className="text-body leading-relaxed text-[var(--c-ink)] whitespace-pre-wrap">
+            {question.text}
+          </p>
+          {question.imageUrl && (
+            <div className="mt-4">
+              <QuestionImage
+                src={question.imageUrl}
+                alt={`Imagem da questão ${entry.questionNumber ?? ''}`}
+              />
             </div>
-          );
-        })}
-      </div>
-
-      {/* Constructive summary (reveal phase only) */}
-      {revealCorrect && selectedOptionId && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 text-caption">
-          {(() => {
-            const isCorrect = question.correctOptionId === selectedOptionId;
-            const userLabel = question.options.find((o) => o.id === selectedOptionId)?.label ?? '?';
-            return isCorrect ? (
-              <span className="inline-flex items-center gap-1.5 text-success font-semibold">
-                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                Você marcou {userLabel} e acertou. Bora consolidar o raciocínio.
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-foreground font-semibold">
-                <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-                Você marcou {userLabel}. Vamos entender por que a resposta era outra.
-              </span>
-            );
-          })()}
+          )}
         </div>
-      )}
 
-      {/* Empty state when no option chosen yet (mobile CTA hint) */}
-      {!revealCorrect && !selectedOptionId && (
-        <p className="mt-4 text-center text-caption text-muted-foreground/70 hidden sm:block">
-          Selecione uma alternativa para continuar
-        </p>
-      )}
+        {/* ── Options ────────────────────────────────────────────────────────── */}
+        <div className="mt-5 space-y-2" role="radiogroup" aria-label="Alternativas">
+          {question.options.map((opt) => {
+            const isCorrect = opt.id === question.correctOptionId;
+            const isSelected = opt.id === selectedOptionId;
+            const isWrongChoice = isSelected && !isCorrect;
+            const isRightChoice = isSelected && isCorrect;
+            const rationale =
+              revealCorrect && !isCorrect && reviewData.aiOptionRationales
+                ? reviewData.aiOptionRationales[opt.label]
+                : null;
+
+            // Visual states
+            let containerStyle = 'border-[var(--c-border)] bg-[var(--c-surface)]';
+            let labelStyle = 'bg-[var(--c-surface-2)] text-[var(--c-muted)]';
+            let textStyle = 'text-[var(--c-ink)]';
+
+            if (revealCorrect) {
+              if (isCorrect) {
+                containerStyle = 'border-emerald-400/40 bg-emerald-500/[0.05]';
+                labelStyle = 'bg-emerald-500 text-white';
+                textStyle = 'text-[var(--c-ink)]';
+              } else if (isWrongChoice) {
+                containerStyle = 'border-rose-400/40 bg-rose-500/[0.05]';
+                labelStyle = 'bg-rose-500 text-white';
+                textStyle = 'text-[var(--c-ink)]';
+              }
+            } else if (isSelected) {
+              containerStyle =
+                'border-[var(--c-wine-500)]/50 ring-2 ring-[var(--c-wine-500)]/20 bg-[var(--c-wine-500)]/[0.03]';
+              labelStyle = 'bg-[var(--c-wine-500)] text-white';
+              textStyle = 'text-[var(--c-ink)] font-medium';
+            }
+
+            return (
+              <div key={opt.id}>
+                <motion.button
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => !revealCorrect && onSelectOption(opt.id)}
+                  disabled={revealCorrect}
+                  whileTap={!revealCorrect ? { scale: 0.995 } : undefined}
+                  className={cn(
+                    'w-full flex items-start gap-3 rounded-[var(--c-radius-control)] border px-3.5 py-3',
+                    'transition-all duration-150 text-left',
+                    containerStyle,
+                    !revealCorrect &&
+                      'cursor-pointer hover:border-[var(--c-wine-500)]/30 hover:bg-[var(--c-wine-500)]/[0.02] hover:-translate-y-[1px] hover:shadow-[var(--c-shadow-sm)]',
+                    revealCorrect && 'cursor-default',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                    'motion-reduce:hover:translate-y-0',
+                  )}
+                >
+                  {/* Label badge */}
+                  <span
+                    className={cn(
+                      'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[12px] font-extrabold transition-colors duration-150',
+                      labelStyle,
+                    )}
+                    aria-hidden
+                  >
+                    {opt.label}
+                  </span>
+
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('text-body-sm leading-relaxed', textStyle)}>{opt.text}</p>
+
+                    {/* Reveal badges */}
+                    {revealCorrect && (isSelected || isCorrect) && (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {isSelected && (
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                              isWrongChoice
+                                ? 'border-rose-400/35 bg-rose-500/10 text-rose-500'
+                                : 'border-emerald-400/35 bg-emerald-500/10 text-emerald-600',
+                            )}
+                          >
+                            {isWrongChoice ? (
+                              <XCircle className="h-2.5 w-2.5" aria-hidden />
+                            ) : (
+                              <CheckCircle2 className="h-2.5 w-2.5" aria-hidden />
+                            )}
+                            Sua resposta
+                          </span>
+                        )}
+                        {isCorrect && !isRightChoice && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-400/35 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600">
+                            <CheckCircle2 className="h-2.5 w-2.5" aria-hidden />
+                            Resposta correta
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Option rationale */}
+                    {rationale && (
+                      <p
+                        className={cn(
+                          'mt-2 flex items-start gap-1.5 text-[12px] leading-snug',
+                          isWrongChoice ? 'text-rose-500/80' : 'text-[var(--c-muted)]',
+                        )}
+                      >
+                        <XCircle className="mt-0.5 h-3 w-3 shrink-0 opacity-70" aria-hidden />
+                        <span>{rationale}</span>
+                      </p>
+                    )}
+                  </div>
+                </motion.button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Constructive summary after reveal */}
+        {revealCorrect && selectedOptionId && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-4 py-2.5">
+            {(() => {
+              const isCorrect = question.correctOptionId === selectedOptionId;
+              const userLabel =
+                question.options.find((o) => o.id === selectedOptionId)?.label ?? '?';
+              return isCorrect ? (
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                  Você marcou {userLabel} — acertou! Consolide o raciocínio abaixo.
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--c-ink)]">
+                  <Sparkles className="h-4 w-4 shrink-0 text-[var(--c-wine-500)]" aria-hidden />
+                  Você marcou {userLabel}. Leia a análise abaixo para entender o erro.
+                </span>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Empty state hint (mobile) */}
+        {!revealCorrect && !selectedOptionId && (
+          <p className="mt-4 hidden text-center text-caption text-[var(--c-muted)]/70 sm:block">
+            Selecione uma alternativa para continuar
+          </p>
+        )}
+      </div>
     </div>
   );
 }

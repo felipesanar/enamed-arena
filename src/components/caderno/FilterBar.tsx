@@ -1,57 +1,17 @@
 /**
- * FilterBar — duas faixas de chips (Causa + Área) + busca.
- *
- * Labels canônicos (spec 00 §6.5): "Causa" / "Área" / "Buscar".
- * aria-checked em todo chip (spec 00 §6.6).
+ * FilterBar — faixa de chips de filtro (Causa + Área) + busca.
+ * Redesign premium: usa FilterChip do design system.
+ * Labels canônicos: "Causa" / "Área" / "Buscar".
+ * Mobile: chips scrolláveis numa faixa horizontal horizontal.
+ * Desktop: faixa com wrap suave para acomodar muitas especialidades.
  */
 
-import { Search, Check } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getReasonMeta, type DbReason } from '@/lib/errorNotebookReasons';
+import { FilterChip } from '@/components/caderno/ui';
 
 export type CausaFilter = 'all' | DbReason;
-
-interface FilterChipProps {
-  label: string;
-  count?: number;
-  active: boolean;
-  dotColor?: string;
-  activeStyle?: { background: string; color: string; borderColor: string };
-  onClick: () => void;
-}
-
-function FilterChip({ label, count, active, dotColor, activeStyle, onClick }: FilterChipProps) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      style={active && activeStyle ? activeStyle : undefined}
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        active && !activeStyle && 'border-primary bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(345_65%_30%/0.3)]',
-        active && !!activeStyle && 'shadow-[0_2px_6px_-2px_hsl(0_0%_0%/0.15)]',
-        !active && 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
-      )}
-    >
-      {active ? (
-        <Check className="h-3 w-3 shrink-0" strokeWidth={3} aria-hidden />
-      ) : (
-        dotColor && (
-          <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dotColor }} />
-        )
-      )}
-      {label}
-      {typeof count === 'number' && (
-        <span className={cn('text-[10px] font-bold tabular-nums', active ? 'opacity-80' : 'opacity-55')}>
-          {count}
-        </span>
-      )}
-    </button>
-  );
-}
 
 export interface FilterBarProps {
   typeOptions: DbReason[];
@@ -79,13 +39,17 @@ export function FilterBar({
   onSearchChange,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-3">
       {/* Faixa 1 — Causa */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
-        <span className="w-[44px] shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-2.5">
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)] w-[38px]">
           Causa
         </span>
-        <div role="radiogroup" aria-label="Filtrar por causa do erro" className="flex items-center gap-1.5">
+        <div
+          role="radiogroup"
+          aria-label="Filtrar por causa do erro"
+          className="flex items-center gap-1.5 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]"
+        >
           <FilterChip
             label="Todos"
             count={totalCount}
@@ -100,13 +64,16 @@ export function FilterBar({
                 label={meta.badge}
                 count={typeCounts[type] ?? 0}
                 active={typeFilter === type}
-                dotColor={meta.colorBase}
-                activeStyle={{
-                  background: meta.colorBg,
-                  color: meta.colorText,
-                  borderColor: meta.colorBorder,
-                }}
                 onClick={() => onTypeChange(typeFilter === type ? 'all' : type)}
+                style={
+                  typeFilter === type
+                    ? {
+                        background: meta.colorBg,
+                        color: meta.colorText,
+                        borderColor: meta.colorBorder,
+                      }
+                    : undefined
+                }
               />
             );
           })}
@@ -115,11 +82,15 @@ export function FilterBar({
 
       {/* Faixa 2 — Área (só quando >1 especialidade) */}
       {specialties.length > 1 && (
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
-          <span className="w-[44px] shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center gap-2.5">
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)] w-[38px]">
             Área
           </span>
-          <div role="radiogroup" aria-label="Filtrar por especialidade" className="flex items-center gap-1.5">
+          <div
+            role="radiogroup"
+            aria-label="Filtrar por especialidade"
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]"
+          >
             <FilterChip
               label="Todas"
               active={!specFilter}
@@ -140,7 +111,7 @@ export function FilterBar({
       {/* Faixa 3 — Busca */}
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--c-muted-2)]"
           aria-hidden
         />
         <input
@@ -150,8 +121,10 @@ export function FilterBar({
           placeholder="Questão, área ou simulado…"
           aria-label="Buscar no caderno"
           className={cn(
-            'w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground/60',
-            'transition-colors duration-150 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            'w-full rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] py-2.5 pl-10 pr-4',
+            'text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
+            'transition-colors duration-[var(--c-duration-fast)]',
+            'focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[var(--c-wine-500)]/20',
           )}
         />
       </div>

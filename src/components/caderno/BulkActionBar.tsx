@@ -1,14 +1,17 @@
 /**
  * BulkActionBar — barra flutuante de ações em lote para o Caderno de Erros v2.
  *
- * Aparece quando `count > 0` (modo de seleção ativo).
- * Ações: marcar resolvidas, adiar (snooze), excluir — todas com confirmação/undo via toast.
- * Executa via Promise.all dos métodos por-item.
- * Spec: EPIC-5 HU-5.4 / backlog-fase1-epicos-historias.md
+ * Desktop: pill flutuante centralizado acima do bottom nav.
+ * Mobile: usa BottomActionBar sticky (thumb-zone) quando em modo seleção.
+ *
+ * Ações: marcar resolvidas, adiar (snooze), excluir — com confirmação+undo via toast.
+ * Spec: EPIC-5 HU-5.4
  */
 
 import { Check, AlarmClock, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { BottomActionBar } from '@/components/caderno/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
@@ -18,17 +21,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export interface BulkActionBarProps {
-  /** Número de itens selecionados */
   count: number;
-  /** Fechar modo de seleção */
   onCancel: () => void;
-  /** Marcar todos como dominadas */
   onMarkResolved: () => void;
-  /** Adiar N dias */
   onSnooze: (days: number) => void;
-  /** Excluir selecionados */
   onDelete: () => void;
-  /** Enquanto ações assíncronas rodam */
   busy?: boolean;
 }
 
@@ -36,36 +33,28 @@ function pluralize(n: number, s: string, p: string) {
   return n === 1 ? s : p;
 }
 
-export function BulkActionBar({
+function BulkActions({
   count,
   onCancel,
   onMarkResolved,
   onSnooze,
   onDelete,
-  busy = false,
-}: BulkActionBarProps) {
-  if (count === 0) return null;
-
+  busy,
+  compact,
+}: BulkActionBarProps & { compact?: boolean }) {
   return (
-    <div
-      role="toolbar"
-      aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} — ações em lote`}
-      className={cn(
-        'fixed bottom-6 left-1/2 z-50 -translate-x-1/2',
-        'flex items-center gap-2 rounded-2xl border border-border/80 bg-card/95 px-3 py-2 shadow-[0_8px_32px_-8px_hsl(0_0%_0%/0.25)]',
-        'backdrop-blur-sm',
-        busy && 'pointer-events-none opacity-70',
-      )}
-    >
+    <>
       {/* Contagem */}
-      <span className="mr-1 min-w-[24px] rounded-full bg-primary px-2 py-0.5 text-center text-[11px] font-bold tabular-nums text-primary-foreground">
+      <span className="mr-1 min-w-[24px] rounded-full bg-[var(--c-wine-500)] px-2 py-0.5 text-center text-[11px] font-bold tabular-nums text-white">
         {count}
       </span>
-      <span className="hidden text-[12px] font-semibold text-foreground sm:block">
-        {pluralize(count, 'selecionada', 'selecionadas')}
-      </span>
+      {!compact && (
+        <span className="hidden text-[12px] font-semibold text-[var(--c-ink)] sm:block">
+          {pluralize(count, 'selecionada', 'selecionadas')}
+        </span>
+      )}
 
-      <div className="mx-1 h-5 w-px bg-border/60" aria-hidden />
+      <div className="mx-1 h-5 w-px bg-[var(--c-border)]" aria-hidden />
 
       {/* Marcar como dominadas */}
       <Tooltip delayDuration={250}>
@@ -76,14 +65,14 @@ export function BulkActionBar({
             onClick={onMarkResolved}
             aria-label="Marcar selecionadas como dominadas"
             className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-xl border border-success/30 bg-success/10 px-3 text-[12px] font-semibold text-success',
-              'transition-all duration-150 hover:bg-success/20 hover:border-success/50',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-success)]/30 bg-[var(--c-success)]/10 px-3 text-[12px] font-semibold text-[var(--c-success)]',
+              'transition-all duration-[var(--c-duration-fast)] hover:bg-[var(--c-success)]/20 hover:border-[var(--c-success)]/50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
               'disabled:opacity-50',
             )}
           >
             <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden />
-            <span className="hidden sm:inline">Dominadas</span>
+            <span className={compact ? 'sr-only' : 'hidden sm:inline'}>Dominadas</span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">Marcar como dominadas</TooltipContent>
@@ -99,14 +88,14 @@ export function BulkActionBar({
                 disabled={busy}
                 aria-label="Adiar selecionadas"
                 className={cn(
-                  'inline-flex h-8 items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3 text-[12px] font-semibold text-muted-foreground',
-                  'transition-all duration-150 hover:border-primary/30 hover:bg-muted hover:text-foreground',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 text-[12px] font-semibold text-[var(--c-muted)]',
+                  'transition-all duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
                   'disabled:opacity-50',
                 )}
               >
                 <AlarmClock className="h-3.5 w-3.5" aria-hidden />
-                <span className="hidden sm:inline">Adiar</span>
+                <span className={compact ? 'sr-only' : 'hidden sm:inline'}>Adiar</span>
               </button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -141,20 +130,20 @@ export function BulkActionBar({
             onClick={onDelete}
             aria-label="Excluir selecionadas"
             className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/10 px-3 text-[12px] font-semibold text-destructive',
-              'transition-all duration-150 hover:bg-destructive/20 hover:border-destructive/50',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-destructive)]/30 bg-[var(--c-destructive)]/10 px-3 text-[12px] font-semibold text-[var(--c-destructive)]',
+              'transition-all duration-[var(--c-duration-fast)] hover:bg-[var(--c-destructive)]/20 hover:border-[var(--c-destructive)]/50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
               'disabled:opacity-50',
             )}
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden />
-            <span className="hidden sm:inline">Excluir</span>
+            <span className={compact ? 'sr-only' : 'hidden sm:inline'}>Excluir</span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">Excluir selecionadas</TooltipContent>
       </Tooltip>
 
-      <div className="mx-1 h-5 w-px bg-border/60" aria-hidden />
+      <div className="mx-1 h-5 w-px bg-[var(--c-border)]" aria-hidden />
 
       {/* Cancelar seleção */}
       <Tooltip delayDuration={250}>
@@ -164,9 +153,9 @@ export function BulkActionBar({
             onClick={onCancel}
             aria-label="Cancelar seleção"
             className={cn(
-              'inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border text-muted-foreground',
-              'transition-all duration-150 hover:bg-muted hover:text-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'inline-flex h-9 w-9 items-center justify-center rounded-[var(--c-radius-control)] border border-[var(--c-border)] text-[var(--c-muted)]',
+              'transition-all duration-[var(--c-duration-fast)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
             )}
           >
             <X className="h-3.5 w-3.5" aria-hidden />
@@ -174,6 +163,49 @@ export function BulkActionBar({
         </TooltipTrigger>
         <TooltipContent side="top">Cancelar seleção (Esc)</TooltipContent>
       </Tooltip>
+    </>
+  );
+}
+
+export function BulkActionBar({
+  count,
+  onCancel,
+  onMarkResolved,
+  onSnooze,
+  onDelete,
+  busy = false,
+}: BulkActionBarProps) {
+  const isMobile = useIsMobile();
+
+  if (count === 0) return null;
+
+  const commonProps = { count, onCancel, onMarkResolved, onSnooze, onDelete, busy };
+
+  if (isMobile) {
+    return (
+      <BottomActionBar
+        role="toolbar"
+        aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} — ações em lote`}
+        className={cn(busy && 'pointer-events-none opacity-70')}
+      >
+        <BulkActions {...commonProps} compact />
+      </BottomActionBar>
+    );
+  }
+
+  return (
+    <div
+      role="toolbar"
+      aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} — ações em lote`}
+      className={cn(
+        'fixed bottom-6 left-1/2 z-50 -translate-x-1/2',
+        'flex items-center gap-2 rounded-[var(--c-radius-pill)]',
+        'border border-[var(--c-border)] bg-[var(--c-surface)]/95 px-3 py-2',
+        'shadow-[var(--c-shadow-md)] backdrop-blur-[var(--c-glass-blur)]',
+        busy && 'pointer-events-none opacity-70',
+      )}
+    >
+      <BulkActions {...commonProps} />
     </div>
   );
 }

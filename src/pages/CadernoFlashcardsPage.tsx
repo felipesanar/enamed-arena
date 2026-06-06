@@ -1,16 +1,19 @@
 /**
- * CadernoFlashcardsPage — aba Flashcards do Caderno de Erros v2 (Fase 2).
+ * CadernoFlashcardsPage — aba Flashcards do Caderno de Erros v2 (redesign premium).
  *
  * Rota: /caderno/flashcards  (gate PRO).
  *
- * Funcionalidades:
- * - Lista de decks (DeckList) + criar deck
- * - Lista de flashcards por deck (FlashcardItem) com React Query
- * - Criar/editar via FlashcardEditor (modal)
- * - Sessão de revisão SRS (FlashcardReviewSession)
- * - Botão "Revisar devidos" sempre visível quando há cards devidos
- * - Estados: vazio, loading, erro, zero-devidos
- * - Exclusão com optimistic update + toast undo (5s)
+ * Desktop: PageHeaderPremium + DeckList chips + grid de FlashcardItem +
+ *          botão "Revisar devidos" destacado.
+ * Mobile: 1 coluna, FlashcardEditor em bottom sheet (AdaptiveModal),
+ *         review session em tela cheia com BottomActionBar.
+ *
+ * PRESERVADO:
+ * - listDecks/createDeck/listFlashcards/createFlashcard/updateFlashcard
+ * - softDeleteFlashcard, getDueFlashcards, scheduleFlashcardReview
+ * - generateFlashcard/uploadFlashcardImage
+ * - Eventos analytics, confirmação+undo (5s)
+ * - Query keys, staleTime, invalidateQueries
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -44,12 +47,21 @@ import { PageTransition, StaggerContainer, StaggerItem } from '@/components/prem
 import { ProGate } from '@/components/ProGate';
 import { TabBar } from '@/components/caderno/TabBar';
 
+import {
+  PageHeaderPremium,
+  SectionHeader,
+  CadernoEmptyState,
+  CadernoCardSkeleton,
+  SkeletonLine,
+} from '@/components/caderno/ui';
+
 import { DeckList } from '@/components/caderno/flashcards/DeckList';
 import { FlashcardItem } from '@/components/caderno/flashcards/FlashcardItem';
 import { FlashcardEditor } from '@/components/caderno/flashcards/FlashcardEditor';
 import { FlashcardReviewSession } from '@/components/caderno/flashcards/FlashcardReviewSession';
 
 import { useUser } from '@/contexts/UserContext';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Deck, Flashcard } from '@/types/caderno';
 
 /* ── Query keys ── */
@@ -61,19 +73,23 @@ const QUERY_DUE = ['caderno', 'flashcards', 'due'] as const;
 
 /* ── Skeleton ── */
 
-function FlashcardsSkeletonList() {
+function FlashcardsSkeletonGrid() {
   return (
-    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Carregando flashcards">
-      {[1, 2, 3].map((i) => (
+    <div
+      className="grid gap-3 sm:grid-cols-1 lg:grid-cols-1"
+      aria-busy="true"
+      aria-label="Carregando flashcards"
+    >
+      {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="flex h-[88px] animate-pulse items-start gap-3 rounded-xl border border-border bg-card p-4"
+          className="flex items-start gap-4 rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] p-4"
         >
-          <div className="h-14 w-14 shrink-0 rounded-lg bg-muted/60" />
+          <SkeletonLine className="h-16 w-16 shrink-0 rounded-xl" />
           <div className="flex-1 space-y-2">
-            <div className="h-3.5 w-3/4 rounded bg-muted/60" />
-            <div className="h-3 w-1/2 rounded bg-muted/40" />
-            <div className="h-5 w-16 rounded-full bg-muted/40" />
+            <SkeletonLine className="h-3.5 w-3/4" />
+            <SkeletonLine className="h-3 w-1/2" />
+            <SkeletonLine className="h-5 w-16 rounded-full" />
           </div>
         </div>
       ))}
@@ -81,7 +97,7 @@ function FlashcardsSkeletonList() {
   );
 }
 
-/* ── EmptyDecks state ── */
+/* ── EmptyDecks — CTA criar deck ── */
 
 interface EmptyDecksStateProps {
   onCreate: (name: string) => Promise<void>;
@@ -95,7 +111,6 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
 
   const handleShow = () => {
     setShowInput(true);
-    // focus on next tick after render
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -108,77 +123,136 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
   };
 
   return (
-    <div className="mx-auto max-w-md rounded-3xl border-2 border-dashed border-primary/20 bg-primary/[0.03] p-10 text-center">
-      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent">
-        <Layers className="h-7 w-7 text-primary" aria-hidden />
-      </div>
-      <h3 className="text-heading-2 text-foreground">Nenhum deck ainda</h3>
-      <p className="mx-auto mt-2 max-w-sm text-body leading-relaxed text-muted-foreground">
-        Crie seu primeiro deck para organizar flashcards por tema, área ou prova.
-      </p>
-      {showInput ? (
-        <div className="mt-6 flex items-center justify-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleConfirm();
-              if (e.key === 'Escape') { setShowInput(false); setNewName(''); }
-            }}
-            maxLength={60}
-            placeholder="Nome do deck…"
-            aria-label="Nome do primeiro deck"
-            className="h-9 w-48 rounded-full border border-primary/40 bg-card px-3 text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          />
-          <Button size="sm" onClick={handleConfirm} disabled={!newName.trim() || isCreating} className="gap-1.5">
-            {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Plus className="h-3.5 w-3.5" aria-hidden />}
-            Criar
+    <CadernoEmptyState
+      icon={<Layers className="h-8 w-8 text-[var(--c-wine-500)]" />}
+      title="Nenhum deck ainda"
+      description="Crie seu primeiro deck para organizar flashcards por tema, área ou prova."
+      action={
+        showInput ? (
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleConfirm();
+                if (e.key === 'Escape') { setShowInput(false); setNewName(''); }
+              }}
+              maxLength={60}
+              placeholder="Nome do deck…"
+              aria-label="Nome do primeiro deck"
+              className={cn(
+                'h-9 w-48 rounded-[var(--c-radius-pill)] border border-[var(--c-wine-500)]/40 bg-[var(--c-surface)] px-3',
+                'text-[13px] font-medium text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
+                'outline-none focus:border-[var(--c-wine-500)] focus:ring-1 focus:ring-[var(--c-wine-500)]/20',
+              )}
+            />
+            <Button
+              size="sm"
+              onClick={handleConfirm}
+              disabled={!newName.trim() || isCreating}
+              className="gap-1.5 bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white"
+            >
+              {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Plus className="h-3.5 w-3.5" aria-hidden />}
+              Criar
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={handleShow}
+            className="gap-2 bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)]"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Criar primeiro deck
           </Button>
-        </div>
-      ) : (
-        <Button onClick={handleShow} className="mt-6 gap-2">
-          <Plus className="h-4 w-4" aria-hidden />
-          Criar primeiro deck
-        </Button>
-      )}
-    </div>
+        )
+      }
+    />
   );
 }
 
-/* ── EmptyCards state ── */
+/* ── EmptyCards ── */
 
 function EmptyCardsState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
-      <BookOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" aria-hidden />
-      <p className="text-[13px] font-medium text-muted-foreground">
-        Este deck não tem flashcards ainda.
-      </p>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
-      >
-        <Plus className="h-3.5 w-3.5" aria-hidden />
-        Adicionar primeiro flashcard
-      </button>
-    </div>
+    <CadernoEmptyState
+      icon={<BookOpen className="h-7 w-7 text-[var(--c-muted-2)]" />}
+      title="Este deck não tem flashcards"
+      description="Adicione o primeiro flashcard para começar a estudar."
+      action={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAdd}
+          className="gap-1.5 border-[var(--c-wine-500)]/30 text-[var(--c-wine-600)] hover:bg-[var(--c-wine-50)] hover:border-[var(--c-wine-400)]"
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          Adicionar primeiro flashcard
+        </Button>
+      }
+    />
   );
 }
 
-/* ── ZeroDueState ── */
+/* ── ZeroDue — celebratório ── */
 
 function ZeroDueState({ total }: { total: number }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-      <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-      <p className="text-[13px] text-muted-foreground">
-        <span className="font-semibold text-foreground">Nenhum card para revisar hoje</span> —{' '}
+      <Sparkles className="h-4 w-4 shrink-0 text-emerald-500" aria-hidden />
+      <p className="text-[13px] text-[var(--c-muted)]">
+        <span className="font-bold text-[var(--c-ink)]">Nenhum card para revisar hoje</span>
+        {' — '}
         {total} {total === 1 ? 'card' : 'cards'} agendado{total === 1 ? '' : 's'} para o futuro.
       </p>
     </div>
+  );
+}
+
+/* ── ReviewBanner — botão "Revisar devidos" ── */
+
+function ReviewBanner({ count, onStart }: { count: number; onStart: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onStart}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      className={cn(
+        'group flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)]',
+        'border border-[var(--c-wine-500)]/20 bg-gradient-to-r from-[var(--c-wine-500)]/8 via-[var(--c-wine-500)]/4 to-transparent',
+        'px-5 py-4 transition-all duration-200',
+        'hover:border-[var(--c-wine-500)]/40 hover:shadow-[var(--c-shadow-glow)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--c-wine-500)]/10">
+          <Layers className="h-5 w-5 text-[var(--c-wine-500)]" aria-hidden />
+        </div>
+        <div className="min-w-0 text-left">
+          <p className="text-[14px] font-bold text-[var(--c-ink)]">Revisar devidos</p>
+          <p className="text-[12px] text-[var(--c-muted)]">
+            {count} {count === 1 ? 'flashcard' : 'flashcards'} para hoje
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          'flex shrink-0 items-center gap-2 rounded-xl px-5 py-2.5',
+          'bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white',
+          'text-[13px] font-bold shadow-[var(--c-shadow-glow)]',
+          'transition-transform duration-150 group-hover:scale-[1.03]',
+        )}
+      >
+        <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
+        Iniciar
+      </div>
+    </motion.button>
   );
 }
 
@@ -186,6 +260,7 @@ function ZeroDueState({ total }: { total: number }) {
 
 function FlashcardsContent() {
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -238,9 +313,7 @@ function FlashcardsContent() {
   /* ── Handlers ── */
 
   const handleCreateDeck = useCallback(
-    async (name: string) => {
-      await createDeckMut(name);
-    },
+    async (name: string) => { await createDeckMut(name); },
     [createDeckMut],
   );
 
@@ -249,7 +322,7 @@ function FlashcardsContent() {
     setEditorOpen(true);
   };
 
-  const handleEditorSave = (saved: Flashcard) => {
+  const handleEditorSave = (_saved: Flashcard) => {
     qc.invalidateQueries({ queryKey: queryFlashcards(selectedDeckId) });
     qc.invalidateQueries({ queryKey: QUERY_DUE });
     setEditorOpen(false);
@@ -258,7 +331,6 @@ function FlashcardsContent() {
 
   const handleDelete = useCallback(
     (id: string) => {
-      // Optimistic: remove from cache
       const prev = qc.getQueryData<Flashcard[]>(queryFlashcards(selectedDeckId)) ?? [];
       qc.setQueryData<Flashcard[]>(queryFlashcards(selectedDeckId), (old) =>
         (old ?? []).filter((c) => c.id !== id),
@@ -301,7 +373,10 @@ function FlashcardsContent() {
     if (dueFlashcards.length === 0) return;
     setReviewCards(dueFlashcards);
     setReviewMode(true);
-    trackEvent('caderno_flashcard_reviewed', { source: 'review_session_started', count: dueFlashcards.length } as any);
+    trackEvent('caderno_flashcard_reviewed', {
+      source: 'review_session_started',
+      count: dueFlashcards.length,
+    } as any);
   };
 
   const handleReviewFinish = () => {
@@ -311,30 +386,33 @@ function FlashcardsContent() {
     qc.invalidateQueries({ queryKey: queryFlashcards(selectedDeckId) });
   };
 
-  /* ── Review mode ── */
+  /* ── Review mode (tela cheia) ── */
 
   if (reviewMode && reviewCards.length > 0) {
-    return (
-      <FlashcardReviewSession cards={reviewCards} onFinish={handleReviewFinish} />
-    );
+    return <FlashcardReviewSession cards={reviewCards} onFinish={handleReviewFinish} />;
   }
 
-  /* ── States ── */
+  /* ── Loading ── */
 
   if (decksLoading) {
     return (
-      <div className="flex flex-col gap-5">
-        <div className="h-8 w-48 animate-pulse rounded-full bg-muted/60" aria-hidden />
-        <FlashcardsSkeletonList />
+      <div className="space-y-5">
+        <SkeletonLine className="h-6 w-48" />
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => <SkeletonLine key={i} className="h-8 w-24 rounded-full" />)}
+        </div>
+        <FlashcardsSkeletonGrid />
       </div>
     );
   }
 
+  /* ── Erro de carregamento ── */
+
   if (decksError) {
     return (
-      <div className="flex flex-col items-center gap-4 py-12 text-center">
+      <div className="flex flex-col items-center gap-4 py-14 text-center">
         <AlertCircle className="h-8 w-8 text-destructive/50" aria-hidden />
-        <p className="text-[13px] text-muted-foreground">Não foi possível carregar os decks.</p>
+        <p className="text-[13px] text-[var(--c-muted)]">Não foi possível carregar os decks.</p>
         <Button variant="outline" size="sm" onClick={() => refetchDecks()} className="gap-2">
           <RefreshCw className="h-3.5 w-3.5" aria-hidden />
           Tentar novamente
@@ -343,57 +421,60 @@ function FlashcardsContent() {
     );
   }
 
+  /* ── Sem decks ── */
+
   if (decks.length === 0) {
-    return (
-      <EmptyDecksState
-        onCreate={handleCreateDeck}
-        isCreating={creatingDeck}
-      />
-    );
+    return <EmptyDecksState onCreate={handleCreateDeck} isCreating={creatingDeck} />;
   }
 
   const resolvedDeck = selectedDeckId
-    ? decks.find((d) => d.id === selectedDeckId)
+    ? decks.find((d: Deck) => d.id === selectedDeckId)
     : null;
+
+  const deckTitle = resolvedDeck ? resolvedDeck.name : 'Todos os flashcards';
 
   return (
     <>
       <StaggerContainer className="space-y-6">
-        {/* Botão "Revisar devidos" — destaque quando há cards devidos */}
-        {dueFlashcards.length > 0 && (
-          <StaggerItem>
-            <button
-              type="button"
-              onClick={handleStartReview}
-              className={cn(
-                'group flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl',
-                'border border-primary/20 bg-gradient-to-r from-primary/[0.07] via-primary/[0.04] to-transparent',
-                'px-5 py-4 transition-all duration-200',
-                'hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_hsl(345_65%_30%/0.35)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              )}
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Layers className="h-5 w-5 text-primary" aria-hidden />
-                </div>
-                <div className="min-w-0 text-left">
-                  <p className="text-[14px] font-bold text-foreground">Revisar devidos</p>
-                  <p className="text-[12px] text-muted-foreground">
-                    {dueFlashcards.length}{' '}
-                    {dueFlashcards.length === 1 ? 'flashcard' : 'flashcards'} para hoje
-                  </p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_hsl(345_65%_30%/0.4)] transition-transform group-hover:scale-[1.02]">
-                <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
-                Iniciar
-              </div>
-            </button>
-          </StaggerItem>
-        )}
+        {/* Header premium */}
+        <StaggerItem>
+          <PageHeaderPremium
+            title="Flashcards"
+            subtitle="Revise com repetição espaçada inteligente"
+            stats={[
+              { label: 'Total', value: flashcards.length },
+              { label: 'Decks', value: decks.length },
+              { label: 'Devidos hoje', value: dueFlashcards.length, color: dueFlashcards.length > 0 ? 'var(--c-wine-500)' : undefined },
+            ]}
+            primaryAction={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenEditor()}
+                disabled={!selectedDeckId && decks.length > 0}
+                title={!selectedDeckId ? 'Selecione um deck para adicionar um flashcard' : undefined}
+                className={cn(
+                  'gap-1.5 border-[var(--c-wine-500)]/25 text-[var(--c-wine-600)]',
+                  'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]',
+                )}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                Novo flashcard
+              </Button>
+            }
+          />
+        </StaggerItem>
 
-        {/* DeckList */}
+        {/* Banner "Revisar devidos" */}
+        <AnimatePresence>
+          {dueFlashcards.length > 0 && (
+            <StaggerItem>
+              <ReviewBanner count={dueFlashcards.length} onStart={handleStartReview} />
+            </StaggerItem>
+          )}
+        </AnimatePresence>
+
+        {/* DeckList chips */}
         <StaggerItem>
           <DeckList
             decks={decks}
@@ -404,40 +485,35 @@ function FlashcardsContent() {
           />
         </StaggerItem>
 
-        {/* Header da lista de cards + botão novo card */}
+        {/* Section header da lista de cards */}
         <StaggerItem>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-[15px] font-bold text-foreground">
-                {resolvedDeck ? resolvedDeck.name : 'Todos os flashcards'}
-              </h2>
-              {!cardsLoading && (
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {flashcards.length}{' '}
-                  {flashcards.length === 1 ? 'flashcard' : 'flashcards'}
-                </p>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenEditor()}
-              className="gap-1.5 text-[12px]"
-              disabled={!selectedDeckId && decks.length > 0}
-              title={!selectedDeckId ? 'Selecione um deck para adicionar um flashcard' : undefined}
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              Novo flashcard
-            </Button>
-          </div>
+          <SectionHeader
+            title={deckTitle}
+            count={cardsLoading ? undefined : flashcards.length}
+            action={
+              /* mobile: botão "+" flutuante — desktop: já está no PageHeader */
+              isMobile ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenEditor()}
+                  disabled={!selectedDeckId && decks.length > 0}
+                  className="h-8 w-8 p-0 text-[var(--c-wine-500)]"
+                  aria-label="Novo flashcard"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                </Button>
+              ) : undefined
+            }
+          />
         </StaggerItem>
 
         {/* Lista de flashcards */}
         <StaggerItem>
           {cardsLoading ? (
-            <FlashcardsSkeletonList />
+            <FlashcardsSkeletonGrid />
           ) : cardsError ? (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-6 text-center text-[13px] text-muted-foreground">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-6 text-center text-[13px] text-[var(--c-muted)]">
               <AlertCircle className="mx-auto mb-2 h-5 w-5 text-destructive/40" aria-hidden />
               Não foi possível carregar os flashcards.
             </div>
@@ -445,22 +521,23 @@ function FlashcardsContent() {
             selectedDeckId ? (
               <EmptyCardsState onAdd={() => handleOpenEditor()} />
             ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
-                <Layers className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" aria-hidden />
-                <p className="text-[13px] text-muted-foreground">
-                  Selecione um deck para ver seus flashcards.
-                </p>
-              </div>
+              <CadernoEmptyState
+                icon={<Layers className="h-7 w-7 text-[var(--c-muted-2)]" />}
+                title="Selecione um deck"
+                description="Escolha um deck acima para ver seus flashcards."
+              />
             )
           ) : (
-            <div className="space-y-2">
-              {/* Zero devidos (só mostra quando há cards mas nenhum é devido) */}
+            <div className="space-y-3">
+              {/* Zero devidos (celebratório) */}
               {dueFlashcards.length === 0 && flashcards.length > 0 && (
-                <ZeroDueState total={flashcards.filter((c) => !c.mastered_at).length} />
+                <ZeroDueState
+                  total={flashcards.filter((c: Flashcard) => !c.mastered_at).length}
+                />
               )}
 
               <AnimatePresence mode="popLayout">
-                {flashcards.map((card) => (
+                {flashcards.map((card: Flashcard) => (
                   <FlashcardItem
                     key={card.id}
                     card={card}
@@ -474,17 +551,15 @@ function FlashcardsContent() {
         </StaggerItem>
       </StaggerContainer>
 
-      {/* FlashcardEditor modal */}
-      <AnimatePresence>
-        {editorOpen && (
-          <FlashcardEditor
-            card={editingCard ?? undefined}
-            defaultDeckId={selectedDeckId ?? decks[0]?.id}
-            onSave={handleEditorSave}
-            onClose={() => { setEditorOpen(false); setEditingCard(null); }}
-          />
-        )}
-      </AnimatePresence>
+      {/* FlashcardEditor (AdaptiveModal: Dialog desktop / Drawer mobile) */}
+      {editorOpen && (
+        <FlashcardEditor
+          card={editingCard ?? undefined}
+          defaultDeckId={selectedDeckId ?? decks[0]?.id}
+          onSave={handleEditorSave}
+          onClose={() => { setEditorOpen(false); setEditingCard(null); }}
+        />
+      )}
     </>
   );
 }

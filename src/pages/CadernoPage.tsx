@@ -1,27 +1,36 @@
 /**
- * CadernoPage — casca unificada do Caderno de Erros v2 (Fase 1).
+ * CadernoPage — casca premium do Caderno de Erros v2 (redesign visual).
  *
  * Rota: /caderno  (gate PRO + feature flag caderno_v2_enabled).
- * Aba ativa: Revisar. Demais abas (Favoritos/Anotações/Flashcards/Insights)
- * renderizadas como disabled + badge "Em breve" na TabBar.
+ * Aba ativa: Revisar.
  *
- * Buckets de fila (Fase 1 — degrada para campos legados se SRS ainda não migrado):
- *   Devidas hoje    srs_due_at <= now  (ou next_review_at <= now, ou null)
- *   Em aprendizado  srs_reps >= 1 && srs_due_at > now && srs_interval <= 14d
- *   Agendadas       srs_due_at > now  && srs_interval > 14d (ou next_review_at > now)
- *   Dominadas       mastered_at IS NOT NULL (ou resolved_at)
+ * Layout:
+ *  Desktop — PageHeaderPremium (stats + gradiente CTA), TabBar sticky,
+ *             faixa de FilterChips, lista em coluna max-w-[1120px] centralizada,
+ *             QueueSections com SectionHeader, BulkActionBar pill flutuante.
+ *  Mobile  — MobileAppBar (via PageHeaderPremium), SegmentedTabs, cards 1 col
+ *             confortáveis, BottomActionBar em seleção, swipe no card.
  *
- * EPIC-5 (Wave 2):
- *   - Busca textual com debounce (300ms), combinando com filtros ativos.
- *   - Filtros combináveis (Causa + Área + Busca), estado ativo sempre visível.
- *   - Seleção em lote com BulkActionBar flutuante (marcar, adiar, excluir).
- *   - Quick actions no card: onSnooze integrado ao NotebookEntryCard.
+ * Preservado integralmente: hooks/queries, handlers, busca, analytics, gate PRO,
+ * CadernoExportMenu, CTAs Reta Final/Treino, ZeroPendingState.
  */
+
+import '@/components/caderno/ui/caderno-theme.css';
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, Zap, Play, ChevronDown, CheckSquare, Swords, Target, Clock } from 'lucide-react';
+import {
+  BookOpen,
+  Zap,
+  Play,
+  ChevronDown,
+  CheckSquare,
+  Swords,
+  Target,
+  Clock,
+  Flame,
+} from 'lucide-react';
 
 import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
@@ -29,7 +38,7 @@ import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
-import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
+import { PageTransition } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
 import { EmptyState } from '@/components/EmptyState';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
@@ -41,16 +50,22 @@ import { type DbReason } from '@/lib/errorNotebookReasons';
 import { simuladosApi } from '@/services/simuladosApi';
 
 import { TabBar } from '@/components/caderno/TabBar';
-import { PageHero, ENAMED_DATE } from '@/components/caderno/PageHero';
+import { ENAMED_DATE } from '@/components/caderno/PageHero';
 import { FilterBar, type CausaFilter } from '@/components/caderno/FilterBar';
 import { CadernoExportMenu } from '@/components/caderno/CadernoExportMenu';
-import { CadernoSkeleton } from '@/components/caderno/CadernoSkeleton';
 import { ZeroPendingState } from '@/components/caderno/ZeroPendingState';
 import { BulkActionBar } from '@/components/caderno/BulkActionBar';
 import {
   NotebookEntryCard,
   type NotebookEntry,
 } from '@/components/caderno/NotebookEntryCard';
+
+import {
+  PageHeaderPremium,
+  SectionHeader,
+  CadernoEmptyState,
+  CadernoSkeleton,
+} from '@/components/caderno/ui';
 
 /* ── Helpers ── */
 
@@ -76,13 +91,10 @@ function pluralize(n: number, s: string, p: string) {
   return n === 1 ? s : p;
 }
 
-/** Classifica uma entrada nos buckets SRS, degradando para campos legados se necessário. */
 function classifyEntry(entry: NotebookEntry, now: number) {
-  // Use mastered_at (SRS) ou resolved_at (legado)
   const masteredAt = (entry as any).masteredAt ?? (entry as any).mastered_at ?? entry.resolvedAt;
   if (masteredAt) return 'dominadas' as const;
 
-  // Use srs_due_at (SRS) ou next_review_at (legado)
   const srsDueAt = (entry as any).srsDueAt ?? (entry as any).srs_due_at ?? entry.nextReviewAt;
   const srsReps: number = (entry as any).srsReps ?? (entry as any).srs_reps ?? 0;
   const srsInterval: number = (entry as any).srsInterval ?? (entry as any).srs_interval ?? 0;
@@ -92,7 +104,6 @@ function classifyEntry(entry: NotebookEntry, now: number) {
   return 'agendadas' as const;
 }
 
-/** Debounce hook simples para search */
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
   useEffect(() => {
@@ -113,13 +124,11 @@ function CadernoContent({ userId }: { userId: string }) {
   const [loadError, setLoadError] = useState(false);
   const [typeFilter, setTypeFilter] = useState<CausaFilter>('all');
   const [specFilter, setSpecFilter] = useState<string | null>(null);
-  // raw value (instant) — shown in FilterBar input
   const [searchRaw, setSearchRaw] = useState('');
-  // debounced value — used in useMemo for filtering
   const searchDebounced = useDebounce(searchRaw, 300);
   const [showDominadas, setShowDominadas] = useState(false);
 
-  // ── Seleção em lote ──
+  // Seleção em lote
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const isSelectMode = selectedIds.size > 0;
@@ -147,7 +156,6 @@ function CadernoContent({ userId }: { userId: string }) {
           addedAt: row.created_at,
           resolvedAt: row.resolved_at ?? null,
           nextReviewAt: (row.next_review_at as string | null) ?? null,
-          // SRS (may be absent until migration)
           srsReps: (row.srs_reps as number | null) ?? null,
           srsDueAt: (row.srs_due_at as string | null) ?? null,
           srsInterval: (row.srs_interval as number | null) ?? null,
@@ -170,7 +178,6 @@ function CadernoContent({ userId }: { userId: string }) {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  // Analytics
   useEffect(() => {
     if (loading || tracked.current) return;
     tracked.current = true;
@@ -181,7 +188,6 @@ function CadernoContent({ userId }: { userId: string }) {
     });
   }, [loading, entries.length, profile?.segment]);
 
-  // Track filter changes (debounced search included)
   const filterTrackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (loading) return;
@@ -196,12 +202,9 @@ function CadernoContent({ userId }: { userId: string }) {
     return () => { if (filterTrackRef.current) clearTimeout(filterTrackRef.current); };
   }, [typeFilter, specFilter, searchDebounced, loading]);
 
-  // Esc cancela seleção
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isSelectMode) {
-        setSelectedIds(new Set());
-      }
+      if (e.key === 'Escape' && isSelectMode) setSelectedIds(new Set());
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -267,7 +270,6 @@ function CadernoContent({ userId }: { userId: string }) {
   const allResolved = entries.length > 0 && totalPending === 0;
   const streak = useMemo(() => calcStreak(entries), [entries]);
 
-  // Próxima data devida (para ZeroPendingState)
   const nextDueAt = useMemo(() => {
     const nowMs = Date.now();
     const scheduled = entries
@@ -283,7 +285,6 @@ function CadernoContent({ userId }: { userId: string }) {
     const removedEntry = entries.find((e) => e.id === id);
     if (!removedEntry) return;
 
-    // Optimistic remove
     setEntries((es) => es.filter((e) => e.id !== id));
 
     let undone = false;
@@ -299,7 +300,6 @@ function CadernoContent({ userId }: { userId: string }) {
           onClick={() => {
             undone = true;
             setEntries((es) => {
-              // Only re-insert if not already present
               if (es.find((e) => e.id === id)) return es;
               return [...es, removedEntry];
             });
@@ -330,8 +330,6 @@ function CadernoContent({ userId }: { userId: string }) {
       }
     }, 5000);
 
-    // If undo is clicked while timer is still pending, cancel it
-    // (the closure above handles undone=true before the timer fires)
     return () => clearTimeout(timer);
   }, [entries, userId]);
 
@@ -361,9 +359,7 @@ function CadernoContent({ userId }: { userId: string }) {
     const newDueAt = new Date(Date.now() + days * 86_400_000).toISOString();
     setEntries((es) =>
       es.map((e) =>
-        e.id === id
-          ? { ...e, srsDueAt: newDueAt, nextReviewAt: newDueAt }
-          : e,
+        e.id === id ? { ...e, srsDueAt: newDueAt, nextReviewAt: newDueAt } : e,
       ),
     );
     try {
@@ -449,9 +445,7 @@ function CadernoContent({ userId }: { userId: string }) {
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    // Capture only the entries being removed (for targeted rollback)
     const removedEntries = entries.filter((e) => ids.includes(e.id));
-    // Optimistic — remove from UI immediately, show undo toast
     setEntries((es) => es.filter((e) => !ids.includes(e.id)));
     cancelSelection();
 
@@ -464,7 +458,6 @@ function CadernoContent({ userId }: { userId: string }) {
           altText="Desfazer remoção"
           onClick={() => {
             undone = true;
-            // Restore only the removed entries into current state
             setEntries((es) => {
               const existingIds = new Set(es.map((e) => e.id));
               const toRestore = removedEntries.filter((e) => !existingIds.has(e.id));
@@ -487,7 +480,6 @@ function CadernoContent({ userId }: { userId: string }) {
       trackEvent('caderno_bulk_deleted', { count: ids.length });
     } catch (err) {
       logger.error('[CadernoPage] Bulk delete error:', err);
-      // Restore only removed entries into current state
       setEntries((es) => {
         const existingIds = new Set(es.map((e) => e.id));
         const toRestore = removedEntries.filter((e) => !existingIds.has(e.id));
@@ -505,9 +497,32 @@ function CadernoContent({ userId }: { userId: string }) {
     setSearchRaw('');
   };
 
-  /* ── States ── */
+  /* ── CTA — Sessão de Revisão ── */
 
-  if (loading) return <CadernoSkeleton />;
+  const daysLeft = Math.ceil((ENAMED_DATE.getTime() - Date.now()) / 86_400_000);
+  const isENAMEDNear = daysLeft > 0 && daysLeft <= 45;
+
+  /* ── Stats para PageHeaderPremium ── */
+
+  const headerStats = [
+    { label: 'Pendentes', value: totalPending, color: '#f59e0b' },
+    { label: 'Dominadas', value: totalResolved, color: '#16a34a' },
+    { label: 'Total', value: entries.length },
+    { label: 'Especialidades', value: specialties.length },
+    ...(streak > 0
+      ? [{ label: `${pluralize(streak, 'dia', 'dias')} seguido${streak > 1 ? 's' : ''}`, value: streak, color: '#f97316' }]
+      : []),
+  ];
+
+  /* ── Loading state ── */
+
+  if (loading) {
+    return (
+      <div className="caderno-root">
+        <CadernoSkeleton count={5} />
+      </div>
+    );
+  }
 
   if (loadError && entries.length === 0) {
     return (
@@ -520,283 +535,310 @@ function CadernoContent({ userId }: { userId: string }) {
     );
   }
 
+  /* ── Empty state (zero entries ever) ── */
+
   if (entries.length === 0) {
     return (
-      <div className="mx-auto max-w-xl rounded-3xl border-2 border-dashed border-primary/25 bg-primary/[0.04] p-10 text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent">
-          <BookOpen className="h-7 w-7 text-primary" aria-hidden />
-        </div>
-        <h3 className="text-heading-2 text-foreground">Seu Caderno está vazio</h3>
-        <p className="mx-auto mt-2 max-w-md text-body leading-relaxed text-muted-foreground">
-          Na correção do simulado, toque em{' '}
-          <strong className="font-semibold text-foreground">"Salvar no Caderno"</strong> para
-          adicionar questões que quer dominar.
-        </p>
-        <Link
-          to="/simulados"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-body-sm font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_hsl(345_65%_30%/0.4)] transition-all duration-200 hover:bg-wine-hover no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.99]"
-        >
-          <Zap className="h-4 w-4" aria-hidden />
-          Ver simulados disponíveis
-        </Link>
+      <div className="caderno-root">
+        <CadernoEmptyState
+          className="mx-auto max-w-xl"
+          icon={<BookOpen className="h-8 w-8 text-[var(--c-muted)]" />}
+          title="Seu Caderno está vazio"
+          description={'Na correção do simulado, toque em "Salvar no Caderno" para adicionar questões que quer dominar.'}
+          action={
+            <Link
+              to="/simulados"
+              className={cn(
+                'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] px-5 py-2.5 text-[13px] font-bold text-white no-underline',
+                'bg-[var(--c-gradient-brand)] bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
+                'shadow-[var(--c-shadow-glow)] transition-all duration-[var(--c-duration-base)]',
+                'hover:shadow-[0_8px_32px_-8px_rgba(176,41,74,.55)] hover:-translate-y-0.5',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+              )}
+              aria-label="Ver simulados disponíveis"
+            >
+              <Zap className="h-4 w-4" aria-hidden />
+              Ver simulados disponíveis
+            </Link>
+          }
+        />
       </div>
     );
   }
 
   /* ── Main layout ── */
+
   return (
-    <>
-      <StaggerContainer className="space-y-5 md:space-y-6">
-        {/* Hero */}
-        <StaggerItem>
-          <PageHero
-            pendingCount={totalPending}
-            resolvedCount={totalResolved}
-            totalCount={entries.length}
-            specialtyCount={specialties.length}
-            streak={streak}
-          />
-        </StaggerItem>
+    <div className="caderno-root">
+      <div className="mx-auto max-w-[1120px] space-y-5 pb-10">
 
-        {/* CTAs — Treino + Reta Final */}
-        <StaggerItem>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* CTA Treino — discreto, sempre visível */}
-            <Link
-              to="/caderno/treino"
-              onClick={() => trackEvent('caderno_treino_cta_clicked', { source: 'caderno_v2_header' })}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5',
-                'text-[12px] font-semibold text-muted-foreground no-underline',
-                'transition-all duration-150 hover:border-primary/30 hover:text-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              )}
-              aria-label="Treinar pontos fracos"
-            >
-              <Target className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Treinar pontos fracos
-            </Link>
-
-            {/* CTA Reta Final — destaque quando ≤ 45 dias */}
-            {(() => {
-              const daysLeft = Math.ceil((ENAMED_DATE.getTime() - Date.now()) / 86_400_000);
-              const isNear = daysLeft > 0 && daysLeft <= 45;
-              return daysLeft > 0 ? (
-                <Link
-                  to="/caderno/reta-final"
-                  onClick={() => trackEvent('caderno_reta_final_cta_clicked', { source: 'caderno_v2_header', days_left: daysLeft })}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 no-underline',
-                    'text-[12px] font-semibold transition-all duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    isNear
-                      ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 shadow-[0_2px_10px_-4px_hsl(345_65%_30%/0.35)]'
-                      : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
-                  )}
-                  aria-label={`Reta Final ENAMED — ${daysLeft} ${daysLeft === 1 ? 'dia restante' : 'dias restantes'}`}
-                >
-                  <Swords className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  Reta Final ENAMED
-                  {isNear && (
-                    <span
-                      className="ml-0.5 inline-flex items-center gap-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums"
-                      aria-label={`${daysLeft} dias restantes`}
-                    >
-                      <Clock className="h-2.5 w-2.5" aria-hidden />
-                      {daysLeft}d
-                    </span>
-                  )}
-                </Link>
-              ) : null;
-            })()}
-          </div>
-        </StaggerItem>
-
-        {/* Filters */}
-        <StaggerItem>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <FilterBar
-                typeOptions={typeOptions}
-                specialties={specialties}
-                totalCount={filtered.length}
-                typeFilter={typeFilter}
-                specFilter={specFilter}
-                search={searchRaw}
-                typeCounts={typeCounts}
-                onTypeChange={setTypeFilter}
-                onSpecChange={setSpecFilter}
-                onSearchChange={setSearchRaw}
-              />
-            </div>
-            {/* Ações do header: exportar + selecionar */}
-            <div className="mt-0.5 flex shrink-0 items-center gap-2">
-              {/* Export menu — desabilita automaticamente se vazio */}
-              <CadernoExportMenu
-                entries={entries as any}
-                variant="outline"
-                size="sm"
-              />
-              {/* Botão modo de seleção em lote */}
-              {entries.length > 0 && (
-                <button
-                  type="button"
-                  aria-pressed={isSelectMode}
-                  aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
-                  onClick={() => isSelectMode ? cancelSelection() : undefined}
-                  title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
-                  className={cn(
-                    'inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-all duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    isSelectMode
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
-                  )}
-                >
-                  <CheckSquare className="h-3.5 w-3.5" aria-hidden />
-                  <span className="hidden sm:inline">{isSelectMode ? 'Selecionando' : 'Selecionar'}</span>
-                  {isSelectMode && (
-                    <span className="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">
-                      {selectedIds.size}
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </StaggerItem>
-
-        {/* CTA sessão de revisão */}
-        {!allResolved && totalPending > 0 && (
-          <StaggerItem>
-            <Link
-              to="/caderno/revisao"
-              onClick={() =>
-                trackEvent('caderno_revisao_cta_clicked', {
-                  source: 'caderno_v2_hero',
-                  pending: totalPending,
-                })
-              }
-              className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.06] via-primary/[0.04] to-transparent px-5 py-4 no-underline transition-all duration-200 hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_hsl(345_65%_30%/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="relative shrink-0">
-                  <div className="overflow-hidden rounded-full border-2 border-background bg-primary/[0.04] shadow-sm">
-                    <ProfSanorAvatar size={44} />
-                  </div>
-                  <span
-                    className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-success"
-                    aria-hidden
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-body font-bold text-foreground">Modo revisão com Prof. San</p>
-                  <p className="text-caption text-muted-foreground">
-                    Revise {totalPending}{' '}
-                    {pluralize(totalPending, 'questão pendente', 'questões pendentes')} com análise de IA.
-                  </p>
-                </div>
-              </div>
-              <div className="hidden shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_hsl(345_65%_30%/0.4)] transition-transform group-hover:scale-[1.02] sm:flex">
+        {/* ── PageHeaderPremium ── */}
+        <PageHeaderPremium
+          title="Caderno de Erros"
+          subtitle="Revise suas questões organizadas por causa e especialidade."
+          stats={headerStats}
+          primaryAction={
+            !allResolved && totalPending > 0 ? (
+              <Link
+                to="/caderno/revisao"
+                onClick={() =>
+                  trackEvent('caderno_revisao_cta_clicked', {
+                    source: 'caderno_v2_header',
+                    pending: totalPending,
+                  })
+                }
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] px-5 py-2.5',
+                  'text-[13px] font-bold text-white no-underline',
+                  'bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
+                  'shadow-[var(--c-shadow-glow)] transition-all duration-[var(--c-duration-base)]',
+                  'hover:shadow-[0_8px_32px_-8px_rgba(176,41,74,.55)] hover:-translate-y-0.5 active:scale-[0.98]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                )}
+              >
                 <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
-                Iniciar sessão
-              </div>
+                Iniciar revisão
+              </Link>
+            ) : undefined
+          }
+        />
+
+        {/* ── CTAs secundários (Treino + Reta Final) ── */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/caderno/treino"
+            onClick={() => trackEvent('caderno_treino_cta_clicked', { source: 'caderno_v2_header' })}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-1.5',
+              'text-[12px] font-semibold text-[var(--c-muted)] no-underline',
+              'transition-all duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            )}
+            aria-label="Treinar pontos fracos"
+          >
+            <Target className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            Treinar pontos fracos
+          </Link>
+
+          {daysLeft > 0 && (
+            <Link
+              to="/caderno/reta-final"
+              onClick={() => trackEvent('caderno_reta_final_cta_clicked', { source: 'caderno_v2_header', days_left: daysLeft })}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-1.5 no-underline',
+                'text-[12px] font-semibold transition-all duration-[var(--c-duration-fast)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                isENAMEDNear
+                  ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] hover:bg-[var(--c-wine-100)] shadow-[var(--c-shadow-sm)] dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]'
+                  : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
+              )}
+              aria-label={`Reta Final ENAMED — ${daysLeft} ${daysLeft === 1 ? 'dia restante' : 'dias restantes'}`}
+            >
+              <Swords className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Reta Final ENAMED
+              {isENAMEDNear && (
+                <span
+                  className="ml-0.5 inline-flex items-center gap-0.5 rounded-full bg-[var(--c-wine-500)] px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums"
+                  aria-label={`${daysLeft} dias restantes`}
+                >
+                  <Clock className="h-2.5 w-2.5" aria-hidden />
+                  {daysLeft}d
+                </span>
+              )}
             </Link>
-          </StaggerItem>
-        )}
+          )}
+        </div>
 
-        {/* Zero pendentes */}
-        {allResolved && (
-          <StaggerItem>
-            <ZeroPendingState
-              resolvedCount={totalResolved}
-              streak={streak}
-              nextDueAt={nextDueAt}
-              onShowResolved={() => setShowDominadas(true)}
+        {/* ── Filtros + ações do header ── */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <FilterBar
+              typeOptions={typeOptions}
+              specialties={specialties}
+              totalCount={filtered.length}
+              typeFilter={typeFilter}
+              specFilter={specFilter}
+              search={searchRaw}
+              typeCounts={typeCounts}
+              onTypeChange={setTypeFilter}
+              onSpecChange={setSpecFilter}
+              onSearchChange={setSearchRaw}
             />
-          </StaggerItem>
+          </div>
+
+          {/* Exportar + Selecionar */}
+          <div className="mt-0.5 flex shrink-0 items-center gap-2">
+            <CadernoExportMenu
+              entries={entries as any}
+              variant="outline"
+              size="sm"
+            />
+            {entries.length > 0 && (
+              <button
+                type="button"
+                aria-pressed={isSelectMode}
+                aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
+                onClick={() => { if (isSelectMode) cancelSelection(); }}
+                title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
+                className={cn(
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-2 text-[12px] font-semibold transition-all duration-[var(--c-duration-fast)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  isSelectMode
+                    ? 'border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]'
+                    : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
+                )}
+              >
+                <CheckSquare className="h-3.5 w-3.5" aria-hidden />
+                <span className="hidden sm:inline">{isSelectMode ? 'Selecionando' : 'Selecionar'}</span>
+                {isSelectMode && (
+                  <span className="ml-0.5 rounded-full bg-[var(--c-wine-500)] px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                    {selectedIds.size}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── CTA sessão de revisão (banner) ── */}
+        {!allResolved && totalPending > 0 && (
+          <Link
+            to="/caderno/revisao"
+            onClick={() =>
+              trackEvent('caderno_revisao_cta_clicked', {
+                source: 'caderno_v2_hero',
+                pending: totalPending,
+              })
+            }
+            className={cn(
+              'group relative flex items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)] no-underline',
+              'border border-[var(--c-wine-300)]/30 bg-gradient-to-r from-[var(--c-wine-50)] via-[var(--c-surface)] to-[var(--c-surface)]',
+              'dark:from-[var(--c-wine-900)]/20 dark:via-[var(--c-surface)] dark:border-[var(--c-wine-700)]/30',
+              'px-5 py-4 shadow-[var(--c-shadow-sm)]',
+              'transition-all duration-[var(--c-duration-base)] hover:border-[var(--c-wine-400)]/50 hover:shadow-[var(--c-shadow-md)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            )}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="overflow-hidden rounded-full border-2 border-[var(--c-surface)] shadow-[var(--c-shadow-sm)]">
+                  <ProfSanorAvatar size={44} />
+                </div>
+                <span
+                  className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--c-surface)] bg-[var(--c-success)]"
+                  aria-hidden
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold text-[var(--c-ink)]">Modo revisão com Prof. San</p>
+                <p className="text-[12px] text-[var(--c-muted)]">
+                  Revise {totalPending}{' '}
+                  {pluralize(totalPending, 'questão pendente', 'questões pendentes')} com análise de IA.
+                </p>
+              </div>
+            </div>
+            <div className={cn(
+              'hidden shrink-0 items-center gap-1.5 rounded-[var(--c-radius-control)] px-4 py-2 text-[13px] font-bold text-white sm:flex',
+              'bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
+              'shadow-[var(--c-shadow-glow)] transition-transform duration-[var(--c-duration-fast)] group-hover:-translate-y-0.5',
+            )}>
+              <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
+              Iniciar sessão
+            </div>
+          </Link>
         )}
 
-        {/* Filtro sem resultado */}
+        {/* ── Zero pendentes (celebratório) ── */}
+        {allResolved && (
+          <ZeroPendingState
+            resolvedCount={totalResolved}
+            streak={streak}
+            nextDueAt={nextDueAt}
+            onShowResolved={() => setShowDominadas(true)}
+          />
+        )}
+
+        {/* ── Filtro sem resultado ── */}
         {!allResolved && filtered.length === 0 && (
-          <StaggerItem>
-            <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
-              <p className="text-body-sm text-muted-foreground">
-                Nenhuma questão corresponde aos filtros selecionados.
-              </p>
+          <CadernoEmptyState
+            title="Nenhuma questão encontrada"
+            description="Nenhuma questão corresponde aos filtros selecionados."
+            action={
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:text-wine-hover focus-visible:outline-none focus-visible:underline"
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-[12px] font-semibold text-[var(--c-muted)]',
+                  'transition-colors duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                )}
               >
                 Limpar filtros
               </button>
-            </div>
-          </StaggerItem>
+            }
+          />
         )}
 
         {/* ── Devidas hoje ── */}
         {buckets.devidas.length > 0 && (
-          <StaggerItem>
-            <QueueSection
-              label="Devidas hoje"
-              count={buckets.devidas.length}
-              entries={buckets.devidas}
-              prefersReducedMotion={!!prefersReducedMotion}
-              onRemove={handleRemove}
-              onToggleMastered={handleToggleMastered}
-              onSnooze={handleSnooze}
-              selectable={isSelectMode}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-            />
-          </StaggerItem>
+          <QueueSection
+            label="Devidas hoje"
+            count={buckets.devidas.length}
+            entries={buckets.devidas}
+            prefersReducedMotion={!!prefersReducedMotion}
+            onRemove={handleRemove}
+            onToggleMastered={handleToggleMastered}
+            onSnooze={handleSnooze}
+            selectable={isSelectMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+          />
         )}
 
         {/* ── Em aprendizado ── */}
         {buckets.emAprendizado.length > 0 && (
-          <StaggerItem>
-            <QueueSection
-              label="Em aprendizado"
-              count={buckets.emAprendizado.length}
-              entries={buckets.emAprendizado}
-              prefersReducedMotion={!!prefersReducedMotion}
-              onRemove={handleRemove}
-              onToggleMastered={handleToggleMastered}
-              onSnooze={handleSnooze}
-              selectable={isSelectMode}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-            />
-          </StaggerItem>
+          <QueueSection
+            label="Em aprendizado"
+            count={buckets.emAprendizado.length}
+            entries={buckets.emAprendizado}
+            prefersReducedMotion={!!prefersReducedMotion}
+            onRemove={handleRemove}
+            onToggleMastered={handleToggleMastered}
+            onSnooze={handleSnooze}
+            selectable={isSelectMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+          />
         )}
 
         {/* ── Agendadas ── */}
         {buckets.agendadas.length > 0 && (
-          <StaggerItem>
-            <QueueSection
-              label="Agendadas"
-              count={buckets.agendadas.length}
-              entries={buckets.agendadas}
-              prefersReducedMotion={!!prefersReducedMotion}
-              onRemove={handleRemove}
-              onToggleMastered={handleToggleMastered}
-              onSnooze={handleSnooze}
-              selectable={isSelectMode}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-            />
-          </StaggerItem>
+          <QueueSection
+            label="Agendadas"
+            count={buckets.agendadas.length}
+            entries={buckets.agendadas}
+            prefersReducedMotion={!!prefersReducedMotion}
+            onRemove={handleRemove}
+            onToggleMastered={handleToggleMastered}
+            onSnooze={handleSnooze}
+            selectable={isSelectMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+          />
         )}
 
         {/* ── Dominadas (colapsável) ── */}
         {buckets.dominadas.length > 0 && (
-          <StaggerItem>
+          <div>
             {!showDominadas ? (
               <button
                 type="button"
                 onClick={() => setShowDominadas(true)}
-                className="inline-flex items-center gap-1.5 text-caption font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
+                className={cn(
+                  'inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--c-muted)]',
+                  'transition-colors duration-[var(--c-duration-fast)] hover:text-[var(--c-ink)]',
+                  'focus-visible:outline-none focus-visible:underline',
+                )}
               >
                 <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 Ver {buckets.dominadas.length}{' '}
@@ -810,7 +852,7 @@ function CadernoContent({ userId }: { userId: string }) {
                   transition={{ duration: 0.3 }}
                 >
                   <QueueSection
-                    label={`Dominadas (${buckets.dominadas.length})`}
+                    label={`Dominadas`}
                     count={buckets.dominadas.length}
                     entries={buckets.dominadas}
                     prefersReducedMotion={!!prefersReducedMotion}
@@ -826,11 +868,11 @@ function CadernoContent({ userId }: { userId: string }) {
                 </motion.div>
               </AnimatePresence>
             )}
-          </StaggerItem>
+          </div>
         )}
-      </StaggerContainer>
+      </div>
 
-      {/* BulkActionBar flutuante */}
+      {/* BulkActionBar */}
       <BulkActionBar
         count={selectedIds.size}
         onCancel={cancelSelection}
@@ -839,7 +881,7 @@ function CadernoContent({ userId }: { userId: string }) {
         onDelete={handleBulkDelete}
         busy={bulkBusy}
       />
-    </>
+    </div>
   );
 }
 
@@ -875,33 +917,29 @@ function QueueSection({
   onToggleSelect,
 }: QueueSectionProps) {
   return (
-    <div>
-      <div className="mb-2.5 flex items-center justify-between">
-        <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </span>
-        <div className="flex items-center gap-3">
-          <span className="text-caption text-muted-foreground">
-            {count} {pluralize(count, 'questão', 'questões')}
-          </span>
-          {onHide && (
+    <div className="space-y-3">
+      <SectionHeader
+        title={label}
+        count={count}
+        action={
+          onHide ? (
             <button
               type="button"
               onClick={onHide}
-              className="text-caption text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
+              className="text-[12px] font-semibold text-[var(--c-muted)] transition-colors hover:text-[var(--c-ink)] focus-visible:outline-none focus-visible:underline"
             >
               Ocultar
             </button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
       <motion.div
         className="flex flex-col gap-2"
         initial="hidden"
         animate="visible"
         variants={{
           visible: {
-            transition: { staggerChildren: prefersReducedMotion ? 0 : 0.04 },
+            transition: { staggerChildren: prefersReducedMotion ? 0 : 0.035 },
           },
           hidden: {},
         }}
@@ -910,8 +948,12 @@ function QueueSection({
           <motion.div
             key={entry.id}
             variants={{
-              hidden: prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+              hidden: prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 },
+              visible: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+              },
             }}
           >
             <NotebookEntryCard

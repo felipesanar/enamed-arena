@@ -7,6 +7,9 @@
  *   3. Estado vazio informativo.
  *
  * Rastreia caderno_roi_viewed (IntersectionObserver) e caderno_roi_area_expanded.
+ *
+ * Design: clínico premium — card com CadernoCard, gráfico recharts
+ * estilizado com tokens wine/semânticos, tooltip custom, grid suave.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -16,10 +19,11 @@ import {
   Line,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   CartesianGrid,
+  ReferenceLine,
 } from 'recharts';
-import { ChevronDown, ChevronUp, TrendingUp, Info } from 'lucide-react';
+import { TrendingUp, Info, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
@@ -34,7 +38,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Skeleton } from '@/components/ui/skeleton';
+import { CadernoCard, SectionHeader, SkeletonLine } from '@/components/caderno/ui';
 
 // ─── Types (shape do retorno de getAreaScoreHistory) ───
 
@@ -68,18 +72,61 @@ function deltaLabel(delta: number) {
   return `${delta >= 0 ? '+' : '-'}${abs}pp`;
 }
 
-function deltaClass(delta: number) {
-  if (delta >= 5) return 'text-success font-bold';
-  if (delta < -5) return 'text-destructive font-bold';
-  return 'text-muted-foreground';
-}
-
 function formatDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
   } catch {
     return iso;
   }
+}
+
+// ─── Custom Tooltip para sparkline ───
+
+function SparklineTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload as { name: string; score: number; date: string };
+  return (
+    <div
+      style={getChartTooltipContentStyle()}
+      className="rounded-xl px-3 py-2 text-[12px] space-y-0.5"
+      role="tooltip"
+    >
+      <p className="font-bold text-foreground tabular-nums">{d.score}%</p>
+      <p className="text-muted-foreground">{d.date}</p>
+    </div>
+  );
+}
+
+// ─── DeltaBadge ───
+
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta == null) return <span className="text-muted-foreground/50 text-caption">—</span>;
+
+  const abs = Math.abs(Math.round(delta));
+  const label = `${delta >= 0 ? '+' : '-'}${abs}pp`;
+
+  if (delta >= 5) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-success text-caption font-bold tabular-nums">
+        <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+        {label}
+      </span>
+    );
+  }
+  if (delta < -5) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-destructive text-caption font-bold tabular-nums">
+        <ArrowDownRight className="h-3.5 w-3.5" aria-hidden />
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 text-muted-foreground text-caption tabular-nums">
+      <Minus className="h-3.5 w-3.5" aria-hidden />
+      {label}
+    </span>
+  );
 }
 
 // ─── AreaRow ───
@@ -101,22 +148,18 @@ function AreaRow({ area, scoreBefore, scoreAfter, delta }: AreaRowProps) {
 
   return (
     <tr
-      className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors cursor-default"
+      className="border-b border-border/50 last:border-0 hover:bg-[var(--c-surface-2)] transition-colors duration-100 cursor-default"
       onClick={handleExpand}
     >
-      <td className="py-2.5 pr-4 text-[13px] font-medium text-foreground">{area}</td>
-      <td className="py-2.5 pr-4 text-center text-caption tabular-nums text-muted-foreground">
+      <td className="px-4 py-2.5 text-[13px] font-medium text-foreground">{area}</td>
+      <td className="px-4 py-2.5 text-center text-caption tabular-nums text-muted-foreground">
         {scoreBefore != null ? toPercent(scoreBefore) : '—'}
       </td>
-      <td className="py-2.5 pr-4 text-center text-caption tabular-nums text-muted-foreground">
+      <td className="px-4 py-2.5 text-center text-caption tabular-nums text-muted-foreground">
         {scoreAfter != null ? toPercent(scoreAfter) : '—'}
       </td>
-      <td className="py-2.5 text-center text-caption tabular-nums">
-        {delta != null ? (
-          <span className={deltaClass(delta)}>{deltaLabel(delta)}</span>
-        ) : (
-          <span className="text-muted-foreground/50">—</span>
-        )}
+      <td className="px-4 py-2.5 text-center">
+        <DeltaBadge delta={delta} />
       </td>
     </tr>
   );
@@ -129,6 +172,18 @@ interface RoiPanelProps {
   loading: boolean;
   /** Kept for API compatibility; no longer used internally. */
   roiInsights?: Array<{ data: Record<string, unknown> }>;
+}
+
+// ─── Skeleton ───
+
+function RoiSkeleton() {
+  return (
+    <section aria-label="Painel de ROI — carregando" className="space-y-4">
+      <SkeletonLine className="h-5 w-52" />
+      <SkeletonLine className="h-[180px] w-full rounded-[var(--c-radius-card)]" />
+      <SkeletonLine className="h-36 w-full rounded-[var(--c-radius-card)]" />
+    </section>
+  );
 }
 
 // ─── Component ───
@@ -149,14 +204,12 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
         if (entries[0].isIntersecting && !trackedRoi.current) {
           trackedRoi.current = true;
 
-          // Calcular métricas para o evento
           const areas = Object.entries(history.by_area ?? {});
           let areasWithRoi = 0;
           let bestDelta = 0;
           let hasPositive = false;
 
           for (const [_area, scores] of areas) {
-            // Tentativa simples: metade inicial vs metade final
             const mid = Math.floor(scores.length / 2);
             if (mid < 1) continue;
             const before = scores.slice(0, mid).reduce((s, x) => s + x.score, 0) / mid;
@@ -180,6 +233,8 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
     observer.observe(panelRef.current);
     return () => observer.disconnect();
   }, [loading, history]);
+
+  if (loading) return <RoiSkeleton />;
 
   // ─── Sparkline data ───
   const sparklineData = (history?.global ?? [])
@@ -214,18 +269,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
     },
   );
 
-  const noData = !loading && (!history || (sparklineData.length === 0 && areaRows.length === 0));
-
-  // ─── Skeleton ───
-  if (loading) {
-    return (
-      <section aria-label="Painel de ROI — carregando" className="space-y-4">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-[180px] w-full rounded-2xl" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
-      </section>
-    );
-  }
+  const noData = !history || (sparklineData.length === 0 && areaRows.length === 0);
 
   return (
     <section
@@ -233,21 +277,33 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
       aria-label="Painel de ROI — retorno sobre investimento no caderno"
       className="space-y-5"
     >
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-success shrink-0" aria-hidden />
-          <h2 className="text-heading-3 font-bold text-foreground">
-            Retorno do caderno (ROI)
-          </h2>
+        <div className="flex items-center gap-2.5">
+          <span
+            className="inline-flex items-center justify-center h-8 w-8 rounded-[10px] bg-success/10 text-success"
+            aria-hidden
+          >
+            <TrendingUp className="h-4 w-4" />
+          </span>
+          <SectionHeader
+            title="Retorno do caderno (ROI)"
+            className="m-0 p-0 border-0"
+          />
         </div>
+
         <UiTooltip delayDuration={200}>
           <TooltipTrigger asChild>
             <button
               type="button"
               aria-label="Como calculamos o ROI"
               onClick={() => setMethodologyOpen((o) => !o)}
-              className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
+              className={cn(
+                'inline-flex items-center justify-center h-8 w-8 rounded-lg',
+                'text-muted-foreground transition-colors duration-150',
+                'hover:bg-[var(--c-surface-2)] hover:text-foreground',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              )}
             >
               <Info className="h-4 w-4" aria-hidden />
             </button>
@@ -256,7 +312,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
         </UiTooltip>
       </div>
 
-      {/* Nota metodológica (colapsável) */}
+      {/* ── Nota metodológica ── */}
       <AnimatePresence initial={false}>
         {methodologyOpen && (
           <motion.div
@@ -264,10 +320,10 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="rounded-xl bg-muted/50 border border-border px-4 py-3 text-caption text-muted-foreground leading-relaxed">
+            <p className="rounded-xl bg-[var(--c-surface-2)] border border-border px-4 py-3 text-caption text-muted-foreground leading-relaxed">
               Comparamos seu acerto em cada área nos simulados antes e depois de cada domínio
               registrado no caderno. O delta mostra quantos pontos percentuais seu acerto mudou.
             </p>
@@ -275,62 +331,70 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
         )}
       </AnimatePresence>
 
-      {/* Estado sem dados */}
+      {/* ── Estado sem dados ── */}
       {noData ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-10 text-center space-y-2">
-          <p className="text-body font-medium text-foreground">Sem dados de ROI ainda</p>
+        <CadernoCard className="px-6 py-10 text-center space-y-2">
+          <p className="text-body font-semibold text-foreground">Sem dados de ROI ainda</p>
           <p className="text-caption text-muted-foreground max-w-sm mx-auto">
             Domine questões do caderno e complete pelo menos um simulado depois para ver o
             impacto do seu estudo aqui.
           </p>
-        </div>
+        </CadernoCard>
       ) : (
         <>
-          {/* Sparkline global */}
+          {/* ── Sparkline global ── */}
           {sparklineData.length >= 2 && (
-            <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
-              <p className="text-body-sm font-semibold text-foreground mb-4">
+            <CadernoCard className="p-4 md:p-5">
+              <p className="text-[13px] font-semibold text-foreground mb-0.5">
                 Evolução do score global
               </p>
-              <div className="h-[160px]">
+              <p className="text-caption text-muted-foreground mb-4">
+                Score acumulado em simulados completados
+              </p>
+              <div className="h-[140px] md:h-[160px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={sparklineData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                  <LineChart
+                    data={sparklineData}
+                    margin={{ top: 4, right: 12, left: -8, bottom: 4 }}
+                  >
                     <CartesianGrid {...getChartGridProps()} />
-                    <XAxis dataKey="name" tick={getChartTickStyle()} />
+                    <XAxis dataKey="name" tick={getChartTickStyle()} tickLine={false} axisLine={false} />
                     <YAxis
                       domain={[0, 100]}
                       tick={getChartTickStyle()}
                       tickFormatter={(v) => `${v}%`}
+                      tickLine={false}
+                      axisLine={false}
                     />
-                    <Tooltip
-                      contentStyle={getChartTooltipContentStyle()}
-                      formatter={(v: number) => [`${v}%`, 'Score']}
-                      labelFormatter={(label, payload) => {
-                        const p = payload?.[0]?.payload as { date?: string };
-                        return p?.date ? `${label} · ${p.date}` : label;
-                      }}
+                    {/* Linha de referência 50% */}
+                    <ReferenceLine
+                      y={50}
+                      stroke={chartColors.muted}
+                      strokeDasharray="4 3"
+                      strokeOpacity={0.5}
                     />
+                    <RechartsTooltip content={<SparklineTooltip />} cursor={{ stroke: chartColors.muted, strokeWidth: 1, strokeDasharray: '3 3' }} />
                     <Line
                       type="monotone"
                       dataKey="score"
                       stroke={chartColors.primary}
                       strokeWidth={2.5}
-                      dot={{ r: 4, fill: chartColors.primary, stroke: '#fff', strokeWidth: 2 }}
-                      activeDot={{ r: 6 }}
+                      dot={{ r: 4, fill: chartColors.primary, stroke: 'var(--background)', strokeWidth: 2 }}
+                      activeDot={{ r: 6, stroke: 'var(--background)', strokeWidth: 2 }}
                       connectNulls={false}
                       isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </CadernoCard>
           )}
 
-          {/* Tabela por área */}
+          {/* ── Tabela por área ── */}
           {areaRows.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="px-4 py-3 border-b border-border">
-                <p className="text-body-sm font-semibold text-foreground">Score por área</p>
+            <CadernoCard className="overflow-hidden p-0">
+              <div className="px-4 py-3 border-b border-border bg-[var(--c-surface-2)]/50">
+                <p className="text-[13px] font-semibold text-foreground">Score por área</p>
                 <p className="text-caption text-muted-foreground">
                   Antes e depois de dominar questões do caderno
                 </p>
@@ -338,7 +402,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[360px]">
                   <thead>
-                    <tr className="border-b border-border/50 bg-muted/30">
+                    <tr className="border-b border-border/60 bg-[var(--c-surface-2)]/40">
                       <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Área
                       </th>
@@ -353,7 +417,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="px-4">
+                  <tbody>
                     {areaRows
                       .sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))
                       .map((row) => (
@@ -368,7 +432,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </CadernoCard>
           )}
         </>
       )}

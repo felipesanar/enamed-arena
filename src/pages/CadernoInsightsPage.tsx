@@ -7,15 +7,16 @@
  * Responsabilidades:
  *   - Busca insights via React Query (useQuery caderno-pattern-insights, staleTime 24h).
  *   - Busca histórico de scores por área (useQuery caderno-area-score-history, staleTime 5min).
- *   - Renderiza PageHero + TabBar + Prof. San header.
+ *   - Renderiza PageHeaderPremium com avatar Prof. San + botão Atualizar.
+ *   - Desktop: grid 2-col para InsightCards; 1-col mobile.
  *   - Lista InsightCard agrupados por severidade (critical → attention → positive → info).
- *   - Exibe RoiPanel na seção final.
+ *   - Exibe RoiPanel + CalibrationPanel em seções finais.
  *   - Estados: loading skeleton, has_sufficient_data=false, erro, from_cache, pronto.
  *   - Instrumentação de analytics (caderno_insights_viewed, caderno_insights_refreshed).
  */
 
 import { useEffect, useRef } from 'react';
-import { BookOpen, RefreshCw, WifiOff } from 'lucide-react';
+import { BookOpen, RefreshCw, WifiOff, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,10 +25,10 @@ import { ptBR } from 'date-fns/locale';
 import { trackEvent, setSuperProperties } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
-import { Skeleton } from '@/components/ui/skeleton';
 
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,12 +36,20 @@ import { SEGMENT_ACCESS } from '@/types';
 import { simuladosApi } from '@/services/simuladosApi';
 
 import { TabBar } from '@/components/caderno/TabBar';
-import { PageHero } from '@/components/caderno/PageHero';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import { InsightCard } from '@/components/caderno/insights/InsightCard';
 import { RoiPanel } from '@/components/caderno/insights/RoiPanel';
 import { CalibrationPanel } from '@/components/caderno/insights/CalibrationPanel';
 import { InsightsEmptyState } from '@/components/caderno/insights/InsightsEmptyState';
+
+import {
+  CadernoCard,
+  SectionHeader,
+  CadernoCardSkeleton,
+  SkeletonLine,
+  MobileAppBar,
+  PageHeaderPremium,
+} from '@/components/caderno/ui';
 
 import type { Insight } from '@/types/caderno';
 
@@ -67,22 +76,131 @@ function relativeTime(iso: string): string {
   }
 }
 
-// ─── InsightsSkeleton ───
+// ─── InsightsSkeleton premium ───
 
 function InsightsSkeleton() {
   return (
     <div className="space-y-4" aria-busy="true" aria-label="Carregando insights">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="rounded-2xl border border-border bg-card p-5 space-y-3">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-8 rounded-lg" />
-            <Skeleton className="h-5 w-48" />
+      {/* Header Prof. San skeleton */}
+      <div className="flex items-center justify-between gap-3 pb-2">
+        <div className="flex items-center gap-3">
+          <SkeletonLine className="h-12 w-12 rounded-full" />
+          <div className="space-y-1.5">
+            <SkeletonLine className="h-4 w-44" />
+            <SkeletonLine className="h-3 w-28" />
           </div>
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-8 w-36 rounded-xl" />
         </div>
-      ))}
+        <SkeletonLine className="h-9 w-36 rounded-xl" />
+      </div>
+      {/* Cards */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {[0, 1, 2, 3].map((i) => (
+          <CadernoCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ProfSanHeader ───
+
+interface ProfSanHeaderProps {
+  userName: string;
+  insightsFetching: boolean;
+  fromCache: boolean;
+  cacheLabel: string | null;
+  generatedAt: string | null;
+  onRefresh: () => void;
+}
+
+function ProfSanHeader({
+  userName,
+  insightsFetching,
+  fromCache,
+  cacheLabel,
+  generatedAt,
+  onRefresh,
+}: ProfSanHeaderProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between gap-3',
+        'rounded-[var(--c-radius-card)] border border-border bg-[var(--c-surface)]',
+        'px-4 py-4 shadow-[var(--c-shadow-sm)]',
+        'md:px-5',
+      )}
+    >
+      {/* Avatar + texto */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="relative shrink-0">
+          <div
+            className={cn(
+              'overflow-hidden rounded-full',
+              'border-2 border-[var(--c-wine-200)] dark:border-[var(--c-wine-800)]',
+              'shadow-sm',
+            )}
+          >
+            <ProfSanorAvatar size={48} animated={insightsFetching} />
+          </div>
+          {/* Indicador online */}
+          <span
+            className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--c-surface)] bg-success"
+            aria-hidden
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="text-body font-bold text-foreground leading-snug">
+            Análise do seu caderno pelo Prof. San
+          </p>
+          <p className="text-caption text-muted-foreground">
+            {userName ? `Diagnóstico personalizado para ${userName}` : 'Diagnóstico personalizado'}
+          </p>
+        </div>
+      </div>
+
+      {/* Direita: cache label + botão */}
+      <div className="flex shrink-0 items-center gap-2">
+        {fromCache && cacheLabel && (
+          <span
+            className={cn(
+              'hidden sm:inline-flex items-center gap-1',
+              'rounded-full bg-[var(--c-surface-2)] border border-border',
+              'px-2.5 py-1 text-[11px] font-medium text-muted-foreground',
+            )}
+            title={generatedAt ? `Gerado em: ${generatedAt}` : undefined}
+          >
+            <Clock className="h-3 w-3 shrink-0" aria-hidden />
+            {cacheLabel}
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={insightsFetching}
+          aria-label="Atualizar análise do Prof. San"
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-xl',
+            'border border-border bg-[var(--c-surface-2)] px-3 py-2',
+            'text-[12px] font-semibold text-muted-foreground',
+            'transition-all duration-150',
+            'hover:border-primary/30 hover:text-foreground hover:bg-[var(--c-surface)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+          )}
+        >
+          <RefreshCw
+            className={cn('h-3.5 w-3.5', insightsFetching && 'animate-spin')}
+            aria-hidden
+          />
+          <span className="hidden sm:inline">
+            {insightsFetching ? 'Atualizando...' : 'Atualizar análise'}
+          </span>
+          <span className="sm:hidden">
+            {insightsFetching ? '...' : 'Atualizar'}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -95,6 +213,7 @@ interface InsightsContentProps {
 }
 
 function InsightsContent({ userId, userName }: InsightsContentProps) {
+  const isMobile = useIsMobile();
   const tracked = useRef(false);
 
   // ─── React Query: pattern insights (staleTime 24h conforme spec §A.3) ───
@@ -108,7 +227,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
   } = useQuery({
     queryKey: ['caderno-pattern-insights', userId],
     queryFn: () => simuladosApi.getPatternInsights(),
-    staleTime: 1000 * 60 * 60 * 24, // 24h — honra TTL do cache do backend
+    staleTime: 1000 * 60 * 60 * 24,
     retry: 1,
   });
 
@@ -123,7 +242,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
     retry: 1,
   });
 
-  // ─── React Query: calibração de confiança (staleTime 5min padrão) ───
+  // ─── React Query: calibração de confiança ───
   const {
     data: calibrationData,
     isLoading: calibrationLoading,
@@ -166,7 +285,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
     });
 
     logger.log('[CadernoInsightsPage] Manual refresh triggered');
-    tracked.current = false; // permitir re-tracking após atualização
+    tracked.current = false;
     refetchInsights();
   }
 
@@ -176,8 +295,6 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
   const roiInsights = sorted.filter((i) => i.type === 'roi');
   const otherInsights = sorted.filter((i) => i.type !== 'roi');
 
-  // `from_cache` and `message` may or may not be present depending on backend version;
-  // cast once here so the rest of the template stays clean.
   const insightsExtra = insightsData as (typeof insightsData & { from_cache?: boolean; message?: string }) | undefined;
   const fromCache = insightsExtra?.from_cache ?? false;
   const generatedAt = insightsData?.generated_at ?? null;
@@ -190,214 +307,186 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
 
   return (
     <StaggerContainer className="space-y-6">
-      {/* Hero */}
-      <StaggerItem>
-        <PageHero
-          pendingCount={0}
-          resolvedCount={0}
-          totalCount={0}
-          specialtyCount={0}
-          streak={0}
-        />
-      </StaggerItem>
-
-      {/* Prof. San header + Atualizar */}
-      <StaggerItem>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="relative shrink-0">
-              <div className="overflow-hidden rounded-full border-2 border-background bg-primary/[0.04] shadow-sm">
-                <ProfSanorAvatar size={44} animated={insightsFetching} />
-              </div>
-              <span
-                className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-success"
-                aria-hidden
-              />
-            </div>
-            <div>
-              <p className="text-body font-bold text-foreground">
-                Análise do seu caderno
-              </p>
-              <p className="text-caption text-muted-foreground">
-                Prof. San{userName ? `, para ${userName}` : ''}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {/* Selo from_cache */}
-            {fromCache && cacheLabel && (
-              <span
-                className="hidden sm:inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-                title={`Gerado em: ${generatedAt}`}
-              >
-                {cacheLabel}
-              </span>
-            )}
-
-            {/* Botão Atualizar */}
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={insightsFetching}
-              aria-label="Atualizar análise do Prof. San"
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2',
-                'text-[12px] font-semibold text-muted-foreground transition-all duration-150',
-                'hover:border-primary/30 hover:text-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-              )}
-            >
-              <RefreshCw
-                className={cn('h-3.5 w-3.5', insightsFetching && 'animate-spin')}
-                aria-hidden
-              />
-              {insightsFetching ? 'Atualizando...' : 'Atualizar análise'}
-            </button>
-          </div>
-        </div>
-      </StaggerItem>
-
-      {/* Estado: carregando (primeira vez) */}
+      {/* ── Estado: carregando (primeira vez) ── */}
       {insightsLoading && (
         <StaggerItem>
           <InsightsSkeleton />
         </StaggerItem>
       )}
 
-      {/* Estado: erro */}
-      {insightsError && !insightsLoading && (
-        <StaggerItem>
-          <div
-            role="alert"
-            className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-10 text-center"
-          >
-            <WifiOff className="h-10 w-10 text-muted-foreground/50" aria-hidden />
-            <div className="space-y-1">
-              <p className="text-body font-semibold text-foreground">
-                Diagnóstico temporariamente indisponível
-              </p>
-              <p className="text-caption text-muted-foreground">
-                Os dados do caderno estão íntegros. Tente novamente em instantes.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all hover:bg-wine-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-              Tentar novamente
-            </button>
-          </div>
-        </StaggerItem>
-      )}
-
-      {/* Estado: dados insuficientes */}
-      {!insightsLoading && !insightsError && insightsData && !hasSufficient && (
+      {!insightsLoading && (
         <>
+          {/* ── Prof. San Header ── */}
           <StaggerItem>
-            <InsightsEmptyState message={apiMessage} entryCount={0} />
-          </StaggerItem>
-
-          {/* Painel ROI mesmo sem insights suficientes */}
-          <StaggerItem>
-            <div className="border-t border-border pt-2" aria-hidden />
-          </StaggerItem>
-          <StaggerItem>
-            <RoiPanel
-              history={(historyData as any) ?? null}
-              loading={historyLoading}
-              roiInsights={[]}
+            <ProfSanHeader
+              userName={userName}
+              insightsFetching={insightsFetching}
+              fromCache={fromCache}
+              cacheLabel={cacheLabel}
+              generatedAt={generatedAt}
+              onRefresh={handleRefresh}
             />
           </StaggerItem>
-        </>
-      )}
 
-      {/* Estado: insights prontos */}
-      {!insightsLoading && !insightsError && hasSufficient && (
-        <>
-          {/* Metadata bar */}
-          {(fromCache || insightsData?.generated_at) && (
+          {/* ── Estado: erro ── */}
+          {insightsError && (
             <StaggerItem>
-              <div className="flex items-center gap-2 text-caption text-muted-foreground">
-                {insightsFetching && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
-                    Atualizando análise em background...
-                  </span>
-                )}
-                {!insightsFetching && cacheLabel && fromCache && (
-                  <span className="sm:hidden">{cacheLabel}</span>
-                )}
-              </div>
+              <CadernoCard
+                role="alert"
+                className="flex flex-col items-center gap-4 px-6 py-10 text-center"
+              >
+                <WifiOff className="h-10 w-10 text-muted-foreground/40" aria-hidden />
+                <div className="space-y-1">
+                  <p className="text-body font-semibold text-foreground">
+                    Diagnóstico temporariamente indisponível
+                  </p>
+                  <p className="text-caption text-muted-foreground">
+                    Os dados do caderno estão íntegros. Tente novamente em instantes.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-xl',
+                    'bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground',
+                    'shadow-sm transition-all hover:brightness-110',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  )}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                  Tentar novamente
+                </button>
+              </CadernoCard>
             </StaggerItem>
           )}
 
-          {/* Insights: critical + attention + positive + info (sem roi) */}
-          {otherInsights.length > 0 && (
-            <StaggerItem>
-              <div className="space-y-3" role="list" aria-label="Lista de insights do caderno">
-                {otherInsights.map((insight) => (
-                  <motion.div
-                    key={insight.id}
-                    role="listitem"
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
+          {/* ── Estado: dados insuficientes ── */}
+          {!insightsError && insightsData && !hasSufficient && (
+            <>
+              <StaggerItem>
+                <InsightsEmptyState message={apiMessage} entryCount={0} />
+              </StaggerItem>
+
+              <StaggerItem>
+                <div className="border-t border-border/60 pt-6">
+                  <RoiPanel
+                    history={(historyData as any) ?? null}
+                    loading={historyLoading}
+                    roiInsights={[]}
+                  />
+                </div>
+              </StaggerItem>
+            </>
+          )}
+
+          {/* ── Estado: insights prontos ── */}
+          {!insightsError && hasSufficient && (
+            <>
+              {/* Cache / fetching bar */}
+              {(fromCache || insightsFetching) && (
+                <StaggerItem>
+                  <div className="flex items-center gap-2 text-caption text-muted-foreground px-1">
+                    {insightsFetching ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
+                        Atualizando análise em background...
+                      </span>
+                    ) : (
+                      cacheLabel && (
+                        <span className="sm:hidden inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3 shrink-0" aria-hidden />
+                          {cacheLabel}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </StaggerItem>
+              )}
+
+              {/* ── Insights (non-ROI): grid 2-col desktop ── */}
+              {otherInsights.length > 0 && (
+                <StaggerItem>
+                  <SectionHeader
+                    title="Diagnóstico"
+                    count={otherInsights.length}
+                    description="Padrões identificados pelo Prof. San no seu caderno"
+                    className="mb-3"
+                  />
+                  <div
+                    className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+                    role="list"
+                    aria-label="Lista de insights do caderno"
                   >
-                    <InsightCard insight={insight} />
-                  </motion.div>
-                ))}
-              </div>
-            </StaggerItem>
+                    {otherInsights.map((insight, idx) => (
+                      <motion.div
+                        key={insight.id}
+                        role="listitem"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.28,
+                          delay: idx * 0.04,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      >
+                        <InsightCard insight={insight} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </StaggerItem>
+              )}
+
+              {/* ── ROI insights como InsightCards (1-col) ── */}
+              {roiInsights.length > 0 && (
+                <StaggerItem>
+                  <div className="space-y-3">
+                    {roiInsights.map((insight, idx) => (
+                      <motion.div
+                        key={insight.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.28,
+                          delay: idx * 0.04,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      >
+                        <InsightCard insight={insight} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </StaggerItem>
+              )}
+
+              {/* ── Divisor ── */}
+              <StaggerItem>
+                <div className="border-t border-border/60 pt-2" aria-hidden />
+              </StaggerItem>
+
+              {/* ── ROI Panel ── */}
+              <StaggerItem>
+                <RoiPanel
+                  history={(historyData as any) ?? null}
+                  loading={historyLoading}
+                  roiInsights={roiInsights}
+                />
+              </StaggerItem>
+
+              {/* ── Divisor ── */}
+              <StaggerItem>
+                <div className="border-t border-border/60 pt-2" aria-hidden />
+              </StaggerItem>
+
+              {/* ── Calibration Panel ── */}
+              <StaggerItem>
+                <CalibrationPanel
+                  data={calibrationData ?? null}
+                  loading={calibrationLoading}
+                />
+              </StaggerItem>
+            </>
           )}
-
-          {/* ROI insights como InsightCards antes do painel */}
-          {roiInsights.length > 0 && (
-            <StaggerItem>
-              <div className="space-y-3">
-                {roiInsights.map((insight) => (
-                  <motion.div
-                    key={insight.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <InsightCard insight={insight} />
-                  </motion.div>
-                ))}
-              </div>
-            </StaggerItem>
-          )}
-
-          {/* Separador visual antes do painel ROI */}
-          <StaggerItem>
-            <div className="border-t border-border pt-2" aria-hidden />
-          </StaggerItem>
-
-          {/* Painel de ROI */}
-          <StaggerItem>
-            <RoiPanel
-              history={(historyData as any) ?? null}
-              loading={historyLoading}
-              roiInsights={roiInsights}
-            />
-          </StaggerItem>
-
-          {/* Separador visual antes do painel de Calibração */}
-          <StaggerItem>
-            <div className="border-t border-border pt-2" aria-hidden />
-          </StaggerItem>
-
-          {/* Painel de Calibração de Confiança */}
-          <StaggerItem>
-            <CalibrationPanel
-              data={calibrationData ?? null}
-              loading={calibrationLoading}
-            />
-          </StaggerItem>
         </>
       )}
     </StaggerContainer>

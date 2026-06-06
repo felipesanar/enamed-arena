@@ -1,14 +1,16 @@
 /**
- * DeckList — lista de decks do usuário + criação de novo deck.
+ * DeckList — seletor de decks premium.
  *
- * Exibe decks como chips selecionáveis + botão "+ Novo deck" com inline input.
- * Deck selecionado fica destacado; "Todos" lista flashcards de todos os decks.
+ * Desktop: chips elegantes em linha com count badge.
+ * Mobile: mesmo layout scrollável horizontal (1 linha).
+ * Botão "+ Novo deck" com inline input animado.
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Plus, Layers, Loader2, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FilterChip } from '@/components/caderno/ui';
 import type { Deck } from '@/types/caderno';
 
 export interface DeckListProps {
@@ -46,56 +48,51 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
   };
 
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
+    <div className="space-y-2">
+      {/* Label overline */}
+      <div className="flex items-center justify-between px-0.5">
+        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
           Decks
         </span>
-        <span className="text-[11px] text-muted-foreground/60">
+        <span className="text-[10px] text-[var(--c-muted-2)]">
           {decks.length} {decks.length === 1 ? 'deck' : 'decks'}
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Chips scrolláveis */}
+      <div
+        className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        role="listbox"
+        aria-label="Selecionar deck"
+      >
         {/* Chip "Todos" */}
-        <button
-          type="button"
+        <FilterChip
+          label="Todos"
+          active={selectedDeckId === null}
           onClick={() => onSelect(null)}
-          aria-pressed={selectedDeckId === null}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            selectedDeckId === null
-              ? 'border-primary/30 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground hover:border-border/80 hover:text-foreground',
-          )}
-        >
-          <Layers className="h-3 w-3" aria-hidden />
-          Todos
-        </button>
+          role="option"
+          aria-selected={selectedDeckId === null}
+        />
 
         {/* Chips de decks */}
         <AnimatePresence mode="popLayout">
           {decks.map((deck) => (
-            <motion.button
+            <motion.div
               key={deck.id}
-              type="button"
-              onClick={() => onSelect(deck.id)}
-              aria-pressed={selectedDeckId === deck.id}
-              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.88 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.15 }}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all duration-150',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                selectedDeckId === deck.id
-                  ? 'border-primary/30 bg-primary/10 text-primary'
-                  : 'border-border bg-card text-muted-foreground hover:border-border/80 hover:text-foreground',
-              )}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.88 }}
+              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="shrink-0"
             >
-              {deck.name}
-            </motion.button>
+              <FilterChip
+                label={deck.name}
+                active={selectedDeckId === deck.id}
+                onClick={() => onSelect(deck.id)}
+                role="option"
+                aria-selected={selectedDeckId === deck.id}
+              />
+            </motion.div>
           ))}
         </AnimatePresence>
 
@@ -104,11 +101,11 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
           {showInput ? (
             <motion.div
               key="input"
-              initial={prefersReducedMotion ? false : { opacity: 0, width: 40 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, width: 32 }}
               animate={{ opacity: 1, width: 'auto' }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, width: 40 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-1"
+              exit={prefersReducedMotion ? undefined : { opacity: 0, width: 32 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="flex shrink-0 items-center gap-1"
             >
               <input
                 ref={inputRef}
@@ -120,8 +117,9 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
                 placeholder="Nome do deck…"
                 aria-label="Nome do novo deck"
                 className={cn(
-                  'h-8 w-36 rounded-full border border-primary/40 bg-card px-3 text-[12px] font-medium text-foreground',
-                  'placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary',
+                  'h-8 w-36 rounded-[var(--c-radius-pill)] border border-[var(--c-wine-500)]/40 bg-[var(--c-surface)] px-3',
+                  'text-[12px] font-medium text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
+                  'outline-none transition-colors focus:border-[var(--c-wine-500)] focus:ring-1 focus:ring-[var(--c-wine-500)]/20',
                 )}
               />
               <button
@@ -130,22 +128,28 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
                 disabled={!newName.trim() || isCreating}
                 onClick={handleCreate}
                 className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground transition-opacity',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  (!newName.trim() || isCreating) && 'opacity-50 cursor-not-allowed',
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
+                  'bg-[var(--c-wine-500)] text-white',
+                  'transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  (!newName.trim() || isCreating) && 'cursor-not-allowed opacity-40',
                 )}
               >
                 {isCreating ? (
                   <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                 ) : (
-                  <Check className="h-3 w-3" aria-hidden />
+                  <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
                 )}
               </button>
               <button
                 type="button"
                 aria-label="Cancelar criação de deck"
                 onClick={() => { setShowInput(false); setNewName(''); }}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
+                  'border border-[var(--c-border)] text-[var(--c-muted)]',
+                  'transition-colors hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                )}
               >
                 <X className="h-3 w-3" aria-hidden />
               </button>
@@ -158,10 +162,13 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               initial={prefersReducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              aria-label="Criar novo deck"
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/60 px-3 py-1.5 text-[12px] font-semibold text-muted-foreground/70',
-                'transition-colors hover:border-border hover:text-muted-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--c-radius-pill)] border border-dashed px-3',
+                'border-[var(--c-border)] text-[11px] font-semibold text-[var(--c-muted)]',
+                'transition-colors duration-150 hover:border-[var(--c-wine-300)] hover:text-[var(--c-wine-600)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
               )}
             >
               <Plus className="h-3 w-3" aria-hidden />

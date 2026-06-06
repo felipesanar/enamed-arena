@@ -1,18 +1,26 @@
 /**
- * FlashcardItem — card compacto de flashcard na lista do deck.
+ * FlashcardItem — card premium do flashcard na grade.
  *
- * Exibe frente truncada, status SRS (devida/agendada/dominada),
- * imagem de thumbnail se houver, e ações de editar/excluir.
+ * Desktop: thumbnail de imagem, frente em preview (markdown limpo),
+ *          status SRS badge, ações no hover.
+ * Mobile: mesma estrutura, alvos ≥44px, sem hover.
+ * Sensação de "deck de estudo premium".
  */
 
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Pencil, Trash2, Image as ImageIcon, Star } from 'lucide-react';
+import { Pencil, Trash2, Image as ImageIcon, Star, Clock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CadernoCard } from '@/components/caderno/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Flashcard } from '@/types/caderno';
 
-function formatSrsDue(dueDateStr: string | null): { label: string; variant: 'due' | 'scheduled' | 'new' } {
+/* ── SRS helpers ── */
+
+function formatSrsDue(dueDateStr: string | null): {
+  label: string;
+  variant: 'due' | 'scheduled' | 'new';
+} {
   if (!dueDateStr) return { label: 'Nova', variant: 'new' };
   const due = new Date(dueDateStr);
   const now = new Date();
@@ -22,11 +30,30 @@ function formatSrsDue(dueDateStr: string | null): { label: string; variant: 'due
   return { label: `Em ${diffDays}d`, variant: 'scheduled' };
 }
 
+const SRS_VARIANT_STYLES = {
+  due: {
+    chip: 'bg-orange-500/12 text-orange-500 border-orange-500/20',
+    icon: Zap,
+  },
+  scheduled: {
+    chip: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    icon: Clock,
+  },
+  new: {
+    chip: 'bg-[var(--c-surface-2)] text-[var(--c-muted)] border-[var(--c-border)]',
+    icon: Star,
+  },
+} as const;
+
+/* ── Props ── */
+
 export interface FlashcardItemProps {
   card: Flashcard;
   onEdit: (card: Flashcard) => void;
   onDelete: (id: string) => void;
 }
+
+/* ── Component ── */
 
 export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
   const prefersReducedMotion = useReducedMotion();
@@ -34,111 +61,142 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
 
   const srs = formatSrsDue(card.srs_due_at);
   const isMastered = !!card.mastered_at;
+  const srsStyle = isMastered
+    ? { chip: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: Star }
+    : SRS_VARIANT_STYLES[srs.variant];
+  const SrsIcon = srsStyle.icon;
+  const srsLabel = isMastered ? 'Dominado' : srs.label;
 
-  const srsVariantClass = {
-    due: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-    scheduled: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-    new: 'bg-muted text-muted-foreground border-border',
-  }[srs.variant];
+  const cleanFront = card.front_md.replace(/[#*_`[\]]/g, '').trim() || '(frente vazia)';
+  const cleanBack = card.back_md.replace(/[#*_`[\]]/g, '').trim() || '(verso vazio)';
 
   return (
     <motion.div
       layout={!prefersReducedMotion}
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.2 }}
-      className={cn(
-        'group relative flex items-start gap-3 rounded-xl border bg-card p-4 transition-colors duration-150',
-        'hover:border-border/80 hover:bg-card/80',
-        isMastered && 'opacity-70',
-      )}
+      exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Thumbnail de imagem (frente) */}
-      {card.front_image_url ? (
-        <div className="shrink-0 overflow-hidden rounded-lg border border-border/60 bg-muted">
-          <img
-            src={card.front_image_url}
-            alt="Imagem da frente do card"
-            className="h-14 w-14 object-cover"
-          />
-        </div>
-      ) : (
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-border/40 bg-muted/50">
-          <ImageIcon className="h-5 w-5 text-muted-foreground/30" aria-hidden />
-        </div>
-      )}
-
-      {/* Conteúdo principal */}
-      <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground">
-          {card.front_md.replace(/[#*_`]/g, '').trim() || '(frente vazia)'}
-        </p>
-        <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
-          {card.back_md.replace(/[#*_`]/g, '').trim() || '(verso vazio)'}
-        </p>
-
-        <div className="mt-2 flex items-center gap-2">
-          {isMastered ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-              <Star className="h-2.5 w-2.5 fill-current" aria-hidden />
-              Dominado
-            </span>
+      <CadernoCard
+        variant="interactive"
+        className={cn(
+          'group relative flex items-start gap-4 p-4',
+          isMastered && 'opacity-60',
+        )}
+        onClick={() => onEdit(card)}
+        tabIndex={0}
+        role="button"
+        aria-label={`Editar flashcard: ${cleanFront}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onEdit(card);
+          }
+        }}
+      >
+        {/* Thumbnail de imagem */}
+        <div className="shrink-0">
+          {card.front_image_url ? (
+            <div className="h-16 w-16 overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-surface-2)] shadow-[var(--c-shadow-sm)]">
+              <img
+                src={card.front_image_url}
+                alt="Imagem da frente do card"
+                className="h-full w-full object-cover"
+              />
+            </div>
           ) : (
+            <div
+              className={cn(
+                'flex h-16 w-16 items-center justify-center rounded-xl',
+                'border border-dashed border-[var(--c-border)] bg-[var(--c-surface-2)]',
+              )}
+              aria-hidden
+            >
+              <ImageIcon className="h-5 w-5 text-[var(--c-muted-2)]" aria-hidden />
+            </div>
+          )}
+        </div>
+
+        {/* Conteúdo principal */}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          {/* Frente */}
+          <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--c-ink)]">
+            {cleanFront}
+          </p>
+          {/* Verso preview */}
+          <p className="line-clamp-1 text-[11px] leading-relaxed text-[var(--c-muted)]">
+            {cleanBack}
+          </p>
+
+          {/* SRS badge + reps */}
+          <div className="flex items-center gap-2 pt-0.5">
             <span
               className={cn(
-                'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-                srsVariantClass,
+                'inline-flex items-center gap-1 rounded-[var(--c-radius-pill)] border px-2 py-0.5 text-[10px] font-bold',
+                srsStyle.chip,
               )}
             >
-              {srs.label}
+              <SrsIcon className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
+              {srsLabel}
             </span>
-          )}
-          {card.srs_reps > 0 && (
-            <span className="text-[10px] text-muted-foreground/60">
-              {card.srs_reps} {card.srs_reps === 1 ? 'revisão' : 'revisões'}
-            </span>
-          )}
+            {card.srs_reps > 0 && (
+              <span className="text-[10px] text-[var(--c-muted-2)]">
+                {card.srs_reps} {card.srs_reps === 1 ? 'revisão' : 'revisões'}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Ações — visíveis no hover */}
-      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <Tooltip delayDuration={400}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label="Editar flashcard"
-              onClick={() => onEdit(card)}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top">Editar</TooltipContent>
-        </Tooltip>
+        {/* Ações — visíveis no hover (desktop) / sempre visíveis (mobile via focus) */}
+        <div
+          className="flex shrink-0 flex-col gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <Tooltip delayDuration={400}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="Editar flashcard"
+                onClick={(e) => { e.stopPropagation(); onEdit(card); }}
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)]',
+                  'text-[var(--c-muted)] transition-colors duration-150',
+                  'hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                )}
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Editar</TooltipContent>
+          </Tooltip>
 
-        <Tooltip delayDuration={400}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label="Excluir flashcard"
-              onMouseEnter={() => setDeleteHovered(true)}
-              onMouseLeave={() => setDeleteHovered(false)}
-              onClick={() => onDelete(card.id)}
-              className={cn(
-                'inline-flex h-7 w-7 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                deleteHovered
-                  ? 'bg-destructive/10 text-destructive'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              <Trash2 className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top">Excluir</TooltipContent>
-        </Tooltip>
-      </div>
+          <Tooltip delayDuration={400}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="Excluir flashcard"
+                onMouseEnter={() => setDeleteHovered(true)}
+                onMouseLeave={() => setDeleteHovered(false)}
+                onClick={(e) => { e.stopPropagation(); onDelete(card.id); }}
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)]',
+                  'transition-colors duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50',
+                  deleteHovered
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'text-[var(--c-muted)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
+                )}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Excluir</TooltipContent>
+          </Tooltip>
+        </div>
+      </CadernoCard>
     </motion.div>
   );
 }

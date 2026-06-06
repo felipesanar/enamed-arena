@@ -1,5 +1,5 @@
 /**
- * TriagemPage — Triagem Automática Pós-Prova (spec 04).
+ * TriagemPage v2 — Triagem Automática Pós-Prova (spec 04).
  *
  * Rota: /simulados/:id/triagem
  * Acesso: exclusivo PRO. Não-PRO → redireciona para /simulados/:id/resultado.
@@ -11,12 +11,14 @@
  *  4. Erro 429/502 ou timeout → heurística permanece (sem mensagem de erro visível).
  *  5. "Adicionar todas" → addToNotebookBulk → toast → navigate para resultado.
  *  6. "Agora não" → navigate para resultado sem chamada ao banco.
+ *
+ * v2: redesign visual premium — lógica/dados/IA/heurística/analytics INALTERADOS.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BookOpen, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Sparkles, Trophy, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser, useHasAccess } from '@/contexts/UserContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
@@ -33,10 +35,11 @@ import type {
 import { heuristicReason } from '@/lib/triageHeuristic';
 import type { DbReason } from '@/lib/errorNotebookReasons';
 import type { BulkAddEntry } from '@/types/caderno';
-import { SkeletonCard } from '@/components/SkeletonCard';
-import { EmptyState } from '@/components/EmptyState';
+import { CadernoSkeleton, CadernoEmptyState, PageHeaderPremium } from '@/components/caderno/ui';
 import { TriageItemCard } from '@/components/triagem/TriageItemCard';
 import { TriageSummaryBar } from '@/components/triagem/TriageSummaryBar';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { cn } from '@/lib/utils';
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -85,6 +88,7 @@ export default function TriagemPage() {
   const { id: simuladoId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const { profile } = useUser();
   const hasAccess = useHasAccess('cadernoErros');
@@ -417,61 +421,117 @@ export default function TriagemPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   // ─── Redireciona não-PRO para o resultado ──────────────────────────────────
-  // Verificação após todos os hooks (regra do React).
-  // Aguarda o carregamento do perfil antes de redirecionar para evitar flash.
   const profileLoaded = profile !== null;
   if (profileLoaded && !hasAccess) {
     return <Navigate to={`/simulados/${simuladoId}/resultado`} replace />;
   }
 
+  // ── Estado de carregamento ────────────────────────────────────────────────
   if (loadingCandidates || loadingSim) {
     return (
-      <div className="max-w-xl mx-auto w-full py-6 space-y-4">
-        <div className="h-8 w-48 rounded-lg bg-muted animate-pulse mb-6" />
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
+      <div className="caderno-root mx-auto w-full max-w-2xl px-4 py-6 sm:px-0">
+        {/* Header skeleton */}
+        <div className="mb-8 space-y-3">
+          <div className="h-3 w-28 animate-pulse rounded-full bg-[var(--c-surface-2)]" />
+          <div className="h-7 w-72 animate-pulse rounded-lg bg-[var(--c-surface-2)]" />
+          <div className="h-4 w-48 animate-pulse rounded-md bg-[var(--c-surface-2)]" />
+        </div>
+        <CadernoSkeleton count={3} />
       </div>
     );
   }
 
+  // ── Estado de erro ────────────────────────────────────────────────────────
   if (loadError) {
     return (
-      <EmptyState
-        variant="error"
-        title="Não foi possível carregar a triagem"
-        description={loadError}
-        onRetry={loadCandidates}
-        backHref={`/simulados/${simuladoId}/resultado`}
-        backLabel="Ir para o resultado"
-      />
+      <div className="caderno-root mx-auto w-full max-w-2xl px-4 py-16">
+        <div
+          className={cn(
+            'flex flex-col items-center gap-4 rounded-[var(--c-radius-card)] border border-dashed border-[var(--c-border)]',
+            'bg-[var(--c-surface)] px-6 py-12 text-center',
+          )}
+        >
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--c-surface-2)]"
+            aria-hidden
+          >
+            <AlertCircle className="h-7 w-7" style={{ color: 'var(--c-destructive)' }} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-heading-3 font-semibold" style={{ color: 'var(--c-ink)' }}>
+              Não foi possível carregar a triagem
+            </h3>
+            <p className="text-body-sm" style={{ color: 'var(--c-muted)' }}>
+              {loadError}
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={loadCandidates}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] px-5 py-2.5',
+                'text-sm font-semibold text-white',
+                '[background:var(--c-gradient-brand)]',
+                'hover:brightness-110 transition-all',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+              )}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden />
+              Tentar novamente
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/simulados/${simuladoId}/resultado`)}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] px-5 py-2.5',
+                'text-sm font-medium',
+                'border border-[var(--c-border)] bg-transparent',
+                'hover:bg-[var(--c-surface-2)] transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-border)]',
+              )}
+              style={{ color: 'var(--c-muted)' }}
+            >
+              Ir para o resultado
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  // Estado vazio — gabaritou ou não tem candidatos
+  // ── Estado vazio — gabaritou ou não tem candidatos ────────────────────────
   if (candidates.length === 0) {
     return (
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
-        className="max-w-md mx-auto py-16 text-center px-4"
+        className="caderno-root mx-auto w-full max-w-md px-4 py-16"
       >
-        <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-          <Trophy className="h-9 w-9 text-primary" aria-hidden />
-        </div>
-        <h2 className="text-heading-1 mb-3">Parabéns, nenhum erro para revisar!</h2>
-        <p className="text-body text-muted-foreground mb-8">
-          Continue assim. Sua performance foi excelente neste simulado.
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate(`/simulados/${simuladoId}/resultado`)}
-          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-primary text-primary-foreground !text-white font-semibold text-body hover:bg-wine-hover transition-colors"
-        >
-          <BookOpen className="h-4 w-4" aria-hidden />
-          Ver resultado
-        </button>
+        <CadernoEmptyState
+          variant="celebratory"
+          icon={<Trophy className="h-8 w-8" style={{ color: 'var(--c-wine-500)' }} aria-hidden />}
+          title="Parabéns, nenhum erro para revisar!"
+          description="Continue assim. Sua performance foi excelente neste simulado."
+          action={
+            <button
+              type="button"
+              onClick={() => navigate(`/simulados/${simuladoId}/resultado`)}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] px-6 py-3',
+                'text-sm font-semibold text-white',
+                '[background:var(--c-gradient-brand)]',
+                'shadow-[var(--c-shadow-sm)] hover:shadow-[var(--c-shadow-glow)]',
+                'hover:brightness-110 transition-all active:scale-[0.98]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+              )}
+            >
+              <BookOpen className="h-4 w-4" aria-hidden />
+              Ver resultado
+            </button>
+          }
+        />
       </motion.div>
     );
   }
@@ -479,49 +539,111 @@ export default function TriagemPage() {
   const selectedCandidates = candidates.filter(c => !c.skipped);
   const noneSelected = selectedCandidates.length === 0;
 
+  // ── Barra de stats ────────────────────────────────────────────────────────
+  const headerStats = [
+    {
+      label: 'Para revisar',
+      value: candidates.length,
+      color: 'var(--c-wine-500)',
+    },
+    {
+      label: 'Selecionadas',
+      value: selectedCandidates.length,
+      color: 'var(--c-ink)',
+    },
+    ...(isClassifying
+      ? [{ label: 'Classificando', value: '…', color: 'var(--c-info)' }]
+      : [{ label: 'Classificadas', value: candidates.filter(c => c.source === 'ia').length, color: 'var(--c-success)' }]),
+  ];
+
   return (
     <motion.div
       initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: prefersReducedMotion ? 0 : 0.35 }}
-      className="max-w-xl mx-auto w-full py-6 px-4 sm:px-0"
+      transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+      className={cn(
+        'caderno-root mx-auto w-full',
+        isMobile ? 'pb-[140px]' : 'max-w-2xl px-4 py-6 sm:px-0',
+      )}
     >
-      {/* Cabeçalho */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-4 w-4 text-primary" aria-hidden />
-          <span className="text-overline uppercase text-primary font-bold tracking-wider">
+      {/* ── Header Premium ──────────────────────────────────────────────── */}
+      <PageHeaderPremium
+        title="Transforme seus erros em plano de estudo"
+        subtitle={
+          isClassifying
+            ? `${candidates.length} questões para revisar, classificando com IA…`
+            : `${candidates.length} questões pré-classificadas`
+        }
+        stats={headerStats}
+        onBack={isMobile ? () => navigate(`/simulados/${simuladoId}/resultado`) : undefined}
+        className={cn(
+          isMobile ? '' : 'mb-6',
+        )}
+      />
+
+      {/* Eyebrow overline (desktop only) */}
+      {!isMobile && (
+        <div className="flex items-center gap-2 mb-2 -mt-4">
+          <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--c-wine-500)' }} aria-hidden />
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.1em]"
+            style={{ color: 'var(--c-wine-500)' }}
+          >
             Caderno de Erros
           </span>
         </div>
-        <h1 className="text-heading-1 text-foreground mb-1">
-          Transforme seus erros em plano de estudo
-        </h1>
-        <p className="text-body text-muted-foreground">
-          {isClassifying
-            ? `${candidates.length} questões para revisar, classificando com IA…`
-            : `${candidates.length} questões para revisar, pré-classificadas`}
-        </p>
-      </div>
-
-      {/* Aviso quando todas puladas */}
-      {noneSelected && candidates.length > 0 && (
-        <div
-          className="mb-4 px-4 py-3 rounded-xl bg-muted text-body-sm text-muted-foreground text-center"
-          role="alert"
-        >
-          Nenhuma questão selecionada.
-        </div>
       )}
 
-      {/* Lista de cards */}
-      <ul className="space-y-3" aria-label="Questões para o caderno">
+      {/* Padding top mobile (abaixo da MobileAppBar) */}
+      {isMobile && <div className="px-4 pt-4" />}
+
+      {/* ── Aviso quando todas puladas ──────────────────────────────────── */}
+      {noneSelected && candidates.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={cn(
+            'mb-4 rounded-[var(--c-radius-control)] border border-[var(--c-border)]',
+            'bg-[var(--c-surface-2)] px-4 py-3 text-center',
+            isMobile && 'mx-4',
+          )}
+          role="alert"
+          aria-live="polite"
+        >
+          <p className="text-sm" style={{ color: 'var(--c-muted)' }}>
+            Nenhuma questão selecionada.{' '}
+            <button
+              type="button"
+              className="font-semibold underline underline-offset-2 focus-visible:outline-none"
+              style={{ color: 'var(--c-wine-500)' }}
+              onClick={() =>
+                setCandidates(prev => prev.map(c => ({ ...c, skipped: false })))
+              }
+            >
+              Restaurar todas
+            </button>
+          </p>
+        </motion.div>
+      )}
+
+      {/* ── Lista de cards ───────────────────────────────────────────────── */}
+      <ul
+        className={cn(
+          'space-y-3',
+          isMobile && 'px-4',
+        )}
+        aria-label="Questões para o caderno"
+      >
         {candidates.map((item, idx) => (
           <motion.li
             key={item.questionId}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.2, delay: Math.min(idx * 0.04, 0.4) }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : 0.22,
+              delay: Math.min(idx * 0.035, 0.42),
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <TriageItemCard
               questionId={item.questionId}
@@ -545,7 +667,7 @@ export default function TriagemPage() {
         ))}
       </ul>
 
-      {/* Barra de ação */}
+      {/* ── Barra de ação ───────────────────────────────────────────────── */}
       <TriageSummaryBar
         selectedCount={selectedCandidates.length}
         totalCount={candidates.length}

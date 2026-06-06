@@ -49,6 +49,9 @@ const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
 const SandboxCadernoPage = import.meta.env.DEV
   ? lazy(() => import("./pages/SandboxCadernoPage"))
   : null;
+const SandboxCadernoV3Page = import.meta.env.DEV
+  ? lazy(() => import("./pages/CadernoV3ShowcasePage"))
+  : null;
 
 // Page lazy imports — named exports
 const HomePagePremium = lazy(() =>
@@ -190,6 +193,9 @@ const App = () => (
               <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />
               {SandboxCadernoPage ? (
                 <Route path="/sandbox/caderno" element={<Suspense fallback={<PageShell />}><SandboxCadernoPage /></Suspense>} />
+              ) : null}
+              {SandboxCadernoV3Page ? (
+                <Route path="/sandbox/caderno-v3" element={<Suspense fallback={<PageShell />}><SandboxCadernoV3Page /></Suspense>} />
               ) : null}
               <Route path="*" element={<Suspense fallback={<PageShell />}><NotFound /></Suspense>} />
             </Routes>
