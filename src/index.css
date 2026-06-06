@@ -146,58 +146,61 @@
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 220 10% 92%;
+    /* Base surfaces — neutros levemente quentes (hue vinho, saturação baixíssima) */
+    --background: 345 8% 9%;
+    --foreground: 345 8% 92%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 220 10% 92%;
+    --card: 345 7% 13%;
+    --card-foreground: 345 8% 92%;
 
-    --popover: 220 18% 10%;
-    --popover-foreground: 220 10% 92%;
+    --popover: 345 7% 13%;
+    --popover-foreground: 345 8% 92%;
 
-    --primary: 345 55% 50%;
+    /* Brand wine — mantido próximo do atual (contraste do texto branco já validado) */
+    --primary: 345 56% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 14%;
-    --secondary-foreground: 220 10% 85%;
+    --secondary: 345 7% 17%;
+    --secondary-foreground: 345 8% 86%;
 
-    --muted: 220 15% 16%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 345 6% 18%;
+    --muted-foreground: 345 7% 68%;
 
-    --accent: 345 40% 15%;
-    --accent-foreground: 345 55% 65%;
+    --accent: 345 32% 18%;
+    --accent-foreground: 345 55% 72%;
 
-    /* Destructive dark: aumenta L e reduz S pra não competir com primary (rosa).
-       Usado em badges "Errou", alertas e estados negativos. */
-    --destructive: 0 55% 48%;
+    /* Destructive: L alto + S moderado pra não competir com primary (rosa) */
+    --destructive: 0 58% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 22%;
-    --input: 220 15% 18%;
-    --ring: 345 55% 50%;
+    --border: 345 8% 24%;
+    --input: 345 8% 20%;
+    --ring: 345 56% 50%;
 
-    /* Elevation system — 3 níveis pra evitar cards "vazando" no bg */
-    --surface-elevated: 220 17% 13%;
-    --surface-sunken: 220 22% 5%;
+    /* Escada de elevação: sunken < background(9%) < card(13%) < elevated(17%) */
+    --surface-elevated: 345 7% 17%;
+    --surface-sunken: 345 8% 7%;
 
-    /* Feedback semântico dark-tuned (mais luminoso, ligeiramente menos saturado
-       que light pra reduzir fadiga visual em fundo escuro). */
-    --success: 152 55% 48%;
+    /* Borda forte — divisores e realces sobre card/elevated */
+    --border-strong: 345 8% 32%;
+
+    /* Feedback semântico dark-tuned (luminoso, saturação confortável sobre base quente) */
+    --success: 152 52% 50%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 88% 60%;
-    --warning-foreground: 220 20% 10%;
-    --info: 210 78% 62%;
+    --warning: 38 86% 60%;
+    --warning-foreground: 345 10% 10%;
+    --info: 210 76% 64%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 220 22% 5%;
-    --sidebar-foreground: 220 10% 65%;
-    --sidebar-primary: 345 55% 50%;
+    --sidebar-background: 345 9% 7%;
+    --sidebar-foreground: 345 7% 66%;
+    --sidebar-primary: 345 56% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 12%;
-    --sidebar-accent-foreground: 220 10% 80%;
-    --sidebar-border: 220 18% 12%;
-    --sidebar-ring: 345 55% 50%;
-    --sidebar-muted: 220 10% 35%;
+    --sidebar-accent: 345 8% 13%;
+    --sidebar-accent-foreground: 345 8% 82%;
+    --sidebar-border: 345 8% 14%;
+    --sidebar-ring: 345 56% 52%;
+    --sidebar-muted: 345 6% 38%;
 
     /* Exam focus mode (dark) */
     --exam-bg: 220 18% 7%;
