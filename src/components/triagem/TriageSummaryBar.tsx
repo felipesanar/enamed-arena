@@ -30,7 +30,7 @@ export function TriageSummaryBar({
   onSkipAll,
 }: TriageSummaryBarProps) {
   const allSelected = selectedCount === totalCount && totalCount > 0;
-  const disabled = isClassifying || isAdding || selectedCount === 0;
+  const disabled = isAdding || selectedCount === 0;
 
   const addLabel = allSelected
     ? `Adicionar todas (${selectedCount}) ao caderno`

@@ -31,7 +31,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
 
 /* ── Types ── */
 
@@ -169,26 +168,9 @@ export function NotebookEntryCard({
 
   const handleRemove = () => {
     if (!onRemove) return;
-    let undone = false;
-    const t = toast({
-      title: 'Item removido do caderno',
-      description: `${title}`,
-      duration: 5000,
-      action: (
-        <ToastAction
-          altText="Desfazer remoção"
-          onClick={() => {
-            undone = true;
-            t.dismiss();
-          }}
-        >
-          Desfazer
-        </ToastAction>
-      ),
-    });
-    setTimeout(() => {
-      if (!undone) onRemove(entry.id);
-    }, 5000);
+    // Toast + undo + delayed API delete are managed by the parent (CadernoPage).
+    // The card just signals the intent immediately.
+    onRemove(entry.id);
   };
 
   const handleToggleMastered = () => {

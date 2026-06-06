@@ -794,7 +794,7 @@ export const simuladosApi = {
       srsInterval: row.srs_interval as number,
       srsReps: row.srs_reps as number,
       srsEase: row.srs_ease as number,
-      mastered: !!(row.mastered_at),
+      mastered: !!(row.mastered ?? row.mastered_at),
       isLeech: !!(row.is_leech),
     };
   },
@@ -1089,12 +1089,13 @@ export const simuladosApi = {
    * Sorting: oldest due date first (highest priority).
    */
   async getDueFlashcards(): Promise<Flashcard[]> {
-    // End of today in UTC — Supabase comparisons are UTC; use ISO string.
-    // The product definition of "due" is srs_due_at <= end of day (Sao Paulo).
-    // Using a generous end-of-day UTC cutoff keeps the client simple; the RPC
-    // `schedule_flashcard_review_guarded` is authoritative for scheduling.
+    // End of today in America/Sao_Paulo (UTC-3).
+    // Supabase stores timestamps as UTC, so we need the UTC equivalent of
+    // 23:59:59.999 BRT. BRT = UTC-3, so BRT midnight+1day = UTC 03:00 next day.
+    // Trick: setUTCHours(26, 59, 59, 999) overflows into the next UTC day by
+    // exactly 3 hours, giving 03:00:00 UTC of tomorrow — i.e. end of today BRT.
     const endOfDayUtc = new Date();
-    endOfDayUtc.setUTCHours(23, 59, 59, 999);
+    endOfDayUtc.setUTCHours(26, 59, 59, 999);
 
     logger.log('[SimuladosApi] Fetching due flashcards');
     const { data, error } = await (supabase.from('flashcards') as any)
@@ -1206,11 +1207,18 @@ export const simuladosApi = {
       throw uploadError;
     }
 
-    const { data: urlData } = supabase.storage
+    // Bucket is PRIVATE — getPublicUrl returns a non-functional URL.
+    // Use a long-lived signed URL (1 year) instead.
+    const { data: signedData, error: signedError } = await supabase.storage
       .from('flashcard-images')
-      .getPublicUrl(path);
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
 
-    return urlData.publicUrl;
+    if (signedError || !signedData?.signedUrl) {
+      logger.error('[SimuladosApi] Error creating signed URL for flashcard image:', signedError);
+      throw signedError ?? new Error('[SimuladosApi] uploadFlashcardImage: failed to create signed URL');
+    }
+
+    return signedData.signedUrl;
   },
 
   // ─── Caderno de Erros v2 — Phase 2: Notes ───

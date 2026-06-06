@@ -58,6 +58,17 @@ interface CadernoPatternData {
     score_before: number | null;
     score_after: number | null;
   }> | null;
+  recurring_confusion_candidates: Array<{
+    area: string;
+    theme: string;
+    cnt: number;
+  }> | null;
+  question_samples: Array<{
+    area: string;
+    theme: string;
+    question_text: string;
+    reason: string;
+  }> | null;
   total_entries: number;
   total_mastered: number;
 }
@@ -115,8 +126,8 @@ function sanitizeString(s: string): string {
 // Prompt builder
 // ---------------------------------------------------------------------------
 
-function buildInsightsPrompt(data: CadernoPatternData, firstName: string): string {
-  // Serialize only what's needed — no PII beyond area/reason/counts
+function buildInsightsPrompt(data: CadernoPatternData): string {
+  // Serialize only what's needed — no PII (no student name, no identifiers)
   const areaCauseSummary = (data.area_cause_dist ?? [])
     .map((r) => `  - ${r.area} / ${r.reason}: ${r.cnt} entradas, ${r.mastered_cnt} dominadas`)
     .join('\n');
@@ -134,9 +145,17 @@ function buildInsightsPrompt(data: CadernoPatternData, firstName: string): strin
     })
     .join('\n');
 
+  const confusionCandidatesSummary = (data.recurring_confusion_candidates ?? [])
+    .map((r) => `  - ${r.area} / ${r.theme}: ${r.cnt} ocorrências de confused_alternatives`)
+    .join('\n');
+
+  const questionSamplesSummary = (data.question_samples ?? [])
+    .map((r) => `  - [${r.area} / ${r.theme}] ${r.question_text.slice(0, 200)}`)
+    .join('\n');
+
   return `# QUEM VOCÊ É
 
-Você é o **Prof. Sanor**, mentor de ${firstName} para o ENAMED.
+Você é o **Prof. Sanor**, mentor do aluno para o ENAMED.
 Agora você não está analisando uma questão — está lendo o caderno de erros completo
 e fazendo um diagnóstico do padrão de estudo.
 
@@ -146,8 +165,9 @@ um feedback honesto num café, não como relatório de sistema.
 🚫 REGRA ABSOLUTA: NÃO USE TRAVESSÃO (— ou –) EM HIPÓTESE NENHUMA.
 🚫 Sem elogios ao aluno, sem saudações, sem meta-comentários, sem burocratês.
 🚫 Use SOMENTE os dados reais fornecidos abaixo. NUNCA invente números, percentuais ou áreas.
+🚫 Para o insight recurring_confusion: use APENAS as confusões presentes em "Candidatos a recurring_confusion" abaixo. NUNCA invente pares de condições não listados ali.
 
-# DADOS DO CADERNO DE ${firstName.toUpperCase()}
+# DADOS DO CADERNO
 
 Total de entradas: ${data.total_entries}
 Total de questões dominadas: ${data.total_mastered}
@@ -160,6 +180,12 @@ ${overconfSummary || '  (sem dados)'}
 
 ## ROI: desempenho antes e depois de dominar questões
 ${roiSummary || '  (sem dados)'}
+
+## Candidatos a recurring_confusion (confused_alternatives >= 3 na mesma área+tema)
+${confusionCandidatesSummary || '  (sem candidatos — NÃO gere insight recurring_confusion)'}
+
+## Amostras de questões dos candidatos a confusão (textos reais para embasar comparison_table)
+${questionSamplesSummary || '  (sem amostras)'}
 
 # O QUE VOCÊ DEVE GERAR
 
@@ -181,9 +207,10 @@ Gere SOMENTE os tipos de insight para os quais há dados suficientes nos número
     - confused_alternatives → href "/caderno?reason=confused_alternatives&area={area}"
     - guessed_correctly → href "/caderno?area={area}"
 
-**recurring_confusion** — Gere quando a causa "confused_alternatives" aparece >= 3 vezes em uma mesma área+tema.
+**recurring_confusion** — Gere SOMENTE quando houver candidatos listados em "Candidatos a recurring_confusion" acima.
+  Baseie o insight nos pares área+tema presentes nessa lista e nas amostras de questões fornecidas.
   Inclua "comparison_table" em markdown (ate 12 linhas) com diferencial clínico dos dois lados da confusão,
-  baseado apenas nas áreas/temas identificados — NUNCA invente condições específicas não mencionadas nos dados.
+  usando os textos das amostras como referência — NUNCA invente condições específicas não presentes nos dados.
   CTA href: "/caderno?reason=confused_alternatives&area={area}".
 
 **overconfidence** — Gere quando há >= 5 questões com high_conf_wrong OU taxa > 30% (high_conf_wrong / high_conf_total) em alguma área.
@@ -272,10 +299,9 @@ const GEMINI_RESPONSE_SCHEMA = {
 
 async function generateInsightsFromGemini(
   data: CadernoPatternData,
-  firstName: string,
   apiKey: string,
 ): Promise<PatternInsight[]> {
-  const prompt = buildInsightsPrompt(data, firstName);
+  const prompt = buildInsightsPrompt(data);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25_000);
@@ -425,18 +451,18 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // --- Parse optional body ---
-    let bodyUserId: string | undefined;
-    let bodyFirstName: string | undefined;
+    // --- Parse optional body (body params are ignored for security — userId is always from JWT) ---
+    let body: Record<string, unknown>;
     try {
-      const body = await req.json().catch(() => ({}));
-      bodyUserId = body?.userId ?? undefined;
-      bodyFirstName = body?.studentFirstName ?? undefined;
+      body = await req.json();
     } catch {
-      // empty body is fine
+      body = {};
     }
+    // Intentionally unused: body may contain client hints in the future, but userId/studentFirstName
+    // from the body are explicitly ignored to prevent IDOR / PII leakage.
+    void body;
 
-    // --- Resolve user identity ---
+    // --- Resolve user identity (always from the authenticated JWT — never from the body) ---
     const {
       data: { user },
       error: authError,
@@ -449,11 +475,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userId = bodyUserId ?? user.id;
-    const firstName =
-      bodyFirstName?.trim().split(/\s+/)[0] ||
-      (user.user_metadata?.full_name as string | undefined)?.trim().split(/\s+/)[0] ||
-      'Você';
+    const userId = user.id;
 
     // --- Step 1: Fetch aggregated data via RPC ---
     const { data: patternData, error: rpcError } = await supabase.rpc('get_caderno_pattern_data', {
@@ -514,7 +536,7 @@ Deno.serve(async (req) => {
     // --- Step 4: Generate insights via Gemini ---
     let insights: PatternInsight[];
     try {
-      insights = await generateInsightsFromGemini(data, firstName, GEMINI_API_KEY);
+      insights = await generateInsightsFromGemini(data, GEMINI_API_KEY);
     } catch (geminiErr) {
       const status = (geminiErr as Error & { status?: number }).status;
 

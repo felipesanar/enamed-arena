@@ -23,8 +23,6 @@ export function ConfidenceStep({ onSelect }: ConfidenceStepProps) {
   return (
     <div
       className="mt-4 rounded-xl border border-border bg-muted/40 p-4"
-      role="group"
-      aria-label="Nível de confiança"
     >
       <p className="text-body-sm font-semibold text-foreground">
         Qual o seu nível de confiança nessa resposta?

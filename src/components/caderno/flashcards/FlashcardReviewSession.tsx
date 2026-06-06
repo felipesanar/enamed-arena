@@ -8,7 +8,7 @@
  * Dispara: caderno_flashcard_reviewed
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -187,6 +187,11 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
 
   const currentCard = cards[currentIndex];
 
+  // Keep a ref to the latest handleGrade to avoid stale closures in the keyboard handler
+  const handleGradeRef = useRef<(outcome: FlashcardReviewOutcome) => Promise<void>>(
+    async () => { /* placeholder, replaced below */ },
+  );
+
   // Keyboard shortcut — 1/2/3/4 for grade after reveal
   useEffect(() => {
     if (!revealed || grading || done) return;
@@ -199,13 +204,12 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       };
       if (map[e.key]) {
         e.preventDefault();
-        handleGrade(map[e.key]);
+        handleGradeRef.current(map[e.key]);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealed, grading, done, currentIndex]);
+  }, [revealed, grading, done]);
 
   // Space to reveal
   useEffect(() => {
@@ -218,7 +222,6 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealed, grading, done]);
 
   const handleGrade = useCallback(
@@ -256,6 +259,9 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
     },
     [currentCard, currentIndex, cards.length, grading],
   );
+
+  // Keep ref in sync with latest handleGrade to avoid stale closure in keyboard listener
+  handleGradeRef.current = handleGrade;
 
   if (done) {
     return (

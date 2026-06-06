@@ -86,19 +86,36 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
   const latestBody = useRef(body);
   // Track if the content actually changed from what's persisted
   const dirty = useRef(false);
+  // Snapshot of which note id these refs belong to — used by unmount cleanup
+  const activeNoteId = useRef(note.id);
 
-  // When note prop changes (user selects a different note), reset state
+  // When note prop changes (user selects a different note), flush pending save
+  // of the PREVIOUS note BEFORE resetting state.
   useEffect(() => {
+    const prevId = activeNoteId.current;
+    const prevTitle = latestTitle.current;
+    const prevBody = latestBody.current;
+    const wasDirty = dirty.current;
+
+    // Flush the outgoing note synchronously before any state mutation
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
+    if (wasDirty && prevId) {
+      simuladosApi
+        .updateNote(prevId, { title: prevTitle, body_md: prevBody })
+        .catch(() => {});
+    }
+
+    // Now switch to the new note
+    activeNoteId.current = note.id;
     setTitle(note.title);
     setBody(note.body_md);
     latestTitle.current = note.title;
     latestBody.current = note.body_md;
     dirty.current = false;
     setSaveStatus('idle');
-    if (autosaveTimer.current) {
-      clearTimeout(autosaveTimer.current);
-      autosaveTimer.current = null;
-    }
   }, [note.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save logic ──────────────────────────────────────────────────────────
@@ -174,22 +191,21 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [doSave]);
 
-  // Save on unmount if dirty
+  // Save on unmount if dirty — use refs so the closure always has the current id/content
   useEffect(() => {
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
       if (dirty.current) {
-        // Fire-and-forget on unmount
+        // Fire-and-forget on unmount; activeNoteId.current is always the right id
         simuladosApi
-          .updateNote(note.id, {
+          .updateNote(activeNoteId.current, {
             title: latestTitle.current,
             body_md: latestBody.current,
           })
           .catch(() => {});
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note.id]);
+  }, []);
 
   // ── Toolbar actions ────────────────────────────────────────────────────
 

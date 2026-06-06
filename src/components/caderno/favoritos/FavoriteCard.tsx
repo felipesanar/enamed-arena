@@ -133,7 +133,7 @@ export function FavoriteCard({
           variant: 'destructive',
         });
       }
-    }, 5000);
+    }, 5100);
   };
 
   return (

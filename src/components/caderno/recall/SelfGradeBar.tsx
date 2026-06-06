@@ -27,8 +27,6 @@ export function SelfGradeBar({ wasCorrect, isLoading, onGrade }: SelfGradeBarPro
   return (
     <div
       className="mt-5 rounded-xl border border-border bg-muted/40 p-4"
-      role="group"
-      aria-label="Autoavaliação"
     >
       <p className="text-body-sm font-semibold text-foreground">Como foi?</p>
 

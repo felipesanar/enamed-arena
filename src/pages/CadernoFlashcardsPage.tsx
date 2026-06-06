@@ -13,7 +13,7 @@
  * - Exclusão com optimistic update + toast undo (5s)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   useQuery,
@@ -83,7 +83,30 @@ function FlashcardsSkeletonList() {
 
 /* ── EmptyDecks state ── */
 
-function EmptyDecksState({ onCreate }: { onCreate: () => void }) {
+interface EmptyDecksStateProps {
+  onCreate: (name: string) => Promise<void>;
+  isCreating: boolean;
+}
+
+function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
+  const [showInput, setShowInput] = useState(false);
+  const [newName, setNewName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleShow = () => {
+    setShowInput(true);
+    // focus on next tick after render
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleConfirm = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed || isCreating) return;
+    await onCreate(trimmed);
+    setNewName('');
+    setShowInput(false);
+  };
+
   return (
     <div className="mx-auto max-w-md rounded-3xl border-2 border-dashed border-primary/20 bg-primary/[0.03] p-10 text-center">
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent">
@@ -93,10 +116,33 @@ function EmptyDecksState({ onCreate }: { onCreate: () => void }) {
       <p className="mx-auto mt-2 max-w-sm text-body leading-relaxed text-muted-foreground">
         Crie seu primeiro deck para organizar flashcards por tema, área ou prova.
       </p>
-      <Button onClick={onCreate} className="mt-6 gap-2">
-        <Plus className="h-4 w-4" aria-hidden />
-        Criar primeiro deck
-      </Button>
+      {showInput ? (
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleConfirm();
+              if (e.key === 'Escape') { setShowInput(false); setNewName(''); }
+            }}
+            maxLength={60}
+            placeholder="Nome do deck…"
+            aria-label="Nome do primeiro deck"
+            className="h-9 w-48 rounded-full border border-primary/40 bg-card px-3 text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+          <Button size="sm" onClick={handleConfirm} disabled={!newName.trim() || isCreating} className="gap-1.5">
+            {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Plus className="h-3.5 w-3.5" aria-hidden />}
+            Criar
+          </Button>
+        </div>
+      ) : (
+        <Button onClick={handleShow} className="mt-6 gap-2">
+          <Plus className="h-4 w-4" aria-hidden />
+          Criar primeiro deck
+        </Button>
+      )}
     </div>
   );
 }
@@ -298,7 +344,12 @@ function FlashcardsContent() {
   }
 
   if (decks.length === 0) {
-    return <EmptyDecksState onCreate={() => handleOpenEditor()} />;
+    return (
+      <EmptyDecksState
+        onCreate={handleCreateDeck}
+        isCreating={creatingDeck}
+      />
+    );
   }
 
   const resolvedDeck = selectedDeckId

@@ -27,7 +27,6 @@ import type { EntryReviewData, ChatTurn } from '@/hooks/useActiveRecallSession';
 import type { RecallEntry } from '@/hooks/useActiveRecallSession';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { trackEvent } from '@/lib/analytics';
-import type { AnalyticsEventName } from '@/lib/analytics';
 
 const CHAT_LIMIT = 10;
 
@@ -69,13 +68,18 @@ export function RevealPanel({
       return;
     }
     if (!reviewData.aiReviewMd) return;
-    // caderno_tts_played ainda não está no union — outro agente o adiciona (spec §13).
-    trackEvent('caderno_tts_played' as AnalyticsEventName, {
+    trackEvent('caderno_tts_played', {
       entry_id: entry.id,
       area: entry.area ?? '',
     });
     speak(reviewData.aiReviewMd);
   }
+
+  // Stop TTS when the current entry/question changes
+  useEffect(() => {
+    stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.id]);
 
   // Focus chat textarea when chat opens
   useEffect(() => {

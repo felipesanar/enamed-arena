@@ -111,9 +111,10 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
   const baixaBucket = sorted.find((b) => b.confidence === 'baixa');
   const altaBucket = sorted.find((b) => b.confidence === 'alta');
 
-  // Detectar tendências
+  // Detectar tendências — exige que todos os buckets tenham ao menos uma resposta
   const isWellCalibrated =
     sorted.length === 3 &&
+    sorted.every((b) => b.total > 0) &&
     sorted.every((b, i) => {
       if (i === 0) return true;
       const prev = sorted[i - 1];

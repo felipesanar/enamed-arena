@@ -144,7 +144,6 @@ function useRecallKeyboard(session: ReturnType<typeof useActiveRecallSession>) {
     [
       phase,
       chatOpen,
-      currentEntry,
       selectedOptionId,
       reviewData,
       schedulingNextReview,
@@ -250,6 +249,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
     isCurrentEntryAwaitingLesson,
     lessonUnlockDialogOpen,
     selectOption,
+    goToConfidence,
     setConfidence,
     submitSelfGrade,
     skipCurrent,
@@ -635,7 +635,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
                 <span className="text-[11px] text-muted-foreground">Selecione uma alternativa</span>
               )}
               {phase === 'answering' && selectedOptionId && (
-                <Button size="sm" variant="outline" onClick={() => setConfidence('media')}>
+                <Button size="sm" variant="outline" onClick={goToConfidence}>
                   Confirmar resposta
                 </Button>
               )}
@@ -645,11 +645,9 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
             <Tooltip delayDuration={250}>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={revealCorrect ? undefined : skipCurrent}
+                  onClick={skipCurrent}
                   variant="outline"
                   size="sm"
-                  className={cn(revealCorrect && 'opacity-50 cursor-default')}
-                  disabled={revealCorrect && !schedulingNextReview ? false : false}
                 >
                   {phase === 'answering' || phase === 'confidence' ? (
                     <>

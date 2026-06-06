@@ -245,9 +245,8 @@ function CadernoContent({ userId }: { userId: string }) {
     return data;
   }, [entries, typeFilter, specFilter, searchDebounced]);
 
-  const now = Date.now();
-
   const buckets = useMemo(() => {
+    const now = Date.now();
     const devidas: NotebookEntry[] = [];
     const emAprendizado: NotebookEntry[] = [];
     const agendadas: NotebookEntry[] = [];
@@ -260,7 +259,6 @@ function CadernoContent({ userId }: { userId: string }) {
       else dominadas.push(e);
     }
     return { devidas, emAprendizado, agendadas, dominadas };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered]);
 
   const totalPending =
@@ -271,34 +269,71 @@ function CadernoContent({ userId }: { userId: string }) {
 
   // Próxima data devida (para ZeroPendingState)
   const nextDueAt = useMemo(() => {
+    const nowMs = Date.now();
     const scheduled = entries
       .map((e) => (e as any).srsDueAt ?? (e as any).srs_due_at ?? e.nextReviewAt)
-      .filter((d): d is string => !!d && new Date(d).getTime() > now)
+      .filter((d): d is string => !!d && new Date(d).getTime() > nowMs)
       .sort();
     return scheduled[0] ?? null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries]);
 
   /* ── Ações individuais ── */
 
-  const handleRemove = async (id: string) => {
-    const prev = entries;
+  const handleRemove = useCallback((id: string) => {
+    const removedEntry = entries.find((e) => e.id === id);
+    if (!removedEntry) return;
+
+    // Optimistic remove
     setEntries((es) => es.filter((e) => e.id !== id));
-    // Toast + undo is handled inside NotebookEntryCard; API call after 5s
-    await new Promise<void>((resolve) => setTimeout(resolve, 5000));
-    try {
-      await simuladosApi.deleteErrorNotebookEntry(id, userId);
-      trackEvent('caderno_entry_deleted', { entry_id: id });
-    } catch (err) {
-      logger.error('[CadernoPage] Error removing entry:', err);
-      setEntries(prev);
-      toast({
-        title: 'Não foi possível remover',
-        description: 'Tente novamente em instantes.',
-        variant: 'destructive',
-      });
-    }
-  };
+
+    let undone = false;
+    const t = toast({
+      title: 'Item removido do caderno',
+      description: removedEntry.area
+        ? `${removedEntry.area}${removedEntry.theme ? ` › ${removedEntry.theme}` : ''}`
+        : 'Questão removida',
+      duration: 5000,
+      action: (
+        <ToastAction
+          altText="Desfazer remoção"
+          onClick={() => {
+            undone = true;
+            setEntries((es) => {
+              // Only re-insert if not already present
+              if (es.find((e) => e.id === id)) return es;
+              return [...es, removedEntry];
+            });
+            t.dismiss();
+          }}
+        >
+          Desfazer
+        </ToastAction>
+      ),
+    });
+
+    const timer = setTimeout(async () => {
+      if (undone) return;
+      try {
+        await simuladosApi.deleteErrorNotebookEntry(id, userId);
+        trackEvent('caderno_entry_deleted', { entry_id: id });
+      } catch (err) {
+        logger.error('[CadernoPage] Error removing entry:', err);
+        setEntries((es) => {
+          if (es.find((e) => e.id === id)) return es;
+          return [...es, removedEntry];
+        });
+        toast({
+          title: 'Não foi possível remover',
+          description: 'Tente novamente em instantes.',
+          variant: 'destructive',
+        });
+      }
+    }, 5000);
+
+    // If undo is clicked while timer is still pending, cancel it
+    // (the closure above handles undone=true before the timer fires)
+    return () => clearTimeout(timer);
+  }, [entries, userId]);
 
   const handleToggleMastered = async (id: string, mastered: boolean) => {
     const prev = entries;
@@ -414,7 +449,8 @@ function CadernoContent({ userId }: { userId: string }) {
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    const prev = entries;
+    // Capture only the entries being removed (for targeted rollback)
+    const removedEntries = entries.filter((e) => ids.includes(e.id));
     // Optimistic — remove from UI immediately, show undo toast
     setEntries((es) => es.filter((e) => !ids.includes(e.id)));
     cancelSelection();
@@ -428,7 +464,12 @@ function CadernoContent({ userId }: { userId: string }) {
           altText="Desfazer remoção"
           onClick={() => {
             undone = true;
-            setEntries(prev);
+            // Restore only the removed entries into current state
+            setEntries((es) => {
+              const existingIds = new Set(es.map((e) => e.id));
+              const toRestore = removedEntries.filter((e) => !existingIds.has(e.id));
+              return toRestore.length ? [...es, ...toRestore] : es;
+            });
             t.dismiss();
           }}
         >
@@ -446,7 +487,12 @@ function CadernoContent({ userId }: { userId: string }) {
       trackEvent('caderno_bulk_deleted', { count: ids.length });
     } catch (err) {
       logger.error('[CadernoPage] Bulk delete error:', err);
-      setEntries(prev);
+      // Restore only removed entries into current state
+      setEntries((es) => {
+        const existingIds = new Set(es.map((e) => e.id));
+        const toRestore = removedEntries.filter((e) => !existingIds.has(e.id));
+        return toRestore.length ? [...es, ...toRestore] : es;
+      });
       toast({ title: 'Não foi possível remover', variant: 'destructive' });
     } finally {
       setBulkBusy(false);

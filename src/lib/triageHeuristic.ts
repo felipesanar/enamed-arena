@@ -49,10 +49,11 @@ export function heuristicReason(input: HeuristicInput): DbReason {
 
   // R3: alternativa do aluno e alternativa correta são adjacentes na lista
   //     (ex: B e C, D e E) → trocou alternativas próximas
+  //     Adjacência é por posição original na lista (não ordem lexicográfica).
   if (!isCorrect && userOptionLabel && correctOptionLabel) {
-    const sortedLabels = options.map(o => o.label).sort();
-    const userIdx = sortedLabels.indexOf(userOptionLabel);
-    const correctIdx = sortedLabels.indexOf(correctOptionLabel);
+    const labels = options.map(o => o.label);
+    const userIdx = labels.indexOf(userOptionLabel);
+    const correctIdx = labels.indexOf(correctOptionLabel);
     if (userIdx !== -1 && correctIdx !== -1 && Math.abs(userIdx - correctIdx) === 1) {
       return 'confused_alternatives';
     }

@@ -125,6 +125,9 @@ export interface UseActiveRecallSessionReturn {
 
   // Actions
   selectOption: (optionId: string) => void;
+  /** Advance from 'answering' to 'confidence' when an option is already selected
+   *  (used by the mobile "Confirmar resposta" CTA). No-op in other phases. */
+  goToConfidence: () => void;
   setConfidence: (c: Confidence) => void;
   submitSelfGrade: (grade: ReviewOutcome) => Promise<void>;
   skipCurrent: () => void;
@@ -181,15 +184,22 @@ function buildQueue(
   drillTheme: string | null,
 ): RecallEntry[] {
   const now = Date.now();
-  let filtered = rows.filter((r) => !r.resolved_at && !r.deleted_at);
+
+  // Always exclude resolved, deleted and SRS-blocked entries regardless of mode.
+  const BLOCKED_OUTCOMES = new Set(['leech_blocked', 'awaiting_lesson']);
+  let filtered = rows.filter(
+    (r) =>
+      !r.resolved_at &&
+      !r.deleted_at &&
+      !BLOCKED_OUTCOMES.has((r as any).last_review_outcome),
+  );
 
   if (singleId) {
     filtered = filtered.filter((r) => r.id === singleId);
   } else if (mode === 'drill' && drillArea) {
-    // Drill mode: all non-mastered, non-blocked entries for the chosen area/theme
+    // Drill mode with area: all non-mastered entries for the chosen area/theme
     filtered = filtered.filter((r) => {
       if (r.mastered_at) return false;
-      if ((r as any).last_review_outcome === 'leech_blocked') return false;
       const rowArea: string = (r.area ?? '') as string;
       if (rowArea.toLowerCase() !== drillArea.toLowerCase()) return false;
       if (drillTheme) {
@@ -198,7 +208,8 @@ function buildQueue(
       }
       return true;
     });
-  } else if (mode === 'due') {
+  } else if (mode === 'due' || mode === 'drill') {
+    // 'due' behaviour: srs_due_at <= now (also fallback for drill without area)
     filtered = filtered.filter((r) => {
       const due = (r as any).srs_due_at as string | null | undefined;
       if (!due) {
@@ -210,7 +221,7 @@ function buildQueue(
       return new Date(due).getTime() <= now;
     });
   }
-  // mode === 'all' or mode === 'drill' without drillArea: no extra filter (all pending entries)
+  // mode === 'all': no extra filter (all pending, non-blocked entries)
 
   // Sort: overdue / oldest due first, then by ease ascending (harder first)
   return filtered
@@ -279,6 +290,12 @@ export function useActiveRecallSession(
   // Refs to avoid stale closures + track generated entries
   const generatedFor = useRef<Set<string>>(new Set());
   const initialTotalSet = useRef(false);
+  // Tracks entry ids for which the lesson-unlock dialog was manually closed by the user.
+  // Prevents the effect from re-opening it until the entry changes.
+  const lessonDialogDismissedFor = useRef<Set<string>>(new Set());
+  // Ref mirror of generatingAi to avoid listing it as a useCallback dep (prevents stale closure
+  // warnings from react-hooks/exhaustive-deps while keeping the in-flight guard correct).
+  const generatingAiRef = useRef(false);
 
   // ── Load queue ──────────────────────────────────────────────────────────────
 
@@ -365,6 +382,7 @@ export function useActiveRecallSession(
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on id only
   }, [currentEntry?.id, userId]);
 
   // ── Auto-generate AI on first reveal if not cached ──────────────────────────
@@ -374,11 +392,12 @@ export function useActiveRecallSession(
   const generateAiReview = useCallback(
     async (force = false) => {
       if (!currentEntry || !reviewData?.question) return;
-      if (generatingAi) return;
+      if (generatingAiRef.current) return;
       if (!force && generatedFor.current.has(currentEntry.id)) return;
       if (!force && reviewData.aiReviewMd) return;
 
       generatedFor.current.add(currentEntry.id);
+      generatingAiRef.current = true;
       setGeneratingAi(true);
 
       try {
@@ -442,10 +461,11 @@ export function useActiveRecallSession(
         });
         if (!force) generatedFor.current.delete(currentEntry.id);
       } finally {
+        generatingAiRef.current = false;
         setGeneratingAi(false);
       }
     },
-    [currentEntry, reviewData, generatingAi, studentName, userId],
+    [currentEntry, reviewData, studentName, userId],
   );
 
   // ── FSM actions ──────────────────────────────────────────────────────────────
@@ -464,6 +484,12 @@ export function useActiveRecallSession(
         reviewData?.question?.options.find((o) => o.id === optionId)?.label ?? '',
     });
   }, [phase, currentEntry, reviewData]);
+
+  /** Mobile CTA: advance to confidence phase when an option is already selected. */
+  const goToConfidence = useCallback(() => {
+    if (phase !== 'answering' || !selectedOptionId) return;
+    setPhase('confidence');
+  }, [phase, selectedOptionId]);
 
   const setConfidence = useCallback(
     (c: Confidence) => {
@@ -534,16 +560,26 @@ export function useActiveRecallSession(
       setSchedulingNextReview(true);
 
       try {
-        // 1. Record attempt (fire-and-forget)
-        void simuladosApi
-          .recordReviewAttempt({
+        // 1. Record attempt — MUST be awaited before scheduleNextReview because the
+        //    schedule RPC reads the last 2 review_attempts to compute domain/promotion.
+        try {
+          await simuladosApi.recordReviewAttempt({
             entryId: currentEntry.id,
             selectedOptionId,
             wasCorrect,
             confidence,
             selfGrade: grade,
-          })
-          .catch((err) => logger.error('[useActiveRecallSession] recordReviewAttempt error:', err));
+          });
+        } catch (recordErr) {
+          logger.error('[useActiveRecallSession] recordReviewAttempt error:', recordErr);
+          toast({
+            title: 'Não foi possível registrar sua tentativa',
+            description: 'Verifique sua conexão e tente novamente.',
+            variant: 'destructive',
+          });
+          setSchedulingNextReview(false);
+          return;
+        }
 
         trackEvent('caderno_recall_self_graded', {
           entry_id: currentEntry.id,
@@ -654,8 +690,7 @@ export function useActiveRecallSession(
   const handleRemove = useCallback(async () => {
     if (!currentEntry) return;
     const target = currentEntry;
-    const prevEntries = entries;
-    const prevIndex = currentIndex;
+    const removedIndex = currentIndex;
 
     setEntries((prev) => {
       const next = prev.filter((e) => e.id !== target.id);
@@ -675,8 +710,14 @@ export function useActiveRecallSession(
         await simuladosApi.deleteErrorNotebookEntry(target.id, userId);
       } catch (err) {
         logger.error('[useActiveRecallSession] delete error:', err);
-        setEntries(prevEntries);
-        setCurrentIndex(prevIndex);
+        // Re-insert only the removed entry at its original position into the
+        // current state (not a stale snapshot) to avoid resurrecting other
+        // removals that may have happened during the 5-second window.
+        setEntries((curr) => {
+          if (curr.some((e) => e.id === target.id)) return curr; // already re-added
+          const insertAt = Math.min(removedIndex, curr.length);
+          return [...curr.slice(0, insertAt), target, ...curr.slice(insertAt)];
+        });
         toast({
           title: 'Não foi possível remover',
           description: 'Tente novamente.',
@@ -684,7 +725,7 @@ export function useActiveRecallSession(
         });
       }
     }, 5000);
-  }, [currentEntry, entries, currentIndex, userId]);
+  }, [currentEntry, currentIndex, userId]);
 
   const handleSnooze = useCallback(
     async (days = 3) => {
@@ -831,15 +872,17 @@ export function useActiveRecallSession(
   const isCurrentEntryLeech = srsShape ? isLeechEntry(srsShape) : false;
   const isCurrentEntryAwaitingLesson = srsShape ? isAwaitingLesson(srsShape) : false;
 
-  // Open the lesson-unlock dialog automatically when the current entry is awaiting_lesson
-  // (only once per entry — controlled by the dialog state itself)
+  // Open the lesson-unlock dialog automatically when the current entry is awaiting_lesson.
+  // Does NOT reopen if the user already dismissed it manually for this specific entry.
   useEffect(() => {
-    if (isCurrentEntryAwaitingLesson && !lessonUnlockDialogOpen) {
-      setLessonUnlockDialogOpen(true);
-    } else if (!isCurrentEntryAwaitingLesson) {
+    if (isCurrentEntryAwaitingLesson) {
+      const entryId = currentEntry?.id ?? '';
+      if (!lessonDialogDismissedFor.current.has(entryId)) {
+        setLessonUnlockDialogOpen(true);
+      }
+    } else {
       setLessonUnlockDialogOpen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentEntry?.id, isCurrentEntryAwaitingLesson]);
 
   /**
@@ -913,7 +956,11 @@ export function useActiveRecallSession(
 
   const closeLessonUnlockDialog = useCallback(() => {
     setLessonUnlockDialogOpen(false);
-  }, []);
+    // Mark this entry as manually dismissed so the effect does not reopen the dialog.
+    if (currentEntry?.id) {
+      lessonDialogDismissedFor.current.add(currentEntry.id);
+    }
+  }, [currentEntry?.id]);
 
   return {
     entries,
@@ -942,6 +989,7 @@ export function useActiveRecallSession(
     isCurrentEntryAwaitingLesson,
     lessonUnlockDialogOpen,
     selectOption,
+    goToConfidence,
     setConfidence,
     submitSelfGrade,
     skipCurrent,

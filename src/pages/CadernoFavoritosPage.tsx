@@ -110,7 +110,7 @@ function FavoritosContent() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['favorites'],
+    queryKey: ['caderno', 'favorites'],
     queryFn: () => simuladosApi.listFavorites(),
     staleTime: 5 * 60 * 1000,
   });
@@ -122,25 +122,30 @@ function FavoritosContent() {
     }
   }, [serverList]);
 
-  const favorites: QuestionFavorite[] = optimisticList ?? serverList ?? [];
+  const favorites: QuestionFavorite[] = useMemo(
+    () => optimisticList ?? serverList ?? [],
+    [optimisticList, serverList],
+  );
 
   /* ── Analytics ── */
+
+  const favoritesLength = favorites.length;
 
   useEffect(() => {
     if (isLoading || tracked.current) return;
     tracked.current = true;
     trackEvent('caderno_erros_viewed', {
       tab: 'favoritos',
-      total_favorites: favorites.length,
+      total_favorites: favoritesLength,
     });
-  }, [isLoading, favorites.length]);
+  }, [isLoading, favoritesLength]);
 
   /* ── Remove mutation ── */
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => simuladosApi.removeFavorite(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['caderno', 'favorites'] });
     },
     onError: (err) => {
       logger.error('[CadernoFavoritosPage] Remove favorite error:', err);

@@ -19,7 +19,12 @@ export function useCadernoV2Flag(): boolean {
     if (ls === 'false' || ls === '0') return false;
   }
 
-  // 2. Vite env var DEV/staging override
+  // 2. Vite env var — kill-switch takes priority over server flag.
+  //    Setting VITE_CADERNO_V2=false or =0 forces the feature OFF even when
+  //    profiles.caderno_v2_enabled is true (kill-switch for rapid rollback).
+  if (import.meta.env.VITE_CADERNO_V2 === 'false' || import.meta.env.VITE_CADERNO_V2 === '0') {
+    return false;
+  }
   if (import.meta.env.VITE_CADERNO_V2 === 'true' || import.meta.env.VITE_CADERNO_V2 === '1') {
     return true;
   }

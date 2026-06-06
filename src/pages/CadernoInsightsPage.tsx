@@ -176,12 +176,15 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
   const roiInsights = sorted.filter((i) => i.type === 'roi');
   const otherInsights = sorted.filter((i) => i.type !== 'roi');
 
-  const fromCache = (insightsData as any)?.from_cache ?? false;
+  // `from_cache` and `message` may or may not be present depending on backend version;
+  // cast once here so the rest of the template stays clean.
+  const insightsExtra = insightsData as (typeof insightsData & { from_cache?: boolean; message?: string }) | undefined;
+  const fromCache = insightsExtra?.from_cache ?? false;
   const generatedAt = insightsData?.generated_at ?? null;
   const cacheLabel = generatedAt ? `Atualizado ${relativeTime(generatedAt)}` : null;
 
   const hasSufficient = insightsData?.has_sufficient_data ?? false;
-  const apiMessage = (insightsData as any)?.message ?? null;
+  const apiMessage = insightsExtra?.message ?? null;
 
   // ─── Render ───
 
@@ -293,9 +296,23 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
 
       {/* Estado: dados insuficientes */}
       {!insightsLoading && !insightsError && insightsData && !hasSufficient && (
-        <StaggerItem>
-          <InsightsEmptyState message={apiMessage} entryCount={0} />
-        </StaggerItem>
+        <>
+          <StaggerItem>
+            <InsightsEmptyState message={apiMessage} entryCount={0} />
+          </StaggerItem>
+
+          {/* Painel ROI mesmo sem insights suficientes */}
+          <StaggerItem>
+            <div className="border-t border-border pt-2" aria-hidden />
+          </StaggerItem>
+          <StaggerItem>
+            <RoiPanel
+              history={(historyData as any) ?? null}
+              loading={historyLoading}
+              roiInsights={[]}
+            />
+          </StaggerItem>
+        </>
       )}
 
       {/* Estado: insights prontos */}
@@ -382,13 +399,6 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
             />
           </StaggerItem>
         </>
-      )}
-
-      {/* Painel ROI mesmo sem insights (estado neutro) */}
-      {!insightsLoading && !insightsError && hasSufficient === false && !insightsData && (
-        <StaggerItem>
-          <RoiPanel history={null} loading={false} />
-        </StaggerItem>
       )}
     </StaggerContainer>
   );

@@ -162,15 +162,8 @@ export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
       const estHeight = 10 + questionLines * 4 + (entry.learning_text ? 6 + learningLines * 4 : 0) + (entry.ai_review_md ? 6 + aiLines * 4 : 0) + 6;
       y = checkPageBreak(doc, y, Math.min(estHeight, 80));
 
-      // Card background
-      doc.setFillColor(...COLORS.gray50);
-      doc.setDrawColor(...COLORS.gray200);
-      doc.roundedRect(x, y, w, 3, 1, 1, 'F'); // top accent line placeholder
-
-      // Left color bar (reason color)
-      const [rR, rG, rB] = hexToRgb(reasonMeta.colorBase);
-      doc.setFillColor(rR, rG, rB);
-      doc.roundedRect(x, y, 3, 999, 1, 1, 'F'); // will be clipped by content
+      // Capture y at the start of this entry to calculate bar height later
+      const entryStartY = y;
 
       // ── Linha 1: Q# · tema · prova ──
       const cardX = x + 6;
@@ -264,6 +257,13 @@ export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
         y += 2;
       }
 
+      // Draw left color bar with the actual entry height (avoids 999px overflow)
+      const entryEndY = y;
+      const barHeight = Math.max(entryEndY - entryStartY, 2);
+      const [rR, rG, rB] = hexToRgb(reasonMeta.colorBase);
+      doc.setFillColor(rR, rG, rB);
+      doc.roundedRect(x, entryStartY, 3, barHeight, 1, 1, 'F');
+
       // Separator
       if (!isLast) {
         y = checkPageBreak(doc, y, 4);
@@ -301,7 +301,7 @@ export function exportNotebookAnkiCsv(entries: CadernoExportEntry[]): void {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
 
-  const header = `#separator:Semicolon\n#html:false\n#notetype:Basic\n#deck:Caderno de Erros SanarFlix PRO - ${today}\n#columns:Frente;Verso\n`;
+  const header = `#separator:Semicolon\n#html:true\n#notetype:Basic\n#deck:Caderno de Erros SanarFlix PRO - ${today}\n#columns:Frente;Verso\n`;
 
   const rows: string[] = entries.map(entry => {
     const reasonMeta = getReasonMeta(entry.reason);
@@ -337,7 +337,10 @@ export function exportNotebookAnkiCsv(entries: CadernoExportEntry[]): void {
 
     const back = backParts.join('\n');
 
-    return `${escapeCsvField(front)};${escapeCsvField(back)}`;
+    // With #html:true, newlines must be encoded as <br> so Anki renders them.
+    const frontHtml = front.replace(/\n/g, '<br>');
+    const backHtml = back.replace(/\n/g, '<br>');
+    return `${escapeCsvField(frontHtml)};${escapeCsvField(backHtml)}`;
   });
 
   const csv = header + rows.join('\n');

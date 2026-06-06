@@ -97,15 +97,11 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  // Analytics: visualização
+  // Analytics: mark as loaded (caderno_treino_started fires on launch via handleLaunch)
   useEffect(() => {
     if (loading || tracked.current) return;
     tracked.current = true;
-    trackEvent('caderno_erros_viewed', {
-      source: 'treino',
-      total_errors: entries.length,
-    });
-  }, [loading, entries.length]);
+  }, [loading]);
 
   // ── Derivações ────────────────────────────────────────────────────────────
 

@@ -88,19 +88,13 @@ interface AreaRowProps {
   area: string;
   scoreBefore: number | null;
   scoreAfter: number | null;
-  masteredCount: number;
+  delta: number | null;
 }
 
-function AreaRow({ area, scoreBefore, scoreAfter, masteredCount }: AreaRowProps) {
-  const delta =
-    scoreBefore != null && scoreAfter != null
-      ? (scoreAfter - scoreBefore) * 100
-      : null;
-
+function AreaRow({ area, scoreBefore, scoreAfter, delta }: AreaRowProps) {
   function handleExpand() {
     trackEvent('caderno_roi_area_expanded', {
       area,
-      mastered_count: masteredCount,
       delta_pp: delta ?? 0,
     });
   }
@@ -111,9 +105,6 @@ function AreaRow({ area, scoreBefore, scoreAfter, masteredCount }: AreaRowProps)
       onClick={handleExpand}
     >
       <td className="py-2.5 pr-4 text-[13px] font-medium text-foreground">{area}</td>
-      <td className="py-2.5 pr-4 text-center text-caption text-muted-foreground tabular-nums">
-        {masteredCount}
-      </td>
       <td className="py-2.5 pr-4 text-center text-caption tabular-nums text-muted-foreground">
         {scoreBefore != null ? toPercent(scoreBefore) : '—'}
       </td>
@@ -136,13 +127,13 @@ function AreaRow({ area, scoreBefore, scoreAfter, masteredCount }: AreaRowProps)
 interface RoiPanelProps {
   history: AreaScoreHistory | null;
   loading: boolean;
-  /** Insights do tipo roi (para highlight de áreas com ROI positivo) */
+  /** Kept for API compatibility; no longer used internally. */
   roiInsights?: Array<{ data: Record<string, unknown> }>;
 }
 
 // ─── Component ───
 
-export function RoiPanel({ history, loading, roiInsights = [] }: RoiPanelProps) {
+export function RoiPanel({ history, loading }: RoiPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const trackedRoi = useRef(false);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
@@ -205,8 +196,7 @@ export function RoiPanel({ history, loading, roiInsights = [] }: RoiPanelProps) 
     area: string;
     scoreBefore: number | null;
     scoreAfter: number | null;
-    masteredCount: number;
-    delta: number;
+    delta: number | null;
   }
   const areaRows: AreaRowData[] = Object.entries(history?.by_area ?? {}).map(
     ([area, scores]) => {
@@ -219,13 +209,8 @@ export function RoiPanel({ history, loading, roiInsights = [] }: RoiPanelProps) 
         scores.length - mid > 0
           ? scores.slice(mid).reduce((s, x) => s + x.score, 0) / (scores.length - mid)
           : null;
-      const delta = before != null && after != null ? (after - before) * 100 : 0;
-      const masteredCount = (roiInsights as any[]).reduce((acc: number, ins: any) => {
-        const d = ins.data as any;
-        if (d?.area === area && d?.mastered_count) return acc + (d.mastered_count as number);
-        return acc;
-      }, 0);
-      return { area, scoreBefore: before, scoreAfter: after, masteredCount, delta };
+      const delta = before != null && after != null ? (after - before) * 100 : null;
+      return { area, scoreBefore: before, scoreAfter: after, delta };
     },
   );
 
@@ -351,14 +336,11 @@ export function RoiPanel({ history, loading, roiInsights = [] }: RoiPanelProps) 
                 </p>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px]">
+                <table className="w-full min-w-[360px]">
                   <thead>
                     <tr className="border-b border-border/50 bg-muted/30">
                       <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Área
-                      </th>
-                      <th className="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Dominadas
                       </th>
                       <th className="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Antes
@@ -373,14 +355,14 @@ export function RoiPanel({ history, loading, roiInsights = [] }: RoiPanelProps) 
                   </thead>
                   <tbody className="px-4">
                     {areaRows
-                      .sort((a, b) => b.delta - a.delta)
+                      .sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))
                       .map((row) => (
                         <AreaRow
                           key={row.area}
                           area={row.area}
                           scoreBefore={row.scoreBefore}
                           scoreAfter={row.scoreAfter}
-                          masteredCount={row.masteredCount}
+                          delta={row.delta}
                         />
                       ))}
                   </tbody>
