@@ -16,16 +16,20 @@ export interface MobileAppBarProps extends React.HTMLAttributes<HTMLElement> {
  * Sticky no topo, altura mínima 56px, alvo ≥44px para voltar.
  */
 export const MobileAppBar = React.forwardRef<HTMLElement, MobileAppBarProps>(
-  ({ title, onBack, action, className, ...props }, ref) => {
+  ({ title, onBack, action, className, style, ...props }, ref) => {
     return (
       <header
         ref={ref}
         className={cn(
-          "sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--c-border)] bg-[var(--c-surface)] px-4",
-          // Glass suave
-          "backdrop-blur-[var(--c-glass-blur)] bg-opacity-90",
+          "sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--c-border)] px-4",
+          // Glass suave via backdrop-blur
+          "backdrop-blur-[var(--c-glass-blur)]",
           className,
         )}
+        style={{
+          background: 'color-mix(in srgb, var(--c-surface) 92%, transparent)',
+          ...style,
+        }}
         {...props}
       >
         {onBack && (

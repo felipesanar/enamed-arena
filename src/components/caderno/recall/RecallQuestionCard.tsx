@@ -169,12 +169,12 @@ export function RecallQuestionCard({
 
             if (revealCorrect) {
               if (isCorrect) {
-                containerStyle = 'border-emerald-400/40 bg-emerald-500/[0.05]';
-                labelStyle = 'bg-emerald-500 text-white';
+                containerStyle = '[border-color:color-mix(in_srgb,var(--c-success)_40%,transparent)] [background:color-mix(in_srgb,var(--c-success)_5%,transparent)]';
+                labelStyle = 'bg-[var(--c-success)] text-white';
                 textStyle = 'text-[var(--c-ink)]';
               } else if (isWrongChoice) {
-                containerStyle = 'border-rose-400/40 bg-rose-500/[0.05]';
-                labelStyle = 'bg-rose-500 text-white';
+                containerStyle = '[border-color:color-mix(in_srgb,var(--c-destructive)_40%,transparent)] [background:color-mix(in_srgb,var(--c-destructive)_5%,transparent)]';
+                labelStyle = 'bg-[var(--c-destructive)] text-white';
                 textStyle = 'text-[var(--c-ink)]';
               }
             } else if (isSelected) {
@@ -225,10 +225,16 @@ export function RecallQuestionCard({
                           <span
                             className={cn(
                               'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                              isWrongChoice
-                                ? 'border-rose-400/35 bg-rose-500/10 text-rose-500'
-                                : 'border-emerald-400/35 bg-emerald-500/10 text-emerald-600',
                             )}
+                            style={isWrongChoice ? {
+                              borderColor: 'color-mix(in srgb, var(--c-destructive) 35%, transparent)',
+                              background: 'color-mix(in srgb, var(--c-destructive) 10%, transparent)',
+                              color: 'var(--c-destructive)',
+                            } : {
+                              borderColor: 'color-mix(in srgb, var(--c-success) 35%, transparent)',
+                              background: 'color-mix(in srgb, var(--c-success) 10%, transparent)',
+                              color: 'var(--c-success)',
+                            }}
                           >
                             {isWrongChoice ? (
                               <XCircle className="h-2.5 w-2.5" aria-hidden />
@@ -239,7 +245,14 @@ export function RecallQuestionCard({
                           </span>
                         )}
                         {isCorrect && !isRightChoice && (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-400/35 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600">
+                          <span
+                            className="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                            style={{
+                              borderColor: 'color-mix(in srgb, var(--c-success) 35%, transparent)',
+                              background: 'color-mix(in srgb, var(--c-success) 10%, transparent)',
+                              color: 'var(--c-success)',
+                            }}
+                          >
                             <CheckCircle2 className="h-2.5 w-2.5" aria-hidden />
                             Resposta correta
                           </span>
@@ -252,7 +265,7 @@ export function RecallQuestionCard({
                       <p
                         className={cn(
                           'mt-2 flex items-start gap-1.5 text-[12px] leading-snug',
-                          isWrongChoice ? 'text-rose-500/80' : 'text-[var(--c-muted)]',
+                          isWrongChoice ? '[color:color-mix(in_srgb,var(--c-destructive)_80%,transparent)]' : 'text-[var(--c-muted)]',
                         )}
                       >
                         <XCircle className="mt-0.5 h-3 w-3 shrink-0 opacity-70" aria-hidden />
@@ -274,7 +287,7 @@ export function RecallQuestionCard({
               const userLabel =
                 question.options.find((o) => o.id === selectedOptionId)?.label ?? '?';
               return isCorrect ? (
-                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-emerald-600">
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold [color:var(--c-success)]">
                   <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
                   Você marcou {userLabel} — acertou! Consolide o raciocínio abaixo.
                 </span>

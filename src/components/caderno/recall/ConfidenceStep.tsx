@@ -30,9 +30,9 @@ const OPTIONS: {
     sublabel: 'Chutei ou não tinha certeza',
     key: '1',
     emoji: '😅',
-    accentClass: 'text-rose-500',
-    borderClass: 'border-rose-400/30 hover:border-rose-400/60',
-    bgClass: 'hover:bg-rose-500/[0.04]',
+    accentClass: '[color:var(--c-destructive)]',
+    borderClass: '[border-color:color-mix(in_srgb,var(--c-destructive)_30%,transparent)] hover:[border-color:color-mix(in_srgb,var(--c-destructive)_60%,transparent)]',
+    bgClass: 'hover:[background:color-mix(in_srgb,var(--c-destructive)_4%,transparent)]',
   },
   {
     value: 'media',
@@ -40,9 +40,9 @@ const OPTIONS: {
     sublabel: 'Achei que estava certo',
     key: '2',
     emoji: '🤔',
-    accentClass: 'text-amber-500',
-    borderClass: 'border-amber-400/30 hover:border-amber-400/60',
-    bgClass: 'hover:bg-amber-500/[0.04]',
+    accentClass: '[color:var(--c-warning)]',
+    borderClass: '[border-color:color-mix(in_srgb,var(--c-warning)_30%,transparent)] hover:[border-color:color-mix(in_srgb,var(--c-warning)_60%,transparent)]',
+    bgClass: 'hover:[background:color-mix(in_srgb,var(--c-warning)_4%,transparent)]',
   },
   {
     value: 'alta',
@@ -50,9 +50,9 @@ const OPTIONS: {
     sublabel: 'Tinha certeza da resposta',
     key: '3',
     emoji: '💪',
-    accentClass: 'text-emerald-500',
-    borderClass: 'border-emerald-400/30 hover:border-emerald-400/60',
-    bgClass: 'hover:bg-emerald-500/[0.04]',
+    accentClass: '[color:var(--c-success)]',
+    borderClass: '[border-color:color-mix(in_srgb,var(--c-success)_30%,transparent)] hover:[border-color:color-mix(in_srgb,var(--c-success)_60%,transparent)]',
+    bgClass: 'hover:[background:color-mix(in_srgb,var(--c-success)_4%,transparent)]',
   },
 ];
 

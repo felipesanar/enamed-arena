@@ -1,6 +1,8 @@
 // Caderno v3 — Primitivos de UI
 // Importar este barrel para acessar todos os primitivos do Caderno.
 
+import "./caderno-theme.css";
+
 export { CadernoCard } from "./CadernoCard";
 export type { CadernoCardProps } from "./CadernoCard";
 

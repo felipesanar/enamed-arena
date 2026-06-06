@@ -139,7 +139,7 @@ export function InsightCard({ insight }: InsightCardProps) {
                   sev.icon,
                 )}
               >
-                <Icon className="h-4.5 w-4.5" aria-hidden />
+                <Icon className="h-[18px] w-[18px]" aria-hidden />
               </span>
             </TooltipTrigger>
             <TooltipContent side="top">{iconLabel}</TooltipContent>
@@ -258,14 +258,22 @@ export function InsightCard({ insight }: InsightCardProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleCtaClick}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl',
-                  'border border-primary/20 bg-primary/[0.06] px-3.5 py-2',
-                  'text-[13px] font-semibold text-primary no-underline',
-                  'transition-all duration-150',
-                  'hover:border-primary/35 hover:bg-primary/10',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                )}
+                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold no-underline transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2"
+                style={{
+                  border: '1px solid color-mix(in srgb, var(--c-wine-600) 20%, transparent)',
+                  background: 'color-mix(in srgb, var(--c-wine-600) 6%, transparent)',
+                  color: 'var(--c-wine-600)',
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'color-mix(in srgb, var(--c-wine-600) 35%, transparent)';
+                  el.style.background = 'color-mix(in srgb, var(--c-wine-600) 10%, transparent)';
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'color-mix(in srgb, var(--c-wine-600) 20%, transparent)';
+                  el.style.background = 'color-mix(in srgb, var(--c-wine-600) 6%, transparent)';
+                }}
               >
                 {insight.cta.label}
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -274,14 +282,22 @@ export function InsightCard({ insight }: InsightCardProps) {
               <Link
                 to={insight.cta.href}
                 onClick={handleCtaClick}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl',
-                  'border border-primary/20 bg-primary/[0.06] px-3.5 py-2',
-                  'text-[13px] font-semibold text-primary no-underline',
-                  'transition-all duration-150',
-                  'hover:border-primary/35 hover:bg-primary/10',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                )}
+                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold no-underline transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2"
+                style={{
+                  border: '1px solid color-mix(in srgb, var(--c-wine-600) 20%, transparent)',
+                  background: 'color-mix(in srgb, var(--c-wine-600) 6%, transparent)',
+                  color: 'var(--c-wine-600)',
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'color-mix(in srgb, var(--c-wine-600) 35%, transparent)';
+                  el.style.background = 'color-mix(in srgb, var(--c-wine-600) 10%, transparent)';
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'color-mix(in srgb, var(--c-wine-600) 20%, transparent)';
+                  el.style.background = 'color-mix(in srgb, var(--c-wine-600) 6%, transparent)';
+                }}
               >
                 {insight.cta.label}
                 <ArrowUpRight className="h-3.5 w-3.5 shrink-0" aria-hidden />

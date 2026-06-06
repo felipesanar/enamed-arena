@@ -97,14 +97,14 @@ function fmtDateRelative(iso: string): string {
 
 function calcSrsStatus(entry: NotebookEntry): { label: string; colorClass: string } | null {
   const masteredAt = (entry as any).masteredAt ?? (entry as any).mastered_at;
-  if (masteredAt) return { label: 'dominada', colorClass: 'text-emerald-500' };
+  if (masteredAt) return { label: 'dominada', colorClass: '[color:var(--c-success)]' };
 
   const srsDueAt = (entry as any).srsDueAt ?? (entry as any).srs_due_at ?? entry.nextReviewAt;
   if (!srsDueAt) return null;
 
   const dueMs = new Date(srsDueAt).getTime();
   const now = Date.now();
-  if (dueMs <= now) return { label: 'devida hoje', colorClass: 'text-orange-400' };
+  if (dueMs <= now) return { label: 'devida hoje', colorClass: '[color:var(--c-warning)]' };
 
   const diffDays = Math.ceil((dueMs - now) / 86_400_000);
   return {
@@ -157,16 +157,16 @@ function SwipeableCard({ onSwipeRight, onSwipeLeft, children, disabled }: Swipea
     <div className="relative overflow-hidden rounded-[var(--c-radius-card)]">
       {/* Hint underlay — resolve (right) */}
       <motion.div
-        style={{ backgroundColor: bgRight }}
-        className="absolute inset-0 flex items-center pl-5 text-emerald-600 pointer-events-none"
+        style={{ backgroundColor: bgRight, color: 'var(--c-success)' }}
+        className="absolute inset-0 flex items-center pl-5 pointer-events-none"
         aria-hidden
       >
         <Check className="h-5 w-5" strokeWidth={2.5} />
       </motion.div>
       {/* Hint underlay — snooze (left) */}
       <motion.div
-        style={{ backgroundColor: bgLeft }}
-        className="absolute inset-0 flex items-center justify-end pr-5 text-amber-500 pointer-events-none"
+        style={{ backgroundColor: bgLeft, color: 'var(--c-warning)' }}
+        className="absolute inset-0 flex items-center justify-end pr-5 pointer-events-none"
         aria-hidden
       >
         <AlarmClock className="h-5 w-5" />

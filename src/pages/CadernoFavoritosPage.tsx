@@ -1,26 +1,24 @@
 /**
- * CadernoFavoritosPage — aba Favoritos do Caderno de Erros v2.
+ * CadernoFavoritosPage — aba Favoritos do Caderno de Erros v3 (redesign premium).
  *
- * Rota: /caderno/favoritos  (gate PRO — a casca CadernoPage aplica o gate).
- * Abas: só "Favoritos" ativo; demais abas renderizadas via TabBar (padrão existente).
+ * Rota: /caderno/favoritos  (gate PRO — a casca aplica o gate).
  *
- * Funcionalidades:
- *   - Lista de questões favoritadas via simuladosApi.listFavorites() + React Query.
- *   - Filtro por especialidade (área) — chips simples reutilizando padrão do FilterBar.
- *   - Busca textual client-side (área, tema, debounced 300ms).
- *   - Remover favorito com otimismo + undo (5s) + toast.
- *   - Estados: loading (skeleton), vazio (FavoritesEmptyState), busca sem resultado.
+ * Layout:
+ *  Desktop — PageHeaderPremium (título + stats) + TabBar sticky + FilterChips primitivos
+ *             + busca + grid de FavoriteCard (max-w-[1120px] centrado).
+ *  Mobile  — MobileAppBar (via PageHeaderPremium) + TabBar (SegmentedTabs) + 1 coluna
+ *             confortável + alvos ≥44px.
  *
- * TODO (CorrecaoPage): o ponto de ADICIONAR favorito fica na correção do simulado.
- *   Em cada questão, renderize um botão de coração que chama:
- *     await simuladosApi.addFavorite({ question_id, simulado_id, area, theme })
- *   e invalide a query 'favorites' para sincronizar com esta aba.
+ * Preservado integralmente: listFavorites/addFavorite/removeFavorite, query key
+ * ['caderno','favorites'], optimistic+undo, analytics, gate PRO.
  */
+
+import '@/components/caderno/ui/caderno-theme.css';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, Search, Check } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { Heart, Search } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import { simuladosApi } from '@/services/simuladosApi';
 import { trackEvent } from '@/lib/analytics';
@@ -28,7 +26,7 @@ import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
+import { PageTransition } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
 import { EmptyState } from '@/components/EmptyState';
 
@@ -39,6 +37,12 @@ import type { QuestionFavorite } from '@/types/caderno';
 import { TabBar } from '@/components/caderno/TabBar';
 import { FavoriteCard, FavoriteCardSkeleton } from '@/components/caderno/favoritos/FavoriteCard';
 import { FavoritesEmptyState } from '@/components/caderno/favoritos/FavoritesEmptyState';
+
+import {
+  PageHeaderPremium,
+  FilterChip,
+  CadernoSkeleton,
+} from '@/components/caderno/ui';
 
 /* ── Debounce hook ── */
 
@@ -51,46 +55,10 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-/* ── Chip de filtro — padrão FilterBar ── */
-
-interface FilterChipProps {
-  label: string;
-  count?: number;
-  active: boolean;
-  onClick: () => void;
-}
-
-function FilterChip({ label, count, active, onClick }: FilterChipProps) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        active
-          ? 'border-primary bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(345_65%_30%/0.3)]'
-          : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
-      )}
-    >
-      {active ? (
-        <Check className="h-3 w-3 shrink-0" strokeWidth={3} aria-hidden />
-      ) : null}
-      {label}
-      {typeof count === 'number' && (
-        <span className={cn('text-[10px] font-bold tabular-nums', active ? 'opacity-80' : 'opacity-55')}>
-          {count}
-        </span>
-      )}
-    </button>
-  );
-}
-
 /* ── FavoritosContent ── */
 
 function FavoritosContent() {
+  const prefersReducedMotion = useReducedMotion();
   const queryClient = useQueryClient();
 
   // Optimistic list (client-side patch over query data)
@@ -115,7 +83,7 @@ function FavoritosContent() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Whenever the server data arrives/changes, reset the optimistic patch
+  // Whenever server data arrives/changes, reset optimistic patch
   useEffect(() => {
     if (serverList !== undefined) {
       setOptimisticList(null);
@@ -164,7 +132,6 @@ function FavoritosContent() {
   const handleRestoreOptimistic = useCallback((favorite: QuestionFavorite) => {
     setOptimisticList((prev) => {
       const base = prev ?? serverList ?? [];
-      // Insert back in original position by created_at desc
       const withRestored = [...base, favorite].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
@@ -205,24 +172,54 @@ function FavoritosContent() {
     setSearchRaw('');
   };
 
-  /* ── States ── */
+  /* ── Header stats ── */
+
+  const headerStats = useMemo(() => {
+    const stats = [
+      { label: 'Favoritos', value: favorites.length, color: 'var(--c-wine-500)' },
+      { label: 'Especialidades', value: specialties.length },
+    ];
+    if (hasActiveFilter) {
+      stats.push({ label: 'Filtrados', value: filtered.length });
+    }
+    return stats;
+  }, [favorites.length, specialties.length, filtered.length, hasActiveFilter]);
+
+  /* ── Loading state ── */
 
   if (isLoading) {
     return (
-      <div className="space-y-5">
-        {/* Simula a barra de filtro */}
-        <div className="flex flex-col gap-2.5">
-          <div className="h-9 w-full animate-pulse rounded-xl bg-muted/60" />
-          <div className="flex gap-1.5">
-            {[80, 110, 90, 100].map((w) => (
-              <div key={w} className="h-8 animate-pulse rounded-full bg-muted/60" style={{ width: w }} />
-            ))}
+      <div className="caderno-root">
+        <div className="mx-auto max-w-[1120px] space-y-5 pb-10">
+          {/* Header skeleton */}
+          <div className="space-y-3 pb-4">
+            <div className="h-3 w-20 animate-pulse rounded-full bg-[var(--c-surface-2)]" />
+            <div className="h-8 w-52 animate-pulse rounded-xl bg-[var(--c-surface-2)]" />
+            <div className="flex gap-6">
+              {[56, 72].map((w) => (
+                <div key={w} className="space-y-1.5">
+                  <div className="h-2.5 w-16 animate-pulse rounded-full bg-[var(--c-surface-2)]" />
+                  <div className="h-6" style={{ width: w }} >
+                    <div className="h-6 w-full animate-pulse rounded-lg bg-[var(--c-surface-2)]" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <FavoriteCardSkeleton key={i} />
-          ))}
+          {/* Filter bar skeleton */}
+          <div className="flex flex-col gap-2.5">
+            <div className="h-10 w-full animate-pulse rounded-[var(--c-radius-control)] bg-[var(--c-surface-2)]" />
+            <div className="flex gap-2">
+              {[80, 110, 90, 100].map((w) => (
+                <div
+                  key={w}
+                  className="h-8 animate-pulse rounded-full bg-[var(--c-surface-2)]"
+                  style={{ width: w }}
+                />
+              ))}
+            </div>
+          </div>
+          <CadernoSkeleton count={5} />
         </div>
       </div>
     );
@@ -230,28 +227,42 @@ function FavoritosContent() {
 
   if (isError) {
     return (
-      <EmptyState
-        variant="error"
-        title="Não foi possível carregar os Favoritos"
-        description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
-        onRetry={() => refetch()}
-      />
+      <div className="caderno-root">
+        <EmptyState
+          variant="error"
+          title="Não foi possível carregar os Favoritos"
+          description="Houve um problema de conexão com o servidor. Verifique sua internet e tente novamente."
+          onRetry={() => refetch()}
+        />
+      </div>
     );
   }
 
   /* ── Main layout ── */
 
   return (
-    <StaggerContainer className="space-y-5 md:space-y-6">
+    <div className="caderno-root">
+      <div className="mx-auto max-w-[1120px] space-y-5 pb-10">
 
-      {/* Filtros — só renderiza quando há dados */}
-      {favorites.length > 0 && (
-        <StaggerItem>
-          <div className="flex flex-col gap-2.5">
+        {/* ── PageHeaderPremium — Desktop: título + stats. Mobile: MobileAppBar + stats scroll ── */}
+        <PageHeaderPremium
+          title="Favoritos"
+          subtitle="Questões de alto valor que você salvou para revisitar."
+          stats={headerStats}
+        />
+
+        {/* ── Filtros — só renderiza quando há dados ── */}
+        {favorites.length > 0 && (
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col gap-3"
+          >
             {/* Busca */}
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60"
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--c-muted-2)]"
                 aria-hidden
               />
               <input
@@ -261,24 +272,33 @@ function FavoritosContent() {
                 placeholder="Buscar por área ou tema…"
                 aria-label="Buscar nos favoritos"
                 className={cn(
-                  'w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground/60',
-                  'transition-colors duration-150 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                  'w-full rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)]',
+                  'py-2.5 pl-10 pr-4 text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
+                  'transition-all duration-[var(--c-duration-fast)]',
+                  'focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[var(--c-wine-500)]/30',
+                  'min-h-[44px]',
                 )}
               />
             </div>
 
             {/* Chips por especialidade */}
             {specialties.length > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
-                <span className="w-[44px] shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <div
+                role="radiogroup"
+                aria-label="Filtrar por especialidade"
+                className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none]"
+              >
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
                   Área
                 </span>
-                <div role="radiogroup" aria-label="Filtrar por especialidade" className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
                   <FilterChip
                     label="Todas"
                     count={favorites.length}
                     active={!specFilter}
                     onClick={() => setSpecFilter(null)}
+                    role="radio"
+                    aria-checked={!specFilter}
                   />
                   {specialties.map((s) => (
                     <FilterChip
@@ -287,38 +307,46 @@ function FavoritosContent() {
                       count={favorites.filter((f) => f.area === s).length}
                       active={specFilter === s}
                       onClick={() => setSpecFilter(specFilter === s ? null : s)}
+                      role="radio"
+                      aria-checked={specFilter === s}
                     />
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        </StaggerItem>
-      )}
+          </motion.div>
+        )}
 
-      {/* Contador de resultados */}
-      {favorites.length > 0 && (
-        <StaggerItem>
+        {/* ── Contador de resultados ── */}
+        {favorites.length > 0 && (
           <div className="flex items-center justify-between">
-            <span className="text-overline font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
               Favoritos
             </span>
-            <span className="text-caption text-muted-foreground tabular-nums">
+            <span className="text-[11px] tabular-nums text-[var(--c-muted)]">
               {filtered.length} de {favorites.length}
             </span>
           </div>
-        </StaggerItem>
-      )}
+        )}
 
-      {/* Lista */}
-      <StaggerItem>
+        {/* ── Lista ── */}
         {favorites.length === 0 ? (
           <FavoritesEmptyState />
         ) : filtered.length === 0 ? (
           <FavoritesEmptyState isFiltered onClearFilters={hasActiveFilter ? clearFilters : undefined} />
         ) : (
           <AnimatePresence mode="popLayout">
-            <div className="flex flex-col gap-2">
+            <motion.div
+              className="flex flex-col gap-2"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: {
+                  transition: { staggerChildren: prefersReducedMotion ? 0 : 0.03 },
+                },
+                hidden: {},
+              }}
+            >
               {filtered.map((favorite) => (
                 <FavoriteCard
                   key={favorite.id}
@@ -328,24 +356,19 @@ function FavoritosContent() {
                   onRestoreOptimistic={handleRestoreOptimistic}
                 />
               ))}
-            </div>
+            </motion.div>
           </AnimatePresence>
         )}
-      </StaggerItem>
 
-      {/* Legenda discreta no rodapé */}
-      {favorites.length > 0 && (
-        <StaggerItem>
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
-            <Heart className="h-3 w-3 fill-current text-primary/50" aria-hidden />
-            {/* TODO (CorrecaoPage): botão de coração em cada questão da correção
-                chama addFavorite({ question_id, simulado_id, area, theme })
-                e invalida queryClient.invalidateQueries(['favorites']). */}
+        {/* ── Legenda discreta no rodapé ── */}
+        {favorites.length > 0 && (
+          <p className="flex items-center gap-1.5 text-[11px] text-[var(--c-muted-2)]">
+            <Heart className="h-3 w-3 fill-current text-[var(--c-wine-400)]" aria-hidden />
             Favorite questões diretamente na correção do simulado.
           </p>
-        </StaggerItem>
-      )}
-    </StaggerContainer>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -15,7 +15,7 @@ export interface CadernoCardProps extends React.HTMLAttributes<HTMLDivElement> {
  * - variante `interactive`: hover sobe 2px + shadow-md (desktop).
  */
 export const CadernoCard = React.forwardRef<HTMLDivElement, CadernoCardProps>(
-  ({ className, variant = "base", hero = false, children, ...props }, ref) => {
+  ({ className, variant = "base", hero = false, children, style, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -28,8 +28,8 @@ export const CadernoCard = React.forwardRef<HTMLDivElement, CadernoCardProps>(
           "duration-[var(--c-duration-base)]",
           // Borda padrão
           "border-[var(--c-border)]",
-          // Hero
-          hero && "border-[var(--c-wine-500)]/30 shadow-[var(--c-shadow-glow)]",
+          // Hero: borda wine — cor via style inline (var+opacity não funciona no Tailwind v3)
+          hero && "shadow-[var(--c-shadow-glow)]",
           // Interactive
           variant === "interactive" && [
             "cursor-pointer",
@@ -39,6 +39,14 @@ export const CadernoCard = React.forwardRef<HTMLDivElement, CadernoCardProps>(
           ],
           className,
         )}
+        style={
+          hero
+            ? {
+                borderColor: 'color-mix(in srgb, var(--c-wine-500) 30%, transparent)',
+                ...style,
+              }
+            : style
+        }
         {...props}
       >
         {children}

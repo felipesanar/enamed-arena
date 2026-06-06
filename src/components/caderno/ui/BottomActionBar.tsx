@@ -12,18 +12,22 @@ export interface BottomActionBarProps extends React.HTMLAttributes<HTMLDivElemen
  * Inclui safe-area-inset-bottom para dispositivos com notch.
  */
 export const BottomActionBar = React.forwardRef<HTMLDivElement, BottomActionBarProps>(
-  ({ children, className, ...props }, ref) => {
+  ({ children, className, style, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
           // Sticky na base, acima do bottom nav (adicionar mb conforme necessário)
           "fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom,0px))] z-30",
-          "border-t border-[var(--c-border)] bg-[var(--c-surface)]",
-          "backdrop-blur-[var(--c-glass-blur)] bg-opacity-95",
+          "border-t border-[var(--c-border)]",
+          "backdrop-blur-[var(--c-glass-blur)]",
           "px-4 py-3 shadow-[0_-4px_16px_-4px_rgba(0,0,0,.08)]",
           className,
         )}
+        style={{
+          background: 'color-mix(in srgb, var(--c-surface) 95%, transparent)',
+          ...style,
+        }}
         role="toolbar"
         aria-label="Ações"
         {...props}

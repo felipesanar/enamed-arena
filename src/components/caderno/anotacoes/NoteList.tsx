@@ -1,14 +1,15 @@
 /**
  * NoteList — lista de anotações do usuário.
  *
- * Exibe título + preview do corpo + data relativa.
- * Nota selecionada fica destacada com borda primary.
- * Suporta deletar com confirmação + undo via toast.
+ * Desktop: lista vertical compacta com preview + data relativa.
+ * Mobile: cards 1 coluna com alvo ≥ 44px.
+ * Nota selecionada destacada com borda wine + bg tint.
  */
 
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2, NotebookPen } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { UserNote } from '@/types/caderno';
@@ -29,7 +30,6 @@ function relativeDate(iso: string): string {
 }
 
 function bodyPreview(md: string): string {
-  // Strip markdown syntax for a plain-text preview (max 80 chars)
   const plain = md
     .replace(/#{1,6}\s/g, '')
     .replace(/(\*\*|__)(.*?)\1/g, '$2')
@@ -46,81 +46,121 @@ export function NoteList({ notes, selectedId, onSelect, onDelete }: NoteListProp
   if (notes.length === 0) return null;
 
   return (
-    <nav
-      aria-label="Lista de anotações"
-      className="flex flex-col gap-1"
-    >
-      {notes.map((note) => {
+    <nav aria-label="Lista de anotações" className="flex flex-col gap-1.5">
+      {notes.map((note, idx) => {
         const isActive = note.id === selectedId;
+        const preview = bodyPreview(note.body_md);
         return (
-          <div
+          <motion.div
             key={note.id}
-            className={cn(
-              'group relative flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all duration-150',
-              'focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1',
-              isActive
-                ? 'border-primary/40 bg-primary/[0.05]'
-                : 'border-border bg-card hover:border-primary/20 hover:bg-accent/30',
-            )}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.22,
+              delay: idx * 0.03,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
-            {/* Clickable area for selection */}
-            <button
-              type="button"
-              onClick={() => onSelect(note)}
-              className="flex min-w-0 flex-1 items-start gap-3 text-left focus-visible:outline-none"
-              aria-label={`Abrir anotação: ${note.title || 'Sem título'}`}
-              aria-pressed={isActive}
+            <div
+              className={cn(
+                'group relative flex cursor-pointer items-start rounded-[var(--c-radius-control)] border transition-all',
+                'duration-[var(--c-duration-base)]',
+                'focus-within:ring-2 focus-within:ring-[var(--c-wine-500)]/40 focus-within:ring-offset-1',
+                isActive
+                  ? [
+                      'border-[var(--c-wine-500)]/30 bg-[var(--c-wine-50)]',
+                      'dark:border-[var(--c-wine-500)]/25 dark:bg-[var(--c-wine-900)]/20',
+                      'shadow-[var(--c-shadow-sm)]',
+                    ]
+                  : [
+                      'border-[var(--c-border)] bg-[var(--c-surface)]',
+                      'hover:border-[var(--c-wine-500)]/20 hover:bg-[var(--c-surface-2)]',
+                    ],
+              )}
             >
-              <NotebookPen
-                className={cn(
-                  'mt-0.5 h-4 w-4 shrink-0',
-                  isActive ? 'text-primary' : 'text-muted-foreground',
-                )}
-                aria-hidden
-              />
-              <div className="min-w-0 flex-1">
-                <p
-                  className={cn(
-                    'truncate text-[13px] font-semibold leading-snug',
-                    isActive ? 'text-primary' : 'text-foreground',
-                  )}
-                >
-                  {note.title || <span className="italic text-muted-foreground">Sem título</span>}
-                </p>
-                {note.body_md && (
-                  <p className="mt-0.5 line-clamp-1 text-[12px] leading-relaxed text-muted-foreground">
-                    {bodyPreview(note.body_md)}
-                  </p>
-                )}
-                <p className="mt-1 text-[11px] text-muted-foreground/60">
-                  {relativeDate(note.updated_at)}
-                </p>
-              </div>
-            </button>
+              {/* Active accent bar */}
+              {isActive && (
+                <span
+                  className="absolute inset-y-0 left-0 w-[3px] rounded-l-[var(--c-radius-control)] bg-[var(--c-wine-500)]"
+                  aria-hidden
+                />
+              )}
 
-            {/* Delete button */}
-            <Tooltip delayDuration={400}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(note);
-                  }}
-                  aria-label={`Excluir anotação: ${note.title || 'Sem título'}`}
+              {/* Clickable selection area */}
+              <button
+                type="button"
+                onClick={() => onSelect(note)}
+                className={cn(
+                  'flex min-w-0 flex-1 items-start gap-3 px-3 py-3 text-left',
+                  'focus-visible:outline-none',
+                  isActive && 'pl-4',
+                )}
+                aria-label={`Abrir anotação: ${note.title || 'Sem título'}`}
+                aria-pressed={isActive}
+              >
+                <NotebookPen
                   className={cn(
-                    'mt-0.5 shrink-0 rounded-lg p-1.5 transition-all duration-150',
-                    'text-muted-foreground/40 opacity-0 group-hover:opacity-100',
-                    'hover:bg-destructive/10 hover:text-destructive',
-                    'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1',
+                    'mt-0.5 h-3.5 w-3.5 shrink-0',
+                    isActive
+                      ? 'text-[var(--c-wine-500)]'
+                      : 'text-[var(--c-muted-2)]',
                   )}
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="left">Excluir anotação</TooltipContent>
-            </Tooltip>
-          </div>
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={cn(
+                      'truncate text-[13px] font-semibold leading-snug',
+                      isActive
+                        ? 'text-[var(--c-wine-700)] dark:text-[var(--c-wine-300)]'
+                        : 'text-[var(--c-ink)]',
+                    )}
+                  >
+                    {note.title || (
+                      <span className="font-normal italic text-[var(--c-muted)]">
+                        Sem título
+                      </span>
+                    )}
+                  </p>
+                  {preview && (
+                    <p className="mt-0.5 line-clamp-1 text-[11.5px] leading-relaxed text-[var(--c-muted)]">
+                      {preview}
+                    </p>
+                  )}
+                  <p className="mt-1 text-[11px] font-medium text-[var(--c-muted-2)]">
+                    {relativeDate(note.updated_at)}
+                  </p>
+                </div>
+              </button>
+
+              {/* Delete button — appears on hover / always accessible via keyboard */}
+              <div className="flex shrink-0 items-start py-2 pr-2">
+                <Tooltip delayDuration={400}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(note);
+                      }}
+                      aria-label={`Excluir anotação: ${note.title || 'Sem título'}`}
+                      className={cn(
+                        'flex h-7 w-7 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-150 sm:min-h-0 sm:min-w-0',
+                        'text-[var(--c-muted-2)] opacity-0 group-hover:opacity-100',
+                        'hover:bg-destructive/10 hover:text-destructive',
+                        'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1',
+                        // Mobile: always visible (no hover)
+                        'max-[767px]:opacity-100',
+                      )}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">Excluir anotação</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </motion.div>
         );
       })}
     </nav>

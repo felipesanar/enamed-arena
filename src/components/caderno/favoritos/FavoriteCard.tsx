@@ -1,16 +1,16 @@
 /**
- * FavoriteCard — card de questão favoritada na aba Favoritos do Caderno v2.
+ * FavoriteCard — card premium de questão favoritada (Caderno v3 design language).
  *
- * Exibe: Q# · Área › Tema · prova · data relativa.
- * Ações: remover favorito (coração preenchido) com confirmação leve + undo (toast),
- *        link "Ver questão" → correção do simulado.
+ * Visual: CadernoCard interactive + barra lateral wine + Q#·Área›Tema + prova·data relativa.
+ * Ações: coração preenchido (remover) com confirmação leve + undo 5s, "Ver questão" link.
+ * Responsivo: mesma estrutura desktop/mobile, alvos ≥44px em mobile.
  *
- * Dispara: caderno_favorite_removed via trackEvent.
+ * Preservado: lógica de remoção, optimistic+undo, analytics (caderno_favorite_removed).
  */
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ExternalLink } from 'lucide-react';
+import { Heart, ExternalLink, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,6 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
+import { CadernoCard } from '@/components/caderno/ui';
 import type { QuestionFavorite } from '@/types/caderno';
 
 /* ── Helpers ── */
@@ -37,15 +38,24 @@ function fmtDateRelative(iso: string): string {
 
 export function FavoriteCardSkeleton() {
   return (
-    <div className="flex h-[64px] animate-pulse items-stretch gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
-      <div className="w-[3px] shrink-0 self-stretch rounded-full bg-muted/60" />
-      <div className="flex flex-1 flex-col justify-center gap-2">
-        <div className="h-3 w-2/5 rounded-md bg-muted/60" />
-        <div className="h-2.5 w-3/5 rounded-md bg-muted/40" />
+    <div
+      className="flex h-[76px] animate-pulse items-stretch overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)]"
+      aria-busy="true"
+      aria-label="Carregando favorito..."
+      role="status"
+    >
+      {/* Accent bar */}
+      <div className="w-[3px] shrink-0 self-stretch bg-[var(--c-wine-300)]" />
+      {/* Content */}
+      <div className="flex flex-1 flex-col justify-center gap-2.5 px-4 py-3">
+        <div className="h-3 w-1/3 rounded-md bg-[var(--c-surface-2)]" />
+        <div className="h-2.5 w-3/5 rounded-md bg-[var(--c-surface-2)]" />
+        <div className="h-2.5 w-2/5 rounded-md bg-[var(--c-surface-2)]" />
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="h-7 w-20 rounded-lg bg-muted/60" />
-        <div className="h-7 w-7 rounded-[8px] bg-muted/60" />
+      {/* Actions */}
+      <div className="flex shrink-0 items-center gap-2 px-3">
+        <div className="h-8 w-24 rounded-[var(--c-radius-control)] bg-[var(--c-surface-2)]" />
+        <div className="h-9 w-9 rounded-[var(--c-radius-control)] bg-[var(--c-surface-2)]" />
       </div>
     </div>
   );
@@ -73,14 +83,19 @@ export function FavoriteCard({
 }: FavoriteCardProps) {
   const [removing, setRemoving] = useState(false);
 
-  const title = [
+  // Q# · Área › Tema
+  const questionLabel = favorite.question_id
+    ? `Q${favorite.question_id.slice(-4).toUpperCase()}`
+    : null;
+
+  const areaTheme = [
     favorite.area ?? null,
     favorite.theme ? `› ${favorite.theme}` : null,
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(' ');
 
-  const subtitle = fmtDateRelative(favorite.created_at);
+  const dateLabel = fmtDateRelative(favorite.created_at);
 
   const correctionHref = favorite.simulado_id
     ? `/simulados/${favorite.simulado_id}/correcao?q=${favorite.question_id}`
@@ -89,7 +104,6 @@ export function FavoriteCard({
   const handleRemove = () => {
     if (removing) return;
 
-    // Optimistic: remove from UI immediately
     onRemoveOptimistic(favorite.id);
     setRemoving(true);
 
@@ -97,7 +111,7 @@ export function FavoriteCard({
 
     const t = toast({
       title: 'Removido dos favoritos',
-      description: title || undefined,
+      description: areaTheme || undefined,
       duration: 5000,
       action: (
         <ToastAction
@@ -139,84 +153,117 @@ export function FavoriteCard({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.25 }}
-      className={cn(
-        'group relative flex items-stretch gap-0 overflow-hidden rounded-xl border bg-card',
-        'border-border transition-all duration-200',
-        'hover:border-primary/20 hover:shadow-[0_6px_18px_-12px_hsl(345_65%_30%/0.2)]',
-      )}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Accent bar — wine/primary */}
-      <div
-        aria-hidden
-        className="w-[3px] shrink-0 self-stretch bg-primary/60"
-      />
+      <CadernoCard
+        variant="interactive"
+        className={cn(
+          'group relative flex items-stretch overflow-hidden',
+          'transition-all duration-[var(--c-duration-base)]',
+          // hover override: wine shadow instead of generic md
+          'hover:border-[var(--c-wine-300)]/50 hover:shadow-[0_6px_24px_-8px_rgba(176,41,74,.18)]',
+          removing && 'opacity-50 pointer-events-none',
+        )}
+      >
+        {/* Accent bar — wine gradient */}
+        <div
+          aria-hidden
+          className="w-[3px] shrink-0 self-stretch rounded-l-[var(--c-radius-card)]"
+          style={{ background: 'linear-gradient(180deg, var(--c-wine-500), var(--c-wine-700))' }}
+        />
 
-      {/* Content */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2.5">
-        <span
-          className="block truncate text-[13px] font-semibold tracking-[-0.005em] text-foreground"
-          title={title || 'Questão sem área'}
-        >
-          {title || <span className="text-muted-foreground italic">Área não informada</span>}
-        </span>
-        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-          Favoritado {subtitle}
-        </span>
-      </div>
+        {/* Content */}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-3.5">
+          {/* Q# pill + área */}
+          <div className="flex items-center gap-2">
+            {questionLabel && (
+              <span
+                className="shrink-0 rounded-full border border-[var(--c-wine-300)] bg-[var(--c-wine-50)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/40 dark:text-[var(--c-wine-300)]"
+                aria-label={`Questão ${questionLabel}`}
+              >
+                {questionLabel}
+              </span>
+            )}
+            <span
+              className="truncate text-[13px] font-semibold tracking-tight text-[var(--c-ink)]"
+              title={areaTheme || 'Questão sem área'}
+            >
+              {areaTheme || (
+                <span className="italic text-[var(--c-muted)]">Área não informada</span>
+              )}
+            </span>
+          </div>
 
-      {/* Actions */}
-      <div className="flex shrink-0 items-center gap-1.5 border-l border-border/60 px-2.5 py-2">
-        {/* Ver questão */}
-        {correctionHref && (
+          {/* Data relativa */}
+          <div className="flex items-center gap-1.5">
+            <Calendar
+              className="h-3 w-3 shrink-0 text-[var(--c-muted-2)]"
+              aria-hidden
+            />
+            <span className="text-[11px] text-[var(--c-muted)]">
+              Favoritado {dateLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-2 border-l border-[var(--c-border)]/60 px-3 py-2.5">
+          {/* Ver questão */}
+          {correctionHref && (
+            <Tooltip delayDuration={250}>
+              <TooltipTrigger asChild>
+                <Link
+                  to={correctionHref}
+                  aria-label={`Ver questão na correção do simulado — ${areaTheme}`}
+                  className={cn(
+                    'inline-flex min-h-[44px] items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2 sm:min-h-[36px]',
+                    'text-[11px] font-semibold text-[var(--c-muted)] no-underline',
+                    'transition-all duration-[var(--c-duration-fast)]',
+                    'hover:border-[var(--c-wine-300)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-700)]',
+                    'dark:hover:bg-[var(--c-wine-900)]/30 dark:hover:text-[var(--c-wine-300)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+                  )}
+                >
+                  <span className="hidden sm:inline">Ver questão</span>
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="left">Ver na correção do simulado</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Remover favorito */}
           <Tooltip delayDuration={250}>
             <TooltipTrigger asChild>
-              <Link
-                to={correctionHref}
-                aria-label={`Ver questão na correção do simulado — ${title}`}
+              <button
+                type="button"
+                onClick={handleRemove}
+                disabled={removing}
+                aria-label="Remover dos favoritos"
+                aria-pressed={true}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1.5',
-                  'text-[11px] font-semibold text-muted-foreground no-underline',
-                  'transition-all duration-150 hover:border-primary/30 hover:bg-primary/5 hover:text-primary',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'inline-flex h-9 w-9 min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--c-radius-control)] sm:min-h-[36px] sm:min-w-[36px]',
+                  'text-[var(--c-wine-500)] transition-all duration-[var(--c-duration-fast)]',
+                  'bg-[var(--c-wine-50)] border border-[var(--c-wine-200)]',
+                  'hover:bg-[var(--c-destructive)]/10 hover:text-[var(--c-destructive)] hover:border-[var(--c-destructive)]/30',
+                  'dark:bg-[var(--c-wine-900)]/40 dark:border-[var(--c-wine-700)]/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+                  removing && 'pointer-events-none opacity-40',
                 )}
               >
-                Ver questão
-                <ExternalLink className="h-3 w-3 opacity-60" aria-hidden />
-              </Link>
+                <Heart
+                  className="h-4 w-4 fill-current"
+                  aria-hidden
+                />
+              </button>
             </TooltipTrigger>
-            <TooltipContent side="left">Ver na correção do simulado</TooltipContent>
+            <TooltipContent side="left">Remover dos favoritos</TooltipContent>
           </Tooltip>
-        )}
-
-        {/* Remover favorito */}
-        <Tooltip delayDuration={250}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={handleRemove}
-              disabled={removing}
-              aria-label="Remover dos favoritos"
-              aria-pressed={false}
-              className={cn(
-                'inline-flex h-7 w-7 items-center justify-center rounded-[8px] transition-all duration-150',
-                'text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                'hover:bg-destructive/10 hover:text-destructive',
-                removing && 'pointer-events-none opacity-40',
-              )}
-            >
-              <Heart
-                className="h-3.5 w-3.5 fill-current"
-                aria-hidden
-              />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left">Remover dos favoritos</TooltipContent>
-        </Tooltip>
-      </div>
+        </div>
+      </CadernoCard>
     </motion.div>
   );
 }

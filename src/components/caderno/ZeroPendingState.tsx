@@ -59,7 +59,7 @@ export function ZeroPendingState({
 
           {streak > 0 && (
             <div className="text-center">
-              <div className="inline-flex items-baseline gap-1 text-[28px] font-extrabold leading-none tracking-[-0.03em] text-orange-500 tabular-nums">
+              <div className="inline-flex items-baseline gap-1 text-[28px] font-extrabold leading-none tracking-[-0.03em] [color:var(--c-warning)] tabular-nums">
                 <Flame className="h-6 w-6" aria-hidden />
                 {streak}
               </div>

@@ -75,18 +75,29 @@ export function TabBar() {
               'relative shrink-0 px-5 py-3 text-[13px] font-semibold transition-colors duration-[var(--c-duration-fast)]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2 rounded-t-lg',
               isActive
-                ? [
-                    'text-[var(--c-wine-600)]',
-                    // Bottom indicator: wine gradient bar
-                    'after:absolute after:bottom-0 after:inset-x-3 after:h-[2.5px]',
-                    'after:rounded-t-full after:bg-[var(--c-gradient-brand)]',
-                  ].join(' ')
+                ? 'text-[var(--c-wine-600)]'
                 : 'text-[var(--c-muted)] hover:text-[var(--c-ink)]',
             )
           }
-          aria-current={({ isActive }: { isActive: boolean }) => (isActive ? 'page' : undefined)}
+          aria-current={
+            location.pathname === tab.to ||
+            (!tab.exact && location.pathname.startsWith(tab.to))
+              ? 'page'
+              : undefined
+          }
         >
-          {tab.label}
+          {({ isActive }) => (
+            <>
+              {tab.label}
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-0 inset-x-3 h-[2.5px] rounded-t-full"
+                  style={{ background: 'var(--c-gradient-brand)' }}
+                />
+              )}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

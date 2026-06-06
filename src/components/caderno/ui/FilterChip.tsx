@@ -14,7 +14,7 @@ export interface FilterChipProps extends React.ButtonHTMLAttributes<HTMLButtonEl
  * a11y: role="checkbox" com aria-checked.
  */
 export const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
-  ({ active = false, count, label, className, onClick, ...props }, ref) => {
+  ({ active = false, count, label, className, onClick, style, ...props }, ref) => {
     return (
       <button
         ref={ref}
@@ -35,13 +35,21 @@ export const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
             "border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)]",
             "hover:border-[var(--c-wine-300)] hover:text-[var(--c-wine-600)]",
           ],
-          // Ativo
+          // Ativo: bg via style inline para dark mode (var+opacity não funciona no Tailwind v3)
           active && [
-            "border-[var(--c-wine-500)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)]",
-            "dark:bg-[var(--c-wine-900)]/40 dark:text-[var(--c-wine-300)]",
+            "border-[var(--c-wine-500)] text-[var(--c-wine-700)]",
+            "dark:text-[var(--c-wine-300)]",
           ],
           className,
         )}
+        style={
+          active
+            ? {
+                background: 'color-mix(in srgb, var(--c-wine-500) 12%, var(--c-surface))',
+                ...style,
+              }
+            : style
+        }
         {...props}
       >
         {active && (

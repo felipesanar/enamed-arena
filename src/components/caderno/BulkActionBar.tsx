@@ -200,10 +200,11 @@ export function BulkActionBar({
       className={cn(
         'fixed bottom-6 left-1/2 z-50 -translate-x-1/2',
         'flex items-center gap-2 rounded-[var(--c-radius-pill)]',
-        'border border-[var(--c-border)] bg-[var(--c-surface)]/95 px-3 py-2',
+        'border border-[var(--c-border)] px-3 py-2',
         'shadow-[var(--c-shadow-md)] backdrop-blur-[var(--c-glass-blur)]',
         busy && 'pointer-events-none opacity-70',
       )}
+      style={{ background: 'color-mix(in srgb, var(--c-surface) 95%, transparent)' }}
     >
       <BulkActions {...commonProps} />
     </div>

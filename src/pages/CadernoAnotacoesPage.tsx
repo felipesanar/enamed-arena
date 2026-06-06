@@ -2,20 +2,22 @@
  * CadernoAnotacoesPage — aba Anotações do Caderno de Erros v2.
  *
  * Rota: /caderno/anotacoes  (gate PRO)
- * Estrutura:
- *   - Sidebar: NoteList + botão "Nova anotação"
- *   - Main: NoteEditor (nota selecionada) ou NotesEmptyState
  *
- * Backend via simuladosApi:
- *   listNotes() · createNote() · updateNote() · softDeleteNote()
+ * Desktop ≥1024px:
+ *   Master-detail: sidebar (lista + botão Nova) à esquerda + editor à direita.
+ *   Largura máx 1120px, centrado no DashboardLayout.
  *
- * Padrão de undo: optimistic remove + toast com ação "Desfazer" (5s).
- * Analytics: caderno_note_created / caderno_note_updated.
+ * Mobile <768px:
+ *   Lista 1 coluna. Ao abrir nota: editor tela cheia (estado mobileOpen).
+ *   Voltar via MobileAppBar. Ação "Nova" via BottomActionBar.
+ *
+ * Backend: listNotes / createNote / updateNote / softDeleteNote (preservados).
+ * Lógica de undo, autosave debounced, analytics — intactos.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Loader2, NotebookPen, BookOpen } from 'lucide-react';
+import { Plus, Loader2, NotebookPen, BookOpen, PenLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { simuladosApi } from '@/services/simuladosApi';
@@ -24,6 +26,7 @@ import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 import { PageTransition } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
@@ -32,6 +35,13 @@ import { TabBar } from '@/components/caderno/TabBar';
 import { NoteList } from '@/components/caderno/anotacoes/NoteList';
 import { NoteEditor } from '@/components/caderno/anotacoes/NoteEditor';
 import { NotesEmptyState } from '@/components/caderno/anotacoes/NotesEmptyState';
+
+import {
+  MobileAppBar,
+  BottomActionBar,
+  SectionHeader,
+  SkeletonLine,
+} from '@/components/caderno/ui';
 
 import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
@@ -45,19 +55,109 @@ const NOTES_QUERY_KEY = ['caderno', 'notes'] as const;
 
 function NotesSkeleton() {
   return (
-    <div className="flex h-[520px] gap-5" aria-busy="true" aria-label="Carregando anotações">
+    <div
+      className="flex h-[520px] gap-5 lg:gap-6"
+      aria-busy="true"
+      aria-label="Carregando anotações"
+    >
       {/* Sidebar skeleton */}
-      <div className="w-64 shrink-0 space-y-2 lg:w-72">
-        <div className="h-9 w-full animate-pulse rounded-xl bg-muted" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
+      <div className="hidden w-64 shrink-0 flex-col gap-2 lg:flex xl:w-72">
+        <SkeletonLine className="h-9 w-full rounded-[var(--c-radius-control)]" />
+        {[1, 2, 3, 4].map((i) => (
+          <SkeletonLine key={i} className="h-[72px] w-full rounded-[var(--c-radius-control)]" />
         ))}
       </div>
       {/* Editor skeleton */}
-      <div className="flex-1 space-y-3">
-        <div className="h-12 animate-pulse rounded-xl bg-muted" />
-        <div className="h-[440px] animate-pulse rounded-xl bg-muted" />
+      <div className="flex flex-1 flex-col gap-3">
+        <SkeletonLine className="h-10 w-3/5 rounded-md" />
+        <SkeletonLine className="h-[440px] w-full rounded-[var(--c-radius-card)]" />
       </div>
+    </div>
+  );
+}
+
+// ── Mobile: "Nova nota" button (compact for AppBar action slot) ──────────────
+
+function NewNoteButtonCompact({
+  onClick,
+  loading,
+}: {
+  onClick: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      aria-label="Criar nova anotação"
+      className={cn(
+        'flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)]',
+        'bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
+        'px-3 text-[12px] font-semibold text-white',
+        'transition-all duration-150 hover:brightness-110',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/60 focus-visible:ring-offset-2',
+        'disabled:cursor-not-allowed disabled:opacity-60',
+      )}
+    >
+      {loading ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+      ) : (
+        <Plus className="h-3.5 w-3.5" aria-hidden />
+      )}
+      Nova
+    </button>
+  );
+}
+
+// ── Desktop: "Nova anotação" primary action button ────────────────────────────
+
+function NewNoteButton({
+  onClick,
+  loading,
+}: {
+  onClick: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      aria-label="Criar nova anotação"
+      className={cn(
+        'flex w-full items-center justify-center gap-2',
+        'rounded-[var(--c-radius-control)] border border-[var(--c-wine-500)]/25',
+        'bg-gradient-to-r from-[var(--c-wine-500)]/[0.08] to-[var(--c-wine-700)]/[0.08]',
+        'px-4 py-2.5 text-[13px] font-semibold text-[var(--c-wine-600)] dark:text-[var(--c-wine-400)]',
+        'transition-all duration-[var(--c-duration-fast)]',
+        'hover:border-[var(--c-wine-500)]/40 hover:bg-[var(--c-wine-500)]/[0.12]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40 focus-visible:ring-offset-2',
+        'disabled:cursor-not-allowed disabled:opacity-60',
+      )}
+    >
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      ) : (
+        <Plus className="h-4 w-4" aria-hidden />
+      )}
+      Nova anotação
+    </button>
+  );
+}
+
+// ── Editor placeholder (desktop: nothing selected yet) ────────────────────────
+
+function EditorPlaceholder() {
+  return (
+    <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 rounded-[var(--c-radius-card)] border border-dashed border-[var(--c-border)] bg-[var(--c-surface)]">
+      <NotebookPen
+        className="h-10 w-10 text-[var(--c-muted-2)]/30"
+        aria-hidden
+      />
+      <p className="text-[13px] text-[var(--c-muted)]">
+        Selecione uma anotação para editar
+      </p>
     </div>
   );
 }
@@ -65,10 +165,15 @@ function NotesSkeleton() {
 // ── Main content (inner, after PRO gate) ─────────────────────────────────────
 
 function AnotacoesContent() {
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const didAutoSelect = useRef(false);
+
+  // Mobile-only: whether the editor is shown (full-screen overlay)
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
 
   // ── Fetch notes ──────────────────────────────────────────────────────────
 
@@ -78,13 +183,13 @@ function AnotacoesContent() {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Auto-select first note on first load
+  // Auto-select first note on first load (desktop)
   useEffect(() => {
-    if (!isLoading && notes.length > 0 && !selectedId && !didAutoSelect.current) {
+    if (!isLoading && notes.length > 0 && !selectedId && !didAutoSelect.current && !isMobile) {
       didAutoSelect.current = true;
       setSelectedId(notes[0].id);
     }
-  }, [isLoading, notes, selectedId]);
+  }, [isLoading, notes, selectedId, isMobile]);
 
   // ── Create note ──────────────────────────────────────────────────────────
 
@@ -94,6 +199,7 @@ function AnotacoesContent() {
       queryClient.setQueryData<UserNote[]>(NOTES_QUERY_KEY, (prev = []) => [created, ...prev]);
       setSelectedId(created.id);
       setCreating(false);
+      if (isMobile) setMobileEditorOpen(true);
       toast({ title: 'Anotação criada', description: 'Comece a escrever e será salva automaticamente.' });
       trackEvent('caderno_note_created', { note_id: created.id });
       logger.log('[CadernoAnotacoesPage] Note created:', created.id);
@@ -112,10 +218,7 @@ function AnotacoesContent() {
   const handleCreateNote = useCallback(() => {
     if (creating || createMutation.isPending) return;
     setCreating(true);
-    createMutation.mutate({
-      title: '',
-      body_md: '',
-    });
+    createMutation.mutate({ title: '', body_md: '' });
   }, [creating, createMutation]);
 
   // ── Delete note (optimistic + undo) ──────────────────────────────────────
@@ -124,16 +227,15 @@ function AnotacoesContent() {
     (note: UserNote) => {
       const prevNotes = queryClient.getQueryData<UserNote[]>(NOTES_QUERY_KEY) ?? [];
 
-      // Optimistic remove
       queryClient.setQueryData<UserNote[]>(NOTES_QUERY_KEY, (prev = []) =>
         prev.filter((n) => n.id !== note.id),
       );
 
-      // Select adjacent note if deleted note was selected
       if (selectedId === note.id) {
         const idx = prevNotes.findIndex((n) => n.id === note.id);
         const next = prevNotes[idx + 1] ?? prevNotes[idx - 1] ?? null;
         setSelectedId(next?.id ?? null);
+        if (isMobile) setMobileEditorOpen(false);
       }
 
       let undone = false;
@@ -156,7 +258,6 @@ function AnotacoesContent() {
         ),
       });
 
-      // Commit after 5s if not undone
       setTimeout(async () => {
         if (undone) return;
         try {
@@ -164,7 +265,6 @@ function AnotacoesContent() {
           logger.log('[CadernoAnotacoesPage] Note deleted:', note.id);
         } catch (err) {
           logger.error('[CadernoAnotacoesPage] Delete failed:', err);
-          // Restore on API failure
           queryClient.setQueryData<UserNote[]>(NOTES_QUERY_KEY, prevNotes);
           setSelectedId(note.id);
           toast({
@@ -175,7 +275,7 @@ function AnotacoesContent() {
         }
       }, 5100);
     },
-    [queryClient, selectedId],
+    [queryClient, selectedId, isMobile],
   );
 
   // ── Handle save from NoteEditor ───────────────────────────────────────────
@@ -183,7 +283,6 @@ function AnotacoesContent() {
   const handleNoteSaved = useCallback(
     (updated: UserNote) => {
       queryClient.setQueryData<UserNote[]>(NOTES_QUERY_KEY, (prev = []) => {
-        // Move updated note to top, update its data
         const without = prev.filter((n) => n.id !== updated.id);
         return [updated, ...without];
       });
@@ -196,81 +295,172 @@ function AnotacoesContent() {
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
   const isBusy = createMutation.isPending || creating;
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Loading & error states ─────────────────────────────────────────────────
 
   if (isLoading) return <NotesSkeleton />;
 
   if (isError) {
     return (
-      <div className="rounded-2xl border border-destructive/20 bg-destructive/[0.04] px-6 py-10 text-center">
-        <p className="text-body-sm text-destructive">
+      <div className="rounded-[var(--c-radius-card)] border border-destructive/20 bg-destructive/[0.04] px-6 py-10 text-center">
+        <p className="text-[13px] text-destructive">
           Não foi possível carregar as anotações. Verifique sua conexão e recarregue a página.
         </p>
       </div>
     );
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // MOBILE layout
+  // ────────────────────────────────────────────────────────────────────────────
+
+  if (isMobile) {
+    return (
+      <div className="caderno-root relative">
+        {/* ── Mobile: Note list view ── */}
+        <AnimatePresence mode="wait">
+          {!mobileEditorOpen && (
+            <motion.div
+              key="mobile-list"
+              className="flex flex-col"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {notes.length === 0 ? (
+                <div className="px-4 py-8">
+                  <NotesEmptyState onCreateNote={handleCreateNote} />
+                </div>
+              ) : (
+                <div className="px-4 pb-[88px]">
+                  <SectionHeader
+                    title="Anotações"
+                    count={notes.length}
+                    className="pb-3 pt-2"
+                  />
+                  <NoteList
+                    notes={notes}
+                    selectedId={selectedId}
+                    onSelect={(note) => {
+                      setSelectedId(note.id);
+                      setMobileEditorOpen(true);
+                    }}
+                    onDelete={handleDeleteNote}
+                  />
+                </div>
+              )}
+
+              {/* Mobile: BottomActionBar with "Nova" button */}
+              <BottomActionBar>
+                <button
+                  type="button"
+                  onClick={handleCreateNote}
+                  disabled={isBusy}
+                  aria-label="Criar nova anotação"
+                  className={cn(
+                    'flex flex-1 items-center justify-center gap-2',
+                    'rounded-[var(--c-radius-control)]',
+                    'bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
+                    'py-3 text-[14px] font-bold text-white',
+                    'shadow-[var(--c-shadow-glow)]',
+                    'transition-all duration-150 hover:brightness-110 active:scale-[0.98]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/60 focus-visible:ring-offset-2',
+                    'disabled:cursor-not-allowed disabled:opacity-60',
+                  )}
+                >
+                  {isBusy ? (
+                    <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden />
+                  ) : (
+                    <PenLine className="h-[18px] w-[18px]" aria-hidden />
+                  )}
+                  Nova anotação
+                </button>
+              </BottomActionBar>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Mobile: Full-screen editor ── */}
+        <AnimatePresence>
+          {mobileEditorOpen && selectedNote && (
+            <motion.div
+              key="mobile-editor"
+              className="fixed inset-0 z-40 flex flex-col bg-[var(--c-bg)]"
+              initial={{ opacity: 0, x: 32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 32 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <MobileAppBar
+                title={selectedNote.title || 'Nova anotação'}
+                onBack={() => {
+                  setMobileEditorOpen(false);
+                }}
+                action={
+                  <NewNoteButtonCompact onClick={handleCreateNote} loading={isBusy} />
+                }
+              />
+              <div className="flex-1 overflow-y-auto px-4 py-4 pb-[80px]">
+                <NoteEditor note={selectedNote} onSaved={handleNoteSaved} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // DESKTOP layout — master-detail
+  // ────────────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="flex min-h-[520px] flex-col gap-5 lg:flex-row lg:gap-6">
-      {/* ── Sidebar ── */}
+    <div
+      className="caderno-root flex min-h-[560px] gap-5 lg:gap-6"
+      aria-label="Anotações"
+    >
+      {/* ── Sidebar (master) ── */}
       <aside
-        className="flex w-full shrink-0 flex-col gap-3 lg:w-64 xl:w-72"
+        className={cn(
+          'flex w-64 shrink-0 flex-col gap-3 xl:w-72',
+          'hidden lg:flex',
+        )}
         aria-label="Suas anotações"
       >
-        {/* New note button */}
-        <button
-          type="button"
-          onClick={handleCreateNote}
-          disabled={isBusy}
-          aria-label="Criar nova anotação"
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/[0.06]',
-            'px-4 py-2.5 text-[13px] font-semibold text-primary',
-            'transition-all duration-150 hover:bg-primary/10',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-60',
-          )}
-        >
-          {isBusy ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            <Plus className="h-4 w-4" aria-hidden />
-          )}
-          Nova anotação
-        </button>
+        <NewNoteButton onClick={handleCreateNote} loading={isBusy} />
 
-        {/* Count */}
         {notes.length > 0 && (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="select-none px-0.5 text-[11px] font-semibold text-[var(--c-muted-2)]">
             {notes.length} {notes.length === 1 ? 'anotação' : 'anotações'}
           </p>
         )}
 
-        {/* Note list */}
-        <NoteList
-          notes={notes}
-          selectedId={selectedId}
-          onSelect={(note) => setSelectedId(note.id)}
-          onDelete={handleDeleteNote}
-        />
+        <div className="flex-1 overflow-y-auto pr-0.5">
+          <NoteList
+            notes={notes}
+            selectedId={selectedId}
+            onSelect={(note) => setSelectedId(note.id)}
+            onDelete={handleDeleteNote}
+          />
+        </div>
       </aside>
 
-      {/* ── Editor area ── */}
-      <main className="flex flex-1 flex-col" aria-label="Editor de anotação">
+      {/* ── Editor area (detail) ── */}
+      <main
+        className="flex min-h-[520px] flex-1 flex-col"
+        aria-label="Editor de anotação"
+      >
         <AnimatePresence mode="wait">
           {selectedNote ? (
             <motion.div
               key={selectedNote.id}
               className="flex h-full flex-1 flex-col"
-              initial={{ opacity: 0, y: 4 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              <NoteEditor
-                note={selectedNote}
-                onSaved={handleNoteSaved}
-              />
+              <NoteEditor note={selectedNote} onSaved={handleNoteSaved} />
             </motion.div>
           ) : notes.length === 0 ? (
             <motion.div
@@ -286,18 +476,13 @@ function AnotacoesContent() {
           ) : (
             <motion.div
               key="placeholder"
-              className="flex flex-1 items-center justify-center"
+              className="flex flex-1 flex-col"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="text-center">
-                <NotebookPen className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" aria-hidden />
-                <p className="text-body-sm text-muted-foreground">
-                  Selecione uma anotação ao lado para editar.
-                </p>
-              </div>
+              <EditorPlaceholder />
             </motion.div>
           )}
         </AnimatePresence>

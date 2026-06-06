@@ -246,6 +246,7 @@ export function useActiveRecallSession(
   const drillArea = searchParams.get('area');
   const drillTheme = searchParams.get('theme');
   const isTimed = searchParams.get('timed') === '1';
+  const drillCount = searchParams.get('count') ? parseInt(searchParams.get('count')!, 10) : null;
 
   // Queue
   const [entries, setEntries] = useState<RecallEntry[]>([]);
@@ -305,7 +306,10 @@ export function useActiveRecallSession(
     setListError(false);
     try {
       const rows = await simuladosApi.getErrorNotebook(userId);
-      const queue = buildQueue(rows, mode, singleEntryId, drillArea, drillTheme);
+      let queue = buildQueue(rows, mode, singleEntryId, drillArea, drillTheme);
+      if (mode === 'drill' && drillCount !== null && drillCount > 0) {
+        queue = queue.slice(0, drillCount);
+      }
       setEntries(queue);
       if (!initialTotalSet.current) {
         initialTotalSet.current = true;
@@ -325,7 +329,7 @@ export function useActiveRecallSession(
     } finally {
       setLoadingList(false);
     }
-  }, [userId, mode, singleEntryId, drillArea, drillTheme]);
+  }, [userId, mode, singleEntryId, drillArea, drillTheme, drillCount]);
 
   useEffect(() => {
     fetchPending();

@@ -205,7 +205,7 @@ export function SessionSummaryV2({ stats, remainingCount, onContinue }: SessionS
                       <span className="truncate pr-3 text-[12px] font-semibold text-[var(--c-ink)]">
                         {area}
                       </span>
-                      <span className="shrink-0 text-[11px] font-bold text-emerald-500 tabular-nums">
+                      <span className="shrink-0 text-[11px] font-bold [color:var(--c-success)] tabular-nums">
                         {count}
                       </span>
                     </div>

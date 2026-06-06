@@ -1,13 +1,19 @@
 /**
- * NoteEditor — editor de anotação com campo de título + corpo markdown.
+ * NoteEditor — editor premium com campo de título + corpo markdown.
  *
- * Funcionalidades:
- * - Campo de título (corrige anti-padrão Medway m9)
- * - Textarea de corpo markdown com toolbar leve (B / I / lista)
+ * Funcionalidades (lógica preservada integralmente):
+ * - Campo de título destacado (heading premium)
+ * - Textarea de corpo markdown com toolbar leve (B / I / lista / heading / código)
  * - Autosave debounced (~1500ms) chamando updateNote
- * - Indicador "Salvo" / "Salvando…" / "Erro ao salvar"
+ * - Indicador "Salvo" / "Salvando…" / "Erro ao salvar" integrado à toolbar
  * - Ctrl/Cmd+S salva imediatamente
- * - Sem perder contexto ao navegar entre notas
+ * - Race-fix do unmount (flush do nó anterior antes de mudar de nota)
+ *
+ * Design:
+ * - Título: campo transparente fullwidth com text-heading-1, borda bottom ao focar
+ * - Toolbar: separador sutil, botões com tooltip, indicador autosave à direita
+ * - Textarea: flex-1, fonte de leitura, padding generoso, sem border própria
+ * - Contentor: CadernoCard com borda wine ao focar (focus-within)
  */
 
 import {
@@ -17,7 +23,17 @@ import {
   useCallback,
   useId,
 } from 'react';
-import { Bold, Italic, List, Save, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Bold,
+  Italic,
+  List,
+  Save,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Heading2,
+  Code,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { simuladosApi } from '@/services/simuladosApi';
@@ -46,19 +62,16 @@ function insertMarkdown(
   const selected = value.slice(start, end);
 
   if (linePrefix) {
-    // Line-prefix mode (e.g., "- " for lists)
     const lineStart = value.lastIndexOf('\n', start - 1) + 1;
     const before = value.slice(0, lineStart);
     const lineContent = value.slice(lineStart);
     const newValue = before + linePrefix + lineContent;
     const newCursor = start + linePrefix.length;
-    // Return new value; caller sets textarea.value and selection
     textarea.value = newValue;
     textarea.setSelectionRange(newCursor, newCursor + (end - start));
     return newValue;
   }
 
-  // Wrap mode (e.g., "**" for bold)
   const before = value.slice(0, start);
   const after = value.slice(end);
   const newValue = `${before}${wrap}${selected || 'texto'}${wrap}${after}`;
@@ -67,6 +80,83 @@ function insertMarkdown(
   textarea.value = newValue;
   textarea.setSelectionRange(newStart, newEnd);
   return newValue;
+}
+
+// ── SaveIndicator (inline) ─────────────────────────────────────────────────
+
+function SaveIndicator({ status }: { status: SaveStatus }) {
+  if (status === 'saving') {
+    return (
+      <span
+        className="flex items-center gap-1 text-[11px] font-medium text-[var(--c-muted)]"
+        role="status"
+        aria-live="polite"
+      >
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+        Salvando…
+      </span>
+    );
+  }
+  if (status === 'saved') {
+    return (
+      <span
+        className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
+        role="status"
+        aria-live="polite"
+      >
+        <CheckCircle2 className="h-3 w-3" aria-hidden />
+        Salvo
+      </span>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <span
+        className="flex items-center gap-1 text-[11px] font-medium text-destructive"
+        role="status"
+        aria-live="polite"
+      >
+        <AlertCircle className="h-3 w-3" aria-hidden />
+        Erro ao salvar
+      </span>
+    );
+  }
+  return null;
+}
+
+// ── ToolbarButton ──────────────────────────────────────────────────────────
+
+interface ToolbarButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+  tooltip: string;
+  children: React.ReactNode;
+}
+
+function ToolbarButton({ onClick, disabled, label, tooltip, children }: ToolbarButtonProps) {
+  return (
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          aria-label={label}
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
+            'text-[var(--c-muted)] duration-[var(--c-duration-fast)]',
+            'hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40',
+            'disabled:cursor-not-allowed disabled:opacity-40',
+          )}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="text-[11px]">{tooltip}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -84,20 +174,16 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestTitle = useRef(title);
   const latestBody = useRef(body);
-  // Track if the content actually changed from what's persisted
   const dirty = useRef(false);
-  // Snapshot of which note id these refs belong to — used by unmount cleanup
   const activeNoteId = useRef(note.id);
 
-  // When note prop changes (user selects a different note), flush pending save
-  // of the PREVIOUS note BEFORE resetting state.
+  // When note prop changes, flush pending save of the PREVIOUS note BEFORE resetting state.
   useEffect(() => {
     const prevId = activeNoteId.current;
     const prevTitle = latestTitle.current;
     const prevBody = latestBody.current;
     const wasDirty = dirty.current;
 
-    // Flush the outgoing note synchronously before any state mutation
     if (autosaveTimer.current) {
       clearTimeout(autosaveTimer.current);
       autosaveTimer.current = null;
@@ -108,7 +194,6 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
         .catch(() => {});
     }
 
-    // Now switch to the new note
     activeNoteId.current = note.id;
     setTitle(note.title);
     setBody(note.body_md);
@@ -138,15 +223,12 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
         body_length: payload.body_md?.length ?? 0,
       });
       logger.log('[NoteEditor] Note saved:', note.id);
-      // Reset "Salvo" indicator after 3s
       setTimeout(() => setSaveStatus((s) => (s === 'saved' ? 'idle' : s)), 3000);
     } catch (err) {
       logger.error('[NoteEditor] Save failed:', err);
       setSaveStatus('error');
     }
   }, [note.id, onSaved]);
-
-  // ── Debounced autosave ──────────────────────────────────────────────────
 
   const scheduleAutosave = useCallback(() => {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
@@ -191,12 +273,11 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [doSave]);
 
-  // Save on unmount if dirty — use refs so the closure always has the current id/content
+  // Save on unmount if dirty
   useEffect(() => {
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
       if (dirty.current) {
-        // Fire-and-forget on unmount; activeNoteId.current is always the right id
         simuladosApi
           .updateNote(activeNoteId.current, {
             title: latestTitle.current,
@@ -209,59 +290,30 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
 
   // ── Toolbar actions ────────────────────────────────────────────────────
 
-  const applyFormat = (type: 'bold' | 'italic' | 'list') => {
+  const applyFormat = (type: 'bold' | 'italic' | 'list' | 'heading' | 'code') => {
     const ta = bodyRef.current;
     if (!ta) return;
 
     let newValue: string;
     if (type === 'bold') newValue = insertMarkdown(ta, '**');
     else if (type === 'italic') newValue = insertMarkdown(ta, '_');
-    else newValue = insertMarkdown(ta, '', '- ');
+    else if (type === 'list') newValue = insertMarkdown(ta, '', '- ');
+    else if (type === 'heading') newValue = insertMarkdown(ta, '', '## ');
+    else newValue = insertMarkdown(ta, '`');
 
     setBody(newValue);
     latestBody.current = newValue;
     dirty.current = true;
     setSaveStatus('idle');
     scheduleAutosave();
-    // Restore focus
     ta.focus();
-  };
-
-  // ── Save status indicator ──────────────────────────────────────────────
-
-  const SaveIndicator = () => {
-    if (saveStatus === 'saving') {
-      return (
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground" role="status" aria-live="polite">
-          <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-          Salvando…
-        </span>
-      );
-    }
-    if (saveStatus === 'saved') {
-      return (
-        <span className="flex items-center gap-1 text-[11px] text-success" role="status" aria-live="polite">
-          <CheckCircle2 className="h-3 w-3" aria-hidden />
-          Salvo
-        </span>
-      );
-    }
-    if (saveStatus === 'error') {
-      return (
-        <span className="flex items-center gap-1 text-[11px] text-destructive" role="status" aria-live="polite">
-          <AlertCircle className="h-3 w-3" aria-hidden />
-          Erro ao salvar
-        </span>
-      );
-    }
-    return null;
   };
 
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Title field */}
+    <div className="flex h-full flex-col gap-0">
+      {/* ── Title field ── */}
       <div className="mb-3">
         <label htmlFor={titleId} className="sr-only">
           Título da anotação
@@ -276,10 +328,10 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
           maxLength={200}
           autoComplete="off"
           className={cn(
-            'w-full rounded-xl border border-border bg-card px-4 py-3',
-            'text-[17px] font-bold text-foreground placeholder:text-muted-foreground/50',
-            'transition-colors duration-150',
-            'focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0',
+            'w-full border-0 border-b-2 border-transparent bg-transparent px-1 py-2',
+            'text-[22px] font-extrabold tracking-tight text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]/50',
+            'transition-colors duration-[var(--c-duration-fast)]',
+            'focus-visible:border-b-[var(--c-wine-500)]/50 focus-visible:outline-none',
           )}
           aria-describedby={`${titleId}-hint`}
         />
@@ -288,83 +340,80 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
         </p>
       </div>
 
-      {/* Toolbar + body */}
+      {/* ── Editor card (toolbar + textarea) ── */}
       <div
         className={cn(
-          'flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card',
-          'focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-0',
-          'transition-colors duration-150',
+          'flex flex-1 flex-col overflow-hidden',
+          'rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)]',
+          'shadow-[var(--c-shadow-sm)]',
+          'transition-all duration-[var(--c-duration-fast)]',
+          'focus-within:border-[var(--c-wine-500)]/40 focus-within:shadow-[0_0_0_3px_rgba(176,41,74,.07)]',
         )}
       >
         {/* Toolbar */}
         <div
-          className="flex items-center justify-between border-b border-border bg-muted/40 px-3 py-1.5"
+          className={cn(
+            'flex items-center justify-between gap-2',
+            'border-b border-[var(--c-border)] bg-[var(--c-surface-2)]/60 px-3 py-1.5',
+          )}
           role="toolbar"
           aria-label="Formatação de texto"
         >
+          {/* Left: format buttons */}
           <div className="flex items-center gap-0.5">
-            <Tooltip delayDuration={300}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => applyFormat('bold')}
-                  aria-label="Negrito (Ctrl+B não suportado, use botão)"
-                  className={cn(
-                    'rounded-md p-1.5 text-muted-foreground transition-colors',
-                    'hover:bg-accent hover:text-foreground',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
-                >
-                  <Bold className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Negrito (**texto**)</TooltipContent>
-            </Tooltip>
+            <ToolbarButton
+              onClick={() => applyFormat('bold')}
+              label="Negrito"
+              tooltip="Negrito (**texto**)"
+            >
+              <Bold className="h-3.5 w-3.5" aria-hidden />
+            </ToolbarButton>
 
-            <Tooltip delayDuration={300}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => applyFormat('italic')}
-                  aria-label="Itálico"
-                  className={cn(
-                    'rounded-md p-1.5 text-muted-foreground transition-colors',
-                    'hover:bg-accent hover:text-foreground',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
-                >
-                  <Italic className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Itálico (_texto_)</TooltipContent>
-            </Tooltip>
+            <ToolbarButton
+              onClick={() => applyFormat('italic')}
+              label="Itálico"
+              tooltip="Itálico (_texto_)"
+            >
+              <Italic className="h-3.5 w-3.5" aria-hidden />
+            </ToolbarButton>
 
-            <Tooltip delayDuration={300}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => applyFormat('list')}
-                  aria-label="Lista"
-                  className={cn(
-                    'rounded-md p-1.5 text-muted-foreground transition-colors',
-                    'hover:bg-accent hover:text-foreground',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
-                >
-                  <List className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Lista (- item)</TooltipContent>
-            </Tooltip>
+            <ToolbarButton
+              onClick={() => applyFormat('heading')}
+              label="Título"
+              tooltip="Título (## texto)"
+            >
+              <Heading2 className="h-3.5 w-3.5" aria-hidden />
+            </ToolbarButton>
 
-            <span className="mx-2 h-4 w-px bg-border" aria-hidden />
+            <ToolbarButton
+              onClick={() => applyFormat('list')}
+              label="Lista"
+              tooltip="Lista (- item)"
+            >
+              <List className="h-3.5 w-3.5" aria-hidden />
+            </ToolbarButton>
 
-            <span className="text-[10px] font-medium text-muted-foreground/60">Markdown</span>
+            <ToolbarButton
+              onClick={() => applyFormat('code')}
+              label="Código inline"
+              tooltip="Código (`código`)"
+            >
+              <Code className="h-3.5 w-3.5" aria-hidden />
+            </ToolbarButton>
+
+            <span
+              className="mx-1.5 h-4 w-px bg-[var(--c-border)]"
+              aria-hidden
+            />
+            <span className="select-none text-[10px] font-semibold uppercase tracking-wide text-[var(--c-muted-2)]">
+              Markdown
+            </span>
           </div>
 
           {/* Right: save status + manual save */}
           <div className="flex items-center gap-2">
-            <SaveIndicator />
+            <SaveIndicator status={saveStatus} />
+
             <Tooltip delayDuration={300}>
               <TooltipTrigger asChild>
                 <button
@@ -379,16 +428,17 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
                   aria-label="Salvar agora (Ctrl+S)"
                   disabled={saveStatus === 'saving' || !dirty.current}
                   className={cn(
-                    'rounded-md p-1.5 text-muted-foreground transition-colors',
-                    'hover:bg-accent hover:text-foreground',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
+                    'text-[var(--c-muted)] duration-[var(--c-duration-fast)]',
+                    'hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-500)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40',
                     'disabled:cursor-not-allowed disabled:opacity-40',
                   )}
                 >
                   <Save className="h-3.5 w-3.5" aria-hidden />
                 </button>
               </TooltipTrigger>
-              <TooltipContent>Salvar agora (Ctrl+S)</TooltipContent>
+              <TooltipContent className="text-[11px]">Salvar agora (Ctrl+S)</TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -402,10 +452,13 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
           id={bodyId}
           value={body}
           onChange={handleBodyChange}
-          placeholder="Escreva sua anotação aqui… Suporte a markdown: **negrito**, _itálico_, - listas"
+          placeholder={
+            'Escreva sua anotação aqui…\n\nSuporta markdown: **negrito**, _itálico_, ## título, - listas, `código`'
+          }
           className={cn(
-            'flex-1 resize-none bg-transparent px-4 py-3',
-            'font-mono text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/40',
+            'flex-1 resize-none bg-transparent px-4 py-4',
+            'font-mono text-[13px] leading-[1.75] text-[var(--c-ink)]',
+            'placeholder:text-[var(--c-muted-2)]/40',
             'focus-visible:outline-none',
           )}
           aria-describedby={`${bodyId}-hint`}
@@ -418,8 +471,11 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
       </div>
 
       {/* Footer hint */}
-      <p className="mt-2 text-right text-[11px] text-muted-foreground/50" aria-hidden>
-        Ctrl+S para salvar · salvo automaticamente
+      <p
+        className="mt-1.5 text-right text-[11px] text-[var(--c-muted-2)]/60 select-none"
+        aria-hidden
+      >
+        Salvo automaticamente · Ctrl+S para salvar agora
       </p>
     </div>
   );

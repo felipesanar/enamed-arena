@@ -59,7 +59,7 @@ function QueueList({
           className="h-[5px]"
         />
         {dominated > 0 && (
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold [color:var(--c-success)]">
             <Flame className="h-3 w-3" aria-hidden />
             <span>{dominated} dominada{dominated > 1 ? 's' : ''}</span>
           </div>
@@ -117,7 +117,7 @@ function QueueList({
                 {/* Indicators */}
                 <div className="flex shrink-0 items-center gap-1">
                   {isDue && (
-                    <Clock className="h-3 w-3 text-amber-500" aria-label="Vencida" />
+                    <Clock className="h-3 w-3 [color:var(--c-warning)]" aria-label="Vencida" />
                   )}
                   {isCurrent && (
                     <ChevronRight className="h-3.5 w-3.5 text-[var(--c-wine-500)]" aria-hidden />
@@ -131,7 +131,7 @@ function QueueList({
 
       {/* Footer */}
       {dominated > 0 && (
-        <div className="border-t border-[var(--c-border)] px-4 py-2.5 text-[11px] font-semibold text-emerald-500 flex items-center gap-1.5">
+        <div className="border-t border-[var(--c-border)] px-4 py-2.5 text-[11px] font-semibold [color:var(--c-success)] flex items-center gap-1.5">
           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
           <span aria-label={`${dominated} dominadas nesta sessão`}>
             {dominated} dominada{dominated > 1 ? 's' : ''} nesta sessão

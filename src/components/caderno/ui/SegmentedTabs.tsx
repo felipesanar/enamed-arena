@@ -55,7 +55,7 @@ export function SegmentedTabs({
               "text-xs font-semibold whitespace-nowrap transition-all",
               "duration-[var(--c-duration-fast)] ease-[var(--c-ease-standard)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50",
-              "min-h-[36px]",
+              "min-h-[44px]",
               isActive
                 ? "bg-[var(--c-surface)] text-[var(--c-ink)] shadow-[var(--c-shadow-sm)]"
                 : "text-[var(--c-muted)] hover:text-[var(--c-ink)]",

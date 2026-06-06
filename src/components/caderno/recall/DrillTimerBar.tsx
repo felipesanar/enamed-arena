@@ -72,8 +72,8 @@ export function DrillTimerBar({
   const stateColor = isOverTarget
     ? 'text-destructive'
     : onPace || questionsAnswered === 0
-    ? 'text-emerald-500'
-    : 'text-amber-500';
+    ? '[color:var(--c-success)]'
+    : '[color:var(--c-warning)]';
 
   const barColor = isOverTarget
     ? '#DC2626'
@@ -89,8 +89,8 @@ export function DrillTimerBar({
         isOverTarget
           ? 'border-destructive/25 bg-destructive/[0.06]'
           : onPace || questionsAnswered === 0
-          ? 'border-emerald-500/20 bg-emerald-500/[0.05]'
-          : 'border-amber-500/20 bg-amber-500/[0.05]',
+          ? '[border-color:color-mix(in_srgb,var(--c-success)_20%,transparent)] [background:color-mix(in_srgb,var(--c-success)_5%,transparent)]'
+          : '[border-color:color-mix(in_srgb,var(--c-warning)_20%,transparent)] [background:color-mix(in_srgb,var(--c-warning)_5%,transparent)]',
       )}
       role="status"
       aria-live="off"
@@ -123,7 +123,7 @@ export function DrillTimerBar({
         <div
           className={cn(
             'hidden shrink-0 items-center gap-1 text-[11px] font-semibold sm:flex',
-            isOverTarget || !onPace ? 'text-amber-500' : 'text-emerald-500',
+            isOverTarget || !onPace ? '[color:var(--c-warning)]' : '[color:var(--c-success)]',
           )}
           aria-label={paceLabel}
         >

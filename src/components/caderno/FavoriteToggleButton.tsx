@@ -1,20 +1,21 @@
 /**
- * FavoriteToggleButton — botão de coração (toggle) para favoritar/desfavoritar
- * uma questão diretamente na correção do simulado.
+ * FavoriteToggleButton — botão de coração premium (toggle) para favoritar/desfavoritar
+ * uma questão diretamente na correção do simulado (Caderno v3 design language).
  *
  * Apenas PRO (canUseNotebook=true) enxerga o botão.
- * Carrega a lista de favoritos via React Query (uma vez, com staleTime generoso)
- * para refletir o estado correto ao montar.
+ * Carrega a lista de favoritos via React Query (staleTime 5min) para estado correto.
  *
- * Optimistic update: alterna imediatamente no UI, dispara a mutação em background.
+ * Optimistic update: alterna imediatamente, dispara mutação em background.
  * Em caso de erro faz rollback + toast.
  *
- * Dispara: caderno_favorite_added / caderno_favorite_removed via trackEvent.
+ * Preservado: caderno_favorite_added / caderno_favorite_removed analytics,
+ *             query key ['caderno','favorites'], addFavorite/removeFavorite.
  */
 
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { simuladosApi } from '@/services/simuladosApi';
@@ -26,7 +27,7 @@ import type { QuestionFavorite } from '@/types/caderno';
 /* ── Constants ── */
 
 const FAVORITES_QUERY_KEY = ['caderno', 'favorites'] as const;
-const STALE_TIME = 5 * 60 * 1000; // 5 min — matches project default
+const STALE_TIME = 5 * 60 * 1000; // 5 min
 
 /* ── Props ── */
 
@@ -61,7 +62,7 @@ export function FavoriteToggleButton({
   );
 }
 
-/* ── Inner (rendered only when PRO, so hooks are unconditional here) ── */
+/* ── Inner (hooks unconditional — only rendered when PRO) ── */
 
 function FavoriteToggleButtonInner({
   questionId,
@@ -72,7 +73,6 @@ function FavoriteToggleButtonInner({
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
 
-  // Load favorites list once (stale 5 min). Drives the filled/outline state.
   const { data: favorites = [] } = useQuery<QuestionFavorite[]>({
     queryKey: FAVORITES_QUERY_KEY,
     queryFn: () => simuladosApi.listFavorites(),
@@ -85,7 +85,6 @@ function FavoriteToggleButtonInner({
     if (pending) return;
     setPending(true);
 
-    // Optimistic update: mutate the cache before the network round-trip.
     const previous = queryClient.getQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY) ?? [];
 
     if (isFavorited) {
@@ -101,12 +100,11 @@ function FavoriteToggleButtonInner({
         toast({ title: 'Removido dos favoritos', duration: 2500 });
       } catch (err) {
         logger.error('[FavoriteToggleButton] Error removing favorite:', err);
-        // Rollback.
         queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, previous);
         toast({ title: 'Não foi possível remover', variant: 'destructive' });
       }
     } else {
-      // Add optimistically with a placeholder row.
+      // Add optimistically.
       const optimisticEntry: QuestionFavorite = {
         id: `optimistic-${questionId}`,
         user_id: '',
@@ -128,7 +126,6 @@ function FavoriteToggleButtonInner({
           area,
           theme,
         });
-        // Replace the optimistic placeholder with the real row from the DB.
         queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, (curr = []) =>
           curr.map((f) => (f.id === optimisticEntry.id ? created : f)),
         );
@@ -136,7 +133,6 @@ function FavoriteToggleButtonInner({
         toast({ title: 'Adicionado aos favoritos', duration: 2500 });
       } catch (err) {
         logger.error('[FavoriteToggleButton] Error adding favorite:', err);
-        // Rollback.
         queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, previous);
         toast({ title: 'Não foi possível favoritar', variant: 'destructive' });
       }
@@ -145,7 +141,7 @@ function FavoriteToggleButtonInner({
     setPending(false);
   }, [pending, isFavorited, questionId, simuladoId, area, theme, queryClient]);
 
-  const label = isFavorited ? 'Remover dos favoritos' : 'Favoritar';
+  const label = isFavorited ? 'Remover dos favoritos' : 'Favoritar esta questão';
 
   return (
     <Tooltip delayDuration={250}>
@@ -157,22 +153,50 @@ function FavoriteToggleButtonInner({
           aria-label={label}
           aria-pressed={isFavorited}
           className={cn(
-            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-caption font-semibold transition-all',
-            'border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1',
+            // Base — sempre ≥44px alvo, rounded premium
+            'relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-3.5 py-2.5',
+            'text-[12px] font-semibold border',
+            'transition-all duration-[var(--c-duration-base)] ease-[var(--c-ease-standard)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+            // Favorited state
             isFavorited
-              ? 'bg-primary/15 text-primary border-primary/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30'
-              : 'bg-muted/40 text-muted-foreground border-border/70 hover:bg-primary/10 hover:text-primary hover:border-primary/30',
+              ? [
+                  'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)]',
+                  'dark:bg-[var(--c-wine-900)]/40 dark:border-[var(--c-wine-700)]/60 dark:text-[var(--c-wine-300)]',
+                  'hover:border-[var(--c-destructive)]/40 hover:bg-[var(--c-destructive)]/8 hover:text-[var(--c-destructive)]',
+                  'shadow-[0_2px_8px_-2px_rgba(176,41,74,.22)]',
+                ].join(' ')
+              : [
+                  'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)]',
+                  'hover:border-[var(--c-wine-300)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-700)]',
+                  'dark:hover:bg-[var(--c-wine-900)]/30 dark:hover:text-[var(--c-wine-300)]',
+                ].join(' '),
             pending && 'pointer-events-none opacity-50',
           )}
         >
-          <Heart
-            className={cn(
-              'h-4 w-4 transition-all',
-              isFavorited ? 'fill-current' : 'fill-none',
-            )}
-            aria-hidden
-          />
-          {isFavorited ? 'Favoritado' : 'Favoritar'}
+          {/* Heart icon — animated fill */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={isFavorited ? 'filled' : 'outline'}
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.7, opacity: 0 }}
+              transition={{ duration: 0.15, ease: [0.34, 1.56, 0.64, 1] }}
+              aria-hidden
+            >
+              <Heart
+                className={cn(
+                  'h-4 w-4 transition-colors duration-[var(--c-duration-fast)]',
+                  isFavorited ? 'fill-current' : 'fill-none',
+                )}
+              />
+            </motion.span>
+          </AnimatePresence>
+
+          {/* Label */}
+          <span>
+            {isFavorited ? 'Favoritado' : 'Favoritar'}
+          </span>
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom">{label}</TooltipContent>

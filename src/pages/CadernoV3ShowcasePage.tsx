@@ -12,6 +12,10 @@ import { RecallSection } from "@/components/caderno/showcase/RecallSection";
 import { TriagemSection } from "@/components/caderno/showcase/TriagemSection";
 import { InsightsSection } from "@/components/caderno/showcase/InsightsSection";
 import { FlashcardsSection } from "@/components/caderno/showcase/FlashcardsSection";
+import { TreinoSection } from "@/components/caderno/showcase/TreinoSection";
+import { FavoritosSection } from "@/components/caderno/showcase/FavoritosSection";
+import { AnotacoesSection } from "@/components/caderno/showcase/AnotacoesSection";
+import { RetaFinalSection } from "@/components/caderno/showcase/RetaFinalSection";
 import {
   CadernoCard,
   CauseBadge,
@@ -65,7 +69,7 @@ const STATS = [
 
 // ── Section types ────────────────────────────────────────────────────────────
 
-type ShowcaseSection = "primitivos" | "shell" | "recall" | "triagem" | "insights" | "flashcards";
+type ShowcaseSection = "primitivos" | "shell" | "recall" | "triagem" | "insights" | "flashcards" | "treino" | "favoritos" | "anotacoes" | "retafinal";
 
 const SECTION_OPTIONS: { value: ShowcaseSection; label: string }[] = [
   { value: "primitivos", label: "Primitivos" },
@@ -74,6 +78,10 @@ const SECTION_OPTIONS: { value: ShowcaseSection; label: string }[] = [
   { value: "triagem", label: "Triagem" },
   { value: "insights", label: "Insights" },
   { value: "flashcards", label: "Flashcards" },
+  { value: "treino", label: "Treino" },
+  { value: "favoritos", label: "Favoritos" },
+  { value: "anotacoes", label: "Anotações" },
+  { value: "retafinal", label: "Reta Final" },
 ];
 
 // ── Showcase Page ────────────────────────────────────────────────────────────
@@ -214,6 +222,12 @@ export default function CadernoV3ShowcasePage() {
             {activeSection === "triagem" && <TriagemSection />}
             {activeSection === "insights" && <InsightsSection />}
             {activeSection === "flashcards" && <FlashcardsSection />}
+            {activeSection === "treino" && <TreinoSection />}
+            {activeSection === "favoritos" && <FavoritosSection />}
+            {activeSection === "anotacoes" && <AnotacoesSection />}
+            {activeSection === "retafinal" && (
+              <RetaFinalSection isMobileView={isMobileView} isDark={isDark} scenario="all" />
+            )}
 
             {/* ── Galeria de primitivos (seção padrão) ───────────────── */}
             {activeSection === "primitivos" && (
