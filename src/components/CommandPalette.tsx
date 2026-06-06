@@ -16,7 +16,12 @@ import {
   GitCompareArrows,
   BookOpen,
   Settings,
+  Target,
+  Dumbbell,
+  Sparkles,
 } from "lucide-react";
+import { useHasAccess } from "@/contexts/UserContext";
+import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
 
 const navItems = [
   { title: "Início", url: "/", icon: LayoutDashboard },
@@ -26,8 +31,6 @@ const navItems = [
   { title: "Comparativo", url: "/comparativo", icon: GitCompareArrows },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
-
-const proItems = [{ title: "Caderno de Erros", url: "/caderno-erros", icon: BookOpen }];
 
 interface CommandPaletteProps {
   open?: boolean;
@@ -41,6 +44,20 @@ export function CommandPalette({ open: openProp, onOpenChange }: CommandPaletteP
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const caderno = useCadernoRoutes();
+  const hasCaderno = useHasAccess("cadernoErros");
+
+  const proItems = hasCaderno
+    ? caderno.v2
+      ? [
+          { title: "Caderno de Erros", url: caderno.base, icon: BookOpen },
+          { title: "Revisar agora", url: caderno.reviewDue, icon: Target },
+          { title: "Treinar pontos fracos", url: caderno.treino, icon: Dumbbell },
+          { title: "Insights do caderno", url: caderno.insights, icon: Sparkles },
+        ]
+      : [{ title: "Caderno de Erros", url: caderno.base, icon: BookOpen }]
+    : [];
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -82,6 +99,7 @@ export function CommandPalette({ open: openProp, onOpenChange }: CommandPaletteP
             </CommandItem>
           ))}
         </CommandGroup>
+        {proItems.length > 0 && (
         <CommandGroup heading="PRO Exclusivo">
           {proItems.map((item) => (
             <CommandItem
@@ -95,6 +113,7 @@ export function CommandPalette({ open: openProp, onOpenChange }: CommandPaletteP
             </CommandItem>
           ))}
         </CommandGroup>
+        )}
       </CommandList>
       <div className="border-t border-border px-3 py-2 text-caption text-muted-foreground">
         <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">

@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { AddToNotebookModal } from '@/components/AddToNotebookModal';
 import { FavoriteToggleButton } from '@/components/caderno/FavoriteToggleButton';
+import { NoteButton } from '@/components/caderno/QuickNoteSheet';
 import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
@@ -360,6 +361,16 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                         simuladoId={simulado.id}
                         area={question.area}
                         theme={question.theme}
+                        canUseNotebook={canUseNotebook}
+                      />
+                    )}
+                    {isCadernoV2 && id && (
+                      <NoteButton
+                        questionId={question.id}
+                        simuladoId={simulado.id}
+                        area={question.area}
+                        theme={question.theme}
+                        questionNumber={question.number}
                         canUseNotebook={canUseNotebook}
                       />
                     )}

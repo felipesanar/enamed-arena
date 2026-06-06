@@ -12,6 +12,7 @@ import {
   X,
   Minus,
   BookOpen,
+  Dumbbell,
 } from 'lucide-react';
 
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
@@ -20,6 +21,9 @@ import type { ExamState } from '@/types/exam';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { usePdfDownload, getStageLabel } from '@/hooks/usePdfDownload';
+import { useCadernoRoutes } from '@/hooks/useCadernoRoutes';
+import { useHasAccess } from '@/contexts/UserContext';
+import { trackEvent } from '@/lib/analytics';
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Types
@@ -59,6 +63,10 @@ export function DesempenhoSimuladoPanel({
   resultNavVariant = 'public',
 }: DesempenhoSimuladoPanelProps) {
   const prefersReducedMotion = useReducedMotion();
+  const caderno = useCadernoRoutes();
+  const hasCadernoAccess = useHasAccess('cadernoErros');
+  // Connector diagnosis → action: only when the v2 caderno shell is live and the user is PRO.
+  const showCadernoLinks = caderno.v2 && hasCadernoAccess;
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [selectedSubspecialty, setSelectedSubspecialty] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
@@ -268,6 +276,9 @@ export function DesempenhoSimuladoPanel({
                         simuladoId={selectedSimuladoId ?? ''}
                         prefersReducedMotion={!!prefersReducedMotion}
                         correcaoVariant={resultNavVariant}
+                        showCadernoLink={showCadernoLinks}
+                        cadernoBase={caderno.base}
+                        specialty={selectedSpecialty ?? ''}
                       />
                     ))}
                   </AnimatePresence>
@@ -282,7 +293,12 @@ export function DesempenhoSimuladoPanel({
       {/* Summary (Best + Worst) */}
       {byArea.length > 1 && bestArea && worstArea && (
         <StaggerItem>
-          <SummarySection bestArea={bestArea} worstArea={worstArea} />
+          <SummarySection
+            bestArea={bestArea}
+            worstArea={worstArea}
+            showCadernoLink={showCadernoLinks}
+            cadernoTreino={caderno.treino}
+          />
         </StaggerItem>
       )}
 
@@ -762,6 +778,9 @@ function ThemeAccordionRow({
   simuladoId,
   prefersReducedMotion,
   correcaoVariant,
+  showCadernoLink,
+  cadernoBase,
+  specialty,
 }: {
   theme: string;
   score: number;
@@ -779,6 +798,9 @@ function ThemeAccordionRow({
   simuladoId: string;
   prefersReducedMotion: boolean;
   correcaoVariant: 'public' | 'admin';
+  showCadernoLink: boolean;
+  cadernoBase: string;
+  specialty: string;
 }) {
   const tier = scoreTier(score);
   const scoreColor =
@@ -854,6 +876,24 @@ function ThemeAccordionRow({
                   ))}
                 </ul>
               )}
+              {showCadernoLink && (
+                <div className="px-2 pt-1.5 pb-1">
+                  <Link
+                    to={`${cadernoBase}?area=${encodeURIComponent(specialty)}&theme=${encodeURIComponent(theme)}`}
+                    onClick={() =>
+                      trackEvent('desempenho_to_caderno_clicked', {
+                        target: 'erros',
+                        area: specialty,
+                        theme,
+                      })
+                    }
+                    className="inline-flex items-center gap-1 rounded text-[11px] font-semibold text-primary no-underline transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <BookOpen className="h-3 w-3" aria-hidden />
+                    Ver meus erros deste tema
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -918,9 +958,13 @@ function QuestionRow({
 function SummarySection({
   bestArea,
   worstArea,
+  showCadernoLink,
+  cadernoTreino,
 }: {
   bestArea: { area: string; score: number; correct: number; questions: number };
   worstArea: { area: string; score: number; correct: number; questions: number };
+  showCadernoLink: boolean;
+  cadernoTreino: string;
 }) {
   return (
     <section aria-label="Resumo do desempenho">
@@ -945,6 +989,23 @@ function SummarySection({
           total={worstArea.questions}
           score={worstArea.score}
           description={`A especialidade com maior oportunidade é ${worstArea.area} com ${worstArea.correct}/${worstArea.questions} acertos.`}
+          action={
+            showCadernoLink ? (
+              <Link
+                to={`${cadernoTreino}?area=${encodeURIComponent(worstArea.area)}`}
+                onClick={() =>
+                  trackEvent('desempenho_to_caderno_clicked', {
+                    target: 'treinar',
+                    area: worstArea.area,
+                  })
+                }
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/[0.06] px-3 py-1.5 text-[12px] font-semibold text-destructive no-underline transition-colors hover:bg-destructive/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <Dumbbell className="h-3.5 w-3.5" aria-hidden />
+                Treinar {worstArea.area}
+              </Link>
+            ) : undefined
+          }
         />
       </div>
     </section>
@@ -960,6 +1021,7 @@ function SummaryCard({
   total,
   score,
   description,
+  action,
 }: {
   icon: typeof Star;
   tone: 'success' | 'destructive';
@@ -969,6 +1031,7 @@ function SummaryCard({
   total: number;
   score: number;
   description: string;
+  action?: React.ReactNode;
 }) {
   const toneClasses =
     tone === 'success'
@@ -1012,6 +1075,7 @@ function SummaryCard({
             </span>
           </div>
           <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{description}</p>
+          {action}
         </div>
       </div>
     </div>

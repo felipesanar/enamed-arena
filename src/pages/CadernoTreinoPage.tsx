@@ -25,7 +25,6 @@ import { Dumbbell, Zap, BookOpen, AlertCircle } from 'lucide-react';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
-import { TabBar } from '@/components/caderno/TabBar';
 import { WeakAreaPicker } from '@/components/caderno/treino/WeakAreaPicker';
 import { TreinoLauncher } from '@/components/caderno/treino/TreinoLauncher';
 import {
@@ -352,8 +351,6 @@ export default function CadernoTreinoPage() {
 
   return (
     <PageTransition>
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={Dumbbell}

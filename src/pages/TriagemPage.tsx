@@ -371,7 +371,7 @@ export default function TriagemPage() {
 
     setIsAdding(true);
     try {
-      const entries: BulkAddEntry[] = selected.map(c => ({
+      const entries: BulkAddEntry[] = selected.map((c): BulkAddEntry => ({
         question_id: c.questionId,
         simulado_id: simuladoId,
         reason: c.reason,

@@ -40,7 +40,6 @@ import { cn } from '@/lib/utils';
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
 import { CadernoSkeleton } from '@/components/caderno/CadernoSkeleton';
-import { TabBar } from '@/components/caderno/TabBar';
 import { RetaFinalHero } from '@/components/caderno/retafinal/RetaFinalHero';
 import { DayPlanCard } from '@/components/caderno/retafinal/DayPlanCard';
 
@@ -405,8 +404,6 @@ export default function CadernoRetaFinalPage() {
 
   return (
     <PageTransition>
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={Target}

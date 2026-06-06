@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ResultadoPage from './ResultadoPage'
 
 // ── Framer Motion mock ──────────────────────────────────────────────────────
@@ -107,15 +108,22 @@ vi.mock('@/lib/simulado-helpers', async (importOriginal) => {
 })
 
 function renderPage(adminPreview = false) {
+  // ResultadoPage now uses react-query (post-prova caderno summary) — provide a
+  // client just like the real app does at the root.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
-    <MemoryRouter initialEntries={['/simulados/sim-1/resultado']}>
-      <Routes>
-        <Route
-          path="/simulados/:id/resultado"
-          element={<ResultadoPage adminPreview={adminPreview} />}
-        />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/simulados/sim-1/resultado']}>
+        <Routes>
+          <Route
+            path="/simulados/:id/resultado"
+            element={<ResultadoPage adminPreview={adminPreview} />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 

@@ -1,40 +1,17 @@
 import { Calendar, BookOpen, GitCompareArrows, Target, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { SectionHeader } from "@/components/premium/SectionHeader";
 import { QuickActionCard } from "./QuickActionCard";
 import { useHasAccess, useUser } from "@/contexts/UserContext";
 import { useCadernoV2Flag } from "@/hooks/useCadernoV2Flag";
-import { simuladosApi } from "@/services/simuladosApi";
-
-function useDueEntriesCount(userId: string | undefined, enabled: boolean) {
-  return useQuery({
-    queryKey: ["notebook-due-count", userId],
-    queryFn: async () => {
-      if (!userId) return 0;
-      const entries = await simuladosApi.getErrorNotebook(userId);
-      const now = new Date();
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      return entries.filter((e: any) => {
-        const srsDueAt = e.srs_due_at as string | null | undefined;
-        if (srsDueAt) {
-          return new Date(srsDueAt) <= todayEnd;
-        }
-        // Fallback: pending (not resolved/deleted)
-        return !e.resolved_at;
-      }).length;
-    },
-    enabled,
-    staleTime: 5 * 60 * 1000,
-  });
-}
+import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
 
 function ReviewTodayCard() {
   const { profile } = useUser();
   const hasCadernoAccess = useHasAccess("cadernoErros");
   const cadernoV2Flag = useCadernoV2Flag();
   const enabled = hasCadernoAccess && cadernoV2Flag && !!profile?.id;
-  const { data: dueCount, isLoading } = useDueEntriesCount(profile?.id, enabled);
+  const { data: dueCount, isLoading } = useNotebookDueCount(profile?.id, enabled);
 
   if (!hasCadernoAccess || !cadernoV2Flag) return null;
 

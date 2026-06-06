@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import { BarChart3, AlertTriangle, CalendarDays, BookOpen, ArrowUpRight, Lock, Clock } from "lucide-react";
 const PRO_ENAMED_URL = "https://sanarflix.com.br/sanarflix-pro-enamed";
 import { motion, useReducedMotion } from "framer-motion";
-import { useUser } from "@/contexts/UserContext";
+import { useUser, useHasAccess } from "@/contexts/UserContext";
+import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
+import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
 import { useSimulados } from "@/hooks/useSimulados";
 import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { useRanking } from "@/hooks/useRanking";
@@ -14,6 +16,8 @@ import { deriveHomeHeroState } from "@/lib/home-hero-state";
 import { canViewResults, formatDateShort as formatDateShortWithYear } from "@/lib/simulado-helpers";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
+import { EnamedCountdownCard } from "./EnamedCountdownCard";
+import { CadernoInsightTeaserCard } from "./CadernoInsightTeaserCard";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -64,6 +68,15 @@ export function HomePagePremium() {
   const prefersReducedMotion = useReducedMotion();
   const [skipHomeStagger] = useState(() => hasHomeStaggerBeenSeen());
   const { profile, isOnboardingComplete } = useUser();
+  const caderno = useCadernoRoutes();
+  const hasCadernoAccess = useHasAccess("cadernoErros");
+  const cadernoDueEnabled = hasCadernoAccess && caderno.v2 && !!profile?.id;
+  const { data: notebookDueCount, isLoading: notebookDueLoading } =
+    useNotebookDueCount(profile?.id, cadernoDueEnabled);
+  const pendingErrors =
+    cadernoDueEnabled && !notebookDueLoading && typeof notebookDueCount === "number"
+      ? notebookDueCount
+      : null;
   const { simulados, loading: simuladosLoading } = useSimulados();
   const { summary, history, loading: perfLoading } = useUserPerformance();
   const {
@@ -306,7 +319,8 @@ export function HomePagePremium() {
               worstArea={worstArea}
               nextWindowDate={nextWindowDate}
               nextSimuladoTitle={nextSimulado?.title ?? null}
-              pendingErrors={null}
+              pendingErrors={pendingErrors}
+              cadernoTo={caderno.base}
               segment={segment}
             />
           </div>
@@ -323,6 +337,18 @@ export function HomePagePremium() {
           </div>
         </div>
       </motion.div>
+
+      {/* Layer 2.5: Caderno v2 surfaces (PRO only) — Reta Final + Insights teaser.
+          Each card self-gates and renders null when not eligible; the row only
+          mounts for PRO + v2 so it never leaves an empty gap. */}
+      {hasCadernoAccess && caderno.v2 && (
+        <motion.div variants={itemVariants}>
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
+            <EnamedCountdownCard />
+            <CadernoInsightTeaserCard />
+          </div>
+        </motion.div>
+      )}
 
       {segment !== "pro" && (
         <motion.div variants={itemVariants}>
@@ -701,6 +727,7 @@ function KpiGridSection({
   nextWindowDate,
   nextSimuladoTitle,
   pendingErrors,
+  cadernoTo,
   segment,
 }: {
   lastScore: number | null;
@@ -708,6 +735,7 @@ function KpiGridSection({
   nextWindowDate: string | null;
   nextSimuladoTitle: string | null;
   pendingErrors: number | null;
+  cadernoTo: string;
   segment: string;
 }) {
   const isPro = segment === "pro";
@@ -784,7 +812,7 @@ function KpiGridSection({
       footnote: isPro ? "Continuar revisão" : "Conhecer o PRO",
       valueKind: pendingErrors !== null && pendingErrors > 0 ? ("count" as const) : ("cta" as const),
       ariaLabel: cadernoAria,
-      to: "/caderno-erros",
+      to: cadernoTo,
       icon: BookOpen,
       locked: !isPro,
     },

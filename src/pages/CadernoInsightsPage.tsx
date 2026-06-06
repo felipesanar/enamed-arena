@@ -35,7 +35,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { simuladosApi } from '@/services/simuladosApi';
 
-import { TabBar } from '@/components/caderno/TabBar';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import { InsightCard } from '@/components/caderno/insights/InsightCard';
 import { RoiPanel } from '@/components/caderno/insights/RoiPanel';
@@ -258,7 +257,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
     if (insightsLoading || tracked.current || !insightsData) return;
     tracked.current = true;
 
-    const fromCache = insightsData.from_cache ?? false;
+    const fromCache = (insightsData as { from_cache?: boolean }).from_cache ?? false;
     const cacheAgeHours = insightsData.generated_at
       ? Math.round((Date.now() - new Date(insightsData.generated_at).getTime()) / 3_600_000)
       : 0;
@@ -505,9 +504,6 @@ export default function CadernoInsightsPage() {
 
   return (
     <PageTransition>
-      {/* TabBar antes do gate — sempre visível */}
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={BookOpen}

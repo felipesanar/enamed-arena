@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
 
 interface HighlightItem {
   label: string;
@@ -36,6 +37,7 @@ export function HighlightsStrip({
   nextWindowDate,
   pendingErrors,
 }: HighlightsStripProps) {
+  const caderno = useCadernoRoutes();
   const items: HighlightItem[] = [
     {
       label: "Último simulado",
@@ -82,7 +84,7 @@ export function HighlightsStrip({
           ? "erros para revisar"
           : "Mantenha o caderno em dia",
       icon: BookOpen,
-      href: "/caderno-erros",
+      href: caderno.base,
     },
   ];
 

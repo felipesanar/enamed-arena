@@ -111,6 +111,27 @@ export type AnalyticsEventName =
   | "caderno_export_anki"
   | "caderno_tts_played"
   | "caderno_treino_started"
+  // Error notebook — Caderno v2: integração da plataforma (plano 08)
+  // Captura em toda a superfície (correção / gabarito / prova)
+  | "caderno_note_quick_opened"
+  | "caderno_exam_question_favorited"
+  | "caderno_exam_marked_to_triage"
+  // Loop de retorno (home / nav / lembretes)
+  | "caderno_home_due_card_viewed"
+  | "caderno_nav_due_badge_viewed"
+  | "caderno_home_streak_viewed"
+  | "caderno_home_countdown_viewed"
+  | "caderno_home_insight_teaser_viewed"
+  | "caderno_reminder_sent"
+  | "caderno_reminder_opened"
+  | "notification_preferences_updated"
+  // Diagnóstico → ação (Desempenho → Caderno)
+  | "desempenho_to_caderno_clicked"
+  // Pós-prova
+  | "caderno_post_exam_summary_viewed"
+  // Lacuna / gating de aula
+  | "caderno_awaiting_lesson_set"
+  | "caderno_lesson_unlocked"
   // Monetization
   | "upsell_clicked"
   | "feature_gate_seen"

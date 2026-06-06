@@ -45,7 +45,6 @@ import { SEGMENT_ACCESS } from '@/types';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
-import { TabBar } from '@/components/caderno/TabBar';
 
 import {
   PageHeaderPremium,
@@ -573,8 +572,6 @@ export default function CadernoFlashcardsPage() {
 
   return (
     <PageTransition>
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={Layers}

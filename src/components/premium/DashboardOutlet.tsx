@@ -5,6 +5,21 @@ import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
 import { PREMIUM_MOTION_EASE, PREMIUM_ROUTE_SPRING } from "@/components/premium/PageTransition";
 
 /**
+ * Rotas que compartilham a casca persistente do Caderno (TabBar fixo via
+ * CadernoLayout). Colapsamos todas num único key de transição para que a
+ * AnimatePresence NÃO remonte a subárvore ao trocar de aba — caso contrário o
+ * TabBar "some e reaparece" a cada navegação. O conteúdo de cada aba anima pelo
+ * próprio <PageTransition> da página. `revisao` fica de fora (sessão sem TabBar).
+ */
+const CADERNO_TABS_RE =
+  /^\/caderno(\/(favoritos|anotacoes|flashcards|insights|treino|reta-final))?\/?$/;
+
+function routeKeyFor(pathname: string, search: string): string {
+  if (CADERNO_TABS_RE.test(pathname)) return "caderno-tabs";
+  return `${pathname}${search}`;
+}
+
+/**
  * Outlet do dashboard com transição entre rotas (fade + slide + leve escala),
  * com mola premium e `Suspense` dentro do bloco animado para lazy routes.
  */
@@ -17,7 +32,7 @@ export function DashboardOutlet() {
     return null;
   }
 
-  const routeKey = `${location.pathname}${location.search}`;
+  const routeKey = routeKeyFor(location.pathname, location.search);
 
   return (
     <AnimatePresence mode="wait">

@@ -6,8 +6,9 @@ import {
   useAdminProdutoFriction,
   useAdminProdutoFeatureAdoption,
   useAdminProdutoTopEvents,
+  useAdminProdutoCadernoFunnel,
 } from '@/admin/hooks/useAdminProduto'
-import type { SegmentedFunnelRow, FrictionPoint, FeatureAdoptionRow, TopEventRow } from '@/admin/types'
+import type { SegmentedFunnelRow, FrictionPoint, FeatureAdoptionRow, TopEventRow, CadernoFunnelRow } from '@/admin/types'
 
 const PERIODS = [
   { label: '7 dias', value: 7 },
@@ -54,8 +55,26 @@ export default function AdminProduto() {
   const { data: friction = [] } = useAdminProdutoFriction(days, segment)
   const { data: adoption = [] } = useAdminProdutoFeatureAdoption(days, segment)
   const { data: topEvents = [] } = useAdminProdutoTopEvents(days)
+  const { data: caderno = [] } = useAdminProdutoCadernoFunnel(days, segment)
 
   const maxAdoption = Math.max(...(adoption as FeatureAdoptionRow[]).map(r => r.adoption_pct), 1)
+
+  // Caderno de Erros derived metrics
+  const cadernoRows = caderno as CadernoFunnelRow[]
+  const cadernoBy = (key: string) => cadernoRows.find(r => r.metric_key === key)
+  const triageViewed = cadernoBy('triage_viewed')
+  const triageAdded = cadernoBy('triage_batch_added')
+  const reminderSent = cadernoBy('reminder_sent')
+  const reminderOpened = cadernoBy('reminder_opened')
+  // Activation conversion: triagem vista → lote adicionado (unique users)
+  const triageConvRate = triageViewed && triageViewed.unique_users > 0
+    ? Math.round((triageAdded?.unique_users ?? 0) / triageViewed.unique_users * 1000) / 10
+    : 0
+  // Loop: lembrete enviado → aberto (open rate)
+  const reminderOpenRate = reminderSent && reminderSent.total_events > 0
+    ? Math.round((reminderOpened?.total_events ?? 0) / reminderSent.total_events * 1000) / 10
+    : 0
+  const cadernoTotal = cadernoRows.reduce((acc, r) => acc + r.total_events, 0)
 
   return (
     <div className="space-y-5 max-w-[1400px]">
@@ -225,6 +244,71 @@ export default function AdminProduto() {
           )}
         </div>
       </AdminPanel>
+
+      {/* Section 5: Caderno de Erros — Funil & Saúde (cutover) */}
+      <div>
+        <p className="text-micro-label text-muted-foreground uppercase mb-3">Caderno de Erros — Funil &amp; Saúde</p>
+
+        {/* Headline rates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+          <AdminPanel className="flex flex-col gap-1">
+            <p className="text-xs font-semibold text-foreground leading-snug">Conversão de triagem</p>
+            <p className="text-[10px] text-muted-foreground">triagem vista → lote adicionado (usuários)</p>
+            <p className={cn('text-2xl font-bold', pctColor(triageConvRate))}>{triageConvRate}%</p>
+            <p className="text-[10px] text-muted-foreground">
+              {(triageAdded?.unique_users ?? 0).toLocaleString('pt-BR')} de {(triageViewed?.unique_users ?? 0).toLocaleString('pt-BR')} usuários
+            </p>
+          </AdminPanel>
+          <AdminPanel className="flex flex-col gap-1">
+            <p className="text-xs font-semibold text-foreground leading-snug">Abertura de lembretes</p>
+            <p className="text-[10px] text-muted-foreground">enviados → abertos (eventos)</p>
+            <p className={cn('text-2xl font-bold', pctColor(reminderOpenRate))}>{reminderOpenRate}%</p>
+            <p className="text-[10px] text-muted-foreground">
+              {(reminderOpened?.total_events ?? 0).toLocaleString('pt-BR')} de {(reminderSent?.total_events ?? 0).toLocaleString('pt-BR')} envios
+            </p>
+          </AdminPanel>
+          <AdminPanel className="flex flex-col gap-1">
+            <p className="text-xs font-semibold text-foreground leading-snug">Eventos do Caderno</p>
+            <p className="text-[10px] text-muted-foreground">volume total no período</p>
+            <p className="text-2xl font-bold text-foreground">{cadernoTotal.toLocaleString('pt-BR')}</p>
+          </AdminPanel>
+        </div>
+
+        {/* Metric breakdown table */}
+        <AdminPanel flush className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Métrica</th>
+                  <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Evento</th>
+                  <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Eventos</th>
+                  <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Usuários</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {cadernoRows.map(row => (
+                  <tr key={row.metric_key} className="hover:bg-muted/20 motion-safe:transition-colors">
+                    <td className="px-4 py-2.5 font-medium text-foreground">{row.metric_label}</td>
+                    <td className="px-4 py-2.5 font-mono text-[10px] text-muted-foreground">{row.event_name}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-[11px] text-foreground">
+                      {row.total_events.toLocaleString('pt-BR')}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-[11px] text-muted-foreground">
+                      {row.unique_users.toLocaleString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {cadernoRows.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Sem dados no período (ou RPC ainda não publicada).
+              </div>
+            )}
+          </div>
+        </AdminPanel>
+      </div>
     </div>
   )
 }

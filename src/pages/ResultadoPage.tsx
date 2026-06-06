@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { useUser, useHasAccess } from '@/contexts/UserContext';
 import { useCadernoV2Flag } from '@/hooks/useCadernoV2Flag';
+import { useCadernoRoutes } from '@/hooks/useCadernoRoutes';
+import { useQuery } from '@tanstack/react-query';
+import { simuladosApi } from '@/services/simuladosApi';
 
 interface ResultadoPageProps {
   /** Rota /admin/preview/... — ignora gate de liberação se houver tentativa finalizada */
@@ -29,8 +32,10 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const segment = profile?.segment ?? 'guest';
   const hasCadernoAccess = useHasAccess('cadernoErros');
   const cadernoV2Flag = useCadernoV2Flag();
+  const cadernoRoutes = useCadernoRoutes();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
+  const userId = profile?.id;
 
   const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
   const { examState, attempt, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(id);
@@ -74,6 +79,67 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
     examState: examState ?? null,
     breakdown,
   });
+
+  // Post-prova caderno summary: fecha o loop logo após a prova.
+  // Só busca quando PRO + casca v2 + usuário presente.
+  const cadernoSummaryEnabled = hasCadernoAccess && cadernoV2Flag && !!userId;
+  const { data: notebookEntries } = useQuery({
+    queryKey: ['notebook-summary', userId, id],
+    queryFn: () => simuladosApi.getErrorNotebook(userId as string),
+    enabled: cadernoSummaryEnabled,
+  });
+
+  const notebookSummary = useMemo(() => {
+    if (!notebookEntries || !id) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const forThisSimulado = (notebookEntries as any[]).filter(
+      (e) => e?.simulado_id === id && !e?.resolved_at,
+    );
+    if (forThisSimulado.length === 0) return null;
+
+    const now = Date.now();
+    // Próxima revisão = mais cedo srs_due_at futuro entre as entradas.
+    let earliestUpcoming: number | null = null;
+    for (const e of forThisSimulado) {
+      if (!e?.srs_due_at) continue;
+      const due = new Date(e.srs_due_at).getTime();
+      if (Number.isNaN(due)) continue;
+      if (due > now && (earliestUpcoming === null || due < earliestUpcoming)) {
+        earliestUpcoming = due;
+      }
+    }
+
+    let dueLabel: string;
+    if (earliestUpcoming === null) {
+      // Tudo vencido / no passado → revisar agora.
+      dueLabel = 'agora';
+    } else {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const dueDate = new Date(earliestUpcoming);
+      const startOfDue = new Date(dueDate);
+      startOfDue.setHours(0, 0, 0, 0);
+      const diffDays = Math.round(
+        (startOfDue.getTime() - startOfToday.getTime()) / 86_400_000,
+      );
+      if (diffDays <= 0) dueLabel = 'hoje';
+      else if (diffDays === 1) dueLabel = 'amanhã';
+      else dueLabel = `em ${diffDays} dias`;
+    }
+
+    return { count: forThisSimulado.length, dueLabel };
+  }, [notebookEntries, id]);
+
+  const notebookSummaryTracked = useRef(false);
+  useEffect(() => {
+    if (notebookSummaryTracked.current) return;
+    if (!notebookSummary || notebookSummary.count <= 0) return;
+    notebookSummaryTracked.current = true;
+    trackEvent('caderno_post_exam_summary_viewed', {
+      simulado_id: id ?? '',
+      entry_count: notebookSummary.count,
+    });
+  }, [notebookSummary, id]);
 
   const [ringOffset, setRingOffset] = useState(RING_CIRCUMFERENCE);
 
@@ -422,6 +488,57 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
                     </div>
                   </div>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} aria-hidden />
+                </button>
+              </motion.div>
+            )}
+
+            {/* Post-prova caderno summary — só quando há erros no caderno deste simulado */}
+            {hasCadernoAccess && cadernoV2Flag && notebookSummary && notebookSummary.count > 0 && (
+              <motion.div
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.5, duration: 0.35 }}
+                className="mt-3"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate(cadernoRoutes.reviewDue)}
+                  className="relative flex items-center justify-between w-full py-3 px-4 rounded-xl gap-3 text-left transition-all duration-200"
+                  style={{
+                    background: 'rgba(255,180,200,0.1)',
+                    border: '1px solid rgba(255,180,200,0.22)',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,180,200,0.16)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,180,200,0.1)';
+                  }}
+                  aria-label={`${notebookSummary.count} ${notebookSummary.count === 1 ? 'erro' : 'erros'} no seu caderno deste simulado. Próxima revisão ${notebookSummary.dueLabel}. Revisar agora.`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg"
+                      style={{ background: 'rgba(255,180,200,0.18)' }}
+                    >
+                      <NotebookPen className="h-4 w-4" style={{ color: '#FFB3C5' }} aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold leading-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
+                        {notebookSummary.count} {notebookSummary.count === 1 ? 'erro' : 'erros'} no seu caderno deste simulado
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                        Próxima revisão {notebookSummary.dueLabel}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold"
+                    style={{ color: '#FFB3C5' }}
+                  >
+                    Revisar agora
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  </span>
                 </button>
               </motion.div>
             )}

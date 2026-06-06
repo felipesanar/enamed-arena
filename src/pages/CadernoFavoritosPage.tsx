@@ -34,7 +34,6 @@ import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
 import type { QuestionFavorite } from '@/types/caderno';
 
-import { TabBar } from '@/components/caderno/TabBar';
 import { FavoriteCard, FavoriteCardSkeleton } from '@/components/caderno/favoritos/FavoriteCard';
 import { FavoritesEmptyState } from '@/components/caderno/favoritos/FavoritesEmptyState';
 
@@ -190,7 +189,7 @@ function FavoritosContent() {
   if (isLoading) {
     return (
       <div className="caderno-root">
-        <div className="mx-auto max-w-[1120px] space-y-5 pb-10">
+        <div className="space-y-5 pb-10">
           {/* Header skeleton */}
           <div className="space-y-3 pb-4">
             <div className="h-3 w-20 animate-pulse rounded-full bg-[var(--c-surface-2)]" />
@@ -242,7 +241,7 @@ function FavoritosContent() {
 
   return (
     <div className="caderno-root">
-      <div className="mx-auto max-w-[1120px] space-y-5 pb-10">
+      <div className="space-y-5 pb-10">
 
         {/* ── PageHeaderPremium — Desktop: título + stats. Mobile: MobileAppBar + stats scroll ── */}
         <PageHeaderPremium
@@ -381,9 +380,6 @@ export default function CadernoFavoritosPage() {
 
   return (
     <PageTransition>
-      {/* TabBar sempre visível, antes do gate, igual ao CadernoPage */}
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={Heart}
