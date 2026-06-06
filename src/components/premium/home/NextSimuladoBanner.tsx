@@ -116,7 +116,7 @@ export function NextSimuladoBanner({ simulados }: NextSimuladoBannerProps) {
           subtitle="Veja sua nota e posição no ranking."
         />
         <BannerCTA
-          to={`/simulados/${scenario.simuladoId}/resultado`}
+          to={`/simulados/${scenario.simuladoId}`}
           label="Ver resultado"
         />
       </BannerShell>

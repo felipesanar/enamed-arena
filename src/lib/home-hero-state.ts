@@ -181,7 +181,7 @@ export function deriveHomeHeroState({
       headline: "Hora de transformar dados em progresso",
       description: `${scoreText} Revise os detalhes e direcione melhor os próximos estudos.`,
       ctaLabel: "Ver resultado",
-      ctaTo: `/simulados/${completed.id}/resultado`,
+      ctaTo: `/simulados/${completed.id}`,
     };
   }
 

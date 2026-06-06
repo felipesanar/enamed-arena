@@ -258,7 +258,7 @@ function getNotificationHubContent(scenario: BannerScenario): {
       title: "Resultado disponível",
       subtitle: scenario.title,
       description: "Seu resultado já pode ser conferido.",
-      primaryHref: `/simulados/${scenario.simuladoId}/resultado`,
+      primaryHref: `/simulados/${scenario.simuladoId}`,
     };
   }
 

@@ -23,7 +23,6 @@ const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
 const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
 const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
-const ResultadoPage = lazy(() => import("./pages/ResultadoPage"));
 const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
 const CorrecaoPage = lazy(() => import("./pages/CorrecaoPage"));
 const DesempenhoPage = lazy(() => import("./pages/DesempenhoPage"));
@@ -135,7 +134,6 @@ const App = () => (
                   <Route path="suporte"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSupporte /></Suspense>} />
                   <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
                   <Route path="ranking-preview" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminRankingPreview /></Suspense>} />
-                  <Route path="preview/simulados/:id/resultado" element={<Suspense fallback={<PageLoadingSkeleton />}><ResultadoPage adminPreview /></Suspense>} />
                   <Route path="preview/simulados/:id/correcao" element={<Suspense fallback={<PageLoadingSkeleton />}><CorrecaoPage adminPreview /></Suspense>} />
                   <Route path="preview/simulados/:id/desempenho" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDesempenhoPreview /></Suspense>} />
                   <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />
@@ -153,7 +151,6 @@ const App = () => (
                 <Route path="simulados/:id/start" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />
-                <Route path="simulados/:id/resultado" element={<ResultadoPage />} />
                 <Route path="simulados/:id/gabarito" element={<AnswerSheetPage />} />
                 <Route path="simulados/:id/correcao" element={<CorrecaoPage />} />
                 <Route path="desempenho" element={<DesempenhoPage />} />

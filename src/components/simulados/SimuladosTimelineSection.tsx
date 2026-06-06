@@ -211,7 +211,7 @@ function TimelineItem({
                 >
                   {sim.userState?.score ?? "–"}%
                 </span>
-                <Link to={`/simulados/${sim.slug}/resultado`} className={linkClass}>
+                <Link to={`/simulados/${sim.slug}`} className={linkClass}>
                   Ver resultado <ArrowRight className="h-3.5 w-3.5 opacity-80" />
                 </Link>
               </>
