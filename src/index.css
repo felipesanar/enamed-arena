@@ -227,18 +227,18 @@
     --hero-premium-text-muted: 345 55% 65%;
 
     /* Trend indicators (dark) */
-    --trend-up: 152 65% 45%;
-    --trend-down: 0 65% 55%;
+    --trend-up: 152 58% 52%;
+    --trend-down: 0 62% 58%;
 
-    /* Medal colors (dark) */
-    --medal-gold: 38 85% 55%;
-    --medal-silver: 220 15% 65%;
-    --medal-bronze: 20 75% 60%;
+    /* Medal colors (dark) — legíveis sobre card quente */
+    --medal-gold: 38 82% 58%;
+    --medal-silver: 345 8% 66%;
+    --medal-bronze: 22 72% 60%;
 
-    /* Success/warning/info surfaces (dark) */
-    --success-surface: 152 65% 45% / 0.08;
-    --warning-surface: 38 85% 55% / 0.08;
-    --info-surface: 210 80% 62% / 0.08;
+    /* Success/warning/info surfaces (dark) — fundos translúcidos de badge/alert */
+    --success-surface: 152 58% 52% / 0.1;
+    --warning-surface: 38 82% 58% / 0.1;
+    --info-surface: 210 76% 64% / 0.1;
 
     --auth-bg-base: 220 22% 7%;
     --auth-bg-soft: 220 18% 10%;
