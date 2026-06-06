@@ -29,6 +29,7 @@ import { trackEvent } from '@/lib/analytics';
 import { simuladosApi } from '@/services/simuladosApi';
 import { Button } from '@/components/ui/button';
 import { AdaptiveModal } from '@/components/caderno/ui';
+import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import type { Flashcard, CreateFlashcardPayload, UpdateFlashcardPayload } from '@/types/caderno';
 
 /* ── Types ── */
@@ -371,55 +372,82 @@ export function FlashcardEditor({
       title={isEditing ? 'Editar flashcard' : 'Novo flashcard'}
       size="lg"
       footer={
-        <div className="flex w-full items-center justify-between gap-3">
-          {/* Gerar com Prof. San */}
-          <button
+        <div className="flex w-full items-center justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={isBusy}>
+            Cancelar
+          </Button>
+          <Button
             type="button"
-            disabled={isBusy}
-            onClick={handleGenerate}
-            aria-label="Gerar frente e verso com Prof. San (IA)"
-            className={cn(
-              'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border px-4 py-2',
-              'border-amber-400/30 bg-amber-400/8 text-[13px] font-semibold text-amber-600',
-              'transition-all hover:border-amber-400/60 hover:bg-amber-400/12',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            disabled={isBusy || !canSave}
+            onClick={handleSave}
+            className="min-w-[120px] bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)] transition-opacity hover:opacity-90"
           >
-            {generating ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            {saving ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                Salvando…
+              </>
+            ) : isEditing ? (
+              'Salvar alterações'
             ) : (
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              'Criar flashcard'
             )}
-            {generating ? 'Gerando…' : 'Gerar com Prof. San'}
-          </button>
-
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isBusy}>
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              disabled={isBusy || !canSave}
-              onClick={handleSave}
-              className="min-w-[120px] bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)] transition-opacity hover:opacity-90"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
-                  Salvando…
-                </>
-              ) : isEditing ? (
-                'Salvar alterações'
-              ) : (
-                'Criar flashcard'
-              )}
-            </Button>
-          </div>
+          </Button>
         </div>
       }
     >
       <div className="space-y-5 py-2">
+        {/* ── Gerar com o Prof. San (IA) — ação em destaque ── */}
+        <div
+          className={cn(
+            'flex flex-col gap-3 rounded-2xl border border-amber-400/30 p-4 sm:flex-row sm:items-center sm:justify-between',
+            'bg-gradient-to-br from-amber-50 via-[var(--c-surface)] to-[var(--c-surface)]',
+            'dark:from-amber-500/[0.1] dark:via-[var(--c-surface)] dark:to-[var(--c-surface)]',
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <span className="block overflow-hidden rounded-full ring-2 ring-amber-300/50">
+                <ProfSanorAvatar size={46} animated={generating} />
+              </span>
+              <span
+                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--c-surface)] bg-[var(--c-success)]"
+                aria-hidden
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-bold text-[var(--c-ink)]">Gerar com o Prof. San</p>
+              <p className="text-[11.5px] leading-relaxed text-[var(--c-muted)]">
+                {generating
+                  ? 'Criando seu flashcard de active recall…'
+                  : 'Escreva um tópico ou pergunta na frente e ele cria a pergunta e a resposta pra você.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={handleGenerate}
+            aria-label="Gerar frente e verso do flashcard com Prof. San (IA)"
+            className={cn(
+              'inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-5 py-2.5',
+              'bg-gradient-to-br from-amber-400 to-amber-500 text-[13px] font-bold text-white',
+              'shadow-[0_8px_20px_-8px_rgba(245,158,11,0.65)] transition-all duration-200',
+              'hover:-translate-y-0.5 hover:shadow-[0_12px_26px_-8px_rgba(245,158,11,0.75)] active:scale-[0.98]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2',
+              'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none',
+            )}
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Sparkles className="h-4 w-4" aria-hidden />
+            )}
+            {generating ? 'Gerando…' : isEditing ? 'Regerar com IA' : 'Gerar flashcard'}
+          </button>
+        </div>
+
         {/* Toggle preview */}
         <button
           type="button"
