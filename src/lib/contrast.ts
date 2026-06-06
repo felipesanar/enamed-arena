@@ -40,6 +40,8 @@ export function contrastRatioHsl(
 
 /** Extrai o bloco `.dark { … }` (primeiro match) de um CSS. */
 export function extractDarkBlock(css: string): string {
+  // Primeiro match intencional: o bloco real do tema escuro está em @layer base, antes
+  // do bloco `.dark { … }` que aparece mais tarde dentro de @media print (cores claras/light).
   const start = css.indexOf(".dark {");
   if (start === -1) throw new Error("Bloco .dark não encontrado");
   let depth = 0;

@@ -20,6 +20,11 @@ const PAIRS: Array<[string, string, number]> = [
 ];
 
 describe("contraste WCAG dos tokens .dark", () => {
+  it("parseou o bloco escuro (não o print/light)", () => {
+    expect(tokens.background, "token --background ausente").toBeDefined();
+    expect(tokens.background[2], "background deve ser escuro (L<50)").toBeLessThan(50);
+  });
+
   for (const [fg, bg, min] of PAIRS) {
     it(`${fg} sobre ${bg} >= ${min}:1`, () => {
       expect(tokens[fg], `token --${fg} ausente`).toBeDefined();
