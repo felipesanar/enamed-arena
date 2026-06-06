@@ -178,7 +178,7 @@
     --ring: 345 56% 50%;
 
     /* Escada de elevação: sunken < background(9%) < card(13%) < elevated(17%) */
-    --surface-elevated: 345 7% 17%;
+    --surface-elevated: 345 7% 19%;
     --surface-sunken: 345 8% 7%;
 
     /* Borda forte — divisores e realces sobre card/elevated */
@@ -198,7 +198,7 @@
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 345 8% 13%;
     --sidebar-accent-foreground: 345 8% 82%;
-    --sidebar-border: 345 8% 14%;
+    --sidebar-border: 345 8% 18%;
     --sidebar-ring: 345 56% 52%;
     --sidebar-muted: 345 6% 38%;
 
