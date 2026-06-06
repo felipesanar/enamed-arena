@@ -192,6 +192,12 @@
     --info: 210 76% 64%;
     --info-foreground: 0 0% 100%;
 
+    /* Sombras dark — pretas visíveis (a sombra clara do light some no escuro) */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.45), 0 2px 4px -2px hsl(0 0% 0% / 0.35);
+    --shadow-lg: 0 12px 32px -4px hsl(0 0% 0% / 0.5), 0 4px 8px -2px hsl(0 0% 0% / 0.4);
+    --shadow-premium: 0 10px 28px -6px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.04);
+
     --sidebar-background: 345 9% 7%;
     --sidebar-foreground: 345 7% 66%;
     --sidebar-primary: 345 56% 52%;
@@ -369,6 +375,17 @@
 
   .premium-card-hero:hover {
     box-shadow: 0 12px 32px -4px hsl(345 65% 30% / 0.16), 0 4px 12px -2px hsl(345 65% 30% / 0.08);
+  }
+
+  /* Elevação dark: sombra real + rim de luz no topo (relevo premium) */
+  .dark .premium-card {
+    box-shadow: var(--shadow-md), inset 0 1px 0 0 hsl(0 0% 100% / 0.04);
+  }
+  .dark .premium-card:hover {
+    box-shadow: var(--shadow-lg), inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
+  }
+  .dark .premium-card-hero {
+    box-shadow: var(--shadow-premium), inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
   }
 
   /* Content card = padrão .premium-card (listas, blocos de apoio) */
