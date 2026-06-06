@@ -177,8 +177,8 @@
     --input: 345 8% 20%;
     --ring: 345 56% 50%;
 
-    /* Escada de elevação: sunken < background(9%) < card(13%) < elevated(17%) */
-    --surface-elevated: 345 7% 19%;
+    /* Escada de elevação: sunken < background(9%) < card(13%) < elevated(21%) */
+    --surface-elevated: 345 7% 21%;
     --surface-sunken: 345 8% 7%;
 
     /* Borda forte — divisores e realces sobre card/elevated */
@@ -206,19 +206,19 @@
     --sidebar-accent-foreground: 345 8% 82%;
     --sidebar-border: 345 8% 18%;
     --sidebar-ring: 345 56% 52%;
-    --sidebar-muted: 345 6% 38%;
+    --sidebar-muted: 345 6% 44%;
 
-    /* Exam focus mode (dark) */
-    --exam-bg: 220 18% 7%;
-    --exam-surface: 220 16% 11%;
-    --exam-surface-hover: 220 14% 14%;
-    --exam-border: 220 14% 16%;
+    /* Exam focus mode (dark) — neutros quentes, alto contraste de leitura */
+    --exam-bg: 345 8% 8%;
+    --exam-surface: 345 7% 12%;
+    --exam-surface-hover: 345 7% 15%;
+    --exam-border: 345 8% 18%;
     --exam-border-selected: var(--primary);
-    --exam-text: 210 10% 92%;
-    --exam-text-secondary: 210 8% 55%;
-    --exam-header-bg: 220 18% 8% / 0.92;
-    --exam-option-selected-bg: 345 55% 50% / 0.06;
-    --exam-shadow-selected: 0 2px 8px -2px hsl(345 55% 50% / 0.12);
+    --exam-text: 345 8% 92%;
+    --exam-text-secondary: 345 7% 62%;
+    --exam-header-bg: 345 8% 9% / 0.92;
+    --exam-option-selected-bg: 345 56% 50% / 0.08;
+    --exam-shadow-selected: 0 2px 10px -2px hsl(345 56% 50% / 0.18);
 
     /* Hero premium surfaces & gradients (dark) */
     --hero-premium-bg: linear-gradient(148deg, hsl(345 30% 9%) 0%, hsl(345 38% 12%) 38%, hsl(345 48% 17%) 72%, hsl(345 55% 21%) 100%);
@@ -379,13 +379,13 @@
 
   /* Elevação dark: sombra real + rim de luz no topo (relevo premium) */
   .dark .premium-card {
-    box-shadow: var(--shadow-md), inset 0 1px 0 0 hsl(0 0% 100% / 0.04);
+    box-shadow: var(--shadow-md), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
   }
   .dark .premium-card:hover {
-    box-shadow: var(--shadow-lg), inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
   }
   .dark .premium-card-hero {
-    box-shadow: var(--shadow-premium), inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
+    box-shadow: var(--shadow-premium), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
   }
 
   /* Content card = padrão .premium-card (listas, blocos de apoio) */
