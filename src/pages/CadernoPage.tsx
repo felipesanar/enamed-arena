@@ -21,7 +21,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, Zap, Play, ChevronDown, CheckSquare } from 'lucide-react';
+import { BookOpen, Zap, Play, ChevronDown, CheckSquare, Swords, Target, Clock } from 'lucide-react';
 
 import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
@@ -41,8 +41,9 @@ import { type DbReason } from '@/lib/errorNotebookReasons';
 import { simuladosApi } from '@/services/simuladosApi';
 
 import { TabBar } from '@/components/caderno/TabBar';
-import { PageHero } from '@/components/caderno/PageHero';
+import { PageHero, ENAMED_DATE } from '@/components/caderno/PageHero';
 import { FilterBar, type CausaFilter } from '@/components/caderno/FilterBar';
+import { CadernoExportMenu } from '@/components/caderno/CadernoExportMenu';
 import { CadernoSkeleton } from '@/components/caderno/CadernoSkeleton';
 import { ZeroPendingState } from '@/components/caderno/ZeroPendingState';
 import { BulkActionBar } from '@/components/caderno/BulkActionBar';
@@ -511,6 +512,60 @@ function CadernoContent({ userId }: { userId: string }) {
           />
         </StaggerItem>
 
+        {/* CTAs — Treino + Reta Final */}
+        <StaggerItem>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* CTA Treino — discreto, sempre visível */}
+            <Link
+              to="/caderno/treino"
+              onClick={() => trackEvent('caderno_treino_cta_clicked', { source: 'caderno_v2_header' })}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5',
+                'text-[12px] font-semibold text-muted-foreground no-underline',
+                'transition-all duration-150 hover:border-primary/30 hover:text-foreground',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              )}
+              aria-label="Treinar pontos fracos"
+            >
+              <Target className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Treinar pontos fracos
+            </Link>
+
+            {/* CTA Reta Final — destaque quando ≤ 45 dias */}
+            {(() => {
+              const daysLeft = Math.ceil((ENAMED_DATE.getTime() - Date.now()) / 86_400_000);
+              const isNear = daysLeft > 0 && daysLeft <= 45;
+              return daysLeft > 0 ? (
+                <Link
+                  to="/caderno/reta-final"
+                  onClick={() => trackEvent('caderno_reta_final_cta_clicked', { source: 'caderno_v2_header', days_left: daysLeft })}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 no-underline',
+                    'text-[12px] font-semibold transition-all duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    isNear
+                      ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 shadow-[0_2px_10px_-4px_hsl(345_65%_30%/0.35)]'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
+                  )}
+                  aria-label={`Reta Final ENAMED — ${daysLeft} ${daysLeft === 1 ? 'dia restante' : 'dias restantes'}`}
+                >
+                  <Swords className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Reta Final ENAMED
+                  {isNear && (
+                    <span
+                      className="ml-0.5 inline-flex items-center gap-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums"
+                      aria-label={`${daysLeft} dias restantes`}
+                    >
+                      <Clock className="h-2.5 w-2.5" aria-hidden />
+                      {daysLeft}d
+                    </span>
+                  )}
+                </Link>
+              ) : null;
+            })()}
+          </div>
+        </StaggerItem>
+
         {/* Filters */}
         <StaggerItem>
           <div className="flex items-start justify-between gap-3">
@@ -528,31 +583,40 @@ function CadernoContent({ userId }: { userId: string }) {
                 onSearchChange={setSearchRaw}
               />
             </div>
-            {/* Botão modo de seleção em lote */}
-            {entries.length > 0 && (
-              <button
-                type="button"
-                aria-pressed={isSelectMode}
-                aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
-                onClick={() => isSelectMode ? cancelSelection() : undefined}
-                title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
-                className={cn(
-                  'mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-all duration-150',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  isSelectMode
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
-                )}
-              >
-                <CheckSquare className="h-3.5 w-3.5" aria-hidden />
-                <span className="hidden sm:inline">{isSelectMode ? 'Selecionando' : 'Selecionar'}</span>
-                {isSelectMode && (
-                  <span className="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">
-                    {selectedIds.size}
-                  </span>
-                )}
-              </button>
-            )}
+            {/* Ações do header: exportar + selecionar */}
+            <div className="mt-0.5 flex shrink-0 items-center gap-2">
+              {/* Export menu — desabilita automaticamente se vazio */}
+              <CadernoExportMenu
+                entries={entries as any}
+                variant="outline"
+                size="sm"
+              />
+              {/* Botão modo de seleção em lote */}
+              {entries.length > 0 && (
+                <button
+                  type="button"
+                  aria-pressed={isSelectMode}
+                  aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
+                  onClick={() => isSelectMode ? cancelSelection() : undefined}
+                  title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-all duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    isSelectMode
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground',
+                  )}
+                >
+                  <CheckSquare className="h-3.5 w-3.5" aria-hidden />
+                  <span className="hidden sm:inline">{isSelectMode ? 'Selecionando' : 'Selecionar'}</span>
+                  {isSelectMode && (
+                    <span className="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">
+                      {selectedIds.size}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </StaggerItem>
 

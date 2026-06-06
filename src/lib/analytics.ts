@@ -103,6 +103,12 @@ export type AnalyticsEventName =
   // Error notebook — Caderno v2: Favoritos (Fase 2)
   | "caderno_favorite_added"
   | "caderno_favorite_removed"
+  // Error notebook — Caderno v2: Fase 3 (War Room, Export, TTS, Treino)
+  | "caderno_reta_final_viewed"
+  | "caderno_export_pdf"
+  | "caderno_export_anki"
+  | "caderno_tts_played"
+  | "caderno_treino_started"
   // Monetization
   | "upsell_clicked"
   | "feature_gate_seen"
@@ -324,4 +330,27 @@ export interface CadernoFavoriteAddedPayload {
 export interface CadernoFavoriteRemovedPayload {
   question_id: string;
   area: string;
+}
+
+// Error notebook — Caderno v2: Fase 3 (War Room, Export, TTS, Treino)
+export interface CadernoRetaFinalViewedPayload {
+  days_until: number;
+  pending_count: number;
+}
+
+export interface CadernoExportPdfPayload {
+  entry_count: number;
+}
+
+export interface CadernoExportAnkiPayload {
+  entry_count: number;
+}
+
+export interface CadernoTtsPlayedPayload {
+  section: string;
+}
+
+export interface CadernoTreinoStartedPayload {
+  area?: string;
+  count: number;
 }

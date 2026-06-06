@@ -17,12 +17,17 @@ import {
   Zap,
   MessageCircle,
   Send,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import { cn } from '@/lib/utils';
 import type { EntryReviewData, ChatTurn } from '@/hooks/useActiveRecallSession';
 import type { RecallEntry } from '@/hooks/useActiveRecallSession';
+import { useTextToSpeech } from '@/hooks/useTextToSpeech';
+import { trackEvent } from '@/lib/analytics';
+import type { AnalyticsEventName } from '@/lib/analytics';
 
 const CHAT_LIMIT = 10;
 
@@ -55,6 +60,22 @@ export function RevealPanel({
 }: RevealPanelProps) {
   const chatTextareaRef = useRef<HTMLTextAreaElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useTextToSpeech();
+
+  function handleTtsToggle() {
+    if (isSpeaking) {
+      stop();
+      return;
+    }
+    if (!reviewData.aiReviewMd) return;
+    // caderno_tts_played ainda não está no union — outro agente o adiciona (spec §13).
+    trackEvent('caderno_tts_played' as AnalyticsEventName, {
+      entry_id: entry.id,
+      area: entry.area ?? '',
+    });
+    speak(reviewData.aiReviewMd);
+  }
 
   // Focus chat textarea when chat opens
   useEffect(() => {
@@ -98,24 +119,49 @@ export function RevealPanel({
         </div>
 
         {reviewData.aiReviewMd && (
-          <Button
-            onClick={() => onGenerateAi(true)}
-            disabled={generatingAi}
-            variant="outline"
-            size="sm"
-          >
-            {generatingAi ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" aria-hidden />
-                Gerando…
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-                Gerar de novo
-              </>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Botão TTS — oculto se Web Speech API não estiver disponível */}
+            {ttsSupported && (
+              <button
+                type="button"
+                onClick={handleTtsToggle}
+                aria-label={isSpeaking ? 'Parar leitura em voz alta' : 'Ouvir análise em voz alta'}
+                aria-pressed={isSpeaking}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  isSpeaking
+                    ? 'border-primary/40 bg-primary/[0.08] text-primary'
+                    : 'border-border bg-card text-foreground hover:bg-muted',
+                )}
+              >
+                {isSpeaking ? (
+                  <VolumeX className="h-3.5 w-3.5" aria-hidden />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5" aria-hidden />
+                )}
+                {isSpeaking ? 'Parar' : 'Ouvir'}
+              </button>
             )}
-          </Button>
+
+            <Button
+              onClick={() => onGenerateAi(true)}
+              disabled={generatingAi}
+              variant="outline"
+              size="sm"
+            >
+              {generatingAi ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" aria-hidden />
+                  Gerando…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                  Gerar de novo
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
 

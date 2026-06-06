@@ -36,6 +36,8 @@ const CadernoFavoritosPage = lazy(() => import("./pages/CadernoFavoritosPage"));
 const CadernoAnotacoesPage = lazy(() => import("./pages/CadernoAnotacoesPage"));
 const CadernoFlashcardsPage = lazy(() => import("./pages/CadernoFlashcardsPage"));
 const CadernoInsightsPage = lazy(() => import("./pages/CadernoInsightsPage"));
+const CadernoTreinoPage = lazy(() => import("./pages/CadernoTreinoPage"));
+const CadernoRetaFinalPage = lazy(() => import("./pages/CadernoRetaFinalPage"));
 const CadernoRevisaoV2Page = lazy(() =>
   import("./pages/CadernoRevisaoV2Page").then((m) => ({
     default: m.CadernoRevisaoV2Page,
@@ -177,6 +179,8 @@ const App = () => (
                 <Route path="caderno/anotacoes" element={<CadernoAnotacoesPage />} />
                 <Route path="caderno/flashcards" element={<CadernoFlashcardsPage />} />
                 <Route path="caderno/insights" element={<CadernoInsightsPage />} />
+                <Route path="caderno/treino" element={<CadernoTreinoPage />} />
+                <Route path="caderno/reta-final" element={<CadernoRetaFinalPage />} />
                 <Route path="caderno/revisao" element={<CadernoRevisaoV2Page />} />
                 {/* Produção atual — mantida intacta durante transição */}
                 <Route path="caderno-erros" element={<CadernoErrosPage />} />
