@@ -221,7 +221,7 @@
     --exam-shadow-selected: 0 2px 8px -2px hsl(345 55% 50% / 0.12);
 
     /* Hero premium surfaces & gradients (dark) */
-    --hero-premium-bg: linear-gradient(148deg, hsl(220 22% 12%) 0%, hsl(220 20% 10%) 38%, hsl(345 30% 18%) 72%, hsl(345 35% 22%) 100%);
+    --hero-premium-bg: linear-gradient(148deg, hsl(345 30% 9%) 0%, hsl(345 38% 12%) 38%, hsl(345 48% 17%) 72%, hsl(345 55% 21%) 100%);
     --hero-premium-border: 345 55% 50% / 0.18;
     --hero-premium-glow: 345 55% 50% / 0.12;
     --hero-premium-text-muted: 345 55% 65%;
@@ -530,10 +530,10 @@
 
   .dark .hero-premium-surface {
     background:
-      radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%),
-      radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%),
-      radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%),
-      linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%);
+      radial-gradient(ellipse 30% 44% at 0% 0%, hsl(345 45% 16% / 0.92) 0%, transparent 60%),
+      radial-gradient(ellipse 24% 36% at 0% 100%, hsl(345 35% 9% / 0.85) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 48% at 100% 0%, hsl(345 60% 26% / 0.4) 0%, transparent 62%),
+      linear-gradient(120deg, hsl(345 35% 8%) 0%, hsl(345 30% 9%) 18%, hsl(345 28% 10%) 42%, hsl(345 38% 13%) 72%, hsl(345 50% 18%) 100%);
   }
 
   /* Hero status card — compact hero in dark mode, accent in light */
@@ -551,8 +551,8 @@
   .dark .hero-status-card {
     @apply border-white/[0.08];
     background:
-      linear-gradient(148deg,#080A14_0%,#0C1020_30%,#1A0816_60%,#2E0C20_85%,#3A0E24_100%);
-    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.9), 0 8px 20px -12px rgba(40,8,22,0.5);
+      linear-gradient(148deg, hsl(345 32% 8%) 0%, hsl(345 30% 10%) 30%, hsl(345 42% 14%) 60%, hsl(345 52% 19%) 85%, hsl(345 58% 22%) 100%);
+    box-shadow: 0 20px 40px -20px hsl(0 0% 0% / 0.9), 0 8px 20px -12px hsl(345 50% 12% / 0.5);
   }
 
   .animate-fade-in {
