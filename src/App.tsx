@@ -31,6 +31,17 @@ const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ComparativoPage = lazy(() => import("./pages/ComparativoPage"));
 const CadernoErrosPage = lazy(() => import("./pages/CadernoErrosPage"));
 const CadernoRevisaoPage = lazy(() => import("./pages/CadernoRevisaoPage"));
+const CadernoPage = lazy(() => import("./pages/CadernoPage"));
+const CadernoFavoritosPage = lazy(() => import("./pages/CadernoFavoritosPage"));
+const CadernoAnotacoesPage = lazy(() => import("./pages/CadernoAnotacoesPage"));
+const CadernoFlashcardsPage = lazy(() => import("./pages/CadernoFlashcardsPage"));
+const CadernoInsightsPage = lazy(() => import("./pages/CadernoInsightsPage"));
+const CadernoRevisaoV2Page = lazy(() =>
+  import("./pages/CadernoRevisaoV2Page").then((m) => ({
+    default: m.CadernoRevisaoV2Page,
+  }))
+);
+const TriagemPage = lazy(() => import("./pages/TriagemPage"));
 const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
 // Sandbox pages are only bundled in dev builds.
 const SandboxCadernoPage = import.meta.env.DEV
@@ -156,9 +167,18 @@ const App = () => (
                 <Route path="simulados/:id/resultado" element={<ResultadoPage />} />
                 <Route path="simulados/:id/gabarito" element={<AnswerSheetPage />} />
                 <Route path="simulados/:id/correcao" element={<CorrecaoPage />} />
+                <Route path="simulados/:id/triagem" element={<TriagemPage />} />
                 <Route path="desempenho" element={<DesempenhoPage />} />
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="comparativo" element={<ComparativoPage />} />
+                {/* Caderno v2 — nova casca em paralelo à produção (sem downtime) */}
+                <Route path="caderno" element={<CadernoPage />} />
+                <Route path="caderno/favoritos" element={<CadernoFavoritosPage />} />
+                <Route path="caderno/anotacoes" element={<CadernoAnotacoesPage />} />
+                <Route path="caderno/flashcards" element={<CadernoFlashcardsPage />} />
+                <Route path="caderno/insights" element={<CadernoInsightsPage />} />
+                <Route path="caderno/revisao" element={<CadernoRevisaoV2Page />} />
+                {/* Produção atual — mantida intacta durante transição */}
                 <Route path="caderno-erros" element={<CadernoErrosPage />} />
                 <Route path="caderno-erros/revisao" element={<CadernoRevisaoPage />} />
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />

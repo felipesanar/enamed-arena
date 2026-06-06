@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 
 const RING_CIRCUMFERENCE = 376.99;
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
@@ -13,9 +13,10 @@ import { trackEvent } from '@/lib/analytics';
 import { usePdfDownload } from '@/hooks/usePdfDownload';
 import {
   Trophy, CheckCircle2, XCircle, MinusCircle,
-  FileText, ArrowLeft, ArrowRight, BookOpen, Download, Loader2,
+  FileText, ArrowLeft, ArrowRight, BookOpen, Download, Loader2, NotebookPen,
 } from 'lucide-react';
-import { useUser } from '@/contexts/UserContext';
+import { useUser, useHasAccess } from '@/contexts/UserContext';
+import { useCadernoV2Flag } from '@/hooks/useCadernoV2Flag';
 
 interface ResultadoPageProps {
   /** Rota /admin/preview/... — ignora gate de liberação se houver tentativa finalizada */
@@ -26,6 +27,9 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
   const { id } = useParams<{ id: string }>();
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
+  const hasCadernoAccess = useHasAccess('cadernoErros');
+  const cadernoV2Flag = useCadernoV2Flag();
+  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
 
   const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
@@ -377,6 +381,50 @@ export default function ResultadoPage({ adminPreview = false }: ResultadoPagePro
               <span className="relative z-10">Ir para correção comentada</span>
               <ArrowRight className="h-4 w-4 sm:h-[18px] sm:w-[18px] relative z-10 ml-auto opacity-50" aria-hidden />
             </Link>
+
+            {/* Caderno de Erros v2 CTA — PRO + feature flag only */}
+            {hasCadernoAccess && cadernoV2Flag && (
+              <motion.div
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.45, duration: 0.35 }}
+                className="mt-3"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate(`/simulados/${id}/triagem`)}
+                  className="relative flex items-center justify-between w-full py-3 px-4 rounded-xl gap-3 text-left transition-all duration-200"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
+                  }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg"
+                      style={{ background: 'rgba(255,180,200,0.15)' }}
+                    >
+                      <NotebookPen className="h-4 w-4" style={{ color: '#FFB3C5' }} aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                        Transforme seus erros em plano de estudo
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                        Revisar meus erros
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} aria-hidden />
+                </button>
+              </motion.div>
+            )}
           </div>
         </div>
       </motion.div>

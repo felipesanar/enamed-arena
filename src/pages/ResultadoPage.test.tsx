@@ -95,6 +95,7 @@ vi.mock('@/contexts/UserContext', () => ({
     profile: { segment: 'pro', id: 'user-1' },
     isOnboardingComplete: true,
   }),
+  useHasAccess: () => true,
 }))
 
 vi.mock('@/lib/simulado-helpers', async (importOriginal) => {
