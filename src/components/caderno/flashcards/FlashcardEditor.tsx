@@ -293,11 +293,27 @@ export function FlashcardEditor({
   };
 
   const handleGenerate = async () => {
+    // A edge function exige `questionStem`. Quando o card vem de uma questão do
+    // caderno, `generateContext` já o traz; quando é manual, usamos o texto
+    // digitado na frente (ou no verso) como semente para a IA.
+    const context: Record<string, unknown> = generateContext ? { ...generateContext } : {};
+    const hasStem = typeof context.questionStem === 'string' && (context.questionStem as string).trim();
+    if (!hasStem) {
+      const seed = frontMd.trim() || backMd.trim();
+      if (!seed) {
+        toast({
+          title: 'Escreva uma pergunta ou tópico primeiro',
+          description: 'Digite algo na frente do card e o Prof. San gera a pergunta e a resposta a partir disso.',
+        });
+        return;
+      }
+      context.questionStem = seed;
+    }
+    if (frontMd.trim()) context['existing_front'] = frontMd;
+    if (backMd.trim()) context['existing_back'] = backMd;
+
     setGenerating(true);
     try {
-      const context = generateContext ? { ...generateContext } : {};
-      if (frontMd.trim()) context['existing_front'] = frontMd;
-      if (backMd.trim()) context['existing_back'] = backMd;
       const result = await simuladosApi.generateFlashcard(context);
       setFrontMd(result.front_md);
       setBackMd(result.back_md);

@@ -62,7 +62,7 @@ function StatReadout({
   label,
   tone = 'ink',
 }: {
-  value: React.ReactNode;
+  value: number | string;
   label: string;
   tone?: 'ink' | 'orange' | 'destructive' | 'success';
 }) {

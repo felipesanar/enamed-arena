@@ -18,7 +18,7 @@
  * Design: redesign premium conforme 07-design-language.md — caderno-root.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ComponentType } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   Clock,
   CalendarClock,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
@@ -154,7 +155,7 @@ interface TreinoStat {
   label: string;
   value: number | string;
   color: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: LucideIcon;
 }
 
 function TreinoHero({
@@ -234,7 +235,7 @@ function TreinoHero({
 // ─── Explicação do ranking (preenche e educa a coluna esquerda) ───────────────
 
 function RankingExplainer() {
-  const criteria: { icon: ComponentType<{ className?: string }>; color: string; title: string; desc: string }[] = [
+  const criteria: { icon: LucideIcon; color: string; title: string; desc: string }[] = [
     {
       icon: Clock,
       color: '#f97316',
@@ -450,6 +451,9 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
                 Selecione uma área acima para configurar seu treino.
               </motion.p>
             )}
+
+            {/* Explicação do ranking — equilibra a coluna e contextualiza */}
+            <RankingExplainer />
           </div>
         </StaggerItem>
 
