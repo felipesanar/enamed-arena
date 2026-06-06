@@ -1610,6 +1610,7 @@ export type Database = {
         }[]
       }
       get_caderno_pattern_data: { Args: { p_user_id: string }; Returns: Json }
+      get_confidence_calibration: { Args: { p_user_id: string }; Returns: Json }
       get_onboarding_edit_guard_state: {
         Args: never
         Returns: {

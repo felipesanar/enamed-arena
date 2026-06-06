@@ -85,6 +85,8 @@ export type AnalyticsEventName =
   // Error notebook — Caderno v2: painel de ROI
   | "caderno_roi_viewed"
   | "caderno_roi_area_expanded"
+  // Error notebook — Caderno v2: Fase 4 — calibração de confiança
+  | "caderno_calibration_viewed"
   // Error notebook — Caderno v2: ações em lote (EPIC-5)
   | "caderno_bulk_select_started"
   | "caderno_bulk_resolved"
@@ -353,4 +355,12 @@ export interface CadernoTtsPlayedPayload {
 export interface CadernoTreinoStartedPayload {
   area?: string;
   count: number;
+}
+
+// Error notebook — Caderno v2: Fase 4 — calibração de confiança
+export interface CadernoCalibrationViewedPayload {
+  has_data: boolean;
+  total_answered_with_confidence: number;
+  alta_but_wrong: number;
+  baixa_but_correct: number;
 }

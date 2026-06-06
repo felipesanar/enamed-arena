@@ -83,6 +83,9 @@ export interface UseActiveRecallSessionReturn {
   currentIndex: number;
   currentEntry: RecallEntry | null;
 
+  /** True when ?timed=1 is present in the URL — enables DrillTimerBar */
+  isTimed: boolean;
+
   // Loading states
   loadingList: boolean;
   listError: boolean;
@@ -170,12 +173,31 @@ function toRecallEntry(row: any): RecallEntry {
   };
 }
 
-function buildQueue(rows: any[], mode: 'due' | 'all', singleId: string | null): RecallEntry[] {
+function buildQueue(
+  rows: any[],
+  mode: 'due' | 'all' | 'drill',
+  singleId: string | null,
+  drillArea: string | null,
+  drillTheme: string | null,
+): RecallEntry[] {
   const now = Date.now();
   let filtered = rows.filter((r) => !r.resolved_at && !r.deleted_at);
 
   if (singleId) {
     filtered = filtered.filter((r) => r.id === singleId);
+  } else if (mode === 'drill' && drillArea) {
+    // Drill mode: all non-mastered, non-blocked entries for the chosen area/theme
+    filtered = filtered.filter((r) => {
+      if (r.mastered_at) return false;
+      if ((r as any).last_review_outcome === 'leech_blocked') return false;
+      const rowArea: string = (r.area ?? '') as string;
+      if (rowArea.toLowerCase() !== drillArea.toLowerCase()) return false;
+      if (drillTheme) {
+        const rowTheme: string = (r.theme ?? '') as string;
+        if (rowTheme.toLowerCase() !== drillTheme.toLowerCase()) return false;
+      }
+      return true;
+    });
   } else if (mode === 'due') {
     filtered = filtered.filter((r) => {
       const due = (r as any).srs_due_at as string | null | undefined;
@@ -188,8 +210,9 @@ function buildQueue(rows: any[], mode: 'due' | 'all', singleId: string | null): 
       return new Date(due).getTime() <= now;
     });
   }
+  // mode === 'all' or mode === 'drill' without drillArea: no extra filter (all pending entries)
 
-  // Sort: oldest due first, then by ease ascending (harder first)
+  // Sort: overdue / oldest due first, then by ease ascending (harder first)
   return filtered
     .map(toRecallEntry)
     .sort((a, b) => {
@@ -207,8 +230,11 @@ export function useActiveRecallSession(
   studentName: string,
 ): UseActiveRecallSessionReturn {
   const [searchParams] = useSearchParams();
-  const mode = (searchParams.get('mode') as 'due' | 'all') ?? 'due';
+  const mode = (searchParams.get('mode') as 'due' | 'all' | 'drill') ?? 'due';
   const singleEntryId = searchParams.get('entry');
+  const drillArea = searchParams.get('area');
+  const drillTheme = searchParams.get('theme');
+  const isTimed = searchParams.get('timed') === '1';
 
   // Queue
   const [entries, setEntries] = useState<RecallEntry[]>([]);
@@ -262,7 +288,7 @@ export function useActiveRecallSession(
     setListError(false);
     try {
       const rows = await simuladosApi.getErrorNotebook(userId);
-      const queue = buildQueue(rows, mode, singleEntryId);
+      const queue = buildQueue(rows, mode, singleEntryId, drillArea, drillTheme);
       setEntries(queue);
       if (!initialTotalSet.current) {
         initialTotalSet.current = true;
@@ -282,7 +308,7 @@ export function useActiveRecallSession(
     } finally {
       setLoadingList(false);
     }
-  }, [userId, mode, singleEntryId]);
+  }, [userId, mode, singleEntryId, drillArea, drillTheme]);
 
   useEffect(() => {
     fetchPending();
@@ -909,6 +935,7 @@ export function useActiveRecallSession(
     chatMessages,
     chatInput,
     chatLoading,
+    isTimed,
     // Blocked state
     isCurrentEntryBlocked,
     isCurrentEntryLeech,

@@ -250,3 +250,36 @@ export interface AddFavoritePayload {
   area?: string | null;
   theme?: string | null;
 }
+
+// ─── Phase 4: Confidence Calibration ───
+
+/**
+ * A single bucket in the calibration response.
+ * `accuracy` is null when `total` is 0 (no answers in that confidence level).
+ */
+export interface ConfidenceCalibrationBucket {
+  confidence: Confidence;
+  total: number;
+  correct: number;
+  accuracy: number | null;
+}
+
+/**
+ * Overall metacognition indicators.
+ *   - `total_answered_with_confidence`: total questions where the student declared a confidence level.
+ *   - `alta_but_wrong`: declared "alta" but answered incorrectly (overconfidence signal).
+ *   - `baixa_but_correct`: declared "baixa" but answered correctly (underconfidence signal).
+ */
+export interface ConfidenceCalibrationOverall {
+  total_answered_with_confidence: number;
+  alta_but_wrong: number;
+  baixa_but_correct: number;
+}
+
+/**
+ * Full payload returned by `get_confidence_calibration(p_user_id)` RPC.
+ */
+export interface ConfidenceCalibration {
+  buckets: ConfidenceCalibrationBucket[];
+  overall: ConfidenceCalibrationOverall;
+}

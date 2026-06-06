@@ -69,6 +69,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [selectedArea, setSelectedArea] = useState<RankedWeakArea | null>(null);
+  const [timed, setTimed] = useState(false);
 
   const tracked = useRef(false);
 
@@ -113,11 +114,12 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
 
   // ── Launcher callback ─────────────────────────────────────────────────────
 
-  const handleLaunch = useCallback((area: RankedWeakArea, count: number) => {
+  const handleLaunch = useCallback((area: RankedWeakArea, count: number, isTimed: boolean) => {
     trackEvent('caderno_treino_started', {
       area: area.area,
       theme: area.theme ?? undefined,
       count,
+      timed: isTimed,
     } as any);
   }, []);
 
@@ -275,7 +277,12 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <TreinoLauncher area={selectedArea} onLaunch={handleLaunch} />
+            <TreinoLauncher
+              area={selectedArea}
+              timed={timed}
+              onTimedChange={setTimed}
+              onLaunch={handleLaunch}
+            />
           </motion.div>
         </StaggerItem>
       )}

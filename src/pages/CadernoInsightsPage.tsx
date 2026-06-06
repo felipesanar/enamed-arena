@@ -39,6 +39,7 @@ import { PageHero } from '@/components/caderno/PageHero';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import { InsightCard } from '@/components/caderno/insights/InsightCard';
 import { RoiPanel } from '@/components/caderno/insights/RoiPanel';
+import { CalibrationPanel } from '@/components/caderno/insights/CalibrationPanel';
 import { InsightsEmptyState } from '@/components/caderno/insights/InsightsEmptyState';
 
 import type { Insight } from '@/types/caderno';
@@ -118,6 +119,17 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
   } = useQuery({
     queryKey: ['caderno-area-score-history', userId],
     queryFn: () => simuladosApi.getAreaScoreHistory(userId),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  // ─── React Query: calibração de confiança (staleTime 5min padrão) ───
+  const {
+    data: calibrationData,
+    isLoading: calibrationLoading,
+  } = useQuery({
+    queryKey: ['caderno-confidence-calibration', userId],
+    queryFn: () => simuladosApi.getConfidenceCalibration(),
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
@@ -354,6 +366,19 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
               history={(historyData as any) ?? null}
               loading={historyLoading}
               roiInsights={roiInsights}
+            />
+          </StaggerItem>
+
+          {/* Separador visual antes do painel de Calibração */}
+          <StaggerItem>
+            <div className="border-t border-border pt-2" aria-hidden />
+          </StaggerItem>
+
+          {/* Painel de Calibração de Confiança */}
+          <StaggerItem>
+            <CalibrationPanel
+              data={calibrationData ?? null}
+              loading={calibrationLoading}
             />
           </StaggerItem>
         </>

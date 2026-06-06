@@ -50,6 +50,7 @@ import { SessionSummaryV2 } from '@/components/caderno/recall/SessionSummaryV2';
 import { DesktopQueuePanel, MobileQueueTrigger } from '@/components/caderno/recall/SessionQueuePanel';
 import { LeechInterventionBanner } from '@/components/caderno/LeechInterventionBanner';
 import { LessonUnlockDialog } from '@/components/caderno/LessonUnlockDialog';
+import { DrillTimerBar } from '@/components/caderno/recall/DrillTimerBar';
 
 import { useActiveRecallSession } from '@/hooks/useActiveRecallSession';
 import { useAuth } from '@/contexts/AuthContext';
@@ -242,6 +243,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
     chatMessages,
     chatInput,
     chatLoading,
+    isTimed,
     // Blocked-entry state
     isCurrentEntryBlocked,
     isCurrentEntryLeech,
@@ -422,6 +424,15 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
           </div>
         </div>
       </div>
+
+      {/* Cronômetro do treino — exibido apenas no modo cronometrado */}
+      {isTimed && (
+        <DrillTimerBar
+          startedAt={stats.startedAt}
+          totalQuestions={stats.initialTotal > 0 ? stats.initialTotal : entries.length}
+          questionsAnswered={currentIndex}
+        />
+      )}
 
       {/* Layout: main content + desktop sidebar */}
       <div className="lg:flex lg:items-start lg:gap-6">

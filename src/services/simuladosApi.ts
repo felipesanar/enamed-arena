@@ -26,6 +26,7 @@ import type {
   UpdateNotePayload,
   QuestionFavorite,
   AddFavoritePayload,
+  ConfidenceCalibration,
 } from '@/types/caderno';
 
 // ─── Types for DB rows ───
@@ -922,6 +923,42 @@ export const simuladosApi = {
     }
 
     return data;
+  },
+
+  /**
+   * Returns confidence calibration data for the current user.
+   *
+   * Calls `get_confidence_calibration(p_user_id uuid) → jsonb`.
+   * The RPC is cast via `as any` because it is not yet present in the
+   * auto-generated Supabase types.
+   */
+  async getConfidenceCalibration(): Promise<ConfidenceCalibration> {
+    logger.log('[SimuladosApi] Fetching confidence calibration');
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData?.user) {
+      logger.error('[SimuladosApi] getConfidenceCalibration: unauthenticated', authError);
+      throw authError ?? new Error('Usuário não autenticado');
+    }
+
+    const { data, error } = await rpc('get_confidence_calibration', {
+      p_user_id: authData.user.id,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching confidence calibration:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? {};
+    return {
+      buckets: (result.buckets as ConfidenceCalibration['buckets']) ?? [],
+      overall: (result.overall as ConfidenceCalibration['overall']) ?? {
+        total_answered_with_confidence: 0,
+        alta_but_wrong: 0,
+        baixa_but_correct: 0,
+      },
+    };
   },
 
   // ─── Caderno de Erros v2 — Phase 2: Flashcards ───
