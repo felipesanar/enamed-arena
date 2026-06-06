@@ -263,6 +263,22 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
 const rpc = (name: string, params?: Record<string, unknown>) =>
   (supabase.rpc as any)(name, params) as ReturnType<typeof supabase.rpc>;
 
+// ─── Flashcard column mapping ───
+// A tabela `flashcards` usa colunas `front_image_path` / `back_image_path`
+// (text), enquanto o domínio/UI usa `front_image_url` / `back_image_url`.
+// Como o upload guarda uma signed URL, a string é a mesma — só o nome difere.
+// Estes helpers traduzem nos dois sentidos (leitura ↔ escrita).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapFlashcardRow(row: any): Flashcard {
+  if (!row) return row;
+  const { front_image_path, back_image_path, ...rest } = row;
+  return {
+    ...rest,
+    front_image_url: front_image_path ?? null,
+    back_image_url: back_image_path ?? null,
+  } as Flashcard;
+}
+
 // ─── API ───
 
 export const simuladosApi = {
@@ -1046,7 +1062,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return (data || []) as Flashcard[];
+    return (data || []).map(mapFlashcardRow);
   },
 
   /**
@@ -1058,8 +1074,14 @@ export const simuladosApi = {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     if (!userId) throw new Error('[SimuladosApi] createFlashcard: user not authenticated');
+    const { front_image_url, back_image_url, ...rest } = payload;
     const { data, error } = await (supabase.from('flashcards') as any)
-      .insert([{ ...payload, user_id: userId }])
+      .insert([{
+        ...rest,
+        user_id: userId,
+        front_image_path: front_image_url ?? null,
+        back_image_path: back_image_url ?? null,
+      }])
       .select()
       .single();
 
@@ -1068,7 +1090,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return data as Flashcard;
+    return mapFlashcardRow(data);
   },
 
   /**
@@ -1077,8 +1099,12 @@ export const simuladosApi = {
    */
   async updateFlashcard(id: string, payload: UpdateFlashcardPayload): Promise<Flashcard> {
     logger.log('[SimuladosApi] Updating flashcard', id);
+    const { front_image_url, back_image_url, ...rest } = payload;
+    const patch: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() };
+    if ('front_image_url' in payload) patch.front_image_path = front_image_url ?? null;
+    if ('back_image_url' in payload) patch.back_image_path = back_image_url ?? null;
     const { data, error } = await (supabase.from('flashcards') as any)
-      .update({ ...payload, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq('id', id)
       .select()
       .single();
@@ -1088,7 +1114,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return data as Flashcard;
+    return mapFlashcardRow(data);
   },
 
   /**
@@ -1134,7 +1160,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return (data || []) as Flashcard[];
+    return (data || []).map(mapFlashcardRow);
   },
 
   /**
