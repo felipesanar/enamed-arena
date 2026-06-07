@@ -330,7 +330,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
   }, [currentCard, currentIndex, cards.length, grading]);
 
   if (done) {
-    return <SessionSummary total={cards.length} results={results} removedCount={removedCount} onFinish={onFinish} />;
+    return <SessionSummary total={cards.length - removedCount} results={results} removedCount={removedCount} onFinish={onFinish} />;
   }
 
   if (!currentCard) return null;
