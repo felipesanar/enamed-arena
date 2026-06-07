@@ -99,6 +99,7 @@ export type AnalyticsEventName =
   | "caderno_flashcard_created"
   | "caderno_flashcard_ai_generated"
   | "caderno_flashcard_reviewed"
+  | "caderno_flashcard_disliked"
   | "caderno_flashcards_bulk_generated"
   // Error notebook — Caderno v2: Anotações (Fase 2)
   | "caderno_note_created"
