@@ -1,6 +1,6 @@
 /**
  * Hook to load a completed exam attempt with answers from Supabase.
- * Used by ResultadoPage, CorrecaoPage, DesempenhoPage.
+ * Used by CorrecaoPage, DesempenhoPage.
  * This hook only trusts server-side persisted data.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';

@@ -28,12 +28,6 @@ export function SimuladoResultNav({
               p.includes(`/admin/preview/simulados/${simuladoId}/correcao`),
           },
           {
-            label: "Ver Resultado",
-            to: `/admin/preview/simulados/${simuladoId}/resultado`,
-            match: (p: string) =>
-              p.includes(`/admin/preview/simulados/${simuladoId}/resultado`),
-          },
-          {
             label: "Ver Desempenho",
             to: `/admin/preview/simulados/${simuladoId}/desempenho`,
             match: (p: string) =>
@@ -50,11 +44,6 @@ export function SimuladoResultNav({
             label: "Ver Correção",
             to: `/simulados/${simuladoId}/correcao`,
             match: (p: string) => p === `/simulados/${simuladoId}/correcao`,
-          },
-          {
-            label: "Ver Resultado",
-            to: `/simulados/${simuladoId}/resultado`,
-            match: (p: string) => p === `/simulados/${simuladoId}/resultado`,
           },
           {
             label: "Ver Desempenho",
