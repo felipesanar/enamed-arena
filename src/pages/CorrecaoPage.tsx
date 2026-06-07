@@ -7,6 +7,9 @@ import { SkeletonCard } from '@/components/SkeletonCard';
 import { AddToNotebookModal } from '@/components/AddToNotebookModal';
 import { FavoriteToggleButton } from '@/components/caderno/FavoriteToggleButton';
 import { NoteButton } from '@/components/caderno/QuickNoteSheet';
+// Tokens --c-* (escopados em .caderno-root) usados pelos botões V3 acima.
+// Importado aqui pois o CSS do Caderno não é carregado por padrão nesta rota.
+import '@/components/caderno/ui/caderno-theme.css';
 import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
