@@ -83,7 +83,7 @@ export function TabBar() {
           'inline-flex max-w-full items-center gap-1.5 overflow-x-auto scrollbar-none',
           '[scrollbar-width:none] [-ms-overflow-style:none]',
           'rounded-full border border-[var(--c-border)] p-1.5',
-          'bg-[var(--c-surface-2)]',
+          'bg-transparent',
           'shadow-[0_2px_6px_-2px_rgba(24,10,16,0.08),0_16px_32px_-20px_rgba(24,10,16,0.28),inset_0_1px_0_rgba(255,255,255,0.5)]',
           'dark:shadow-[0_2px_6px_-2px_rgba(0,0,0,0.4),0_16px_32px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]',
         )}
