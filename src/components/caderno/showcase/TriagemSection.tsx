@@ -124,7 +124,7 @@ const MOCK_ITEMS_CLASSIFIED: MockItem[] = [
   },
 ];
 
-const MOCK_ITEMS_LOADING: MockItem[] = MOCK_ITEMS_CLASSIFIED.slice(0, 3).map(it => ({
+const MOCK_ITEMS_LOADING: MockItem[] = MOCK_ITEMS_CLASSIFIED.slice(0, 3).map((it): MockItem => ({
   ...it,
   source: 'heuristic' as const,
   isLoading: true,
@@ -264,7 +264,7 @@ function ClassifiedState() {
 
 function FallbackState() {
   const [items, setItems] = useState<MockItem[]>(
-    MOCK_ITEMS_CLASSIFIED.map(it => ({
+    MOCK_ITEMS_CLASSIFIED.map((it): MockItem => ({
       ...it,
       source: 'heuristic' as const,
       rationale: null,

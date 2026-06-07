@@ -931,6 +931,7 @@ export function useActiveRecallSession(
       try {
         await simuladosApi.clearAwaitingLesson(entryId);
         logger.log('[useActiveRecallSession] Lesson unlock confirmed (server) for entry', entryId);
+        trackEvent('caderno_lesson_unlocked', { entry_id: entryId });
         toast({
           title: 'Ótimo! Questão liberada para revisão.',
           description: 'O caderno vai espaçar as revisões a partir de agora.',

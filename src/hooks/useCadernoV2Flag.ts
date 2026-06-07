@@ -29,7 +29,9 @@ export function useCadernoV2Flag(): boolean {
     return true;
   }
 
-  // 3. Server-side flag on profile (column may not exist yet → treat undefined as false)
+  // 3. Cutover: V2 é o padrão. Só fica OFF se explicitamente desligado por
+  //    usuário (profiles.caderno_v2_enabled === false) — os kill-switches
+  //    globais (env / localStorage acima) têm prioridade. undefined/null/true → ON.
   const serverFlag = (profile as any)?.caderno_v2_enabled;
-  return serverFlag === true;
+  return serverFlag !== false;
 }

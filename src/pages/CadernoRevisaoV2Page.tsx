@@ -435,7 +435,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
     learningNote: currentEntry.learningNote,
     wasCorrect: currentEntry.wasCorrect,
     addedAt: currentEntry.addedAt,
-    resolvedAt: null,
+    resolvedAt: null as string | null,
     nextReviewAt: currentEntry.srsDueAt,
     last_review_outcome: currentEntry.lastReviewOutcome,
     srs_lapses: currentEntry.srsLapses,

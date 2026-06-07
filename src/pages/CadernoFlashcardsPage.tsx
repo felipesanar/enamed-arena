@@ -45,7 +45,6 @@ import { SEGMENT_ACCESS } from '@/types';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
-import { TabBar } from '@/components/caderno/TabBar';
 
 import {
   PageHeaderPremium,
@@ -59,6 +58,7 @@ import { DeckList } from '@/components/caderno/flashcards/DeckList';
 import { FlashcardItem } from '@/components/caderno/flashcards/FlashcardItem';
 import { FlashcardEditor } from '@/components/caderno/flashcards/FlashcardEditor';
 import { FlashcardReviewSession } from '@/components/caderno/flashcards/FlashcardReviewSession';
+import { BulkGenerateModal } from '@/components/caderno/flashcards/BulkGenerateModal';
 
 import { useUser } from '@/contexts/UserContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -267,6 +267,7 @@ function FlashcardsContent() {
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewCards, setReviewCards] = useState<Flashcard[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   /* ── Queries ── */
 
@@ -328,6 +329,18 @@ function FlashcardsContent() {
     setEditorOpen(false);
     setEditingCard(null);
   };
+
+  const handleBulkDone = useCallback(
+    (deckId: string) => {
+      setBulkOpen(false);
+      setSelectedDeckId(deckId);
+      qc.invalidateQueries({ queryKey: QUERY_DECKS });
+      qc.invalidateQueries({ queryKey: queryFlashcards(deckId) });
+      qc.invalidateQueries({ queryKey: queryFlashcards(null) });
+      qc.invalidateQueries({ queryKey: QUERY_DUE });
+    },
+    [qc],
+  );
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -447,20 +460,34 @@ function FlashcardsContent() {
               { label: 'Devidos hoje', value: dueFlashcards.length, color: dueFlashcards.length > 0 ? 'var(--c-wine-500)' : undefined },
             ]}
             primaryAction={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleOpenEditor()}
-                disabled={!selectedDeckId && decks.length > 0}
-                title={!selectedDeckId ? 'Selecione um deck para adicionar um flashcard' : undefined}
-                className={cn(
-                  'gap-1.5 border-[var(--c-wine-500)]/25 text-[var(--c-wine-600)]',
-                  'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]',
-                )}
-              >
-                <Plus className="h-4 w-4" aria-hidden />
-                Novo flashcard
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBulkOpen(true)}
+                  className={cn(
+                    'gap-1.5 border-amber-400/40 text-amber-600',
+                    'hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
+                  )}
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                  Gerar em lote
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenEditor()}
+                  disabled={!selectedDeckId && decks.length > 0}
+                  title={!selectedDeckId ? 'Selecione um deck para adicionar um flashcard' : undefined}
+                  className={cn(
+                    'gap-1.5 border-[var(--c-wine-500)]/25 text-[var(--c-wine-600)]',
+                    'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]',
+                  )}
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Novo flashcard
+                </Button>
+              </div>
             }
           />
         </StaggerItem>
@@ -560,6 +587,14 @@ function FlashcardsContent() {
           onClose={() => { setEditorOpen(false); setEditingCard(null); }}
         />
       )}
+      {bulkOpen && (
+        <BulkGenerateModal
+          decks={decks}
+          defaultDeckId={selectedDeckId}
+          onDone={handleBulkDone}
+          onClose={() => setBulkOpen(false)}
+        />
+      )}
     </>
   );
 }
@@ -573,8 +608,6 @@ export default function CadernoFlashcardsPage() {
 
   return (
     <PageTransition>
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={Layers}

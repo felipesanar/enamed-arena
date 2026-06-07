@@ -28,6 +28,25 @@ import type {
   AddFavoritePayload,
   ConfidenceCalibration,
 } from '@/types/caderno';
+import type { BatchGenerateInput, GeneratedCard } from '@/lib/bulkFlashcards';
+
+// ─── Notification preferences (Caderno reminders — plano 08 §3.1) ───
+export interface NotificationPreferences {
+  caderno_daily_review: boolean;
+  caderno_streak: boolean;
+  caderno_reta_final: boolean;
+  caderno_post_triage: boolean;
+}
+
+// Default = tudo opt-in, espelhando os defaults da tabela
+// `notification_preferences`. Usado como fallback gracioso quando a
+// tabela/RPC ainda não está deployada.
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  caderno_daily_review: true,
+  caderno_streak: true,
+  caderno_reta_final: true,
+  caderno_post_triage: true,
+};
 
 // ─── Types for DB rows ───
 export interface SimuladoRow {
@@ -244,6 +263,22 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = (name: string, params?: Record<string, unknown>) =>
   (supabase.rpc as any)(name, params) as ReturnType<typeof supabase.rpc>;
+
+// ─── Flashcard column mapping ───
+// A tabela `flashcards` usa colunas `front_image_path` / `back_image_path`
+// (text), enquanto o domínio/UI usa `front_image_url` / `back_image_url`.
+// Como o upload guarda uma signed URL, a string é a mesma — só o nome difere.
+// Estes helpers traduzem nos dois sentidos (leitura ↔ escrita).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapFlashcardRow(row: any): Flashcard {
+  if (!row) return row;
+  const { front_image_path, back_image_path, ...rest } = row;
+  return {
+    ...rest,
+    front_image_url: front_image_path ?? null,
+    back_image_url: back_image_path ?? null,
+  } as Flashcard;
+}
 
 // ─── API ───
 
@@ -988,8 +1023,11 @@ export const simuladosApi = {
    */
   async createDeck(name: string): Promise<Deck> {
     logger.log('[SimuladosApi] Creating deck:', name);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] createDeck: user not authenticated');
     const { data, error } = await (supabase.from('decks') as any)
-      .insert([{ name }])
+      .insert([{ name, user_id: userId }])
       .select()
       .single();
 
@@ -1025,7 +1063,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return (data || []) as Flashcard[];
+    return (data || []).map(mapFlashcardRow);
   },
 
   /**
@@ -1034,8 +1072,17 @@ export const simuladosApi = {
    */
   async createFlashcard(payload: CreateFlashcardPayload): Promise<Flashcard> {
     logger.log('[SimuladosApi] Creating flashcard in deck', payload.deck_id);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] createFlashcard: user not authenticated');
+    const { front_image_url, back_image_url, ...rest } = payload;
     const { data, error } = await (supabase.from('flashcards') as any)
-      .insert([payload])
+      .insert([{
+        ...rest,
+        user_id: userId,
+        front_image_path: front_image_url ?? null,
+        back_image_path: back_image_url ?? null,
+      }])
       .select()
       .single();
 
@@ -1044,7 +1091,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return data as Flashcard;
+    return mapFlashcardRow(data);
   },
 
   /**
@@ -1053,8 +1100,12 @@ export const simuladosApi = {
    */
   async updateFlashcard(id: string, payload: UpdateFlashcardPayload): Promise<Flashcard> {
     logger.log('[SimuladosApi] Updating flashcard', id);
+    const { front_image_url, back_image_url, ...rest } = payload;
+    const patch: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() };
+    if ('front_image_url' in payload) patch.front_image_path = front_image_url ?? null;
+    if ('back_image_url' in payload) patch.back_image_path = back_image_url ?? null;
     const { data, error } = await (supabase.from('flashcards') as any)
-      .update({ ...payload, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq('id', id)
       .select()
       .single();
@@ -1064,7 +1115,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return data as Flashcard;
+    return mapFlashcardRow(data);
   },
 
   /**
@@ -1110,7 +1161,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return (data || []) as Flashcard[];
+    return (data || []).map(mapFlashcardRow);
   },
 
   /**
@@ -1171,6 +1222,59 @@ export const simuladosApi = {
       front_md: (result.front_md as string) ?? '',
       back_md: (result.back_md as string) ?? '',
     };
+  },
+
+  /**
+   * Gera vários flashcards de uma vez via edge function `generate-flashcards-batch`.
+   * Repassa o payload normalizado (BatchGenerateInput) e devolve os cards gerados.
+   */
+  async generateFlashcardsBatch(
+    input: BatchGenerateInput,
+  ): Promise<{ cards: GeneratedCard[] }> {
+    logger.log('[SimuladosApi] Generating flashcards batch, mode:', input.mode);
+    const { data, error } = await supabase.functions.invoke('generate-flashcards-batch', {
+      body: input,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error generating flashcards batch:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? {};
+    return { cards: (result.cards as GeneratedCard[]) ?? [] };
+  },
+
+  /**
+   * Cria vários flashcards de uma vez com um único insert multi-linha.
+   * Segue o padrão de `createFlashcard` (RLS restringe ao dono; user_id da sessão).
+   */
+  async createFlashcardsBulk(
+    payloads: CreateFlashcardPayload[],
+  ): Promise<Flashcard[]> {
+    if (payloads.length === 0) return [];
+    logger.log('[SimuladosApi] Bulk-creating', payloads.length, 'flashcards');
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] createFlashcardsBulk: user not authenticated');
+
+    const rows = payloads.map(({ front_image_url, back_image_url, ...rest }) => ({
+      ...rest,
+      user_id: userId,
+      front_image_path: front_image_url ?? null,
+      back_image_path: back_image_url ?? null,
+    }));
+
+    const { data, error } = await (supabase.from('flashcards') as any)
+      .insert(rows)
+      .select();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error bulk-creating flashcards:', error);
+      throw error;
+    }
+
+    return (data || []).map(mapFlashcardRow);
   },
 
   /**
@@ -1248,8 +1352,11 @@ export const simuladosApi = {
    */
   async createNote(payload: CreateNotePayload): Promise<UserNote> {
     logger.log('[SimuladosApi] Creating note:', payload.title);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] createNote: user not authenticated');
     const { data, error } = await (supabase.from('user_notes') as any)
-      .insert([payload])
+      .insert([{ ...payload, user_id: userId }])
       .select()
       .single();
 
@@ -1324,8 +1431,11 @@ export const simuladosApi = {
    */
   async addFavorite(payload: AddFavoritePayload): Promise<QuestionFavorite> {
     logger.log('[SimuladosApi] Adding favorite for question', payload.question_id);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] addFavorite: user not authenticated');
     const { data, error } = await (supabase.from('question_favorites') as any)
-      .upsert([payload], { onConflict: 'user_id,question_id', ignoreDuplicates: false })
+      .upsert([{ ...payload, user_id: userId }], { onConflict: 'user_id,question_id', ignoreDuplicates: false })
       .select()
       .single();
 
@@ -1383,6 +1493,90 @@ export const simuladosApi = {
     if (error) {
       logger.error('[SimuladosApi] Error clearing awaiting_lesson:', error);
       throw error;
+    }
+  },
+
+  // ─── Notification preferences (Caderno reminders — plano 08 §3.1) ───
+
+  /**
+   * Lê as preferências de notificação do usuário atual.
+   *
+   * Consulta a tabela `notification_preferences` (RLS owner-only).
+   * Degrada graciosamente: se a tabela ainda não estiver deployada, se não
+   * houver linha, ou em qualquer erro, retorna os defaults (tudo opt-in),
+   * para a UI nunca quebrar enquanto o slice de lembretes não está no ar.
+   */
+  async getNotificationPreferences(): Promise<NotificationPreferences> {
+    logger.log('[SimuladosApi] Fetching notification preferences');
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences' as any)
+        .select(
+          'caderno_daily_review, caderno_streak, caderno_reta_final, caderno_post_triage',
+        )
+        .maybeSingle();
+
+      if (error) {
+        logger.error('[SimuladosApi] Error fetching notification preferences (defaulting):', error);
+        return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+      }
+
+      const row = (data as Partial<NotificationPreferences> | null) ?? {};
+      return {
+        caderno_daily_review: row.caderno_daily_review ?? DEFAULT_NOTIFICATION_PREFERENCES.caderno_daily_review,
+        caderno_streak: row.caderno_streak ?? DEFAULT_NOTIFICATION_PREFERENCES.caderno_streak,
+        caderno_reta_final: row.caderno_reta_final ?? DEFAULT_NOTIFICATION_PREFERENCES.caderno_reta_final,
+        caderno_post_triage: row.caderno_post_triage ?? DEFAULT_NOTIFICATION_PREFERENCES.caderno_post_triage,
+      };
+    } catch (err) {
+      logger.error('[SimuladosApi] getNotificationPreferences failed (defaulting):', err);
+      return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+    }
+  },
+
+  /**
+   * Atualiza (parcialmente) as preferências de notificação do usuário atual.
+   *
+   * Chama o RPC guardado `upsert_notification_preferences(...)` — o frontend
+   * nunca escreve direto na tabela (regra do projeto). Campos ausentes não são
+   * alterados (o RPC trata NULL como "preservar"). Retorna o estado final
+   * (mesclado com os defaults) para a UI sincronizar.
+   *
+   * Degrada graciosamente: se o RPC ainda não estiver deployado, loga e
+   * retorna o estado otimista (defaults + prefs enviadas), sem lançar.
+   */
+  async updateNotificationPreferences(
+    prefs: Partial<NotificationPreferences>,
+  ): Promise<NotificationPreferences> {
+    logger.log('[SimuladosApi] Updating notification preferences', prefs);
+    const optimistic: NotificationPreferences = {
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      ...prefs,
+    };
+
+    try {
+      const { data, error } = await rpc('upsert_notification_preferences', {
+        p_caderno_daily_review: prefs.caderno_daily_review ?? null,
+        p_caderno_streak: prefs.caderno_streak ?? null,
+        p_caderno_reta_final: prefs.caderno_reta_final ?? null,
+        p_caderno_post_triage: prefs.caderno_post_triage ?? null,
+      });
+
+      if (error) {
+        logger.error('[SimuladosApi] Error updating notification preferences (optimistic):', error);
+        return optimistic;
+      }
+
+      const result = (data as Partial<NotificationPreferences>) ?? {};
+      return {
+        caderno_daily_review: result.caderno_daily_review ?? optimistic.caderno_daily_review,
+        caderno_streak: result.caderno_streak ?? optimistic.caderno_streak,
+        caderno_reta_final: result.caderno_reta_final ?? optimistic.caderno_reta_final,
+        caderno_post_triage: result.caderno_post_triage ?? optimistic.caderno_post_triage,
+      };
+    } catch (err) {
+      logger.error('[SimuladosApi] updateNotificationPreferences failed (optimistic):', err);
+      return optimistic;
     }
   },
 };

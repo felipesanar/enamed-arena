@@ -23,13 +23,8 @@ import { Link } from 'react-router-dom';
 import {
   BookOpen,
   Zap,
-  Play,
   ChevronDown,
   CheckSquare,
-  Swords,
-  Target,
-  Clock,
-  Flame,
 } from 'lucide-react';
 
 import { trackEvent } from '@/lib/analytics';
@@ -41,7 +36,6 @@ import { cn } from '@/lib/utils';
 import { PageTransition } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
 import { EmptyState } from '@/components/EmptyState';
-import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,7 +43,8 @@ import { SEGMENT_ACCESS } from '@/types';
 import { type DbReason } from '@/lib/errorNotebookReasons';
 import { simuladosApi } from '@/services/simuladosApi';
 
-import { TabBar } from '@/components/caderno/TabBar';
+import { CadernoHero } from '@/components/caderno/CadernoHero';
+import { CadernoModeCards } from '@/components/caderno/CadernoModeCards';
 import { ENAMED_DATE } from '@/components/caderno/PageHero';
 import { FilterBar, type CausaFilter } from '@/components/caderno/FilterBar';
 import { CadernoExportMenu } from '@/components/caderno/CadernoExportMenu';
@@ -61,7 +56,6 @@ import {
 } from '@/components/caderno/NotebookEntryCard';
 
 import {
-  PageHeaderPremium,
   SectionHeader,
   CadernoEmptyState,
   CadernoSkeleton,
@@ -502,18 +496,6 @@ function CadernoContent({ userId }: { userId: string }) {
   const daysLeft = Math.ceil((ENAMED_DATE.getTime() - Date.now()) / 86_400_000);
   const isENAMEDNear = daysLeft > 0 && daysLeft <= 45;
 
-  /* ── Stats para PageHeaderPremium ── */
-
-  const headerStats = [
-    { label: 'Pendentes', value: totalPending, color: '#f59e0b' },
-    { label: 'Dominadas', value: totalResolved, color: '#16a34a' },
-    { label: 'Total', value: entries.length },
-    { label: 'Especialidades', value: specialties.length },
-    ...(streak > 0
-      ? [{ label: `${pluralize(streak, 'dia', 'dias')} seguido${streak > 1 ? 's' : ''}`, value: streak, color: '#f97316' }]
-      : []),
-  ];
-
   /* ── Loading state ── */
 
   if (loading) {
@@ -570,84 +552,42 @@ function CadernoContent({ userId }: { userId: string }) {
 
   return (
     <div className="caderno-root">
-      <div className="mx-auto max-w-[1120px] space-y-5 pb-10">
+      <div className="space-y-5 pb-10">
 
-        {/* ── PageHeaderPremium ── */}
-        <PageHeaderPremium
-          title="Caderno de Erros"
-          subtitle="Revise suas questões organizadas por causa e especialidade."
-          stats={headerStats}
-          primaryAction={
-            !allResolved && totalPending > 0 ? (
-              <Link
-                to="/caderno/revisao"
-                onClick={() =>
-                  trackEvent('caderno_revisao_cta_clicked', {
-                    source: 'caderno_v2_header',
-                    pending: totalPending,
-                  })
-                }
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] px-5 py-2.5',
-                  'text-[13px] font-bold text-white no-underline',
-                  'bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
-                  'shadow-[var(--c-shadow-glow)] transition-all duration-[var(--c-duration-base)]',
-                  'hover:shadow-[0_8px_32px_-8px_rgba(176,41,74,.55)] hover:-translate-y-0.5 active:scale-[0.98]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
-                )}
-              >
-                <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
-                Iniciar revisão
-              </Link>
-            ) : undefined
-          }
+        {/* ── Hero premium (dark wine) — status ── */}
+        <CadernoHero
+          total={entries.length}
+          dominadas={totalResolved}
+          pending={totalPending}
+          devidasHoje={buckets.devidas.length}
+          specialties={specialties.length}
+          streak={streak}
+          daysLeft={daysLeft}
+          isEnamedNear={isENAMEDNear}
+          prefersReducedMotion={!!prefersReducedMotion}
         />
 
-        {/* ── CTAs secundários (Treino + Reta Final) ── */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/caderno/treino"
-            onClick={() => trackEvent('caderno_treino_cta_clicked', { source: 'caderno_v2_header' })}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-1.5',
-              'text-[12px] font-semibold text-[var(--c-muted)] no-underline',
-              'transition-all duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
-            )}
-            aria-label="Treinar pontos fracos"
-          >
-            <Target className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Treinar pontos fracos
-          </Link>
-
-          {daysLeft > 0 && (
-            <Link
-              to="/caderno/reta-final"
-              onClick={() => trackEvent('caderno_reta_final_cta_clicked', { source: 'caderno_v2_header', days_left: daysLeft })}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-1.5 no-underline',
-                'text-[12px] font-semibold transition-all duration-[var(--c-duration-fast)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
-                isENAMEDNear
-                  ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] hover:bg-[var(--c-wine-100)] shadow-[var(--c-shadow-sm)] dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]'
-                  : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
-              )}
-              aria-label={`Reta Final ENAMED — ${daysLeft} ${daysLeft === 1 ? 'dia restante' : 'dias restantes'}`}
-            >
-              <Swords className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Reta Final ENAMED
-              {isENAMEDNear && (
-                <span
-                  className="ml-0.5 inline-flex items-center gap-0.5 rounded-full bg-[var(--c-wine-500)] px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums"
-                  aria-label={`${daysLeft} dias restantes`}
-                >
-                  <Clock className="h-2.5 w-2.5" aria-hidden />
-                  {daysLeft}d
-                </span>
-              )}
-            </Link>
-          )}
-        </div>
+        {/* ── Modos de estudo — ação ── */}
+        <CadernoModeCards
+          devidasHoje={buckets.devidas.length}
+          daysLeft={daysLeft}
+          isEnamedNear={isENAMEDNear}
+          hasPending={!allResolved && totalPending > 0}
+          revisaoTo={
+            !allResolved && totalPending > 0 ? '/caderno/revisao?mode=due' : '/caderno/revisao'
+          }
+          treinoTo="/caderno/treino"
+          retaFinalTo="/caderno/reta-final"
+          prefersReducedMotion={!!prefersReducedMotion}
+          onSelect={(mode) => {
+            if (mode === 'revisao')
+              trackEvent('caderno_revisao_cta_clicked', { source: 'caderno_v2_modes', pending: totalPending });
+            else if (mode === 'treino')
+              trackEvent('caderno_treino_cta_clicked', { source: 'caderno_v2_modes' });
+            else
+              trackEvent('caderno_reta_final_cta_clicked', { source: 'caderno_v2_modes', days_left: daysLeft });
+          }}
+        />
 
         {/* ── Filtros + ações do header ── */}
         <div className="flex items-start justify-between gap-3">
@@ -699,54 +639,6 @@ function CadernoContent({ userId }: { userId: string }) {
             )}
           </div>
         </div>
-
-        {/* ── CTA sessão de revisão (banner) ── */}
-        {!allResolved && totalPending > 0 && (
-          <Link
-            to="/caderno/revisao"
-            onClick={() =>
-              trackEvent('caderno_revisao_cta_clicked', {
-                source: 'caderno_v2_hero',
-                pending: totalPending,
-              })
-            }
-            className={cn(
-              'group relative flex items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)] no-underline',
-              'border border-[var(--c-wine-300)]/30 bg-gradient-to-r from-[var(--c-wine-50)] via-[var(--c-surface)] to-[var(--c-surface)]',
-              'dark:from-[var(--c-wine-900)]/20 dark:via-[var(--c-surface)] dark:border-[var(--c-wine-700)]/30',
-              'px-5 py-4 shadow-[var(--c-shadow-sm)]',
-              'transition-all duration-[var(--c-duration-base)] hover:border-[var(--c-wine-400)]/50 hover:shadow-[var(--c-shadow-md)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
-            )}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="relative shrink-0">
-                <div className="overflow-hidden rounded-full border-2 border-[var(--c-surface)] shadow-[var(--c-shadow-sm)]">
-                  <ProfSanorAvatar size={44} />
-                </div>
-                <span
-                  className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--c-surface)] bg-[var(--c-success)]"
-                  aria-hidden
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-bold text-[var(--c-ink)]">Modo revisão com Prof. San</p>
-                <p className="text-[12px] text-[var(--c-muted)]">
-                  Revise {totalPending}{' '}
-                  {pluralize(totalPending, 'questão pendente', 'questões pendentes')} com análise de IA.
-                </p>
-              </div>
-            </div>
-            <div className={cn(
-              'hidden shrink-0 items-center gap-1.5 rounded-[var(--c-radius-control)] px-4 py-2 text-[13px] font-bold text-white sm:flex',
-              'bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
-              'shadow-[var(--c-shadow-glow)] transition-transform duration-[var(--c-duration-fast)] group-hover:-translate-y-0.5',
-            )}>
-              <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
-              Iniciar sessão
-            </div>
-          </Link>
-        )}
 
         {/* ── Zero pendentes (celebratório) ── */}
         {allResolved && (
@@ -983,9 +875,6 @@ export default function CadernoPage() {
 
   return (
     <PageTransition>
-      {/* TabBar fica antes do gate para ser sempre visível */}
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={BookOpen}

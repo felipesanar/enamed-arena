@@ -17,3 +17,8 @@ verify_jwt = false
 
 [functions.create-guest-account]
 verify_jwt = false
+
+# Invocada pelo pg_cron (sem JWT de usuário); faz seu próprio gate via
+# x-internal-secret. Sem isto o gateway rejeitaria com 401 antes do handler.
+[functions.caderno-reminders]
+verify_jwt = false

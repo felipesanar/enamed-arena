@@ -42,6 +42,11 @@ const MOCK_NOTES: UserNote[] = [
       '## Critérios de Framingham\n\nMaiores: DPN, crepitações, cardiomegalia...\n\n## Tratamento\n\n- **Furosemida** IV na descompensação\n- _Dobutamina_ se baixo débito',
     created_at: ago(7 * 24 * 60 * 60 * 1000),
     updated_at: ago(1 * 60 * 60 * 1000),
+    question_id: null,
+    simulado_id: null,
+    area: null,
+    theme: null,
+    deleted_at: null,
   },
   {
     id: 'note-2',
@@ -51,6 +56,11 @@ const MOCK_NOTES: UserNote[] = [
       '## Escore de Wells\n\n| Critério | Pontos |\n|---|---|\n| Sinal de DVT | 3 |\n| Alt. diagnóstico < TEP | 3 |\n\n## Tratamento\nAnticoagulação imediata com heparina...',
     created_at: ago(5 * 24 * 60 * 60 * 1000),
     updated_at: ago(3 * 60 * 60 * 1000),
+    question_id: null,
+    simulado_id: null,
+    area: null,
+    theme: null,
+    deleted_at: null,
   },
   {
     id: 'note-3',
@@ -59,6 +69,11 @@ const MOCK_NOTES: UserNote[] = [
     body_md: 'Tríade clássica: **febre, rigidez de nuca, fotofobia**.\n\n- Punção lombar antes se sem contraindicação\n- Iniciar antibiótico empiricamente se atraso na PL',
     created_at: ago(3 * 24 * 60 * 60 * 1000),
     updated_at: ago(30 * 60 * 1000),
+    question_id: null,
+    simulado_id: null,
+    area: null,
+    theme: null,
+    deleted_at: null,
   },
   {
     id: 'note-4',
@@ -67,6 +82,11 @@ const MOCK_NOTES: UserNote[] = [
     body_md: 'Rascunho sem título — lembrar de nomear depois.',
     created_at: ago(1 * 24 * 60 * 60 * 1000),
     updated_at: ago(10 * 60 * 1000),
+    question_id: null,
+    simulado_id: null,
+    area: null,
+    theme: null,
+    deleted_at: null,
   },
 ];
 

@@ -15,6 +15,7 @@ import {
   Calendar,
   Check,
   AlertTriangle,
+  Bell,
 } from "lucide-react";
 
 import { PageTransition } from "@/components/premium/PageTransition";
@@ -28,6 +29,7 @@ import { LogoutConfirm } from "@/components/settings/LogoutConfirm";
 import { InlineNameEdit } from "@/components/settings/InlineNameEdit";
 import { CopyableText } from "@/components/settings/CopyableText";
 import { InstitutionChip } from "@/components/settings/InstitutionChip";
+import { NotificationsSection } from "@/components/settings/NotificationsSection";
 
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,6 +47,12 @@ const NAV_SECTIONS: SettingsNavSection[] = [
     label: "Perfil acadêmico",
     description: "Especialidade e instituições",
     icon: GraduationCap,
+  },
+  {
+    id: "notificacoes",
+    label: "Notificações",
+    description: "Lembretes do Caderno",
+    icon: Bell,
   },
   { id: "suporte", label: "Ajuda & suporte", description: "Canais de contato", icon: LifeBuoy },
   { id: "sessao", label: "Sessão", description: "Encerrar acesso", icon: LogOut },
@@ -387,6 +395,17 @@ export default function ConfiguracoesPage() {
                   </div>
                 </div>
               )}
+            </SettingsSection>
+          )}
+
+          {/* === NOTIFICAÇÕES === */}
+          {activeSection === "notificacoes" && (
+            <SettingsSection
+              id="notificacoes"
+              title="Notificações"
+              description="Escolha quais lembretes do Caderno de Erros você quer receber."
+            >
+              <NotificationsSection />
             </SettingsSection>
           )}
 

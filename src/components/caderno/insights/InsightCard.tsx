@@ -223,7 +223,7 @@ export function InsightCard({ insight }: InsightCardProps) {
                 key="table"
                 initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                exit={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className="overflow-hidden"
               >

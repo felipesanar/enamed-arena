@@ -10,6 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardLayout } from "@/components/premium/DashboardLayout";
 import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
+import { LegacyCadernoGate } from "@/components/caderno/LegacyCadernoGate";
+import { CadernoLayout } from "@/components/caderno/CadernoLayout";
 
 // Page lazy imports — default exports
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -173,18 +175,24 @@ const App = () => (
                 <Route path="desempenho" element={<DesempenhoPage />} />
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="comparativo" element={<ComparativoPage />} />
-                {/* Caderno v2 — nova casca em paralelo à produção (sem downtime) */}
-                <Route path="caderno" element={<CadernoPage />} />
-                <Route path="caderno/favoritos" element={<CadernoFavoritosPage />} />
-                <Route path="caderno/anotacoes" element={<CadernoAnotacoesPage />} />
-                <Route path="caderno/flashcards" element={<CadernoFlashcardsPage />} />
-                <Route path="caderno/insights" element={<CadernoInsightsPage />} />
-                <Route path="caderno/treino" element={<CadernoTreinoPage />} />
-                <Route path="caderno/reta-final" element={<CadernoRetaFinalPage />} />
+                {/* Caderno v2 — casca persistente: TabBar fixo (CadernoLayout) +
+                    conteúdo via Outlet. Trocar de aba não desmonta a barra. */}
+                <Route element={<CadernoLayout />}>
+                  <Route path="caderno" element={<CadernoPage />} />
+                  <Route path="caderno/favoritos" element={<CadernoFavoritosPage />} />
+                  <Route path="caderno/anotacoes" element={<CadernoAnotacoesPage />} />
+                  <Route path="caderno/flashcards" element={<CadernoFlashcardsPage />} />
+                  <Route path="caderno/insights" element={<CadernoInsightsPage />} />
+                  <Route path="caderno/treino" element={<CadernoTreinoPage />} />
+                  <Route path="caderno/reta-final" element={<CadernoRetaFinalPage />} />
+                </Route>
+                {/* Revisão é sessão focada — sem TabBar */}
                 <Route path="caderno/revisao" element={<CadernoRevisaoV2Page />} />
-                {/* Produção atual — mantida intacta durante transição */}
-                <Route path="caderno-erros" element={<CadernoErrosPage />} />
-                <Route path="caderno-erros/revisao" element={<CadernoRevisaoPage />} />
+                {/* Produção atual — gated pela flag v2: quando ligada, redireciona
+                    para a nova casca (preservando query/hash); quando off, renderiza
+                    o legado. Flipar a flag é o único gatilho de cutover de rota. */}
+                <Route path="caderno-erros" element={<LegacyCadernoGate to="/caderno" legacy={<CadernoErrosPage />} />} />
+                <Route path="caderno-erros/revisao" element={<LegacyCadernoGate to="/caderno/revisao" legacy={<CadernoRevisaoPage />} />} />
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />
               </Route>
               <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />

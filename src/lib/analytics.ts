@@ -99,6 +99,8 @@ export type AnalyticsEventName =
   | "caderno_flashcard_created"
   | "caderno_flashcard_ai_generated"
   | "caderno_flashcard_reviewed"
+  | "caderno_flashcard_disliked"
+  | "caderno_flashcards_bulk_generated"
   // Error notebook — Caderno v2: Anotações (Fase 2)
   | "caderno_note_created"
   | "caderno_note_updated"
@@ -111,6 +113,30 @@ export type AnalyticsEventName =
   | "caderno_export_anki"
   | "caderno_tts_played"
   | "caderno_treino_started"
+  // Error notebook — Caderno v2: integração da plataforma (plano 08)
+  // Captura em toda a superfície (correção / gabarito / prova)
+  | "caderno_note_quick_opened"
+  | "caderno_exam_question_favorited"
+  | "caderno_exam_marked_to_triage"
+  // Loop de retorno (home / nav / lembretes)
+  | "caderno_home_due_card_viewed"
+  | "caderno_nav_due_badge_viewed"
+  | "caderno_home_streak_viewed"
+  | "caderno_home_countdown_viewed"
+  | "caderno_home_insight_teaser_viewed"
+  | "caderno_reminder_sent"
+  | "caderno_reminder_opened"
+  | "notification_preferences_updated"
+  // CTAs de modo no header/hero do Caderno
+  | "caderno_treino_cta_clicked"
+  | "caderno_reta_final_cta_clicked"
+  // Diagnóstico → ação (Desempenho → Caderno)
+  | "desempenho_to_caderno_clicked"
+  // Pós-prova
+  | "caderno_post_exam_summary_viewed"
+  // Lacuna / gating de aula
+  | "caderno_awaiting_lesson_set"
+  | "caderno_lesson_unlocked"
   // Monetization
   | "upsell_clicked"
   | "feature_gate_seen"

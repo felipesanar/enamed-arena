@@ -21,11 +21,22 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Zap, BookOpen, AlertCircle } from 'lucide-react';
+import {
+  Dumbbell,
+  Zap,
+  BookOpen,
+  AlertCircle,
+  ChevronLeft,
+  Target,
+  TrendingDown,
+  CheckCircle2,
+  Clock,
+  CalendarClock,
+  type LucideIcon,
+} from 'lucide-react';
 
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
-import { TabBar } from '@/components/caderno/TabBar';
 import { WeakAreaPicker } from '@/components/caderno/treino/WeakAreaPicker';
 import { TreinoLauncher } from '@/components/caderno/treino/TreinoLauncher';
 import {
@@ -138,6 +149,141 @@ function InsufficientData() {
   );
 }
 
+// ─── Hero premium (desktop) ───────────────────────────────────────────────────
+
+interface TreinoStat {
+  label: string;
+  value: number | string;
+  color: string;
+  icon: LucideIcon;
+}
+
+function TreinoHero({
+  title,
+  subtitle,
+  stats,
+  onBack,
+}: {
+  title: string;
+  subtitle: string;
+  stats: TreinoStat[];
+  onBack: () => void;
+}) {
+  return (
+    <div className="relative mb-6 overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-[var(--c-shadow-sm)] lg:p-7">
+      {/* Atmosfera */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full opacity-70 blur-[72px]"
+        style={{ background: 'var(--c-gradient-glow)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--c-wine-500)]/30 to-transparent"
+      />
+
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        {/* Título */}
+        <div className="min-w-0 max-w-xl">
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-muted)] transition-colors hover:text-[var(--c-wine-500)] focus-visible:outline-none focus-visible:underline"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+            Voltar ao caderno
+          </button>
+
+          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--c-wine-500)]">
+            <Target className="h-3.5 w-3.5" aria-hidden />
+            Treino focado
+          </p>
+          <h1 className="mt-1.5 text-heading-1 font-extrabold tracking-[-0.02em] text-[var(--c-ink)]">
+            {title}
+          </h1>
+          <p className="mt-2 text-body text-[var(--c-muted)]">{subtitle}</p>
+        </div>
+
+        {/* Stat tiles */}
+        <div className="grid grid-cols-3 gap-2.5 lg:shrink-0">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.label}
+                className="flex min-w-[92px] flex-col gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)]/70 px-3.5 py-3"
+              >
+                <Icon className="h-4 w-4" style={{ color: stat.color }} aria-hidden />
+                <span
+                  className="text-[26px] font-extrabold leading-none tabular-nums"
+                  style={{ color: stat.color }}
+                >
+                  {stat.value}
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--c-muted)]">
+                  {stat.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Explicação do ranking (preenche e educa a coluna esquerda) ───────────────
+
+function RankingExplainer() {
+  const criteria: { icon: LucideIcon; color: string; title: string; desc: string }[] = [
+    {
+      icon: Clock,
+      color: '#f97316',
+      title: 'Erros pendentes',
+      desc: 'Quanto mais questões por dominar, maior a prioridade.',
+    },
+    {
+      icon: TrendingDown,
+      color: 'var(--c-destructive,#DC2626)',
+      title: 'Lapsos de revisão (SRS)',
+      desc: 'Temas que você errou de novo após revisar pesam mais.',
+    },
+    {
+      icon: CalendarClock,
+      color: 'var(--c-wine-500,#B0294A)',
+      title: 'Erros recentes',
+      desc: 'O que você errou nos últimos 30 dias sobe no ranking.',
+    },
+  ];
+
+  return (
+    <div className="rounded-[var(--c-radius-card)] border border-dashed border-[var(--c-border)] bg-[var(--c-surface)]/50 p-4">
+      <p className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
+        Como priorizamos suas áreas
+      </p>
+      <ul className="mt-3 flex flex-col gap-3">
+        {criteria.map((c) => {
+          const Icon = c.icon;
+          return (
+            <li key={c.title} className="flex items-start gap-2.5">
+              <span
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] bg-[var(--c-surface-2)]"
+                aria-hidden
+              >
+                <Icon className="h-3.5 w-3.5" style={{ color: c.color }} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[12.5px] font-bold leading-tight text-[var(--c-ink)]">{c.title}</p>
+                <p className="mt-0.5 text-[11.5px] leading-snug text-[var(--c-muted)]">{c.desc}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 // ─── Conteúdo principal ───────────────────────────────────────────────────────
 
 function CadernoTreinoContent({ userId }: { userId: string }) {
@@ -247,30 +393,31 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
 
   return (
     <div className="caderno-root">
-      {/* PageHeaderPremium — desktop: título + stats; mobile: handled internally */}
-      <PageHeaderPremium
-        title="Treine seus pontos fracos"
-        subtitle="Ranqueamento automático das suas áreas mais fracas pelo histórico de erros."
-        onBack={() => navigate('/caderno')}
-        stats={[
-          {
-            label: 'Pendentes',
-            value: pendingCount,
-            color: '#f97316',
-          },
-          {
-            label: 'Áreas fracas',
-            value: weakAreas.length,
-            color: 'var(--c-wine-500,#B0294A)',
-          },
-          {
-            label: 'Dominadas',
-            value: masteredCount,
-            color: '#16a34a',
-          },
-        ]}
-        className="mb-6"
-      />
+      {/* Header — desktop: hero premium; mobile: MobileAppBar via PageHeaderPremium */}
+      {isMobile ? (
+        <PageHeaderPremium
+          title="Treine seus pontos fracos"
+          subtitle="Ranqueamento automático das suas áreas mais fracas pelo histórico de erros."
+          onBack={() => navigate('/caderno')}
+          stats={[
+            { label: 'Pendentes', value: pendingCount, color: '#f97316' },
+            { label: 'Áreas fracas', value: weakAreas.length, color: 'var(--c-wine-500,#B0294A)' },
+            { label: 'Dominadas', value: masteredCount, color: '#16a34a' },
+          ]}
+          className="mb-6"
+        />
+      ) : (
+        <TreinoHero
+          title="Treine seus pontos fracos"
+          subtitle="Ranqueamento automático das suas áreas mais fracas pelo histórico de erros."
+          onBack={() => navigate('/caderno')}
+          stats={[
+            { label: 'Pendentes', value: pendingCount, color: '#f97316', icon: Clock },
+            { label: 'Áreas fracas', value: weakAreas.length, color: 'var(--c-wine-500,#B0294A)', icon: TrendingDown },
+            { label: 'Dominadas', value: masteredCount, color: '#16a34a', icon: CheckCircle2 },
+          ]}
+        />
+      )}
 
       <StaggerContainer
         className={cn(
@@ -304,6 +451,9 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
                 Selecione uma área acima para configurar seu treino.
               </motion.p>
             )}
+
+            {/* Explicação do ranking — equilibra a coluna e contextualiza */}
+            <RankingExplainer />
           </div>
         </StaggerItem>
 
@@ -352,8 +502,6 @@ export default function CadernoTreinoPage() {
 
   return (
     <PageTransition>
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={Dumbbell}

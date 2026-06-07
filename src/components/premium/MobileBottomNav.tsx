@@ -16,6 +16,9 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
+import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
+import { useUser, useHasAccess } from "@/contexts/UserContext";
 
 const DIRECT_ITEMS = [
   { to: "/", end: true, label: "Início", icon: LayoutDashboard },
@@ -33,12 +36,14 @@ function NavIconButton({
   label,
   icon: Icon,
   className,
+  badge,
 }: {
   to: string;
   end?: boolean;
   label: string;
   icon: ComponentType<any>;
   className?: string;
+  badge?: number;
 }) {
   return (
     <NavLink
@@ -58,13 +63,21 @@ function NavIconButton({
         <>
           <span
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
+              "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
               isActive
                 ? "border border-primary/45 bg-primary/[0.12] text-primary shadow-[0_0_0_1px_rgba(232,56,98,0.15),inset_0_1px_0_rgba(255,255,255,0.12)]"
                 : "border border-transparent bg-transparent"
             )}
           >
             <Icon strokeWidth={ICON_STROKE} className="h-[18px] w-[18px] shrink-0" aria-hidden />
+            {badge != null && badge > 0 && (
+              <span
+                className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground"
+                aria-label={`${badge} questões para revisar`}
+              >
+                {badge > 9 ? "9+" : badge}
+              </span>
+            )}
           </span>
           <span className="max-w-[56px] truncate text-center leading-none">{label}</span>
         </>
@@ -76,6 +89,14 @@ function NavIconButton({
 export function MobileBottomNav() {
   const location = useLocation();
   const [rankingOpen, setRankingOpen] = useState(false);
+
+  const caderno = useCadernoRoutes();
+  const { profile } = useUser();
+  const hasCadernoErros = useHasAccess("cadernoErros");
+  const { data: dueCount } = useNotebookDueCount(
+    profile?.id,
+    hasCadernoErros && caderno.v2
+  );
 
   const rankingActive =
     location.pathname === "/ranking" || location.pathname === "/comparativo";
@@ -136,10 +157,11 @@ export function MobileBottomNav() {
             </button>
 
             <NavIconButton
-              to={DIRECT_ITEMS[3].to}
+              to={caderno.base}
               end={DIRECT_ITEMS[3].end}
               label={DIRECT_ITEMS[3].label}
               icon={DIRECT_ITEMS[3].icon}
+              badge={dueCount}
             />
         </div>
       </nav>

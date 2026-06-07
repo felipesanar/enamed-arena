@@ -30,7 +30,6 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 
 import { PageTransition } from '@/components/premium/PageTransition';
 import { ProGate } from '@/components/ProGate';
-import { TabBar } from '@/components/caderno/TabBar';
 
 import { NoteList } from '@/components/caderno/anotacoes/NoteList';
 import { NoteEditor } from '@/components/caderno/anotacoes/NoteEditor';
@@ -500,8 +499,6 @@ export default function CadernoAnotacoesPage() {
 
   return (
     <PageTransition>
-      <TabBar />
-
       {!hasAccess ? (
         <ProGate
           icon={BookOpen}

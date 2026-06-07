@@ -19,6 +19,7 @@ import {
   Loader2,
   RotateCcw,
   Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
@@ -147,10 +148,11 @@ function CardFace({ md, imageUrl, faceLabel, isMobile }: CardFaceProps) {
 interface SessionSummaryProps {
   total: number;
   results: Record<FlashcardReviewOutcome, number>;
+  removedCount: number;
   onFinish: () => void;
 }
 
-function SessionSummary({ total, results, onFinish }: SessionSummaryProps) {
+function SessionSummary({ total, results, removedCount, onFinish }: SessionSummaryProps) {
   const mastered = (results.bom ?? 0) + (results.facil ?? 0);
   return (
     <div className="flex flex-col items-center gap-8 py-16 text-center">
@@ -202,6 +204,12 @@ function SessionSummary({ total, results, onFinish }: SessionSummaryProps) {
         </p>
       )}
 
+      {removedCount > 0 && (
+        <p className="text-[12px] text-[var(--c-muted)]">
+          {removedCount} {removedCount === 1 ? 'card removido' : 'cards removidos'} nesta sessão.
+        </p>
+      )}
+
       <Button
         onClick={onFinish}
         className="min-w-[180px] bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)] hover:opacity-90"
@@ -231,6 +239,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
     errei: 0, dificil: 0, bom: 0, facil: 0,
   });
   const [done, setDone] = useState(false);
+  const [removedCount, setRemovedCount] = useState(0);
 
   const currentCard = cards[currentIndex];
   const progressPct = (currentIndex / cards.length) * 100;
@@ -295,8 +304,33 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
 
   handleGradeRef.current = handleGrade;
 
+  const handleRemove = useCallback(async () => {
+    if (grading || !currentCard) return;
+    setGrading(true);
+    try {
+      await simuladosApi.softDeleteFlashcard(currentCard.id);
+      trackEvent('caderno_flashcard_disliked', { flashcard_id: currentCard.id });
+    } catch (err) {
+      logger.error('[FlashcardReviewSession] Error removing card:', err);
+      toast({ title: 'Não foi possível remover', variant: 'destructive' });
+      setGrading(false);
+      return;
+    }
+    toast({ title: 'Card removido' });
+    setRemovedCount((n) => n + 1);
+    const next = currentIndex + 1;
+    if (next >= cards.length) {
+      setDone(true);
+    } else {
+      setFlipDir('back');
+      setCurrentIndex(next);
+      setRevealed(false);
+    }
+    setGrading(false);
+  }, [currentCard, currentIndex, cards.length, grading]);
+
   if (done) {
-    return <SessionSummary total={cards.length} results={results} onFinish={onFinish} />;
+    return <SessionSummary total={cards.length - removedCount} results={results} removedCount={removedCount} onFinish={onFinish} />;
   }
 
   if (!currentCard) return null;
@@ -451,6 +485,26 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* Curadoria: remover card que o aluno não gostou */}
+      <div className="flex justify-center">
+        <button
+          type="button"
+          disabled={grading}
+          onClick={handleRemove}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] px-3 py-1.5',
+            'text-[11.5px] font-semibold text-[var(--c-muted)] transition-colors',
+            'hover:bg-destructive/10 hover:text-destructive',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+          aria-label="Não gostei deste card, remover da coleção"
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+          Não gostei · remover
+        </button>
       </div>
 
       {/* Ações */}

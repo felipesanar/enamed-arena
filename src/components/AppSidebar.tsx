@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUser } from "@/contexts/UserContext";
+import { useUser, useHasAccess } from "@/contexts/UserContext";
+import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
+import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
 import {
   Sidebar,
   SidebarContent,
@@ -35,15 +37,22 @@ const mainNav = [
   { title: "Comparativo", url: "/comparativo", icon: GitCompareArrows },
 ];
 
-const proNav = [
-  { title: "Caderno de Erros", url: "/caderno-erros", icon: BookOpen },
-];
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
   const { profile } = useUser();
   const collapsed = state === "collapsed";
+
+  const cadernoRoutes = useCadernoRoutes();
+  const hasCaderno = useHasAccess("cadernoErros");
+  const { data: dueCount } = useNotebookDueCount(
+    profile?.id,
+    hasCaderno && cadernoRoutes.v2,
+  );
+
+  const proNav = [
+    { title: "Caderno de Erros", url: cadernoRoutes.base, icon: BookOpen, dueCount },
+  ];
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -117,6 +126,14 @@ export function AppSidebar() {
                           <span className="text-[10px] font-bold uppercase tracking-wider bg-sidebar-primary/20 text-sidebar-primary px-1.5 py-0.5 rounded">
                             PRO
                           </span>
+                          {item.dueCount > 0 && (
+                            <span
+                              className="text-[10px] font-semibold leading-none bg-primary text-primary-foreground min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full"
+                              aria-label={`${item.dueCount} revisões devidas hoje`}
+                            >
+                              {item.dueCount > 9 ? "9+" : item.dueCount}
+                            </span>
+                          )}
                         </span>
                       )}
                     </NavLink>

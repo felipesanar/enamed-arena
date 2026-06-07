@@ -9,6 +9,7 @@ import {
   useAdminProdutoFriction,
   useAdminProdutoFeatureAdoption,
   useAdminProdutoTopEvents,
+  useAdminProdutoCadernoFunnel,
 } from '@/admin/hooks/useAdminProduto'
 
 const mockFunnel = [
@@ -43,6 +44,7 @@ describe('AdminProduto', () => {
     vi.mocked(useAdminProdutoFriction).mockReturnValue({ data: mockFriction, isLoading: false } as any)
     vi.mocked(useAdminProdutoFeatureAdoption).mockReturnValue({ data: mockAdoption, isLoading: false } as any)
     vi.mocked(useAdminProdutoTopEvents).mockReturnValue({ data: mockTopEvents, isLoading: false } as any)
+    vi.mocked(useAdminProdutoCadernoFunnel).mockReturnValue({ data: [], isLoading: false } as any)
   })
 
   it('renders funnel step labels', () => {
