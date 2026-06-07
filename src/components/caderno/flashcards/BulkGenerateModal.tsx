@@ -5,7 +5,8 @@
  * Salva o lote direto no deck (sem preview do verso) e fecha; a curadoria
  * acontece na revisão. Reaproveita AdaptiveModal e ProfSanorAvatar.
  *
- * Fase 1: fontes 'topic' (Tema/área) e 'questions' (Caderno de erros).
+ * Fontes: Tema/área, Caderno de erros, Pontos fracos, Simulado concluído,
+ * Favoritas (questions) e Anotações (text).
  */
 import { useState, useCallback } from 'react';
 import { Sparkles, Loader2, BookOpen, Layers, ArrowLeft, FileText, TrendingDown, ClipboardCheck, Star } from 'lucide-react';

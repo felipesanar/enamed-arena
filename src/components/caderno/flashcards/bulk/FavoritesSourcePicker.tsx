@@ -49,12 +49,16 @@ export function FavoritesSourcePicker({ onChange }: FavoritesSourcePickerProps) 
         const q = byId.get(f.question_id);
         if (q) resolved.push({ favoriteId: f.id, question: q, area: f.area, theme: f.theme });
       }
-      return { resolved, skipped };
+      // Favoritas com simulado mas cuja questão não foi encontrada (ex.: removida
+      // ou além do limite de carga) também ficam indisponíveis — contamos juntas.
+      const notFound = withSimulado.length - resolved.length;
+      if (notFound > 0) logger.log('[FavoritesSourcePicker] favoritas com questão não encontrada:', notFound);
+      return { resolved, unavailable: skipped + notFound };
     },
   });
 
   const resolved = useMemo(() => data?.resolved ?? [], [data]);
-  const skipped = data?.skipped ?? 0;
+  const unavailable = data?.unavailable ?? 0;
   const atCap = selected.size >= MAX_QUESTIONS;
 
   const selectedItems = useMemo(
@@ -121,8 +125,8 @@ export function FavoritesSourcePicker({ onChange }: FavoritesSourcePickerProps) 
         })}
       </div>
 
-      {skipped > 0 && (
-        <p className="text-[11px] text-[var(--c-muted-2)]">{skipped} favorita{skipped === 1 ? '' : 's'} sem simulado não pôde{skipped === 1 ? '' : 'ram'} ser carregada{skipped === 1 ? '' : 's'}.</p>
+      {unavailable > 0 && (
+        <p className="text-[11px] text-[var(--c-muted-2)]">{unavailable} favorita{unavailable === 1 ? '' : 's'} não pôde{unavailable === 1 ? '' : 'ram'} ser carregada{unavailable === 1 ? '' : 's'}.</p>
       )}
     </div>
   );
