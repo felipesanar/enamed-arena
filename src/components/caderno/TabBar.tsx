@@ -26,7 +26,7 @@ const TABS: Tab[] = [
   { label: 'Favoritos',  to: '/caderno/favoritos',  icon: Heart },
   { label: 'Anotações',  to: '/caderno/anotacoes',  icon: NotebookPen },
   { label: 'Flashcards', to: '/caderno/flashcards', icon: Layers },
-  { label: 'Insights',   to: '/caderno/insights',   icon: Sparkles },
+  { label: 'Diagnóstico', to: '/caderno/insights',   icon: Sparkles },
 ];
 
 const SEGMENTED_ITEMS: SegmentedTabItem[] = TABS.map((t) => {
@@ -57,7 +57,7 @@ export function TabBar() {
 
   if (isMobile) {
     return (
-      <div className="sticky top-14 z-20 -mx-4 border-b border-[var(--c-border)] bg-[var(--c-surface)]/85 px-4 py-2 backdrop-blur-[var(--c-glass-blur)]">
+      <div className="sticky top-14 z-20 -mx-4 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_85%,transparent)] px-4 py-2 backdrop-blur-[var(--c-glass-blur)]">
         <SegmentedTabs
           items={SEGMENTED_ITEMS}
           value={activeTo}

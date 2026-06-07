@@ -45,7 +45,7 @@ function ProgressDial({
       className="relative shrink-0"
       style={{ width: RING_SIZE, height: RING_SIZE }}
       role="img"
-      aria-label={`${pct}% de domínio — ${dominadas} de ${total} questões dominadas`}
+      aria-label={`${pct}% de domínio: ${dominadas} de ${total} questões dominadas`}
     >
       {/* Disco de fundo — separa o anel do gradiente do card */}
       <div
@@ -193,26 +193,8 @@ export function CadernoHero({
             Seu progresso no Caderno
           </motion.h1>
           <motion.p {...enter(0.1)} className="mt-1 max-w-xl text-[13px] leading-relaxed text-white/60">
-            Revise suas questões organizadas por causa e especialidade — recall ativo com repetição espaçada.
+            Revise suas questões organizadas por causa e especialidade. Você revê de cabeça, no intervalo certo para fixar.
           </motion.p>
-
-          {/* Barra de progresso protagonista */}
-          <motion.div {...enter(0.16)} className="mt-4 max-w-md">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[12px] font-medium text-white/65">
-                {dominadas} de {total} {total === 1 ? 'dominada' : 'dominadas'}
-              </span>
-              <span className="text-[13px] font-extrabold tabular-nums tracking-[-0.02em] text-white">{pct}%</span>
-            </div>
-            <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-white/[0.09]">
-              <motion.div
-                className="h-full rounded-full bg-[linear-gradient(90deg,#8E1F3D_0%,#E83862_60%,#F9A8D4_100%)]"
-                initial={{ width: prefersReducedMotion ? `${pct}%` : 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.9, ease: 'easeOut', delay: prefersReducedMotion ? 0 : 0.25 }}
-              />
-            </div>
-          </motion.div>
 
           {/* KPIs — faixa contida com acentos distintos por métrica */}
           <motion.div

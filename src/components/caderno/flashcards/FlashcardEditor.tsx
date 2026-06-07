@@ -88,7 +88,7 @@ function ImageUploadZone({ label, imageUrl, uploading, onFile, onClear }: ImageU
           onClick={onClear}
           className={cn(
             'absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full',
-            'bg-[var(--c-surface)]/90 text-[var(--c-muted)] shadow-sm backdrop-blur-sm',
+            'bg-[color-mix(in_srgb,var(--c-surface)_90%,transparent)] text-[var(--c-muted)] shadow-sm backdrop-blur-sm',
             'transition-colors hover:bg-destructive/10 hover:text-destructive',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50',
           )}
@@ -112,7 +112,7 @@ function ImageUploadZone({ label, imageUrl, uploading, onFile, onClear }: ImageU
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click(); }}
         className={cn(
           'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
           dragging
             ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-50)]'
             : 'border-[var(--c-border)] hover:border-[var(--c-wine-300)] hover:bg-[var(--c-surface-2)]',
@@ -173,7 +173,7 @@ function CardPreview({ frontMd, backMd, frontImageUrl, backImageUrl }: CardPrevi
             'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border px-2.5 py-1',
             'border-[var(--c-border)] text-[11px] font-semibold text-[var(--c-muted)]',
             'transition-colors hover:border-[var(--c-wine-300)] hover:text-[var(--c-wine-600)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
           )}
         >
           <RotateCw className="h-3 w-3" aria-hidden />
@@ -194,7 +194,7 @@ function CardPreview({ frontMd, backMd, frontImageUrl, backImageUrl }: CardPrevi
               animate={{ rotateY: 0, opacity: 1 }}
               exit={prefersReducedMotion ? undefined : { rotateY: 90, opacity: 0 }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden rounded-xl border border-[var(--c-wine-500)]/20 bg-[var(--c-surface)] shadow-[var(--c-shadow-sm)]"
+              className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] bg-[var(--c-surface)] shadow-[var(--c-shadow-sm)]"
             >
               <div className="px-1 py-1">
                 <span className="inline-block rounded-t-none rounded-b-lg bg-[var(--c-wine-50)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-600)]">
@@ -419,7 +419,7 @@ export function FlashcardEditor({
               <p className="text-[13.5px] font-bold text-[var(--c-ink)]">Gerar com o Prof. San</p>
               <p className="text-[11.5px] leading-relaxed text-[var(--c-muted)]">
                 {generating
-                  ? 'Criando seu flashcard de active recall…'
+                  ? 'Criando seu flashcard para você treinar de memória…'
                   : 'Escreva um tópico ou pergunta na frente e ele cria a pergunta e a resposta pra você.'}
               </p>
             </div>
@@ -444,7 +444,7 @@ export function FlashcardEditor({
             ) : (
               <Sparkles className="h-4 w-4" aria-hidden />
             )}
-            {generating ? 'Gerando…' : isEditing ? 'Regerar com IA' : 'Gerar flashcard'}
+            {generating ? 'Gerando…' : isEditing ? 'Gerar de novo' : 'Gerar flashcard'}
           </button>
         </div>
 
@@ -456,9 +456,9 @@ export function FlashcardEditor({
           className={cn(
             'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border px-3 py-1.5 text-[11px] font-semibold',
             'transition-colors duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
             showPreview
-              ? 'border-[var(--c-wine-500)]/30 bg-[var(--c-wine-50)] text-[var(--c-wine-700)]'
+              ? 'border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)]'
               : 'border-[var(--c-border)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-wine-600)]',
           )}
         >
@@ -504,12 +504,12 @@ export function FlashcardEditor({
               value={frontMd}
               onChange={(e) => setFrontMd(e.target.value)}
               rows={5}
-              placeholder="Pergunta, conceito ou imagem… (markdown suportado)"
+              placeholder="Pergunta, conceito ou imagem… (aceita formatação)"
               className={cn(
                 'w-full resize-none rounded-xl border bg-[var(--c-surface-2)] px-3.5 py-3',
                 'text-[13px] leading-relaxed text-[var(--c-ink)]',
                 'placeholder:text-[var(--c-muted-2)] outline-none transition-colors',
-                'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[var(--c-wine-500)]/20',
+                'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
               )}
             />
             <ImageUploadZone
@@ -537,12 +537,12 @@ export function FlashcardEditor({
               value={backMd}
               onChange={(e) => setBackMd(e.target.value)}
               rows={5}
-              placeholder="Resposta, explicação ou gabarito… (markdown suportado)"
+              placeholder="Resposta, explicação ou gabarito… (aceita formatação)"
               className={cn(
                 'w-full resize-none rounded-xl border bg-[var(--c-surface-2)] px-3.5 py-3',
                 'text-[13px] leading-relaxed text-[var(--c-ink)]',
                 'placeholder:text-[var(--c-muted-2)] outline-none transition-colors',
-                'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[var(--c-wine-500)]/20',
+                'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
               )}
             />
             <ImageUploadZone

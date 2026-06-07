@@ -50,16 +50,16 @@ export function CadernoModeCards({
       to: revisaoTo,
       icon: RotateCcw,
       title: 'Revisão espaçada',
-      desc: 'Recall ativo no momento certo (SRS). Fixa o que você errou sem precisar reestudar tudo.',
+      desc: 'Revê o que você errou na hora certa de lembrar. Fixa o conteúdo sem reestudar tudo.',
       hint:
         devidasHoje > 0
           ? `${devidasHoje} ${devidasHoje === 1 ? 'devida hoje' : 'devidas hoje'}`
           : 'tudo em dia',
       hintUrgent: devidasHoje > 0,
       // wine
-      iconWrap: 'bg-[var(--c-wine-500)]/12 text-[var(--c-wine-600)] dark:text-[var(--c-wine-300)]',
+      iconWrap: 'bg-[color-mix(in_srgb,var(--c-wine-500)_12%,transparent)] text-[var(--c-wine-600)] dark:text-[var(--c-wine-300)]',
       accentText: 'text-[var(--c-wine-600)] dark:text-[var(--c-wine-300)]',
-      recRing: 'border-[var(--c-wine-400)] ring-2 ring-[var(--c-wine-300)]/45',
+      recRing: 'border-[var(--c-wine-400)] ring-2 ring-[color-mix(in_srgb,var(--c-wine-300)_45%,transparent)]',
       recGlow: 'shadow-[0_18px_40px_-22px_rgba(176,41,74,0.55)]',
     },
     {
@@ -67,7 +67,7 @@ export function CadernoModeCards({
       to: treinoTo,
       icon: Target,
       title: 'Treino direcionado',
-      desc: 'Sessão cronometrada focada nas suas áreas mais fracas — prática deliberada.',
+      desc: 'Sessão cronometrada nas suas áreas mais fracas. Treino de verdade, sob pressão.',
       hint: 'foco nos pontos fracos',
       hintUrgent: false,
       // sky
@@ -81,8 +81,8 @@ export function CadernoModeCards({
       to: retaFinalTo,
       icon: Swords,
       title: 'Reta Final ENAMED',
-      desc: 'Plano diário priorizado pelo peso de cada área conforme a prova se aproxima.',
-      hint: daysLeft > 0 ? `faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}` : 'War Room',
+      desc: 'Um plano para cada dia, priorizando as áreas que mais caem conforme a prova chega.',
+      hint: daysLeft > 0 ? `faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}` : 'Reta Final',
       hintUrgent: isEnamedNear,
       // amber
       iconWrap: 'bg-amber-500/14 text-amber-600 dark:text-amber-300',
@@ -119,7 +119,7 @@ export function CadernoModeCards({
               <Link
                 to={m.to}
                 onClick={() => onSelect?.(m.key)}
-                aria-label={`${m.title}${isRec ? ' — recomendado agora' : ''}`}
+                aria-label={`${m.title}${isRec ? ' (recomendado agora)' : ''}`}
                 className={cn(
                   'group relative flex h-full flex-col gap-3.5 rounded-2xl border p-5 no-underline',
                   'bg-[var(--c-surface)] transition-all duration-200',

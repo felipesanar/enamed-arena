@@ -157,19 +157,19 @@ function FavoriteToggleButtonInner({
             'relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-3.5 py-2.5',
             'text-[12px] font-semibold border',
             'transition-all duration-[var(--c-duration-base)] ease-[var(--c-ease-standard)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
             // Favorited state
             isFavorited
               ? [
                   'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)]',
-                  'dark:bg-[var(--c-wine-900)]/40 dark:border-[var(--c-wine-700)]/60 dark:text-[var(--c-wine-300)]',
-                  'hover:border-[var(--c-destructive)]/40 hover:bg-[var(--c-destructive)]/8 hover:text-[var(--c-destructive)]',
+                  'dark:bg-[color-mix(in_srgb,var(--c-wine-900)_40%,transparent)] dark:border-[color-mix(in_srgb,var(--c-wine-700)_60%,transparent)] dark:text-[var(--c-wine-300)]',
+                  'hover:border-[color-mix(in_srgb,var(--c-destructive)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-destructive)_8%,transparent)] hover:text-[var(--c-destructive)]',
                   'shadow-[0_2px_8px_-2px_rgba(176,41,74,.22)]',
                 ].join(' ')
               : [
                   'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)]',
                   'hover:border-[var(--c-wine-300)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-700)]',
-                  'dark:hover:bg-[var(--c-wine-900)]/30 dark:hover:text-[var(--c-wine-300)]',
+                  'dark:hover:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] dark:hover:text-[var(--c-wine-300)]',
                 ].join(' '),
             pending && 'pointer-events-none opacity-50',
           )}

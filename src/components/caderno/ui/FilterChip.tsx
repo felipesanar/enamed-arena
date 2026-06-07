@@ -28,7 +28,7 @@ export const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
           "inline-flex h-8 items-center gap-1.5 rounded-[var(--c-radius-pill)] border px-3",
           "text-xs font-semibold transition-all",
           "duration-[var(--c-duration-fast)] ease-[var(--c-ease-standard)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1",
           "cursor-pointer select-none",
           // Inativo
           !active && [

@@ -27,7 +27,7 @@ export function NotesEmptyState({ onCreateNote }: NotesEmptyStateProps) {
             'px-5 py-2.5 text-[13px] font-semibold text-white',
             'shadow-[var(--c-shadow-glow)]',
             'transition-all duration-[var(--c-duration-base)] hover:brightness-110 active:scale-[0.98]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/60 focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_60%,transparent)] focus-visible:ring-offset-2',
           )}
           aria-label="Criar primeira anotação"
         >

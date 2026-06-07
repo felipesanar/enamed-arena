@@ -94,7 +94,7 @@ export function FilterBar({
               'h-[42px] w-full rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] pl-11 pr-4',
               'text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
               'transition-colors duration-[var(--c-duration-fast)]',
-              'focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[var(--c-wine-500)]/20',
+              'focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
             )}
           />
         </div>

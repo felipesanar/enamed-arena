@@ -125,8 +125,8 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
   return (
     <CadernoEmptyState
       icon={<Layers className="h-8 w-8 text-[var(--c-wine-500)]" />}
-      title="Nenhum deck ainda"
-      description="Crie seu primeiro deck para organizar flashcards por tema, área ou prova."
+      title="Nenhum baralho ainda"
+      description="Crie seu primeiro baralho para organizar os flashcards por tema, área ou prova."
       action={
         showInput ? (
           <div className="flex items-center gap-2">
@@ -140,12 +140,12 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
                 if (e.key === 'Escape') { setShowInput(false); setNewName(''); }
               }}
               maxLength={60}
-              placeholder="Nome do deck…"
-              aria-label="Nome do primeiro deck"
+              placeholder="Nome do baralho…"
+              aria-label="Nome do primeiro baralho"
               className={cn(
-                'h-9 w-48 rounded-[var(--c-radius-pill)] border border-[var(--c-wine-500)]/40 bg-[var(--c-surface)] px-3',
+                'h-9 w-48 rounded-[var(--c-radius-pill)] border border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] bg-[var(--c-surface)] px-3',
                 'text-[13px] font-medium text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
-                'outline-none focus:border-[var(--c-wine-500)] focus:ring-1 focus:ring-[var(--c-wine-500)]/20',
+                'outline-none focus:border-[var(--c-wine-500)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
               )}
             />
             <Button
@@ -164,7 +164,7 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
             className="gap-2 bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)]"
           >
             <Plus className="h-4 w-4" aria-hidden />
-            Criar primeiro deck
+            Criar primeiro baralho
           </Button>
         )
       }
@@ -185,7 +185,7 @@ function EmptyCardsState({ onAdd }: { onAdd: () => void }) {
           variant="outline"
           size="sm"
           onClick={onAdd}
-          className="gap-1.5 border-[var(--c-wine-500)]/30 text-[var(--c-wine-600)] hover:bg-[var(--c-wine-50)] hover:border-[var(--c-wine-400)]"
+          className="gap-1.5 border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] text-[var(--c-wine-600)] hover:bg-[var(--c-wine-50)] hover:border-[var(--c-wine-400)]"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
           Adicionar primeiro flashcard
@@ -223,14 +223,14 @@ function ReviewBanner({ count, onStart }: { count: number; onStart: () => void }
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         'group flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)]',
-        'border border-[var(--c-wine-500)]/20 bg-gradient-to-r from-[var(--c-wine-500)]/8 via-[var(--c-wine-500)]/4 to-transparent',
+        'border border-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] bg-gradient-to-r from-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] via-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] to-transparent',
         'px-5 py-4 transition-all duration-200',
-        'hover:border-[var(--c-wine-500)]/40 hover:shadow-[var(--c-shadow-glow)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+        'hover:border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] hover:shadow-[var(--c-shadow-glow)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
       )}
     >
       <div className="flex min-w-0 items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--c-wine-500)]/10">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]">
           <Layers className="h-5 w-5 text-[var(--c-wine-500)]" aria-hidden />
         </div>
         <div className="min-w-0 text-left">
@@ -453,11 +453,11 @@ function FlashcardsContent() {
         <StaggerItem>
           <PageHeaderPremium
             title="Flashcards"
-            subtitle="Revise com repetição espaçada inteligente"
+            subtitle="Revise no intervalo certo para fixar de vez."
             stats={[
               { label: 'Total', value: flashcards.length },
-              { label: 'Decks', value: decks.length },
-              { label: 'Devidos hoje', value: dueFlashcards.length, color: dueFlashcards.length > 0 ? 'var(--c-wine-500)' : undefined },
+              { label: 'Baralhos', value: decks.length },
+              { label: 'Para hoje', value: dueFlashcards.length, color: dueFlashcards.length > 0 ? 'var(--c-wine-500)' : undefined },
             ]}
             primaryAction={
               <div className="flex items-center gap-2">
@@ -480,7 +480,7 @@ function FlashcardsContent() {
                   disabled={!selectedDeckId && decks.length > 0}
                   title={!selectedDeckId ? 'Selecione um deck para adicionar um flashcard' : undefined}
                   className={cn(
-                    'gap-1.5 border-[var(--c-wine-500)]/25 text-[var(--c-wine-600)]',
+                    'gap-1.5 border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] text-[var(--c-wine-600)]',
                     'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]',
                   )}
                 >
@@ -618,7 +618,7 @@ export default function CadernoFlashcardsPage() {
           benefits={[
             'Flashcards com imagem na frente e no verso',
             'Geração automática por IA (Prof. San)',
-            'Revisão com algoritmo de repetição espaçada (SRS)',
+            'Revisão espaçada: cada card volta na hora certa de lembrar',
           ]}
         />
       ) : (

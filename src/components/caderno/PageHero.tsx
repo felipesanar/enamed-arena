@@ -142,7 +142,7 @@ export function PageHero({
             role="progressbar"
             aria-valuenow={resolvedCount}
             aria-valuemax={totalCount}
-            aria-label={`${resolvedCount} de ${totalCount} questões resolvidas — ${progressPct}%`}
+            aria-label={`${resolvedCount} de ${totalCount} questões resolvidas (${progressPct}%)`}
           >
             <motion.div
               className="h-full rounded-full bg-[linear-gradient(90deg,hsl(345_65%_30%)_0%,hsl(345_65%_55%)_100%)]"

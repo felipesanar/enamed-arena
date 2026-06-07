@@ -528,8 +528,8 @@ function CadernoContent({ userId }: { userId: string }) {
         <CadernoEmptyState
           className="mx-auto max-w-xl"
           icon={<BookOpen className="h-8 w-8 text-[var(--c-muted)]" />}
-          title="Seu Caderno está vazio"
-          description={'Na correção do simulado, toque em "Salvar no Caderno" para adicionar questões que quer dominar.'}
+          title="Seu caderno ainda está vazio"
+          description={'Na correção do simulado, toque em "Salvar no Caderno" para guardar as questões que você quer dominar.'}
           action={
             <Link
               to="/simulados"
@@ -538,7 +538,7 @@ function CadernoContent({ userId }: { userId: string }) {
                 'bg-[var(--c-gradient-brand)] bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
                 'shadow-[var(--c-shadow-glow)] transition-all duration-[var(--c-duration-base)]',
                 'hover:shadow-[0_8px_32px_-8px_rgba(176,41,74,.55)] hover:-translate-y-0.5',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               )}
               aria-label="Ver simulados disponíveis"
             >
@@ -623,9 +623,9 @@ function CadernoContent({ userId }: { userId: string }) {
                   title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
                   className={cn(
                     'inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 rounded-[var(--c-radius-control)] border px-4 text-[13px] font-semibold transition-all duration-[var(--c-duration-fast)]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                     isSelectMode
-                      ? 'border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]'
+                      ? 'border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] dark:text-[var(--c-wine-300)]'
                       : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
                   )}
                 >
@@ -664,7 +664,7 @@ function CadernoContent({ userId }: { userId: string }) {
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-[12px] font-semibold text-[var(--c-muted)]',
                   'transition-colors duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                 )}
               >
                 Limpar filtros
@@ -881,7 +881,7 @@ export default function CadernoPage() {
         <ProGate
           icon={BookOpen}
           feature="Caderno de Erros"
-          description="Salve questões com motivo e anotação de aprendizado. Organize sua revisão por área e tipo de erro para estudar de forma estratégica."
+          description="Salve as questões que você errou, anote o que aprendeu e organize por área e tipo de erro. Assim você revisa só o que precisa."
           requiredSegment="pro"
           currentSegment={segment}
           benefits={[

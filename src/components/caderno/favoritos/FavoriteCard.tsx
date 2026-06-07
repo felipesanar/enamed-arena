@@ -164,7 +164,7 @@ export function FavoriteCard({
           'group relative flex items-stretch overflow-hidden',
           'transition-all duration-[var(--c-duration-base)]',
           // hover override: wine shadow instead of generic md
-          'hover:border-[var(--c-wine-300)]/50 hover:shadow-[0_6px_24px_-8px_rgba(176,41,74,.18)]',
+          'hover:border-[color-mix(in_srgb,var(--c-wine-300)_50%,transparent)] hover:shadow-[0_6px_24px_-8px_rgba(176,41,74,.18)]',
           removing && 'opacity-50 pointer-events-none',
         )}
       >
@@ -181,7 +181,7 @@ export function FavoriteCard({
           <div className="flex items-center gap-2">
             {questionLabel && (
               <span
-                className="shrink-0 rounded-full border border-[var(--c-wine-300)] bg-[var(--c-wine-50)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/40 dark:text-[var(--c-wine-300)]"
+                className="shrink-0 rounded-full border border-[var(--c-soft-wine-border)] bg-[var(--c-soft-wine-bg)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--c-wine-700)] dark:text-[var(--c-wine-300)]"
                 aria-label={`Questão ${questionLabel}`}
               >
                 {questionLabel}
@@ -210,7 +210,7 @@ export function FavoriteCard({
         </div>
 
         {/* Actions */}
-        <div className="flex shrink-0 items-center gap-2 border-l border-[var(--c-border)]/60 px-3 py-2.5">
+        <div className="flex shrink-0 items-center gap-2 border-l border-[color-mix(in_srgb,var(--c-border)_60%,transparent)] px-3 py-2.5">
           {/* Ver questão */}
           {correctionHref && (
             <Tooltip delayDuration={250}>
@@ -222,9 +222,9 @@ export function FavoriteCard({
                     'inline-flex min-h-[44px] items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2 sm:min-h-[36px]',
                     'text-[11px] font-semibold text-[var(--c-muted)] no-underline',
                     'transition-all duration-[var(--c-duration-fast)]',
-                    'hover:border-[var(--c-wine-300)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-700)]',
-                    'dark:hover:bg-[var(--c-wine-900)]/30 dark:hover:text-[var(--c-wine-300)]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+                    'hover:border-[var(--c-soft-wine-border)] hover:bg-[var(--c-soft-wine-bg)] hover:text-[var(--c-wine-700)]',
+                    'dark:hover:text-[var(--c-wine-300)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
                   )}
                 >
                   <span className="hidden sm:inline">Ver questão</span>
@@ -247,10 +247,9 @@ export function FavoriteCard({
                 className={cn(
                   'inline-flex h-9 w-9 min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--c-radius-control)] sm:min-h-[36px] sm:min-w-[36px]',
                   'text-[var(--c-wine-500)] transition-all duration-[var(--c-duration-fast)]',
-                  'bg-[var(--c-wine-50)] border border-[var(--c-wine-200)]',
-                  'hover:bg-[var(--c-destructive)]/10 hover:text-[var(--c-destructive)] hover:border-[var(--c-destructive)]/30',
-                  'dark:bg-[var(--c-wine-900)]/40 dark:border-[var(--c-wine-700)]/50',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+                  'bg-[var(--c-soft-wine-bg)] border border-[var(--c-soft-wine-border)]',
+                  'hover:bg-[var(--c-soft-danger-bg)] hover:text-[var(--c-destructive)] hover:border-[var(--c-soft-danger-border)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
                   removing && 'pointer-events-none opacity-40',
                 )}
               >

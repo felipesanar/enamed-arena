@@ -173,8 +173,8 @@ export function RecallSection() {
             }}
             className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all duration-150 ${
               phase === p.value
-                ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-500)]/10 text-[var(--c-wine-500)]'
-                : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)]'
+                ? 'border-[var(--c-wine-500)] bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] text-[var(--c-wine-500)]'
+                : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)]'
             }`}
           >
             {p.label}

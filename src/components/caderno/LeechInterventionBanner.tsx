@@ -70,14 +70,14 @@ export function LeechInterventionBanner({
       await simuladosApi.resetLeech(entry.id);
       logger.log('[LeechInterventionBanner] Leech reset for entry', entry.id);
       toast({
-        title: 'Revisao reativada',
-        description: `A questao foi reiniciada com os parametros mais conservadores. Bora estudar ${topicLabel}!`,
+        title: 'Revisão reativada',
+        description: `A questão recomeçou com intervalos mais curtos. Bora estudar ${topicLabel}!`,
       });
       onReset(entry.id);
     } catch (err) {
       logger.error('[LeechInterventionBanner] Failed to reset leech:', err);
       toast({
-        title: 'Nao foi possivel reativar',
+        title: 'Não foi possível reativar',
         description: 'Tente novamente em instantes.',
         variant: 'destructive',
       });
@@ -123,21 +123,20 @@ export function LeechInterventionBanner({
               Resistente
             </span>
             <span className="text-[11px] text-muted-foreground">
-              {lapseCount} erro{lapseCount !== 1 ? 's' : ''} nas revisoes
+              {lapseCount} erro{lapseCount !== 1 ? 's' : ''} nas revisões
             </span>
           </div>
 
           <p className="text-[13px] font-semibold leading-snug text-foreground">
-            Voce esta travando nesta questao
+            Você está travando nesta questão
           </p>
 
           <p className="text-[12px] leading-relaxed text-muted-foreground">
-            Voce ja errou esta questao{' '}
+            Você já errou esta questão{' '}
             <strong className="font-semibold text-foreground">
               {lapseCount} {lapseCount !== 1 ? 'vezes' : 'vez'}
-            </strong>{' '}
-            nas revisoes. Re-testar no mesmo estado nao vai ajudar —{' '}
-            e hora de mudar a abordagem para{' '}
+            </strong>
+            . Tentar de novo do mesmo jeito não ajuda. Está na hora de mudar a estratégia em{' '}
             <span className="font-medium text-foreground">{topicLabel}</span>.
           </p>
 
@@ -149,13 +148,13 @@ export function LeechInterventionBanner({
             <li className="flex items-start gap-1.5">
               <span aria-hidden className="mt-0.5 text-destructive/60">•</span>
               <span>
-                Estude o tema no SanarFlix com foco no raciocinio clinico, nao na resposta.
+                Estude o tema no SanarFlix com foco no raciocínio clínico, não na resposta.
               </span>
             </li>
             <li className="flex items-start gap-1.5">
               <span aria-hidden className="mt-0.5 text-destructive/60">•</span>
               <span>
-                Crie um flashcard comparando os diagnosticos diferenciais{' '}
+                Crie um flashcard comparando os diagnósticos diferenciais{' '}
                 <span className="rounded-sm bg-muted px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Fase 2
                 </span>
@@ -165,8 +164,8 @@ export function LeechInterventionBanner({
             <li className="flex items-start gap-1.5">
               <span aria-hidden className="mt-0.5 text-destructive/60">•</span>
               <span>
-                Quando se sentir seguro, reative a revisao abaixo — o caderno
-                recomeça do zero com intervalos mais curtos.
+                Quando se sentir seguro, reative a revisão abaixo. O caderno
+                recomeça do zero, com intervalos mais curtos.
               </span>
             </li>
           </ul>
@@ -182,7 +181,7 @@ export function LeechInterventionBanner({
           disabled
           className="gap-2 opacity-50"
           aria-disabled
-          title="Disponivel em breve"
+          title="Disponível em breve"
         >
           <Layers className="h-3.5 w-3.5" aria-hidden />
           Criar flashcard
@@ -210,7 +209,7 @@ export function LeechInterventionBanner({
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-              Mudei minha abordagem — reativar revisao
+              Mudei minha estratégia, reativar revisão
             </>
           )}
         </Button>

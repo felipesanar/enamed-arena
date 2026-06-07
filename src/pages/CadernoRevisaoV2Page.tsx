@@ -153,7 +153,7 @@ function useRecallKeyboard(session: ReturnType<typeof useActiveRecallSession>) {
 
 function KeyboardLegend({ phase }: { phase: string }) {
   return (
-    <div className="mt-2 hidden md:flex items-center justify-center gap-4 text-[10px] text-[var(--c-muted)]/60">
+    <div className="mt-2 hidden md:flex items-center justify-center gap-4 text-[10px] text-[color-mix(in_srgb,var(--c-muted)_60%,transparent)]">
       {phase === 'answering' && (
         <>
           <span className="inline-flex items-center gap-1">
@@ -197,7 +197,7 @@ function KeyboardLegend({ phase }: { phase: string }) {
           </span>
           <span className="inline-flex items-center gap-1">
             <kbd className="rounded bg-[var(--c-surface-2)] px-1 py-0.5 font-mono text-[9px]">Esc</kbd>
-            fechar chat
+            fechar conversa
           </span>
         </>
       )}
@@ -232,7 +232,7 @@ function DesktopTopBar({
 
   return (
     <div className="sticky top-0 z-30 hidden md:block">
-      <div className="border-b border-[var(--c-border)] bg-[var(--c-surface)]/95 px-0 py-2.5 backdrop-blur-sm">
+      <div className="border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_95%,transparent)] px-0 py-2.5 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-4">
           {/* Left — exit */}
           <Link
@@ -407,7 +407,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
         <EmptyState
           icon={CheckCircle2}
           title="Nada pra revisar agora"
-          description="Você não tem questões vencidas no caderno. Aproveita pra fazer mais um simulado e adicionar questões ao caderno."
+          description="Você não tem questões vencidas agora. Aproveita e faz mais um simulado para somar questões ao caderno."
           backHref="/caderno"
           backLabel="Voltar ao caderno"
         />
@@ -821,7 +821,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
       </div>
 
       {/* ── Desktop bottom action bar ───────────────────────────────────────── */}
-      <div className="sticky bottom-0 -mx-4 mt-4 md:-mx-6 border-t border-[var(--c-border)] bg-[var(--c-surface)]/95 px-4 md:px-6 py-3 backdrop-blur-sm">
+      <div className="sticky bottom-0 -mx-4 mt-4 md:-mx-6 border-t border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_95%,transparent)] px-4 md:px-6 py-3 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2">
           {/* Left: prev + remove + snooze */}
           <div className="flex items-center gap-1">
@@ -869,7 +869,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="top">Adiar manualmente (override SRS)</TooltipContent>
+                <TooltipContent side="top">Adiar manualmente (ignora o ritmo automático)</TooltipContent>
               </Tooltip>
               <DropdownMenuContent align="start" className="w-44">
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-[var(--c-muted)]">

@@ -95,7 +95,7 @@ function NewNoteButtonCompact({
         'bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)]',
         'px-3 text-[12px] font-semibold text-white',
         'transition-all duration-150 hover:brightness-110',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/60 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_60%,transparent)] focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60',
       )}
     >
@@ -126,12 +126,12 @@ function NewNoteButton({
       aria-label="Criar nova anotação"
       className={cn(
         'flex w-full items-center justify-center gap-2',
-        'rounded-[var(--c-radius-control)] border border-[var(--c-wine-500)]/25',
-        'bg-gradient-to-r from-[var(--c-wine-500)]/[0.08] to-[var(--c-wine-700)]/[0.08]',
+        'rounded-[var(--c-radius-control)] border border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)]',
+        'bg-gradient-to-r from-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] to-[color-mix(in_srgb,var(--c-wine-700)_8%,transparent)]',
         'px-4 py-2.5 text-[13px] font-semibold text-[var(--c-wine-600)] dark:text-[var(--c-wine-400)]',
         'transition-all duration-[var(--c-duration-fast)]',
-        'hover:border-[var(--c-wine-500)]/40 hover:bg-[var(--c-wine-500)]/[0.12]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40 focus-visible:ring-offset-2',
+        'hover:border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_12%,transparent)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60',
       )}
     >
@@ -151,7 +151,7 @@ function EditorPlaceholder() {
   return (
     <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 rounded-[var(--c-radius-card)] border border-dashed border-[var(--c-border)] bg-[var(--c-surface)]">
       <NotebookPen
-        className="h-10 w-10 text-[var(--c-muted-2)]/30"
+        className="h-10 w-10 text-[color-mix(in_srgb,var(--c-muted-2)_30%,transparent)]"
         aria-hidden
       />
       <p className="text-[13px] text-[var(--c-muted)]">
@@ -363,7 +363,7 @@ function AnotacoesContent() {
                     'py-3 text-[14px] font-bold text-white',
                     'shadow-[var(--c-shadow-glow)]',
                     'transition-all duration-150 hover:brightness-110 active:scale-[0.98]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/60 focus-visible:ring-offset-2',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_60%,transparent)] focus-visible:ring-offset-2',
                     'disabled:cursor-not-allowed disabled:opacity-60',
                   )}
                 >

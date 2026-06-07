@@ -246,7 +246,7 @@ function FavoritosContent() {
         {/* ── PageHeaderPremium — Desktop: título + stats. Mobile: MobileAppBar + stats scroll ── */}
         <PageHeaderPremium
           title="Favoritos"
-          subtitle="Questões de alto valor que você salvou para revisitar."
+          subtitle="As questões que você marcou para rever sempre."
           stats={headerStats}
         />
 
@@ -274,7 +274,7 @@ function FavoritosContent() {
                   'w-full rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)]',
                   'py-2.5 pl-10 pr-4 text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
                   'transition-all duration-[var(--c-duration-fast)]',
-                  'focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[var(--c-wine-500)]/30',
+                  'focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)]',
                   'min-h-[44px]',
                 )}
               />
@@ -384,7 +384,7 @@ export default function CadernoFavoritosPage() {
         <ProGate
           icon={Heart}
           feature="Favoritos"
-          description="Salve questões de alto valor para revisitar sempre que quiser — pegadinhas clássicas, temas prevalentes, qualquer questão que vale fixar."
+          description="Salve as questões que valem rever sempre: pegadinhas clássicas, temas que mais caem e qualquer uma que você quer fixar."
           requiredSegment="pro"
           currentSegment={segment}
           benefits={[

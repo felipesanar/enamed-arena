@@ -94,7 +94,7 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
             'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] px-5 py-2.5',
             'text-[13px] font-bold text-white',
             'transition-all duration-[var(--c-duration-base)] hover:opacity-90',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
           )}
           style={{ background: 'linear-gradient(135deg, var(--c-wine-500,#B0294A), var(--c-wine-700,#7A1A32))' }}
         >
@@ -112,8 +112,8 @@ function InsufficientData() {
   return (
     <CadernoEmptyState
       icon={<Dumbbell className="h-8 w-8 text-[var(--c-wine-500)]" />}
-      title="Dados insuficientes para o Treino"
-      description="Você precisa de pelo menos 3 questões pendentes no caderno para gerar um treino focado. Complete alguns simulados e adicione seus erros ao caderno."
+      title="Ainda não dá para montar o treino"
+      description="Você precisa de pelo menos 3 questões pendentes para montar um treino focado. Faça alguns simulados e salve seus erros aqui."
       action={
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link
@@ -123,7 +123,7 @@ function InsufficientData() {
               'text-[13px] font-bold text-white no-underline',
               'shadow-[var(--c-shadow-glow)]',
               'transition-all duration-[var(--c-duration-base)] hover:opacity-90',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
             )}
             style={{ background: 'linear-gradient(135deg, var(--c-wine-500,#B0294A), var(--c-wine-700,#7A1A32))' }}
           >
@@ -135,8 +135,8 @@ function InsufficientData() {
             className={cn(
               'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
               'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
-              'transition-all duration-[var(--c-duration-base)] hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+              'transition-all duration-[var(--c-duration-base)] hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
             )}
           >
             <BookOpen className="h-4 w-4" aria-hidden />
@@ -179,7 +179,7 @@ function TreinoHero({
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--c-wine-500)]/30 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] to-transparent"
       />
 
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -211,7 +211,7 @@ function TreinoHero({
             return (
               <div
                 key={stat.label}
-                className="flex min-w-[92px] flex-col gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)]/70 px-3.5 py-3"
+                className="flex min-w-[92px] flex-col gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface-2)_70%,transparent)] px-3.5 py-3"
               >
                 <Icon className="h-4 w-4" style={{ color: stat.color }} aria-hidden />
                 <span
@@ -245,7 +245,7 @@ function RankingExplainer() {
     {
       icon: TrendingDown,
       color: 'var(--c-destructive,#DC2626)',
-      title: 'Lapsos de revisão (SRS)',
+      title: 'Tropeços na revisão',
       desc: 'Temas que você errou de novo após revisar pesam mais.',
     },
     {
@@ -257,7 +257,7 @@ function RankingExplainer() {
   ];
 
   return (
-    <div className="rounded-[var(--c-radius-card)] border border-dashed border-[var(--c-border)] bg-[var(--c-surface)]/50 p-4">
+    <div className="rounded-[var(--c-radius-card)] border border-dashed border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_50%,transparent)] p-4">
       <p className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
         Como priorizamos suas áreas
       </p>
@@ -397,7 +397,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
       {isMobile ? (
         <PageHeaderPremium
           title="Treine seus pontos fracos"
-          subtitle="Ranqueamento automático das suas áreas mais fracas pelo histórico de erros."
+          subtitle="Suas áreas mais fracas, ordenadas pelo seu histórico de erros."
           onBack={() => navigate('/caderno')}
           stats={[
             { label: 'Pendentes', value: pendingCount, color: '#f97316' },
@@ -409,7 +409,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
       ) : (
         <TreinoHero
           title="Treine seus pontos fracos"
-          subtitle="Ranqueamento automático das suas áreas mais fracas pelo histórico de erros."
+          subtitle="Suas áreas mais fracas, ordenadas pelo seu histórico de erros."
           onBack={() => navigate('/caderno')}
           stats={[
             { label: 'Pendentes', value: pendingCount, color: '#f97316', icon: Clock },
@@ -432,7 +432,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
             <SectionHeader
               title="Suas áreas mais fracas"
               count={weakAreas.length}
-              description="Ranqueadas por erros pendentes, lapsos SRS e frequência recente. Escolha uma para treinar."
+              description="Ordenadas pelos erros pendentes, tropeços na revisão e o que você errou recentemente. Escolha uma para treinar."
             />
 
             <WeakAreaPicker

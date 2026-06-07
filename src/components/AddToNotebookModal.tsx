@@ -274,7 +274,7 @@ export function AddToNotebookModal({
                           <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
                         <span style={{ fontSize: 11.5, color: '#92400e', lineHeight: 1.5 }}>
-                          <strong style={{ color: '#78350f' }}>Já está no Caderno</strong> — adicionada em {fmtDate(existingEntry.addedAt)}. Selecione outro motivo para atualizar.
+                          <strong style={{ color: '#78350f' }}>Já está no caderno</strong>, adicionada em {fmtDate(existingEntry.addedAt)}. Escolha outro motivo para atualizar.
                         </span>
                       </div>
                     </div>

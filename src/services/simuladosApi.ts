@@ -1230,7 +1230,7 @@ export const simuladosApi = {
    */
   async generateFlashcardsBatch(
     input: BatchGenerateInput,
-  ): Promise<{ cards: GeneratedCard[] }> {
+  ): Promise<{ cards: GeneratedCard[]; partial: boolean }> {
     logger.log('[SimuladosApi] Generating flashcards batch, mode:', input.mode);
     const { data, error } = await supabase.functions.invoke('generate-flashcards-batch', {
       body: input,
@@ -1242,7 +1242,8 @@ export const simuladosApi = {
     }
 
     const result = (data as any) ?? {};
-    return { cards: (result.cards as GeneratedCard[]) ?? [] };
+    // `partial=true` quando a IA truncou o lote e só parte dos cards foi recuperada.
+    return { cards: (result.cards as GeneratedCard[]) ?? [], partial: !!result.partial };
   },
 
   /**

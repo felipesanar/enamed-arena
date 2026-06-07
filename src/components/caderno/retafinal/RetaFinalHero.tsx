@@ -73,11 +73,11 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
       {/* Atmospheric blobs */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[var(--c-wine-500)]/[0.18] blur-[80px]"
+        className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[color-mix(in_srgb,var(--c-wine-500)_18%,transparent)] blur-[80px]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-12 right-0 h-56 w-56 rounded-full bg-[var(--c-wine-700)]/[0.12] blur-[56px]"
+        className="pointer-events-none absolute -bottom-12 right-0 h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--c-wine-700)_12%,transparent)] blur-[56px]"
       />
       <div
         aria-hidden
@@ -89,9 +89,9 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
         <div className="flex items-start justify-between gap-6">
           {/* Left: eyebrow + countdown */}
           <div className="flex-1">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--c-wine-400)]/30 bg-[var(--c-wine-500)]/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-300)]">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--c-wine-400)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-300)]">
               <Target className="h-3 w-3" aria-hidden />
-              War Room ENAMED
+              Reta Final ENAMED
             </span>
 
             <motion.div
@@ -219,7 +219,7 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
       {/* Atmospheric blobs */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[var(--c-wine-500)]/[0.18] blur-[64px]"
+        className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[color-mix(in_srgb,var(--c-wine-500)_18%,transparent)] blur-[64px]"
       />
       <div
         aria-hidden
@@ -228,9 +228,9 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
 
       <div className="relative z-10 p-5">
         {/* Eyebrow */}
-        <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--c-wine-400)]/30 bg-[var(--c-wine-500)]/20 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-300)]">
+        <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--c-wine-400)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-300)]">
           <Target className="h-2.5 w-2.5" aria-hidden />
-          War Room ENAMED
+          Reta Final ENAMED
         </span>
 
         {/* Countdown row */}

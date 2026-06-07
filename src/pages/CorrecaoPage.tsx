@@ -49,8 +49,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     refetchExam();
   };
 
-  const initialQuestionParam = Number(searchParams.get('q') || '1');
-  const [currentIndex, setCurrentIndex] = useState(Math.max(0, initialQuestionParam - 1));
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [showNav, setShowNav] = useState(false);
   const [notebookModal, setNotebookModal] = useState(false);
   const [notebookRefresh, setNotebookRefresh] = useState(0);
@@ -73,13 +72,25 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     [questions, attemptQuestionResults],
   );
 
-  // Sync currentIndex with search params — must be before early returns
+  // Sync currentIndex with search params — must be before early returns.
+  // O deeplink do Caderno (Favoritos/Anotações) passa q=<question_id>; a navegação
+  // interna da correção passa q=<número 1-based>. Resolvemos id primeiro, número depois.
   useEffect(() => {
-    const q = Number(searchParams.get('q') || '1');
-    if (!Number.isNaN(q) && q > 0 && questionsWithCorrection.length > 0) {
-      setCurrentIndex(Math.max(0, Math.min(questionsWithCorrection.length - 1, q - 1)));
+    if (questionsWithCorrection.length === 0) return;
+    const raw = searchParams.get('q');
+    if (!raw) return;
+
+    const byId = questionsWithCorrection.findIndex((q) => q.id === raw);
+    if (byId >= 0) {
+      setCurrentIndex(byId);
+      return;
     }
-  }, [searchParams, questionsWithCorrection.length]);
+
+    const n = Number(raw);
+    if (!Number.isNaN(n) && n > 0) {
+      setCurrentIndex(Math.min(questionsWithCorrection.length - 1, n - 1));
+    }
+  }, [searchParams, questionsWithCorrection]);
 
   const currentExplanation = questionsWithCorrection[currentIndex]?.explanation
   useEffect(() => {

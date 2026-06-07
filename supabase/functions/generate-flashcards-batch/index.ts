@@ -1,4 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  buildRefMap,
+  mapParsedCards,
+  parseCardsLenient,
+  questionRef,
+  truncate,
+  type SourceRef,
+} from './cardMapping.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +18,6 @@ const MAX_TOPIC_COUNT = 15;
 const MAX_QUESTIONS = 20;
 
 interface OptionPayload { label: string; text: string }
-interface SourceRef { entryId?: string; questionId?: string }
 
 interface BatchQuestion {
   sourceRef?: SourceRef;
@@ -30,43 +37,6 @@ interface BatchRequest {
   theme?: string | null;
   rawText?: string;
   questions?: BatchQuestion[];
-}
-
-interface GeneratedCard { front_md: string; back_md: string; sourceRef?: SourceRef }
-
-/** Sanitizes em-dashes from any text. Prof. Sanor never uses them. */
-function stripEmDashes(text: string): string {
-  return text
-    .replace(/\s+[—–]\s+/g, '. ')
-    .replace(/[—–]/g, ',')
-    .replace(/\.[ \t]+\./g, '.')
-    .replace(/[ \t]{2,}/g, ' ');
-}
-
-function stripOpeningCompliments(text: string): string {
-  const patterns: RegExp[] = [
-    /^\s*(?:essa\s+(?:é|e)\s+(?:uma|a)?\s*)?(?:excelente|ótima|otima|boa|interessante|pertinente|muito\s+boa|grande)\s+(?:pergunta|questão|questao)[\s!.,:;…]+/i,
-    /^\s*(?:claro|perfeito|com\s+certeza|certamente|sem\s+dúvida|sem\s+duvida|vamos\s+lá|vamos\s+la)[\s!.,:;…]+/i,
-    /^\s*(?:olá|ola|oi|opa|e\s+aí|e\s+ai|fala)[\s!.,:;…]+/i,
-  ];
-  let out = text;
-  for (let i = 0; i < 4; i++) {
-    let changed = false;
-    for (const re of patterns) {
-      const next = out.replace(re, '');
-      if (next !== out) { out = next; changed = true; }
-    }
-    if (!changed) break;
-  }
-  if (out.length > 0 && /^[a-záéíóúâêôãõç]/.test(out)) {
-    out = out[0].toUpperCase() + out.slice(1);
-  }
-  return out;
-}
-
-function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen - 1) + '…';
 }
 
 function clampCount(n: number | undefined, max: number): number {
@@ -124,13 +94,13 @@ function buildQuestionsPrompt(questions: BatchQuestion[]): string {
         .join('\n');
       const review = q.aiReviewMd?.trim() ? `\nAnálise prévia: ${truncate(q.aiReviewMd.trim(), 400)}` : '';
       const note = q.learningNote?.trim() ? `\nNota do aluno: "${truncate(q.learningNote.trim(), 200)}"` : '';
-      return `### Questão index=${i} (${ctx})
+      return `### Questão ref=${questionRef(i)} (${ctx})
 Enunciado: ${truncate(q.questionStem.trim(), 500)}${opts ? '\nAlternativas:\n' + opts : ''}${review}${note}`;
     })
     .join('\n\n');
 
   return `# QUEM VOCÊ É
-Você é o **Prof. Sanor**. Para CADA questão abaixo, gere **exatamente 1 flashcard** de active recall que fixe o conceito central daquela questão. Mantenha a ordem e devolva o \`index\` correspondente.
+Você é o **Prof. Sanor**. Para CADA questão abaixo, gere **exatamente 1 flashcard** de active recall que fixe o conceito central daquela questão. Devolva o \`ref\` EXATO da questão correspondente (ex.: "q0", "q1"), copiado do título de cada questão.
 
 # QUESTÕES
 ${blocks}
@@ -138,7 +108,7 @@ ${blocks}
 ${RULES_BLOCK}
 
 # FORMATO DE SAÍDA
-Array JSON com um objeto por questão, cada um com \`index\` (número da questão), \`front_md\` e \`back_md\`. Um card por questão, na ordem. Sem texto fora do JSON.`;
+Array JSON com um objeto por questão, cada um com \`ref\` (o identificador da questão, ex.: "q0"), \`front_md\` e \`back_md\`. Um card por questão. O \`ref\` é obrigatório e deve casar exatamente com o da questão. Sem texto fora do JSON.`;
 }
 
 Deno.serve(async (req) => {
@@ -213,16 +183,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // No modo `questions` o `ref` é OBRIGATÓRIO: é o que liga o card à questão de
+    // origem. Sem ele no schema, a IA pode omiti-lo e gerar cards órfãos.
     const responseSchema = {
       type: 'ARRAY',
       items: {
         type: 'OBJECT',
         properties: {
-          index: { type: 'INTEGER' },
+          ...(mode === 'questions' ? { ref: { type: 'STRING' } } : {}),
           front_md: { type: 'STRING' },
           back_md: { type: 'STRING' },
         },
-        required: ['front_md', 'back_md'],
+        required: mode === 'questions' ? ['ref', 'front_md', 'back_md'] : ['front_md', 'back_md'],
       },
     };
 
@@ -241,7 +213,10 @@ Deno.serve(async (req) => {
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.6,
-              maxOutputTokens: 8192,
+              // Headroom para lotes grandes (até 20 questões × ~1700 chars).
+              // Se ainda assim estourar, o parse tolerante recupera os cards
+              // completos e a resposta sai marcada como `partial`.
+              maxOutputTokens: 16384,
               topP: 0.9,
               thinkingConfig: { thinkingBudget: 0 },
               responseMimeType: 'application/json',
@@ -277,42 +252,47 @@ Deno.serve(async (req) => {
     }
 
     const data = await geminiResponse.json();
-    const rawJson = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+    const candidate = data?.candidates?.[0];
+    const finishReason = candidate?.finishReason;
+    const rawJson = candidate?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
 
-    let parsed: Array<{ index?: number; front_md?: string; back_md?: string }> = [];
-    try {
-      const p = JSON.parse(rawJson);
-      parsed = Array.isArray(p) ? p : [];
-    } catch (parseErr) {
-      console.error('[generate-flashcards-batch] JSON parse error', parseErr, rawJson.slice(0, 300));
-      return new Response(
-        JSON.stringify({ error: 'Resposta da IA em formato inválido. Tente novamente.' }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    // Lote grande pode estourar `maxOutputTokens` (finishReason MAX_TOKENS) e
+    // devolver JSON truncado. O parse tolerante recupera os objetos completos já
+    // presentes em vez de perder o lote inteiro num `JSON.parse` que estoura.
+    const { cards: parsed, partial: parseTruncated } = parseCardsLenient(rawJson);
+    const truncated = finishReason === 'MAX_TOKENS' || parseTruncated;
+    if (truncated) {
+      console.warn(
+        `[generate-flashcards-batch] resposta truncada (finishReason=${finishReason}); ${parsed.length} card(s) recuperado(s)`,
       );
     }
 
-    const cards: GeneratedCard[] = parsed
-      .filter((c) => c.front_md && c.back_md)
-      .map((c) => {
-        const card: GeneratedCard = {
-          front_md: truncate(stripOpeningCompliments(stripEmDashes(String(c.front_md).trim())), 500),
-          back_md: truncate(stripEmDashes(String(c.back_md).trim()), 1200),
-        };
-        if (mode === 'questions' && typeof c.index === 'number') {
-          const src = questionsForMap[c.index]?.sourceRef;
-          if (src) card.sourceRef = src;
-        }
-        return card;
-      });
+    // Resolve o vínculo card -> questão por token estável (`ref`), validando
+    // existência. Vínculo perdido não derruba o card, mas é logado.
+    const refMap = buildRefMap(questionsForMap);
+    const { cards, unlinked, orphanRefs } = mapParsedCards(parsed, mode, refMap);
+    if (mode === 'questions' && unlinked > 0) {
+      console.warn(
+        `[generate-flashcards-batch] ${unlinked}/${cards.length} card(s) sem vínculo de origem`,
+        'refs órfãs:', orphanRefs.slice(0, 10),
+      );
+    }
 
     if (cards.length === 0) {
+      // Truncou já no 1º card: nada a recuperar. Devolve erro acionável (reduza
+      // o lote) em vez de um 502 genérico de "formato inválido".
+      const message = truncated
+        ? 'O lote ficou grande demais para a IA e nada pôde ser recuperado. Reduza a quantidade e tente de novo.'
+        : 'A IA não retornou flashcards válidos. Tente novamente.';
       return new Response(
-        JSON.stringify({ error: 'A IA não retornou flashcards válidos. Tente novamente.' }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: message, truncated }),
+        { status: truncated ? 422 : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    return new Response(JSON.stringify({ cards }), {
+    // `partial` avisa o cliente que parte do lote foi perdida no truncamento, para
+    // exibir um aviso ("lote parcial") em vez de dar tudo por certo.
+    return new Response(JSON.stringify({ cards, partial: truncated }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {

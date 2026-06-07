@@ -122,8 +122,8 @@ export function TreinoSection() {
             className={cn(
               'rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all duration-150',
               showcaseState === s.value
-                ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-500)]/10 text-[var(--c-wine-500)]'
-                : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)]',
+                ? 'border-[var(--c-wine-500)] bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] text-[var(--c-wine-500)]'
+                : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)]',
             )}
           >
             {s.label}
@@ -156,7 +156,7 @@ export function TreinoSection() {
                     'text-[13px] font-bold text-white no-underline',
                     'shadow-[var(--c-shadow-glow)]',
                     'transition-all duration-[var(--c-duration-base)] hover:opacity-90',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
                   )}
                   style={{ background: 'linear-gradient(135deg, var(--c-wine-500,#B0294A), var(--c-wine-700,#7A1A32))' }}
                 >
@@ -168,8 +168,8 @@ export function TreinoSection() {
                   className={cn(
                     'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
                     'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
-                    'transition-all duration-[var(--c-duration-base)] hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                    'transition-all duration-[var(--c-duration-base)] hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
                   )}
                 >
                   <BookOpen className="h-4 w-4" aria-hidden />

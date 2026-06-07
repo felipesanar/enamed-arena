@@ -127,11 +127,11 @@ export function RecallQuestionCard({
 
         {/* Student note */}
         {entry.learningNote && (
-          <div className="mb-4 rounded-[var(--c-radius-control)] border-l-2 border-[var(--c-wine-500)]/40 bg-[var(--c-wine-500)]/[0.04] px-3.5 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-wine-500)]/70 mb-1">
+          <div className="mb-4 rounded-[var(--c-radius-control)] border-l-2 border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] px-3.5 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[color-mix(in_srgb,var(--c-wine-500)_70%,transparent)] mb-1">
               Sua anotação
             </p>
-            <p className="text-caption italic text-[var(--c-ink)]/80">{entry.learningNote}</p>
+            <p className="text-caption italic text-[color-mix(in_srgb,var(--c-ink)_80%,transparent)]">{entry.learningNote}</p>
           </div>
         )}
 
@@ -179,7 +179,7 @@ export function RecallQuestionCard({
               }
             } else if (isSelected) {
               containerStyle =
-                'border-[var(--c-wine-500)]/50 ring-2 ring-[var(--c-wine-500)]/20 bg-[var(--c-wine-500)]/[0.03]';
+                'border-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_3%,transparent)]';
               labelStyle = 'bg-[var(--c-wine-500)] text-white';
               textStyle = 'text-[var(--c-ink)] font-medium';
             }
@@ -198,9 +198,9 @@ export function RecallQuestionCard({
                     'transition-all duration-150 text-left',
                     containerStyle,
                     !revealCorrect &&
-                      'cursor-pointer hover:border-[var(--c-wine-500)]/30 hover:bg-[var(--c-wine-500)]/[0.02] hover:-translate-y-[1px] hover:shadow-[var(--c-shadow-sm)]',
+                      'cursor-pointer hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_2%,transparent)] hover:-translate-y-[1px] hover:shadow-[var(--c-shadow-sm)]',
                     revealCorrect && 'cursor-default',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
                     'motion-reduce:hover:translate-y-0',
                   )}
                 >
@@ -289,7 +289,7 @@ export function RecallQuestionCard({
               return isCorrect ? (
                 <span className="inline-flex items-center gap-2 text-[13px] font-semibold [color:var(--c-success)]">
                   <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-                  Você marcou {userLabel} — acertou! Consolide o raciocínio abaixo.
+                  Você marcou {userLabel} e acertou! Consolide o raciocínio abaixo.
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--c-ink)]">
@@ -303,7 +303,7 @@ export function RecallQuestionCard({
 
         {/* Empty state hint (mobile) */}
         {!revealCorrect && !selectedOptionId && (
-          <p className="mt-4 hidden text-center text-caption text-[var(--c-muted)]/70 sm:block">
+          <p className="mt-4 hidden text-center text-caption text-[color-mix(in_srgb,var(--c-muted)_70%,transparent)] sm:block">
             Selecione uma alternativa para continuar
           </p>
         )}

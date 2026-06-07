@@ -104,16 +104,16 @@ function QtyChip({ value: _value, label, selected, onClick }: QtyChipProps) {
       onClick={onClick}
       className={cn(
         'flex-1 rounded-[var(--c-radius-control)] border px-3 py-2 text-[13px] font-bold transition-all duration-[var(--c-duration-fast)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
         'min-h-[44px] whitespace-nowrap',
         selected
           ? [
-              'border-[var(--c-wine-500)]/45 text-white',
+              'border-[color-mix(in_srgb,var(--c-wine-500)_45%,transparent)] text-white',
               'shadow-[0_4px_14px_-6px_rgba(176,41,74,0.7)]',
             ].join(' ')
           : [
               'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)]',
-              'hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)] hover:bg-[var(--c-surface-2)]',
+              'hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)] hover:bg-[var(--c-surface-2)]',
             ].join(' '),
       )}
       style={
@@ -149,14 +149,14 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
     <Link
       to={revisaoUrl}
       onClick={() => onLaunch(area, selectedQty, timed)}
-      aria-label={`Iniciar recall do caderno: ${selectedQty} questões de ${label}${timed ? ' — cronometrado' : ''}`}
+      aria-label={`Começar revisão do caderno: ${selectedQty} questões de ${label}${timed ? ' — cronometrado' : ''}`}
       className={cn(
         'group inline-flex items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-5 py-3.5',
         'text-[14px] font-bold text-white no-underline',
         'shadow-[var(--c-shadow-glow)]',
         'transition-all duration-[var(--c-duration-base)]',
         'hover:opacity-95 hover:shadow-[0_10px_44px_-8px_rgba(176,41,74,.6)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/60 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_60%,transparent)] focus-visible:ring-offset-2',
         'active:scale-[0.985]',
         'w-full',
       )}
@@ -167,7 +167,7 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
       ) : (
         <Play className="h-4 w-4 shrink-0 fill-current transition-transform group-hover:translate-x-0.5" aria-hidden />
       )}
-      {timed ? 'Iniciar treino cronometrado' : 'Iniciar recall do caderno'}
+      {timed ? 'Começar treino cronometrado' : 'Começar revisão do caderno'}
       <span className="ml-0.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums tracking-wide">
         {timed ? `~${estMinutes} min` : `${selectedQty}q`}
       </span>
@@ -222,7 +222,7 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
           <StatReadout value={area.pending} label="Pendentes" tone="orange" />
           <StatReadout
             value={area.totalLapses}
-            label={area.totalLapses === 1 ? 'Lapso SRS' : 'Lapsos SRS'}
+            label={area.totalLapses === 1 ? 'Tropeço' : 'Tropeços'}
             tone={area.totalLapses > 0 ? 'destructive' : 'ink'}
           />
           <StatReadout value={`${masteryPct}%`} label="Domínio" tone={masteryPct > 0 ? 'success' : 'ink'} />
@@ -271,10 +271,10 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
           className={cn(
             'relative flex items-start gap-3 rounded-[var(--c-radius-control)] border px-4 py-3 text-left w-full',
             'transition-all duration-[var(--c-duration-base)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
             timed
-              ? 'border-[var(--c-wine-500)]/35 bg-[var(--c-wine-500)]/[0.06]'
-              : 'border-[var(--c-border)] bg-[var(--c-surface-2)] hover:border-[var(--c-wine-500)]/25',
+              ? 'border-[color-mix(in_srgb,var(--c-wine-500)_35%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_6%,transparent)]'
+              : 'border-[var(--c-border)] bg-[var(--c-surface-2)] hover:border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)]',
           )}
         >
           {/* Toggle pill */}
@@ -308,7 +308,7 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
                 className={cn(
                   'rounded-full border px-1.5 py-px text-[9px] font-bold uppercase tracking-wide transition-colors',
                   timed
-                    ? 'border-[var(--c-wine-500)]/30 bg-[var(--c-wine-500)]/10 text-[var(--c-wine-600)]'
+                    ? 'border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] text-[var(--c-wine-600)]'
                     : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)]',
                 )}
               >
@@ -316,7 +316,7 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
               </span>
             </div>
             <p className="mt-0.5 text-[11px] leading-snug text-[var(--c-muted)]">
-              Cronômetro visível com alvo de ~3 min/questão. Sem avanço forçado — só pressão real.
+              Cronômetro à vista, com meta de ~3 min por questão. Ninguém te empurra para frente, só a pressão de verdade.
             </p>
           </div>
         </button>
@@ -334,8 +334,8 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
                 'inline-flex items-center justify-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
                 'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
                 'transition-all duration-[var(--c-duration-base)]',
-                'hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)] hover:bg-[var(--c-wine-500)]/[0.03]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                'hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_3%,transparent)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
               )}
             >
               <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
@@ -357,8 +357,8 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
               'inline-flex w-full items-center justify-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
               'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
               'transition-all duration-[var(--c-duration-base)]',
-              'hover:border-[var(--c-wine-500)]/30 hover:text-[var(--c-ink)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+              'hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
             )}
           >
             <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />

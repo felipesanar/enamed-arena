@@ -53,7 +53,7 @@ function AreaWeightBadge({ area }: { area: string | null }) {
   if (pct === 0) return null;
   return (
     <span
-      className="shrink-0 rounded-full bg-[var(--c-wine-100)] dark:bg-[var(--c-wine-900)]/30 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--c-wine-700)] dark:text-[var(--c-wine-300)]"
+      className="shrink-0 rounded-full bg-[var(--c-wine-100)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--c-wine-700)] dark:text-[var(--c-wine-300)]"
       title={`${pct}% do ENAMED`}
       aria-label={`Peso no ENAMED: ${pct}%`}
     >
@@ -105,7 +105,7 @@ function TodayCard({
     <article
       className={cn(
         'caderno-root overflow-hidden rounded-[var(--c-radius-card)]',
-        'border border-[var(--c-wine-500)]/25 bg-[var(--c-surface)]',
+        'border border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] bg-[var(--c-surface)]',
         'shadow-[var(--c-shadow-md)]',
         className,
       )}
@@ -116,8 +116,8 @@ function TodayCard({
         className={cn(
           'flex items-center justify-between gap-3 px-5 py-4',
           'bg-gradient-to-r from-[var(--c-wine-50)] to-transparent',
-          'dark:from-[var(--c-wine-900)]/25 dark:to-transparent',
-          'border-b border-[var(--c-wine-200)]/60 dark:border-[var(--c-wine-700)]/30',
+          'dark:from-[color-mix(in_srgb,var(--c-wine-900)_25%,transparent)] dark:to-transparent',
+          'border-b border-[color-mix(in_srgb,var(--c-wine-200)_60%,transparent)] dark:border-[color-mix(in_srgb,var(--c-wine-700)_30%,transparent)]',
         )}
       >
         <div className="flex items-center gap-2.5">
@@ -136,7 +136,7 @@ function TodayCard({
           className={cn(
             'rounded-full px-2.5 py-0.5 text-[11px] font-bold tabular-nums',
             'bg-[var(--c-wine-100)] text-[var(--c-wine-700)]',
-            'dark:bg-[var(--c-wine-900)]/40 dark:text-[var(--c-wine-300)]',
+            'dark:bg-[color-mix(in_srgb,var(--c-wine-900)_40%,transparent)] dark:text-[var(--c-wine-300)]',
           )}
         >
           {entries.length} {pluralize(entries.length, 'questão', 'questões')}
@@ -244,7 +244,7 @@ function FutureCard({
         className={cn(
           'flex w-full items-center justify-between gap-3 px-4 py-3.5',
           'min-h-[44px]',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-400)]/50 rounded-[var(--c-radius-card)]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-400)_50%,transparent)] rounded-[var(--c-radius-card)]',
         )}
         aria-expanded={expanded}
         aria-controls={`day-plan-list-${date.getTime()}`}
@@ -262,7 +262,7 @@ function FutureCard({
               'rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums',
               entries.length > 0
                 ? 'bg-[var(--c-surface-2)] text-[var(--c-muted)]'
-                : 'bg-[var(--c-success)]/10 text-[var(--c-success)]',
+                : 'bg-[color-mix(in_srgb,var(--c-success)_10%,transparent)] text-[var(--c-success)]',
             )}
           >
             {entries.length > 0

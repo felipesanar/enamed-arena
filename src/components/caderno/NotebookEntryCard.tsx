@@ -121,7 +121,7 @@ export function NotebookEntryCardSkeleton() {
       <div className="w-1 shrink-0 self-stretch bg-[var(--c-surface-2)]" />
       <div className="flex flex-1 flex-col justify-center gap-2 px-4 py-3">
         <div className="h-3 w-2/5 rounded-md bg-[var(--c-surface-2)]" />
-        <div className="h-2.5 w-3/5 rounded-md bg-[var(--c-surface-2)]/70" />
+        <div className="h-2.5 w-3/5 rounded-md bg-[color-mix(in_srgb,var(--c-surface-2)_70%,transparent)]" />
       </div>
       <div className="flex shrink-0 items-center gap-2 px-3">
         <div className="h-6 w-14 rounded-full bg-[var(--c-surface-2)]" />
@@ -259,8 +259,8 @@ export function NotebookEntryCard({
         mastered && 'opacity-60',
         selectable && selected && [
           'border-[var(--c-wine-400)] bg-[var(--c-wine-50)]',
-          'dark:bg-[var(--c-wine-900)]/20',
-          'ring-1 ring-[var(--c-wine-400)]/30',
+          'dark:bg-[color-mix(in_srgb,var(--c-wine-900)_20%,transparent)]',
+          'ring-1 ring-[color-mix(in_srgb,var(--c-wine-400)_30%,transparent)]',
         ],
       )}
     >
@@ -275,10 +275,10 @@ export function NotebookEntryCard({
             onClick={() => onToggleSelect?.(entry.id)}
             className={cn(
               'flex w-10 shrink-0 items-center justify-center self-stretch border-r transition-colors duration-[var(--c-duration-fast)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               selected
-                ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] dark:bg-[var(--c-wine-900)]/30 text-[var(--c-wine-600)]'
-                : 'border-[var(--c-border)]/60 bg-[var(--c-surface-2)]/40 text-[var(--c-muted)]/50 hover:bg-[var(--c-surface-2)] hover:text-[var(--c-muted)]',
+                ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] text-[var(--c-wine-600)]'
+                : 'border-[color-mix(in_srgb,var(--c-border)_60%,transparent)] bg-[color-mix(in_srgb,var(--c-surface-2)_40%,transparent)] text-[color-mix(in_srgb,var(--c-muted)_50%,transparent)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-muted)]',
             )}
           >
             <div
@@ -286,7 +286,7 @@ export function NotebookEntryCard({
                 'flex h-4 w-4 items-center justify-center rounded border-2 transition-all duration-[var(--c-duration-fast)]',
                 selected
                   ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-500)] text-white'
-                  : 'border-[var(--c-muted)]/40',
+                  : 'border-[color-mix(in_srgb,var(--c-muted)_40%,transparent)]',
               )}
             >
               {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />}
@@ -308,7 +308,7 @@ export function NotebookEntryCard({
               <span
                 className={cn(
                   'block truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--c-ink)]',
-                  mastered && 'line-through decoration-[var(--c-muted)]/50',
+                  mastered && 'line-through decoration-[color-mix(in_srgb,var(--c-muted)_50%,transparent)]',
                 )}
               >
                 {title}
@@ -324,15 +324,15 @@ export function NotebookEntryCard({
                 <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
                     <span
-                      aria-label="Questão travada — muitos erros nas revisões"
-                      className="inline-flex items-center gap-1 rounded-full border border-[var(--c-destructive)]/30 bg-[var(--c-destructive)]/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--c-destructive)]"
+                      aria-label="Questão travada: muitos erros nas revisões"
+                      className="inline-flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--c-destructive)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-destructive)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--c-destructive)]"
                     >
                       <ShieldAlert className="h-2.5 w-2.5" aria-hidden />
                       Travada
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    Travada — você errou várias vezes. Entre na revisão para desbloqueá-la.
+                    Você errou várias vezes nesta questão. Entre na revisão para destravar.
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -358,7 +358,7 @@ export function NotebookEntryCard({
                   initial={false}
                   animate={{ opacity: 1 }}
                   className={cn(
-                    'text-[12px] leading-relaxed text-[var(--c-muted)]/80',
+                    'text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--c-muted)_80%,transparent)]',
                     !expanded && 'line-clamp-2',
                   )}
                 >
@@ -382,7 +382,7 @@ export function NotebookEntryCard({
 
           {/* Row 3: nota de aprendizado */}
           {!isCompact && entry.learningNote && (
-            <p className="mt-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)]/60 bg-[var(--c-surface-2)] px-3 py-2 text-[11px] italic leading-relaxed text-[var(--c-muted)]">
+            <p className="mt-2 rounded-[var(--c-radius-control)] border border-[color-mix(in_srgb,var(--c-border)_60%,transparent)] bg-[var(--c-surface-2)] px-3 py-2 text-[11px] italic leading-relaxed text-[var(--c-muted)]">
               &ldquo;{entry.learningNote}&rdquo;
             </p>
           )}
@@ -391,7 +391,7 @@ export function NotebookEntryCard({
         {/* Actions column — visible on hover (desktop) / always (mobile) */}
         <div
           className={cn(
-            'flex shrink-0 flex-col items-center justify-center gap-1 border-l border-[var(--c-border)]/60 px-2.5 py-2',
+            'flex shrink-0 flex-col items-center justify-center gap-1 border-l border-[color-mix(in_srgb,var(--c-border)_60%,transparent)] px-2.5 py-2',
             // Desktop: show on group hover only (subtle)
             'opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-[var(--c-duration-fast)]',
           )}
@@ -403,7 +403,7 @@ export function NotebookEntryCard({
                 to={`/caderno/revisao?entry=${entry.id}`}
                 onClick={() => onReview?.(entry.id)}
                 aria-label={`Revisar questão ${entry.questionNumber ?? ''}`}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-600)] dark:hover:bg-[var(--c-wine-900)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-600)] dark:hover:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]"
               >
                 <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
               </Link>
@@ -422,10 +422,10 @@ export function NotebookEntryCard({
                   aria-pressed={mastered}
                   className={cn(
                     'inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] border transition-all duration-[var(--c-duration-fast)]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                     mastered
-                      ? 'border-[var(--c-success)]/40 bg-[var(--c-success)]/15 text-[var(--c-success)]'
-                      : 'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)] hover:border-[var(--c-success)]/40 hover:bg-[var(--c-success)]/10 hover:text-[var(--c-success)]',
+                      ? 'border-[color-mix(in_srgb,var(--c-success)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-success)_15%,transparent)] text-[var(--c-success)]'
+                      : 'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)] hover:border-[color-mix(in_srgb,var(--c-success)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-success)_10%,transparent)] hover:text-[var(--c-success)]',
                   )}
                 >
                   <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden />
@@ -445,7 +445,7 @@ export function NotebookEntryCard({
                   <button
                     type="button"
                     aria-label="Mais ações"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]"
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
                   </button>
@@ -484,7 +484,7 @@ export function NotebookEntryCard({
 
       {/* Footer: SRS status */}
       {showSrsStatus && srsStatus && (
-        <div className="flex items-center justify-end border-t border-[var(--c-border)]/40 bg-[var(--c-surface-2)]/50 px-3.5 py-1.5">
+        <div className="flex items-center justify-end border-t border-[color-mix(in_srgb,var(--c-border)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-surface-2)_50%,transparent)] px-3.5 py-1.5">
           <span className={cn('inline-flex items-center gap-1 text-[10px] font-semibold', srsStatus.colorClass)}>
             <Clock className="h-2.5 w-2.5" aria-hidden />
             {srsStatus.label}

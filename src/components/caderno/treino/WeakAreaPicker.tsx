@@ -110,10 +110,10 @@ export function WeakAreaPicker({ areas, selectedArea, onSelectArea }: WeakAreaPi
                 'rounded-[var(--c-radius-card)] border bg-[var(--c-surface)]',
                 'pl-5 pr-4 py-4',
                 'transition-all duration-[var(--c-duration-base)] ease-[var(--c-ease-standard)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--c-bg)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_55%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--c-bg)]',
                 isSelected
-                  ? 'border-[var(--c-wine-500)]/40 shadow-[var(--c-shadow-glow)]'
-                  : 'border-[var(--c-border)] hover:-translate-y-[2px] hover:border-[var(--c-wine-500)]/25 hover:shadow-[var(--c-shadow-md)] motion-reduce:hover:translate-y-0',
+                  ? 'border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] shadow-[var(--c-shadow-glow)]'
+                  : 'border-[var(--c-border)] hover:-translate-y-[2px] hover:border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] hover:shadow-[var(--c-shadow-md)] motion-reduce:hover:translate-y-0',
               )}
               style={
                 isSelected
@@ -201,10 +201,10 @@ export function WeakAreaPicker({ areas, selectedArea, onSelectArea }: WeakAreaPi
                 {area.totalLapses > 0 && (
                   <span
                     className="inline-flex items-center gap-0.5 rounded-full bg-destructive/10 px-2 py-0.5 text-[10.5px] font-bold text-destructive"
-                    title={`${area.totalLapses} lapso${area.totalLapses > 1 ? 's' : ''} SRS — alta resistência`}
+                    title={`${area.totalLapses} ${area.totalLapses > 1 ? 'tropeços' : 'tropeço'} na revisão, alta resistência`}
                   >
                     <TrendingDown className="h-2.5 w-2.5" aria-hidden />
-                    {area.totalLapses} {area.totalLapses === 1 ? 'lapso' : 'lapsos'}
+                    {area.totalLapses} {area.totalLapses === 1 ? 'tropeço' : 'tropeços'}
                   </span>
                 )}
 

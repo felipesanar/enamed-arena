@@ -49,7 +49,7 @@ export function DeckTargetSelect({ decks, suggestedName, value, onChange }: Deck
               : 'border-[var(--c-border)] text-[var(--c-muted)]',
           )}
         >
-          Deck existente
+          Baralho existente
         </button>
         <button
           type="button"
@@ -61,13 +61,13 @@ export function DeckTargetSelect({ decks, suggestedName, value, onChange }: Deck
               : 'border-[var(--c-border)] text-[var(--c-muted)]',
           )}
         >
-          Novo deck
+          Novo baralho
         </button>
       </div>
 
       {mode === 'existing' ? (
         <select
-          aria-label="Deck de destino"
+          aria-label="Baralho de destino"
           value={value.deckId ?? decks[0]?.id ?? ''}
           onChange={(e) => onChange({ deckId: e.target.value, newName: null })}
           className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2 text-[13px] text-[var(--c-ink)] outline-none focus:border-[var(--c-wine-400)]"
@@ -77,10 +77,10 @@ export function DeckTargetSelect({ decks, suggestedName, value, onChange }: Deck
       ) : (
         <input
           type="text"
-          aria-label="Nome do novo deck"
+          aria-label="Nome do novo baralho"
           value={value.newName ?? ''}
           maxLength={60}
-          placeholder="Nome do deck…"
+          placeholder="Nome do baralho…"
           onChange={(e) => { setEdited(true); onChange({ deckId: null, newName: e.target.value }); }}
           className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2 text-[13px] text-[var(--c-ink)] outline-none focus:border-[var(--c-wine-400)]"
         />
