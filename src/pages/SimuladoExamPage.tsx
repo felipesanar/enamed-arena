@@ -4,6 +4,7 @@ import { useExamFlow } from '@/hooks/useExamFlow';
 import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
 import { ExamHeader } from '@/components/exam/ExamHeader';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
+import { ConfidenceSelector } from '@/components/exam/ConfidenceSelector';
 import { QuestionNavigator } from '@/components/exam/QuestionNavigator';
 import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
@@ -374,6 +375,13 @@ export default function SimuladoExamPage() {
                         onSelectOption={flow.handleSelectOption}
                         onEliminateOption={flow.handleEliminateOption}
                       />
+                      {/* Seletor de confiança — só aparece após marcar uma alternativa (spec 04 §1.1) */}
+                      {flow.currentAnswer?.selectedOption && (
+                        <ConfidenceSelector
+                          value={flow.currentAnswer?.confidence ?? null}
+                          onChange={flow.handleSetConfidence}
+                        />
+                      )}
                     </motion.div>
                   </AnimatePresence>
                   <div className="mt-3 pt-3 border-t border-[hsl(var(--exam-border))]">

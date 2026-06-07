@@ -14,7 +14,7 @@ import { canAccessSimulado } from '@/lib/simulado-helpers';
 import { useExamTimer } from '@/hooks/useExamTimer';
 import { useFocusControl } from '@/hooks/useFocusControl';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
+import { computeExamSummary, type ExamState, type ExamAnswer, type ConfidenceLevel } from '@/types/exam';
 import type { Question } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
@@ -52,6 +52,7 @@ export interface UseExamFlowReturn {
   // Answer & navigation handlers
   handleSelectOption: (optionId: string) => void;
   handleEliminateOption: (optionId: string) => void;
+  handleSetConfidence: (level: ConfidenceLevel) => void;
   handleNavigate: (index: number) => void;
   handlePrev: () => void;
   handleNext: () => void;
@@ -442,6 +443,7 @@ export function useExamFlow(): UseExamFlowReturn {
               marked_for_review: ans.markedForReview,
               high_confidence: ans.highConfidence,
               eliminated_options: ans.eliminatedAlternatives || [],
+              confidence: (ans as ExamAnswer).confidence ?? null,
               answered_at: ans.selectedOption ? new Date().toISOString() : null,
             }));
             if (rows.length > 0) {
@@ -499,6 +501,7 @@ export function useExamFlow(): UseExamFlowReturn {
         markedForReview: false,
         highConfidence: false,
         eliminatedAlternatives: [],
+        confidence: null,
       };
       return {
         ...prev,
@@ -520,6 +523,7 @@ export function useExamFlow(): UseExamFlowReturn {
         markedForReview: false,
         highConfidence: false,
         eliminatedAlternatives: [],
+        confidence: null,
       };
       const isEliminated = existing.eliminatedAlternatives.includes(optionId);
       const answer: ExamAnswer = {
@@ -555,6 +559,7 @@ export function useExamFlow(): UseExamFlowReturn {
         markedForReview: false,
         highConfidence: false,
         eliminatedAlternatives: [],
+        confidence: null,
       };
       const newVal = !existing.markedForReview;
       toast({ title: newVal ? 'Questão marcada para revisão' : 'Marcação removida' });
@@ -575,10 +580,36 @@ export function useExamFlow(): UseExamFlowReturn {
         markedForReview: false,
         highConfidence: false,
         eliminatedAlternatives: [],
+        confidence: null,
       };
       return {
         ...prev,
         answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
+      };
+    });
+  }, [currentQuestion, updateState, storage]);
+
+  /**
+   * handleSetConfidence — captura o nível de confiança declarado pelo aluno.
+   * Chamado pelo ConfidenceSelector após a alternativa já estar selecionada.
+   * Persiste via o mesmo caminho de debounce/upsert já existente (spec 04 §1.4).
+   */
+  const handleSetConfidence = useCallback((level: ConfidenceLevel) => {
+    if (!currentQuestion) return;
+    storage.markAnswerDirty(currentQuestion.id);
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] ?? {
+        questionId: currentQuestion.id,
+        selectedOption: null,
+        markedForReview: false,
+        highConfidence: false,
+        eliminatedAlternatives: [],
+        confidence: null,
+      };
+      logger.log(`[useExamFlow] Confidence set: ${level} for question ${currentQuestion.id}`);
+      return {
+        ...prev,
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, confidence: level } },
       };
     });
   }, [currentQuestion, updateState, storage]);
@@ -598,8 +629,16 @@ export function useExamFlow(): UseExamFlowReturn {
         map[String(i + 1)] = () => handleSelectOption(opt.id);
       });
     }
+    // Confidence shortcuts 1/2/3 (spec 04 §1.3):
+    // Activates only after the aluno has selected an option — natural sequence avoids
+    // collision with alternative shortcuts since confidence comes after selection.
+    if (currentAnswer?.selectedOption) {
+      map['1'] = () => handleSetConfidence('baixa');
+      map['2'] = () => handleSetConfidence('media');
+      map['3'] = () => handleSetConfidence('alta');
+    }
     return map;
-  }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption]);
+  }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption, currentAnswer?.selectedOption, handleSetConfidence]);
 
   useKeyboardShortcuts(shortcuts, {
     enabled: state?.status === 'in_progress' && !showSubmitModal && !submitting,
@@ -629,6 +668,7 @@ export function useExamFlow(): UseExamFlowReturn {
     updateState,
     handleSelectOption,
     handleEliminateOption,
+    handleSetConfidence,
     handleNavigate,
     handlePrev,
     handleNext,

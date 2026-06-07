@@ -5,11 +5,13 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { EmptyState } from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import { AddToNotebookModal } from '@/components/AddToNotebookModal';
+import { FavoriteToggleButton } from '@/components/caderno/FavoriteToggleButton';
 import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
+import { useCadernoV2Flag } from '@/hooks/useCadernoV2Flag';
 import { canViewResultsOrAdminPreview, areResultsReleased } from '@/lib/simulado-helpers';
 import { computeSimuladoScore, computePerformanceBreakdown } from '@/lib/resultHelpers';
 import { SEGMENT_ACCESS } from '@/types';
@@ -34,6 +36,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   const { user } = useAuth();
   const segment = profile?.segment ?? 'guest';
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
+  const isCadernoV2 = useCadernoV2Flag();
 
   const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
   const { examState, attempt, attemptQuestionResults, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(id);
@@ -350,6 +353,15 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                         <Lock className="h-4 w-4 text-primary" />
                         Adicionar ao caderno de erros
                       </button>
+                    )}
+                    {isCadernoV2 && id && (
+                      <FavoriteToggleButton
+                        questionId={question.id}
+                        simuladoId={simulado.id}
+                        area={question.area}
+                        theme={question.theme}
+                        canUseNotebook={canUseNotebook}
+                      />
                     )}
                     {result.isCorrect ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-caption font-bold bg-success/10 text-success">

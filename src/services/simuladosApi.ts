@@ -8,6 +8,26 @@ import { logger } from '@/lib/logger';
 import type { SimuladoConfig, Question } from '@/types';
 import type { ExamAnswer } from '@/types/exam';
 import type { TablesInsert } from '@/integrations/supabase/types';
+import type {
+  Confidence,
+  ReviewOutcome,
+  SrsState,
+  BulkAddEntry,
+  BulkAddResult,
+  RecordReviewAttemptParams,
+  Insight,
+  Deck,
+  Flashcard,
+  CreateFlashcardPayload,
+  UpdateFlashcardPayload,
+  FlashcardReviewOutcome,
+  UserNote,
+  CreateNotePayload,
+  UpdateNotePayload,
+  QuestionFavorite,
+  AddFavoritePayload,
+  ConfidenceCalibration,
+} from '@/types/caderno';
 
 // ─── Types for DB rows ───
 export interface SimuladoRow {
@@ -393,6 +413,8 @@ export const simuladosApi = {
       markedForReview: boolean;
       highConfidence: boolean;
       eliminatedOptions: string[];
+      /** Optional confidence level captured via the in-exam confidence selector (spec 04). */
+      confidence?: Confidence | null;
     },
   ): Promise<void> {
     const { error } = await supabase
@@ -405,8 +427,9 @@ export const simuladosApi = {
           marked_for_review: answer.markedForReview,
           high_confidence: answer.highConfidence,
           eliminated_options: answer.eliminatedOptions,
+          confidence: answer.confidence ?? null,
           answered_at: answer.selectedOptionId ? new Date().toISOString() : null,
-        },
+        } as any,
         { onConflict: 'attempt_id,question_id' },
       );
 
@@ -427,6 +450,9 @@ export const simuladosApi = {
       marked_for_review: ans.markedForReview,
       high_confidence: ans.highConfidence,
       eliminated_options: ans.eliminatedAlternatives || [],
+      // confidence is an optional field added in spec 04 (caderno v2).
+      // Falls back to null when not captured (optional seletor in exam UI).
+      confidence: (ans as any).confidence ?? null,
       answered_at: ans.selectedOption ? new Date().toISOString() : null,
     }));
 
@@ -434,7 +460,7 @@ export const simuladosApi = {
 
     const { error } = await supabase
       .from('answers')
-      .upsert(rows, { onConflict: 'attempt_id,question_id' });
+      .upsert(rows as any, { onConflict: 'attempt_id,question_id' });
 
     if (error) {
       logger.error('[SimuladosApi] Error bulk upserting answers:', error);
@@ -732,6 +758,632 @@ export const simuladosApi = {
       .eq('user_id', userId);
 
     if (error) throw error;
+  },
+
+  // ─── Caderno de Erros v2 — SRS + bulk add ───
+
+  /**
+   * Schedules the next SRS review for an error notebook entry after the student
+   * self-grades their re-resolution attempt.
+   *
+   * Calls `schedule_next_review_guarded(p_entry_id, p_outcome, p_confidence)`.
+   * The RPC runs the full SM-2-lite algorithm server-side and returns the updated
+   * SRS state. Never compute SRS on the client.
+   */
+  async scheduleNextReview(
+    entryId: string,
+    outcome: ReviewOutcome,
+    confidence: Confidence,
+  ): Promise<SrsState> {
+    logger.log('[SimuladosApi] Scheduling next review for entry', entryId);
+    const { data, error } = await rpc('schedule_next_review_guarded', {
+      p_entry_id: entryId,
+      p_outcome: outcome,
+      p_confidence: confidence,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error scheduling next review:', error);
+      throw error;
+    }
+
+    // RPC returns a jsonb row; cast to the canonical shape.
+    const row = data as any;
+    return {
+      srsDueAt: row.srs_due_at as string,
+      srsInterval: row.srs_interval as number,
+      srsReps: row.srs_reps as number,
+      srsEase: row.srs_ease as number,
+      mastered: !!(row.mastered ?? row.mastered_at),
+      isLeech: !!(row.is_leech),
+    };
+  },
+
+  /**
+   * Records a review attempt in `review_attempts` for a given error notebook entry.
+   *
+   * Calls `record_review_attempt_guarded(p_entry_id, p_selected_option_id,
+   * p_was_correct, p_confidence, p_self_grade)`.
+   * Returns the UUID of the newly created review attempt row.
+   *
+   * Note: prefer calling `scheduleNextReview` after this to update SRS state,
+   * or use the combined flow in the review UI that calls both in sequence.
+   */
+  async recordReviewAttempt(params: RecordReviewAttemptParams): Promise<string> {
+    logger.log('[SimuladosApi] Recording review attempt for entry', params.entryId);
+    const { data, error } = await rpc('record_review_attempt_guarded', {
+      p_entry_id: params.entryId,
+      p_selected_option_id: params.selectedOptionId ?? null,
+      p_was_correct: params.wasCorrect,
+      p_confidence: params.confidence,
+      p_self_grade: params.selfGrade,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error recording review attempt:', error);
+      throw error;
+    }
+
+    return data as string;
+  },
+
+  /**
+   * Adds multiple questions to the error notebook in a single RPC call.
+   *
+   * Calls `add_to_notebook_bulk_guarded(p_entries jsonb)`.
+   * Idempotent by (user_id, question_id): existing non-deleted entries are
+   * counted as `skipped`; soft-deleted entries are resurrected (counted as `added`).
+   * Limit: 100 entries per call (enforced server-side).
+   */
+  async addToNotebookBulk(entries: BulkAddEntry[]): Promise<BulkAddResult> {
+    logger.log('[SimuladosApi] Bulk adding', entries.length, 'entries to notebook');
+    const { data, error } = await rpc('add_to_notebook_bulk_guarded', {
+      p_entries: entries,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error bulk adding to notebook:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? { added: 0, skipped: 0, entry_ids: [] };
+    return {
+      added: (result.added as number) ?? 0,
+      skipped: (result.skipped as number) ?? 0,
+      entryIds: (result.entry_ids as string[]) ?? [],
+    };
+  },
+
+  /**
+   * Resets a leech entry so it re-enters the SRS cycle with the most conservative
+   * parameters (interval=1, ease=1.3, reps=0). The accumulated `srs_lapses` count
+   * is preserved as historical data.
+   *
+   * Calls `reset_leech_guarded(p_entry_id)`.
+   */
+  async resetLeech(entryId: string): Promise<void> {
+    logger.log('[SimuladosApi] Resetting leech for entry', entryId);
+    const { error } = await rpc('reset_leech_guarded', {
+      p_entry_id: entryId,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error resetting leech:', error);
+      throw error;
+    }
+  },
+
+  // ─── Caderno de Erros v2 — Phase 2: Insights ───
+
+  /**
+   * Fetches pattern insights from the `caderno-pattern-insights` edge function.
+   * The edge function aggregates data via `get_caderno_pattern_data`, calls Gemini,
+   * and caches the result in `caderno_pattern_insights_cache` for 24 h.
+   *
+   * Callers should check `caderno_pattern_insights_cache` directly before calling
+   * this to honour the TTL (see spec 06 §A.3 for the caching strategy).
+   *
+   * Returns the array of insights plus metadata (`generated_at`, `has_sufficient_data`).
+   */
+  async getPatternInsights(): Promise<{
+    insights: Insight[];
+    generated_at: string;
+    has_sufficient_data: boolean;
+  }> {
+    logger.log('[SimuladosApi] Fetching pattern insights from edge function');
+    const { data, error } = await supabase.functions.invoke('caderno-pattern-insights');
+
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching pattern insights:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? {};
+    return {
+      insights: (result.insights as Insight[]) ?? [],
+      generated_at: (result.generated_at as string) ?? new Date().toISOString(),
+      has_sufficient_data: !!(result.has_sufficient_data),
+    };
+  },
+
+  /**
+   * Returns historical score per area for the ROI panel.
+   *
+   * Calls `get_area_score_history(p_user_id uuid) → jsonb`.
+   */
+  async getAreaScoreHistory(userId: string): Promise<unknown> {
+    logger.log('[SimuladosApi] Fetching area score history for user', userId);
+    const { data, error } = await rpc('get_area_score_history', {
+      p_user_id: userId,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching area score history:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  /**
+   * Returns confidence calibration data for the current user.
+   *
+   * Calls `get_confidence_calibration(p_user_id uuid) → jsonb`.
+   * The RPC is cast via `as any` because it is not yet present in the
+   * auto-generated Supabase types.
+   */
+  async getConfidenceCalibration(): Promise<ConfidenceCalibration> {
+    logger.log('[SimuladosApi] Fetching confidence calibration');
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData?.user) {
+      logger.error('[SimuladosApi] getConfidenceCalibration: unauthenticated', authError);
+      throw authError ?? new Error('Usuário não autenticado');
+    }
+
+    const { data, error } = await rpc('get_confidence_calibration', {
+      p_user_id: authData.user.id,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching confidence calibration:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? {};
+    return {
+      buckets: (result.buckets as ConfidenceCalibration['buckets']) ?? [],
+      overall: (result.overall as ConfidenceCalibration['overall']) ?? {
+        total_answered_with_confidence: 0,
+        alta_but_wrong: 0,
+        baixa_but_correct: 0,
+      },
+    };
+  },
+
+  // ─── Caderno de Erros v2 — Phase 2: Flashcards ───
+
+  /**
+   * Lists all non-deleted decks belonging to the current user.
+   * Direct SELECT on `decks` — RLS restricts to owner.
+   */
+  async listDecks(): Promise<Deck[]> {
+    logger.log('[SimuladosApi] Listing flashcard decks');
+    const { data, error } = await (supabase.from('decks') as any)
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error listing decks:', error);
+      throw error;
+    }
+
+    return (data || []) as Deck[];
+  },
+
+  /**
+   * Creates a new flashcard deck with the given name.
+   * Direct INSERT on `decks` — RLS restricts to owner.
+   */
+  async createDeck(name: string): Promise<Deck> {
+    logger.log('[SimuladosApi] Creating deck:', name);
+    const { data, error } = await (supabase.from('decks') as any)
+      .insert([{ name }])
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error creating deck:', error);
+      throw error;
+    }
+
+    return data as Deck;
+  },
+
+  /**
+   * Lists all non-deleted flashcards, optionally filtered by deck.
+   * Direct SELECT on `flashcards` — RLS restricts to owner.
+   *
+   * @param deckId - When provided, filters cards to that deck only.
+   */
+  async listFlashcards(deckId?: string): Promise<Flashcard[]> {
+    logger.log('[SimuladosApi] Listing flashcards', deckId ? `for deck ${deckId}` : '(all)');
+    let query = (supabase.from('flashcards') as any)
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (deckId) {
+      query = query.eq('deck_id', deckId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error('[SimuladosApi] Error listing flashcards:', error);
+      throw error;
+    }
+
+    return (data || []) as Flashcard[];
+  },
+
+  /**
+   * Creates a new flashcard.
+   * Direct INSERT on `flashcards` — RLS restricts to owner.
+   */
+  async createFlashcard(payload: CreateFlashcardPayload): Promise<Flashcard> {
+    logger.log('[SimuladosApi] Creating flashcard in deck', payload.deck_id);
+    const { data, error } = await (supabase.from('flashcards') as any)
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error creating flashcard:', error);
+      throw error;
+    }
+
+    return data as Flashcard;
+  },
+
+  /**
+   * Updates mutable fields of an existing flashcard.
+   * Direct UPDATE on `flashcards` — RLS restricts to owner.
+   */
+  async updateFlashcard(id: string, payload: UpdateFlashcardPayload): Promise<Flashcard> {
+    logger.log('[SimuladosApi] Updating flashcard', id);
+    const { data, error } = await (supabase.from('flashcards') as any)
+      .update({ ...payload, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error updating flashcard:', error);
+      throw error;
+    }
+
+    return data as Flashcard;
+  },
+
+  /**
+   * Soft-deletes a flashcard by setting `deleted_at`.
+   * Direct UPDATE on `flashcards` — RLS restricts to owner.
+   */
+  async softDeleteFlashcard(id: string): Promise<void> {
+    logger.log('[SimuladosApi] Soft-deleting flashcard', id);
+    const { error } = await (supabase.from('flashcards') as any)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      logger.error('[SimuladosApi] Error soft-deleting flashcard:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Returns all non-deleted flashcards whose `srs_due_at` is on or before
+   * the end of the current day in America/Sao_Paulo ("due today").
+   * Sorting: oldest due date first (highest priority).
+   */
+  async getDueFlashcards(): Promise<Flashcard[]> {
+    // End of today in America/Sao_Paulo (UTC-3).
+    // Supabase stores timestamps as UTC, so we need the UTC equivalent of
+    // 23:59:59.999 BRT. BRT = UTC-3, so BRT midnight+1day = UTC 03:00 next day.
+    // Trick: setUTCHours(26, 59, 59, 999) overflows into the next UTC day by
+    // exactly 3 hours, giving 03:00:00 UTC of tomorrow — i.e. end of today BRT.
+    const endOfDayUtc = new Date();
+    endOfDayUtc.setUTCHours(26, 59, 59, 999);
+
+    logger.log('[SimuladosApi] Fetching due flashcards');
+    const { data, error } = await (supabase.from('flashcards') as any)
+      .select('*')
+      .is('deleted_at', null)
+      .is('mastered_at', null)
+      .lte('srs_due_at', endOfDayUtc.toISOString())
+      .order('srs_due_at', { ascending: true });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error fetching due flashcards:', error);
+      throw error;
+    }
+
+    return (data || []) as Flashcard[];
+  },
+
+  /**
+   * Schedules the next SRS review for a flashcard.
+   *
+   * Calls `schedule_flashcard_review_guarded(p_flashcard_id, p_outcome)`.
+   * Returns the updated SRS state for the flashcard.
+   */
+  async scheduleFlashcardReview(
+    flashcardId: string,
+    outcome: FlashcardReviewOutcome,
+  ): Promise<SrsState> {
+    logger.log('[SimuladosApi] Scheduling flashcard review', flashcardId, outcome);
+    const { data, error } = await rpc('schedule_flashcard_review_guarded', {
+      p_flashcard_id: flashcardId,
+      p_outcome: outcome,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error scheduling flashcard review:', error);
+      throw error;
+    }
+
+    const row = (data as any) ?? {};
+    return {
+      srsDueAt: row.srs_due_at as string,
+      srsInterval: row.srs_interval as number,
+      srsReps: row.srs_reps as number,
+      srsEase: row.srs_ease as number,
+      mastered: !!(row.mastered),
+      isLeech: !!(row.is_leech),
+    };
+  },
+
+  /**
+   * Calls the `generate-flashcard` edge function to generate front/back markdown
+   * for a flashcard from an error notebook entry or question context.
+   *
+   * @param context - Free-form payload forwarded to the edge function. At minimum
+   *   include `entry_id` or `question_id` so the function can load the question.
+   * @returns Partial flashcard fields (`front_md`, `back_md`) generated by the AI.
+   */
+  async generateFlashcard(
+    context: Record<string, unknown>,
+  ): Promise<{ front_md: string; back_md: string }> {
+    logger.log('[SimuladosApi] Generating flashcard via edge function');
+    const { data, error } = await supabase.functions.invoke('generate-flashcard', {
+      body: context,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error generating flashcard:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? {};
+    return {
+      front_md: (result.front_md as string) ?? '',
+      back_md: (result.back_md as string) ?? '',
+    };
+  },
+
+  /**
+   * Uploads an image file to the `flashcard-images` storage bucket and returns
+   * the public (or signed) URL for use in a flashcard's `front_image_url` /
+   * `back_image_url` fields.
+   *
+   * Path convention: `<user_id>/<uuid>` (enforced by bucket RLS policy).
+   *
+   * @param file - The image File/Blob to upload.
+   * @param side - Which face of the card this image belongs to ('front' | 'back').
+   *   Included in the filename so duplicate uploads for the same card don't collide.
+   * @returns The public URL for the uploaded image.
+   */
+  async uploadFlashcardImage(
+    file: File,
+    side: 'front' | 'back',
+  ): Promise<string> {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] uploadFlashcardImage: user not authenticated');
+
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const uuid = crypto.randomUUID();
+    const path = `${userId}/${side}-${uuid}.${ext}`;
+
+    logger.log('[SimuladosApi] Uploading flashcard image to path', path);
+    const { error: uploadError } = await supabase.storage
+      .from('flashcard-images')
+      .upload(path, file, { upsert: false });
+
+    if (uploadError) {
+      logger.error('[SimuladosApi] Error uploading flashcard image:', uploadError);
+      throw uploadError;
+    }
+
+    // Bucket is PRIVATE — getPublicUrl returns a non-functional URL.
+    // Use a long-lived signed URL (1 year) instead.
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('flashcard-images')
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+
+    if (signedError || !signedData?.signedUrl) {
+      logger.error('[SimuladosApi] Error creating signed URL for flashcard image:', signedError);
+      throw signedError ?? new Error('[SimuladosApi] uploadFlashcardImage: failed to create signed URL');
+    }
+
+    return signedData.signedUrl;
+  },
+
+  // ─── Caderno de Erros v2 — Phase 2: Notes ───
+
+  /**
+   * Lists all non-deleted notes belonging to the current user.
+   * Direct SELECT on `user_notes` — RLS restricts to owner.
+   */
+  async listNotes(): Promise<UserNote[]> {
+    logger.log('[SimuladosApi] Listing user notes');
+    const { data, error } = await (supabase.from('user_notes') as any)
+      .select('*')
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error listing notes:', error);
+      throw error;
+    }
+
+    return (data || []) as UserNote[];
+  },
+
+  /**
+   * Creates a new note.
+   * Direct INSERT on `user_notes` — RLS restricts to owner.
+   */
+  async createNote(payload: CreateNotePayload): Promise<UserNote> {
+    logger.log('[SimuladosApi] Creating note:', payload.title);
+    const { data, error } = await (supabase.from('user_notes') as any)
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error creating note:', error);
+      throw error;
+    }
+
+    return data as UserNote;
+  },
+
+  /**
+   * Updates mutable fields of an existing note.
+   * Direct UPDATE on `user_notes` — RLS restricts to owner.
+   */
+  async updateNote(id: string, payload: UpdateNotePayload): Promise<UserNote> {
+    logger.log('[SimuladosApi] Updating note', id);
+    const { data, error } = await (supabase.from('user_notes') as any)
+      .update({ ...payload, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error updating note:', error);
+      throw error;
+    }
+
+    return data as UserNote;
+  },
+
+  /**
+   * Soft-deletes a note by setting `deleted_at`.
+   * Direct UPDATE on `user_notes` — RLS restricts to owner.
+   */
+  async softDeleteNote(id: string): Promise<void> {
+    logger.log('[SimuladosApi] Soft-deleting note', id);
+    const { error } = await (supabase.from('user_notes') as any)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      logger.error('[SimuladosApi] Error soft-deleting note:', error);
+      throw error;
+    }
+  },
+
+  // ─── Caderno de Erros v2 — Phase 2: Favorites ───
+
+  /**
+   * Lists all favorited questions for the current user.
+   * Direct SELECT on `question_favorites` — RLS restricts to owner.
+   */
+  async listFavorites(): Promise<QuestionFavorite[]> {
+    logger.log('[SimuladosApi] Listing favorites');
+    const { data, error } = await (supabase.from('question_favorites') as any)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error listing favorites:', error);
+      throw error;
+    }
+
+    return (data || []) as QuestionFavorite[];
+  },
+
+  /**
+   * Adds a question to the current user's favorites.
+   * Uses upsert on (user_id, question_id) unique constraint — idempotent.
+   * Direct INSERT on `question_favorites` — RLS restricts to owner.
+   */
+  async addFavorite(payload: AddFavoritePayload): Promise<QuestionFavorite> {
+    logger.log('[SimuladosApi] Adding favorite for question', payload.question_id);
+    const { data, error } = await (supabase.from('question_favorites') as any)
+      .upsert([payload], { onConflict: 'user_id,question_id', ignoreDuplicates: false })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error adding favorite:', error);
+      throw error;
+    }
+
+    return data as QuestionFavorite;
+  },
+
+  /**
+   * Removes a favorited question. Accepts either the favorite row `id` (UUID)
+   * or the `question_id` (UUID) — the method detects which was passed by
+   * checking which column to filter on.
+   *
+   * If `idOrQuestionId` matches the `question_id` column (i.e. the caller
+   * doesn't know the favorite row id), a filter by `question_id` is used.
+   * When the favorite row id is known, prefer passing it directly.
+   *
+   * Direct DELETE on `question_favorites` — RLS restricts to owner.
+   *
+   * @param idOrQuestionId - The favorite row `id` OR the `question_id` to unfavorite.
+   * @param byQuestionId   - When true, treats the first argument as a `question_id`.
+   *                         Defaults to false (treat as row `id`).
+   */
+  async removeFavorite(idOrQuestionId: string, byQuestionId = false): Promise<void> {
+    logger.log('[SimuladosApi] Removing favorite', idOrQuestionId);
+    const column = byQuestionId ? 'question_id' : 'id';
+    const { error } = await (supabase.from('question_favorites') as any)
+      .delete()
+      .eq(column, idOrQuestionId);
+
+    if (error) {
+      logger.error('[SimuladosApi] Error removing favorite:', error);
+      throw error;
+    }
+  },
+
+  // ─── Caderno de Erros v2 — Phase 2: Lacuna (awaiting_lesson) ───
+
+  /**
+   * Clears the `awaiting_lesson` state from an error notebook entry.
+   * Used when the student manually confirms "Já estudei isso" or via deep-link
+   * to the lesson in Phase 2.
+   *
+   * Calls `clear_awaiting_lesson_guarded(p_entry_id uuid) → void`.
+   */
+  async clearAwaitingLesson(entryId: string): Promise<void> {
+    logger.log('[SimuladosApi] Clearing awaiting_lesson for entry', entryId);
+    const { error } = await rpc('clear_awaiting_lesson_guarded', {
+      p_entry_id: entryId,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error clearing awaiting_lesson:', error);
+      throw error;
+    }
   },
 };
 
