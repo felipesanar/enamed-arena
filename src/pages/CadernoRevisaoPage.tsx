@@ -1196,6 +1196,9 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                       Quando a IA extrai um subtópico específico (ai_practice.topic),
                       priorizamos ele; senão caímos no tema/área da própria questão. */}
                   {(() => {
+                    // Botão "Treinar N questões de…" ocultado a pedido do produto.
+                    return null;
+
                     const practice = reviewData.aiPractice;
                     const topic =
                       practice?.topic ?? currentEntry.theme ?? currentEntry.area ?? null;
