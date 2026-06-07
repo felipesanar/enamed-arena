@@ -21,6 +21,9 @@ interface DeckTargetSelectProps {
 export function DeckTargetSelect({ decks, suggestedName, value, onChange }: DeckTargetSelectProps) {
   const [mode, setMode] = useState<'existing' | 'new'>(decks.length > 0 ? 'existing' : 'new');
   const [edited, setEdited] = useState(false);
+  // Preserva o nome digitado pelo usuário entre alternâncias existente↔novo,
+  // para não perdê-lo ao voltar para "Novo deck".
+  const [customName, setCustomName] = useState('');
 
   // Enquanto em "novo deck" e o usuário não editou o nome manualmente,
   // mantém o nome sugerido sincronizado com a fonte (área/tema/seleção).
@@ -53,7 +56,7 @@ export function DeckTargetSelect({ decks, suggestedName, value, onChange }: Deck
         </button>
         <button
           type="button"
-          onClick={() => { setMode('new'); setEdited(false); onChange({ deckId: null, newName: suggestedName }); }}
+          onClick={() => { setMode('new'); onChange({ deckId: null, newName: edited ? customName : suggestedName }); }}
           className={cn(
             'flex-1 rounded-[var(--c-radius-control)] border px-3 py-2 text-[12px] font-semibold transition-colors',
             mode === 'new'
@@ -81,7 +84,7 @@ export function DeckTargetSelect({ decks, suggestedName, value, onChange }: Deck
           value={value.newName ?? ''}
           maxLength={60}
           placeholder="Nome do deck…"
-          onChange={(e) => { setEdited(true); onChange({ deckId: null, newName: e.target.value }); }}
+          onChange={(e) => { setEdited(true); setCustomName(e.target.value); onChange({ deckId: null, newName: e.target.value }); }}
           className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2 text-[13px] text-[var(--c-ink)] outline-none focus:border-[var(--c-wine-400)]"
         />
       )}
