@@ -335,12 +335,13 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                   </div>
 
                   {/* Direita: caderno + badge resultado */}
-                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  {/* caderno-root: dá escopo aos tokens --c-* usados por FavoriteToggleButton/NoteButton (V3) */}
+                  <div className="caderno-root flex items-center gap-2 flex-wrap shrink-0">
                     {canUseNotebook ? (
                       <button
                         onClick={() => { setSelectedHighlight(null); setNotebookModal(true); }}
                         aria-label="Adicionar ao caderno de erros"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-caption font-semibold transition-all bg-primary/10 text-primary border border-primary/30 shadow-sm hover:bg-primary/15 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+                        className="inline-flex min-h-[44px] items-center gap-1.5 px-3.5 py-2 rounded-lg text-caption font-semibold transition-all bg-primary/10 text-primary border border-primary/30 shadow-sm hover:bg-primary/15 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
                       >
                         <BookOpen className="h-4 w-4" />
                         Adicionar ao caderno de erros
@@ -349,7 +350,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                       <button
                         onClick={() => setUpsellOpen(true)}
                         aria-label="Adicionar ao caderno de erros"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-caption font-semibold transition-all bg-primary/5 border border-primary/25 text-foreground/80 hover:bg-primary/10 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+                        className="inline-flex min-h-[44px] items-center gap-1.5 px-3.5 py-2 rounded-lg text-caption font-semibold transition-all bg-primary/5 border border-primary/25 text-foreground/80 hover:bg-primary/10 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
                       >
                         <Lock className="h-4 w-4 text-primary" />
                         Adicionar ao caderno de erros

@@ -7,31 +7,40 @@ import { cn } from '@/lib/utils';
 interface Props {
   children: ReactNode;
   storageKey: string;
-  defaultOpen?: boolean;
   label?: string;
 }
 
 /**
  * Container flutuante para o Prof. San nas telas de Ranking e Desempenho.
  * Ancorado no canto inferior direito, colapsável para um FAB.
- * Persiste estado aberto/fechado em localStorage por `storageKey`.
+ *
+ * Comportamento de abertura (por sessão do navegador, via sessionStorage):
+ *   - Na primeira carga da página na sessão → abre automaticamente.
+ *   - Se o usuário recolher, respeita essa escolha nas próximas cargas da
+ *     mesma sessão.
+ *   - Em uma nova sessão (sessionStorage limpo) → volta a abrir automaticamente.
  */
-export function FloatingProfSan({ children, storageKey, defaultOpen = true, label = 'Prof. San' }: Props) {
+export function FloatingProfSan({ children, storageKey, label = 'Prof. San' }: Props) {
+  const seenKey = `${storageKey}:session-seen`;
+  const stateKey = `${storageKey}:session-state`;
+
   const [open, setOpen] = useState<boolean>(() => {
     try {
-      const v = localStorage.getItem(storageKey);
-      if (v === null) return defaultOpen;
-      return v === '1';
+      // Primeira carga nesta sessão → abre automaticamente.
+      if (sessionStorage.getItem(seenKey) === null) return true;
+      // Cargas seguintes na mesma sessão → respeita a última escolha.
+      return sessionStorage.getItem(stateKey) !== '0';
     } catch {
-      return defaultOpen;
+      return true;
     }
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, open ? '1' : '0');
+      sessionStorage.setItem(seenKey, '1');
+      sessionStorage.setItem(stateKey, open ? '1' : '0');
     } catch { /* ignore */ }
-  }, [open, storageKey]);
+  }, [open, seenKey, stateKey]);
 
   return (
     <div
