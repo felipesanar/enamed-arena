@@ -84,6 +84,8 @@ export const ERROR_TYPES: Record<ErrorTypeKey, ErrorType> = {
   },
 };
 
-export function getErrorType(key: ErrorTypeKey): ErrorType | undefined {
-  return ERROR_TYPES[key];
+export function getErrorType(key: ErrorTypeKey): ErrorType;
+export function getErrorType(key: string): ErrorType | undefined;
+export function getErrorType(key: string): ErrorType | undefined {
+  return ERROR_TYPES[key as ErrorTypeKey];
 }

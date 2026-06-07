@@ -9,19 +9,12 @@ import React, {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { EmptyState } from '@/components/EmptyState';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import {
-  Trophy,
   Users,
-  Stethoscope,
-  Building,
   Globe,
   Crown,
-  AlertTriangle,
 } from 'lucide-react';
 import {
   type SegmentFilter,
@@ -34,6 +27,13 @@ import {
 import { useCutoffScore } from '@/hooks/useCutoffScore';
 import { CutoffScoreModal } from './CutoffScoreModal';
 import { trackEvent } from '@/lib/analytics';
+import { PositionBadge } from './PositionBadge';
+import { RankingSkeleton } from './RankingSkeleton';
+import { RankingSimuladoSelector } from './RankingSimuladoSelector';
+import { RankingHeroStats } from './RankingHeroStats';
+import { RankingLowConfidenceBanner } from './RankingLowConfidenceBanner';
+import { RankingFilterBar } from './RankingFilterBar';
+import { RankingTable } from './RankingTable';
 
 // ─── Table row types ──────────────────────────────────────────────────────────
 
@@ -93,70 +93,6 @@ const SEGMENT_OPTIONS: Array<{ key: SegmentFilter; label: string; icon: React.El
   { key: 'sanarflix', label: 'SanarFlix', icon: Users },
   { key: 'pro', label: 'PRO', icon: Crown },
 ];
-
-// ─── PositionBadge ────────────────────────────────────────────────────────────
-
-function PositionBadge({
-  position,
-  isCurrentUser,
-  isDark,
-}: {
-  position: number;
-  isCurrentUser?: boolean;
-  isDark: boolean;
-}) {
-  if (isCurrentUser) {
-    return (
-      <div
-        className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-        style={{ background: 'rgba(255,150,170,0.15)', color: '#ff9ab0' }}
-        aria-label={`${position}ª posição (você)`}
-      >
-        {position}
-      </div>
-    );
-  }
-  const medals: Record<number, { bg: string; color: string; label: string }> = {
-    1: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', label: '1º lugar' },
-    2: { bg: 'rgba(156,163,175,0.15)', color: '#9ca3af', label: '2º lugar' },
-    3: { bg: 'rgba(180,83,9,0.15)', color: '#d97706', label: '3º lugar' },
-  };
-  const medal = medals[position];
-  return (
-    <div
-      className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-      style={
-        medal
-          ? { background: medal.bg, color: medal.color }
-          : isDark
-          ? { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)' }
-          : { background: 'rgba(0,0,0,0.07)', color: 'rgba(0,0,0,0.45)' }
-      }
-      aria-label={medal?.label}
-    >
-      {position}
-    </div>
-  );
-}
-
-// ─── RankingSkeleton ──────────────────────────────────────────────────────────
-
-function RankingSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-32 w-full rounded-[22px]" />
-      <div className="grid grid-cols-2 gap-2.5">
-        <Skeleton className="h-28 rounded-[18px]" />
-        <Skeleton className="h-28 rounded-[18px]" />
-      </div>
-      <div className="space-y-2">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-lg" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ─── RankingViewProps ─────────────────────────────────────────────────────────
 
@@ -516,408 +452,42 @@ export function RankingView({
       {!loading && (
         <>
           {/* ── Simulado selector chips ────────────────────────────────────── */}
-          {simuladosWithResults.length > 1 && (
-            <div className="relative mb-5 after:absolute after:right-0 after:top-0 after:h-[calc(100%-8px)] after:w-10 after:bg-gradient-to-l after:from-[hsl(var(--background)/0.95)] after:to-transparent after:pointer-events-none after:content-['']">
-              <div className="flex gap-2 overflow-x-auto pb-2 pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
-              {simuladosWithResults.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSelectedSimuladoId(s.id)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0"
-                  style={s.id === selectedSimuladoId ? t.chipActive : t.chipInactive}
-                >
-                  {s.title}
-                </button>
-              ))}
-              </div>
-            </div>
-          )}
+          <RankingSimuladoSelector
+            simuladosWithResults={simuladosWithResults}
+            selectedSimuladoId={selectedSimuladoId}
+            setSelectedSimuladoId={setSelectedSimuladoId}
+            chipActive={t.chipActive}
+            chipInactive={t.chipInactive}
+          />
 
           {/* ── Top section: hero + KPI (desktop 2-col, mobile stacked) ────── */}
           {currentUser && (
-            <div className="md:grid md:grid-cols-2 md:gap-5 mb-5">
-              {/* Hero card */}
-              <div
-                className="rounded-[22px] p-5 mb-4 md:mb-0 relative overflow-hidden"
-                style={{
-                  background:
-                    'linear-gradient(155deg, #7a1a32 0%, #5c1225 45%, #3d0b18 100%)',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
-                }}
-              >
-                <div
-                  className="absolute pointer-events-none"
-                  style={{
-                    top: '-50px',
-                    right: '-50px',
-                    width: '200px',
-                    height: '200px',
-                    background:
-                      'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
-                  }}
-                  aria-hidden
-                />
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-[46px] w-[46px] rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(255,255,255,0.12)' }}
-                    >
-                      <Trophy className="h-5 w-5 text-white" aria-hidden />
-                    </div>
-                    <div>
-                      <p
-                        className="text-xs font-semibold uppercase tracking-widest mb-0.5"
-                        style={{ color: 'rgba(255,255,255,0.45)' }}
-                      >
-                        Sua posição
-                      </p>
-                      <p
-                        className="font-bold text-white md:text-5xl text-3xl tabular-nums leading-none"
-                        aria-label={`Posição ${currentUser.position} de ${filteredParticipants.length}`}
-                      >
-                        #{currentUser.position}
-                        <span
-                          className="text-base font-semibold ml-1"
-                          style={{ color: 'rgba(255,255,255,0.45)' }}
-                        >
-                          de {filteredParticipants.length}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className="text-xs font-semibold uppercase tracking-widest mb-0.5"
-                      style={{ color: 'rgba(255,255,255,0.45)' }}
-                    >
-                      Sua nota
-                    </p>
-                    <p
-                      className="font-bold tabular-nums md:text-4xl text-2xl leading-none"
-                      style={{ color: '#ffcbd8' }}
-                      aria-label={`Nota ${currentUser.score}%`}
-                    >
-                      {currentUser.score}%
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                      Média: {stats.notaMedia}%
-                    </p>
-                    <p
-                      className="text-xs font-semibold mt-0.5"
-                      style={{ color: deltaColor }}
-                    >
-                      {deltaPrefix} {Math.abs(delta)}% {delta >= 0 ? 'acima da média' : 'abaixo da média'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* KPI cards */}
-              <div className="grid grid-cols-2 gap-2.5">
-                {/* Card 1: Desempenho */}
-                <div
-                  className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
-                  style={{
-                    padding: '15px 13px 13px',
-                    minHeight: '96px',
-                    background: perfState === 'good' ? t.kpiPerfGoodBg : t.kpiPerfBadBg,
-                    border: perfState === 'good' ? t.kpiPerfGoodBorder : t.kpiPerfBadBorder,
-                    boxShadow: perfState === 'good' ? t.kpiPerfGoodShadow : t.kpiPerfBadShadow,
-                  }}
-                >
-                  <div
-                    className="absolute pointer-events-none"
-                    style={{
-                      top: '-30px',
-                      right: '-30px',
-                      width: '100px',
-                      height: '100px',
-                      borderRadius: '50%',
-                      background: perfState === 'good' ? t.kpiPerfGoodOrb : t.kpiPerfBadOrb,
-                    }}
-                    aria-hidden
-                  />
-                  <div className="relative z-10">
-                    <p
-                      className="font-bold uppercase mb-[7px]"
-                      style={{
-                        fontSize: '0.65rem',
-                        letterSpacing: '.09em',
-                        color: perfState === 'good' ? t.kpiPerfGoodTag : t.kpiPerfBadTag,
-                      }}
-                    >
-                      Seu desempenho
-                    </p>
-                    <p
-                      className="font-bold leading-snug mb-[5px]"
-                      style={{
-                        fontSize: '1.1rem',
-                        color: perfState === 'good' ? t.kpiPerfGoodVal : t.kpiPerfBadVal,
-                      }}
-                    >
-                      {perfMessage}
-                    </p>
-                    <p
-                      className="leading-snug"
-                      style={{ fontSize: '0.72rem', color: t.kpiPerfSubtext }}
-                    >
-                      {perfSubtext}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 2: Nota de Corte */}
-                {(cutoffState === 'no_profile' || cutoffState === 'no_match') && (
-                  <div
-                    className="rounded-[18px] relative overflow-hidden flex flex-col"
-                    style={{
-                      padding: '15px 13px 13px',
-                      minHeight: '96px',
-                      background: t.kpiEmptyBg,
-                      border: t.kpiEmptyBorder,
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-                    }}
-                  >
-                    <p
-                      className="font-bold uppercase mb-[7px] relative z-10"
-                      style={{
-                        fontSize: '0.65rem',
-                        letterSpacing: '.09em',
-                        color: t.kpiEmptyTag,
-                      }}
-                    >
-                      Nota de corte
-                    </p>
-                    <div className="relative z-10 flex flex-col gap-[5px] flex-1 justify-center">
-                      <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>🎯</span>
-                      {cutoffState === 'no_profile' ? (
-                        <>
-                          <p
-                            className="leading-snug"
-                            style={{ fontSize: '0.72rem', color: t.kpiEmptyText }}
-                          >
-                            Preencha sua especialidade e instituição para ver se você passaria.
-                          </p>
-                          <Link
-                            to="/configuracoes"
-                            className="font-semibold inline-flex items-center gap-[3px]"
-                            style={{ fontSize: '0.7rem', color: t.kpiEmptyCta }}
-                          >
-                            Completar perfil →
-                          </Link>
-                        </>
-                      ) : (
-                        <>
-                          <p
-                            className="leading-snug"
-                            style={{ fontSize: '0.72rem', color: t.kpiEmptyText }}
-                          >
-                            Não encontramos nota de corte para sua combinação.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setCutoffModalOpen(true)}
-                            className="font-semibold inline-flex items-center gap-[3px] text-left"
-                            style={{ fontSize: '0.7rem', color: t.kpiEmptyCta }}
-                          >
-                            Ver todas →
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {cutoffState === 'loading' && (
-                  <div
-                    className="rounded-[18px] flex items-center justify-center"
-                    style={{
-                      padding: '15px 13px 13px',
-                      minHeight: '96px',
-                      background: t.kpiEmptyBg,
-                      border: t.kpiEmptyBorder,
-                    }}
-                  >
-                    <p style={{ fontSize: '0.72rem', color: t.kpiEmptyText }}>
-                      Carregando...
-                    </p>
-                  </div>
-                )}
-
-                {cutoffState === 'pass' && cutoff && (
-                  <div
-                    className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
-                    style={{
-                      padding: '15px 13px 13px',
-                      minHeight: '96px',
-                      background: t.kpiCutPassBg,
-                      border: t.kpiCutPassBorder,
-                      boxShadow: t.kpiCutPassShadow,
-                    }}
-                  >
-                    <div
-                      className="absolute pointer-events-none"
-                      style={{
-                        top: '-30px',
-                        right: '-30px',
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: '50%',
-                        background: t.kpiCutPassOrb,
-                      }}
-                      aria-hidden
-                    />
-                    <div className="relative z-10">
-                      <p
-                        className="font-bold uppercase mb-[7px]"
-                        style={{
-                          fontSize: '0.65rem',
-                          letterSpacing: '.09em',
-                          color: t.kpiCutPassTag,
-                        }}
-                      >
-                        Nota de corte
-                      </p>
-                      <p
-                        className="font-bold leading-snug mb-[5px]"
-                        style={{ fontSize: '1.1rem', color: t.kpiCutPassVal }}
-                      >
-                        Passaria ✓
-                      </p>
-                      <p
-                        className="leading-snug"
-                        style={{ fontSize: '0.72rem', color: t.kpiCutPassSub }}
-                      >
-                        Corte geral:{' '}
-                        <strong style={{ color: t.kpiCutPassStrong }}>
-                          {cutoff.cutoff_score_general}%
-                        </strong>
-                        {cutoff.cutoff_score_quota != null && (
-                          <>
-                            {' '}
-                            · Cotas:{' '}
-                            <strong style={{ color: t.kpiCutPassStrong }}>
-                              {cutoff.cutoff_score_quota}%
-                            </strong>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCutoffModalOpen(true)}
-                      className="relative z-10 inline-flex items-center gap-[3px] mt-[7px]"
-                      style={{ fontSize: '0.68rem', color: t.kpiCutPassLink }}
-                    >
-                      Ver todas as notas ↗
-                    </button>
-                  </div>
-                )}
-
-                {cutoffState === 'fail' && cutoff && currentUser && (
-                  <div
-                    className="rounded-[18px] relative overflow-hidden flex flex-col justify-between"
-                    style={{
-                      padding: '15px 13px 13px',
-                      minHeight: '96px',
-                      background: t.kpiCutFailBg,
-                      border: t.kpiCutFailBorder,
-                      boxShadow: t.kpiCutFailShadow,
-                    }}
-                  >
-                    <div
-                      className="absolute pointer-events-none"
-                      style={{
-                        top: '-30px',
-                        right: '-30px',
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: '50%',
-                        background: t.kpiCutFailOrb,
-                      }}
-                      aria-hidden
-                    />
-                    <div className="relative z-10">
-                      <p
-                        className="font-bold uppercase mb-[7px]"
-                        style={{
-                          fontSize: '0.65rem',
-                          letterSpacing: '.09em',
-                          color: t.kpiCutFailTag,
-                        }}
-                      >
-                        Nota de corte
-                      </p>
-                      <p
-                        className="font-bold leading-snug mb-[4px]"
-                        style={{ fontSize: '1.1rem', color: t.kpiCutFailVal }}
-                      >
-                        Ainda não passou
-                      </p>
-                      <p
-                        className="leading-snug mb-[5px]"
-                        style={{ fontSize: '0.72rem', color: t.kpiCutFailSub }}
-                      >
-                        Sua nota é{' '}
-                        <strong style={{ color: t.kpiCutFailGap }}>
-                          {cutoff.cutoff_score_general - currentUser.score}% abaixo
-                        </strong>{' '}
-                        do corte geral de{' '}
-                        <strong style={{ color: t.kpiCutFailStrong }}>
-                          {cutoff.cutoff_score_general}%
-                        </strong>
-                      </p>
-                      <p
-                        className="leading-snug"
-                        style={{ fontSize: '0.7rem', color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontStyle: 'italic' }}
-                      >
-                        {cutoffComfortMessage(cutoff.cutoff_score_general - currentUser.score).body}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCutoffModalOpen(true)}
-                      className="relative z-10 inline-flex items-center gap-[3px] mt-[7px]"
-                      style={{ fontSize: '0.68rem', color: t.kpiCutFailLink }}
-                    >
-                      Ver todas as notas ↗
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <RankingHeroStats
+              currentUser={currentUser}
+              filteredParticipants={filteredParticipants}
+              stats={stats}
+              delta={delta}
+              deltaPrefix={deltaPrefix}
+              deltaColor={deltaColor}
+              perfState={perfState}
+              perfMessage={perfMessage}
+              perfSubtext={perfSubtext}
+              cutoffState={cutoffState}
+              cutoff={cutoff}
+              isDark={isDark}
+              t={t}
+              setCutoffModalOpen={setCutoffModalOpen}
+              cutoffComfortMessage={cutoffComfortMessage}
+            />
           )}
 
           {/* ── Low confidence banner ─────────────────────────────────────── */}
           {lowConfidence && (
-            <div
-              className="flex items-start gap-3 mb-4 rounded-[13px]"
-              style={{
-                padding: '11px 13px',
-                background: 'rgba(251,146,60,0.07)',
-                border: '1px solid rgba(251,146,60,0.22)',
-              }}
-            >
-              <AlertTriangle
-                className="h-4 w-4 mt-0.5 shrink-0"
-                style={{ color: '#fb923c' }}
-                aria-hidden
-              />
-              <p className="text-xs leading-relaxed" style={{ color: t.bannerText }}>
-                <strong style={{ color: t.text1 }}>Poucos candidatos nesse recorte</strong> — com menos de 30 inscritos, esses dados podem não ser estatisticamente representativos.{' '}
-                Nesse caso, o dado mais valioso é a{' '}
-                <button
-                  type="button"
-                  onClick={() => setCutoffModalOpen(true)}
-                  className="underline underline-offset-2 transition-colors font-semibold"
-                  style={{ color: '#fb923c' }}
-                >
-                  nota de corte do ano passado →
-                </button>
-              </p>
-            </div>
+            <RankingLowConfidenceBanner
+              bannerText={t.bannerText}
+              text1={t.text1}
+              setCutoffModalOpen={setCutoffModalOpen}
+            />
           )}
 
           {/* ── Empty state ───────────────────────────────────────────────── */}
@@ -932,356 +502,36 @@ export function RankingView({
           {(filteredParticipants.length > 0 || hasActiveFilters) && (
             <>
               {/* ── Filter bar ────────────────────────────────────────────── */}
-              <div
-                className="px-5 py-4 mb-4 rounded-[16px]"
-                style={{ background: t.surfaceBg, border: t.surfaceBorder }}
-              >
-                <div className="flex flex-wrap items-center gap-2.5">
-
-                  {/* ─ Comparar group ─ */}
-                  <span
-                    className="shrink-0 whitespace-nowrap"
-                    style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
-                  >
-                    Comparar
-                  </span>
-
-                  {/* Todos comparison pill */}
-                  <motion.button
-                    type="button"
-                    onClick={() => {
-                      if (rankingComparison.bySpecialty || rankingComparison.byInstitution) triggerShimmer('comp-all');
-                      handleSelectAllComparison();
-                    }}
-                    aria-pressed={!rankingComparison.bySpecialty && !rankingComparison.byInstitution}
-                    aria-label="Todos os candidatos"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
-                    style={getPillStyle(!rankingComparison.bySpecialty && !rankingComparison.byInstitution)}
-                    data-shimmer={shimmeringPillId === 'comp-all' ? '1' : undefined}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                  >
-                    <motion.span
-                      className="inline-flex shrink-0"
-                      whileHover={{ scale: 1.15 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                    >
-                      <Users className="h-4 w-4" aria-hidden />
-                    </motion.span>
-                    Todos
-                  </motion.button>
-
-                  {/* Specialty pill — only when user has a configured specialty */}
-                  {userSpecialty && (
-                    <motion.button
-                      type="button"
-                      onClick={() => {
-                        if (!rankingComparison.bySpecialty) triggerShimmer('comp-specialty');
-                        handleToggleSpecialtyComparison();
-                      }}
-                      aria-pressed={rankingComparison.bySpecialty}
-                      aria-label={`Filtrar por especialidade: ${userSpecialty}`}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
-                      style={getPillStyle(rankingComparison.bySpecialty)}
-                      data-shimmer={shimmeringPillId === 'comp-specialty' ? '1' : undefined}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                    >
-                      <motion.span
-                        className="inline-flex shrink-0"
-                        whileHover={{ scale: 1.15 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                      >
-                        <Stethoscope className="h-4 w-4" aria-hidden />
-                      </motion.span>
-                      {userSpecialty}
-                    </motion.button>
-                  )}
-
-                  {/* Institution pill — slides in when specialty filter is active */}
-                  <AnimatePresence>
-                    {rankingComparison.bySpecialty && userInstitutions.length > 0 && (
-                      <motion.button
-                        key="institution-pill"
-                        type="button"
-                        onClick={() => {
-                          if (!rankingComparison.byInstitution) triggerShimmer('comp-institution');
-                          handleToggleInstitutionComparison();
-                        }}
-                        aria-pressed={rankingComparison.byInstitution}
-                        aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium max-w-[14rem]"
-                        style={getPillStyle(rankingComparison.byInstitution)}
-                        data-shimmer={shimmeringPillId === 'comp-institution' ? '1' : undefined}
-                        initial={{ opacity: 0, x: -8, scale: 0.88 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: -8, scale: 0.88 }}
-                        whileHover={{ y: -1 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: 'spring', stiffness: 380, damping: 18 }}
-                      >
-                        <motion.span
-                          className="inline-flex shrink-0"
-                          whileHover={{ scale: 1.15 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                        >
-                          <Building className="h-4 w-4" aria-hidden />
-                        </motion.span>
-                        <span className="truncate">{userInstitutions[0]}</span>
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Vertical divider */}
-                  <div
-                    className="shrink-0"
-                    style={{ width: '1px', height: '26px', background: t.borderColor, borderRadius: '1px' }}
-                    aria-hidden
-                  />
-
-                  {/* ─ Segmento group ─ */}
-                  <span
-                    className="shrink-0 whitespace-nowrap"
-                    style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.filterLabel }}
-                  >
-                    Segmento
-                  </span>
-
-                  {visibleSegmentOptions.map((f) => (
-                    <motion.button
-                      key={f.key}
-                      type="button"
-                      onClick={() => {
-                        if (segmentFilter !== f.key) triggerShimmer(`seg-${f.key}`);
-                        handleSegmentFilterChange(f.key);
-                      }}
-                      aria-pressed={segmentFilter === f.key}
-                      aria-label={f.label}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
-                      style={getPillStyle(segmentFilter === f.key, f.key === 'pro' && segmentFilter !== f.key)}
-                      data-shimmer={shimmeringPillId === `seg-${f.key}` ? '1' : undefined}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                    >
-                      <motion.span
-                        className="inline-flex shrink-0"
-                        whileHover={{ scale: 1.15 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                      >
-                        <f.icon className="h-4 w-4" aria-hidden />
-                      </motion.span>
-                      <span className="hidden sm:inline">{f.label}</span>
-                    </motion.button>
-                  ))}
-
-                </div>
-
-                {/* Active filter summary */}
-                {rankingComparison.bySpecialty && (
-                  <p
-                    className="text-xs mt-2.5 leading-snug"
-                    style={{ color: t.filterLabel }}
-                  >
-                    <span style={{ color: '#7a1a32', marginRight: '4px' }}>●</span>
-                    {rankingComparison.byInstitution && userInstitutions[0] ? (
-                      <>
-                        Comparando com candidatos de{' '}
-                        <span style={{ color: t.text2 }}>{userSpecialty}</span>
-                        {' · '}
-                        <span style={{ color: t.text2 }}>{userInstitutions[0]}</span>
-                      </>
-                    ) : (
-                      <>
-                        Comparando com candidatos de{' '}
-                        <span style={{ color: t.text2 }}>{userSpecialty}</span>
-                        <span style={{ color: t.filterLabel }}> (todas as instituições)</span>
-                      </>
-                    )}
-                  </p>
-                )}
-              </div>
+              <RankingFilterBar
+                rankingComparison={rankingComparison}
+                segmentFilter={segmentFilter}
+                userSpecialty={userSpecialty}
+                userInstitutions={userInstitutions}
+                visibleSegmentOptions={visibleSegmentOptions}
+                shimmeringPillId={shimmeringPillId}
+                surfaceBg={t.surfaceBg}
+                surfaceBorder={t.surfaceBorder}
+                borderColor={t.borderColor}
+                filterLabel={t.filterLabel}
+                text2={t.text2}
+                getPillStyle={getPillStyle}
+                triggerShimmer={triggerShimmer}
+                handleSelectAllComparison={handleSelectAllComparison}
+                handleToggleSpecialtyComparison={handleToggleSpecialtyComparison}
+                handleToggleInstitutionComparison={handleToggleInstitutionComparison}
+                handleSegmentFilterChange={handleSegmentFilterChange}
+              />
 
               {/* ── Table ─────────────────────────────────────────────────── */}
-              {filteredParticipants.length === 0 ? (
-                <div
-                  className="rounded-[16px] flex flex-col items-center text-center"
-                  style={{
-                    background: t.surfaceBg,
-                    border: t.surfaceBorder,
-                    padding: '32px 20px',
-                  }}
-                >
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center mb-3"
-                    style={{
-                      background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-                    }}
-                    aria-hidden
-                  >
-                    <Users className="h-5 w-5" style={{ color: t.text2 }} />
-                  </div>
-                  <p
-                    className="font-semibold mb-1"
-                    style={{ fontSize: '0.9rem', color: t.text1 }}
-                  >
-                    Nenhum participante neste recorte
-                  </p>
-                  <p
-                    className="leading-snug mb-4 max-w-sm"
-                    style={{ fontSize: '0.72rem', color: t.text2 }}
-                  >
-                    Os filtros aplicados não retornaram candidatos. Ajuste ou limpe os filtros para ver o ranking completo.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleClearAllFilters}
-                    className="font-semibold rounded-full transition-colors"
-                    style={{
-                      padding: '7px 16px',
-                      fontSize: '0.7rem',
-                      background: 'rgba(122,26,50,0.85)',
-                      color: 'white',
-                      border: '1px solid rgba(255,150,170,0.25)',
-                    }}
-                  >
-                    Limpar filtros
-                  </button>
-                </div>
-              ) : (
-              <div
-                className="relative overflow-hidden"
-                style={{
-                  background: t.surfaceBg,
-                  border: t.surfaceBorder,
-                  borderRadius: '15px',
-                }}
-              >
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderBottom: t.tableHeaderBorder }}>
-                      <th className="text-left w-10 px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>#</th>
-                      <th className="text-left px-2 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Candidato</th>
-                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Especialidade</th>
-                      <th className="text-left px-2 py-3 hidden md:table-cell" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Instituição</th>
-                      <th className="text-right px-4 py-3" style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: t.tableHeaderText }}>Nota</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map((row, i) => {
-                      if (isSeparator(row)) {
-                        return (
-                          <tr key={`sep-${i}`} style={{ borderBottom: t.tableRowBorder }}>
-                            <td colSpan={5} className="px-4 py-2 text-center">
-                              <span style={{ fontSize: '0.6rem', color: t.tableSeparator }}>
-                                posições {row.from} – {row.to}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      return (
-                        <tr
-                          key={`${row.userId}-${row.position}`}
-                          className="transition-colors"
-                          style={{
-                            background: row.isCurrentUser ? t.tableUserBg : undefined,
-                            borderBottom:
-                              i < tableRows.length - 1
-                                ? t.tableRowBorder
-                                : undefined,
-                          }}
-                        >
-                          <td className="w-10 pl-4 py-3">
-                            <PositionBadge
-                              position={row.position}
-                              isCurrentUser={row.isCurrentUser}
-                              isDark={isDark}
-                            />
-                          </td>
-                          <td className="pr-2 py-3">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span
-                                className="text-sm truncate"
-                                style={{
-                                  color: row.isCurrentUser ? t.tableUserText : t.tableText,
-                                  fontWeight: row.isCurrentUser ? 600 : 400,
-                                }}
-                              >
-                                {participantLabel(row)}
-                              </span>
-                              {row.isCurrentUser && (
-                                <span
-                                  className="text-[0.56rem] font-bold px-1.5 py-0.5 rounded shrink-0"
-                                  style={{
-                                    background: 'rgba(122,26,50,0.6)',
-                                    color: '#ff9ab0',
-                                    border: '1px solid rgba(255,150,170,0.2)',
-                                  }}
-                                >
-                                  Você
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td
-                            className="pr-2 py-3 hidden md:table-cell"
-                            style={{ fontSize: '0.8rem', color: t.tableSpecialty }}
-                          >
-                            {row.specialty}
-                          </td>
-                          <td
-                            className="pr-2 py-3 hidden md:table-cell"
-                            style={{ fontSize: '0.8rem', color: t.tableSpecialty }}
-                          >
-                            {row.institution}
-                          </td>
-                          <td className="pr-4 py-3 text-right">
-                            <span
-                              className="text-sm font-semibold tabular-nums"
-                              style={{
-                                color: row.isCurrentUser ? t.tableUserScore : t.tableScore,
-                              }}
-                            >
-                              {row.score}%
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {/* Sticky bar */}
-                {currentUser && (
-                  <div
-                    className="sticky bottom-0 flex items-center justify-between px-4 py-2.5"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, rgba(122,26,50,0.72), rgba(60,12,24,0.82))',
-                      borderTop: '1px solid rgba(255,150,170,0.14)',
-                    }}
-                    aria-hidden
-                  >
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                      Sua posição
-                    </span>
-                    <span className="text-sm font-bold text-white">
-                      #{currentUser.position} de {filteredParticipants.length}
-                    </span>
-                    <span
-                      className="text-sm font-semibold"
-                      style={{ color: '#ffcbd8' }}
-                    >
-                      {currentUser.score}%
-                    </span>
-                  </div>
-                )}
-              </div>
-              )}
+              <RankingTable
+                tableRows={tableRows}
+                filteredParticipants={filteredParticipants}
+                currentUser={currentUser}
+                isDark={isDark}
+                t={t}
+                participantLabel={participantLabel}
+                handleClearAllFilters={handleClearAllFilters}
+              />
             </>
           )}
         </>

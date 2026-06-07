@@ -90,6 +90,7 @@ vi.mock('@/hooks/useExamResult', () => ({
 
 vi.mock('@/contexts/UserContext', () => ({
   useUser: vi.fn((): any => ({ profile: { id: 'u1', name: 'Test User', email: 'test@test.com', segment: 'pro' } })),
+  useHasAccess: () => true,
 }))
 
 vi.mock('@/contexts/AuthContext', () => ({

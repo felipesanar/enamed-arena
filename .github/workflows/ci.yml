@@ -49,6 +49,18 @@ jobs:
       - run: npm ci --omit=optional
       - run: npm run test
 
+  edge-pins:
+    name: Edge Function pins
+    runs-on: ubuntu-latest
+    # Trava anti-regressão: falha se alguma Edge Function importar dep externa
+    # sem pin completo (major.minor.patch). Ver docs/INCIDENTE_2026_05_17.md.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node scripts/check-edge-function-pins.mjs
+
   build:
     name: Build
     runs-on: ubuntu-latest

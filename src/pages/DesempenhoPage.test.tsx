@@ -8,9 +8,10 @@ vi.mock("framer-motion", () => ({
   motion: new Proxy({}, {
     get: (_t, tag: string) =>
       ({ children, style: _s, initial: _i, animate: _a, whileHover: _wh,
-         transition: _tr, variants: _v, exit: _e, ...rest }: any) =>
+         whileTap: _wt, transition: _tr, variants: _v, exit: _e, layout: _l, ...rest }: any) =>
         (({ div: <div {...rest}>{children}</div>,
            section: <section {...rest}>{children}</section>,
+           button: <button {...rest}>{children}</button>,
          } as any)[tag] ?? <div {...rest}>{children}</div>),
   }),
   AnimatePresence: ({ children }: any) => <>{children}</>,
@@ -37,10 +38,27 @@ vi.mock("@/hooks/useUserPerformance", () => ({
   useUserPerformance: () => ({ history: [] as any[], summary: null as any, loading: false }),
 }));
 
+vi.mock("@/contexts/UserContext", () => ({
+  useUser: () => ({
+    profile: { id: "user-1", segment: "pro", full_name: "Aluno Teste" },
+    isOnboardingComplete: true,
+  }),
+  useHasAccess: () => true,
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "user-1" }, loading: false }),
+}));
+
+vi.mock("@/admin/hooks/useAdminAuth", () => ({
+  useAdminAuth: () => ({ user: { id: "user-1" }, isAdmin: false, loading: false }),
+}));
+
+// `theme` is hierarchical: "Subespecialidade > Tema" (3-level drill-down model).
 const mockQuestions = [
-  { id: "q1", area: "Clínica Médica", theme: "HAS", number: 1, text: "Q1 texto", correctOptionId: "opt-a", difficulty: "medium" },
-  { id: "q2", area: "Clínica Médica", theme: "HAS", number: 2, text: "Q2 texto", correctOptionId: "opt-b", difficulty: "medium" },
-  { id: "q3", area: "Cirurgia", theme: "Abdome Agudo", number: 3, text: "Q3 texto", correctOptionId: "opt-a", difficulty: "hard" },
+  { id: "q1", area: "Clínica Médica", theme: "Cardiologia > HAS", number: 1, text: "Q1 texto", correctOptionId: "opt-a", difficulty: "medium" },
+  { id: "q2", area: "Clínica Médica", theme: "Cardiologia > HAS", number: 2, text: "Q2 texto", correctOptionId: "opt-b", difficulty: "medium" },
+  { id: "q3", area: "Cirurgia", theme: "Abdome > Apendicite", number: 3, text: "Q3 texto", correctOptionId: "opt-a", difficulty: "hard" },
 ];
 
 vi.mock("@/hooks/useSimuladoDetail", () => ({
@@ -56,12 +74,25 @@ const mockExamState = {
   },
 };
 
+// Correct answers come from attemptQuestionResults (keyed by question id):
+// q1 → opt-a (answered opt-a ✓), q2 → opt-b (answered opt-x ✗), q3 → opt-a (answered opt-a ✓)
+const mockAttemptQuestionResults = {
+  q1: { correct_option_id: "opt-a" },
+  q2: { correct_option_id: "opt-b" },
+  q3: { correct_option_id: "opt-a" },
+};
+
 vi.mock("@/hooks/useExamResult", () => ({
-  useExamResult: () => ({ examState: mockExamState, loading: false }),
+  useExamResult: () => ({
+    examState: mockExamState,
+    attemptQuestionResults: mockAttemptQuestionResults,
+    loading: false,
+  }),
 }));
 
 vi.mock("@/lib/simulado-helpers", () => ({
   canViewResults: () => true,
+  canViewResultsOrAdminPreview: () => true,
   deriveSimuladoStatus: (s: any) => s.status,
 }));
 
@@ -100,29 +131,34 @@ describe("DesempenhoPage", () => {
     expect(screen.getAllByText("Cirurgia").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows 'Selecione uma Grande Área' placeholder when no area selected", () => {
+  it("shows the Especialidade grid by default (no drill-down active)", () => {
     renderPage();
-    expect(screen.getByText(/selecione uma grande área/i)).toBeTruthy();
+    // No breadcrumb until a specialty is drilled into
+    expect(screen.queryByLabelText("Navegação de drill-down")).toBeNull();
+    // Level-1 area cards are clickable buttons (aria-label ends with "aproveitamento")
+    expect(screen.getByRole("button", { name: /^Clínica Médica:/i })).toBeTruthy();
   });
 
-  it("clicking an area shows its themes", () => {
+  it("clicking an area shows its subspecialties (level 2)", () => {
     renderPage();
-    // Click the first occurrence (area card in the grid, before evo bars)
-    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
-    expect(screen.getByText("HAS")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Clínica Médica:/i }));
+    expect(screen.getByRole("button", { name: /^Cardiologia:/i })).toBeTruthy();
   });
 
-  it("clicking a theme expands its questions", () => {
+  it("drilling down to a theme expands its questions (level 3)", () => {
     renderPage();
-    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
-    fireEvent.click(screen.getByText("HAS"));
+    fireEvent.click(screen.getByRole("button", { name: /^Clínica Médica:/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Cardiologia:/i }));
+    // Theme accordion row toggle
+    fireEvent.click(screen.getByRole("button", { name: /HAS/i }));
     expect(screen.getByText(/Q1 texto/i)).toBeTruthy();
   });
 
   it("question rows link to correcao with correct q param", () => {
     renderPage();
-    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
-    fireEvent.click(screen.getByText("HAS"));
+    fireEvent.click(screen.getByRole("button", { name: /^Clínica Médica:/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Cardiologia:/i }));
+    fireEvent.click(screen.getByRole("button", { name: /HAS/i }));
     const link = screen.getByRole("link", { name: /Q1 texto/i });
     expect(link.getAttribute("href")).toContain("correcao?q=1");
   });
@@ -139,10 +175,13 @@ describe("DesempenhoPage", () => {
     expect(allClinica.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("clicking selected area again deselects it", () => {
+  it("breadcrumb reset returns to the Especialidade grid", () => {
     renderPage();
-    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
-    fireEvent.click(screen.getAllByText("Clínica Médica")[0]);
-    expect(screen.getByText(/selecione uma grande área/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Clínica Médica:/i }));
+    // Breadcrumb appears after drilling in
+    expect(screen.getByLabelText("Navegação de drill-down")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Especialidades$/i }));
+    // Back at level 1 — the area card is clickable again
+    expect(screen.getByRole("button", { name: /^Clínica Médica:/i })).toBeTruthy();
   });
 });
