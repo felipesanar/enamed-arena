@@ -158,7 +158,7 @@ export function ExamCompletedScreen({
         <motion.div variants={prefersReducedMotion ? undefined : fadeUp} className="space-y-3">
           {resultsAvailable && (
             <Link
-              to={`/simulados/${simuladoId}/resultado`}
+              to={`/simulados/${simuladoId}`}
               className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-primary text-primary-foreground text-body-lg font-semibold hover:bg-wine-hover transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
             >
               Ver resultado
