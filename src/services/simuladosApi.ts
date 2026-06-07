@@ -28,6 +28,7 @@ import type {
   AddFavoritePayload,
   ConfidenceCalibration,
 } from '@/types/caderno';
+import type { BatchGenerateInput, GeneratedCard } from '@/lib/bulkFlashcards';
 
 // ─── Notification preferences (Caderno reminders — plano 08 §3.1) ───
 export interface NotificationPreferences {
@@ -1221,6 +1222,59 @@ export const simuladosApi = {
       front_md: (result.front_md as string) ?? '',
       back_md: (result.back_md as string) ?? '',
     };
+  },
+
+  /**
+   * Gera vários flashcards de uma vez via edge function `generate-flashcards-batch`.
+   * Repassa o payload normalizado (BatchGenerateInput) e devolve os cards gerados.
+   */
+  async generateFlashcardsBatch(
+    input: BatchGenerateInput,
+  ): Promise<{ cards: GeneratedCard[] }> {
+    logger.log('[SimuladosApi] Generating flashcards batch, mode:', input.mode);
+    const { data, error } = await supabase.functions.invoke('generate-flashcards-batch', {
+      body: input,
+    });
+
+    if (error) {
+      logger.error('[SimuladosApi] Error generating flashcards batch:', error);
+      throw error;
+    }
+
+    const result = (data as any) ?? {};
+    return { cards: (result.cards as GeneratedCard[]) ?? [] };
+  },
+
+  /**
+   * Cria vários flashcards de uma vez com um único insert multi-linha.
+   * Segue o padrão de `createFlashcard` (RLS restringe ao dono; user_id da sessão).
+   */
+  async createFlashcardsBulk(
+    payloads: CreateFlashcardPayload[],
+  ): Promise<Flashcard[]> {
+    if (payloads.length === 0) return [];
+    logger.log('[SimuladosApi] Bulk-creating', payloads.length, 'flashcards');
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) throw new Error('[SimuladosApi] createFlashcardsBulk: user not authenticated');
+
+    const rows = payloads.map(({ front_image_url, back_image_url, ...rest }) => ({
+      ...rest,
+      user_id: userId,
+      front_image_path: front_image_url ?? null,
+      back_image_path: back_image_url ?? null,
+    }));
+
+    const { data, error } = await (supabase.from('flashcards') as any)
+      .insert(rows)
+      .select();
+
+    if (error) {
+      logger.error('[SimuladosApi] Error bulk-creating flashcards:', error);
+      throw error;
+    }
+
+    return (data || []).map(mapFlashcardRow);
   },
 
   /**
