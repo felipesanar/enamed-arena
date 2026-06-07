@@ -72,7 +72,10 @@ export function TabBar() {
     <div
       className={cn(
         'sticky top-0 z-20 mb-6 -mt-1',
-        'bg-gradient-to-b from-[var(--c-bg)] from-60% to-transparent',
+        // Fundo transparente: deixa o fundo da página (dashboard-page-bg, com tint
+        // wine) aparecer. O backdrop-blur mantém o mascaramento do conteúdo que
+        // rola por baixo da pílula sticky — sem o retângulo preto do --c-bg.
+        'bg-transparent',
         'pb-4 pt-2 backdrop-blur-[var(--c-glass-blur)]',
       )}
     >
