@@ -9,6 +9,7 @@
  */
 
 import type { CreateFlashcardPayload } from '@/types/caderno';
+import type { Question } from '@/types';
 
 /** Modos de geração suportados pela Edge Function de lote. */
 export type BatchMode = 'topic' | 'questions' | 'text';
@@ -117,4 +118,80 @@ export function buildCadernoQuestionsInput(
       learningNote: r.learning_text ?? null,
     }));
   return { mode: 'questions', questions };
+}
+
+/** Item de origem para buildQuestionsInput. */
+export interface QuestionSourceItem {
+  q: Question;
+  area?: string | null;
+  theme?: string | null;
+  entryId?: string;
+}
+
+/** Converte uma Question carregada num BatchQuestionInput (resolve o label do gabarito). */
+export function mapQuestionToBatchInput(
+  q: Question,
+  opts: { area?: string | null; theme?: string | null; entryId?: string } = {},
+): BatchQuestionInput {
+  const correctOptionLabel = q.options.find((o) => o.id === q.correctOptionId)?.label ?? null;
+  return {
+    sourceRef: { questionId: q.id, ...(opts.entryId ? { entryId: opts.entryId } : {}) },
+    questionStem: q.text,
+    options: q.options.map((o) => ({ label: o.label, text: o.text })),
+    correctOptionLabel,
+    area: opts.area ?? q.area ?? null,
+    theme: opts.theme ?? q.theme ?? null,
+    aiReviewMd: null,
+    learningNote: null,
+  };
+}
+
+/** Monta um BatchGenerateInput modo `questions` a partir de questões carregadas. */
+export function buildQuestionsInput(items: QuestionSourceItem[]): BatchGenerateInput {
+  return {
+    mode: 'questions',
+    questions: items.map((it) => mapQuestionToBatchInput(it.q, { area: it.area, theme: it.theme, entryId: it.entryId })),
+  };
+}
+
+/** Monta um BatchGenerateInput modo `topic` (count clampado em [1, MAX_TOPIC_COUNT]). */
+export function buildTopicInput(
+  area: string | null | undefined,
+  theme: string | null | undefined,
+  count: number,
+): BatchGenerateInput {
+  return {
+    mode: 'topic',
+    area: area?.trim() || null,
+    theme: theme?.trim() || null,
+    count: clampCount(count, MAX_TOPIC_COUNT),
+  };
+}
+
+/** Linha crua de error_notebook para o ranqueamento de pontos fracos. */
+export interface ErrorNotebookWeakRow {
+  id: string;
+  area: string | null;
+  theme: string | null;
+  reason: string;
+  created_at: string;
+  mastered_at?: string | null;
+  srs_lapses?: number | null;
+  srs_reps?: number | null;
+  srs_due_at?: string | null;
+}
+
+/** Mapeia linhas de error_notebook para o shape WeakAreaEntry de weakAreas.ts. */
+export function mapErrorRowsToWeakEntries(rows: ErrorNotebookWeakRow[]) {
+  return rows.map((r) => ({
+    id: r.id,
+    area: r.area,
+    theme: r.theme,
+    reason: r.reason,
+    addedAt: r.created_at,
+    masteredAt: r.mastered_at ?? null,
+    srsLapses: r.srs_lapses ?? null,
+    srsReps: r.srs_reps ?? null,
+    srsDueAt: r.srs_due_at ?? null,
+  }));
 }

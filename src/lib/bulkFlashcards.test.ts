@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { Question } from '@/types';
 import {
   clampCount,
   MAX_TOPIC_COUNT,
@@ -6,6 +7,10 @@ import {
   suggestDeckName,
   mapGeneratedCardsToPayloads,
   buildCadernoQuestionsInput,
+  mapQuestionToBatchInput,
+  buildQuestionsInput,
+  buildTopicInput,
+  mapErrorRowsToWeakEntries,
   type GeneratedCard,
 } from './bulkFlashcards';
 
@@ -106,6 +111,83 @@ describe('buildCadernoQuestionsInput', () => {
       theme: 'IC',
       aiReviewMd: 'rev1',
       learningNote: 'nota1',
+    });
+  });
+});
+
+const sampleQuestion: Question = {
+  id: 'q1',
+  number: 3,
+  text: 'Conduta na IC com FE reduzida?',
+  area: 'Cardiologia',
+  theme: 'Insuficiência Cardíaca',
+  options: [
+    { id: 'o1', label: 'A', text: 'Opção A' },
+    { id: 'o2', label: 'B', text: 'Opção B' },
+    { id: 'o3', label: 'C', text: 'Opção C' },
+  ],
+  correctOptionId: 'o2',
+};
+
+describe('mapQuestionToBatchInput', () => {
+  it('resolve correctOptionLabel a partir do correctOptionId', () => {
+    expect(mapQuestionToBatchInput(sampleQuestion).correctOptionLabel).toBe('B');
+  });
+  it('usa stem, options, sourceRef.questionId e area/theme da questão', () => {
+    const r = mapQuestionToBatchInput(sampleQuestion);
+    expect(r.questionStem).toBe('Conduta na IC com FE reduzida?');
+    expect(r.options).toEqual([
+      { label: 'A', text: 'Opção A' },
+      { label: 'B', text: 'Opção B' },
+      { label: 'C', text: 'Opção C' },
+    ]);
+    expect(r.sourceRef).toEqual({ questionId: 'q1' });
+    expect(r.area).toBe('Cardiologia');
+    expect(r.theme).toBe('Insuficiência Cardíaca');
+  });
+  it('aceita overrides de area/theme/entryId', () => {
+    const r = mapQuestionToBatchInput(sampleQuestion, { area: 'X', theme: 'Y', entryId: 'e9' });
+    expect(r.area).toBe('X');
+    expect(r.theme).toBe('Y');
+    expect(r.sourceRef).toEqual({ questionId: 'q1', entryId: 'e9' });
+  });
+  it('correctOptionLabel é null quando o id não bate', () => {
+    expect(mapQuestionToBatchInput({ ...sampleQuestion, correctOptionId: 'zzz' }).correctOptionLabel).toBeNull();
+  });
+});
+
+describe('buildQuestionsInput', () => {
+  it('monta modo questions a partir de itens', () => {
+    const input = buildQuestionsInput([
+      { q: sampleQuestion },
+      { q: { ...sampleQuestion, id: 'q2', text: 'Outra?' }, area: 'Pneumo' },
+    ]);
+    expect(input.mode).toBe('questions');
+    expect(input.questions).toHaveLength(2);
+    expect(input.questions![0].sourceRef.questionId).toBe('q1');
+    expect(input.questions![1].area).toBe('Pneumo');
+  });
+});
+
+describe('buildTopicInput', () => {
+  it('monta modo topic com count clampado', () => {
+    expect(buildTopicInput('Cardio', 'IC', 99)).toEqual({ mode: 'topic', area: 'Cardio', theme: 'IC', count: 15 });
+  });
+  it('normaliza strings vazias para null', () => {
+    expect(buildTopicInput('', '', 10)).toEqual({ mode: 'topic', area: null, theme: null, count: 10 });
+  });
+});
+
+describe('mapErrorRowsToWeakEntries', () => {
+  it('mapeia campos do error_notebook para WeakAreaEntry', () => {
+    const rows = [{
+      id: 'e1', area: 'Cardio', theme: 'IC', reason: 'did_not_know',
+      created_at: '2026-01-01', mastered_at: null, srs_lapses: 2, srs_reps: 1, srs_due_at: '2026-02-01',
+    }];
+    const out = mapErrorRowsToWeakEntries(rows);
+    expect(out[0]).toMatchObject({
+      id: 'e1', area: 'Cardio', theme: 'IC', reason: 'did_not_know',
+      addedAt: '2026-01-01', masteredAt: null, srsLapses: 2, srsReps: 1, srsDueAt: '2026-02-01',
     });
   });
 });
