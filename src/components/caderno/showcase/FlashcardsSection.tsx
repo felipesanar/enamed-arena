@@ -190,7 +190,7 @@ export function FlashcardsSection() {
               variant="outline"
               size="sm"
               onClick={() => setEditorOpen(true)}
-              className="gap-1.5 border-[var(--c-wine-500)]/25 text-[var(--c-wine-600)] hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]"
+              className="gap-1.5 border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] text-[var(--c-wine-600)] hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]"
             >
               <Plus className="h-4 w-4" />
               Novo flashcard
@@ -215,13 +215,13 @@ export function FlashcardsSection() {
               transition={{ duration: 0.22 }}
               className={cn(
                 'group flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)]',
-                'border border-[var(--c-wine-500)]/20 bg-gradient-to-r from-[var(--c-wine-500)]/8 via-[var(--c-wine-500)]/4 to-transparent',
-                'px-5 py-4 transition-all hover:border-[var(--c-wine-500)]/40 hover:shadow-[var(--c-shadow-glow)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                'border border-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] bg-gradient-to-r from-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] via-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] to-transparent',
+                'px-5 py-4 transition-all hover:border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] hover:shadow-[var(--c-shadow-glow)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               )}
             >
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--c-wine-500)]/10">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]">
                   <Layers className="h-5 w-5 text-[var(--c-wine-500)]" />
                 </div>
                 <div className="text-left">
@@ -282,7 +282,7 @@ export function FlashcardsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => setEditorOpen(true)}
-                className="gap-1.5 border-[var(--c-wine-500)]/30 text-[var(--c-wine-600)] hover:bg-[var(--c-wine-50)]"
+                className="gap-1.5 border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] text-[var(--c-wine-600)] hover:bg-[var(--c-wine-50)]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Adicionar flashcard

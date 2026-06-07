@@ -80,7 +80,7 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
     if (!input) return;
     setGenerating(true);
     try {
-      const { cards } = await simuladosApi.generateFlashcardsBatch(input);
+      const { cards, partial } = await simuladosApi.generateFlashcardsBatch(input);
       if (cards.length === 0) {
         toast({ title: 'A IA não retornou cards', description: 'Tente novamente ou ajuste a fonte.', variant: 'destructive' });
         return;
@@ -93,10 +93,19 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
       const payloads = mapGeneratedCardsToPayloads(cards, deckId);
       const created = await simuladosApi.createFlashcardsBulk(payloads);
       trackEvent('caderno_flashcards_bulk_generated', {
-        mode: input.mode, count: created.length, deck_id: deckId,
+        mode: input.mode, count: created.length, deck_id: deckId, partial,
       });
       const deckName = decks.find((d) => d.id === deckId)?.name ?? (target.newName ?? suggestedName);
-      toast({ title: `${created.length} flashcards criados`, description: `Salvos em "${deckName}".` });
+      // Lote truncado pela IA: parte dos cards veio, mas não todos. Avisa em vez
+      // de fingir que o lote saiu completo.
+      if (partial) {
+        toast({
+          title: `${created.length} flashcards criados (lote parcial)`,
+          description: `Salvos em "${deckName}". O lote era grande e a IA não terminou. Gere o restante com uma quantidade menor.`,
+        });
+      } else {
+        toast({ title: `${created.length} flashcards criados`, description: `Salvos em "${deckName}".` });
+      }
       onDone(deckId);
     } catch (err) {
       logger.error('[BulkGenerateModal] generate error:', err);
@@ -143,7 +152,7 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
                   'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)] hover:shadow-[var(--c-shadow-sm)]',
                 )}
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--c-wine-500)]/10 text-[var(--c-wine-500)]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] text-[var(--c-wine-500)]">
                   {s.icon}
                 </span>
                 <span className="text-[14px] font-bold text-[var(--c-ink)]">{s.label}</span>

@@ -340,7 +340,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
                     Diagnóstico temporariamente indisponível
                   </p>
                   <p className="text-caption text-muted-foreground">
-                    Os dados do caderno estão íntegros. Tente novamente em instantes.
+                    Seus dados estão a salvo. Tente de novo em instantes.
                   </p>
                 </div>
                 <button
@@ -389,7 +389,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
                     {insightsFetching ? (
                       <span className="inline-flex items-center gap-1.5">
                         <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
-                        Atualizando análise em background...
+                        Atualizando a análise em segundo plano…
                       </span>
                     ) : (
                       cacheLabel && (
@@ -507,14 +507,14 @@ export default function CadernoInsightsPage() {
       {!hasAccess ? (
         <ProGate
           icon={BookOpen}
-          feature="Caderno de Erros — Insights"
+          feature="Caderno de Erros: Diagnóstico"
           description="Diagnóstico personalizado entre seus erros. O Prof. San analisa padrões, identifica seus calcanhares e mostra o retorno do caderno nos seus simulados."
           requiredSegment="pro"
           currentSegment={segment}
           benefits={[
             'Diagnóstico de área fraca, causa dominante e confusões recorrentes',
             'Tabela diferencial gerada pela IA para confusões frequentes',
-            'Painel de ROI: veja o impacto real do caderno nos seus simulados',
+            'Veja o impacto real do caderno nos seus simulados',
           ]}
         />
       ) : (

@@ -58,7 +58,7 @@ const SEVERITY_CONFIG = {
     icon: 'bg-info/10 text-info',
     badge: 'bg-info/10 text-info border-info/25',
     metric: 'bg-info/10 text-info border border-info/20',
-    label: 'Info',
+    label: 'Aviso',
   },
 } as const;
 
@@ -68,8 +68,8 @@ const TYPE_META: Record<InsightType, { Icon: React.ElementType; label: string }>
   weak_area: { Icon: Target, label: 'Área fraca detectada' },
   dominant_cause: { Icon: AlertCircle, label: 'Causa dominante de erros' },
   recurring_confusion: { Icon: Repeat2, label: 'Confusão recorrente' },
-  overconfidence: { Icon: BarChart2, label: 'Padrão de overconfidence' },
-  roi: { Icon: TrendingUp, label: 'Retorno sobre investimento no caderno' },
+  overconfidence: { Icon: BarChart2, label: 'Você está confiando demais' },
+  roi: { Icon: TrendingUp, label: 'O quanto o caderno te ajudou' },
 };
 
 // ─── Props ───
@@ -258,7 +258,7 @@ export function InsightCard({ insight }: InsightCardProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleCtaClick}
-                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold no-underline transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold no-underline transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2"
                 style={{
                   border: '1px solid color-mix(in srgb, var(--c-wine-600) 20%, transparent)',
                   background: 'color-mix(in srgb, var(--c-wine-600) 6%, transparent)',
@@ -282,7 +282,7 @@ export function InsightCard({ insight }: InsightCardProps) {
               <Link
                 to={insight.cta.href}
                 onClick={handleCtaClick}
-                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold no-underline transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold no-underline transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2"
                 style={{
                   border: '1px solid color-mix(in srgb, var(--c-wine-600) 20%, transparent)',
                   background: 'color-mix(in srgb, var(--c-wine-600) 6%, transparent)',

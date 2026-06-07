@@ -163,15 +163,15 @@ export function LessonUnlockDialog({
           </span>
 
           <DialogTitle className="text-heading-2 leading-snug">
-            Estude antes de re-testar
+            Estude antes de tentar de novo
           </DialogTitle>
 
           <DialogDescription className="text-body text-muted-foreground">
-            Esta questão foi marcada como{' '}
+            Esta questão é uma{' '}
             <strong className="font-semibold" style={{ color: meta.colorText }}>
               Lacuna
-            </strong>{' '}
-            — você nunca viu o conteúdo de{' '}
+            </strong>
+            : você ainda não viu o conteúdo de{' '}
             <span className="font-medium text-foreground">{topicLabel}</span>.
           </DialogDescription>
         </DialogHeader>
@@ -187,9 +187,9 @@ export function LessonUnlockDialog({
         >
           <p>
             <span className="font-semibold text-foreground">Por que isso importa?</span>
-            {' '}Re-testar sem entender o conceito leva à memorização fraca. Ao estudar
-            o tema primeiro, você consolida o raciocínio — e o caderno vai espaçar as
-            revisões no ritmo certo a partir daí.
+            {' '}Tentar de novo sem entender o conceito gera uma memória fraca. Estude
+            o tema primeiro para fixar o raciocínio. A partir daí, o caderno espaça as
+            revisões no ritmo certo.
           </p>
           <p className="mt-2">
             Quando estiver pronto, confirme abaixo para liberar a questão para revisão.

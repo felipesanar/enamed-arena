@@ -110,7 +110,7 @@ vi.mock('@/components/exam/QuestionImage', () => ({
 }))
 
 // ── Helper ──────────────────────────────────────────────────────────────────
-function renderPage(adminPreview = false) {
+function renderPage(adminPreview = false, initialPath = '/simulados/sim-1/correcao') {
   // CorrecaoPage rende FavoriteToggleButton/NoteButton (react-query) quando o
   // Caderno v2 está ativo (agora padrão) — provê um QueryClient como na app real.
   const queryClient = new QueryClient({
@@ -119,7 +119,7 @@ function renderPage(adminPreview = false) {
   return render(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <MemoryRouter initialEntries={[`/simulados/sim-1/correcao`]}>
+        <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
             <Route path="/simulados/:id/correcao" element={<CorrecaoPage adminPreview={adminPreview} />} />
           </Routes>
@@ -136,6 +136,26 @@ describe('CorrecaoPage — smoke', () => {
   it('renderiza sem crash', () => {
     renderPage()
     expect(screen.getAllByText(/questão 1/i).length).toBeGreaterThan(0)
+  })
+})
+
+describe('CorrecaoPage — deeplink por questão (?q=)', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('abre a questão pelo id quando q=<question_id> (deeplink do Caderno/Favoritos)', () => {
+    // O card de Favoritos navega com ?q=<question_id>, não com o número da questão.
+    renderPage(false, '/simulados/sim-1/correcao?q=q2')
+    expect(screen.getByText('Texto da questão 2')).toBeTruthy()
+  })
+
+  it('abre a questão pelo número quando q=<n> (navegação 1-based)', () => {
+    renderPage(false, '/simulados/sim-1/correcao?q=2')
+    expect(screen.getByText('Texto da questão 2')).toBeTruthy()
+  })
+
+  it('cai na primeira questão quando q é inválido', () => {
+    renderPage(false, '/simulados/sim-1/correcao?q=naoexiste')
+    expect(screen.getByText('Texto da questão 1')).toBeTruthy()
   })
 })
 

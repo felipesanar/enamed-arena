@@ -65,9 +65,9 @@ function BulkActions({
             onClick={onMarkResolved}
             aria-label="Marcar selecionadas como dominadas"
             className={cn(
-              'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-success)]/30 bg-[var(--c-success)]/10 px-3 text-[12px] font-semibold text-[var(--c-success)]',
-              'transition-all duration-[var(--c-duration-fast)] hover:bg-[var(--c-success)]/20 hover:border-[var(--c-success)]/50',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+              'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[color-mix(in_srgb,var(--c-success)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-success)_10%,transparent)] px-3 text-[12px] font-semibold text-[var(--c-success)]',
+              'transition-all duration-[var(--c-duration-fast)] hover:bg-[color-mix(in_srgb,var(--c-success)_20%,transparent)] hover:border-[color-mix(in_srgb,var(--c-success)_50%,transparent)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
               'disabled:opacity-50',
             )}
           >
@@ -90,7 +90,7 @@ function BulkActions({
                 className={cn(
                   'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 text-[12px] font-semibold text-[var(--c-muted)]',
                   'transition-all duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
                   'disabled:opacity-50',
                 )}
               >
@@ -130,9 +130,9 @@ function BulkActions({
             onClick={onDelete}
             aria-label="Excluir selecionadas"
             className={cn(
-              'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-destructive)]/30 bg-[var(--c-destructive)]/10 px-3 text-[12px] font-semibold text-[var(--c-destructive)]',
-              'transition-all duration-[var(--c-duration-fast)] hover:bg-[var(--c-destructive)]/20 hover:border-[var(--c-destructive)]/50',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+              'inline-flex h-9 items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[color-mix(in_srgb,var(--c-destructive)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-destructive)_10%,transparent)] px-3 text-[12px] font-semibold text-[var(--c-destructive)]',
+              'transition-all duration-[var(--c-duration-fast)] hover:bg-[color-mix(in_srgb,var(--c-destructive)_20%,transparent)] hover:border-[color-mix(in_srgb,var(--c-destructive)_50%,transparent)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
               'disabled:opacity-50',
             )}
           >
@@ -155,7 +155,7 @@ function BulkActions({
             className={cn(
               'inline-flex h-9 w-9 items-center justify-center rounded-[var(--c-radius-control)] border border-[var(--c-border)] text-[var(--c-muted)]',
               'transition-all duration-[var(--c-duration-fast)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
             )}
           >
             <X className="h-3.5 w-3.5" aria-hidden />
@@ -185,7 +185,7 @@ export function BulkActionBar({
     return (
       <BottomActionBar
         role="toolbar"
-        aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} — ações em lote`}
+        aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} para ações em lote`}
         className={cn(busy && 'pointer-events-none opacity-70')}
       >
         <BulkActions {...commonProps} compact />
@@ -196,7 +196,7 @@ export function BulkActionBar({
   return (
     <div
       role="toolbar"
-      aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} — ações em lote`}
+      aria-label={`${count} ${pluralize(count, 'questão selecionada', 'questões selecionadas')} para ações em lote`}
       className={cn(
         'fixed bottom-6 left-1/2 z-50 -translate-x-1/2',
         'flex items-center gap-2 rounded-[var(--c-radius-pill)]',

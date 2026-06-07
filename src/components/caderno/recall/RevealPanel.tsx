@@ -101,18 +101,18 @@ export function RevealPanel({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-wine-500)]/20 bg-gradient-to-br from-[var(--c-wine-500)]/[0.04] to-[var(--c-wine-500)]/[0.08] shadow-[var(--c-shadow-sm)]"
+      className="overflow-hidden rounded-[var(--c-radius-card)] border border-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] bg-gradient-to-br from-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] to-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] shadow-[var(--c-shadow-sm)]"
       aria-live="polite"
     >
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--c-wine-500)]/10 px-5 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] px-5 py-4">
         {/* Avatar + identity */}
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <div
               className={cn(
                 'overflow-hidden rounded-full border-2 border-[var(--c-surface)] shadow-sm',
-                generatingAi && 'ring-2 ring-[var(--c-wine-500)]/30 ring-offset-2 ring-offset-transparent',
+                generatingAi && 'ring-2 ring-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] ring-offset-2 ring-offset-transparent',
               )}
             >
               <ProfSanorAvatar size={44} animated={generatingAi} />
@@ -148,10 +148,10 @@ export function RevealPanel({
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-1.5 text-[12px] font-semibold',
                   'transition-all duration-150',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
                   isSpeaking
-                    ? 'border-[var(--c-wine-500)]/40 bg-[var(--c-wine-500)]/10 text-[var(--c-wine-500)]'
-                    : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-ink)] hover:border-[var(--c-wine-500)]/30 hover:bg-[var(--c-wine-500)]/[0.04]',
+                    ? 'border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] text-[var(--c-wine-500)]'
+                    : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-ink)] hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)]',
                 )}
               >
                 {isSpeaking ? (
@@ -191,11 +191,11 @@ export function RevealPanel({
         {/* Skeleton while generating */}
         {!reviewData.aiReviewMd && generatingAi && (
           <div className="space-y-3 motion-safe:animate-pulse">
-            <div className="h-3 w-3/4 rounded bg-[var(--c-wine-500)]/10" />
-            <div className="h-3 w-full rounded bg-[var(--c-wine-500)]/10" />
-            <div className="h-3 w-5/6 rounded bg-[var(--c-wine-500)]/10" />
-            <div className="h-3 w-2/3 rounded bg-[var(--c-wine-500)]/10" />
-            <div className="h-3 w-4/5 rounded bg-[var(--c-wine-500)]/10" />
+            <div className="h-3 w-3/4 rounded bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]" />
+            <div className="h-3 w-full rounded bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]" />
+            <div className="h-3 w-5/6 rounded bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]" />
+            <div className="h-3 w-2/3 rounded bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]" />
+            <div className="h-3 w-4/5 rounded bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]" />
           </div>
         )}
 
@@ -227,7 +227,7 @@ export function RevealPanel({
                   if (practice?.topic) params.set('topic', practice.topic);
                   return `/simulados?${params.toString()}`;
                 })()}
-                className="mt-5 inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-wine-500)]/25 bg-[var(--c-wine-500)]/[0.05] px-4 py-2.5 text-[13px] font-semibold text-[var(--c-wine-500)] transition-all duration-150 hover:border-[var(--c-wine-500)]/45 hover:bg-[var(--c-wine-500)]/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2 no-underline"
+                className="mt-5 inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_5%,transparent)] px-4 py-2.5 text-[13px] font-semibold text-[var(--c-wine-500)] transition-all duration-150 hover:border-[color-mix(in_srgb,var(--c-wine-500)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_9%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2 no-underline"
               >
                 <Zap className="h-3.5 w-3.5" aria-hidden />
                 Treinar{' '}
@@ -239,12 +239,12 @@ export function RevealPanel({
             )}
 
             {/* ── Chat ──────────────────────────────────────────────────────── */}
-            <div className="mt-5 border-t border-[var(--c-wine-500)]/10 pt-4">
+            <div className="mt-5 border-t border-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] pt-4">
               {!chatOpen ? (
                 <button
                   type="button"
                   onClick={() => onChatOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-3.5 py-2 text-[12px] font-semibold text-[var(--c-ink)] transition-all duration-150 hover:border-[var(--c-wine-500)]/30 hover:bg-[var(--c-wine-500)]/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2"
+                  className="inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-3.5 py-2 text-[12px] font-semibold text-[var(--c-ink)] transition-all duration-150 hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2"
                 >
                   <MessageCircle className="h-3.5 w-3.5 text-[var(--c-wine-500)]" aria-hidden />
                   Tirar uma dúvida com o Prof. San
@@ -308,7 +308,7 @@ export function RevealPanel({
                         className={cn(
                           'rounded-[var(--c-radius-control)] px-3 py-2.5 text-[13px] leading-relaxed',
                           m.role === 'user'
-                            ? 'ml-8 bg-[var(--c-wine-500)]/[0.08] text-[var(--c-ink)]'
+                            ? 'ml-8 bg-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] text-[var(--c-ink)]'
                             : 'mr-8 border border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-ink)]',
                         )}
                       >
@@ -364,7 +364,7 @@ export function RevealPanel({
                         maxLength={600}
                         placeholder="Pergunte sobre essa questão…"
                         disabled={chatLoading}
-                        className="flex-1 resize-none rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40 disabled:opacity-50"
+                        className="flex-1 resize-none rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] disabled:opacity-50"
                       />
                       <Button
                         type="submit"

@@ -34,7 +34,7 @@ export function InsightsEmptyState({ message, entryCount = 0 }: InsightsEmptySta
     <div
       role="status"
       aria-live="polite"
-      aria-label="Insights indisponíveis — dados insuficientes"
+      aria-label="Diagnóstico indisponível: ainda faltam dados"
       className={cn(
         'flex flex-col items-center gap-6',
         'rounded-[var(--c-radius-card)] border-2 border-dashed border-primary/20',

@@ -96,7 +96,7 @@ export function SessionSummaryV2({ stats, remainingCount, onContinue }: SessionS
           <p className="mt-1 text-body text-white/65">
             {dominated > 0
               ? `Você dominou ${dominated} ${dominated === 1 ? 'questão' : 'questões'} em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}.`
-              : 'Continue revisando — cada sessão conta.'}
+              : 'Continue revisando. Cada sessão conta.'}
           </p>
 
           {/* Stats grid */}

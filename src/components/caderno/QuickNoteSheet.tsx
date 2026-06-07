@@ -107,16 +107,16 @@ function NoteButtonInner({
               'relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-3.5 py-2.5',
               'text-[12px] font-semibold border',
               'transition-all duration-[var(--c-duration-base)] ease-[var(--c-ease-standard)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
               hasNote
                 ? [
                     'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)]',
-                    'dark:bg-[var(--c-wine-900)]/40 dark:border-[var(--c-wine-700)]/60 dark:text-[var(--c-wine-300)]',
+                    'dark:bg-[color-mix(in_srgb,var(--c-wine-900)_40%,transparent)] dark:border-[color-mix(in_srgb,var(--c-wine-700)_60%,transparent)] dark:text-[var(--c-wine-300)]',
                   ].join(' ')
                 : [
                     'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)]',
                     'hover:border-[var(--c-wine-300)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-700)]',
-                    'dark:hover:bg-[var(--c-wine-900)]/30 dark:hover:text-[var(--c-wine-300)]',
+                    'dark:hover:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] dark:hover:text-[var(--c-wine-300)]',
                   ].join(' '),
             )}
           >
@@ -267,8 +267,8 @@ function QuickNoteSheet({
                 }
                 className={cn(
                   'min-h-[180px] flex-1 resize-none rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-4 py-3',
-                  'text-[13px] leading-[1.7] text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]/50',
-                  'focus-visible:border-[var(--c-wine-500)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/15',
+                  'text-[13px] leading-[1.7] text-[var(--c-ink)] placeholder:text-[color-mix(in_srgb,var(--c-muted-2)_50%,transparent)]',
+                  'focus-visible:border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_15%,transparent)]',
                 )}
                 aria-label="Corpo da anotação"
               />
@@ -280,7 +280,7 @@ function QuickNoteSheet({
                   'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-4 py-2.5',
                   'bg-[var(--c-wine-500)] text-[13px] font-semibold text-white',
                   'transition-all hover:bg-[var(--c-wine-600)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-1',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-1',
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >

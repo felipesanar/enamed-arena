@@ -86,9 +86,9 @@ function QueueList({
                 className={cn(
                   'group w-full flex items-center gap-2.5 rounded-[var(--c-radius-control)] px-2.5 py-2.5 text-left transition-all duration-150',
                   isCurrent
-                    ? 'bg-[var(--c-wine-500)]/[0.08] ring-1 ring-[var(--c-wine-500)]/25'
+                    ? 'bg-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)]'
                     : 'hover:bg-[var(--c-surface-2)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                 )}
                 aria-current={isCurrent ? 'true' : undefined}
               >
@@ -158,12 +158,12 @@ export function MobileQueueTrigger({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--c-ink)] transition-all duration-150 hover:border-[var(--c-wine-500)]/30 hover:bg-[var(--c-wine-500)]/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 lg:hidden"
+        className="inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--c-ink)] transition-all duration-150 hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] lg:hidden"
         aria-label="Ver fila da sessão"
       >
         <List className="h-3.5 w-3.5" aria-hidden />
         <span>Fila</span>
-        <span className="rounded-full bg-[var(--c-wine-500)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--c-wine-500)] tabular-nums">
+        <span className="rounded-full bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--c-wine-500)] tabular-nums">
           {entries.length}
         </span>
       </button>

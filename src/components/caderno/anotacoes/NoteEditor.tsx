@@ -147,7 +147,7 @@ function ToolbarButton({ onClick, disabled, label, tooltip, children }: ToolbarB
             'flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
             'text-[var(--c-muted)] duration-[var(--c-duration-fast)]',
             'hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)]',
             'disabled:cursor-not-allowed disabled:opacity-40',
           )}
         >
@@ -329,9 +329,9 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
           autoComplete="off"
           className={cn(
             'w-full border-0 border-b-2 border-transparent bg-transparent px-1 py-2',
-            'text-[22px] font-extrabold tracking-tight text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]/50',
+            'text-[22px] font-extrabold tracking-tight text-[var(--c-ink)] placeholder:text-[color-mix(in_srgb,var(--c-muted-2)_50%,transparent)]',
             'transition-colors duration-[var(--c-duration-fast)]',
-            'focus-visible:border-b-[var(--c-wine-500)]/50 focus-visible:outline-none',
+            'focus-visible:border-b-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:outline-none',
           )}
           aria-describedby={`${titleId}-hint`}
         />
@@ -347,14 +347,14 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
           'rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)]',
           'shadow-[var(--c-shadow-sm)]',
           'transition-all duration-[var(--c-duration-fast)]',
-          'focus-within:border-[var(--c-wine-500)]/40 focus-within:shadow-[0_0_0_3px_rgba(176,41,74,.07)]',
+          'focus-within:border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] focus-within:shadow-[0_0_0_3px_rgba(176,41,74,.07)]',
         )}
       >
         {/* Toolbar */}
         <div
           className={cn(
             'flex items-center justify-between gap-2',
-            'border-b border-[var(--c-border)] bg-[var(--c-surface-2)]/60 px-3 py-1.5',
+            'border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface-2)_60%,transparent)] px-3 py-1.5',
           )}
           role="toolbar"
           aria-label="Formatação de texto"
@@ -431,7 +431,7 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
                     'flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
                     'text-[var(--c-muted)] duration-[var(--c-duration-fast)]',
                     'hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-500)]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/40',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)]',
                     'disabled:cursor-not-allowed disabled:opacity-40',
                   )}
                 >
@@ -453,12 +453,12 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
           value={body}
           onChange={handleBodyChange}
           placeholder={
-            'Escreva sua anotação aqui…\n\nSuporta markdown: **negrito**, _itálico_, ## título, - listas, `código`'
+            'Escreva sua anotação aqui…\n\nVocê pode formatar: **negrito**, _itálico_, ## título, - listas, `código`'
           }
           className={cn(
             'flex-1 resize-none bg-transparent px-4 py-4',
             'font-mono text-[13px] leading-[1.75] text-[var(--c-ink)]',
-            'placeholder:text-[var(--c-muted-2)]/40',
+            'placeholder:text-[color-mix(in_srgb,var(--c-muted-2)_40%,transparent)]',
             'focus-visible:outline-none',
           )}
           aria-describedby={`${bodyId}-hint`}
@@ -472,7 +472,7 @@ export function NoteEditor({ note, onSaved }: NoteEditorProps) {
 
       {/* Footer hint */}
       <p
-        className="mt-1.5 text-right text-[11px] text-[var(--c-muted-2)]/60 select-none"
+        className="mt-1.5 text-right text-[11px] text-[color-mix(in_srgb,var(--c-muted-2)_60%,transparent)] select-none"
         aria-hidden
       >
         Salvo automaticamente · Ctrl+S para salvar agora

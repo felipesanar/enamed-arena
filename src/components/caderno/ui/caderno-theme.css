@@ -21,6 +21,16 @@
   --c-gradient-brand: linear-gradient(135deg, #B0294A, #7A1A32);
   --c-gradient-glow:  radial-gradient(circle, rgba(176,41,74,.22), transparent 70%);
 
+  /* ── Superfícies "soft" (pills, chips, ícone-botões) ───────────────────
+     O Tailwind v3 NÃO compila opacidade sobre valor arbitrário com var()
+     — ex.: `dark:bg-[var(--c-wine-900)]/40` é descartado e a base clara
+     vaza no dark. Use estes tokens theme-aware, consumidos SEM `dark:`.
+     Os tokens danger usam color-mix com --c-surface, então adaptam sozinhos. */
+  --c-soft-wine-bg:     var(--c-wine-50);
+  --c-soft-wine-border: var(--c-wine-200);
+  --c-soft-danger-bg:     color-mix(in srgb, var(--c-destructive) 10%, var(--c-surface));
+  --c-soft-danger-border: color-mix(in srgb, var(--c-destructive) 30%, transparent);
+
   /* ── Neutros quentes (light) ─────────────────────────────────────── */
   --c-bg:        #FAF8F7;
   --c-surface:   #FFFFFF;
@@ -108,6 +118,11 @@
 
   --c-glass-bg:     rgba(22,19,26,0.72);
   --c-glass-border: rgba(42,37,49,0.6);
+
+  /* Soft wine no dark — tinte sutil de vinho sobre a superfície escura
+     (substitui o antigo dark:bg-[var(--c-wine-900)]/40, que era descartado). */
+  --c-soft-wine-bg:     color-mix(in srgb, var(--c-wine-500) 16%, var(--c-surface));
+  --c-soft-wine-border: color-mix(in srgb, var(--c-wine-500) 36%, transparent);
 
   --c-shadow-sm:   0 1px 2px rgba(0,0,0,.18), 0 2px 8px -4px rgba(0,0,0,.28);
   --c-shadow-md:   0 8px 30px -12px rgba(0,0,0,.55);

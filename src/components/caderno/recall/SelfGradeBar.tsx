@@ -73,10 +73,10 @@ const GRADES: {
     key: '4',
     icon: Zap,
     colorClass: 'text-[var(--c-wine-500)]',
-    borderClass: 'border-[var(--c-wine-500)]/25',
+    borderClass: 'border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)]',
     bgClass: '',
-    hoverBorderClass: 'hover:border-[var(--c-wine-500)]/55',
-    hoverBgClass: 'hover:bg-[var(--c-wine-500)]/[0.05]',
+    hoverBorderClass: 'hover:border-[color-mix(in_srgb,var(--c-wine-500)_55%,transparent)]',
+    hoverBgClass: 'hover:bg-[color-mix(in_srgb,var(--c-wine-500)_5%,transparent)]',
   },
 ];
 
@@ -106,7 +106,7 @@ export function SelfGradeBar({ wasCorrect, isLoading, onGrade }: SelfGradeBarPro
         </p>
         <p className="mt-0.5 text-caption text-[var(--c-muted)]">
           {wasCorrect
-            ? 'Marque sua confiança — isso afina o algoritmo de revisão.'
+            ? 'Marque sua confiança. Isso ajusta quando a questão volta para você.'
             : '"Fácil" só disponível quando você acerta.'}
         </p>
       </div>
@@ -142,7 +142,7 @@ export function SelfGradeBar({ wasCorrect, isLoading, onGrade }: SelfGradeBarPro
                 !isFacilDisabled && !isLoading && [g.hoverBorderClass, g.hoverBgClass, 'cursor-pointer'],
                 isFacilDisabled && 'cursor-not-allowed opacity-35',
                 isLoading && 'cursor-wait opacity-60',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
                 // Mobile: extra tall
                 'sm:min-h-[68px]',
               )}

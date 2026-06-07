@@ -161,7 +161,7 @@ function FilledState() {
           className={cn(
             'w-full rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)]',
             'py-2.5 pl-10 pr-4 text-[13px] text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
-            'min-h-[44px] focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[var(--c-wine-500)]/30',
+            'min-h-[44px] focus:border-[var(--c-wine-400)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)]',
             'transition-all duration-[var(--c-duration-fast)]',
           )}
         />
@@ -311,7 +311,7 @@ function ToggleButtonShowcase() {
           className={cn(
             'inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-[var(--c-radius-control)] px-3.5 py-2.5',
             'text-[12px] font-semibold border transition-all duration-[var(--c-duration-base)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
             favorited
               ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] shadow-[0_2px_8px_-2px_rgba(176,41,74,.22)]'
               : 'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-700)]',

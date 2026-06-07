@@ -52,10 +52,10 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
       {/* Label overline */}
       <div className="flex items-center justify-between px-0.5">
         <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
-          Decks
+          Baralhos
         </span>
         <span className="text-[10px] text-[var(--c-muted-2)]">
-          {decks.length} {decks.length === 1 ? 'deck' : 'decks'}
+          {decks.length} {decks.length === 1 ? 'baralho' : 'baralhos'}
         </span>
       </div>
 
@@ -114,23 +114,23 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 maxLength={60}
-                placeholder="Nome do deck…"
-                aria-label="Nome do novo deck"
+                placeholder="Nome do baralho…"
+                aria-label="Nome do novo baralho"
                 className={cn(
-                  'h-8 w-36 rounded-[var(--c-radius-pill)] border border-[var(--c-wine-500)]/40 bg-[var(--c-surface)] px-3',
+                  'h-8 w-36 rounded-[var(--c-radius-pill)] border border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] bg-[var(--c-surface)] px-3',
                   'text-[12px] font-medium text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
-                  'outline-none transition-colors focus:border-[var(--c-wine-500)] focus:ring-1 focus:ring-[var(--c-wine-500)]/20',
+                  'outline-none transition-colors focus:border-[var(--c-wine-500)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
                 )}
               />
               <button
                 type="button"
-                aria-label="Confirmar criação de deck"
+                aria-label="Confirmar criação de baralho"
                 disabled={!newName.trim() || isCreating}
                 onClick={handleCreate}
                 className={cn(
                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
                   'bg-[var(--c-wine-500)] text-white',
-                  'transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  'transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                   (!newName.trim() || isCreating) && 'cursor-not-allowed opacity-40',
                 )}
               >
@@ -142,13 +142,13 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               </button>
               <button
                 type="button"
-                aria-label="Cancelar criação de deck"
+                aria-label="Cancelar criação de baralho"
                 onClick={() => { setShowInput(false); setNewName(''); }}
                 className={cn(
                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
                   'border border-[var(--c-border)] text-[var(--c-muted)]',
                   'transition-colors hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                 )}
               >
                 <X className="h-3 w-3" aria-hidden />
@@ -163,16 +163,16 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               animate={{ opacity: 1 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0 }}
               transition={{ duration: 0.15 }}
-              aria-label="Criar novo deck"
+              aria-label="Criar novo baralho"
               className={cn(
                 'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--c-radius-pill)] border border-dashed px-3',
                 'border-[var(--c-border)] text-[11px] font-semibold text-[var(--c-muted)]',
                 'transition-colors duration-150 hover:border-[var(--c-wine-300)] hover:text-[var(--c-wine-600)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               )}
             >
               <Plus className="h-3 w-3" aria-hidden />
-              Novo deck
+              Novo baralho
             </motion.button>
           )}
         </AnimatePresence>

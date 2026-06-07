@@ -334,7 +334,7 @@ export function ShellSection({
               </span>
               <span className={cn(
                 "inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-wine-300)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] px-3 py-1.5",
-                "text-[12px] font-semibold cursor-pointer dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]",
+                "text-[12px] font-semibold cursor-pointer dark:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] dark:text-[var(--c-wine-300)]",
               )}>
                 <Swords className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 Reta Final ENAMED
@@ -366,7 +366,7 @@ export function ShellSection({
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-2 text-[12px] font-semibold",
                   isSelectMode
-                    ? "border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/30"
+                    ? "border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)]"
                     : "border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]",
                 )}
               >
@@ -383,8 +383,8 @@ export function ShellSection({
             {/* CTA sessão de revisão */}
             <div className={cn(
               "relative flex items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)]",
-              "border border-[var(--c-wine-300)]/30 bg-gradient-to-r from-[var(--c-wine-50)] via-[var(--c-surface)] to-[var(--c-surface)]",
-              "dark:from-[var(--c-wine-900)]/20 dark:via-[var(--c-surface)] dark:border-[var(--c-wine-700)]/30",
+              "border border-[color-mix(in_srgb,var(--c-wine-300)_30%,transparent)] bg-gradient-to-r from-[var(--c-wine-50)] via-[var(--c-surface)] to-[var(--c-surface)]",
+              "dark:from-[color-mix(in_srgb,var(--c-wine-900)_20%,transparent)] dark:via-[var(--c-surface)] dark:border-[color-mix(in_srgb,var(--c-wine-700)_30%,transparent)]",
               "px-5 py-4 shadow-[var(--c-shadow-sm)]",
             )}>
               <div className="flex min-w-0 items-center gap-3">

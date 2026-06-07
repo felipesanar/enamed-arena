@@ -178,7 +178,7 @@ interface RoiPanelProps {
 
 function RoiSkeleton() {
   return (
-    <section aria-label="Painel de ROI — carregando" className="space-y-4">
+    <section aria-label="Carregando o retorno do caderno" className="space-y-4">
       <SkeletonLine className="h-5 w-52" />
       <SkeletonLine className="h-[180px] w-full rounded-[var(--c-radius-card)]" />
       <SkeletonLine className="h-36 w-full rounded-[var(--c-radius-card)]" />
@@ -274,7 +274,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
   return (
     <section
       ref={panelRef}
-      aria-label="Painel de ROI — retorno sobre investimento no caderno"
+      aria-label="Retorno do caderno nos seus simulados"
       className="space-y-5"
     >
       {/* ── Header ── */}
@@ -287,7 +287,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
             <TrendingUp className="h-4 w-4" />
           </span>
           <SectionHeader
-            title="Retorno do caderno (ROI)"
+            title="O quanto o caderno te ajudou"
             className="m-0 p-0 border-0"
           />
         </div>
@@ -296,7 +296,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
           <TooltipTrigger asChild>
             <button
               type="button"
-              aria-label="Como calculamos o ROI"
+              aria-label="Como calculamos isso"
               onClick={() => setMethodologyOpen((o) => !o)}
               className={cn(
                 'inline-flex items-center justify-center h-8 w-8 rounded-lg',
@@ -325,7 +325,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
           >
             <p className="rounded-xl bg-[var(--c-surface-2)] border border-border px-4 py-3 text-caption text-muted-foreground leading-relaxed">
               Comparamos seu acerto em cada área nos simulados antes e depois de cada domínio
-              registrado no caderno. O delta mostra quantos pontos percentuais seu acerto mudou.
+              registrado no caderno. A diferença mostra quantos pontos percentuais seu acerto mudou.
             </p>
           </motion.div>
         )}
@@ -334,7 +334,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
       {/* ── Estado sem dados ── */}
       {noData ? (
         <CadernoCard className="px-6 py-10 text-center space-y-2">
-          <p className="text-body font-semibold text-foreground">Sem dados de ROI ainda</p>
+          <p className="text-body font-semibold text-foreground">Ainda sem dados de retorno</p>
           <p className="text-caption text-muted-foreground max-w-sm mx-auto">
             Domine questões do caderno e complete pelo menos um simulado depois para ver o
             impacto do seu estudo aqui.
@@ -346,10 +346,10 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
           {sparklineData.length >= 2 && (
             <CadernoCard className="p-4 md:p-5">
               <p className="text-[13px] font-semibold text-foreground mb-0.5">
-                Evolução do score global
+                Evolução da sua pontuação
               </p>
               <p className="text-caption text-muted-foreground mb-4">
-                Score acumulado em simulados completados
+                Pontuação acumulada nos simulados que você completou
               </p>
               <div className="h-[140px] md:h-[160px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -393,8 +393,8 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
           {/* ── Tabela por área ── */}
           {areaRows.length > 0 && (
             <CadernoCard className="overflow-hidden p-0">
-              <div className="px-4 py-3 border-b border-border bg-[var(--c-surface-2)]/50">
-                <p className="text-[13px] font-semibold text-foreground">Score por área</p>
+              <div className="px-4 py-3 border-b border-border bg-[color-mix(in_srgb,var(--c-surface-2)_50%,transparent)]">
+                <p className="text-[13px] font-semibold text-foreground">Pontuação por área</p>
                 <p className="text-caption text-muted-foreground">
                   Antes e depois de dominar questões do caderno
                 </p>
@@ -402,7 +402,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[360px]">
                   <thead>
-                    <tr className="border-b border-border/60 bg-[var(--c-surface-2)]/40">
+                    <tr className="border-b border-border/60 bg-[color-mix(in_srgb,var(--c-surface-2)_40%,transparent)]">
                       <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Área
                       </th>
@@ -413,7 +413,7 @@ export function RoiPanel({ history, loading }: RoiPanelProps) {
                         Depois
                       </th>
                       <th className="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Delta
+                        Diferença
                       </th>
                     </tr>
                   </thead>

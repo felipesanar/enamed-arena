@@ -65,16 +65,16 @@ export function NoteList({ notes, selectedId, onSelect, onDelete }: NoteListProp
               className={cn(
                 'group relative flex cursor-pointer items-start rounded-[var(--c-radius-control)] border transition-all',
                 'duration-[var(--c-duration-base)]',
-                'focus-within:ring-2 focus-within:ring-[var(--c-wine-500)]/40 focus-within:ring-offset-1',
+                'focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] focus-within:ring-offset-1',
                 isActive
                   ? [
-                      'border-[var(--c-wine-500)]/30 bg-[var(--c-wine-50)]',
-                      'dark:border-[var(--c-wine-500)]/25 dark:bg-[var(--c-wine-900)]/20',
+                      'border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] bg-[var(--c-wine-50)]',
+                      'dark:border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_20%,transparent)]',
                       'shadow-[var(--c-shadow-sm)]',
                     ]
                   : [
                       'border-[var(--c-border)] bg-[var(--c-surface)]',
-                      'hover:border-[var(--c-wine-500)]/20 hover:bg-[var(--c-surface-2)]',
+                      'hover:border-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] hover:bg-[var(--c-surface-2)]',
                     ],
               )}
             >

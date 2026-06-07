@@ -233,7 +233,7 @@ function PrimaryCta({
         "[background:var(--c-gradient-brand)]",
         "shadow-[var(--c-shadow-glow)]",
         "hover:brightness-110 transition-all active:scale-[0.99]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-400)]/50",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-400)_50%,transparent)]",
       )}
     >
       <Icon className="h-4 w-4" aria-hidden />

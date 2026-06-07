@@ -34,7 +34,7 @@ export const CadernoEmptyState = React.forwardRef<HTMLDivElement, CadernoEmptySt
             className={cn(
               "flex h-16 w-16 items-center justify-center rounded-2xl text-3xl",
               variant === "celebratory"
-                ? "bg-[var(--c-wine-100)] dark:bg-[var(--c-wine-900)]/40"
+                ? "bg-[var(--c-wine-100)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_40%,transparent)]"
                 : "bg-[var(--c-surface-2)]",
             )}
             aria-hidden="true"

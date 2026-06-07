@@ -82,7 +82,7 @@ export function ConfidenceStep({ onSelect }: ConfidenceStepProps) {
           Qual foi sua confiança?
         </p>
         <p className="mt-0.5 text-caption text-[var(--c-muted)]">
-          Seja honesto — isso calibra seu próximo intervalo de revisão.
+          Seja honesto. Isso ajusta quando essa questão volta.
         </p>
       </div>
 
@@ -110,7 +110,7 @@ export function ConfidenceStep({ onSelect }: ConfidenceStepProps) {
               'px-2 py-3 text-center transition-all duration-150',
               opt.borderClass,
               opt.bgClass,
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50 focus-visible:ring-offset-2',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
               // Mobile: extra tall tap target
               'sm:min-h-[64px]',
             )}

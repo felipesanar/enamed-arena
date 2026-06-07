@@ -200,7 +200,7 @@ function SessionSummary({ total, results, removedCount, onFinish }: SessionSumma
       {mastered > 0 && (
         <p className="text-[13px] text-[var(--c-muted)]">
           <span className="font-bold text-[var(--c-ink)]">{mastered}</span>{' '}
-          {mastered === 1 ? 'card com bom desempenho' : 'cards com bom desempenho'} — SRS atualizado.
+          {mastered === 1 ? 'card com bom desempenho' : 'cards com bom desempenho'}. Revisão reagendada.
         </p>
       )}
 
@@ -363,7 +363,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
           aria-label={`${g.label} — ${g.sublabel} (tecla ${i + 1})`}
           className={cn(
             'relative flex flex-col items-center gap-2 rounded-[var(--c-radius-card)] border py-4 transition-all duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
             'disabled:cursor-not-allowed disabled:opacity-50',
             g.borderClass,
             g.colorClass,
@@ -407,7 +407,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
             'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] px-2 py-1.5',
             'text-[12px] font-semibold text-[var(--c-muted)]',
             'transition-colors hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
           )}
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
@@ -446,7 +446,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
               transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
               onClick={isMobile ? () => setRevealed(true) : undefined}
               className={cn(
-                'overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-wine-500)]/15 bg-[var(--c-surface)] shadow-[var(--c-shadow-md)]',
+                'overflow-hidden rounded-[var(--c-radius-card)] border border-[color-mix(in_srgb,var(--c-wine-500)_15%,transparent)] bg-[var(--c-surface)] shadow-[var(--c-shadow-md)]',
                 isMobile && 'cursor-pointer active:scale-[0.99]',
               )}
             >

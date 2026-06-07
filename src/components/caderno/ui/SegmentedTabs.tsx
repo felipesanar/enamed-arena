@@ -54,7 +54,7 @@ export function SegmentedTabs({
               "inline-flex shrink-0 items-center gap-1.5 rounded-[calc(var(--c-radius-control)-2px)] px-3 py-1.5",
               "text-xs font-semibold whitespace-nowrap transition-all",
               "duration-[var(--c-duration-fast)] ease-[var(--c-ease-standard)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]",
               "min-h-[44px]",
               isActive
                 ? "bg-[var(--c-surface)] text-[var(--c-ink)] shadow-[var(--c-shadow-sm)]"

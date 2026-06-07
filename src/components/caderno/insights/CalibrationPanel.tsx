@@ -145,8 +145,8 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
         >
           <span className="mt-0.5 shrink-0 text-success font-bold" aria-hidden>✓</span>
           <span className="text-success">
-            <strong className="font-bold">Bem calibrado!</strong> Seu acerto sobe junto com a
-            confiança declarada — sinal de boa metacognição.
+            <strong className="font-bold">Mandou bem!</strong> Seu acerto cresce junto com a
+            sua confiança. Você se conhece bem.
           </span>
         </div>
       )}
@@ -162,8 +162,8 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
         >
           <span className="mt-0.5 shrink-0 text-destructive" aria-hidden>⚠</span>
           <span className="text-destructive">
-            <strong className="font-bold">Overconfidence detectada.</strong>{' '}
-            Você declarou confiança "alta" em {overall.alta_but_wrong} questões que errou.
+            <strong className="font-bold">Confiança alta demais.</strong>{' '}
+            Você marcou confiança "alta" em {overall.alta_but_wrong} questões que errou.
             Revise esses temas com atenção.
           </span>
         </div>
@@ -180,9 +180,9 @@ function CalibrationInsights({ overall, buckets }: CalibrationInsightsProps) {
         >
           <span className="mt-0.5 shrink-0 text-warning" aria-hidden>💡</span>
           <span className="text-warning">
-            <strong className="font-bold">Underconfidence detectada.</strong>{' '}
-            Você acertou {overall.baixa_but_correct} questões onde declarou confiança "baixa" —
-            talvez domine mais do que imagina!
+            <strong className="font-bold">Você se subestima.</strong>{' '}
+            Acertou {overall.baixa_but_correct} questões em que marcou confiança "baixa".
+            Você sabe mais do que pensa!
           </span>
         </div>
       )}
@@ -297,11 +297,11 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
 
       {/* ── Explicação pedagógica ── */}
       <p className="text-caption text-muted-foreground leading-relaxed">
-        Metacognição é saber o que você sabe. Comparamos sua{' '}
-        <strong className="font-semibold text-foreground">confiança declarada</strong>{' '}
-        (baixa / média / alta) com seu{' '}
-        <strong className="font-semibold text-foreground">acerto real</strong>. Barras
-        crescendo da esquerda para a direita = bem calibrado.
+        Saber o que você realmente sabe faz diferença. Comparamos a{' '}
+        <strong className="font-semibold text-foreground">confiança que você declarou</strong>{' '}
+        (baixa, média, alta) com seu{' '}
+        <strong className="font-semibold text-foreground">acerto de verdade</strong>. Barras
+        subindo da esquerda para a direita querem dizer que você se conhece bem.
       </p>
 
       {/* ── Estado sem dados ── */}
@@ -371,13 +371,13 @@ export function CalibrationPanel({ data, loading }: CalibrationPanelProps) {
 
           {/* ── Tabela resumo ── */}
           <CadernoCard className="overflow-hidden p-0">
-            <div className="px-4 py-3 border-b border-border bg-[var(--c-surface-2)]/50">
+            <div className="px-4 py-3 border-b border-border bg-[color-mix(in_srgb,var(--c-surface-2)_50%,transparent)]">
               <p className="text-[13px] font-semibold text-foreground">Resumo por nível</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[320px]">
                 <thead>
-                  <tr className="border-b border-border/60 bg-[var(--c-surface-2)]/40">
+                  <tr className="border-b border-border/60 bg-[color-mix(in_srgb,var(--c-surface-2)_40%,transparent)]">
                     <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Confiança
                     </th>

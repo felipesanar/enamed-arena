@@ -37,7 +37,7 @@ export function FavoritesEmptyState({ isFiltered, onClearFilters }: FavoritesEmp
                 'inline-flex items-center gap-1.5 rounded-[var(--c-radius-control)] border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2',
                 'text-[12px] font-semibold text-[var(--c-muted)]',
                 'transition-colors duration-[var(--c-duration-fast)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               )}
             >
               Limpar filtros
@@ -59,8 +59,8 @@ export function FavoritesEmptyState({ isFiltered, onClearFilters }: FavoritesEmp
       title="Nenhum favorito ainda"
       description={
         [
-          'Favorite questões de alto valor durante a correção do simulado — ',
-          'pegadinhas clássicas, temas prevalentes ou qualquer questão que vale fixar.',
+          'Favorite, na correção do simulado, as questões que valem rever: ',
+          'pegadinhas clássicas, temas que mais caem ou qualquer uma que você quer fixar.',
         ].join('')
       }
       action={
@@ -85,7 +85,7 @@ export function FavoritesEmptyState({ isFiltered, onClearFilters }: FavoritesEmp
               'shadow-[var(--c-shadow-glow)] transition-all duration-[var(--c-duration-base)]',
               'hover:shadow-[0_8px_32px_-8px_rgba(176,41,74,.55)] hover:-translate-y-0.5',
               'active:scale-[0.99]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
             )}
           >
             <Zap className="h-4 w-4" aria-hidden />

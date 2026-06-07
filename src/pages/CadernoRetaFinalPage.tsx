@@ -98,7 +98,7 @@ function ExamPassedState() {
       className="caderno-root mx-auto max-w-xl"
       icon={<CalendarCheck2 className="h-8 w-8 text-[var(--c-wine-500)]" aria-hidden />}
       title="O ENAMED já aconteceu!"
-      description="O War Room estará disponível no próximo ciclo. Continue revisando seu caderno de erros para manter o ritmo."
+      description="A Reta Final volta no próximo ciclo. Continue revisando seu caderno para manter o ritmo."
       action={<PrimaryCta to="/caderno" icon={BookOpen}>Ir para o Caderno</PrimaryCta>}
     />
   );
@@ -111,8 +111,8 @@ function EmptyNotebookState() {
     <CadernoEmptyState
       className="caderno-root mx-auto max-w-xl"
       icon={<Target className="h-8 w-8 text-[var(--c-wine-500)]" aria-hidden />}
-      title="Caderno vazio"
-      description="O War Room monta seu plano com base nas questões do seu Caderno de Erros. Adicione questões na correção do simulado para ativar o plano."
+      title="Seu caderno está vazio"
+      description="A Reta Final monta seu plano com as questões do seu caderno. Salve questões na correção do simulado para ativar o plano."
       action={<PrimaryCta to="/simulados" icon={Zap}>Ver simulados disponíveis</PrimaryCta>}
     />
   );
@@ -127,7 +127,7 @@ function UpToDateState({ daysUntil }: { daysUntil: number }) {
       variant="celebratory"
       icon={<Trophy className="h-8 w-8 text-[var(--c-wine-500)]" aria-hidden />}
       title="Você está em dia!"
-      description={`Nenhuma revisão pendente para hoje. Continue assim — faltam ${daysUntil} ${daysUntil === 1 ? 'dia' : 'dias'} para o ENAMED.`}
+      description={`Nenhuma revisão pendente para hoje. Continue assim! Faltam ${daysUntil} ${daysUntil === 1 ? 'dia' : 'dias'} para o ENAMED.`}
     />
   );
 }
@@ -233,7 +233,7 @@ function RetaFinalContent({ userId }: { userId: string }) {
     } catch (err) {
       logger.error('[CadernoRetaFinalPage] Erro ao carregar entradas:', err);
       toast({
-        title: 'Não foi possível carregar o War Room',
+        title: 'Não foi possível carregar a Reta Final',
         description: 'Verifique sua conexão e tente novamente.',
         variant: 'destructive',
       });
@@ -336,7 +336,7 @@ function RetaFinalContent({ userId }: { userId: string }) {
             }
             description={
               todayHasEntries
-                ? 'Questões priorizadas por lapso, peso ENAMED e vencimento.'
+                ? 'Questões priorizadas pelos seus tropeços, pelo peso no ENAMED e pelo vencimento.'
                 : undefined
             }
           />
@@ -382,7 +382,7 @@ function RetaFinalContent({ userId }: { userId: string }) {
               '[background:var(--c-gradient-brand)]',
               'shadow-[var(--c-shadow-glow)]',
               'active:scale-[0.99] transition-all',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-400)]/50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-400)_50%,transparent)]',
             )}
           >
             <Zap className="h-4 w-4" aria-hidden />
@@ -407,8 +407,8 @@ export default function CadernoRetaFinalPage() {
       {!hasAccess ? (
         <ProGate
           icon={Target}
-          feature="War Room ENAMED"
-          description="Monte seu plano de revisão personalizado com contagem regressiva para o ENAMED. Priorização inteligente por área, lapsos e peso na prova."
+          feature="Reta Final ENAMED"
+          description="Monte seu plano de revisão com contagem regressiva para o ENAMED. Priorização por área, pelos seus tropeços e pelo peso na prova."
           requiredSegment="pro"
           currentSegment={segment}
           benefits={[

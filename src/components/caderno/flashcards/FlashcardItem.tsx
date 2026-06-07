@@ -164,7 +164,7 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
                   'flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)]',
                   'text-[var(--c-muted)] transition-colors duration-150',
                   'hover:bg-[var(--c-surface-2)] hover:text-[var(--c-ink)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
                 )}
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
