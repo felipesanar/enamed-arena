@@ -485,6 +485,9 @@ function CadernoContent({ userId }: { userId: string }) {
     }
   }, [selectedIds, entries, userId, cancelSelection]);
 
+  const hasActiveFilters =
+    typeFilter !== 'all' || !!specFilter || searchRaw.trim().length > 0;
+
   const clearFilters = () => {
     setTypeFilter('all');
     setSpecFilter(null);
@@ -589,56 +592,55 @@ function CadernoContent({ userId }: { userId: string }) {
           }}
         />
 
-        {/* ── Filtros + ações do header ── */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <FilterBar
-              typeOptions={typeOptions}
-              specialties={specialties}
-              totalCount={filtered.length}
-              typeFilter={typeFilter}
-              specFilter={specFilter}
-              search={searchRaw}
-              typeCounts={typeCounts}
-              onTypeChange={setTypeFilter}
-              onSpecChange={setSpecFilter}
-              onSearchChange={setSearchRaw}
-            />
-          </div>
-
-          {/* Exportar + Selecionar */}
-          <div className="mt-0.5 flex shrink-0 items-center gap-2">
-            <CadernoExportMenu
-              entries={entries as any}
-              variant="outline"
-              size="sm"
-            />
-            {entries.length > 0 && (
-              <button
-                type="button"
-                aria-pressed={isSelectMode}
-                aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
-                onClick={() => { if (isSelectMode) cancelSelection(); }}
-                title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-2 text-[12px] font-semibold transition-all duration-[var(--c-duration-fast)]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
-                  isSelectMode
-                    ? 'border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]'
-                    : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
-                )}
-              >
-                <CheckSquare className="h-3.5 w-3.5" aria-hidden />
-                <span className="hidden sm:inline">{isSelectMode ? 'Selecionando' : 'Selecionar'}</span>
-                {isSelectMode && (
-                  <span className="ml-0.5 rounded-full bg-[var(--c-wine-500)] px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
-                    {selectedIds.size}
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
+        {/* ── Painel de controles — busca + ações + filtros ── */}
+        <FilterBar
+          typeOptions={typeOptions}
+          specialties={specialties}
+          totalCount={filtered.length}
+          typeFilter={typeFilter}
+          specFilter={specFilter}
+          search={searchRaw}
+          typeCounts={typeCounts}
+          onTypeChange={setTypeFilter}
+          onSpecChange={setSpecFilter}
+          onSearchChange={setSearchRaw}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+          actions={
+            <>
+              <CadernoExportMenu
+                entries={entries as any}
+                variant="outline"
+                size="sm"
+                className="h-[42px] rounded-[var(--c-radius-control)] px-4"
+              />
+              {entries.length > 0 && (
+                <button
+                  type="button"
+                  aria-pressed={isSelectMode}
+                  aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
+                  onClick={() => { if (isSelectMode) cancelSelection(); }}
+                  title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
+                  className={cn(
+                    'inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 rounded-[var(--c-radius-control)] border px-4 text-[13px] font-semibold transition-all duration-[var(--c-duration-fast)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-wine-500)]/50',
+                    isSelectMode
+                      ? 'border-[var(--c-wine-400)] bg-[var(--c-wine-50)] text-[var(--c-wine-700)] dark:bg-[var(--c-wine-900)]/30 dark:text-[var(--c-wine-300)]'
+                      : 'border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] hover:border-[var(--c-wine-300)] hover:text-[var(--c-ink)]',
+                  )}
+                >
+                  <CheckSquare className="h-4 w-4" aria-hidden />
+                  <span>{isSelectMode ? 'Selecionando' : 'Selecionar'}</span>
+                  {isSelectMode && (
+                    <span className="ml-0.5 rounded-full bg-[var(--c-wine-500)] px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                      {selectedIds.size}
+                    </span>
+                  )}
+                </button>
+              )}
+            </>
+          }
+        />
 
         {/* ── Zero pendentes (celebratório) ── */}
         {allResolved && (
