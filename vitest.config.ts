@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
@@ -11,6 +11,12 @@ export default defineConfig({
     include: [
       "src/**/*.{test,spec}.{ts,tsx}",
       "supabase/functions/**/*.{test,spec}.ts",
+    ],
+    // Edge functions Deno (gemini-*) importam de https:// e rodam com `deno test`,
+    // não sob o Node/Vitest. Excluídas aqui para não quebrar `npm run test`.
+    exclude: [
+      ...configDefaults.exclude,
+      "supabase/functions/gemini-*/**",
     ],
     coverage: {
       provider: "v8",
