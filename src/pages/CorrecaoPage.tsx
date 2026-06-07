@@ -10,7 +10,6 @@ import { NoteButton } from '@/components/caderno/QuickNoteSheet';
 // Tokens --c-* (escopados em .caderno-root) usados pelos botões V3 acima.
 // Importado aqui pois o CSS do Caderno não é carregado por padrão nesta rota.
 import '@/components/caderno/ui/caderno-theme.css';
-import { SimuladoResultNav } from '@/components/simulado/SimuladoResultNav';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
 import { useAuth } from '@/contexts/AuthContext';
@@ -297,12 +296,6 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
       </header>
 
       <div className="px-4 md:px-6 py-4 md:py-6">
-      {id && (
-        <div className="mb-6">
-          <SimuladoResultNav simuladoId={id} variant={adminPreview ? 'admin' : 'public'} />
-        </div>
-      )}
-
       <div className="flex gap-6">
         <div className="flex-1 min-w-0">
           <AnimatePresence mode="wait">
