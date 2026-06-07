@@ -23,6 +23,7 @@ import type {
   FrictionPoint,
   FeatureAdoptionRow,
   TopEventRow,
+  CadernoFunnelRow,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -539,6 +540,27 @@ export const adminApi = {
     return (data as any[]).map(r => ({
       event_name: r.event_name as string,
       cnt:        Number(r.cnt),
+    }))
+  },
+
+  // ─── Caderno de Erros funnel / health (plano 08 §3.6) ───
+  // Degrades gracefully to an empty array if the RPC is not deployed yet.
+  async getCadernoFunnel(days: number, segment = 'all'): Promise<CadernoFunnelRow[]> {
+    const { data, error } = await (supabase.rpc as any)('admin_caderno_funnel', { p_days: days, p_segment: segment })
+    if (error) {
+      // RPC not deployed (undefined function) — surface as "no data" rather than crash.
+      if (error.code === 'PGRST202' || /function .*does not exist/i.test(error.message ?? '')) {
+        return []
+      }
+      throw error
+    }
+    return ((data ?? []) as any[]).map(r => ({
+      metric_order: Number(r.metric_order),
+      metric_key:   r.metric_key as string,
+      metric_label: r.metric_label as string,
+      event_name:   r.event_name as string,
+      total_events: Number(r.total_events),
+      unique_users: Number(r.unique_users),
     }))
   },
 };

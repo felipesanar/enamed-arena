@@ -43,6 +43,7 @@ vi.mock("@/contexts/UserContext", () => ({
     profile: { id: "user-1", segment: "pro", full_name: "Aluno Teste" },
     isOnboardingComplete: true,
   }),
+  useHasAccess: () => true,
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({

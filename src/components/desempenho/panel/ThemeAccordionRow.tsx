@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Check, X, Minus } from 'lucide-react';
+import { ChevronRight, Check, X, Minus, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 import { scoreTier } from './helpers';
 
 function QuestionRow({
@@ -64,6 +65,9 @@ export function ThemeAccordionRow({
   simuladoId,
   prefersReducedMotion,
   correcaoVariant,
+  showCadernoLink,
+  cadernoBase,
+  specialty,
 }: {
   theme: string;
   score: number;
@@ -81,6 +85,9 @@ export function ThemeAccordionRow({
   simuladoId: string;
   prefersReducedMotion: boolean;
   correcaoVariant: 'public' | 'admin';
+  showCadernoLink: boolean;
+  cadernoBase: string;
+  specialty: string;
 }) {
   const tier = scoreTier(score);
   const scoreColor =
@@ -155,6 +162,24 @@ export function ThemeAccordionRow({
                     </li>
                   ))}
                 </ul>
+              )}
+              {showCadernoLink && (
+                <div className="px-2 pt-1.5 pb-1">
+                  <Link
+                    to={`${cadernoBase}?area=${encodeURIComponent(specialty)}&theme=${encodeURIComponent(theme)}`}
+                    onClick={() =>
+                      trackEvent('desempenho_to_caderno_clicked', {
+                        target: 'erros',
+                        area: specialty,
+                        theme,
+                      })
+                    }
+                    className="inline-flex items-center gap-1 rounded text-[11px] font-semibold text-primary no-underline transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <BookOpen className="h-3 w-3" aria-hidden />
+                    Ver meus erros deste tema
+                  </Link>
+                </div>
               )}
             </div>
           </motion.div>

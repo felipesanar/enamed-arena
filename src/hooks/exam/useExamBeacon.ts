@@ -71,6 +71,7 @@ export function useExamBeacon({
               marked_for_review: ans.markedForReview,
               high_confidence: ans.highConfidence,
               eliminated_options: ans.eliminatedAlternatives || [],
+              confidence: ans.confidence ?? null,
               answered_at: ans.selectedOption ? new Date().toISOString() : null,
             }));
             if (rows.length > 0) {

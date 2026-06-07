@@ -1,5 +1,8 @@
-import { Star, TrendingDown } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Star, TrendingDown, Dumbbell } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 import { SectionHeader } from './primitives';
 
 function SummaryCard({
@@ -11,6 +14,7 @@ function SummaryCard({
   total,
   score,
   description,
+  action,
 }: {
   icon: typeof Star;
   tone: 'success' | 'destructive';
@@ -20,6 +24,7 @@ function SummaryCard({
   total: number;
   score: number;
   description: string;
+  action?: ReactNode;
 }) {
   const toneClasses =
     tone === 'success'
@@ -63,6 +68,7 @@ function SummaryCard({
             </span>
           </div>
           <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{description}</p>
+          {action}
         </div>
       </div>
     </div>
@@ -72,9 +78,13 @@ function SummaryCard({
 export function SummarySection({
   bestArea,
   worstArea,
+  showCadernoLink,
+  cadernoTreino,
 }: {
   bestArea: { area: string; score: number; correct: number; questions: number };
   worstArea: { area: string; score: number; correct: number; questions: number };
+  showCadernoLink: boolean;
+  cadernoTreino: string;
 }) {
   return (
     <section aria-label="Resumo do desempenho">
@@ -99,6 +109,23 @@ export function SummarySection({
           total={worstArea.questions}
           score={worstArea.score}
           description={`A especialidade com maior oportunidade é ${worstArea.area} com ${worstArea.correct}/${worstArea.questions} acertos.`}
+          action={
+            showCadernoLink ? (
+              <Link
+                to={`${cadernoTreino}?area=${encodeURIComponent(worstArea.area)}`}
+                onClick={() =>
+                  trackEvent('desempenho_to_caderno_clicked', {
+                    target: 'treinar',
+                    area: worstArea.area,
+                  })
+                }
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/[0.06] px-3 py-1.5 text-[12px] font-semibold text-destructive no-underline transition-colors hover:bg-destructive/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <Dumbbell className="h-3.5 w-3.5" aria-hidden />
+                Treinar {worstArea.area}
+              </Link>
+            ) : undefined
+          }
         />
       </div>
     </section>

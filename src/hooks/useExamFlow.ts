@@ -16,7 +16,7 @@ import { useExamAnswers } from '@/hooks/exam/useExamAnswers';
 import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
 import { useExamBeacon } from '@/hooks/exam/useExamBeacon';
 import { useExamLifecycle } from '@/hooks/exam/useExamLifecycle';
-import { computeExamSummary, type ExamState, type ExamAnswer } from '@/types/exam';
+import { computeExamSummary, type ExamState, type ExamAnswer, type ConfidenceLevel } from '@/types/exam';
 import type { Question } from '@/types';
 
 export interface UseExamFlowReturn {
@@ -50,6 +50,7 @@ export interface UseExamFlowReturn {
   // Answer & navigation handlers
   handleSelectOption: (optionId: string) => void;
   handleEliminateOption: (optionId: string) => void;
+  handleSetConfidence: (level: ConfidenceLevel) => void;
   handleNavigate: (index: number) => void;
   handlePrev: () => void;
   handleNext: () => void;
@@ -160,6 +161,7 @@ export function useExamFlow(): UseExamFlowReturn {
     handleNext,
     toggleReview,
     toggleHighConfidence,
+    handleSetConfidence,
   } = useExamAnswers({
     currentQuestion,
     currentIndex,
@@ -184,8 +186,16 @@ export function useExamFlow(): UseExamFlowReturn {
         map[String(i + 1)] = () => handleSelectOption(opt.id);
       });
     }
+    // Confidence shortcuts 1/2/3 (spec 04 §1.3):
+    // Activates only after the aluno has selected an option — natural sequence avoids
+    // collision with alternative shortcuts since confidence comes after selection.
+    if (currentAnswer?.selectedOption) {
+      map['1'] = () => handleSetConfidence('baixa');
+      map['2'] = () => handleSetConfidence('media');
+      map['3'] = () => handleSetConfidence('alta');
+    }
     return map;
-  }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption]);
+  }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption, currentAnswer?.selectedOption, handleSetConfidence]);
 
   useKeyboardShortcuts(shortcuts, {
     enabled: state?.status === 'in_progress' && !showSubmitModal && !submitting,
@@ -215,6 +225,7 @@ export function useExamFlow(): UseExamFlowReturn {
     updateState,
     handleSelectOption,
     handleEliminateOption,
+    handleSetConfidence,
     handleNavigate,
     handlePrev,
     handleNext,

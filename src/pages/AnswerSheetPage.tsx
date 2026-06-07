@@ -114,15 +114,18 @@ export default function AnswerSheetPage() {
       clearAttempt();
 
       if (result.is_within_window) {
-        toast({ title: 'Gabarito enviado!', description: 'Sua tentativa foi registrada no ranking.' });
+        toast({
+          title: 'Gabarito enviado!',
+          description: 'Sua tentativa foi registrada no ranking. Revise seus erros no Caderno após a correção.',
+        });
       } else {
         toast({
           title: 'Gabarito enviado',
-          description: 'Resultado disponível, mas fora da janela de ranking.',
+          description: 'Resultado disponível, mas fora da janela de ranking. Revise seus erros no Caderno após a correção.',
         });
       }
 
-      navigate(`/simulados/${simulado?.slug ?? id}/resultado`);
+      navigate(`/simulados/${simulado?.slug ?? id}`);
     } catch (err) {
       logger.error('[AnswerSheetPage] Submit error:', err);
       toast({

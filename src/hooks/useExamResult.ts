@@ -1,6 +1,6 @@
 /**
  * Hook to load a completed exam attempt with answers from Supabase.
- * Used by ResultadoPage, CorrecaoPage, DesempenhoPage.
+ * Used by CorrecaoPage, DesempenhoPage.
  * This hook only trusts server-side persisted data.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -24,6 +24,7 @@ function answersToExamState(attempt: AttemptRow, answerRows: AnswerRow[]): ExamS
       markedForReview: a.marked_for_review,
       highConfidence: a.high_confidence,
       eliminatedAlternatives: a.eliminated_options || [],
+      confidence: (a as any).confidence ?? null,
     };
   });
 

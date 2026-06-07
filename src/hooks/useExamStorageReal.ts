@@ -124,6 +124,7 @@ export function useExamStorageReal(simuladoId: string) {
           markedForReview: a.marked_for_review,
           highConfidence: a.high_confidence,
           eliminatedAlternatives: a.eliminated_options || [],
+          confidence: (a as any).confidence ?? null,
         };
       });
 

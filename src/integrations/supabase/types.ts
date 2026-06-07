@@ -63,6 +63,7 @@ export type Database = {
         Row: {
           answered_at: string | null
           attempt_id: string
+          confidence: string | null
           created_at: string
           eliminated_options: string[] | null
           high_confidence: boolean
@@ -75,6 +76,7 @@ export type Database = {
         Insert: {
           answered_at?: string | null
           attempt_id: string
+          confidence?: string | null
           created_at?: string
           eliminated_options?: string[] | null
           high_confidence?: boolean
@@ -87,6 +89,7 @@ export type Database = {
         Update: {
           answered_at?: string | null
           attempt_id?: string
+          confidence?: string | null
           created_at?: string
           eliminated_options?: string[] | null
           high_confidence?: boolean
@@ -166,6 +169,7 @@ export type Database = {
       }
       attempt_question_results: {
         Row: {
+          ai_suggested_reason: string | null
           attempt_id: string
           correct_option_id: string | null
           created_at: string
@@ -177,6 +181,7 @@ export type Database = {
           was_answered: boolean
         }
         Insert: {
+          ai_suggested_reason?: string | null
           attempt_id: string
           correct_option_id?: string | null
           created_at?: string
@@ -188,6 +193,7 @@ export type Database = {
           was_answered?: boolean
         }
         Update: {
+          ai_suggested_reason?: string | null
           attempt_id?: string
           correct_option_id?: string | null
           created_at?: string
@@ -299,6 +305,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      caderno_pattern_insights_cache: {
+        Row: {
+          entry_count: number
+          generated_at: string
+          id: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          entry_count?: number
+          generated_at?: string
+          id?: string
+          payload: Json
+          user_id: string
+        }
+        Update: {
+          entry_count?: number
+          generated_at?: string
+          id?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      decks: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       enamed_cutoff_scores: {
         Row: {
@@ -425,10 +485,13 @@ export type Database = {
           ai_review_md: string | null
           area: string | null
           chat_count: number
+          confidence_at_answer: string | null
           created_at: string
           deleted_at: string | null
           id: string
+          last_review_outcome: string | null
           learning_text: string | null
+          mastered_at: string | null
           next_review_at: string | null
           question_id: string | null
           question_number: number | null
@@ -437,6 +500,11 @@ export type Database = {
           resolved_at: string | null
           simulado_id: string | null
           simulado_title: string | null
+          srs_due_at: string | null
+          srs_ease: number
+          srs_interval: number
+          srs_lapses: number
+          srs_reps: number
           theme: string | null
           updated_at: string
           user_id: string
@@ -449,10 +517,13 @@ export type Database = {
           ai_review_md?: string | null
           area?: string | null
           chat_count?: number
+          confidence_at_answer?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
+          last_review_outcome?: string | null
           learning_text?: string | null
+          mastered_at?: string | null
           next_review_at?: string | null
           question_id?: string | null
           question_number?: number | null
@@ -461,6 +532,11 @@ export type Database = {
           resolved_at?: string | null
           simulado_id?: string | null
           simulado_title?: string | null
+          srs_due_at?: string | null
+          srs_ease?: number
+          srs_interval?: number
+          srs_lapses?: number
+          srs_reps?: number
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -473,10 +549,13 @@ export type Database = {
           ai_review_md?: string | null
           area?: string | null
           chat_count?: number
+          confidence_at_answer?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
+          last_review_outcome?: string | null
           learning_text?: string | null
+          mastered_at?: string | null
           next_review_at?: string | null
           question_id?: string | null
           question_number?: number | null
@@ -485,6 +564,11 @@ export type Database = {
           resolved_at?: string | null
           simulado_id?: string | null
           simulado_title?: string | null
+          srs_due_at?: string | null
+          srs_ease?: number
+          srs_interval?: number
+          srs_lapses?: number
+          srs_reps?: number
           theme?: string | null
           updated_at?: string
           user_id?: string
@@ -503,6 +587,84 @@ export type Database = {
             columns: ["simulado_id"]
             isOneToOne: false
             referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flashcards: {
+        Row: {
+          back_image_path: string | null
+          back_md: string
+          created_at: string
+          deck_id: string
+          deleted_at: string | null
+          entry_id: string | null
+          front_image_path: string | null
+          front_md: string
+          id: string
+          last_review_outcome: string | null
+          mastered_at: string | null
+          srs_due_at: string
+          srs_ease: number
+          srs_interval: number
+          srs_lapses: number
+          srs_reps: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back_image_path?: string | null
+          back_md: string
+          created_at?: string
+          deck_id: string
+          deleted_at?: string | null
+          entry_id?: string | null
+          front_image_path?: string | null
+          front_md: string
+          id?: string
+          last_review_outcome?: string | null
+          mastered_at?: string | null
+          srs_due_at?: string
+          srs_ease?: number
+          srs_interval?: number
+          srs_lapses?: number
+          srs_reps?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back_image_path?: string | null
+          back_md?: string
+          created_at?: string
+          deck_id?: string
+          deleted_at?: string | null
+          entry_id?: string | null
+          front_image_path?: string | null
+          front_md?: string
+          id?: string
+          last_review_outcome?: string | null
+          mastered_at?: string | null
+          srs_due_at?: string
+          srs_ease?: number
+          srs_interval?: number
+          srs_lapses?: number
+          srs_reps?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flashcards_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "error_notebook"
             referencedColumns: ["id"]
           },
         ]
@@ -567,6 +729,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          caderno_v2_enabled: boolean
           created_at: string
           email: string | null
           full_name: string | null
@@ -577,6 +740,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          caderno_v2_enabled?: boolean
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -587,6 +751,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          caderno_v2_enabled?: boolean
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -596,6 +761,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      question_favorites: {
+        Row: {
+          area: string | null
+          created_at: string
+          id: string
+          question_id: string
+          simulado_id: string | null
+          theme: string | null
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string
+          id?: string
+          question_id: string
+          simulado_id?: string | null
+          theme?: string | null
+          user_id: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string
+          id?: string
+          question_id?: string
+          simulado_id?: string | null
+          theme?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_favorites_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_favorites_simulado_id_fkey"
+            columns: ["simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       question_options: {
         Row: {
@@ -682,6 +892,57 @@ export type Database = {
           },
         ]
       }
+      review_attempts: {
+        Row: {
+          confidence: string
+          created_at: string
+          entry_id: string
+          id: string
+          reviewed_at: string
+          selected_option_id: string | null
+          self_grade: string
+          user_id: string
+          was_correct: boolean
+        }
+        Insert: {
+          confidence: string
+          created_at?: string
+          entry_id: string
+          id?: string
+          reviewed_at?: string
+          selected_option_id?: string | null
+          self_grade: string
+          user_id: string
+          was_correct: boolean
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          entry_id?: string
+          id?: string
+          reviewed_at?: string
+          selected_option_id?: string | null
+          self_grade?: string
+          user_id?: string
+          was_correct?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_attempts_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "error_notebook"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_attempts_selected_option_id_fkey"
+            columns: ["selected_option_id"]
+            isOneToOne: false
+            referencedRelation: "question_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulados: {
         Row: {
           created_at: string
@@ -750,6 +1011,63 @@ export type Database = {
           window_start?: string | null
         }
         Relationships: []
+      }
+      user_notes: {
+        Row: {
+          area: string | null
+          body_md: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          question_id: string | null
+          simulado_id: string | null
+          theme: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          body_md?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          question_id?: string | null
+          simulado_id?: string | null
+          theme?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: string | null
+          body_md?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          question_id?: string | null
+          simulado_id?: string | null
+          theme?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notes_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notes_simulado_id_fkey"
+            columns: ["simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_performance_history: {
         Row: {
@@ -897,6 +1215,7 @@ export type Database = {
     }
     Functions: {
       _norm_match: { Args: { t: string }; Returns: string }
+      add_to_notebook_bulk_guarded: { Args: { p_entries: Json }; Returns: Json }
       admin_analytics_funnel: {
         Args: { p_days?: number }
         Returns: {
@@ -1228,6 +1547,10 @@ export type Database = {
         }
         Returns: number
       }
+      clear_awaiting_lesson_guarded: {
+        Args: { p_entry_id: string }
+        Returns: undefined
+      }
       create_attempt_guarded: {
         Args: { p_simulado_id: string }
         Returns: {
@@ -1275,6 +1598,7 @@ export type Database = {
           total_questions: number
         }[]
       }
+      get_area_score_history: { Args: { p_user_id: string }; Returns: Json }
       get_attempt_question_results: {
         Args: { p_attempt_id: string }
         Returns: {
@@ -1285,6 +1609,8 @@ export type Database = {
           was_answered: boolean
         }[]
       }
+      get_caderno_pattern_data: { Args: { p_user_id: string }; Returns: Json }
+      get_confidence_calibration: { Args: { p_user_id: string }; Returns: Json }
       get_onboarding_edit_guard_state: {
         Args: never
         Returns: {
@@ -1401,6 +1727,17 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      record_review_attempt_guarded: {
+        Args: {
+          p_confidence: string
+          p_entry_id: string
+          p_selected_option_id: string
+          p_self_grade: string
+          p_was_correct: boolean
+        }
+        Returns: string
+      }
+      reset_leech_guarded: { Args: { p_entry_id: string }; Returns: undefined }
       save_onboarding_guarded: {
         Args: { p_specialty: string; p_target_institutions: string[] }
         Returns: {
@@ -1419,6 +1756,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      schedule_flashcard_review_guarded: {
+        Args: { p_flashcard_id: string; p_outcome: string }
+        Returns: Json
+      }
+      schedule_next_review_guarded: {
+        Args: { p_confidence: string; p_entry_id: string; p_outcome: string }
+        Returns: Json
       }
       snooze_error_notebook_entry: {
         Args: { p_days?: number; p_entry_id: string }

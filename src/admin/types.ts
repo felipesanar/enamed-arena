@@ -212,3 +212,12 @@ export interface TopEventRow {
   event_name: string
   cnt: number
 }
+
+export interface CadernoFunnelRow {
+  metric_order: number
+  metric_key: string
+  metric_label: string
+  event_name: string
+  total_events: number
+  unique_users: number
+}

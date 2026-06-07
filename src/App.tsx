@@ -10,6 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardLayout } from "@/components/premium/DashboardLayout";
 import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
+import { LegacyCadernoGate } from "@/components/caderno/LegacyCadernoGate";
+import { CadernoLayout } from "@/components/caderno/CadernoLayout";
 
 // Page lazy imports — default exports
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -23,7 +25,6 @@ const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
 const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
 const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
-const ResultadoPage = lazy(() => import("./pages/ResultadoPage"));
 const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
 const CorrecaoPage = lazy(() => import("./pages/CorrecaoPage"));
 const DesempenhoPage = lazy(() => import("./pages/DesempenhoPage"));
@@ -31,10 +32,26 @@ const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ComparativoPage = lazy(() => import("./pages/ComparativoPage"));
 const CadernoErrosPage = lazy(() => import("./pages/CadernoErrosPage"));
 const CadernoRevisaoPage = lazy(() => import("./pages/CadernoRevisaoPage"));
+const CadernoPage = lazy(() => import("./pages/CadernoPage"));
+const CadernoFavoritosPage = lazy(() => import("./pages/CadernoFavoritosPage"));
+const CadernoAnotacoesPage = lazy(() => import("./pages/CadernoAnotacoesPage"));
+const CadernoFlashcardsPage = lazy(() => import("./pages/CadernoFlashcardsPage"));
+const CadernoInsightsPage = lazy(() => import("./pages/CadernoInsightsPage"));
+const CadernoTreinoPage = lazy(() => import("./pages/CadernoTreinoPage"));
+const CadernoRetaFinalPage = lazy(() => import("./pages/CadernoRetaFinalPage"));
+const CadernoRevisaoV2Page = lazy(() =>
+  import("./pages/CadernoRevisaoV2Page").then((m) => ({
+    default: m.CadernoRevisaoV2Page,
+  }))
+);
+const TriagemPage = lazy(() => import("./pages/TriagemPage"));
 const ConfiguracoesPage = lazy(() => import("./pages/ConfiguracoesPage"));
 // Sandbox pages are only bundled in dev builds.
 const SandboxCadernoPage = import.meta.env.DEV
   ? lazy(() => import("./pages/SandboxCadernoPage"))
+  : null;
+const SandboxCadernoV3Page = import.meta.env.DEV
+  ? lazy(() => import("./pages/CadernoV3ShowcasePage"))
   : null;
 
 // Page lazy imports — named exports
@@ -131,7 +148,6 @@ const App = () => (
                   <Route path="simulados/:id/analytics" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoAnalytics /></Suspense>} />
                   <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
                   <Route path="ranking-preview" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminRankingPreview /></Suspense>} />
-                  <Route path="preview/simulados/:id/resultado" element={<Suspense fallback={<PageLoadingSkeleton />}><ResultadoPage adminPreview /></Suspense>} />
                   <Route path="preview/simulados/:id/correcao" element={<Suspense fallback={<PageLoadingSkeleton />}><CorrecaoPage adminPreview /></Suspense>} />
                   <Route path="preview/simulados/:id/desempenho" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDesempenhoPreview /></Suspense>} />
                   <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />
@@ -147,19 +163,38 @@ const App = () => (
                 <Route path="simulados/:id/start" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />
-                <Route path="simulados/:id/resultado" element={<ResultadoPage />} />
                 <Route path="simulados/:id/gabarito" element={<AnswerSheetPage />} />
                 <Route path="simulados/:id/correcao" element={<CorrecaoPage />} />
+                <Route path="simulados/:id/triagem" element={<TriagemPage />} />
                 <Route path="desempenho" element={<DesempenhoPage />} />
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="comparativo" element={<ComparativoPage />} />
-                <Route path="caderno-erros" element={<CadernoErrosPage />} />
-                <Route path="caderno-erros/revisao" element={<CadernoRevisaoPage />} />
+                {/* Caderno v2 — casca persistente: TabBar fixo (CadernoLayout) +
+                    conteúdo via Outlet. Trocar de aba não desmonta a barra. */}
+                <Route element={<CadernoLayout />}>
+                  <Route path="caderno" element={<CadernoPage />} />
+                  <Route path="caderno/favoritos" element={<CadernoFavoritosPage />} />
+                  <Route path="caderno/anotacoes" element={<CadernoAnotacoesPage />} />
+                  <Route path="caderno/flashcards" element={<CadernoFlashcardsPage />} />
+                  <Route path="caderno/insights" element={<CadernoInsightsPage />} />
+                  <Route path="caderno/treino" element={<CadernoTreinoPage />} />
+                  <Route path="caderno/reta-final" element={<CadernoRetaFinalPage />} />
+                </Route>
+                {/* Revisão é sessão focada — sem TabBar */}
+                <Route path="caderno/revisao" element={<CadernoRevisaoV2Page />} />
+                {/* Produção atual — gated pela flag v2: quando ligada, redireciona
+                    para a nova casca (preservando query/hash); quando off, renderiza
+                    o legado. Flipar a flag é o único gatilho de cutover de rota. */}
+                <Route path="caderno-erros" element={<LegacyCadernoGate to="/caderno" legacy={<CadernoErrosPage />} />} />
+                <Route path="caderno-erros/revisao" element={<LegacyCadernoGate to="/caderno/revisao" legacy={<CadernoRevisaoPage />} />} />
                 <Route path="configuracoes" element={<ConfiguracoesPage />} />
               </Route>
               <Route path="/onboarding" element={<Suspense fallback={<PageShell />}><ProtectedRoute skipOnboardingCheck><OnboardingPage /></ProtectedRoute></Suspense>} />
               {SandboxCadernoPage ? (
                 <Route path="/sandbox/caderno" element={<Suspense fallback={<PageShell />}><SandboxCadernoPage /></Suspense>} />
+              ) : null}
+              {SandboxCadernoV3Page ? (
+                <Route path="/sandbox/caderno-v3" element={<Suspense fallback={<PageShell />}><SandboxCadernoV3Page /></Suspense>} />
               ) : null}
               <Route path="*" element={<Suspense fallback={<PageShell />}><NotFound /></Suspense>} />
             </Routes>

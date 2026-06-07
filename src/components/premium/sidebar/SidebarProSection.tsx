@@ -2,6 +2,9 @@ import { BookOpen } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { PremiumSidebarRailItem } from "@/components/premium/sidebar/PremiumSidebarRailItem";
 import { cn } from "@/lib/utils";
+import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
+import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
+import { useUser, useHasAccess } from "@/contexts/UserContext";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -16,17 +19,36 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
+  const caderno = useCadernoRoutes();
+  const { profile } = useUser();
+  const hasCadernoErros = useHasAccess("cadernoErros");
+  const { data: dueCount = 0 } = useNotebookDueCount(
+    profile?.id,
+    hasCadernoErros && caderno.v2,
+  );
+  const showDue = dueCount > 0;
+  const dueLabel = dueCount > 9 ? "9+" : String(dueCount);
+
   if (collapsed) {
     return (
       <div className="flex w-full min-w-0 flex-col items-stretch">
-        <PremiumSidebarRailItem
-          to="/caderno-erros"
-          icon={BookOpen}
-          label="Caderno de Erros, recurso PRO"
-          tooltip="Caderno de Erros · PRO"
-          variant="pro"
-          
-        />
+        <div className="relative">
+          <PremiumSidebarRailItem
+            to={caderno.base}
+            icon={BookOpen}
+            label="Caderno de Erros, recurso PRO"
+            tooltip="Caderno de Erros · PRO"
+            variant="pro"
+          />
+          {showDue && (
+            <span
+              className="pointer-events-none absolute right-3 top-1.5 z-[3] flex h-4 min-w-4 items-center justify-center rounded-full border border-[#270812] bg-[#E83862] px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_8px_rgba(232,56,98,0.55)]"
+              aria-label={`${dueCount} revisões para hoje`}
+            >
+              {dueLabel}
+            </span>
+          )}
+        </div>
       </div>
     );
   }
@@ -34,7 +56,7 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
   return (
     <div className="space-y-1.5 [@media(max-height:700px)]:space-y-0.5">
       <NavLink
-        to="/caderno-erros"
+        to={caderno.base}
         className={({ isActive }) =>
           cn(
             linkClass({ isActive }),
@@ -48,6 +70,14 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
           <span className="rounded-md border border-[rgba(232,56,98,0.25)] bg-[rgba(232,56,98,0.1)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[#E8839B] [@media(max-height:700px)]:px-1 [@media(max-height:700px)]:py-0">
             PRO
           </span>
+          {showDue && (
+            <span
+              className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-[rgba(232,56,98,0.35)] bg-[rgba(232,56,98,0.18)] px-1.5 text-[10px] font-bold leading-none text-[#FFD9E0] [@media(max-height:700px)]:h-4 [@media(max-height:700px)]:min-w-4"
+              aria-label={`${dueCount} revisões para hoje`}
+            >
+              {dueLabel}
+            </span>
+          )}
         </span>
       </NavLink>
     </div>

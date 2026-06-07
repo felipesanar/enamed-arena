@@ -1,15 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useExamFlow } from '@/hooks/useExamFlow';
 import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
 import { ExamHeader } from '@/components/exam/ExamHeader';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
+import { ConfidenceSelector } from '@/components/exam/ConfidenceSelector';
 import { QuestionNavigator } from '@/components/exam/QuestionNavigator';
 import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
-import { Flag, Zap, ChevronLeft, ChevronRight, Grid3X3, AlertCircle, Clock, Play, WifiOff, Maximize2 } from 'lucide-react';
+import { Flag, Zap, Heart, ChevronLeft, ChevronRight, Grid3X3, AlertCircle, Clock, Play, WifiOff, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { areResultsReleased } from '@/lib/simulado-helpers';
+import { useCadernoV2Flag } from '@/hooks/useCadernoV2Flag';
+import { useHasAccess } from '@/contexts/UserContext';
+import { simuladosApi } from '@/services/simuladosApi';
+import { trackEvent } from '@/lib/analytics';
+import { logger } from '@/lib/logger';
+import { toast } from '@/hooks/use-toast';
+import type { QuestionFavorite } from '@/types/caderno';
 
 function useFullscreen() {
   const enterFullscreen = useCallback(() => {
@@ -43,6 +52,114 @@ function useOnlineStatus() {
     };
   }, []);
   return online;
+}
+
+/**
+ * ExamFavoriteToggle — botão de coração compacto (ícone) para favoritar a questão
+ * durante a prova ("captura do quente"). Renderiza apenas quando v2 flag + PRO.
+ * Optimistic update espelhando FavoriteToggleButton; não interfere em respostas,
+ * timer ou atalhos (é apenas um botão isolado na toolbar).
+ */
+const FAVORITES_QUERY_KEY = ['caderno', 'favorites'] as const;
+
+function ExamFavoriteToggle({
+  questionId,
+  simuladoId,
+  area,
+  theme,
+}: {
+  questionId: string;
+  simuladoId: string;
+  area: string;
+  theme: string;
+}) {
+  const queryClient = useQueryClient();
+  const [pending, setPending] = useState(false);
+
+  const { data: favorites = [] } = useQuery<QuestionFavorite[]>({
+    queryKey: FAVORITES_QUERY_KEY,
+    queryFn: () => simuladosApi.listFavorites(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isFavorited = favorites.some((f) => f.question_id === questionId);
+
+  const handleToggle = useCallback(async () => {
+    if (pending) return;
+    setPending(true);
+
+    const previous = queryClient.getQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY) ?? [];
+
+    if (isFavorited) {
+      queryClient.setQueryData<QuestionFavorite[]>(
+        FAVORITES_QUERY_KEY,
+        previous.filter((f) => f.question_id !== questionId),
+      );
+      try {
+        await simuladosApi.removeFavorite(questionId, true);
+        trackEvent('caderno_favorite_removed', { question_id: questionId, area });
+        toast({ title: 'Removido dos favoritos', duration: 2500 });
+      } catch (err) {
+        logger.error('[ExamFavoriteToggle] Error removing favorite:', err);
+        queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, previous);
+        toast({ title: 'Não foi possível remover', variant: 'destructive' });
+      }
+    } else {
+      const optimisticEntry: QuestionFavorite = {
+        id: `optimistic-${questionId}`,
+        user_id: '',
+        question_id: questionId,
+        simulado_id: simuladoId,
+        area,
+        theme,
+        created_at: new Date().toISOString(),
+      };
+      queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, [optimisticEntry, ...previous]);
+      try {
+        const created = await simuladosApi.addFavorite({
+          question_id: questionId,
+          simulado_id: simuladoId,
+          area,
+          theme,
+        });
+        queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, (curr = []) =>
+          curr.map((f) => (f.id === optimisticEntry.id ? created : f)),
+        );
+        trackEvent('caderno_favorite_added', { question_id: questionId, simulado_id: simuladoId, area });
+        trackEvent('caderno_exam_question_favorited', { question_id: questionId, simulado_id: simuladoId, area });
+        toast({ title: 'Adicionado aos favoritos', duration: 2500 });
+      } catch (err) {
+        logger.error('[ExamFavoriteToggle] Error adding favorite:', err);
+        queryClient.setQueryData<QuestionFavorite[]>(FAVORITES_QUERY_KEY, previous);
+        toast({ title: 'Não foi possível favoritar', variant: 'destructive' });
+      }
+    }
+
+    setPending(false);
+  }, [pending, isFavorited, questionId, simuladoId, area, theme, queryClient]);
+
+  const label = isFavorited ? 'Remover dos favoritos' : 'Favoritar';
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      disabled={pending}
+      aria-label={label}
+      aria-pressed={isFavorited}
+      title={label}
+      className={cn(
+        'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border transition-all',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+        isFavorited
+          ? 'border-wine/40 bg-wine/10 text-wine hover:bg-wine/15'
+          : 'border-transparent bg-muted text-muted-foreground hover:bg-muted/80 hover:text-wine',
+        pending && 'pointer-events-none opacity-50',
+      )}
+    >
+      <Heart className={cn('h-4 w-4 transition-colors', isFavorited ? 'fill-current' : 'fill-none')} />
+    </button>
+  );
 }
 
 function MobileQuestionNav({
@@ -113,6 +230,9 @@ export default function SimuladoExamPage() {
   const flow = useExamFlow();
   const { enterFullscreen, exitFullscreen } = useFullscreen();
   const isOnline = useOnlineStatus();
+  const cadernoV2 = useCadernoV2Flag();
+  const canUseNotebook = useHasAccess('cadernoErros');
+  const canFavorite = cadernoV2 && canUseNotebook;
 
   const [preFlightDismissed, setPreFlightDismissed] = useState(true);
   const [timeWarningShown, setTimeWarningShown] = useState(false);
@@ -374,6 +494,13 @@ export default function SimuladoExamPage() {
                         onSelectOption={flow.handleSelectOption}
                         onEliminateOption={flow.handleEliminateOption}
                       />
+                      {/* Seletor de confiança — só aparece após marcar uma alternativa (spec 04 §1.1) */}
+                      {flow.currentAnswer?.selectedOption && (
+                        <ConfidenceSelector
+                          value={flow.currentAnswer?.confidence ?? null}
+                          onChange={flow.handleSetConfidence}
+                        />
+                      )}
                     </motion.div>
                   </AnimatePresence>
                   <div className="mt-3 pt-3 border-t border-[hsl(var(--exam-border))]">
@@ -405,6 +532,14 @@ export default function SimuladoExamPage() {
                         <Zap className="h-3.5 w-3.5" />
                         {flow.isHighConfFlagged ? 'Alta certeza ✓' : 'Alta certeza'}
                       </button>
+                      {canFavorite && (
+                        <ExamFavoriteToggle
+                          questionId={flow.currentQuestion.id}
+                          simuladoId={flow.simulado.id}
+                          area={flow.currentQuestion.area}
+                          theme={flow.currentQuestion.theme}
+                        />
+                      )}
                     </div>
                     <p className="mt-1.5 text-[10px] text-muted-foreground/40">
                       R = revisar · H = certeza

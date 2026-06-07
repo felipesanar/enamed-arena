@@ -1192,42 +1192,10 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                     <ReactMarkdown>{reviewData.aiReviewMd}</ReactMarkdown>
                   </div>
 
-                  {/* Fechamento do ciclo: CTA pra treinar mais do mesmo tema/subtópico.
-                      Quando a IA extrai um subtópico específico (ai_practice.topic),
-                      priorizamos ele; senão caímos no tema/área da própria questão. */}
-                  {(() => {
-                    const practice = reviewData.aiPractice;
-                    const topic =
-                      practice?.topic ?? currentEntry.theme ?? currentEntry.area ?? null;
-                    if (!topic) return null;
-                    const count = practice?.suggestedCount ?? 5;
-                    const params = new URLSearchParams();
-                    if (practice?.area ?? currentEntry.area)
-                      params.set('area', practice?.area ?? currentEntry.area ?? '');
-                    if (practice?.theme ?? currentEntry.theme)
-                      params.set('theme', practice?.theme ?? currentEntry.theme ?? '');
-                    if (practice?.topic) params.set('topic', practice.topic);
-
-                    return (
-                      <Link
-                        to={`/simulados?${params.toString()}`}
-                        onClick={() =>
-                          trackEvent('caderno_revisao_train_more_clicked', {
-                            area: practice?.area ?? currentEntry.area ?? 'unknown',
-                            theme: practice?.theme ?? currentEntry.theme ?? 'unknown',
-                            topic: practice?.topic ?? null,
-                            suggested_count: count,
-                          })
-                        }
-                        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-2.5 text-[13px] font-semibold text-primary transition-all duration-200 hover:border-primary/45 hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 no-underline"
-                      >
-                        <Zap className="h-3.5 w-3.5" aria-hidden />
-                        Treinar <span className="font-extrabold tabular-nums">{count}</span>{' '}
-                        questões de <span className="font-extrabold">{topic}</span>
-                        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                      </Link>
-                    );
-                  })()}
+                  {/* CTA "Treinar N questões de…" ocultado a pedido do produto.
+                      A implementação (deriva tema/área de ai_practice e monta o link
+                      para /simulados) foi removida por ser código inalcançável — ver
+                      histórico git para reativar. */}
 
                   {/* Chat efêmero com o Prof. Sanor */}
                   <div className="mt-5 border-t border-primary/10 pt-4">

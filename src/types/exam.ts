@@ -6,12 +6,17 @@
 export type AttemptStatus = 'not_started' | 'in_progress' | 'submitted' | 'expired';
 export type AlternativeLetter = 'A' | 'B' | 'C' | 'D' | 'E';
 
+/** Nível de confiança declarado pelo aluno no momento da resposta. */
+export type ConfidenceLevel = 'baixa' | 'media' | 'alta';
+
 export interface ExamAnswer {
   questionId: string;
   selectedOption: string | null; // option id
   markedForReview: boolean;
   highConfidence: boolean;
   eliminatedAlternatives: string[]; // option ids
+  /** Confiança declarada pelo aluno após marcar uma alternativa — opcional (spec 04). */
+  confidence: ConfidenceLevel | null;
 }
 
 export interface ExamState {

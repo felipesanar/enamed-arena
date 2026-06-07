@@ -6,6 +6,8 @@ import type { Question } from '@/types';
 import type { ExamState } from '@/types/exam';
 import { StaggerContainer, StaggerItem } from '@/components/premium/PageTransition';
 import { usePdfDownload } from '@/hooks/usePdfDownload';
+import { useCadernoRoutes } from '@/hooks/useCadernoRoutes';
+import { useHasAccess } from '@/contexts/UserContext';
 
 import { SimuladoTabs } from './panel/SimuladoTabs';
 import { PerformanceHeroCard } from './panel/PerformanceHeroCard';
@@ -46,6 +48,10 @@ export function DesempenhoSimuladoPanel({
   resultNavVariant = 'public',
 }: DesempenhoSimuladoPanelProps) {
   const prefersReducedMotion = useReducedMotion();
+  const caderno = useCadernoRoutes();
+  const hasCadernoAccess = useHasAccess('cadernoErros');
+  // Connector diagnosis → action: only when the v2 caderno shell is live and the user is PRO.
+  const showCadernoLinks = caderno.v2 && hasCadernoAccess;
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [selectedSubspecialty, setSelectedSubspecialty] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
@@ -255,6 +261,9 @@ export function DesempenhoSimuladoPanel({
                         simuladoId={selectedSimuladoId ?? ''}
                         prefersReducedMotion={!!prefersReducedMotion}
                         correcaoVariant={resultNavVariant}
+                        showCadernoLink={showCadernoLinks}
+                        cadernoBase={caderno.base}
+                        specialty={selectedSpecialty ?? ''}
                       />
                     ))}
                   </AnimatePresence>
@@ -269,7 +278,12 @@ export function DesempenhoSimuladoPanel({
       {/* Summary (Best + Worst) */}
       {byArea.length > 1 && bestArea && worstArea && (
         <StaggerItem>
-          <SummarySection bestArea={bestArea} worstArea={worstArea} />
+          <SummarySection
+            bestArea={bestArea}
+            worstArea={worstArea}
+            showCadernoLink={showCadernoLinks}
+            cadernoTreino={caderno.treino}
+          />
         </StaggerItem>
       )}
 

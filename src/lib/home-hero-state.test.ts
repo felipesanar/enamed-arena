@@ -175,7 +175,7 @@ describe("deriveHomeHeroState", () => {
     });
 
     expect(state.scenario).toBe("results_ready");
-    expect(state.ctaTo).toBe("/simulados/sim-done/resultado");
+    expect(state.ctaTo).toBe("/simulados/sim-done");
     expect(state.description).toContain("82%");
   });
 

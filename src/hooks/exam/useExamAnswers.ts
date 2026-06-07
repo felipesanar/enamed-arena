@@ -11,8 +11,9 @@
  */
 import { useCallback } from 'react';
 import type { Question } from '@/types';
-import type { ExamState, ExamAnswer } from '@/types/exam';
+import type { ExamState, ExamAnswer, ConfidenceLevel } from '@/types/exam';
 import { toast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 export interface UseExamAnswersArgs {
   currentQuestion: Question | undefined;
@@ -31,6 +32,7 @@ export interface UseExamAnswersReturn {
   handleNext: () => void;
   toggleReview: () => void;
   toggleHighConfidence: () => void;
+  handleSetConfidence: (level: ConfidenceLevel) => void;
 }
 
 /** Resposta default (não respondida) para uma questão ainda sem registro no estado. */
@@ -41,6 +43,7 @@ function emptyAnswer(questionId: string): ExamAnswer {
     markedForReview: false,
     highConfidence: false,
     eliminatedAlternatives: [],
+    confidence: null,
   };
 }
 
@@ -123,6 +126,24 @@ export function useExamAnswers({
     });
   }, [currentQuestion, updateState, markAnswerDirty]);
 
+  /**
+   * handleSetConfidence — captura o nível de confiança declarado pelo aluno.
+   * Chamado pelo ConfidenceSelector após a alternativa já estar selecionada.
+   * Persiste via o mesmo caminho de debounce/upsert já existente (spec 04 §1.4).
+   */
+  const handleSetConfidence = useCallback((level: ConfidenceLevel) => {
+    if (!currentQuestion) return;
+    markAnswerDirty(currentQuestion.id);
+    updateState(prev => {
+      const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
+      logger.log(`[useExamFlow] Confidence set: ${level} for question ${currentQuestion.id}`);
+      return {
+        ...prev,
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, confidence: level } },
+      };
+    });
+  }, [currentQuestion, updateState, markAnswerDirty]);
+
   return {
     handleSelectOption,
     handleEliminateOption,
@@ -131,5 +152,6 @@ export function useExamAnswers({
     handleNext,
     toggleReview,
     toggleHighConfidence,
+    handleSetConfidence,
   };
 }

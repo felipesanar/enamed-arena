@@ -32,3 +32,11 @@ export function useAdminProdutoTopEvents(days: number) {
     staleTime: 5 * 60 * 1000,
   })
 }
+
+export function useAdminProdutoCadernoFunnel(days: number, segment: string) {
+  return useQuery({
+    queryKey: ['admin', 'produto-caderno-funnel', days, segment],
+    queryFn: () => adminApi.getCadernoFunnel(days, segment),
+    staleTime: 5 * 60 * 1000,
+  })
+}

@@ -42,6 +42,7 @@ function makeState(answers: Record<string, string | null>): ExamState {
       markedForReview: false,
       highConfidence: false,
       eliminatedAlternatives: [],
+      confidence: null,
     };
   });
   return state;

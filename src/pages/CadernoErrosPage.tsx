@@ -32,7 +32,7 @@ import {
   pluralize,
 } from '@/components/caderno/helpers';
 import { HeroStatusCard } from '@/components/caderno/HeroStatusCard';
-import { FilterBar } from '@/components/caderno/FilterBar';
+import { FilterBar } from '@/components/caderno/FilterBarLegacy';
 import { QueueRow } from '@/components/caderno/QueueRow';
 import { ZeroPendingCard } from '@/components/caderno/ZeroPendingCard';
 import { CadernoSkeleton } from '@/components/caderno/CadernoSkeleton';

@@ -249,7 +249,7 @@ export function useExamLifecycle({
       toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
 
       // Invalidate caches so the user sees fresh data on next screen
-      // (ResultadoPage, CorrecaoPage, SimuladosPage list, performance summary).
+      // (CorrecaoPage, SimuladoDetailPage, SimuladosPage list, performance summary).
       queryClient.invalidateQueries({ queryKey: ['simulado', simulado.id] });
       queryClient.invalidateQueries({ queryKey: ['simulados'] });
       queryClient.invalidateQueries({ queryKey: ['user-performance'] });
