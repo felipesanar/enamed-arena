@@ -2,8 +2,8 @@
 import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Headphones, Users, FileText, ClipboardList,
-  BarChart3, Megaphone, Compass, Monitor, Shield, Trophy,
+  LayoutDashboard, Users, FileText, ClipboardList,
+  BarChart3, Megaphone, Compass, Trophy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RailGroup } from './AdminRail'
@@ -21,7 +21,6 @@ const FLYOUT_GROUPS: Record<RailGroup, { title: string; items: FlyoutItem[] }> =
     title: 'Operacional',
     items: [
       { to: '/admin',     label: 'Dashboard', description: 'Central de comando', icon: LayoutDashboard, phase: 'live' },
-      { to: '/admin/suporte', label: 'Suporte', description: 'Tickets e chamados', icon: Headphones, phase: 'p0' },
     ],
   },
   dados: {
@@ -39,13 +38,6 @@ const FLYOUT_GROUPS: Record<RailGroup, { title: string; items: FlyoutItem[] }> =
       { to: '/admin/analytics', label: 'Analytics', description: 'Produto e jornada',   icon: BarChart3,  phase: 'live' },
       { to: '/admin/marketing', label: 'Marketing', description: 'Aquisição e coortes', icon: Megaphone,  phase: 'live' },
       { to: '/admin/produto',   label: 'Produto',   description: 'Funil e fricções',    icon: Compass,    phase: 'live' },
-    ],
-  },
-  sistema: {
-    title: 'Sistema',
-    items: [
-      { to: '/admin/tecnologia', label: 'Tecnologia', description: 'Saúde e erros',     icon: Monitor, phase: 'p1' },
-      { to: '/admin/auditoria',  label: 'Auditoria',  description: 'Permissões e logs', icon: Shield,  phase: 'p1' },
     ],
   },
 }

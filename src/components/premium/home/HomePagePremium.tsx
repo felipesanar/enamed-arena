@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BarChart3, AlertTriangle, CalendarDays, BookOpen, ArrowUpRight, Lock, Clock } from "lucide-react";
 const PRO_ENAMED_URL = "https://sanarflix.com.br/sanarflix-pro-enamed";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useUser, useHasAccess } from "@/contexts/UserContext";
 import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
 import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
@@ -239,7 +239,7 @@ export function HomePagePremium() {
         },
   };
 
-  const itemVariants = prefersReducedMotion
+  const itemVariants: Variants = prefersReducedMotion
     ? {}
     : {
         hidden: { opacity: 0, y: 16, scale: 0.98 },

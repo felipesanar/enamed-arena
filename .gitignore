@@ -52,3 +52,8 @@ pnpm-lock.yaml
 
 # Supabase CLI temporary files (from `supabase functions download`)
 supabase/.temp/
+
+# Playwright
+/test-results/
+/playwright-report/
+/e2e/.cache/

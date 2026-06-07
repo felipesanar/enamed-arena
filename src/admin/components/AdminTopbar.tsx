@@ -9,14 +9,11 @@ const ROUTE_LABELS: Record<string, string> = {
   '/admin':            'Dashboard',
   '/admin/simulados':  'Simulados',
   '/admin/usuarios':   'Usuários',
-  '/admin/suporte':    'Suporte',
   '/admin/tentativas': 'Tentativas',
   '/admin/ranking-preview': 'Preview ranking',
   '/admin/analytics':  'Analytics',
   '/admin/marketing':  'Marketing',
   '/admin/produto':    'Produto',
-  '/admin/tecnologia': 'Tecnologia',
-  '/admin/auditoria':  'Auditoria',
 }
 
 function getLabel(pathname: string): string {

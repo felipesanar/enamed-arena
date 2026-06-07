@@ -1,3 +1,16 @@
+-- ⚠️⚠️⚠️ NÃO APLICAR ESTE ARQUIVO COMO ESTÁ — CONTÉM 2 BUGS QUE QUEBRAM PRODUÇÃO ⚠️⚠️⚠️
+-- (auditoria 2026-06-05, docs/AUDITORIA_DRIFT_MIGRATIONS_2026-06-05.md)
+--   BUG 1 (Seção 2 — trigger): checa `session_user`, mas as RPCs são owned por
+--         `postgres` + SECURITY DEFINER (current_user='postgres', session_user=conexão).
+--         O guard bloquearia o próprio finalize_attempt_with_results.
+--         → CORRIGIDO e aplicado em 20260605120000_prevent_direct_attempts_update_trigger.sql
+--           (usa `current_user`). Esta seção NÃO deve ser re-aplicada como está.
+--   BUG 2 (Seção 4): `REVOKE EXECUTE ON has_role(...) FROM authenticated` quebra a
+--         avaliação de 24 políticas RLS (em simulados/questions/question_options/etc.)
+--         que chamam has_role() — usuários comuns perderiam acesso de leitura.
+--         → NÃO aplicar; precisa reescrever as policies p/ current_user_has_role antes.
+-- Seções 1 (guard admin_simulado_question_stats), 3 (gate de ranking por results_release_at)
+-- e 5 (rate-limit log_analytics_event) são candidatas a re-trabalho + teste em staging.
 -- =====================================================================
 -- Security Hardening Migration (2026-04-20)
 -- =====================================================================

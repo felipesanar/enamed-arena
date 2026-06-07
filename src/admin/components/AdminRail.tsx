@@ -1,10 +1,10 @@
 // src/admin/components/AdminRail.tsx
 import { useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Database, BarChart3, Settings2, LogOut } from 'lucide-react'
+import { LayoutDashboard, Database, BarChart3, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
 
-export type RailGroup = 'operacional' | 'dados' | 'inteligencia' | 'sistema'
+export type RailGroup = 'operacional' | 'dados' | 'inteligencia'
 
 interface RailGroupConfig {
   id: RailGroup
@@ -16,7 +16,6 @@ const GROUPS: RailGroupConfig[] = [
   { id: 'operacional',  label: 'Operacional',  icon: LayoutDashboard },
   { id: 'dados',        label: 'Dados',         icon: Database },
   { id: 'inteligencia', label: 'Inteligência',  icon: BarChart3 },
-  { id: 'sistema',      label: 'Sistema',       icon: Settings2 },
 ]
 
 interface AdminRailProps {

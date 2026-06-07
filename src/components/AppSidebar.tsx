@@ -126,12 +126,12 @@ export function AppSidebar() {
                           <span className="text-[10px] font-bold uppercase tracking-wider bg-sidebar-primary/20 text-sidebar-primary px-1.5 py-0.5 rounded">
                             PRO
                           </span>
-                          {item.dueCount > 0 && (
+                          {(item.dueCount ?? 0) > 0 && (
                             <span
                               className="text-[10px] font-semibold leading-none bg-primary text-primary-foreground min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full"
                               aria-label={`${item.dueCount} revisões devidas hoje`}
                             >
-                              {item.dueCount > 9 ? "9+" : item.dueCount}
+                              {(item.dueCount ?? 0) > 9 ? "9+" : item.dueCount}
                             </span>
                           )}
                         </span>

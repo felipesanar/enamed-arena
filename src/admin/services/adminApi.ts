@@ -368,7 +368,7 @@ export const adminApi = {
   ): Promise<AttemptListRow[]> {
     const { data, error } = await supabase.rpc('admin_list_attempts', {
       p_search:      search,
-      p_simulado_id: simuladoId ?? null,
+      p_simulado_id: simuladoId ?? undefined,
       p_status:      status,
       p_days:        days,
       p_limit:       limit,
