@@ -8,7 +8,7 @@
  * Fase 1: fontes 'topic' (Tema/área) e 'questions' (Caderno de erros).
  */
 import { useState, useCallback } from 'react';
-import { Sparkles, Loader2, BookOpen, Layers, ArrowLeft } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Layers, ArrowLeft, FileText, TrendingDown, ClipboardCheck, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
@@ -25,14 +25,22 @@ import type { Deck } from '@/types/caderno';
 import { TopicSourceForm } from './bulk/TopicSourceForm';
 import { CadernoSourcePicker } from './bulk/CadernoSourcePicker';
 import { DeckTargetSelect, type DeckTarget } from './bulk/DeckTargetSelect';
+import { AnotacoesSourceForm } from './bulk/AnotacoesSourceForm';
+import { WeakAreasSourcePicker } from './bulk/WeakAreasSourcePicker';
+import { SimuladoSourcePicker } from './bulk/SimuladoSourcePicker';
+import { FavoritesSourcePicker } from './bulk/FavoritesSourcePicker';
 
-type SourceKey = 'topic' | 'caderno';
+type SourceKey = 'topic' | 'caderno' | 'anotacoes' | 'fracos' | 'simulado' | 'favoritas';
 
 interface SourceTile { key: SourceKey; label: string; description: string; icon: React.ReactNode }
 
 const SOURCES: SourceTile[] = [
   { key: 'topic', label: 'Tema / área', description: 'O Prof. San cria cards sobre um assunto', icon: <Layers className="h-5 w-5" aria-hidden /> },
   { key: 'caderno', label: 'Caderno de erros', description: 'Vira suas questões erradas em cards', icon: <BookOpen className="h-5 w-5" aria-hidden /> },
+  { key: 'fracos', label: 'Pontos fracos', description: 'Foca nos temas em que você mais erra', icon: <TrendingDown className="h-5 w-5" aria-hidden /> },
+  { key: 'simulado', label: 'Simulado concluído', description: 'Cards das questões que você errou', icon: <ClipboardCheck className="h-5 w-5" aria-hidden /> },
+  { key: 'favoritas', label: 'Favoritas', description: 'Usa as questões que você favoritou', icon: <Star className="h-5 w-5" aria-hidden /> },
+  { key: 'anotacoes', label: 'Anotações', description: 'Cola um resumo ou usa uma anotação salva', icon: <FileText className="h-5 w-5" aria-hidden /> },
 ];
 
 export interface BulkGenerateModalProps {
@@ -161,6 +169,10 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
 
             {source === 'topic' && <TopicSourceForm onChange={setInput} />}
             {source === 'caderno' && <CadernoSourcePicker onChange={setInput} />}
+            {source === 'fracos' && <WeakAreasSourcePicker onChange={setInput} />}
+            {source === 'simulado' && <SimuladoSourcePicker onChange={setInput} />}
+            {source === 'favoritas' && <FavoritesSourcePicker onChange={setInput} />}
+            {source === 'anotacoes' && <AnotacoesSourceForm onChange={setInput} />}
 
             <div className="border-t border-[var(--c-border)] pt-4">
               <DeckTargetSelect
