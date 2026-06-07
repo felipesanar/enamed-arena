@@ -16,7 +16,7 @@ const radiusMap = {
 
 /** Layered shadow: soft ambient + subtle elevation for premium depth */
 const shadowBase =
-  "shadow-[0_1px_2px_rgba(20,20,30,0.02),0_4px_12px_rgba(20,20,30,0.04)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.25)]";
+  "shadow-[0_1px_2px_rgba(20,20,30,0.02),0_4px_12px_rgba(20,20,30,0.04)] dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.45),0_2px_4px_-2px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.04)]";
 
 export const SurfaceCard = forwardRef<HTMLDivElement, SurfaceCardProps>(
   ({ className, radius = "large", interactive, children, ...props }, ref) => (

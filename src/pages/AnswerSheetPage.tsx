@@ -125,7 +125,7 @@ export default function AnswerSheetPage() {
         });
       }
 
-      navigate(`/simulados/${simulado?.slug ?? id}/resultado`);
+      navigate(`/simulados/${simulado?.slug ?? id}`);
     } catch (err) {
       logger.error('[AnswerSheetPage] Submit error:', err);
       toast({

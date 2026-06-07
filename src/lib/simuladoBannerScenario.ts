@@ -82,7 +82,7 @@ export function getNotificationHref(scenario: BannerScenario): string {
     case "open_not_done":
       return `/simulados/${scenario.simuladoId}`;
     case "after_done":
-      return `/simulados/${scenario.simuladoId}/resultado`;
+      return `/simulados/${scenario.simuladoId}`;
     case "before_window":
     case "open_done_waiting":
     case "no_upcoming":

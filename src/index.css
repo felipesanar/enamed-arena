@@ -146,90 +146,99 @@
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 220 10% 92%;
+    /* Base surfaces — neutros levemente quentes (hue vinho, saturação baixíssima) */
+    --background: 345 8% 9%;
+    --foreground: 345 8% 92%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 220 10% 92%;
+    --card: 345 7% 13%;
+    --card-foreground: 345 8% 92%;
 
-    --popover: 220 18% 10%;
-    --popover-foreground: 220 10% 92%;
+    --popover: 345 7% 13%;
+    --popover-foreground: 345 8% 92%;
 
-    --primary: 345 55% 50%;
+    /* Brand wine — mantido próximo do atual (contraste do texto branco já validado) */
+    --primary: 345 56% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 14%;
-    --secondary-foreground: 220 10% 85%;
+    --secondary: 345 7% 17%;
+    --secondary-foreground: 345 8% 86%;
 
-    --muted: 220 15% 16%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 345 6% 18%;
+    --muted-foreground: 345 7% 68%;
 
-    --accent: 345 40% 15%;
-    --accent-foreground: 345 55% 65%;
+    --accent: 345 32% 18%;
+    --accent-foreground: 345 55% 72%;
 
-    /* Destructive dark: aumenta L e reduz S pra não competir com primary (rosa).
-       Usado em badges "Errou", alertas e estados negativos. */
-    --destructive: 0 55% 48%;
+    /* Destructive: L alto + S moderado pra não competir com primary (rosa) */
+    --destructive: 0 58% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 22%;
-    --input: 220 15% 18%;
-    --ring: 345 55% 50%;
+    --border: 345 8% 24%;
+    --input: 345 8% 20%;
+    --ring: 345 56% 50%;
 
-    /* Elevation system — 3 níveis pra evitar cards "vazando" no bg */
-    --surface-elevated: 220 17% 13%;
-    --surface-sunken: 220 22% 5%;
+    /* Escada de elevação: sunken < background(9%) < card(13%) < elevated(21%) */
+    --surface-elevated: 345 7% 21%;
+    --surface-sunken: 345 8% 7%;
 
-    /* Feedback semântico dark-tuned (mais luminoso, ligeiramente menos saturado
-       que light pra reduzir fadiga visual em fundo escuro). */
-    --success: 152 55% 48%;
+    /* Borda forte — divisores e realces sobre card/elevated */
+    --border-strong: 345 8% 32%;
+
+    /* Feedback semântico dark-tuned (luminoso, saturação confortável sobre base quente) */
+    --success: 152 52% 50%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 88% 60%;
-    --warning-foreground: 220 20% 10%;
-    --info: 210 78% 62%;
+    --warning: 38 86% 60%;
+    --warning-foreground: 345 10% 10%;
+    --info: 210 76% 64%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 220 22% 5%;
-    --sidebar-foreground: 220 10% 65%;
-    --sidebar-primary: 345 55% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 12%;
-    --sidebar-accent-foreground: 220 10% 80%;
-    --sidebar-border: 220 18% 12%;
-    --sidebar-ring: 345 55% 50%;
-    --sidebar-muted: 220 10% 35%;
+    /* Sombras dark — pretas visíveis (a sombra clara do light some no escuro) */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.45), 0 2px 4px -2px hsl(0 0% 0% / 0.35);
+    --shadow-lg: 0 12px 32px -4px hsl(0 0% 0% / 0.5), 0 4px 8px -2px hsl(0 0% 0% / 0.4);
+    --shadow-premium: 0 10px 28px -6px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.04);
 
-    /* Exam focus mode (dark) */
-    --exam-bg: 220 18% 7%;
-    --exam-surface: 220 16% 11%;
-    --exam-surface-hover: 220 14% 14%;
-    --exam-border: 220 14% 16%;
+    --sidebar-background: 345 9% 7%;
+    --sidebar-foreground: 345 7% 66%;
+    --sidebar-primary: 345 56% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 345 8% 13%;
+    --sidebar-accent-foreground: 345 8% 82%;
+    --sidebar-border: 345 8% 18%;
+    --sidebar-ring: 345 56% 52%;
+    --sidebar-muted: 345 6% 44%;
+
+    /* Exam focus mode (dark) — neutros quentes, alto contraste de leitura */
+    --exam-bg: 345 8% 8%;
+    --exam-surface: 345 7% 12%;
+    --exam-surface-hover: 345 7% 15%;
+    --exam-border: 345 8% 18%;
     --exam-border-selected: var(--primary);
-    --exam-text: 210 10% 92%;
-    --exam-text-secondary: 210 8% 55%;
-    --exam-header-bg: 220 18% 8% / 0.92;
-    --exam-option-selected-bg: 345 55% 50% / 0.06;
-    --exam-shadow-selected: 0 2px 8px -2px hsl(345 55% 50% / 0.12);
+    --exam-text: 345 8% 92%;
+    --exam-text-secondary: 345 7% 62%;
+    --exam-header-bg: 345 8% 9% / 0.92;
+    --exam-option-selected-bg: 345 56% 50% / 0.08;
+    --exam-shadow-selected: 0 2px 10px -2px hsl(345 56% 50% / 0.18);
 
     /* Hero premium surfaces & gradients (dark) */
-    --hero-premium-bg: linear-gradient(148deg, hsl(220 22% 12%) 0%, hsl(220 20% 10%) 38%, hsl(345 30% 18%) 72%, hsl(345 35% 22%) 100%);
+    --hero-premium-bg: linear-gradient(148deg, hsl(345 30% 9%) 0%, hsl(345 38% 12%) 38%, hsl(345 48% 17%) 72%, hsl(345 55% 21%) 100%);
     --hero-premium-border: 345 55% 50% / 0.18;
     --hero-premium-glow: 345 55% 50% / 0.12;
     --hero-premium-text-muted: 345 55% 65%;
 
     /* Trend indicators (dark) */
-    --trend-up: 152 65% 45%;
-    --trend-down: 0 65% 55%;
+    --trend-up: 152 58% 52%;
+    --trend-down: 0 62% 58%;
 
-    /* Medal colors (dark) */
-    --medal-gold: 38 85% 55%;
-    --medal-silver: 220 15% 65%;
-    --medal-bronze: 20 75% 60%;
+    /* Medal colors (dark) — legíveis sobre card quente */
+    --medal-gold: 38 82% 58%;
+    --medal-silver: 345 8% 66%;
+    --medal-bronze: 22 72% 60%;
 
-    /* Success/warning/info surfaces (dark) */
-    --success-surface: 152 65% 45% / 0.08;
-    --warning-surface: 38 85% 55% / 0.08;
-    --info-surface: 210 80% 62% / 0.08;
+    /* Success/warning/info surfaces (dark) — fundos translúcidos de badge/alert */
+    --success-surface: 152 58% 52% / 0.1;
+    --warning-surface: 38 82% 58% / 0.1;
+    --info-surface: 210 76% 64% / 0.1;
 
     --auth-bg-base: 220 22% 7%;
     --auth-bg-soft: 220 18% 10%;
@@ -366,6 +375,17 @@
 
   .premium-card-hero:hover {
     box-shadow: 0 12px 32px -4px hsl(345 65% 30% / 0.16), 0 4px 12px -2px hsl(345 65% 30% / 0.08);
+  }
+
+  /* Elevação dark: sombra real + rim de luz no topo (relevo premium) */
+  .dark .premium-card {
+    box-shadow: var(--shadow-md), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
+  }
+  .dark .premium-card:hover {
+    box-shadow: var(--shadow-lg), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
+  }
+  .dark .premium-card-hero {
+    box-shadow: var(--shadow-premium), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
   }
 
   /* Content card = padrão .premium-card (listas, blocos de apoio) */
@@ -510,10 +530,10 @@
 
   .dark .hero-premium-surface {
     background:
-      radial-gradient(ellipse 28% 42% at 0% 0%, rgba(66,20,36,0.92) 0%, transparent 60%),
-      radial-gradient(ellipse 22% 35% at 0% 100%, rgba(22,7,14,0.85) 0%, transparent 55%),
-      radial-gradient(ellipse 55% 48% at 100% 0%, rgba(160,38,72,0.38) 0%, transparent 62%),
-      linear-gradient(90deg, #361019 0%, #2c1016 4%, #1a0a10 15%, #0e0810 33%, #100810 68%, #1c0a14 100%);
+      radial-gradient(ellipse 30% 44% at 0% 0%, hsl(345 45% 16% / 0.92) 0%, transparent 60%),
+      radial-gradient(ellipse 24% 36% at 0% 100%, hsl(345 35% 9% / 0.85) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 48% at 100% 0%, hsl(345 60% 26% / 0.4) 0%, transparent 62%),
+      linear-gradient(120deg, hsl(345 35% 8%) 0%, hsl(345 30% 9%) 18%, hsl(345 28% 10%) 42%, hsl(345 38% 13%) 72%, hsl(345 50% 18%) 100%);
   }
 
   /* Hero status card — compact hero in dark mode, accent in light */
@@ -531,8 +551,8 @@
   .dark .hero-status-card {
     @apply border-white/[0.08];
     background:
-      linear-gradient(148deg,#080A14_0%,#0C1020_30%,#1A0816_60%,#2E0C20_85%,#3A0E24_100%);
-    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.9), 0 8px 20px -12px rgba(40,8,22,0.5);
+      linear-gradient(148deg, hsl(345 32% 8%) 0%, hsl(345 30% 10%) 30%, hsl(345 42% 14%) 60%, hsl(345 52% 19%) 85%, hsl(345 58% 22%) 100%);
+    box-shadow: 0 20px 40px -20px hsl(0 0% 0% / 0.9), 0 8px 20px -12px hsl(345 50% 12% / 0.5);
   }
 
   .animate-fade-in {
