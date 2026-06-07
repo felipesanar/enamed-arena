@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import CorrecaoPage from './CorrecaoPage'
 import * as UserContext from '@/contexts/UserContext'
 
@@ -108,12 +110,21 @@ vi.mock('@/components/exam/QuestionImage', () => ({
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 function renderPage(adminPreview = false) {
+  // CorrecaoPage rende FavoriteToggleButton/NoteButton (react-query) quando o
+  // Caderno v2 está ativo (agora padrão) — provê um QueryClient como na app real.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
-    <MemoryRouter initialEntries={[`/simulados/sim-1/correcao`]}>
-      <Routes>
-        <Route path="/simulados/:id/correcao" element={<CorrecaoPage adminPreview={adminPreview} />} />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[`/simulados/sim-1/correcao`]}>
+          <Routes>
+            <Route path="/simulados/:id/correcao" element={<CorrecaoPage adminPreview={adminPreview} />} />
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   )
 }
 
