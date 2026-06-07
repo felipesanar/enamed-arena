@@ -127,6 +127,9 @@ export type AnalyticsEventName =
   | "caderno_reminder_sent"
   | "caderno_reminder_opened"
   | "notification_preferences_updated"
+  // CTAs de modo no header/hero do Caderno
+  | "caderno_treino_cta_clicked"
+  | "caderno_reta_final_cta_clicked"
   // Diagnóstico → ação (Desempenho → Caderno)
   | "desempenho_to_caderno_clicked"
   // Pós-prova

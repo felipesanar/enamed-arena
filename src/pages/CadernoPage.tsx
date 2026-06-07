@@ -27,7 +27,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 
-import { trackEvent, type AnalyticsEventName } from '@/lib/analytics';
+import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
@@ -583,9 +583,9 @@ function CadernoContent({ userId }: { userId: string }) {
             if (mode === 'revisao')
               trackEvent('caderno_revisao_cta_clicked', { source: 'caderno_v2_modes', pending: totalPending });
             else if (mode === 'treino')
-              trackEvent('caderno_treino_cta_clicked' as AnalyticsEventName, { source: 'caderno_v2_modes' });
+              trackEvent('caderno_treino_cta_clicked', { source: 'caderno_v2_modes' });
             else
-              trackEvent('caderno_reta_final_cta_clicked' as AnalyticsEventName, { source: 'caderno_v2_modes', days_left: daysLeft });
+              trackEvent('caderno_reta_final_cta_clicked', { source: 'caderno_v2_modes', days_left: daysLeft });
           }}
         />
 

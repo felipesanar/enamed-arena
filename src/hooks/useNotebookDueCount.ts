@@ -28,23 +28,21 @@ export function useNotebookDueCount(userId: string | undefined, enabled: boolean
     queryFn: async () => {
       if (!userId) return 0;
       const entries = await simuladosApi.getErrorNotebook(userId);
-      const now = new Date();
-      const todayEnd = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        23,
-        59,
-        59,
-        999,
-      );
+      const now = Date.now();
+      // Espelha EXATAMENTE a fila "due" de useActiveRecallSession (buildQueue),
+      // para que o badge bata com o tamanho da sessão aberta por ?mode=due:
+      // exclui resolvidas/deletadas/bloqueadas (leech/awaiting_lesson) e conta
+      // srs_due_at <= now (fallback: next_review_at <= now, ou devida se ausente).
+      const BLOCKED = new Set(['leech_blocked', 'awaiting_lesson']);
       return entries.filter((e: any) => {
+        if (e.resolved_at || e.deleted_at) return false;
+        if (BLOCKED.has(e.last_review_outcome)) return false;
         const srsDueAt = e.srs_due_at as string | null | undefined;
-        if (srsDueAt) {
-          return new Date(srsDueAt) <= todayEnd;
+        if (!srsDueAt) {
+          const nr = e.next_review_at as string | null | undefined;
+          return !nr || new Date(nr).getTime() <= now;
         }
-        // Fallback legado: pendente (não resolvida).
-        return !e.resolved_at;
+        return new Date(srsDueAt).getTime() <= now;
       }).length;
     },
     enabled: enabled && !!userId,

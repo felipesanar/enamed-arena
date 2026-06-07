@@ -38,11 +38,14 @@ const SEGMENTED_ITEMS: SegmentedTabItem[] = TABS.map((t) => {
   };
 });
 
-/** Deriva a aba ativa a partir do pathname atual. */
+/**
+ * Deriva a aba ativa a partir do pathname atual. Retorna '' quando a rota não
+ * é uma das abas (ex.: /caderno/treino, /caderno/reta-final — acessadas por CTA),
+ * para que NENHUMA aba fique destacada indevidamente.
+ */
 function useActiveTo(pathname: string): string {
   return (
-    TABS.find((t) => (t.exact ? pathname === t.to : pathname.startsWith(t.to)))?.to ??
-    '/caderno'
+    TABS.find((t) => (t.exact ? pathname === t.to : pathname.startsWith(t.to)))?.to ?? ''
   );
 }
 

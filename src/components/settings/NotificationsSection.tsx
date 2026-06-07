@@ -82,8 +82,11 @@ export function NotificationsSection() {
     setSaving((s) => ({ ...s, [key]: true }));
 
     try {
-      const updated = await simuladosApi.updateNotificationPreferences({ [key]: next });
-      setPrefs(updated);
+      await simuladosApi.updateNotificationPreferences({ [key]: next });
+      // Confirma só a chave alterada. NÃO sobrescreve as demais com o retorno,
+      // que vem com defaults quando o RPC ainda não está deployado (evita
+      // flipar visualmente prefs não tocadas).
+      setPrefs((p) => ({ ...p, [key]: next }));
       trackEvent("notification_preferences_updated", {
         preference: key,
         enabled: next,

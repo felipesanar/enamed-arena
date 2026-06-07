@@ -182,7 +182,7 @@ describe('mapErrorRowsToWeakEntries', () => {
   it('mapeia campos do error_notebook para WeakAreaEntry', () => {
     const rows = [{
       id: 'e1', area: 'Cardio', theme: 'IC', reason: 'did_not_know',
-      created_at: '2026-01-01', mastered_at: null, srs_lapses: 2, srs_reps: 1, srs_due_at: '2026-02-01',
+      created_at: '2026-01-01', mastered_at: null as string | null, srs_lapses: 2, srs_reps: 1, srs_due_at: '2026-02-01',
     }];
     const out = mapErrorRowsToWeakEntries(rows);
     expect(out[0]).toMatchObject({
