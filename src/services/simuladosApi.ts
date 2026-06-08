@@ -29,6 +29,7 @@ import type {
   ConfidenceCalibration,
 } from '@/types/caderno';
 import type { BatchGenerateInput, GeneratedCard } from '@/lib/bulkFlashcards';
+import type { CadernoExportEntry } from '@/lib/cadernoExport';
 
 // ─── Notification preferences (Caderno reminders — plano 08 §3.1) ───
 export interface NotificationPreferences {
@@ -662,6 +663,73 @@ export const simuladosApi = {
 
     if (error) throw error;
     return data || [];
+  },
+
+  /**
+   * Carrega o caderno de erros já enriquecido para exportação em PDF:
+   * cada entrada ganha o enunciado completo, as alternativas, o gabarito e a
+   * explicação oficial da questão (buscados de `questions`/`question_options`).
+   *
+   * Faz UM fetch de questões por simulado distinto (cacheado em memória),
+   * evitando N round-trips. Entradas sem questão vinculada caem no
+   * `question_text` salvo na própria entrada.
+   */
+  async getErrorNotebookForExport(userId: string): Promise<CadernoExportEntry[]> {
+    const rows = await simuladosApi.getErrorNotebook(userId);
+    if (rows.length === 0) return [];
+
+    // Busca as questões de cada simulado distinto uma única vez.
+    const simuladoIds = Array.from(
+      new Set(
+        rows
+          .map((r: any) => r.simulado_id as string | null)
+          .filter((id): id is string => !!id),
+      ),
+    );
+
+    const questionsBySimulado = new Map<string, Question[]>();
+    await Promise.all(
+      simuladoIds.map(async (sid) => {
+        try {
+          const qs = await simuladosApi.getQuestions(sid, true);
+          questionsBySimulado.set(sid, qs);
+        } catch (err) {
+          logger.error('[SimuladosApi] Export: erro ao buscar questões do simulado', sid, err);
+        }
+      }),
+    );
+
+    return rows.map((row: any): CadernoExportEntry => {
+      const sid = row.simulado_id as string | null;
+      const qid = row.question_id as string | null;
+      const question =
+        sid && qid
+          ? questionsBySimulado.get(sid)?.find((q) => q.id === qid) ?? null
+          : null;
+
+      const options = (question?.options ?? []).map((o) => ({
+        label: o.label,
+        text: o.text,
+        isCorrect: o.id === question?.correctOptionId,
+      }));
+      const correctLabel = options.find((o) => o.isCorrect)?.label ?? null;
+
+      return {
+        id: row.id,
+        area: row.area ?? null,
+        theme: row.theme ?? null,
+        question_number: row.question_number ?? question?.number ?? null,
+        question_text: question?.text ?? row.question_text ?? null,
+        reason: row.reason,
+        learning_text: row.learning_text ?? null,
+        simulado_title: row.simulado_title ?? null,
+        ai_review_md: row.ai_review_md ?? null,
+        created_at: row.created_at,
+        options,
+        correct_label: correctLabel,
+        explanation: question?.explanation ?? null,
+      };
+    });
   },
 
   /**

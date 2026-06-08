@@ -1,15 +1,15 @@
 /**
- * cadernoExport.ts — Export do Caderno de Erros (Fase 3).
+ * cadernoExport.ts — Export do Caderno de Erros em PDF.
  *
- * Funções puras client-side:
- *   - exportNotebookPdf   → PDF agrupado por grande área (jsPDF, mesma lib do projeto)
- *   - exportNotebookAnkiCsv → CSV importável no Anki (frente;verso), dispara download
+ * Função pura client-side `exportNotebookPdf`: gera um PDF de ESTUDO,
+ * agrupado por grande área. Cada questão traz o conteúdo completo (sem
+ * truncar): enunciado, alternativas com gabarito destacado, explicação
+ * oficial, resumo do Prof. San e a anotação do aluno.
  *
- * Sem dependências de backend. Operam sobre o array retornado por
- * simuladosApi.getErrorNotebook(userId).
+ * Opera sobre o array enriquecido devolvido por
+ * simuladosApi.getErrorNotebookForExport(userId).
  */
 
-import { jsPDF } from 'jspdf';
 import { getReasonMeta } from '@/lib/errorNotebookReasons';
 import {
   COLORS,
@@ -22,8 +22,14 @@ import {
 } from '@/lib/pdf/pdfHelpers';
 
 // ---------------------------------------------------------------------------
-// Tipo de entrada — subconjunto dos campos retornados por getErrorNotebook
+// Tipo de entrada — enriquecido em getErrorNotebookForExport
 // ---------------------------------------------------------------------------
+
+export interface CadernoExportOption {
+  label: string;
+  text: string;
+  isCorrect: boolean;
+}
 
 export interface CadernoExportEntry {
   id: string;
@@ -36,20 +42,17 @@ export interface CadernoExportEntry {
   simulado_title: string | null;
   ai_review_md: string | null;
   created_at: string;
+  /** Alternativas da questão, com a correta marcada. Vazio se não disponível. */
+  options: CadernoExportOption[];
+  /** Label (A/B/C…) da alternativa correta, ou null se desconhecida. */
+  correct_label: string | null;
+  /** Explicação oficial da questão (pode conter markdown leve). */
+  explanation: string | null;
 }
 
 // ---------------------------------------------------------------------------
 // Helpers internos
 // ---------------------------------------------------------------------------
-
-const MAX_QUESTION_CHARS = 350;
-const MAX_LEARNING_CHARS = 200;
-const MAX_AI_CHARS = 300;
-
-function truncate(text: string | null | undefined, max: number): string {
-  if (!text) return '';
-  return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
-}
 
 function slugify(text: string): string {
   return text
@@ -58,6 +61,16 @@ function slugify(text: string): string {
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '');
+}
+
+/** Remove marcadores comuns de markdown para renderização em texto plano. */
+function stripMd(text: string): string {
+  return text
+    .replace(/#{1,6}\s/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/[*_`>]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function saveBlob(blob: Blob, filename: string): void {
@@ -80,8 +93,7 @@ function groupByArea(entries: CadernoExportEntry[]): Map<string, CadernoExportEn
     bucket.push(entry);
     map.set(key, bucket);
   }
-  // Sort each bucket by question_number asc (nulls last)
-  map.forEach(bucket => {
+  map.forEach((bucket) => {
     bucket.sort((a, b) => {
       if (a.question_number === null && b.question_number === null) return 0;
       if (a.question_number === null) return 1;
@@ -90,275 +102,6 @@ function groupByArea(entries: CadernoExportEntry[]): Map<string, CadernoExportEn
     });
   });
   return map;
-}
-
-// ---------------------------------------------------------------------------
-// PDF
-// ---------------------------------------------------------------------------
-
-/**
- * Gera um PDF do Caderno de Erros, agrupado por grande área.
- * Cada entrada mostra: Q#, prova, causa do erro (badge+cor), enunciado
- * (truncado), anotação do aluno e resumo do Prof. San (se houver).
- * Cabeçalho: "Caderno de Erros — SanarFlix PRO" + data.
- * Retorna um Blob e também dispara o download no browser.
- */
-export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
-  const doc = createPdf();
-  const x = PAGE.marginX;
-  const w = PAGE.contentWidth;
-
-  const today = new Date().toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-
-  // ── Cabeçalho premium ──
-  let y = drawPremiumHeader(doc, 'Caderno de Erros — SanarFlix PRO', `Exportado em ${today}`);
-
-  // ── Sumário: total de entradas ──
-  doc.setFont('Helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.gray500);
-  doc.text(`${entries.length} ${entries.length === 1 ? 'entrada' : 'entradas'} no caderno`, x, y);
-  y += 8;
-
-  const grouped = groupByArea(entries);
-
-  grouped.forEach((areaEntries, areaName) => {
-    // ── Cabeçalho de área ──
-    y = checkPageBreak(doc, y, 18);
-
-    doc.setFillColor(...COLORS.wineDark);
-    doc.roundedRect(x, y, w, 9, 2, 2, 'F');
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.white);
-    doc.text(areaName.toUpperCase(), x + 5, y + 6.2);
-
-    // Contagem no canto direito
-    const countLabel = `${areaEntries.length} questão${areaEntries.length !== 1 ? 's' : ''}`;
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.text(countLabel, x + w - 5, y + 6.2, { align: 'right' });
-
-    y += 14;
-
-    areaEntries.forEach((entry, idx) => {
-      const reasonMeta = getReasonMeta(entry.reason);
-      const isLast = idx === areaEntries.length - 1;
-
-      // Estimate needed height (conservative)
-      const questionLines = entry.question_text
-        ? wrapText(doc, truncate(entry.question_text, MAX_QUESTION_CHARS), w - 6).length
-        : 0;
-      const learningLines = entry.learning_text
-        ? wrapText(doc, truncate(entry.learning_text, MAX_LEARNING_CHARS), w - 6).length
-        : 0;
-      const aiLines = entry.ai_review_md
-        ? wrapText(doc, truncate(entry.ai_review_md.replace(/[#*_`]/g, ''), MAX_AI_CHARS), w - 6).length
-        : 0;
-      const estHeight = 10 + questionLines * 4 + (entry.learning_text ? 6 + learningLines * 4 : 0) + (entry.ai_review_md ? 6 + aiLines * 4 : 0) + 6;
-      y = checkPageBreak(doc, y, Math.min(estHeight, 80));
-
-      // Capture y at the start of this entry to calculate bar height later
-      const entryStartY = y;
-
-      // ── Linha 1: Q# · tema · prova ──
-      const cardX = x + 6;
-      const cardW = w - 6;
-
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.gray800);
-
-      const qNum = entry.question_number !== null ? `Q${entry.question_number}` : 'Q—';
-      const theme = entry.theme ?? '';
-      const prova = entry.simulado_title ?? '';
-      const headerLine = [qNum, theme, prova].filter(Boolean).join('  ·  ');
-      doc.text(truncate(headerLine, 90), cardX, y + 5.5);
-
-      y += 8;
-
-      // ── Causa do erro (badge) ──
-      const badgeLabel = `${reasonMeta.badge}: ${reasonMeta.label}`;
-      const badgeW = Math.min(doc.getTextWidth(badgeLabel) + 6, cardW - 4);
-      const [bgR, bgG, bgB] = hexToRgb(reasonMeta.colorBg);
-      const [txtR, txtG, txtB] = hexToRgb(reasonMeta.colorText);
-      doc.setFillColor(bgR, bgG, bgB);
-      doc.roundedRect(cardX, y, badgeW, 5.5, 1, 1, 'F');
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(txtR, txtG, txtB);
-      doc.text(badgeLabel, cardX + 3, y + 4);
-      y += 8;
-
-      // ── Enunciado (truncado) ──
-      if (entry.question_text) {
-        doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(...COLORS.gray700);
-        const qText = truncate(entry.question_text, MAX_QUESTION_CHARS);
-        const lines = wrapText(doc, qText, cardW - 2);
-        lines.forEach(line => {
-          y = checkPageBreak(doc, y, 5);
-          doc.text(line, cardX, y);
-          y += 4;
-        });
-        y += 2;
-      }
-
-      // ── Anotação do aluno ──
-      if (entry.learning_text) {
-        y = checkPageBreak(doc, y, 8);
-        doc.setFont('Helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.wine);
-        doc.text('Anotação:', cardX, y);
-        y += 4;
-
-        doc.setFont('Helvetica', 'italic');
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.gray600);
-        const lText = truncate(entry.learning_text, MAX_LEARNING_CHARS);
-        const lLines = wrapText(doc, lText, cardW - 2);
-        lLines.forEach(line => {
-          y = checkPageBreak(doc, y, 5);
-          doc.text(line, cardX + 2, y);
-          y += 4;
-        });
-        y += 2;
-      }
-
-      // ── Resumo Prof. San (ai_review_md) ──
-      if (entry.ai_review_md) {
-        y = checkPageBreak(doc, y, 8);
-        doc.setFont('Helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.gray500);
-        doc.text('Resumo Prof. San:', cardX, y);
-        y += 4;
-
-        doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.gray600);
-        // Strip common markdown markers for plain PDF rendering
-        const aiText = truncate(
-          entry.ai_review_md.replace(/#{1,6}\s/g, '').replace(/[*_`]/g, '').replace(/\n{2,}/g, '\n'),
-          MAX_AI_CHARS,
-        );
-        const aiLines = wrapText(doc, aiText, cardW - 2);
-        aiLines.forEach(line => {
-          y = checkPageBreak(doc, y, 5);
-          doc.text(line, cardX + 2, y);
-          y += 4;
-        });
-        y += 2;
-      }
-
-      // Draw left color bar with the actual entry height (avoids 999px overflow)
-      const entryEndY = y;
-      const barHeight = Math.max(entryEndY - entryStartY, 2);
-      const [rR, rG, rB] = hexToRgb(reasonMeta.colorBase);
-      doc.setFillColor(rR, rG, rB);
-      doc.roundedRect(x, entryStartY, 3, barHeight, 1, 1, 'F');
-
-      // Separator
-      if (!isLast) {
-        y = checkPageBreak(doc, y, 4);
-        doc.setDrawColor(...COLORS.gray200);
-        doc.setLineWidth(0.3);
-        doc.line(x + 3, y, x + w, y);
-        y += 5;
-      } else {
-        y += 4;
-      }
-    });
-
-    y += 4; // gap between areas
-  });
-
-  addFooterToAllPages(doc);
-
-  const blob = doc.output('blob');
-  const filename = `caderno_erros_${slugify(today)}.pdf`;
-  saveBlob(blob, filename);
-  return blob;
-}
-
-// ---------------------------------------------------------------------------
-// Anki CSV
-// ---------------------------------------------------------------------------
-
-/**
- * Gera um arquivo CSV (separador `;`) importável no Anki.
- * Colunas: Frente (pergunta/tema) ; Verso (gabarito/resumo).
- * Dispara o download do arquivo `.csv` no browser.
- */
-export function exportNotebookAnkiCsv(entries: CadernoExportEntry[]): void {
-  const today = new Date().toLocaleDateString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  });
-
-  const header = `#separator:Semicolon\n#html:true\n#notetype:Basic\n#deck:Caderno de Erros SanarFlix PRO - ${today}\n#columns:Frente;Verso\n`;
-
-  const rows: string[] = entries.map(entry => {
-    const reasonMeta = getReasonMeta(entry.reason);
-    const areaTheme = [entry.area, entry.theme].filter(Boolean).join(' › ');
-    const qNum = entry.question_number !== null ? `Q${entry.question_number} — ` : '';
-    const prova = entry.simulado_title ? ` [${entry.simulado_title}]` : '';
-
-    // Frente: contexto + enunciado (ou fallback para área/tema)
-    const frontParts: string[] = [];
-    frontParts.push(`${qNum}${areaTheme}${prova}`);
-    if (entry.question_text) {
-      frontParts.push(truncate(entry.question_text, MAX_QUESTION_CHARS));
-    }
-    const front = frontParts.join('\n');
-
-    // Verso: causa do erro + anotação + resumo Prof. San
-    const backParts: string[] = [];
-    backParts.push(`Causa: ${reasonMeta.label} (${reasonMeta.badge})`);
-    backParts.push(`Estratégia: ${reasonMeta.strategy}`);
-
-    if (entry.learning_text) {
-      backParts.push(`\nAnotação do aluno:\n${truncate(entry.learning_text, MAX_LEARNING_CHARS)}`);
-    }
-
-    if (entry.ai_review_md) {
-      const aiClean = entry.ai_review_md
-        .replace(/#{1,6}\s/g, '')
-        .replace(/[*_`]/g, '')
-        .replace(/\n{2,}/g, '\n')
-        .trim();
-      backParts.push(`\nResumo Prof. San:\n${truncate(aiClean, MAX_AI_CHARS)}`);
-    }
-
-    const back = backParts.join('\n');
-
-    // With #html:true, newlines must be encoded as <br> so Anki renders them.
-    const frontHtml = front.replace(/\n/g, '<br>');
-    const backHtml = back.replace(/\n/g, '<br>');
-    return `${escapeCsvField(frontHtml)};${escapeCsvField(backHtml)}`;
-  });
-
-  const csv = header + rows.join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const filename = `caderno_erros_anki_${slugify(today)}.csv`;
-  saveBlob(blob, filename);
-}
-
-// ---------------------------------------------------------------------------
-// Utilitários internos
-// ---------------------------------------------------------------------------
-
-/** Escapa campo CSV: envolve em aspas duplas se contiver ; ou \n ou " */
-function escapeCsvField(value: string): string {
-  if (value.includes(';') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
 
 /** Converte hex (#rrggbb ou #rgb) para [r, g, b] numéricos. */
@@ -374,4 +117,202 @@ function hexToRgb(hex: string): [number, number, number] {
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);
   return [r, g, b];
+}
+
+// ---------------------------------------------------------------------------
+// PDF
+// ---------------------------------------------------------------------------
+
+/**
+ * Gera um PDF de estudo do Caderno de Erros, agrupado por grande área.
+ * Cada questão mostra: cabeçalho (Q# · tema · prova), causa do erro + estratégia,
+ * enunciado completo, alternativas (gabarito destacado), explicação oficial,
+ * resumo do Prof. San e a anotação do aluno.
+ * Retorna o Blob e dispara o download no browser.
+ */
+export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
+  const doc = createPdf();
+  const x = PAGE.marginX;
+  const w = PAGE.contentWidth;
+  const LINE = 4.4;
+
+  const today = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+  // Cursor vertical compartilhado pelos helpers abaixo.
+  let y = drawPremiumHeader(doc, 'Caderno de Erros — SanarFlix PRO', `Exportado em ${today}`);
+
+  // ── Helpers de escrita (mutam `y`) ──
+  function writeParagraph(
+    text: string,
+    opts: {
+      fontSize?: number;
+      style?: 'normal' | 'bold' | 'italic';
+      color?: [number, number, number];
+      indent?: number;
+      lineH?: number;
+    } = {},
+  ): void {
+    const { fontSize = 8, style = 'normal', color = COLORS.gray700, indent = 0, lineH = LINE } = opts;
+    doc.setFont('Helvetica', style);
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...color);
+    const lines = wrapText(doc, text, w - indent);
+    for (const line of lines) {
+      y = checkPageBreak(doc, y, lineH);
+      doc.text(line, x + indent, y);
+      y += lineH;
+    }
+  }
+
+  function writeLabel(text: string, color: [number, number, number] = COLORS.gray500): void {
+    y = checkPageBreak(doc, y, 7);
+    y += 1.5;
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...color);
+    doc.text(text.toUpperCase(), x, y);
+    y += 4.2;
+  }
+
+  // ── Sumário ──
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.gray500);
+  doc.text(
+    `${entries.length} ${entries.length === 1 ? 'questão' : 'questões'} no caderno de erros`,
+    x,
+    y,
+  );
+  y += 8;
+
+  const grouped = groupByArea(entries);
+
+  grouped.forEach((areaEntries, areaName) => {
+    // ── Cabeçalho de área ──
+    y = checkPageBreak(doc, y, 18);
+    doc.setFillColor(...COLORS.wineDark);
+    doc.roundedRect(x, y, w, 9, 2, 2, 'F');
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.white);
+    doc.text(areaName.toUpperCase(), x + 5, y + 6.2);
+
+    const countLabel = `${areaEntries.length} ${areaEntries.length !== 1 ? 'questões' : 'questão'}`;
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(countLabel, x + w - 5, y + 6.2, { align: 'right' });
+    y += 13;
+
+    areaEntries.forEach((entry, idx) => {
+      const reasonMeta = getReasonMeta(entry.reason);
+
+      // Mantém o cabeçalho da questão junto com pelo menos o começo do conteúdo.
+      y = checkPageBreak(doc, y, 24);
+
+      // ── Cabeçalho da questão ──
+      const qNum = entry.question_number !== null ? `Questão ${entry.question_number}` : 'Questão';
+      const headerLine = [qNum, entry.theme].filter(Boolean).join('  ·  ');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...COLORS.gray900);
+      doc.text(headerLine, x, y);
+      y += 5;
+
+      if (entry.simulado_title) {
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.gray500);
+        doc.text(`Prova: ${entry.simulado_title}`, x, y);
+        y += 4.5;
+      }
+
+      // ── Causa do erro (badge) + estratégia ──
+      const badgeLabel = `${reasonMeta.badge}: ${reasonMeta.label}`;
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(6.8);
+      const badgeW = Math.min(doc.getTextWidth(badgeLabel) + 6, w);
+      const [bgR, bgG, bgB] = hexToRgb(reasonMeta.colorBg);
+      const [txtR, txtG, txtB] = hexToRgb(reasonMeta.colorText);
+      y = checkPageBreak(doc, y, 7);
+      doc.setFillColor(bgR, bgG, bgB);
+      doc.roundedRect(x, y, badgeW, 5.5, 1, 1, 'F');
+      doc.setTextColor(txtR, txtG, txtB);
+      doc.text(badgeLabel, x + 3, y + 3.8);
+      y += 8;
+
+      // ── Enunciado ──
+      if (entry.question_text) {
+        writeLabel('Enunciado', COLORS.gray500);
+        writeParagraph(entry.question_text, { fontSize: 8, color: COLORS.gray800 });
+      }
+
+      // ── Alternativas (com gabarito) ──
+      if (entry.options.length > 0) {
+        writeLabel('Alternativas', COLORS.gray500);
+        for (const opt of entry.options) {
+          const prefix = `${opt.label}) `;
+          const body = opt.text + (opt.isCorrect ? '   (resposta correta)' : '');
+          writeParagraph(prefix + body, {
+            fontSize: 8,
+            style: opt.isCorrect ? 'bold' : 'normal',
+            color: opt.isCorrect ? COLORS.greenDark : COLORS.gray700,
+            indent: 2,
+          });
+        }
+      }
+
+      // ── Gabarito (referência rápida) ──
+      if (entry.correct_label) {
+        y = checkPageBreak(doc, y, 6);
+        y += 1;
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.greenDark);
+        doc.text(`Gabarito: ${entry.correct_label}`, x, y);
+        y += 4.5;
+      }
+
+      // ── Explicação oficial ──
+      if (entry.explanation) {
+        writeLabel('Explicação', COLORS.wine);
+        writeParagraph(stripMd(entry.explanation), { fontSize: 8, color: COLORS.gray700 });
+      }
+
+      // ── Resumo Prof. San ──
+      if (entry.ai_review_md) {
+        writeLabel('Resumo do Prof. San', COLORS.wine);
+        writeParagraph(stripMd(entry.ai_review_md), { fontSize: 8, color: COLORS.gray700 });
+      }
+
+      // ── Anotação do aluno ──
+      if (entry.learning_text) {
+        writeLabel('Sua anotação', COLORS.gray500);
+        writeParagraph(entry.learning_text, { fontSize: 8, style: 'italic', color: COLORS.gray600, indent: 2 });
+      }
+
+      // Separador entre questões
+      const isLast = idx === areaEntries.length - 1;
+      y += 2;
+      if (!isLast) {
+        y = checkPageBreak(doc, y, 5);
+        doc.setDrawColor(...COLORS.gray200);
+        doc.setLineWidth(0.3);
+        doc.line(x, y, x + w, y);
+        y += 5;
+      }
+    });
+
+    y += 6; // gap entre áreas
+  });
+
+  addFooterToAllPages(doc);
+
+  const blob = doc.output('blob');
+  const filename = `caderno_erros_${slugify(today)}.pdf`;
+  saveBlob(blob, filename);
+  return blob;
 }

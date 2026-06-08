@@ -122,10 +122,12 @@ function CadernoContent({ userId }: { userId: string }) {
   const searchDebounced = useDebounce(searchRaw, 300);
   const [showDominadas, setShowDominadas] = useState(false);
 
-  // Seleção em lote
+  // Seleção em lote — `isSelectMode` é um estado EXPLÍCITO (não derivado de
+  // selectedIds.size), senão os cards nunca ficariam selecionáveis com zero
+  // itens marcados e seria impossível iniciar uma seleção.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
-  const isSelectMode = selectedIds.size > 0;
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   const tracked = useRef(false);
 
@@ -198,7 +200,10 @@ function CadernoContent({ userId }: { userId: string }) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isSelectMode) setSelectedIds(new Set());
+      if (e.key === 'Escape' && isSelectMode) {
+        setSelectedIds(new Set());
+        setIsSelectMode(false);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -386,7 +391,10 @@ function CadernoContent({ userId }: { userId: string }) {
     });
   }, []);
 
-  const cancelSelection = useCallback(() => setSelectedIds(new Set()), []);
+  const cancelSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setIsSelectMode(false);
+  }, []);
 
   const handleBulkResolve = useCallback(async () => {
     const ids = Array.from(selectedIds);
@@ -609,7 +617,8 @@ function CadernoContent({ userId }: { userId: string }) {
           actions={
             <>
               <CadernoExportMenu
-                entries={entries as any}
+                userId={userId}
+                entryCount={entries.length}
                 variant="outline"
                 size="sm"
                 className="h-[42px] rounded-[var(--c-radius-control)] px-4"
@@ -619,7 +628,7 @@ function CadernoContent({ userId }: { userId: string }) {
                   type="button"
                   aria-pressed={isSelectMode}
                   aria-label={isSelectMode ? 'Cancelar seleção' : 'Selecionar para ações em lote'}
-                  onClick={() => { if (isSelectMode) cancelSelection(); }}
+                  onClick={() => { if (isSelectMode) cancelSelection(); else setIsSelectMode(true); }}
                   title={isSelectMode ? 'Cancelar seleção (Esc)' : 'Selecionar questões'}
                   className={cn(
                     'inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 rounded-[var(--c-radius-control)] border px-4 text-[13px] font-semibold transition-all duration-[var(--c-duration-fast)]',
