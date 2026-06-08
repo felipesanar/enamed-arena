@@ -20,6 +20,7 @@ import { AdaptiveModal } from '@/components/caderno/ui';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import {
   suggestDeckName, mapGeneratedCardsToPayloads,
+  chunkBatchInput, mapWithConcurrency, BULK_CONCURRENCY,
   type BatchGenerateInput,
 } from '@/lib/bulkFlashcards';
 import type { Deck } from '@/types/caderno';
@@ -58,6 +59,8 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
   const [input, setInput] = useState<BatchGenerateInput | null>(null);
   const [target, setTarget] = useState<DeckTarget>({ deckId: decks[0]?.id ?? null, newName: null });
   const [generating, setGenerating] = useState(false);
+  // Progresso do lote fatiado (modo questions com muitos itens). null = sem barra.
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const suggestedName = input ? suggestDeckName(input) : 'Flashcards';
 
@@ -79,32 +82,81 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
   const handleGenerate = useCallback(async () => {
     if (!input) return;
     setGenerating(true);
+
+    // Lotes grandes (até MAX_QUESTIONS questões) são fatiados em chamadas menores
+    // — cada uma cabe folgada no abort de 25s da Edge Function. As chamadas rodam
+    // com concorrência limitada (chave Gemini compartilhada) e cada chunk salva
+    // assim que chega, então uma falha tardia não derruba o que já foi gerado.
+    const chunks = chunkBatchInput(input);
+    const totalUnits = input.mode === 'questions' ? (input.questions?.length ?? chunks.length) : chunks.length;
+    setProgress(totalUnits > 1 ? { done: 0, total: totalUnits } : null);
+
+    let createdCount = 0;
+    let failedUnits = 0;
+    let processedUnits = 0;
+    let anyPartial = false;
+    // Deck resolvido sob demanda e uma única vez (single-flight): evita criar um
+    // deck vazio se TODOS os chunks falharem, e evita corrida entre workers.
+    let deckPromise: Promise<string | null> | null = null;
+    const getDeckId = () => (deckPromise ??= resolveDeckId());
+
+    // 1 retry com espera curta absorve 429/timeout transitório de um chunk.
+    const generateChunk = async (chunk: BatchGenerateInput) => {
+      try {
+        return await simuladosApi.generateFlashcardsBatch(chunk);
+      } catch {
+        await new Promise((r) => setTimeout(r, 1500));
+        return simuladosApi.generateFlashcardsBatch(chunk);
+      }
+    };
+
     try {
-      const { cards, partial } = await simuladosApi.generateFlashcardsBatch(input);
-      if (cards.length === 0) {
-        toast({ title: 'A IA não retornou cards', description: 'Tente novamente ou ajuste a fonte.', variant: 'destructive' });
+      await mapWithConcurrency(chunks, BULK_CONCURRENCY, async (chunk) => {
+        const units = chunk.questions?.length ?? 1;
+        try {
+          const { cards, partial } = await generateChunk(chunk);
+          if (partial) anyPartial = true;
+          if (cards.length > 0) {
+            const deckId = await getDeckId();
+            if (!deckId) throw new Error('deck de destino não resolvido');
+            const created = await simuladosApi.createFlashcardsBulk(mapGeneratedCardsToPayloads(cards, deckId));
+            createdCount += created.length;
+          }
+        } catch (chunkErr) {
+          failedUnits += units;
+          logger.error('[BulkGenerateModal] chunk falhou:', chunkErr);
+        } finally {
+          processedUnits += units;
+          setProgress(totalUnits > 1 ? { done: processedUnits, total: totalUnits } : null);
+        }
+      });
+
+      // Nada gerado: sai antes de tocar em getDeckId() — assim não criamos um
+      // deck vazio quando todos os chunks falharam (o deck só nasce no 1º insert).
+      if (createdCount === 0) {
+        toast({
+          title: 'Não foi possível gerar os flashcards',
+          description: failedUnits > 0 ? 'A IA não respondeu a tempo. Tente novamente com menos itens.' : 'A IA não retornou cards. Tente novamente ou ajuste a fonte.',
+          variant: 'destructive',
+        });
         return;
       }
-      const deckId = await resolveDeckId();
-      if (!deckId) {
-        toast({ title: 'Selecione um deck de destino', variant: 'destructive' });
-        return;
-      }
-      const payloads = mapGeneratedCardsToPayloads(cards, deckId);
-      const created = await simuladosApi.createFlashcardsBulk(payloads);
+      // createdCount > 0 ⇒ getDeckId() já resolveu durante os inserts; reusa o cache.
+      const deckId = await getDeckId();
+      if (!deckId) return;
+
+      const incomplete = failedUnits > 0 || anyPartial;
       trackEvent('caderno_flashcards_bulk_generated', {
-        mode: input.mode, count: created.length, deck_id: deckId, partial,
+        mode: input.mode, count: createdCount, deck_id: deckId, partial: incomplete,
       });
       const deckName = decks.find((d) => d.id === deckId)?.name ?? (target.newName ?? suggestedName);
-      // Lote truncado pela IA: parte dos cards veio, mas não todos. Avisa em vez
-      // de fingir que o lote saiu completo.
-      if (partial) {
+      if (incomplete) {
         toast({
-          title: `${created.length} flashcards criados (lote parcial)`,
-          description: `Salvos em "${deckName}". O lote era grande e a IA não terminou. Gere o restante com uma quantidade menor.`,
+          title: `${createdCount} flashcards criados (lote parcial)`,
+          description: `Salvos em "${deckName}". Parte do lote não foi gerada. Reabra para gerar o restante.`,
         });
       } else {
-        toast({ title: `${created.length} flashcards criados`, description: `Salvos em "${deckName}".` });
+        toast({ title: `${createdCount} flashcards criados`, description: `Salvos em "${deckName}".` });
       }
       onDone(deckId);
     } catch (err) {
@@ -112,6 +164,7 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
       toast({ title: 'Não foi possível gerar os flashcards', description: 'Tente novamente em instantes.', variant: 'destructive' });
     } finally {
       setGenerating(false);
+      setProgress(null);
     }
   }, [input, resolveDeckId, decks, target, suggestedName, onDone]);
 
@@ -172,7 +225,9 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
               </span>
               <p className="text-[12px] text-[var(--c-muted)]">
                 {generating
-                  ? 'O Prof. San está montando seus flashcards…'
+                  ? (progress
+                      ? `O Prof. San está montando seus flashcards… (${progress.done}/${progress.total} questões)`
+                      : 'O Prof. San está montando seus flashcards…')
                   : 'Configure a fonte e o Prof. San gera os cards de uma vez.'}
               </p>
             </div>

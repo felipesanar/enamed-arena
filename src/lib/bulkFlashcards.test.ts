@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { Question } from '@/types';
 import {
   clampCount,
   MAX_TOPIC_COUNT,
   MAX_QUESTIONS,
+  QUESTIONS_CHUNK_SIZE,
   suggestDeckName,
   mapGeneratedCardsToPayloads,
   buildCadernoQuestionsInput,
@@ -11,6 +12,10 @@ import {
   buildQuestionsInput,
   buildTopicInput,
   mapErrorRowsToWeakEntries,
+  chunkBatchInput,
+  mapWithConcurrency,
+  type BatchGenerateInput,
+  type BatchQuestionInput,
   type GeneratedCard,
 } from './bulkFlashcards';
 
@@ -175,6 +180,71 @@ describe('buildTopicInput', () => {
   });
   it('normaliza strings vazias para null', () => {
     expect(buildTopicInput('', '', 10)).toEqual({ mode: 'topic', area: null, theme: null, count: 10 });
+  });
+});
+
+describe('chunkBatchInput', () => {
+  const makeQuestions = (n: number): BatchQuestionInput[] =>
+    Array.from({ length: n }, (_, i) => ({
+      sourceRef: { entryId: `e${i}` },
+      questionStem: `Enunciado ${i}`,
+    }));
+
+  it('fatia o modo questions em grupos do tamanho pedido', () => {
+    const input: BatchGenerateInput = { mode: 'questions', questions: makeQuestions(13) };
+    const chunks = chunkBatchInput(input, 6);
+    expect(chunks).toHaveLength(3);
+    expect(chunks.map((c) => c.questions!.length)).toEqual([6, 6, 1]);
+    expect(chunks.every((c) => c.mode === 'questions')).toBe(true);
+  });
+
+  it('preserva todas as questões na ordem original', () => {
+    const input: BatchGenerateInput = { mode: 'questions', questions: makeQuestions(10) };
+    const flat = chunkBatchInput(input, 4).flatMap((c) => c.questions!);
+    expect(flat.map((q) => q.sourceRef.entryId)).toEqual(makeQuestions(10).map((q) => q.sourceRef.entryId));
+  });
+
+  it('não fatia quando cabe num chunk só', () => {
+    const input: BatchGenerateInput = { mode: 'questions', questions: makeQuestions(6) };
+    expect(chunkBatchInput(input, 6)).toEqual([input]);
+  });
+
+  it('usa QUESTIONS_CHUNK_SIZE como padrão', () => {
+    const input: BatchGenerateInput = { mode: 'questions', questions: makeQuestions(QUESTIONS_CHUNK_SIZE + 1) };
+    expect(chunkBatchInput(input)).toHaveLength(2);
+  });
+
+  it('não fatia topic nem text (single-call)', () => {
+    const topic: BatchGenerateInput = { mode: 'topic', area: 'Cardio', count: 15 };
+    const text: BatchGenerateInput = { mode: 'text', rawText: 'x', count: 10 };
+    expect(chunkBatchInput(topic, 6)).toEqual([topic]);
+    expect(chunkBatchInput(text, 6)).toEqual([text]);
+  });
+});
+
+describe('mapWithConcurrency', () => {
+  it('processa todos os itens', async () => {
+    const seen: number[] = [];
+    await mapWithConcurrency([1, 2, 3, 4, 5], 2, async (n) => { seen.push(n); });
+    expect(seen.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('nunca passa do limite de tarefas simultâneas', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await mapWithConcurrency(Array.from({ length: 10 }, (_, i) => i), 3, async () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+    });
+    expect(maxInFlight).toBeLessThanOrEqual(3);
+  });
+
+  it('lista vazia resolve sem chamar o worker', async () => {
+    const worker = vi.fn(async () => {});
+    await mapWithConcurrency([], 3, worker);
+    expect(worker).not.toHaveBeenCalled();
   });
 });
 

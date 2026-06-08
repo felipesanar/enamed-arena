@@ -16,8 +16,28 @@ export type BatchMode = 'topic' | 'questions' | 'text';
 
 /** Caps para caber numa única chamada Gemini (~25s). */
 export const MAX_TOPIC_COUNT = 15;
-export const MAX_QUESTIONS = 20;
+/**
+ * Teto de questões selecionáveis num lote `questions`. O lote é fatiado em
+ * chamadas de `QUESTIONS_CHUNK_SIZE` (ver chunkBatchInput), então o limite não
+ * é mais a janela de 25s de uma única chamada — é só um teto de UX para manter o
+ * job e a pilha de revisão gerenciáveis.
+ */
+export const MAX_QUESTIONS = 60;
 export const DEFAULT_COUNT = 10;
+
+/**
+ * Questões por chamada Gemini no modo `questions`. Mantém cada chamada bem abaixo
+ * do abort de 25s da Edge Function (a causa dos antigos 504): ~6 cards geram em
+ * ~8-10s com folga. Lotes maiores são fatiados e gerados em paralelo no cliente.
+ */
+export const QUESTIONS_CHUNK_SIZE = 6;
+
+/**
+ * Chamadas Gemini simultâneas ao gerar um lote fatiado. Conservador de propósito:
+ * a API key do Gemini é compartilhada por todos os usuários, então rajadas largas
+ * disparariam rate-limit (429). 2 equilibra velocidade e folga de quota.
+ */
+export const BULK_CONCURRENCY = 2;
 
 /** Uma questão-fonte para o modo `questions` (1 card por questão). */
 export interface BatchQuestionInput {
@@ -152,6 +172,46 @@ export function buildQuestionsInput(items: QuestionSourceItem[]): BatchGenerateI
     mode: 'questions',
     questions: items.map((it) => mapQuestionToBatchInput(it.q, { area: it.area, theme: it.theme, entryId: it.entryId })),
   };
+}
+
+/**
+ * Fatia um lote em chamadas menores para a Edge Function. Só o modo `questions`
+ * é fatiado (1 card por questão, divisível); `topic`/`text` viram uma chamada só.
+ * Cada chunk preserva a ordem das questões originais.
+ */
+export function chunkBatchInput(
+  input: BatchGenerateInput,
+  chunkSize: number = QUESTIONS_CHUNK_SIZE,
+): BatchGenerateInput[] {
+  const qs = input.questions;
+  if (input.mode !== 'questions' || !qs || qs.length <= chunkSize) return [input];
+  const chunks: BatchGenerateInput[] = [];
+  for (let i = 0; i < qs.length; i += chunkSize) {
+    chunks.push({ mode: 'questions', questions: qs.slice(i, i + chunkSize) });
+  }
+  return chunks;
+}
+
+/**
+ * Roda `worker` sobre `items` com no máximo `limit` tarefas simultâneas (workers
+ * fazem "work-stealing" de uma fila compartilhada). Aguarda todas terminarem.
+ * O worker é responsável por engolir os próprios erros — uma rejeição aqui aborta
+ * o lote inteiro via Promise.all.
+ */
+export async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const run = async () => {
+    while (next < items.length) {
+      const i = next++;
+      await worker(items[i], i);
+    }
+  };
+  const n = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: n }, run));
 }
 
 /** Monta um BatchGenerateInput modo `topic` (count clampado em [1, MAX_TOPIC_COUNT]). */
