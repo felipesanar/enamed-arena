@@ -143,7 +143,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
                 type="button"
                 onClick={() => {
                   onOpenChange(false);
-                  navigate(`/simulados/${sim.slug}/start`);
+                  navigate(`/simulados/${sim.slug}/prova`);
                 }}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-primary/20 bg-accent/30 hover:border-primary hover:bg-accent transition-all text-center group"
               >
