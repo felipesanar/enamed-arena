@@ -52,10 +52,10 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
       {/* Label overline */}
       <div className="flex items-center justify-between px-0.5">
         <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]">
-          Baralhos
+          Decks
         </span>
         <span className="text-[10px] text-[var(--c-muted-2)]">
-          {decks.length} {decks.length === 1 ? 'baralho' : 'baralhos'}
+          {decks.length} {decks.length === 1 ? 'deck' : 'decks'}
         </span>
       </div>
 
@@ -114,8 +114,8 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 maxLength={60}
-                placeholder="Nome do baralho…"
-                aria-label="Nome do novo baralho"
+                placeholder="Nome do deck…"
+                aria-label="Nome do novo deck"
                 className={cn(
                   'h-8 w-36 rounded-[var(--c-radius-pill)] border border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] bg-[var(--c-surface)] px-3',
                   'text-[12px] font-medium text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
@@ -124,7 +124,7 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               />
               <button
                 type="button"
-                aria-label="Confirmar criação de baralho"
+                aria-label="Confirmar criação de deck"
                 disabled={!newName.trim() || isCreating}
                 onClick={handleCreate}
                 className={cn(
@@ -142,7 +142,7 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               </button>
               <button
                 type="button"
-                aria-label="Cancelar criação de baralho"
+                aria-label="Cancelar criação de deck"
                 onClick={() => { setShowInput(false); setNewName(''); }}
                 className={cn(
                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
@@ -163,7 +163,7 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               animate={{ opacity: 1 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0 }}
               transition={{ duration: 0.15 }}
-              aria-label="Criar novo baralho"
+              aria-label="Criar novo deck"
               className={cn(
                 'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--c-radius-pill)] border border-dashed px-3',
                 'border-[var(--c-border)] text-[11px] font-semibold text-[var(--c-muted)]',
@@ -172,7 +172,7 @@ export function DeckList({ decks, selectedDeckId, onSelect, onCreate, isCreating
               )}
             >
               <Plus className="h-3 w-3" aria-hidden />
-              Novo baralho
+              Novo deck
             </motion.button>
           )}
         </AnimatePresence>

@@ -75,6 +75,64 @@ function normalizeStoragePublicUrl(value: string | undefined | null): string {
   return objectPath ? toPublicUrl(objectPath) : '';
 }
 
+/** Normaliza um cabeçalho para comparação: remove acentos, baixa caixa, trim. */
+function normalizeHeader(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Mapa de cabeçalhos canônicos → variações aceitas (já normalizadas).
+ * Torna o import tolerante a variações de acento/caixa (ex.: "Número" vs "numero").
+ */
+const HEADER_ALIASES: Record<keyof ParsedRow, string[]> = {
+  numero: ['numero', 'questao'],
+  'Grande Área': ['grande area', 'area'],
+  Especialidade: ['especialidade'],
+  Tema: ['tema', 'assunto'],
+  Enunciado: ['enunciado'],
+  'Imagem do Enunciado': ['imagem do enunciado'],
+  'Alternativa A': ['alternativa a'],
+  'Alternativa B': ['alternativa b'],
+  'Alternativa C': ['alternativa c'],
+  'Alternativa D': ['alternativa d'],
+  Gabarito: ['gabarito', 'resposta', 'resposta correta'],
+  'Comentário': ['comentario'],
+  'Imagem do Comentário': ['imagem do comentario'],
+};
+
+/**
+ * Remapeia linhas cruas (chaveadas pelo texto exato do cabeçalho da planilha)
+ * para as chaves canônicas que o restante do pipeline espera.
+ * Sem isso, um cabeçalho "Número" não casa com `row.numero` e quebra
+ * numeração + associação de imagens (vira NaN → question_number 0, sem imagem).
+ */
+function canonicalizeRows(rawRows: Record<string, string>[]): ParsedRow[] {
+  return rawRows.map((raw) => {
+    const byNormalizedKey = new Map<string, string>();
+    for (const [key, value] of Object.entries(raw)) {
+      byNormalizedKey.set(normalizeHeader(key), value);
+    }
+
+    const out = {} as Record<string, string>;
+    for (const [canonical, aliases] of Object.entries(HEADER_ALIASES)) {
+      let value = '';
+      for (const alias of aliases) {
+        const hit = byNormalizedKey.get(normalizeHeader(alias));
+        if (hit != null && hit !== '') {
+          value = hit;
+          break;
+        }
+      }
+      out[canonical] = value;
+    }
+    return out as unknown as ParsedRow;
+  });
+}
+
 function normalizeRow(row: ParsedRow): NormalizedQuestion {
   const especialidade = row.Especialidade || '';
   const tema = row.Tema || '';
@@ -124,7 +182,8 @@ export default function AdminUploadQuestions() {
 
     const arrayBuffer = await file.arrayBuffer();
 
-    const rows = (await parseXlsxFirstWorksheetRows(arrayBuffer)) as unknown as ParsedRow[];
+    const rawRows = await parseXlsxFirstWorksheetRows(arrayBuffer);
+    const rows = canonicalizeRows(rawRows);
     setParsedRows(rows);
 
     // Extract embedded images with JSZip

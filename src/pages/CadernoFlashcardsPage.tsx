@@ -125,8 +125,8 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
   return (
     <CadernoEmptyState
       icon={<Layers className="h-8 w-8 text-[var(--c-wine-500)]" />}
-      title="Nenhum baralho ainda"
-      description="Crie seu primeiro baralho para organizar os flashcards por tema, área ou prova."
+      title="Nenhum deck ainda"
+      description="Crie seu primeiro deck para organizar os flashcards por tema, área ou prova."
       action={
         showInput ? (
           <div className="flex items-center gap-2">
@@ -140,8 +140,8 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
                 if (e.key === 'Escape') { setShowInput(false); setNewName(''); }
               }}
               maxLength={60}
-              placeholder="Nome do baralho…"
-              aria-label="Nome do primeiro baralho"
+              placeholder="Nome do deck…"
+              aria-label="Nome do primeiro deck"
               className={cn(
                 'h-9 w-48 rounded-[var(--c-radius-pill)] border border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] bg-[var(--c-surface)] px-3',
                 'text-[13px] font-medium text-[var(--c-ink)] placeholder:text-[var(--c-muted-2)]',
@@ -164,7 +164,7 @@ function EmptyDecksState({ onCreate, isCreating }: EmptyDecksStateProps) {
             className="gap-2 bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)]"
           >
             <Plus className="h-4 w-4" aria-hidden />
-            Criar primeiro baralho
+            Criar primeiro deck
           </Button>
         )
       }
@@ -456,7 +456,7 @@ function FlashcardsContent() {
             subtitle="Revise no intervalo certo para fixar de vez."
             stats={[
               { label: 'Total', value: flashcards.length },
-              { label: 'Baralhos', value: decks.length },
+              { label: 'Decks', value: decks.length },
               { label: 'Para hoje', value: dueFlashcards.length, color: dueFlashcards.length > 0 ? 'var(--c-wine-500)' : undefined },
             ]}
             primaryAction={
@@ -550,8 +550,8 @@ function FlashcardsContent() {
             ) : (
               <CadernoEmptyState
                 icon={<Layers className="h-7 w-7 text-[var(--c-muted-2)]" />}
-                title="Selecione um deck"
-                description="Escolha um deck acima para ver seus flashcards."
+                title="Nenhum flashcard ainda"
+                description="Seus decks ainda estão vazios. Escolha um deck acima e crie o primeiro flashcard, ou gere vários de uma vez com o Prof. San."
               />
             )
           ) : (
