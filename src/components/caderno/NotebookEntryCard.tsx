@@ -278,7 +278,7 @@ export function NotebookEntryCard({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               selected
                 ? 'border-[var(--c-wine-300)] bg-[var(--c-wine-50)] dark:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] text-[var(--c-wine-600)]'
-                : 'border-[color-mix(in_srgb,var(--c-border)_60%,transparent)] bg-[color-mix(in_srgb,var(--c-surface-2)_40%,transparent)] text-[color-mix(in_srgb,var(--c-muted)_50%,transparent)] hover:bg-[var(--c-surface-2)] hover:text-[var(--c-muted)]',
+                : 'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-muted)] hover:bg-[var(--c-wine-50)] dark:hover:bg-[color-mix(in_srgb,var(--c-wine-900)_25%,transparent)] hover:text-[var(--c-wine-600)]',
             )}
           >
             <div
@@ -286,7 +286,7 @@ export function NotebookEntryCard({
                 'flex h-4 w-4 items-center justify-center rounded border-2 transition-all duration-[var(--c-duration-fast)]',
                 selected
                   ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-500)] text-white'
-                  : 'border-[color-mix(in_srgb,var(--c-muted)_40%,transparent)]',
+                  : 'border-[var(--c-muted)] bg-[var(--c-surface)]',
               )}
             >
               {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />}

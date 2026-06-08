@@ -194,8 +194,7 @@ export function ShellSection({
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [showDominadas, setShowDominadas] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const isSelectMode = selectedIds.size > 0;
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -362,7 +361,10 @@ export function ShellSection({
               <button
                 type="button"
                 aria-pressed={isSelectMode}
-                onClick={() => { if (isSelectMode) setSelectedIds(new Set()); }}
+                onClick={() => {
+                  if (isSelectMode) { setSelectedIds(new Set()); setIsSelectMode(false); }
+                  else setIsSelectMode(true);
+                }}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1.5 rounded-[var(--c-radius-control)] border px-3 py-2 text-[12px] font-semibold",
                   isSelectMode
