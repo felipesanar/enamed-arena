@@ -604,6 +604,7 @@ export type Database = {
           id: string
           last_review_outcome: string | null
           mastered_at: string | null
+          question_id: string | null
           srs_due_at: string
           srs_ease: number
           srs_interval: number
@@ -624,6 +625,7 @@ export type Database = {
           id?: string
           last_review_outcome?: string | null
           mastered_at?: string | null
+          question_id?: string | null
           srs_due_at?: string
           srs_ease?: number
           srs_interval?: number
@@ -644,6 +646,7 @@ export type Database = {
           id?: string
           last_review_outcome?: string | null
           mastered_at?: string | null
+          question_id?: string | null
           srs_due_at?: string
           srs_ease?: number
           srs_interval?: number
@@ -665,6 +668,13 @@ export type Database = {
             columns: ["entry_id"]
             isOneToOne: false
             referencedRelation: "error_notebook"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flashcards_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
             referencedColumns: ["id"]
           },
         ]
