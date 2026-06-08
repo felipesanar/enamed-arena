@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { RotateCcw, Heart, NotebookPen, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useAdminAuth } from '@/admin/hooks/useAdminAuth';
 import { SegmentedTabs, type SegmentedTabItem } from '@/components/caderno/ui';
 
 interface Tab {
@@ -19,24 +20,17 @@ interface Tab {
   to: string;
   icon: ComponentType<{ className?: string }>;
   exact?: boolean;
+  /** Aba restrita a admins (ex.: Flashcards, em desenvolvimento). */
+  adminOnly?: boolean;
 }
 
 const TABS: Tab[] = [
   { label: 'Revisar',    to: '/caderno',            icon: RotateCcw, exact: true },
   { label: 'Favoritos',  to: '/caderno/favoritos',  icon: Heart },
   { label: 'Anotações',  to: '/caderno/anotacoes',  icon: NotebookPen },
-  { label: 'Flashcards', to: '/caderno/flashcards', icon: Layers },
+  { label: 'Flashcards', to: '/caderno/flashcards', icon: Layers, adminOnly: true },
   { label: 'Diagnóstico', to: '/caderno/insights',   icon: Sparkles },
 ];
-
-const SEGMENTED_ITEMS: SegmentedTabItem[] = TABS.map((t) => {
-  const Icon = t.icon;
-  return {
-    value: t.to,
-    label: t.label,
-    icon: <Icon className="h-3.5 w-3.5" />,
-  };
-});
 
 /**
  * Deriva a aba ativa a partir do pathname atual. Retorna '' quando a rota não
@@ -54,12 +48,24 @@ export function TabBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const activeTo = useActiveTo(location.pathname);
+  const { isAdmin } = useAdminAuth();
+
+  // Abas admin-only (Flashcards) só aparecem para administradores.
+  const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  const segmentedItems: SegmentedTabItem[] = tabs.map((t) => {
+    const Icon = t.icon;
+    return {
+      value: t.to,
+      label: t.label,
+      icon: <Icon className="h-3.5 w-3.5" />,
+    };
+  });
 
   if (isMobile) {
     return (
       <div className="sticky top-14 z-20 -mx-4 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_85%,transparent)] px-4 py-2 backdrop-blur-[var(--c-glass-blur)]">
         <SegmentedTabs
-          items={SEGMENTED_ITEMS}
+          items={segmentedItems}
           value={activeTo}
           onValueChange={(val) => navigate(val)}
           scrollable
@@ -91,7 +97,7 @@ export function TabBar() {
           'dark:shadow-[0_2px_6px_-2px_rgba(0,0,0,0.4),0_16px_32px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]',
         )}
       >
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = activeTo === tab.to;
           const Icon = tab.icon;
           return (

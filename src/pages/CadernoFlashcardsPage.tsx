@@ -62,6 +62,8 @@ import { BulkGenerateModal } from '@/components/caderno/flashcards/BulkGenerateM
 
 import { useUser } from '@/contexts/UserContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useAdminAuth } from '@/admin/hooks/useAdminAuth';
+import { Navigate } from 'react-router-dom';
 import type { Deck, Flashcard } from '@/types/caderno';
 
 /* ── Query keys ── */
@@ -603,8 +605,15 @@ function FlashcardsContent() {
 
 export default function CadernoFlashcardsPage() {
   const { profile } = useUser();
+  const { isAdmin, loading: adminLoading } = useAdminAuth();
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
+
+  // Flashcards está restrito a admins (em desenvolvimento). Enquanto o status
+  // de admin carrega não renderizamos nada para evitar flash; depois, quem não
+  // é admin é redirecionado para a aba inicial do Caderno.
+  if (adminLoading) return null;
+  if (!isAdmin) return <Navigate to="/caderno" replace />;
 
   return (
     <PageTransition>
