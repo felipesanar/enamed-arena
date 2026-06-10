@@ -45,6 +45,15 @@ export function QuestionDisplay({ question, answer, onSelectOption, onEliminateO
         </div>
       )}
 
+      {question.imageUrl2 && (
+        <div className="mb-6">
+          <QuestionImage
+            src={question.imageUrl2}
+            alt={`Imagem 2 da questão ${question.number}`}
+          />
+        </div>
+      )}
+
       {/* Options — uniform border-2 to prevent layout shift */}
       <div id="exam-options" className="space-y-2.5">
         {question.options.length === 0 ? (
