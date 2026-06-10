@@ -148,6 +148,14 @@ export function RecallQuestionCard({
               />
             </div>
           )}
+          {question.imageUrl2 && (
+            <div className="mt-4">
+              <QuestionImage
+                src={question.imageUrl2}
+                alt={`Imagem 2 da questão ${entry.questionNumber ?? ''}`}
+              />
+            </div>
+          )}
         </div>
 
         {/* ── Options ────────────────────────────────────────────────────────── */}

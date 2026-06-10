@@ -1019,6 +1019,15 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                 </div>
               )}
 
+              {question.imageUrl2 && (
+                <div className="mt-4">
+                  <QuestionImage
+                    src={question.imageUrl2}
+                    alt={`Imagem 2 da questão ${currentEntry.questionNumber ?? ''}`}
+                  />
+                </div>
+              )}
+
               {/* Alternativas */}
               <div className="mt-5 space-y-2">
                 {question.options.map((opt) => {

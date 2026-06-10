@@ -84,6 +84,7 @@ export interface Question {
   theme: string;
   difficulty?: string | null;
   imageUrl?: string | null;
+  imageUrl2?: string | null;
   explanationImageUrl?: string | null;
   options: QuestionOption[];
   correctOptionId: string;

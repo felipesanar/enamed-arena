@@ -74,6 +74,7 @@ export interface QuestionRow {
   theme: string;
   difficulty: string | null;
   image_url: string | null;
+  image_url_2: string | null;
   explanation_image_url: string | null;
   explanation: string | null;
 }
@@ -251,6 +252,7 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
     theme: qRow.theme,
     difficulty: qRow.difficulty ?? null,
     imageUrl: safeImageUrl(qRow.image_url),
+    imageUrl2: safeImageUrl(qRow.image_url_2),
     explanationImageUrl: safeImageUrl(qRow.explanation_image_url),
     options: qOptions.map(o => ({ id: o.id, label: o.label, text: o.text })),
     correctOptionId: correctOption?.id ?? '',

@@ -861,6 +861,7 @@ export type Database = {
           explanation_image_url: string | null
           id: string
           image_url: string | null
+          image_url_2: string | null
           question_number: number
           simulado_id: string
           text: string
@@ -874,6 +875,7 @@ export type Database = {
           explanation_image_url?: string | null
           id?: string
           image_url?: string | null
+          image_url_2?: string | null
           question_number: number
           simulado_id: string
           text: string
@@ -887,6 +889,7 @@ export type Database = {
           explanation_image_url?: string | null
           id?: string
           image_url?: string | null
+          image_url_2?: string | null
           question_number?: number
           simulado_id?: string
           text?: string
