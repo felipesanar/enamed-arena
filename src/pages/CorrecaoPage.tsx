@@ -404,6 +404,12 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                   </div>
                 )}
 
+                {question.imageUrl2 && (
+                  <div className="mb-6">
+                    <QuestionImage src={question.imageUrl2} alt={`Imagem 2 da questão ${question.number}`} />
+                  </div>
+                )}
+
                 <div className="space-y-2.5">
                   {question.options.map(opt => {
                     const isCorrect = opt.id === question.correctOptionId;
