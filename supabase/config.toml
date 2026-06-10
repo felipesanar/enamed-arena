@@ -22,3 +22,5 @@ verify_jwt = false
 # x-internal-secret. Sem isto o gateway rejeitaria com 401 antes do handler.
 [functions.caderno-reminders]
 verify_jwt = false
+[functions.temp-upload-imgs]
+verify_jwt = false
