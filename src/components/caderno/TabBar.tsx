@@ -3,17 +3,17 @@
  *
  * Desktop: segmented control com pílula ativa animada (framer-motion layoutId),
  *          ícones por seção e feedback visual claro da aba ativa.
- * Mobile:  SegmentedTabs scrollável (via useIsMobile), também com ícones.
+ * Mobile:  abas de largura igual (sem scroll), ícone sobre o rótulo, com a
+ *          mesma pílula wine animada do desktop — todas as seções cabem na tela.
  */
 
 import type { ComponentType } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { RotateCcw, Heart, NotebookPen, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAdminAuth } from '@/admin/hooks/useAdminAuth';
-import { SegmentedTabs, type SegmentedTabItem } from '@/components/caderno/ui';
 
 interface Tab {
   label: string;
@@ -46,30 +46,64 @@ function useActiveTo(pathname: string): string {
 export function TabBar() {
   const isMobile = useIsMobile();
   const location = useLocation();
-  const navigate = useNavigate();
   const activeTo = useActiveTo(location.pathname);
   const { isAdmin } = useAdminAuth();
 
   // Abas admin-only (Flashcards) só aparecem para administradores.
   const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
-  const segmentedItems: SegmentedTabItem[] = tabs.map((t) => {
-    const Icon = t.icon;
-    return {
-      value: t.to,
-      label: t.label,
-      icon: <Icon className="h-3.5 w-3.5" />,
-    };
-  });
 
   if (isMobile) {
     return (
-      <div className="sticky top-14 z-20 -mx-4 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_85%,transparent)] px-4 py-2 backdrop-blur-[var(--c-glass-blur)]">
-        <SegmentedTabs
-          items={segmentedItems}
-          value={activeTo}
-          onValueChange={(val) => navigate(val)}
-          scrollable
-        />
+      <div className="sticky top-14 z-20 -mx-4 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-surface)_88%,transparent)] px-2 py-2 backdrop-blur-[var(--c-glass-blur)]">
+        <nav
+          role="tablist"
+          aria-label="Seções do Caderno"
+          className="flex items-stretch gap-1"
+        >
+          {tabs.map((tab) => {
+            const active = activeTo === tab.to;
+            const Icon = tab.icon;
+            return (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.exact}
+                role="tab"
+                aria-selected={active}
+                className={cn(
+                  'group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2',
+                  'outline-none transition-[color,transform] duration-200 ease-out',
+                  'focus-visible:ring-2 focus-visible:ring-[var(--c-wine-400)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--c-bg)]',
+                  active
+                    ? 'text-white'
+                    : 'text-[var(--c-muted)] active:scale-[0.96]',
+                )}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="cadernoTabActiveMobile"
+                    aria-hidden="true"
+                    className={cn(
+                      'absolute inset-0 rounded-2xl',
+                      'bg-[linear-gradient(135deg,var(--c-wine-500)_0%,var(--c-wine-700)_100%)]',
+                      'shadow-[0_6px_14px_-7px_rgba(176,41,74,0.65),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.12)]',
+                    )}
+                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  />
+                )}
+                <Icon
+                  className={cn(
+                    'relative z-10 h-[18px] w-[18px] shrink-0 transition-colors duration-200',
+                    active ? 'text-white' : 'text-[var(--c-muted-2)]',
+                  )}
+                />
+                <span className="relative z-10 max-w-full truncate text-[11px] font-semibold leading-none tracking-[-0.01em]">
+                  {tab.label}
+                </span>
+              </NavLink>
+            );
+          })}
+        </nav>
       </div>
     );
   }
