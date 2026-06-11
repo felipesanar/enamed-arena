@@ -29,12 +29,13 @@ export function FlashcardPreviewModal({ card, onEdit, onDelete, onClose }: Flash
   const [revealed, setRevealed] = useState(false);
 
   // Espaço revela o verso (paridade com a sessão de revisão).
+  // preventDefault incondicional: espaço não deve ativar o botão focado
+  // (Radix auto-foca "Excluir") nem rolar o fundo.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !revealed) {
-        e.preventDefault();
-        setRevealed(true);
-      }
+      if (e.key !== ' ') return;
+      e.preventDefault();
+      if (!revealed) setRevealed(true);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -108,8 +109,6 @@ export function FlashcardPreviewModal({ card, onEdit, onDelete, onClose }: Flash
                 'border-[color-mix(in_srgb,var(--c-wine-500)_15%,transparent)] shadow-[var(--c-shadow-sm)]',
                 'active:scale-[0.99]',
               )}
-              role="button"
-              aria-label="Mostrar resposta"
             >
               <CardFace md={card.front_md} imageUrl={card.front_image_url} faceLabel="Frente" isMobile={isMobile} />
             </motion.div>

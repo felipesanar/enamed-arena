@@ -65,6 +65,7 @@ export function AdaptiveModal({
           className={cn(
             "caderno-root rounded-t-[20px] border-t border-[var(--c-border)] bg-[var(--c-surface)]",
             "pb-[max(1.25rem,env(safe-area-inset-bottom))]",
+            "max-h-[90dvh]",
             className,
           )}
         >
@@ -76,7 +77,7 @@ export function AdaptiveModal({
               <p className="text-body-sm text-[var(--c-muted)]">{description}</p>
             )}
           </DrawerHeader>
-          <div className="overflow-y-auto px-5 pb-2">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2">{children}</div>
           {footer && (
             <DrawerFooter className="px-5 pt-2">
               {footer}
@@ -105,7 +106,7 @@ export function AdaptiveModal({
             <p className="text-body-sm text-[var(--c-muted)]">{description}</p>
           )}
         </DialogHeader>
-        <div>{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto">{children}</div>
         {footer && (
           <DialogFooter>{footer}</DialogFooter>
         )}
