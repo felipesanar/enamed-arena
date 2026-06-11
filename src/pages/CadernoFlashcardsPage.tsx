@@ -3,8 +3,9 @@
  *
  * Rota: /caderno/flashcards  (gate PRO).
  *
- * Desktop: PageHeaderPremium + DeckList chips + grid de FlashcardItem +
- *          botão "Revisar devidos" destacado.
+ * Desktop: PageHeaderPremium + ReviewModesHub (devidos + modos de treino) +
+ *          CreateActionsRow + DeckList chips + grid de FlashcardItem
+ *          (clique abre FlashcardPreviewModal).
  * Mobile: 1 coluna, FlashcardEditor em bottom sheet (AdaptiveModal),
  *         review session em tela cheia com BottomActionBar.
  *
@@ -17,7 +18,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
   useQuery,
   useMutation,
@@ -25,7 +26,6 @@ import {
 } from '@tanstack/react-query';
 import {
   BookOpen,
-  Play,
   Plus,
   Layers,
   Loader2,
@@ -50,7 +50,6 @@ import {
   PageHeaderPremium,
   SectionHeader,
   CadernoEmptyState,
-  CadernoCardSkeleton,
   SkeletonLine,
 } from '@/components/caderno/ui';
 
@@ -59,12 +58,15 @@ import { FlashcardItem } from '@/components/caderno/flashcards/FlashcardItem';
 import { FlashcardEditor } from '@/components/caderno/flashcards/FlashcardEditor';
 import { FlashcardReviewSession } from '@/components/caderno/flashcards/FlashcardReviewSession';
 import { BulkGenerateModal } from '@/components/caderno/flashcards/BulkGenerateModal';
+import { FlashcardPreviewModal } from '@/components/caderno/flashcards/FlashcardPreviewModal';
+import { ReviewModesHub } from '@/components/caderno/flashcards/ReviewModesHub';
+import { CreateActionsRow } from '@/components/caderno/flashcards/CreateActionsRow';
+import { buildReviewPool } from '@/lib/flashcardReviewModes';
 
 import { useUser } from '@/contexts/UserContext';
-import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAdminAuth } from '@/admin/hooks/useAdminAuth';
 import { Navigate } from 'react-router-dom';
-import type { Deck, Flashcard } from '@/types/caderno';
+import type { Deck, Flashcard, ReviewMode } from '@/types/caderno';
 
 /* ── Query keys ── */
 
@@ -78,21 +80,18 @@ const QUERY_DUE = ['caderno', 'flashcards', 'due'] as const;
 function FlashcardsSkeletonGrid() {
   return (
     <div
-      className="grid gap-3 sm:grid-cols-1 lg:grid-cols-1"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
       aria-busy="true"
       aria-label="Carregando flashcards"
     >
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="flex items-start gap-4 rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] p-4"
+          className="flex flex-col gap-3 rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] p-4"
         >
-          <SkeletonLine className="h-16 w-16 shrink-0 rounded-xl" />
-          <div className="flex-1 space-y-2">
-            <SkeletonLine className="h-3.5 w-3/4" />
-            <SkeletonLine className="h-3 w-1/2" />
-            <SkeletonLine className="h-5 w-16 rounded-full" />
-          </div>
+          <SkeletonLine className="h-3.5 w-full" />
+          <SkeletonLine className="h-3.5 w-2/3" />
+          <SkeletonLine className="mt-4 h-5 w-16 rounded-full" />
         </div>
       ))}
     </div>
@@ -212,64 +211,18 @@ function ZeroDueState({ total }: { total: number }) {
   );
 }
 
-/* ── ReviewBanner — botão "Revisar devidos" ── */
-
-function ReviewBanner({ count, onStart }: { count: number; onStart: () => void }) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onStart}
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className={cn(
-        'group flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-card)]',
-        'border border-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] bg-gradient-to-r from-[color-mix(in_srgb,var(--c-wine-500)_8%,transparent)] via-[color-mix(in_srgb,var(--c-wine-500)_4%,transparent)] to-transparent',
-        'px-5 py-4 transition-all duration-200',
-        'hover:border-[color-mix(in_srgb,var(--c-wine-500)_40%,transparent)] hover:shadow-[var(--c-shadow-glow)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)]">
-          <Layers className="h-5 w-5 text-[var(--c-wine-500)]" aria-hidden />
-        </div>
-        <div className="min-w-0 text-left">
-          <p className="text-[14px] font-bold text-[var(--c-ink)]">Revisar devidos</p>
-          <p className="text-[12px] text-[var(--c-muted)]">
-            {count} {count === 1 ? 'flashcard' : 'flashcards'} para hoje
-          </p>
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          'flex shrink-0 items-center gap-2 rounded-xl px-5 py-2.5',
-          'bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white',
-          'text-[13px] font-bold shadow-[var(--c-shadow-glow)]',
-          'transition-transform duration-150 group-hover:scale-[1.03]',
-        )}
-      >
-        <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
-        Iniciar
-      </div>
-    </motion.button>
-  );
-}
-
 /* ── FlashcardsContent ── */
 
 function FlashcardsContent() {
   const qc = useQueryClient();
-  const isMobile = useIsMobile();
 
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
-  const [reviewMode, setReviewMode] = useState(false);
+  const [reviewMode, setReviewMode] = useState<ReviewMode | null>(null);
   const [reviewCards, setReviewCards] = useState<Flashcard[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [previewCard, setPreviewCard] = useState<Flashcard | null>(null);
 
   /* ── Queries ── */
 
@@ -384,18 +337,23 @@ function FlashcardsContent() {
     [qc, selectedDeckId],
   );
 
-  const handleStartReview = () => {
-    if (dueFlashcards.length === 0) return;
-    setReviewCards(dueFlashcards);
-    setReviewMode(true);
-    trackEvent('caderno_flashcard_reviewed', {
-      source: 'review_session_started',
-      count: dueFlashcards.length,
-    } as any);
-  };
+  const handleStartReview = useCallback(
+    (mode: ReviewMode) => {
+      const pool = mode === 'due' ? dueFlashcards : buildReviewPool(mode, flashcards);
+      if (pool.length === 0) return;
+      setReviewCards(pool);
+      setReviewMode(mode);
+      trackEvent('caderno_flashcard_reviewed', {
+        source: 'review_session_started',
+        mode,
+        count: pool.length,
+      } as any);
+    },
+    [dueFlashcards, flashcards],
+  );
 
   const handleReviewFinish = () => {
-    setReviewMode(false);
+    setReviewMode(null);
     setReviewCards([]);
     qc.invalidateQueries({ queryKey: QUERY_DUE });
     qc.invalidateQueries({ queryKey: queryFlashcards(selectedDeckId) });
@@ -404,7 +362,13 @@ function FlashcardsContent() {
   /* ── Review mode (tela cheia) ── */
 
   if (reviewMode && reviewCards.length > 0) {
-    return <FlashcardReviewSession cards={reviewCards} onFinish={handleReviewFinish} />;
+    return (
+      <FlashcardReviewSession
+        cards={reviewCards}
+        mode={reviewMode}
+        onFinish={handleReviewFinish}
+      />
+    );
   }
 
   /* ── Loading ── */
@@ -461,47 +425,26 @@ function FlashcardsContent() {
               { label: 'Decks', value: decks.length },
               { label: 'Para hoje', value: dueFlashcards.length, color: dueFlashcards.length > 0 ? 'var(--c-wine-500)' : undefined },
             ]}
-            primaryAction={
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBulkOpen(true)}
-                  className={cn(
-                    'gap-1.5 border-amber-400/40 text-amber-600',
-                    'hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
-                  )}
-                >
-                  <Sparkles className="h-4 w-4" aria-hidden />
-                  Gerar em lote
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenEditor()}
-                  disabled={!selectedDeckId && decks.length > 0}
-                  title={!selectedDeckId ? 'Selecione um deck para adicionar um flashcard' : undefined}
-                  className={cn(
-                    'gap-1.5 border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] text-[var(--c-wine-600)]',
-                    'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)]',
-                  )}
-                >
-                  <Plus className="h-4 w-4" aria-hidden />
-                  Novo flashcard
-                </Button>
-              </div>
-            }
           />
         </StaggerItem>
 
-        {/* Banner "Revisar devidos" */}
-        <AnimatePresence>
-          {dueFlashcards.length > 0 && (
-            <StaggerItem>
-              <ReviewBanner count={dueFlashcards.length} onStart={handleStartReview} />
-            </StaggerItem>
-          )}
-        </AnimatePresence>
+        {/* Hub de revisão: devidos + modos de treino */}
+        <StaggerItem>
+          <ReviewModesHub
+            dueCount={dueFlashcards.length}
+            cards={flashcards}
+            onStart={handleStartReview}
+          />
+        </StaggerItem>
+
+        {/* CTAs de criação */}
+        <StaggerItem>
+          <CreateActionsRow
+            onGenerate={() => setBulkOpen(true)}
+            onCreate={() => handleOpenEditor()}
+            createDisabled={!selectedDeckId && decks.length > 0}
+          />
+        </StaggerItem>
 
         {/* DeckList chips */}
         <StaggerItem>
@@ -519,21 +462,6 @@ function FlashcardsContent() {
           <SectionHeader
             title={deckTitle}
             count={cardsLoading ? undefined : flashcards.length}
-            action={
-              /* mobile: botão "+" flutuante — desktop: já está no PageHeader */
-              isMobile ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleOpenEditor()}
-                  disabled={!selectedDeckId && decks.length > 0}
-                  className="h-8 w-8 p-0 text-[var(--c-wine-500)]"
-                  aria-label="Novo flashcard"
-                >
-                  <Plus className="h-4 w-4" aria-hidden />
-                </Button>
-              ) : undefined
-            }
           />
         </StaggerItem>
 
@@ -565,16 +493,19 @@ function FlashcardsContent() {
                 />
               )}
 
-              <AnimatePresence mode="popLayout">
-                {flashcards.map((card: Flashcard) => (
-                  <FlashcardItem
-                    key={card.id}
-                    card={card}
-                    onEdit={handleOpenEditor}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </AnimatePresence>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <AnimatePresence mode="popLayout">
+                  {flashcards.map((card: Flashcard) => (
+                    <FlashcardItem
+                      key={card.id}
+                      card={card}
+                      onPreview={setPreviewCard}
+                      onEdit={handleOpenEditor}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
             </div>
           )}
         </StaggerItem>
@@ -595,6 +526,14 @@ function FlashcardsContent() {
           defaultDeckId={selectedDeckId}
           onDone={handleBulkDone}
           onClose={() => setBulkOpen(false)}
+        />
+      )}
+      {previewCard && (
+        <FlashcardPreviewModal
+          card={previewCard}
+          onEdit={(card) => { setPreviewCard(null); handleOpenEditor(card); }}
+          onDelete={(id) => { setPreviewCard(null); handleDelete(id); }}
+          onClose={() => setPreviewCard(null)}
         />
       )}
     </>
