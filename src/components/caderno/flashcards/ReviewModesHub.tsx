@@ -6,6 +6,7 @@
  * e ficam desabilitados (com tooltip) quando o pool é vazio.
  */
 
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Play,
@@ -38,6 +39,10 @@ export interface ReviewModesHubProps {
 }
 
 export function ReviewModesHub({ dueCount, cards, onStart }: ReviewModesHubProps) {
+  // Fix #3 — memoize pool sizes so they are not recomputed on every render.
+  const freePoolSize = useMemo(() => filterFreePool(cards).length, [cards]);
+  const hardPoolSize = useMemo(() => filterHardCards(cards).length, [cards]);
+
   return (
     <section aria-label="Modos de revisão" className="space-y-3">
       {/* Protagonista: Revisar devidos */}
@@ -85,14 +90,14 @@ export function ReviewModesHub({ dueCount, cards, onStart }: ReviewModesHubProps
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {TRAINING_MODES.map(({ mode, icon: Icon }) => {
           const config = REVIEW_MODE_CONFIGS[mode];
-          // Deterministic pool size: avoid Math.random on every render.
+          // Fix #3 — use memoized pool sizes (computed above) instead of inline filter calls.
           // shuffle/timed availability depends on the free pool (non-mastered cards).
-          const poolSize = mode === 'hard' ? filterHardCards(cards).length : filterFreePool(cards).length;
+          const poolSize = mode === 'hard' ? hardPoolSize : freePoolSize;
           const disabled = poolSize === 0;
 
-          const tile = (
+          // Fix #2 — renderTile has no key so the key can live on the returned element.
+          const renderTile = () => (
             <button
-              key={mode}
               type="button"
               disabled={disabled}
               onClick={() => onStart(mode)}
@@ -101,7 +106,9 @@ export function ReviewModesHub({ dueCount, cards, onStart }: ReviewModesHubProps
                 'flex h-full flex-col items-start gap-2 rounded-[var(--c-radius-card)] border bg-[var(--c-surface)] p-3 text-left',
                 'border-[var(--c-border)] transition-all duration-150',
                 disabled
-                  ? 'cursor-not-allowed opacity-45'
+                  // Fix #1 — pointer-events-none on the button so the wrapper span
+                  // reliably captures hover/pointer for the Tooltip; cursor goes on the wrapper.
+                  ? 'pointer-events-none opacity-45'
                   : 'hover:-translate-y-[1px] hover:border-[color-mix(in_srgb,var(--c-wine-500)_35%,transparent)] hover:shadow-[var(--c-shadow-sm)] motion-reduce:hover:translate-y-0',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               )}
@@ -118,12 +125,18 @@ export function ReviewModesHub({ dueCount, cards, onStart }: ReviewModesHubProps
             </button>
           );
 
-          if (!disabled) return tile;
+          // Fix #2 — key is on the outermost element returned from the map in both branches.
+          // Fix #1 & #4 — non-disabled branch: div with h-full so the tile stretches in the grid.
+          if (!disabled) return <div key={mode} className="h-full">{renderTile()}</div>;
+
           return (
             <Tooltip key={mode} delayDuration={300}>
-              {/* span wrapper: tooltip precisa de target habilitado */}
+              {/* Fix #1 — block + h-full so the span fills the grid cell and captures pointer
+                  events; cursor-not-allowed is here because the button has pointer-events-none. */}
               <TooltipTrigger asChild>
-                <span className="h-full">{tile}</span>
+                <span className="block h-full cursor-not-allowed" tabIndex={0}>
+                  {renderTile()}
+                </span>
               </TooltipTrigger>
               <TooltipContent side="bottom">
                 {mode === 'hard'
