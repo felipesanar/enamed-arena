@@ -878,6 +878,52 @@
   }
 }
 
+/* ─────────────────── Admin control-room tokens (namespace --admin-*) ───────────────────
+   Dual de primeira classe: cada token tem par light/dark explícito.
+   Formato: canais HSL para suportar alpha via Tailwind (<alpha-value>). */
+:root {
+  --admin-bg: 40 20% 97%;
+  --admin-surface: 0 0% 100%;
+  --admin-raised: 40 15% 95%;
+  --admin-line: 40 10% 88%;
+  --admin-line-strong: 40 8% 78%;
+  --admin-text: 220 15% 12%;
+  --admin-muted: 220 8% 42%;
+  --admin-faint: 220 6% 60%;
+  --admin-accent: 345 65% 42%;
+  --admin-accent-soft: 345 45% 94%;
+  --admin-accent-contrast: 0 0% 100%;
+  --admin-success: 160 60% 32%;
+  --admin-warning: 35 85% 40%;
+  --admin-info: 210 70% 45%;
+  --admin-destructive: 0 70% 45%;
+}
+
+.dark {
+  --admin-bg: 210 10% 7%;
+  --admin-surface: 210 9% 10%;
+  --admin-raised: 210 8% 13%;
+  --admin-line: 210 8% 16%;
+  --admin-line-strong: 210 8% 24%;
+  --admin-text: 210 14% 95%;
+  --admin-muted: 210 8% 64%;
+  --admin-faint: 210 6% 46%;
+  --admin-accent: 345 72% 58%;
+  --admin-accent-soft: 345 40% 16%;
+  --admin-accent-contrast: 210 10% 7%;
+  --admin-success: 160 50% 56%;
+  --admin-warning: 38 90% 60%;
+  --admin-info: 210 75% 65%;
+  --admin-destructive: 0 70% 62%;
+}
+
+/* Base do admin: aplicada pelo AdminApp no wrapper raiz */
+.admin-root {
+  background-color: hsl(var(--admin-bg));
+  color: hsl(var(--admin-text));
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Print styles: Force light mode ─────────────────────────────────────── */
 @media print {
   :root {
