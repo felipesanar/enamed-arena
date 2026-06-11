@@ -70,7 +70,7 @@ Mantém o comportamento atual: aviso de desktop-only. Sem investimento responsiv
 
 ### Princípios
 
-- Namespace próprio `--admin-*`, escopado no elemento raiz do admin (classe `.admin-root` aplicada pelo `AdminApp`). Nada vaza para a plataforma do aluno.
+- Namespace próprio `--admin-*`, definido globalmente em `:root`/`.dark` (Dialog/Popover/Select do Radix portalam para `document.body`, fora de qualquer wrapper do admin — tokens escopados quebrariam nos portais). O namespace garante que nada vaza para a plataforma do aluno; a classe `.admin-root` (aplicada pelo `AdminApp`) carrega só a base de bg/texto/`tabular-nums`.
 - Tokens em **canais HSL** (`--admin-surface: 210 9% 10%`) mapeados no Tailwind com `<alpha-value>` — `bg-admin-accent/20` funciona (evita o gotcha do Tailwind v3 com opacity sobre `var()`).
 - Dual de primeira classe: cada token tem par light/dark definido explicitamente na mesma tabela. O toggle continua sendo o `next-themes` global (`.dark` no `<html>`).
 
