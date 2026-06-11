@@ -124,3 +124,139 @@ alter type public.app_role add value if not exists 'content_editor';
 alter type public.app_role add value if not exists 'support';
 alter type public.app_role add value if not exists 'analyst';
 ```
+
+---
+
+## 2026-06-11 — `admin_capabilities_policies`
+
+Troca o check `has_role(admin)` / `role = 'admin'` por `public.has_capability(...)` nas
+32 policies RLS de admin (`intel.view` para analytics_events, `roles.manage` para
+user_roles, `content.manage` para o restante — incluindo as 7 policies de storage.objects).
+A policy "Admins podem ler capabilities" de `role_capabilities` continua usando `has_role`
+de propósito (bootstrap).
+
+```sql
+alter policy "Admins can read analytics events" on public.analytics_events
+  using (public.has_capability('intel.view'));
+
+alter policy "Admins can insert cutoff scores" on public.enamed_cutoff_scores with check (public.has_capability('content.manage'));
+alter policy "Admins can update cutoff scores" on public.enamed_cutoff_scores using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete cutoff scores" on public.enamed_cutoff_scores using (public.has_capability('content.manage'));
+
+alter policy "Admins can insert institutions" on public.enamed_institutions with check (public.has_capability('content.manage'));
+alter policy "Admins can update institutions" on public.enamed_institutions using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete institutions" on public.enamed_institutions using (public.has_capability('content.manage'));
+
+alter policy "Admins can insert programs" on public.enamed_programs with check (public.has_capability('content.manage'));
+alter policy "Admins can update programs" on public.enamed_programs using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete programs" on public.enamed_programs using (public.has_capability('content.manage'));
+
+alter policy "Admins can insert specialties" on public.enamed_specialties with check (public.has_capability('content.manage'));
+alter policy "Admins can update specialties" on public.enamed_specialties using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete specialties" on public.enamed_specialties using (public.has_capability('content.manage'));
+
+alter policy "Admins can insert questions" on public.questions with check (public.has_capability('content.manage'));
+alter policy "Admins can update questions" on public.questions using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete questions" on public.questions using (public.has_capability('content.manage'));
+
+alter policy "Admins can insert question_options" on public.question_options with check (public.has_capability('content.manage'));
+alter policy "Admins can update question_options" on public.question_options using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete question_options" on public.question_options using (public.has_capability('content.manage'));
+
+alter policy "Admins can insert simulados" on public.simulados with check (public.has_capability('content.manage'));
+alter policy "Admins can update simulados" on public.simulados using (public.has_capability('content.manage')) with check (public.has_capability('content.manage'));
+alter policy "Admins can delete simulados" on public.simulados using (public.has_capability('content.manage'));
+alter policy "Admins can read all simulados" on public.simulados using (public.has_capability('content.manage'));
+alter policy "Admins can read test simulados" on public.simulados using (status = 'test'::public.simulado_status and public.has_capability('content.manage'));
+
+alter policy "Admins can read roles" on public.user_roles using (public.has_capability('roles.manage'));
+
+alter policy "Admins can read question images" on storage.objects using (bucket_id = 'question-images' and public.has_capability('content.manage'));
+alter policy "Admins can upload question images" on storage.objects with check (bucket_id = 'question-images' and public.has_capability('content.manage'));
+alter policy "Admins can update question images" on storage.objects using (bucket_id = 'question-images' and public.has_capability('content.manage')) with check (bucket_id = 'question-images' and public.has_capability('content.manage'));
+alter policy "Admins can delete question images" on storage.objects using (bucket_id = 'question-images' and public.has_capability('content.manage'));
+
+alter policy "Admins podem fazer upload de imagens de simulado" on storage.objects with check (bucket_id = 'imagensSimulado' and public.has_capability('content.manage'));
+alter policy "Admins podem atualizar imagens de simulado" on storage.objects using (bucket_id = 'imagensSimulado' and public.has_capability('content.manage')) with check (bucket_id = 'imagensSimulado' and public.has_capability('content.manage'));
+alter policy "Admins podem deletar imagens de simulado" on storage.objects using (bucket_id = 'imagensSimulado' and public.has_capability('content.manage'));
+```
+
+---
+
+## 2026-06-11 — `admin_cap_rpc_dashboard`, `admin_cap_rpc_intel`, `admin_cap_rpc_users_roles`, `admin_cap_rpc_attempts_content_previews`
+
+Sweep das 31 RPCs `admin_*`: o guard inline de role hardcoded foi substituído por
+`perform public.admin_require('<capability>');`. Os corpos das funções permaneceram
+idênticos (exceto os 3 casos especiais abaixo) — o SQL completo de cada função está
+no banco (`select pg_get_functiondef(...)`).
+
+Transformação aplicada em todas (variações de alias/case existiam, mesma semântica):
+
+```sql
+-- ANTES
+if not exists (
+  select 1 from user_roles where user_id = auth.uid() and role = 'admin'
+) then
+  raise exception 'unauthorized' using errcode = 'P0003';
+end if;
+
+-- DEPOIS
+perform public.admin_require('<capability>');
+```
+
+Mapa RPC → capability:
+
+| Migration | Capability | Funções |
+|---|---|---|
+| `admin_cap_rpc_dashboard` | `dashboard.view` | admin_dashboard_kpis, admin_events_timeseries, admin_funnel_stats, admin_simulado_engagement, admin_live_signals |
+| `admin_cap_rpc_intel` | `intel.view` | admin_analytics_funnel, admin_analytics_sources, admin_analytics_time_to_convert, admin_analytics_timeseries, admin_marketing_kpis, admin_marketing_sources, admin_marketing_mediums, admin_marketing_campaigns, admin_produto_segmented_funnel, admin_produto_friction, admin_produto_feature_adoption, admin_produto_top_events |
+| `admin_cap_rpc_users_roles` | `users.view` | admin_list_users, admin_get_user, admin_get_user_attempts |
+| `admin_cap_rpc_users_roles` | `users.manage` | admin_set_user_segment, admin_reset_user_onboarding |
+| `admin_cap_rpc_users_roles` | `roles.manage` | admin_set_user_role |
+| `admin_cap_rpc_attempts_content_previews` | `attempts.view` | admin_attempts_kpis, admin_list_attempts |
+| `admin_cap_rpc_attempts_content_previews` | `attempts.manage` | admin_cancel_attempt, admin_delete_attempt |
+| `admin_cap_rpc_attempts_content_previews` | `content.manage` | admin_simulado_detail_stats, admin_simulado_question_stats |
+| `admin_cap_rpc_attempts_content_previews` | `previews.view` | admin_get_ranking_for_simulado, admin_list_simulados_for_ranking_preview |
+
+**Casos especiais:**
+
+1. `admin_get_user` — assinatura de retorno mudou (drop + recreate na mesma migration):
+   adicionada coluna `roles text[]` ao RETURNS TABLE e ao SELECT:
+
+```sql
+drop function public.admin_get_user(uuid);
+-- recreate com guard novo e coluna extra:
+--   ... is_admin boolean, roles text[])
+--   (select coalesce(array_agg(ur.role::text), '{}') from user_roles ur where ur.user_id = p_user_id) as roles
+```
+
+2. `admin_set_user_role` — proteção contra auto-revogação de admin, logo após o guard:
+
+```sql
+if p_user_id = (select auth.uid()) and p_role = 'admin' and p_grant = false then
+  raise exception 'cannot_revoke_own_admin' using errcode = 'P0004';
+end if;
+```
+
+   (não havia whitelist manual de p_role a remover)
+
+3. `admin_simulado_question_stats` — era `language sql` e **não tinha guard nenhum**
+   (qualquer authenticated conseguia executar — brecha pré-existente). Recriada como
+   `language plpgsql STABLE` com `perform public.admin_require('content.manage');` +
+   `return query <mesma query>`, mantendo o contrato de erro P0003.
+
+**Verificações (2026-06-11):**
+
+- Nenhuma policy restante com `has_role` além de "Admins podem ler capabilities" (proposital).
+- Todas as 31 RPCs contêm `admin_require('<capability>')` com a capability correta; nenhuma
+  contém mais o guard antigo (`from user_roles ... auth.uid()`).
+- `role_capabilities`: admin=9, analyst=3, content_editor=4, support=5.
+- Smoke test com JWT simulado de admin: `admin_simulado_question_stats`, `admin_get_user`
+  (roles=`{admin}`) e `admin_live_signals` executam; sem contexto de auth → `P0003 unauthorized`.
+
+**Edge function `admin-delete-user` (v26):** o check de admin via
+`rpc('has_role', ...)` foi substituído por checagem de capability `users.manage` com
+service role em duas queries (roles do caller em `user_roles` → match em
+`role_capabilities` com `capability = 'users.manage'`), pois PostgREST não faz join
+sem FK entre as duas tabelas. Restante do código (CORS, validações, deleteUser) intacto;
+`verify_jwt` permanece `false` (a função valida o JWT internamente).

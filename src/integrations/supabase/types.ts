@@ -366,8 +366,10 @@ export type Database = {
           cutoff_score_general: number
           cutoff_score_quota: number | null
           id: string
+          institution_id: string | null
           institution_name: string
           practice_scenario: string
+          specialty_id: string | null
           specialty_name: string
         }
         Insert: {
@@ -375,8 +377,10 @@ export type Database = {
           cutoff_score_general: number
           cutoff_score_quota?: number | null
           id?: string
+          institution_id?: string | null
           institution_name: string
           practice_scenario?: string
+          specialty_id?: string | null
           specialty_name: string
         }
         Update: {
@@ -384,11 +388,28 @@ export type Database = {
           cutoff_score_general?: number
           cutoff_score_quota?: number | null
           id?: string
+          institution_id?: string | null
           institution_name?: string
           practice_scenario?: string
+          specialty_id?: string | null
           specialty_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "enamed_cutoff_scores_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "enamed_institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enamed_cutoff_scores_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "enamed_specialties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enamed_institutions: {
         Row: {
@@ -708,8 +729,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
-          specialty: string
+          specialty: string | null
+          specialty_id: string | null
           status: Database["public"]["Enums"]["onboarding_status"]
+          target_institution_ids: string[]
           target_institutions: string[]
           updated_at: string
           user_id: string
@@ -718,8 +741,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
-          specialty: string
+          specialty?: string | null
+          specialty_id?: string | null
           status?: Database["public"]["Enums"]["onboarding_status"]
+          target_institution_ids?: string[]
           target_institutions?: string[]
           updated_at?: string
           user_id: string
@@ -728,13 +753,23 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
-          specialty?: string
+          specialty?: string | null
+          specialty_id?: string | null
           status?: Database["public"]["Enums"]["onboarding_status"]
+          target_institution_ids?: string[]
           target_institutions?: string[]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_profiles_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "enamed_specialties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -955,6 +990,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_capabilities: {
+        Row: {
+          capability: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          capability: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          capability?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
       }
       simulados: {
         Row: {
@@ -1314,6 +1364,13 @@ export type Database = {
           user_count: number
         }[]
       }
+      admin_get_access: {
+        Args: never
+        Returns: {
+          capabilities: string[]
+          roles: string[]
+        }[]
+      }
       admin_get_ranking_for_simulado: {
         Args: { p_include_train?: boolean; p_simulado_id: string }
         Returns: {
@@ -1344,6 +1401,7 @@ export type Database = {
           last_finished_at: string
           last_score: number
           last_sign_in_at: string
+          roles: string[]
           segment: string
           specialty: string
           target_institutions: string[]
@@ -1501,6 +1559,16 @@ export type Database = {
           event_name: string
         }[]
       }
+      admin_quick_search: {
+        Args: { p_query: string }
+        Returns: {
+          id: string
+          kind: string
+          subtitle: string
+          title: string
+        }[]
+      }
+      admin_require: { Args: { p_capability: string }; Returns: undefined }
       admin_reset_user_onboarding: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -1703,6 +1771,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_capability: { Args: { p_capability: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1757,8 +1826,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
-          specialty: string
+          specialty: string | null
+          specialty_id: string | null
           status: Database["public"]["Enums"]["onboarding_status"]
+          target_institution_ids: string[]
           target_institutions: string[]
           updated_at: string
           user_id: string
@@ -1797,7 +1868,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin"
+      app_role: "admin" | "content_editor" | "support" | "analyst"
       attempt_processing_status:
         | "pending"
         | "processing"
@@ -1945,7 +2016,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin"],
+      app_role: ["admin", "content_editor", "support", "analyst"],
       attempt_processing_status: [
         "pending",
         "processing",
