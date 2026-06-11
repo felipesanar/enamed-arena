@@ -43,7 +43,7 @@ export function LandingExperience() {
             variants={headerItemReveal}
             className="mt-4 w-full max-w-none text-body-lg text-muted-foreground leading-relaxed"
           >
-            Ambiente de prova, resultado, ranking e insights — tudo com a mesma qualidade e clareza.
+            Ambiente de prova, resultado, ranking e análise: tudo com a mesma qualidade e clareza.
           </motion.p>
           <motion.div variants={headerItemReveal} className="mt-5 flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center rounded-full border border-primary/70 bg-primary/35 px-3 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-white shadow-[0_10px_24px_-12px_hsl(var(--primary)/0.65)]">

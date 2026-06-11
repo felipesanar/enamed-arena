@@ -7,7 +7,7 @@ const FOOTER_LINKS = [
   { id: "diferenciais", label: "Diferenciais", href: "#diferenciais" },
   { id: "como-funciona", label: "Como funciona", href: "#como-funciona" },
   { id: "experiencia", label: "Experiência", href: "#experiencia" },
-  { id: "performance", label: "Performance", href: "#performance" },
+  { id: "performance", label: "Desempenho", href: "#performance" },
   { id: "pro", label: "SanarFlix PRO", href: "#pro" },
 ];
 

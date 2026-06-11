@@ -39,14 +39,14 @@ export function LandingComparison() {
             variants={headerItemReveal}
             className="text-overline uppercase tracking-[0.12em] text-muted-foreground mb-3"
           >
-            Performance
+            Desempenho
           </motion.p>
           <motion.h2
             variants={headerItemReveal}
             id="comparison-heading"
             className="w-full max-w-none text-heading-1 md:text-[2.5rem] lg:text-[3rem] font-bold text-foreground leading-tight tracking-tight"
           >
-            Rankings que mostram onde você está.
+            Um ranking que mostra onde você está.
           </motion.h2>
           <motion.p
             variants={headerItemReveal}
@@ -112,7 +112,7 @@ export function LandingComparison() {
                   <th className="py-3 px-5 font-semibold w-16">#</th>
                   <th className="py-3 px-5 font-semibold">Aluno</th>
                   <th className="py-3 px-5 font-semibold hidden sm:table-cell">Especialidade</th>
-                  <th className="py-3 px-5 font-semibold text-right w-20">Score</th>
+                  <th className="py-3 px-5 font-semibold text-right w-20">Nota</th>
                   <th className="py-3 px-5 font-semibold text-right w-16">Var.</th>
                 </tr>
               </thead>
@@ -166,7 +166,7 @@ export function LandingComparison() {
                       <td className="py-3 px-5 text-right">
                         <span
                           className={
-                            row.variation === "—"
+                            row.variation === "·"
                               ? "text-muted-foreground"
                               : row.variation.startsWith("+")
                                 ? isYou
@@ -185,7 +185,7 @@ export function LandingComparison() {
             </table>
           </div>
           <p className="px-5 py-3 text-caption text-muted-foreground border-t border-border">
-            Entre 2.4k participantes · Sua posição e evolução em tempo real na plataforma.
+            Entre 2,4 mil participantes · Sua posição e evolução em tempo real na plataforma.
           </p>
         </motion.div>
 

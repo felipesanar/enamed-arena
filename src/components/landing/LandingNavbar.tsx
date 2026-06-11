@@ -11,7 +11,7 @@ const NAV_SECTIONS = [
   { id: "diferenciais", label: "Diferenciais" },
   { id: "como-funciona", label: "Como funciona" },
   { id: "experiencia", label: "Experiência" },
-  { id: "performance", label: "Performance" },
+  { id: "performance", label: "Desempenho" },
   { id: "pro", label: "SanarFlix PRO" },
   { id: "cta-final", label: "Participar" },
 ] as const;

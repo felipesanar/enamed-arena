@@ -45,7 +45,7 @@ const ITEMS: Item[] = [
   {
     id: "metricas",
     icon: Activity,
-    tag: "ANALYTICS",
+    tag: "DESEMPENHO",
     title: "Métricas e desempenho detalhado",
     description:
       "Veja seu rendimento por disciplina, tema e tipo de questão. Entenda onde você brilha e onde precisa evoluir.",
@@ -91,9 +91,9 @@ const ITEMS: Item[] = [
     id: "caderno",
     icon: BookMarked,
     tag: "CADERNO PRO",
-    title: "Caderno de erros e continuidade",
+    title: "Caderno de Erros completo",
     description:
-      "Recursos premium para revisar o que errou e consolidar. Estudo inteligente baseado na sua performance.",
+      "Cada erro vira revisão espaçada, treino direcionado e plano de reta final. Você estuda a partir do que errou.",
     featured: false,
   },
 ];

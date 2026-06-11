@@ -73,7 +73,7 @@ const STEPS: JourneyStep[] = [
     step: 6,
     icon: BookMarked,
     title: "Revise erros e evolua",
-    description: "Use o caderno de erros e os recursos de revisão. No próximo simulado, você parte de um patamar mais alto.",
+    description: "Use o Caderno de Erros: revisão espaçada, treino direcionado e plano de reta final. No próximo simulado, você parte de um patamar mais alto.",
   },
 ];
 
@@ -103,7 +103,7 @@ function useRealSimulados() {
         setItems(
           data.map((s) => ({
             id: s.id,
-            simulado: `Simulado #${s.sequence_number} — ${s.title}`,
+            simulado: `Simulado #${s.sequence_number} · ${s.title}`,
             startDate: formatDateBR(s.execution_window_start),
             endDate: formatDateBR(s.execution_window_end),
           }))

@@ -75,7 +75,7 @@ const DEMO_QUESTIONS = [
   },
 ];
 
-const TOTAL_QUESTIONS = 120;
+const TOTAL_QUESTIONS = 100;
 
 export function LandingExamDemo() {
   const [currentIndex, setCurrentIndex] = useState(0);
