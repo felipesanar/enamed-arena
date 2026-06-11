@@ -118,7 +118,7 @@ function SessionSummary({ total, results, removedCount, modeLabel, timedSeconds,
           {modeLabel}
           {' — '}
           {total} {total === 1 ? 'flashcard revisado' : 'flashcards revisados'}
-          {timedSeconds !== null && ` em ${Math.floor(timedSeconds / 60)}:${String(timedSeconds % 60).padStart(2, '0')}`}
+          {timedSeconds !== null && ` em ${formatTime(timedSeconds)}`}
         </p>
       </div>
 
@@ -168,11 +168,16 @@ function SessionSummary({ total, results, removedCount, modeLabel, timedSeconds,
   );
 }
 
+/* ── Helpers ── */
+
+const formatTime = (s: number) =>
+  `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 /* ── FlashcardReviewSession ── */
 
 export interface FlashcardReviewSessionProps {
   cards: Flashcard[];
-  /** Modo da sessão. Default 'due' (comportamento original, grava SRS). */
+  /** Modo da sessão (fixo por sessão — remonte o componente para trocar). Default 'due' grava SRS. */
   mode?: ReviewMode;
   onFinish: () => void;
 }
@@ -197,17 +202,14 @@ export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: Flashc
 
   // Countdown do modo cronometrado: ao zerar, encerra a sessão.
   useEffect(() => {
-    if (secondsLeft === null || done) return;
+    if (secondsLeft === null || done || cards.length === 0) return;
     if (secondsLeft <= 0) {
       setDone(true);
       return;
     }
     const t = setTimeout(() => setSecondsLeft((s) => (s === null ? null : s - 1)), 1000);
     return () => clearTimeout(t);
-  }, [secondsLeft, done]);
-
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }, [secondsLeft, done, cards.length]);
 
   const currentCard = cards[currentIndex];
   const progressPct = (currentIndex / cards.length) * 100;
@@ -266,7 +268,7 @@ export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: Flashc
             outcome,
             mode,
             training: true,
-          } as any);
+          });
         }
         setResults((prev) => ({ ...prev, [outcome]: (prev[outcome] ?? 0) + 1 }));
       } catch (err) {
@@ -302,6 +304,11 @@ export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: Flashc
       setGrading(false);
       return;
     }
+    if (done) {
+      setRemovedCount((n) => n + 1);
+      setGrading(false);
+      return;
+    }
     toast({ title: 'Card removido' });
     setRemovedCount((n) => n + 1);
     const next = currentIndex + 1;
@@ -313,7 +320,7 @@ export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: Flashc
       setRevealed(false);
     }
     setGrading(false);
-  }, [currentCard, currentIndex, cards.length, grading]);
+  }, [currentCard, currentIndex, cards.length, grading, done]);
 
   if (done) {
     const reviewedCount = Object.values(results).reduce((a, b) => a + b, 0);
@@ -414,6 +421,7 @@ export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: Flashc
         <div className="flex items-center gap-3">
           {secondsLeft !== null && (
             <span
+              role="timer"
               className={cn(
                 'inline-flex items-center gap-1 rounded-[var(--c-radius-pill)] border px-2.5 py-1 text-[12px] font-bold tabular-nums',
                 secondsLeft <= 30
@@ -442,7 +450,7 @@ export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: Flashc
 
       {/* Banner de treino */}
       {isTraining && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2">
+        <div className="flex items-center justify-center gap-2 rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2">
           <Dumbbell className="h-3.5 w-3.5 shrink-0 text-[var(--c-muted)]" aria-hidden />
           <p className="text-[11.5px] font-medium text-[var(--c-muted)]">
             <span className="font-bold text-[var(--c-ink)]">{config.label}</span>
