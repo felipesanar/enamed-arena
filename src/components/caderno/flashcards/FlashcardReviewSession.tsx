@@ -10,7 +10,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -18,10 +17,10 @@ import {
   Star,
   Loader2,
   RotateCcw,
-  Image as ImageIcon,
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CardFace } from './CardFace';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
@@ -81,67 +80,6 @@ const GRADE_OPTIONS: GradeOption[] = [
     icon: <Star className="h-5 w-5" aria-hidden />,
   },
 ];
-
-/* ── CardFace ── */
-
-interface CardFaceProps {
-  md: string;
-  imageUrl: string | null;
-  faceLabel: 'Frente' | 'Verso';
-  isMobile: boolean;
-}
-
-function CardFace({ md, imageUrl, faceLabel, isMobile }: CardFaceProps) {
-  const isBack = faceLabel === 'Verso';
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-4',
-        isMobile ? 'min-h-[240px] p-6' : 'min-h-[280px] p-8 sm:min-h-[320px]',
-      )}
-    >
-      {/* Face label badge */}
-      <span
-        className={cn(
-          'self-start rounded-[var(--c-radius-pill)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]',
-          isBack
-            ? 'bg-[var(--c-surface-2)] text-[var(--c-muted)]'
-            : 'bg-[var(--c-wine-50)] text-[var(--c-wine-600)]',
-        )}
-      >
-        {faceLabel}
-      </span>
-
-      {/* Image */}
-      {imageUrl ? (
-        <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-          <img
-            src={imageUrl}
-            alt={`Imagem do ${faceLabel.toLowerCase()} do flashcard`}
-            className="max-h-48 w-full object-contain"
-          />
-        </div>
-      ) : null}
-
-      {/* Content */}
-      {md.trim() ? (
-        <div
-          className={cn(
-            'prose dark:prose-invert max-w-none flex-1',
-            isMobile ? 'prose-sm text-[14px] leading-relaxed' : 'prose-base text-[15px] leading-relaxed',
-          )}
-        >
-          <ReactMarkdown>{md}</ReactMarkdown>
-        </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center gap-2 text-[var(--c-muted-2)]">
-          <ImageIcon className="h-5 w-5" aria-hidden />
-          <span className="text-[13px] italic">(conteúdo vazio)</span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ── SessionSummary ── */
 
