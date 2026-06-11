@@ -36,21 +36,24 @@ function makeCard(overrides: Partial<Flashcard> = {}): Flashcard {
 }
 
 describe('REVIEW_MODE_CONFIGS', () => {
+  const otherModes = (except: string) =>
+    (Object.keys(REVIEW_MODE_CONFIGS) as Array<keyof typeof REVIEW_MODE_CONFIGS>).filter((m) => m !== except);
+
   it('só o modo due grava SRS', () => {
     expect(REVIEW_MODE_CONFIGS.due.writesSrs).toBe(true);
-    (['free', 'hard', 'shuffle', 'reversed', 'timed'] as const).forEach((m) => {
+    otherModes('due').forEach((m) => {
       expect(REVIEW_MODE_CONFIGS[m].writesSrs).toBe(false);
     });
   });
   it('só o modo reversed inverte a direção', () => {
     expect(REVIEW_MODE_CONFIGS.reversed.reversed).toBe(true);
-    (['due', 'free', 'hard', 'shuffle', 'timed'] as const).forEach((m) => {
+    otherModes('reversed').forEach((m) => {
       expect(REVIEW_MODE_CONFIGS[m].reversed).toBe(false);
     });
   });
   it('só o modo timed tem timer', () => {
     expect(REVIEW_MODE_CONFIGS.timed.timerSeconds).toBe(TIMED_SESSION_SECONDS);
-    (['due', 'free', 'hard', 'shuffle', 'reversed'] as const).forEach((m) => {
+    otherModes('timed').forEach((m) => {
       expect(REVIEW_MODE_CONFIGS[m].timerSeconds).toBeNull();
     });
   });
@@ -68,20 +71,25 @@ describe('filterFreePool', () => {
 
 describe('filterHardCards', () => {
   it('inclui cards revisados com ease baixo', () => {
-    const card = makeCard({ srs_reps: 2, srs_ease: HARD_EASE_THRESHOLD });
+    const card = makeCard({ srs_due_at: '2026-06-10T00:00:00Z', srs_ease: HARD_EASE_THRESHOLD });
     expect(filterHardCards([card])).toHaveLength(1);
   });
-  it('exclui cards nunca revisados (reps = 0), mesmo com ease baixo', () => {
-    const card = makeCard({ srs_reps: 0, srs_ease: 1.5 });
+  it('inclui cards errados (reps zerados pelo lapso) com ease baixo', () => {
+    const card = makeCard({ srs_reps: 0, srs_due_at: '2026-06-10T00:00:00Z', srs_ease: 1.5 });
+    expect(filterHardCards([card])).toHaveLength(1);
+  });
+  it('exclui cards nunca revisados (srs_due_at null)', () => {
+    const card = makeCard({ srs_reps: 0, srs_due_at: null, srs_ease: 1.5 });
     expect(filterHardCards([card])).toHaveLength(0);
   });
   it('exclui cards com ease acima do threshold', () => {
-    const card = makeCard({ srs_reps: 3, srs_ease: 2.5 });
+    const card = makeCard({ srs_reps: 3, srs_due_at: '2026-06-10T00:00:00Z', srs_ease: 2.5 });
     expect(filterHardCards([card])).toHaveLength(0);
   });
   it('exclui cards dominados', () => {
     const card = makeCard({
       srs_reps: 3,
+      srs_due_at: '2026-06-10T00:00:00Z',
       srs_ease: 1.8,
       mastered_at: '2026-06-01T00:00:00Z',
     });
@@ -106,7 +114,7 @@ describe('shuffleCards', () => {
 describe('buildReviewPool', () => {
   const cards = [
     makeCard({ id: 'novo', srs_reps: 0, srs_ease: 2.5 }),
-    makeCard({ id: 'dificil', srs_reps: 2, srs_ease: 1.9 }),
+    makeCard({ id: 'dificil', srs_reps: 2, srs_due_at: '2026-06-10T00:00:00Z', srs_ease: 1.9 }),
     makeCard({ id: 'dominado', mastered_at: '2026-06-01T00:00:00Z' }),
     ...Array.from({ length: 12 }, (_, i) =>
       makeCard({ id: `extra-${i}`, srs_reps: 1, srs_ease: 2.5 }),
@@ -126,7 +134,7 @@ describe('buildReviewPool', () => {
   });
   it('shuffle: pool menor que o limite retorna o pool inteiro', () => {
     const few = cards.slice(0, 3);
-    expect(buildReviewPool('shuffle', few, () => 0.5).length).toBeLessThanOrEqual(3);
+    expect(buildReviewPool('shuffle', few, () => 0.5)).toHaveLength(2);
   });
   it('reversed: mesmo pool do free', () => {
     expect(buildReviewPool('reversed', cards)).toHaveLength(14);

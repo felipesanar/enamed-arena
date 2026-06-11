@@ -71,7 +71,7 @@ export const REVIEW_MODE_CONFIGS: Record<ReviewMode, ReviewModeConfig> = {
   timed: {
     id: 'timed',
     label: 'Cronometrado',
-    description: 'O máximo de cards em 5 minutos.',
+    description: `O máximo de cards em ${TIMED_SESSION_SECONDS / 60} minutos.`,
     reversed: false,
     writesSrs: false,
     timerSeconds: TIMED_SESSION_SECONDS,
@@ -83,10 +83,10 @@ export function filterFreePool(cards: Flashcard[]): Flashcard[] {
   return cards.filter((c) => !c.mastered_at);
 }
 
-/** Cards difíceis: já revisados (reps > 0), ease baixo, não-dominados. */
+/** Cards difíceis: já revisados (srs_due_at setado), ease baixo, não-dominados. */
 export function filterHardCards(cards: Flashcard[]): Flashcard[] {
   return cards.filter(
-    (c) => !c.mastered_at && c.srs_reps > 0 && c.srs_ease <= HARD_EASE_THRESHOLD,
+    (c) => !c.mastered_at && c.srs_due_at !== null && c.srs_ease <= HARD_EASE_THRESHOLD,
   );
 }
 
