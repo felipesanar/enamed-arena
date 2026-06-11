@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, Loader2, RefreshCw, Trophy } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, Trophy, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import { useCutoffContext } from '@/hooks/useCutoffContext';
+import { useTypewriter } from '@/hooks/useTypewriter';
+import { readCachedSummary, writeCachedSummary, formatGeneratedAt } from '@/lib/profSanCache';
 import type { RankingParticipant, RankingStats } from '@/services/rankingApi';
 
 interface Props {
@@ -25,8 +26,6 @@ function buildCacheKey(simuladoId: string | null | undefined, score: number, pos
   if (!simuladoId) return 'sanor:rank:none';
   return `sanor:rank:v1:${simuladoId}:${score}:${position}`;
 }
-const readCache = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
-const writeCache = (k: string, v: string) => { try { sessionStorage.setItem(k, v); } catch { /* */ } };
 
 const LOADING_PHRASES = [
   'lendo o ranking…',
@@ -57,48 +56,24 @@ export function ProfSanorRanking({
     currentUser?.position ?? 0,
   );
 
+  const initialCache = readCachedSummary(cacheKey);
   const [loading, setLoading] = useState(false);
-  const [markdown, setMarkdown] = useState<string | null>(() => readCache(cacheKey));
-  const [displayMarkdown, setDisplayMarkdown] = useState<string | null>(() => readCache(cacheKey));
+  const [error, setError] = useState<string | null>(null);
+  const [markdown, setMarkdown] = useState<string | null>(initialCache?.markdown ?? null);
+  const [generatedAt, setGeneratedAt] = useState<number | null>(initialCache?.generatedAt ?? null);
+  const { display: displayMarkdown, write, skip } = useTypewriter(initialCache?.markdown ?? null);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const autoTriedRef = useRef(false);
-  const typewriterTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const cached = readCache(cacheKey);
-    setMarkdown(cached);
-    setDisplayMarkdown(cached);
+    const cached = readCachedSummary(cacheKey);
+    setMarkdown(cached?.markdown ?? null);
+    setGeneratedAt(cached?.generatedAt ?? null);
+    write(cached?.markdown ?? null, { animate: false });
+    setError(null);
     autoTriedRef.current = false;
-  }, [cacheKey]);
-
-  // Typewriter
-  useEffect(() => {
-    if (typewriterTimerRef.current != null) {
-      window.clearInterval(typewriterTimerRef.current);
-      typewriterTimerRef.current = null;
-    }
-    if (!markdown) { setDisplayMarkdown(null); return; }
-    if (displayMarkdown === markdown) return;
-    let cursor = displayMarkdown && markdown.startsWith(displayMarkdown) ? displayMarkdown.length : 0;
-    setDisplayMarkdown(markdown.slice(0, cursor));
-    typewriterTimerRef.current = window.setInterval(() => {
-      cursor = Math.min(cursor + 4, markdown.length);
-      setDisplayMarkdown(markdown.slice(0, cursor));
-      if (cursor >= markdown.length) {
-        if (typewriterTimerRef.current != null) {
-          window.clearInterval(typewriterTimerRef.current);
-          typewriterTimerRef.current = null;
-        }
-      }
-    }, 24);
-    return () => {
-      if (typewriterTimerRef.current != null) {
-        window.clearInterval(typewriterTimerRef.current);
-        typewriterTimerRef.current = null;
-      }
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [markdown]);
+  }, [cacheKey]);
 
   useEffect(() => {
     if (!loading) { setLoadingPhase(0); return; }
@@ -112,8 +87,9 @@ export function ProfSanorRanking({
   const generate = async () => {
     if (!currentUser) return;
     setLoading(true);
-    setDisplayMarkdown(null);
+    setError(null);
     setMarkdown(null);
+    write(null);
     try {
       const { data, error } = await supabase.functions.invoke('gemini-ranking-summary', {
         body: {
@@ -132,14 +108,12 @@ export function ProfSanorRanking({
       if (error) throw error;
       if (!data?.markdown) throw new Error('Resposta vazia da IA');
       setMarkdown(data.markdown);
-      writeCache(cacheKey, data.markdown);
+      setGeneratedAt(Date.now());
+      write(data.markdown);
+      writeCachedSummary(cacheKey, data.markdown);
     } catch (err) {
       logger.error('[ProfSanorRanking] AI summary error', err);
-      toast({
-        title: 'Não foi possível gerar a análise',
-        description: err instanceof Error ? err.message : 'Tente novamente em instantes.',
-        variant: 'destructive',
-      });
+      setError(err instanceof Error ? err.message : 'Tente novamente em instantes.');
     } finally {
       setLoading(false);
     }
@@ -220,7 +194,9 @@ export function ProfSanorRanking({
           <motion.div
             initial={false}
             animate={{ opacity: 1 }}
-            className={`relative z-10 rounded-2xl border border-border/60 bg-card ${compact ? 'px-4 py-3' : 'px-5 md:px-6 py-4 md:py-5'} shadow-[0_10px_40px_-15px_hsl(var(--primary)/0.18)] group-hover/bubble:shadow-[0_15px_50px_-10px_hsl(var(--primary)/0.22)] transition-shadow`}
+            onClick={markdown && displayMarkdown !== markdown ? skip : undefined}
+            title={markdown && displayMarkdown !== markdown ? 'Clique para mostrar tudo' : undefined}
+            className={`relative z-10 rounded-2xl border border-border/60 bg-card ${compact ? 'px-4 py-3' : 'px-5 md:px-6 py-4 md:py-5'} shadow-[0_10px_40px_-15px_hsl(var(--primary)/0.18)] group-hover/bubble:shadow-[0_15px_50px_-10px_hsl(var(--primary)/0.22)] transition-shadow${markdown && displayMarkdown !== markdown ? ' cursor-pointer' : ''}`}
           >
             {loading && !markdown && (
               <div className="space-y-2.5 py-1">
@@ -267,13 +243,28 @@ export function ProfSanorRanking({
                 {markdown && displayMarkdown === markdown && (
                   <p className="mt-4 pt-3 border-t border-border/60 text-caption text-muted-foreground flex items-center gap-1.5">
                     <Sparkles className="h-3 w-3 text-primary/60" />
-                    <span>Prof. San — análise gerada agora</span>
+                    <span>Prof. San — {formatGeneratedAt(generatedAt)}</span>
                   </p>
                 )}
               </motion.div>
             )}
 
-            {!loading && !markdown && (
+            {!loading && !markdown && error && (
+              <div className="flex gap-3 items-start" role="alert">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                <div className="space-y-2">
+                  <p className="text-body-sm text-foreground/80">
+                    Não consegui gerar a análise agora. {error}
+                  </p>
+                  <Button onClick={generate} size="sm" variant="outline" className="rounded-lg">
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    Tentar novamente
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!loading && !markdown && !error && (
               <div className="flex gap-4 items-start">
                 <div className="mt-0.5 shrink-0 h-9 w-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
                   <Trophy className="h-4 w-4 text-primary/70" />

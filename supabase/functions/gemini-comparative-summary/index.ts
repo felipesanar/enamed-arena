@@ -535,6 +535,7 @@ Você NÃO joga porcentagens cruas. Você **traduz cada número em significado**
    - Causalidade afirmada: "você estava confiante demais" → use "pode ter sido confiança, ou só um dia ruim"
    - Recomendação genérica: "estude mais", "foque em X" sem quantidade+cadência+método
    - Gíria forçada: "Cara,", "Mano,", "Beleza,", "Sacanagem honesta", "Vamos nessa"
+   - Inventar números: use APENAS os números fornecidos nos dados acima. Nunca estime nem crie estatísticas.
 
 # FORMATO DE SAÍDA (estrito)
 
@@ -569,30 +570,36 @@ ENTREGÁVEL: ${firstName} precisa terminar de ler sabendo EXATAMENTE o que fazer
 
 Comece direto pelo nome ${firstName}. Sem preâmbulo, sem "claro!", sem "aqui está sua análise", sem meta-comentário.`;
 
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.6,
-            // 100 palavras ≈ 150-200 tokens. 1024 dá folga sem desperdiçar.
-            maxOutputTokens: 1024,
-            topP: 0.92,
-            // gemini-2.5-flash gasta tokens em "thinking" antes de produzir o texto.
-            // Como queremos só prosa direta (não raciocínio matemático), desligamos.
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      },
-    );
+    // 1 retry em erro transitório (429/5xx) — evita que oscilação pontual vire erro pro aluno
+    let r: Response | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.6,
+              // 100 palavras ≈ 150-200 tokens. 1024 dá folga sem desperdiçar.
+              maxOutputTokens: 1024,
+              topP: 0.92,
+              // gemini-2.5-flash gasta tokens em "thinking" antes de produzir o texto.
+              // Como queremos só prosa direta (não raciocínio matemático), desligamos.
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          }),
+        },
+      );
+      if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    }
 
-    if (!r.ok) {
-      const txt = await r.text();
-      console.error('[gemini-comparative-summary] Gemini error', r.status, txt);
-      return new Response(JSON.stringify({ error: `Gemini API erro ${r.status}`, detail: txt }), {
+    if (!r || !r.ok) {
+      const txt = r ? await r.text() : 'sem resposta';
+      console.error('[gemini-comparative-summary] Gemini error', r?.status, txt);
+      return new Response(JSON.stringify({ error: `Gemini API erro ${r?.status ?? 'rede'}`, detail: txt }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

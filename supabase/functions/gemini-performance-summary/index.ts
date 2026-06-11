@@ -139,6 +139,7 @@ PREFIRA acertos absolutos quando puder ("faltam 8 acertos pra meta"). Mais concr
 - Drama: "preocupante", "alarmante", "regressão", "crítico"
 - Recomendação genérica: "estude mais", "foque em X" sem quantidade+cadência+método
 - Gíria forçada: "Cara,", "Mano,", "Beleza,"
+- Inventar números: use APENAS os números fornecidos nos dados acima. Nunca estime nem crie estatísticas.
 
 # FORMATO DE SAÍDA
 
@@ -162,27 +163,33 @@ Plano concreto com **quantidade + cadência + método**. Exemplo: "**15 questõe
 
 Direto pelo nome ${firstName}. Sem preâmbulo. **Sem travessão.**`;
 
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 1200,
-            topP: 0.92,
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      },
-    );
+    // 1 retry em erro transitório (429/5xx) — evita que oscilação pontual vire erro pro aluno
+    let r: Response | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.6,
+              maxOutputTokens: 1200,
+              topP: 0.92,
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          }),
+        },
+      );
+      if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    }
 
-    if (!r.ok) {
-      const txt = await r.text();
-      console.error('[gemini-performance-summary] Gemini error', r.status, txt);
-      return new Response(JSON.stringify({ error: `Gemini API erro ${r.status}`, detail: txt }), {
+    if (!r || !r.ok) {
+      const txt = r ? await r.text() : 'sem resposta';
+      console.error('[gemini-performance-summary] Gemini error', r?.status, txt);
+      return new Response(JSON.stringify({ error: `Gemini API erro ${r?.status ?? 'rede'}`, detail: txt }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

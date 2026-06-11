@@ -6,7 +6,7 @@ import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTime
 import { ExamHeader } from '@/components/exam/ExamHeader';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
 import { ConfidenceSelector } from '@/components/exam/ConfidenceSelector';
-import { QuestionNavigator } from '@/components/exam/QuestionNavigator';
+import { QuestionNavigator, NavigatorLegend } from '@/components/exam/QuestionNavigator';
 import { SubmitConfirmModal } from '@/components/exam/SubmitConfirmModal';
 import { ExamCompletedScreen } from '@/components/exam/ExamCompletedScreen';
 import { Flag, Zap, Heart, ChevronLeft, ChevronRight, Grid3X3, AlertCircle, Clock, Play, WifiOff, Maximize2 } from 'lucide-react';
@@ -364,6 +364,7 @@ export default function SimuladoExamPage() {
         timeRemaining={flow.timeRemaining}
         onFinalize={() => flow.setShowSubmitModal(true)}
         saving={flow.saving ?? false}
+        answeredCount={flow.summary.answered}
       />
 
       {/* Offline banner */}
@@ -456,7 +457,7 @@ export default function SimuladoExamPage() {
                 </div>
 
                 <p className="text-body-sm text-muted-foreground mb-8">
-                  O cronômetro já está ativo. Boa prova!
+                  O cronômetro já está ativo. A prova roda em tela cheia para manter o foco. Boa prova!
                 </p>
 
                 <button
@@ -541,8 +542,12 @@ export default function SimuladoExamPage() {
                         />
                       )}
                     </div>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground/40">
-                      R = revisar · H = certeza
+                    <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/50">
+                      Atalhos: <kbd className="px-1 rounded bg-muted/60 font-mono">1–5</kbd> alternativas
+                      {' · '}<kbd className="px-1 rounded bg-muted/60 font-mono">←</kbd>{' '}
+                      <kbd className="px-1 rounded bg-muted/60 font-mono">→</kbd> navegar
+                      {' · '}<kbd className="px-1 rounded bg-muted/60 font-mono">R</kbd> revisar
+                      {' · '}<kbd className="px-1 rounded bg-muted/60 font-mono">H</kbd> certeza
                     </p>
 
                     <div className="mt-3 flex items-center justify-between pb-2">
@@ -602,17 +607,7 @@ export default function SimuladoExamPage() {
                 questionIds={flow.questionIds}
                 onNavigate={flow.handleNavigate}
               />
-              <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground pt-4 border-t border-[hsl(var(--exam-border))]">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-info" /> Respondida
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-warning" /> Revisão
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-success/20" /> Certeza
-                </span>
-              </div>
+              <NavigatorLegend className="mt-auto pt-4 border-t border-[hsl(var(--exam-border))]" />
             </aside>
           </motion.div>
         )}
@@ -650,6 +645,7 @@ export default function SimuladoExamPage() {
                 questionIds={flow.questionIds}
                 onNavigate={flow.handleNavigate}
               />
+              <NavigatorLegend className="mt-4" />
               <button
                 type="button"
                 onClick={() => flow.setShowSubmitModal(true)}

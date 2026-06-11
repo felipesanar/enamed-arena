@@ -2,6 +2,26 @@ import { cn } from '@/lib/utils';
 import { Flag, Zap } from 'lucide-react';
 import type { ExamAnswer } from '@/types/exam';
 
+/** Legenda dos estados do grid — compartilhada entre a sidebar desktop e o sheet mobile. */
+export function NavigatorLegend({ className }: { className?: string }) {
+  return (
+    <div className={cn('flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground', className)}>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-sm bg-info" /> Respondida
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-sm bg-warning" /> Revisão
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-sm bg-success/20 border border-success/40" /> Certeza
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-sm border border-[hsl(var(--exam-border))]" /> Em branco
+      </span>
+    </div>
+  );
+}
+
 interface QuestionNavigatorProps {
   totalQuestions: number;
   currentIndex: number;

@@ -147,23 +147,23 @@
 
   .dark {
     /* Base surfaces — neutros levemente quentes (hue vinho, saturação baixíssima) */
-    --background: 345 8% 9%;
+    --background: 345 8% 7%;
     --foreground: 345 8% 92%;
 
-    --card: 345 7% 13%;
+    --card: 345 7% 11%;
     --card-foreground: 345 8% 92%;
 
-    --popover: 345 7% 13%;
+    --popover: 345 7% 11%;
     --popover-foreground: 345 8% 92%;
 
     /* Brand wine — mantido próximo do atual (contraste do texto branco já validado) */
     --primary: 345 56% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 345 7% 17%;
+    --secondary: 345 7% 15%;
     --secondary-foreground: 345 8% 86%;
 
-    --muted: 345 6% 18%;
+    --muted: 345 6% 16%;
     --muted-foreground: 345 7% 68%;
 
     --accent: 345 32% 18%;
@@ -173,16 +173,16 @@
     --destructive: 0 58% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 345 8% 24%;
-    --input: 345 8% 20%;
+    --border: 345 8% 22%;
+    --input: 345 8% 18%;
     --ring: 345 56% 50%;
 
-    /* Escada de elevação: sunken < background(9%) < card(13%) < elevated(21%) */
-    --surface-elevated: 345 7% 21%;
-    --surface-sunken: 345 8% 7%;
+    /* Escada de elevação: sunken < background(7%) < card(11%) < elevated(19%) */
+    --surface-elevated: 345 7% 19%;
+    --surface-sunken: 345 8% 5%;
 
     /* Borda forte — divisores e realces sobre card/elevated */
-    --border-strong: 345 8% 32%;
+    --border-strong: 345 8% 30%;
 
     /* Feedback semântico dark-tuned (luminoso, saturação confortável sobre base quente) */
     --success: 152 52% 50%;
@@ -198,30 +198,30 @@
     --shadow-lg: 0 12px 32px -4px hsl(0 0% 0% / 0.5), 0 4px 8px -2px hsl(0 0% 0% / 0.4);
     --shadow-premium: 0 10px 28px -6px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.04);
 
-    --sidebar-background: 345 9% 7%;
+    --sidebar-background: 345 9% 5%;
     --sidebar-foreground: 345 7% 66%;
     --sidebar-primary: 345 56% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 345 8% 13%;
+    --sidebar-accent: 345 8% 11%;
     --sidebar-accent-foreground: 345 8% 82%;
-    --sidebar-border: 345 8% 18%;
+    --sidebar-border: 345 8% 16%;
     --sidebar-ring: 345 56% 52%;
     --sidebar-muted: 345 6% 44%;
 
     /* Exam focus mode (dark) — neutros quentes, alto contraste de leitura */
-    --exam-bg: 345 8% 8%;
-    --exam-surface: 345 7% 12%;
-    --exam-surface-hover: 345 7% 15%;
-    --exam-border: 345 8% 18%;
+    --exam-bg: 345 8% 6%;
+    --exam-surface: 345 7% 10%;
+    --exam-surface-hover: 345 7% 13%;
+    --exam-border: 345 8% 16%;
     --exam-border-selected: var(--primary);
     --exam-text: 345 8% 92%;
     --exam-text-secondary: 345 7% 62%;
-    --exam-header-bg: 345 8% 9% / 0.92;
+    --exam-header-bg: 345 8% 7% / 0.92;
     --exam-option-selected-bg: 345 56% 50% / 0.08;
     --exam-shadow-selected: 0 2px 10px -2px hsl(345 56% 50% / 0.18);
 
     /* Hero premium surfaces & gradients (dark) */
-    --hero-premium-bg: linear-gradient(148deg, hsl(345 30% 9%) 0%, hsl(345 38% 12%) 38%, hsl(345 48% 17%) 72%, hsl(345 55% 21%) 100%);
+    --hero-premium-bg: linear-gradient(148deg, hsl(345 30% 8%) 0%, hsl(345 38% 11%) 38%, hsl(345 48% 15%) 72%, hsl(345 55% 19%) 100%);
     --hero-premium-border: 345 55% 50% / 0.18;
     --hero-premium-glow: 345 55% 50% / 0.12;
     --hero-premium-text-muted: 345 55% 65%;
@@ -530,10 +530,10 @@
 
   .dark .hero-premium-surface {
     background:
-      radial-gradient(ellipse 30% 44% at 0% 0%, hsl(345 45% 16% / 0.92) 0%, transparent 60%),
-      radial-gradient(ellipse 24% 36% at 0% 100%, hsl(345 35% 9% / 0.85) 0%, transparent 55%),
-      radial-gradient(ellipse 55% 48% at 100% 0%, hsl(345 60% 26% / 0.4) 0%, transparent 62%),
-      linear-gradient(120deg, hsl(345 35% 8%) 0%, hsl(345 30% 9%) 18%, hsl(345 28% 10%) 42%, hsl(345 38% 13%) 72%, hsl(345 50% 18%) 100%);
+      radial-gradient(ellipse 30% 44% at 0% 0%, hsl(345 45% 14% / 0.92) 0%, transparent 60%),
+      radial-gradient(ellipse 24% 36% at 0% 100%, hsl(345 35% 8% / 0.85) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 48% at 100% 0%, hsl(345 60% 24% / 0.4) 0%, transparent 62%),
+      linear-gradient(120deg, hsl(345 35% 7%) 0%, hsl(345 30% 8%) 18%, hsl(345 28% 9%) 42%, hsl(345 38% 12%) 72%, hsl(345 50% 16%) 100%);
   }
 
   /* Hero status card — compact hero in dark mode, accent in light */
@@ -551,7 +551,7 @@
   .dark .hero-status-card {
     @apply border-white/[0.08];
     background:
-      linear-gradient(148deg, hsl(345 32% 8%) 0%, hsl(345 30% 10%) 30%, hsl(345 42% 14%) 60%, hsl(345 52% 19%) 85%, hsl(345 58% 22%) 100%);
+      linear-gradient(148deg, hsl(345 32% 7%) 0%, hsl(345 30% 9%) 30%, hsl(345 42% 13%) 60%, hsl(345 52% 17%) 85%, hsl(345 58% 20%) 100%);
     box-shadow: 0 20px 40px -20px hsl(0 0% 0% / 0.9), 0 8px 20px -12px hsl(345 50% 12% / 0.5);
   }
 

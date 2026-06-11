@@ -63,3 +63,8 @@ export function getTimerBgClass(seconds: number): string {
   if (seconds < 900) return 'bg-muted/50';
   return 'bg-transparent';
 }
+
+/** Pulso suave no último minuto — chama atenção sem alarmar antes da hora. */
+export function getTimerPulseClass(seconds: number): string {
+  return seconds > 0 && seconds < 60 ? 'animate-pulse' : '';
+}

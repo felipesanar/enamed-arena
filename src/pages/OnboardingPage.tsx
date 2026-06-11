@@ -74,7 +74,7 @@ function DesktopTips({ step }: { step: number }) {
           />
           <span
             className="text-[10.5px] leading-relaxed"
-            style={{ color: "rgba(255,255,255,.6)" }}
+            style={{ color: "rgba(255,255,255,.72)" }}
           >
             {tip}
           </span>
@@ -130,7 +130,12 @@ export default function OnboardingPage() {
   }, [step]);
 
   const nextEditableText = onboardingNextEditableAt
-    ? new Date(onboardingNextEditableAt).toLocaleString("pt-BR")
+    ? new Date(onboardingNextEditableAt).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : null;
 
   const canProceed = () => {
@@ -191,7 +196,14 @@ export default function OnboardingPage() {
       navigate("/");
     } catch (e) {
       logger.error("[OnboardingPage] Error saving onboarding:", e);
-      setError("Erro ao salvar seus dados. Tente novamente.");
+      const msg = e instanceof Error ? e.message.toLowerCase() : "";
+      if (msg.includes("janela")) {
+        setError("Há um simulado em andamento. Seu perfil só pode ser editado entre janelas de execução.");
+      } else if (msg.includes("network") || msg.includes("fetch")) {
+        setError("Sem conexão no momento. Verifique sua internet e tente de novo.");
+      } else {
+        setError("Erro ao salvar seus dados. Tente novamente.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -275,6 +287,9 @@ export default function OnboardingPage() {
       </div>
 
       {/* Progress dots */}
+      <p className="sr-only" aria-live="polite">
+        Etapa {step + 1} de {STEPS.length}: {STEPS[step]}
+      </p>
       <div className="relative z-10 flex items-center justify-center px-14 pt-3.5">
         {([0, 1, 2] as const).map((i) => (
           <Fragment key={i}>
@@ -290,6 +305,7 @@ export default function OnboardingPage() {
               />
             )}
             <div
+              aria-current={i === step ? "step" : undefined}
               className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold transition-all duration-300${i === step ? " onboarding-dot-active" : ""}`}
               style={
                 i < step
@@ -306,8 +322,8 @@ export default function OnboardingPage() {
                     }
                   : {
                       background: "rgba(255,255,255,.03)",
-                      border: "2px solid rgba(255,255,255,.13)",
-                      color: "rgba(255,255,255,.25)",
+                      border: "2px solid rgba(255,255,255,.16)",
+                      color: "rgba(255,255,255,.4)",
                     }
               }
             >
@@ -330,10 +346,10 @@ export default function OnboardingPage() {
             style={{
               color:
                 i < step
-                  ? "rgba(74,222,128,.5)"
+                  ? "rgba(74,222,128,.55)"
                   : i === step
-                  ? "rgba(232,56,98,.85)"
-                  : "rgba(255,255,255,.18)",
+                  ? "rgba(232,56,98,.9)"
+                  : "rgba(255,255,255,.34)",
             }}
           >
             {label}
@@ -352,14 +368,12 @@ export default function OnboardingPage() {
           }}
         >
           <p className="text-[13px] font-semibold">
-            Edição temporariamente bloqueada
+            {nextEditableText
+              ? `Edição bloqueada até ${nextEditableText}`
+              : "Edição temporariamente bloqueada"}
           </p>
           <p className="text-[11px] mt-1 opacity-80">
-            Durante janela de execução você não pode alterar
-            especialidade/instituições.
-            {nextEditableText
-              ? ` Próxima janela de edição: ${nextEditableText}.`
-              : ""}
+            Há um simulado em andamento. Enquanto a janela estiver aberta, especialidade e instituições ficam travadas.
           </p>
         </div>
       )}
@@ -452,7 +466,7 @@ export default function OnboardingPage() {
                 {/* Step description */}
                 <p
                   className="text-[12px] leading-relaxed"
-                  style={{ color: "rgba(255,255,255,.6)" }}
+                  style={{ color: "rgba(255,255,255,.68)" }}
                 >
                   {STEP_META[step].description}
                 </p>

@@ -1,4 +1,4 @@
-import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
+import { formatTimer, getTimerColor, getTimerBgClass, getTimerPulseClass } from '@/hooks/useExamTimer';
 import { cn } from '@/lib/utils';
 import { Clock, Check, Keyboard } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -10,11 +10,15 @@ interface ExamHeaderProps {
   timeRemaining: number;
   onFinalize: () => void;
   saving?: boolean;
+  answeredCount?: number;
 }
 
 export function ExamHeader({
-  title, currentQuestion, totalQuestions, timeRemaining, onFinalize, saving = false,
+  title, currentQuestion, totalQuestions, timeRemaining, onFinalize, saving = false, answeredCount,
 }: ExamHeaderProps) {
+  const progressPct = answeredCount !== undefined && totalQuestions > 0
+    ? Math.round((answeredCount / totalQuestions) * 100)
+    : null;
   return (
     <header
       className="sticky top-0 z-40 border-b border-[hsl(var(--exam-border))]"
@@ -93,6 +97,7 @@ export function ExamHeader({
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-body tabular-nums font-semibold transition-colors duration-500',
               getTimerBgClass(timeRemaining),
               getTimerColor(timeRemaining),
+              getTimerPulseClass(timeRemaining),
             )}
           >
             <Clock className="h-3.5 w-3.5" aria-hidden />
@@ -108,6 +113,23 @@ export function ExamHeader({
           </button>
         </div>
       </div>
+
+      {/* Barra de progresso de respondidas — feedback contínuo sem ocupar espaço */}
+      {progressPct !== null && (
+        <div
+          role="progressbar"
+          aria-valuenow={progressPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${answeredCount} de ${totalQuestions} questões respondidas`}
+          className="h-[3px] w-full bg-[hsl(var(--exam-border))]/40"
+        >
+          <div
+            className="h-full bg-primary/70 transition-[width] duration-500 ease-out"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      )}
     </header>
   );
 }

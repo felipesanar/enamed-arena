@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { useInstitutionsBySpecialty } from "@/hooks/useEnamedData";
 
 const AINDA_NAO_SEI = "Ainda não sei";
@@ -21,9 +22,8 @@ interface Props {
 
 export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props) {
   const [search, setSearch] = useState("");
-  const [enareExpanded, setEnareExpanded] = useState(() =>
-    selected.filter((s) => s !== AINDA_NAO_SEI).length > 0
-  );
+  // Sempre começa expandido — a lista de instituições é a tarefa principal do passo.
+  const [enareExpanded, setEnareExpanded] = useState(true);
   const [expandedUfs, setExpandedUfs] = useState<Set<string>>(new Set());
 
   const isUndecided = selected.includes(AINDA_NAO_SEI);
@@ -57,8 +57,15 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
     if (isUndecided) {
       onToggle(AINDA_NAO_SEI);
     } else {
-      selected.forEach((inst) => onToggle(inst));
+      const cleared = selected.filter((s) => s !== AINDA_NAO_SEI);
+      cleared.forEach((inst) => onToggle(inst));
       onToggle(AINDA_NAO_SEI);
+      if (cleared.length > 0) {
+        toast({
+          title: `Seleção anterior removida (${cleared.length} instituiç${cleared.length === 1 ? "ão" : "ões"})`,
+          description: "Você pode selecioná-las de novo a qualquer momento.",
+        });
+      }
     }
   };
 
@@ -66,7 +73,13 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
     if (isUndecided) onToggle(AINDA_NAO_SEI);
     const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
     const alreadySelected = realSelected.includes(instName);
-    if (!alreadySelected && realSelected.length >= MAX_INSTITUTIONS) return;
+    if (!alreadySelected && realSelected.length >= MAX_INSTITUTIONS) {
+      toast({
+        title: `Máximo de ${MAX_INSTITUTIONS} instituições`,
+        description: "Remova uma das selecionadas para trocar.",
+      });
+      return;
+    }
     onToggle(instName);
   };
 
@@ -201,12 +214,18 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
               {!enareExpanded && (
                 <p
                   className="text-[11px] mt-1"
-                  style={{ color: "rgba(255,255,255,.3)" }}
+                  style={{ color: "rgba(255,255,255,.45)" }}
                 >
-                  Clique para ver as instituições de{" "}
-                  <strong style={{ color: "rgba(255,255,255,.45)" }}>
-                    {selectedSpecialty}
-                  </strong>
+                  {selectedSpecialty === AINDA_NAO_SEI ? (
+                    "Clique para ver as instituições"
+                  ) : (
+                    <>
+                      Clique para ver as instituições de{" "}
+                      <strong style={{ color: "rgba(255,255,255,.6)" }}>
+                        {selectedSpecialty}
+                      </strong>
+                    </>
+                  )}
                 </p>
               )}
             </button>
@@ -362,8 +381,8 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                                       onClick={() =>
                                         handleToggleInstitution(inst.name)
                                       }
-                                      disabled={isMaxReached}
-                                      className="w-full flex items-center justify-between p-2.5 rounded-[10px] transition-all text-left disabled:cursor-not-allowed"
+                                      aria-disabled={isMaxReached}
+                                      className="w-full flex items-center justify-between p-2.5 rounded-[10px] transition-all text-left"
                                       style={
                                         isSelected
                                           ? {
@@ -418,12 +437,14 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                     </div>
                   ) : (
                     <p
-                      className="text-center text-[12px] py-8"
-                      style={{ color: "rgba(255,255,255,.55)" }}
+                      className="text-center text-[12px] py-8 px-4 leading-relaxed"
+                      style={{ color: "rgba(255,255,255,.62)" }}
                     >
                       {search
                         ? `Nenhuma instituição encontrada para "${search}"`
-                        : "Nenhuma instituição oferta esta especialidade no ENARE."}
+                        : selectedSpecialty === AINDA_NAO_SEI
+                          ? 'Como você ainda não definiu a especialidade, não dá pra listar instituições. Marque "Ainda não sei" acima e ajuste quando decidir.'
+                          : "Nenhuma instituição oferta esta especialidade no ENARE."}
                     </p>
                   )}
                 </div>
