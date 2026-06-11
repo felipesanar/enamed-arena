@@ -30,7 +30,7 @@ export function CardFace({ md, imageUrl, faceLabel, isMobile }: CardFaceProps) {
           'self-start rounded-[var(--c-radius-pill)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]',
           isBack
             ? 'bg-[var(--c-surface-2)] text-[var(--c-muted)]'
-            : 'bg-[var(--c-wine-50)] text-[var(--c-wine-600)]',
+            : 'bg-[var(--c-soft-wine-bg)] text-[var(--c-wine-600)] dark:text-[var(--c-wine-300)]',
         )}
       >
         {faceLabel}
