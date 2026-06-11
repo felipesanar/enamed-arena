@@ -260,3 +260,59 @@ service role em duas queries (roles do caller em `user_roles` → match em
 `role_capabilities` com `capability = 'users.manage'`), pois PostgREST não faz join
 sem FK entre as duas tabelas. Restante do código (CORS, validações, deleteUser) intacto;
 `verify_jwt` permanece `false` (a função valida o JWT internamente).
+
+---
+
+## Apêndice — Hardening pós-review (2026-06-11)
+
+Fixes aprovados na revisão de qualidade da migração de capabilities.
+
+### `admin_harden_revoke_anon_execute`
+
+Revoga `EXECUTE` de `anon` e `PUBLIC` nas 34 funções `public.admin_*` + `public.has_capability(text)`,
+e concede explicitamente a `authenticated` + `service_role`. Defesa em profundidade: mesmo que
+`admin_require` já bloqueie por capability, anon nem chega a executar a função (antes recebia
+`P0003`; agora `permission denied`). `has_role` ficou intencionalmente fora (usada fora do
+escopo admin).
+
+Verificação: `has_function_privilege('anon', oid, 'execute')` sobre `admin_%` + `has_capability`
+→ **0 linhas**.
+
+### `admin_harden_set_user_role`
+
+Dois guards novos em `admin_set_user_role`, logo após o `admin_require('roles.manage')` e antes
+do guard de auto-revogação (P0004):
+
+```sql
+if p_role not in ('admin','content_editor','support','analyst') then
+  raise exception 'invalid_role' using errcode = 'P0005';
+end if;
+if p_role = 'admin' and p_grant = false
+   and (select count(*) from user_roles where role = 'admin') <= 1 then
+  raise exception 'cannot_remove_last_admin' using errcode = 'P0006';
+end if;
+```
+
+Resto do corpo intacto; `CREATE OR REPLACE` preserva os grants da migration anterior.
+
+### `admin_harden_policies_initplan`
+
+1. Initplan wrap nas 32 policies que usam `has_capability`: `public.has_capability('x')` →
+   `(select public.has_capability('x'))`, para o Postgres avaliar uma vez por statement em vez
+   de por linha (mesmo padrão initplan já adotado no projeto). Regras do `alter policy`
+   preservadas: INSERT só `with check`; UPDATE ambos; SELECT/DELETE só `using`; policies de
+   `storage.objects` preservam o filtro `bucket_id`.
+2. `drop policy "Admins can read test simulados" on public.simulados;` — redundante com
+   "Admins can read all simulados" (ambas `content.manage` após a migração).
+
+Verificação: 31 policies com qual/with_check contendo `( SELECT has_capability` (forma
+deparsada pelo Postgres — o prefixo `public.` é omitido por estar no search_path), 0 sem wrap,
+7 de storage mantendo `bucket_id`, policy redundante ausente.
+
+### Edge function `admin-delete-user` (v27)
+
+Proteção de contas admin: após o check de `users.manage` e do bloqueio de auto-delete, se o
+usuário-alvo possuir o role `admin` em `user_roles`, o caller precisa também da capability
+`roles.manage` (mesmo lookup service-role `user_roles` → `role_capabilities`); senão **403**
+com `"cannot delete admin accounts without roles.manage"`. Resto intacto; `verify_jwt`
+permanece `false`.
