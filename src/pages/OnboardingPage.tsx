@@ -5,6 +5,9 @@ import { useUser } from "@/contexts/UserContext";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import { trackEvent } from "@/lib/analytics";
 import { logger } from "@/lib/logger";
+import { toast } from "@/hooks/use-toast";
+import { UNDECIDED_LABEL } from "@/lib/academic-profile";
+import type { SpecialtySelection, InstitutionSelection } from "@/types";
 import { BrandLogo } from "@/components/brand/BrandMark";
 import { SpecialtyStep } from "@/components/onboarding/SpecialtyStep";
 import { InstitutionStep } from "@/components/onboarding/InstitutionStep";
@@ -98,8 +101,12 @@ export default function OnboardingPage() {
   const segment = profile?.segment ?? "guest";
 
   const [step, setStep] = usePersistedState("onboarding:step", 0);
-  const [selectedSpecialty, setSelectedSpecialty] = usePersistedState("onboarding:specialty", "");
-  const [selectedInstitutions, setSelectedInstitutions] = usePersistedState<string[]>("onboarding:institutions", []);
+  const [selectedSpecialty, setSelectedSpecialty] =
+    usePersistedState<SpecialtySelection | null>("onboarding:specialtySel", null);
+  const [selectedInstitutions, setSelectedInstitutions] =
+    usePersistedState<InstitutionSelection[]>("onboarding:institutionSel", []);
+  const [institutionsUndecided, setInstitutionsUndecided] =
+    usePersistedState<boolean>("onboarding:institutionsUndecided", false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const isEditingBlocked = isOnboardingComplete && onboardingEditLocked;
@@ -140,8 +147,8 @@ export default function OnboardingPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 0: return selectedSpecialty !== "";
-      case 1: return selectedInstitutions.length >= 1;
+      case 0: return selectedSpecialty !== null;
+      case 1: return institutionsUndecided || selectedInstitutions.length >= 1;
       case 2: return true;
       default: return false;
     }
@@ -184,13 +191,15 @@ export default function OnboardingPage() {
     setError("");
     try {
       await saveOnboarding({
-        specialty: selectedSpecialty,
-        targetInstitutions: selectedInstitutions,
+        specialtyId: selectedSpecialty?.id ?? null,
+        targetInstitutionIds: institutionsUndecided
+          ? []
+          : selectedInstitutions.map((i) => i.id),
       });
       trackEvent("onboarding_completed", {
         segment,
-        specialty: selectedSpecialty,
-        institutions_count: selectedInstitutions.length,
+        specialty: selectedSpecialty?.name ?? UNDECIDED_LABEL,
+        institutions_count: institutionsUndecided ? 0 : selectedInstitutions.length,
       });
       clearPersistedStateByPrefix("onboarding:");
       navigate("/");
@@ -209,14 +218,41 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleSelectSpecialty = useCallback(
+    (s: SpecialtySelection) => {
+      // Trocar de especialidade invalida instituições (programas diferentes).
+      if (selectedSpecialty && selectedSpecialty.name !== s.name) {
+        setSelectedInstitutions([]);
+        setInstitutionsUndecided(false);
+      }
+      setSelectedSpecialty(s);
+    },
+    [selectedSpecialty, setSelectedSpecialty, setSelectedInstitutions, setInstitutionsUndecided]
+  );
+
   const toggleInstitution = useCallback(
-    (inst: string) => {
+    (inst: InstitutionSelection) => {
+      setInstitutionsUndecided(false);
       setSelectedInstitutions((prev) =>
-        prev.includes(inst) ? prev.filter((i) => i !== inst) : [...prev, inst]
+        prev.some((i) => i.id === inst.id)
+          ? prev.filter((i) => i.id !== inst.id)
+          : [...prev, inst]
       );
     },
-    [setSelectedInstitutions]
+    [setSelectedInstitutions, setInstitutionsUndecided]
   );
+
+  const toggleUndecided = useCallback(() => {
+    const next = !institutionsUndecided;
+    if (next && selectedInstitutions.length > 0) {
+      toast({
+        title: `Seleção anterior removida (${selectedInstitutions.length} instituiç${selectedInstitutions.length === 1 ? "ão" : "ões"})`,
+        description: "Você pode selecioná-las de novo a qualquer momento.",
+      });
+      setSelectedInstitutions([]);
+    }
+    setInstitutionsUndecided(next);
+  }, [institutionsUndecided, selectedInstitutions, setSelectedInstitutions, setInstitutionsUndecided]);
 
   // Horizontal swipe detection (pointer events — doesn't conflict with inner scroll)
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
@@ -495,22 +531,28 @@ export default function OnboardingPage() {
                 >
                   {step === 0 && (
                     <SpecialtyStep
-                      specialty={selectedSpecialty}
-                      onSelect={setSelectedSpecialty}
+                      selection={selectedSpecialty}
+                      onSelect={handleSelectSpecialty}
                     />
                   )}
                   {step === 1 && (
                     <InstitutionStep
                       selected={selectedInstitutions}
-                      onToggle={toggleInstitution}
+                      undecided={institutionsUndecided}
+                      onToggleInstitution={toggleInstitution}
+                      onToggleUndecided={toggleUndecided}
                       selectedSpecialty={selectedSpecialty}
                     />
                   )}
                   {step === 2 && (
                     <ConfirmationStep
                       segment={segment}
-                      specialty={selectedSpecialty}
-                      institutions={selectedInstitutions}
+                      specialtyName={selectedSpecialty?.name ?? UNDECIDED_LABEL}
+                      institutionNames={
+                        institutionsUndecided
+                          ? []
+                          : selectedInstitutions.map((i) => i.name)
+                      }
                     />
                   )}
                 </motion.div>

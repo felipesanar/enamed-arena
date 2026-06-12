@@ -5,8 +5,8 @@ it("renders confirmation heading", () => {
   render(
     <ConfirmationStep
       segment="pro"
-      specialty="Clínica Médica"
-      institutions={["USP", "UNIFESP"]}
+      specialtyName="Clínica Médica"
+      institutionNames={["USP", "UNIFESP"]}
     />
   );
   expect(screen.getByText("Tudo pronto!")).toBeInTheDocument();
@@ -16,8 +16,8 @@ it("shows specialty and institutions", () => {
   render(
     <ConfirmationStep
       segment="pro"
-      specialty="Clínica Médica"
-      institutions={["USP", "UNIFESP"]}
+      specialtyName="Clínica Médica"
+      institutionNames={["USP", "UNIFESP"]}
     />
   );
   expect(screen.getByText("Clínica Médica")).toBeInTheDocument();
@@ -25,9 +25,20 @@ it("shows specialty and institutions", () => {
   expect(screen.getByText("UNIFESP")).toBeInTheDocument();
 });
 
+it("shows fallback when no institutions (undecided)", () => {
+  render(
+    <ConfirmationStep
+      segment="pro"
+      specialtyName="Clínica Médica"
+      institutionNames={[]}
+    />
+  );
+  expect(screen.getByText("Ainda não definido")).toBeInTheDocument();
+});
+
 it("glyph area has lg:hidden class", () => {
   render(
-    <ConfirmationStep segment="standard" specialty="Clínica Médica" institutions={["USP"]} />
+    <ConfirmationStep segment="standard" specialtyName="Clínica Médica" institutionNames={["USP"]} />
   );
   const glyphArea = document.querySelector(".shrink-0.lg\\:hidden");
   expect(glyphArea).toBeInTheDocument();
@@ -35,7 +46,7 @@ it("glyph area has lg:hidden class", () => {
 
 it("cards container has lg:grid-cols-3 class", () => {
   render(
-    <ConfirmationStep segment="standard" specialty="Clínica Médica" institutions={["USP"]} />
+    <ConfirmationStep segment="standard" specialtyName="Clínica Médica" institutionNames={["USP"]} />
   );
   const cardsContainer = document.querySelector(".lg\\:grid-cols-3");
   expect(cardsContainer).toBeInTheDocument();

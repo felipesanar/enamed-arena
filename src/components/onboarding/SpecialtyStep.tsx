@@ -1,27 +1,30 @@
 import { useState, useMemo } from "react";
 import { Search, X, CheckCircle2, ChevronRight, GraduationCap } from "lucide-react";
 import { useEnamedSpecialties } from "@/hooks/useEnamedData";
-
-const AINDA_NAO_SEI = "Ainda não sei";
+import { UNDECIDED_LABEL } from "@/lib/academic-profile";
+import type { SpecialtySelection } from "@/types";
 
 interface Props {
-  specialty: string;
-  onSelect: (s: string) => void;
+  selection: SpecialtySelection | null;
+  onSelect: (s: SpecialtySelection) => void;
 }
 
-export function SpecialtyStep({ specialty, onSelect }: Props) {
+export function SpecialtyStep({ selection, onSelect }: Props) {
   const [search, setSearch] = useState("");
   const { data: specialties, isLoading, isError } = useEnamedSpecialties();
 
-  const allOptions = useMemo(
-    () => [AINDA_NAO_SEI, ...(specialties?.map((s) => s.name) ?? [])],
+  const allOptions = useMemo<SpecialtySelection[]>(
+    () => [
+      { id: null, name: UNDECIDED_LABEL },
+      ...(specialties?.map((s) => ({ id: s.id, name: s.name })) ?? []),
+    ],
     [specialties]
   );
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allOptions;
     return allOptions.filter((s) =>
-      s.toLowerCase().includes(search.toLowerCase())
+      s.name.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, allOptions]);
 
@@ -137,11 +140,11 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {filtered.map((spec) => {
-                const isSelected = specialty === spec;
-                const isUndecided = spec === AINDA_NAO_SEI;
+                const isSelected = selection?.name === spec.name;
+                const isUndecided = spec.id === null;
                 return (
                   <button
-                    key={spec}
+                    key={spec.name}
                     type="button"
                     onClick={() => onSelect(spec)}
                     className={`flex items-center justify-between p-3.5 rounded-[13px] transition-all duration-150 text-left group${
@@ -177,7 +180,7 @@ export function SpecialtyStep({ specialty, onSelect }: Props) {
                         fontWeight: isSelected ? 600 : 400,
                       }}
                     >
-                      {spec}
+                      {spec.name}
                     </span>
                     {isSelected ? (
                       <CheckCircle2

@@ -4,13 +4,15 @@ import type { UserSegment } from "@/types";
 
 interface Props {
   segment: string;
-  specialty: string;
-  institutions: string[];
+  /** Nome da especialidade já resolvido (ou UNDECIDED_LABEL quando indeciso). */
+  specialtyName: string;
+  /** Nomes das instituições — vazio quando indeciso. */
+  institutionNames: string[];
 }
 
-export function ConfirmationStep({ segment, specialty, institutions }: Props) {
+export function ConfirmationStep({ segment, specialtyName, institutionNames }: Props) {
   const segmentLabel = SEGMENT_LABELS[segment as UserSegment] ?? segment;
-  const safeInstitutions = institutions.length > 0 ? institutions : ["Ainda não definido"];
+  const safeInstitutions = institutionNames.length > 0 ? institutionNames : ["Ainda não definido"];
 
   return (
     <div className="flex flex-col h-full overflow-hidden lg:pt-2">
@@ -104,7 +106,7 @@ export function ConfirmationStep({ segment, specialty, institutions }: Props) {
               className="mt-1 text-[20px] font-extrabold leading-tight"
               style={{ color: "#f6f2f4" }}
             >
-              {specialty}
+              {specialtyName}
             </p>
           </div>
 

@@ -10,26 +10,34 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useInstitutionsBySpecialty } from "@/hooks/useEnamedData";
+import { UNDECIDED_LABEL } from "@/lib/academic-profile";
+import type { InstitutionSelection, SpecialtySelection } from "@/types";
 
-const AINDA_NAO_SEI = "Ainda não sei";
 const MAX_INSTITUTIONS = 3;
 
 interface Props {
-  selected: string[];
-  onToggle: (inst: string) => void;
-  selectedSpecialty: string;
+  selected: InstitutionSelection[];
+  undecided: boolean;
+  onToggleInstitution: (inst: InstitutionSelection) => void;
+  onToggleUndecided: () => void;
+  selectedSpecialty: SpecialtySelection | null;
 }
 
-export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props) {
+export function InstitutionStep({
+  selected,
+  undecided,
+  onToggleInstitution,
+  onToggleUndecided,
+  selectedSpecialty,
+}: Props) {
   const [search, setSearch] = useState("");
   // Sempre começa expandido — a lista de instituições é a tarefa principal do passo.
   const [enareExpanded, setEnareExpanded] = useState(true);
   const [expandedUfs, setExpandedUfs] = useState<Set<string>>(new Set());
 
-  const isUndecided = selected.includes(AINDA_NAO_SEI);
-  const { grouped, flat } = useInstitutionsBySpecialty(selectedSpecialty);
-  const isLoading =
-    !grouped && selectedSpecialty && selectedSpecialty !== AINDA_NAO_SEI;
+  const isUndecided = undecided;
+  const { grouped, flat } = useInstitutionsBySpecialty(selectedSpecialty?.id ?? null);
+  const isLoading = !grouped && !!selectedSpecialty?.id;
 
   const filteredGrouped = useMemo(() => {
     if (!grouped) return null;
@@ -53,34 +61,16 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
 
   const totalInstitutions = flat?.length ?? 0;
 
-  const handleToggleUndecided = () => {
-    if (isUndecided) {
-      onToggle(AINDA_NAO_SEI);
-    } else {
-      const cleared = selected.filter((s) => s !== AINDA_NAO_SEI);
-      cleared.forEach((inst) => onToggle(inst));
-      onToggle(AINDA_NAO_SEI);
-      if (cleared.length > 0) {
-        toast({
-          title: `Seleção anterior removida (${cleared.length} instituiç${cleared.length === 1 ? "ão" : "ões"})`,
-          description: "Você pode selecioná-las de novo a qualquer momento.",
-        });
-      }
-    }
-  };
-
-  const handleToggleInstitution = (instName: string) => {
-    if (isUndecided) onToggle(AINDA_NAO_SEI);
-    const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
-    const alreadySelected = realSelected.includes(instName);
-    if (!alreadySelected && realSelected.length >= MAX_INSTITUTIONS) {
+  const handleToggleInstitution = (inst: InstitutionSelection) => {
+    const alreadySelected = selected.some((s) => s.id === inst.id);
+    if (!alreadySelected && selected.length >= MAX_INSTITUTIONS) {
       toast({
         title: `Máximo de ${MAX_INSTITUTIONS} instituições`,
         description: "Remova uma das selecionadas para trocar.",
       });
       return;
     }
-    onToggle(instName);
+    onToggleInstitution(inst);
   };
 
   const toggleUf = (uf: string) => {
@@ -91,8 +81,6 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
       return next;
     });
   };
-
-  const realSelected = selected.filter((s) => s !== AINDA_NAO_SEI);
 
   return (
     <div className="flex flex-col h-full overflow-hidden lg:pt-2">
@@ -140,7 +128,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
         {/* "Ainda não sei" */}
         <button
           type="button"
-          onClick={handleToggleUndecided}
+          onClick={onToggleUndecided}
           className="w-full p-3.5 rounded-[13px] text-left flex items-center justify-between shrink-0 transition-all duration-150"
           style={
             isUndecided
@@ -161,7 +149,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
               fontWeight: isUndecided ? 600 : 400,
             }}
           >
-            {AINDA_NAO_SEI}
+            {UNDECIDED_LABEL}
           </span>
           {isUndecided && (
             <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: "#e83862" }} />
@@ -216,13 +204,13 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                   className="text-[11px] mt-1"
                   style={{ color: "rgba(255,255,255,.45)" }}
                 >
-                  {selectedSpecialty === AINDA_NAO_SEI ? (
+                  {!selectedSpecialty?.id ? (
                     "Clique para ver as instituições"
                   ) : (
                     <>
                       Clique para ver as instituições de{" "}
                       <strong style={{ color: "rgba(255,255,255,.6)" }}>
-                        {selectedSpecialty}
+                        {selectedSpecialty?.name ?? UNDECIDED_LABEL}
                       </strong>
                     </>
                   )}
@@ -233,13 +221,13 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
             {enareExpanded && (
               <>
                 {/* Selected chips */}
-                {realSelected.length > 0 && (
+                {selected.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 shrink-0">
-                    {realSelected.map((inst) => (
+                    {selected.map((inst) => (
                       <button
-                        key={inst}
+                        key={inst.id}
                         type="button"
-                        onClick={() => onToggle(inst)}
+                        onClick={() => onToggleInstitution(inst)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[9px] text-[11px] font-semibold transition-opacity hover:opacity-80"
                         style={{
                           background: "rgba(232,56,98,.12)",
@@ -247,7 +235,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                           color: "#e83862",
                         }}
                       >
-                        {inst}
+                        {inst.name}
                         <X className="h-3 w-3" />
                       </button>
                     ))}
@@ -286,7 +274,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                   <div
                     className="text-[11px] font-semibold px-3 py-2 rounded-[10px] shrink-0 tabular-nums"
                     style={
-                      realSelected.length > 0
+                      selected.length > 0
                         ? {
                             background: "rgba(74,222,128,.1)",
                             color: "rgba(74,222,128,.9)",
@@ -297,7 +285,7 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                           }
                     }
                   >
-                    {realSelected.length}/{MAX_INSTITUTIONS}
+                    {selected.length}/{MAX_INSTITUTIONS}
                   </div>
                 </div>
 
@@ -368,18 +356,21 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                             {isExpanded && (
                               <div className="p-1.5 flex flex-col gap-0.5">
                                 {insts.map((inst) => {
-                                  const isSelected = realSelected.includes(
-                                    inst.name
+                                  const isSelected = selected.some(
+                                    (s) => s.id === inst.id
                                   );
                                   const isMaxReached =
                                     !isSelected &&
-                                    realSelected.length >= MAX_INSTITUTIONS;
+                                    selected.length >= MAX_INSTITUTIONS;
                                   return (
                                     <button
                                       key={inst.id}
                                       type="button"
                                       onClick={() =>
-                                        handleToggleInstitution(inst.name)
+                                        handleToggleInstitution({
+                                          id: inst.id,
+                                          name: inst.name,
+                                        })
                                       }
                                       aria-disabled={isMaxReached}
                                       className="w-full flex items-center justify-between p-2.5 rounded-[10px] transition-all text-left"
@@ -442,8 +433,8 @@ export function InstitutionStep({ selected, onToggle, selectedSpecialty }: Props
                     >
                       {search
                         ? `Nenhuma instituição encontrada para "${search}"`
-                        : selectedSpecialty === AINDA_NAO_SEI
-                          ? 'Como você ainda não definiu a especialidade, não dá pra listar instituições. Marque "Ainda não sei" acima e ajuste quando decidir.'
+                        : !selectedSpecialty?.id
+                          ? `Como você ainda não definiu a especialidade, não dá pra listar instituições. Marque "${UNDECIDED_LABEL}" acima e ajuste quando decidir.`
                           : "Nenhuma instituição oferta esta especialidade no ENARE."}
                     </p>
                   )}
