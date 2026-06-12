@@ -6,7 +6,7 @@
  * Imagem da frente vira capa quando existe.
  */
 
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Pencil, Trash2, Star, Clock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -55,7 +55,8 @@ export interface FlashcardItemProps {
 
 /* ── Component ── */
 
-export function FlashcardItem({ card, onPreview, onEdit, onDelete }: FlashcardItemProps) {
+export const FlashcardItem = forwardRef<HTMLDivElement, FlashcardItemProps>(
+  function FlashcardItem({ card, onPreview, onEdit, onDelete }, ref) {
   const prefersReducedMotion = useReducedMotion();
   const [deleteHovered, setDeleteHovered] = useState(false);
 
@@ -71,6 +72,7 @@ export function FlashcardItem({ card, onPreview, onEdit, onDelete }: FlashcardIt
 
   return (
     <motion.div
+      ref={ref}
       layout={!prefersReducedMotion}
       initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
@@ -89,6 +91,7 @@ export function FlashcardItem({ card, onPreview, onEdit, onDelete }: FlashcardIt
         role="button"
         aria-label={`Ver flashcard: ${cleanFront}`}
         onKeyDown={(e) => {
+          if (e.repeat) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             onPreview(card);
@@ -191,4 +194,5 @@ export function FlashcardItem({ card, onPreview, onEdit, onDelete }: FlashcardIt
       </CadernoCard>
     </motion.div>
   );
-}
+});
+FlashcardItem.displayName = 'FlashcardItem';

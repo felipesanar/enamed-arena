@@ -32,6 +32,8 @@ export interface AdaptiveModalProps {
   /** Largura máxima do dialog desktop (ex: "sm" | "md" | "lg"). Default: "md". */
   size?: "sm" | "md" | "lg";
   className?: string;
+  /** Handler do foco inicial (Radix onOpenAutoFocus) — ex.: direcionar para um botão específico. */
+  onOpenAutoFocus?: (event: Event) => void;
 }
 
 const SIZE_MAP: Record<string, string> = {
@@ -55,6 +57,7 @@ export function AdaptiveModal({
   footer,
   size = "md",
   className,
+  onOpenAutoFocus,
 }: AdaptiveModalProps) {
   const isMobile = useIsMobile();
 
@@ -62,6 +65,7 @@ export function AdaptiveModal({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent
+          onOpenAutoFocus={onOpenAutoFocus}
           className={cn(
             "caderno-root rounded-t-[20px] border-t border-[var(--c-border)] bg-[var(--c-surface)]",
             "pb-[max(1.25rem,env(safe-area-inset-bottom))]",
@@ -91,6 +95,7 @@ export function AdaptiveModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        onOpenAutoFocus={onOpenAutoFocus}
         className={cn(
           "caderno-root",
           SIZE_MAP[size] ?? SIZE_MAP.md,

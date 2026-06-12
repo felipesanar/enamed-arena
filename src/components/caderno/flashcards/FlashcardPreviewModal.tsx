@@ -6,7 +6,7 @@
  * Desktop: Dialog. Mobile: bottom sheet (via AdaptiveModal).
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,12 +27,14 @@ export function FlashcardPreviewModal({ card, onEdit, onDelete, onClose }: Flash
   const prefersReducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
   const [revealed, setRevealed] = useState(false);
+  const revealBtnRef = useRef<HTMLButtonElement>(null);
 
   // Espaço revela o verso (paridade com a sessão de revisão).
   // preventDefault incondicional: espaço não deve ativar o botão focado
   // (Radix auto-foca "Excluir") nem rolar o fundo.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.repeat) return;
       if (e.key !== ' ') return;
       e.preventDefault();
       if (!revealed) setRevealed(true);
@@ -55,6 +57,7 @@ export function FlashcardPreviewModal({ card, onEdit, onDelete, onClose }: Flash
       onOpenChange={(open) => { if (!open) onClose(); }}
       title="Flashcard"
       size="lg"
+      onOpenAutoFocus={(e) => { e.preventDefault(); revealBtnRef.current?.focus(); }}
       footer={
         <div className="flex w-full items-center justify-between gap-2">
           <Button
@@ -78,6 +81,7 @@ export function FlashcardPreviewModal({ card, onEdit, onDelete, onClose }: Flash
             </Button>
             {!revealed && (
               <Button
+                ref={revealBtnRef}
                 size="sm"
                 onClick={() => setRevealed(true)}
                 className="bg-gradient-to-r from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-white shadow-[var(--c-shadow-glow)] hover:opacity-90"
