@@ -34,6 +34,7 @@ import { NotificationsSection } from "@/components/settings/NotificationsSection
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SEGMENT_LABELS } from "@/types";
+import { UNDECIDED_LABEL, displaySpecialty } from "@/lib/academic-profile";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -134,6 +135,12 @@ export default function ConfiguracoesPage() {
     refreshProfile?.();
   };
 
+  // Nomes exibidos das instituições alvo — rótulo indeciso quando não há IDs.
+  const institutionDisplayNames =
+    onboarding && onboarding.targetInstitutionIds.length > 0
+      ? onboarding.targetInstitutions
+      : [UNDECIDED_LABEL];
+
   const nextEditableFormatted = onboardingNextEditableAt
     ? new Date(onboardingNextEditableAt).toLocaleString("pt-BR", {
         day: "2-digit",
@@ -150,8 +157,8 @@ export default function ConfiguracoesPage() {
         name={profile?.name || ""}
         email={authUser?.email || ""}
         segment={segment}
-        specialty={onboarding?.specialty}
-        institutionsCount={onboarding?.targetInstitutions?.length}
+        specialty={onboarding ? displaySpecialty(onboarding) : undefined}
+        institutionsCount={onboarding?.targetInstitutionIds?.length}
         avatarUrl={profile?.avatarUrl}
       />
 
@@ -307,8 +314,15 @@ export default function ConfiguracoesPage() {
               {editingAcademic ? (
                 <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-6 shadow-[0_1px_2px_rgba(20,20,30,0.03),0_8px_24px_-12px_rgba(20,20,30,0.06)]">
                   <AcademicProfileEditor
-                    initialSpecialty={onboarding.specialty}
-                    initialInstitutions={onboarding.targetInstitutions}
+                    initialSpecialty={
+                      onboarding.specialtyId
+                        ? { id: onboarding.specialtyId, name: onboarding.specialty }
+                        : { id: null, name: UNDECIDED_LABEL }
+                    }
+                    initialInstitutions={onboarding.targetInstitutionIds.map((id, i) => ({
+                      id,
+                      name: onboarding.targetInstitutions[i] ?? "",
+                    }))}
                     saving={savingAcademic}
                     onCancel={() => setEditingAcademic(false)}
                     onSave={async (data) => {
@@ -349,7 +363,7 @@ export default function ConfiguracoesPage() {
                       </p>
                     </div>
                     <p className="text-heading-3 text-foreground leading-snug">
-                      {onboarding.specialty}
+                      {displaySpecialty(onboarding)}
                     </p>
                     <p className="mt-1 text-caption text-muted-foreground">
                       Define sua trilha recomendada e relatórios por área.
@@ -371,15 +385,15 @@ export default function ConfiguracoesPage() {
                         </p>
                       </div>
                       <span className="text-caption text-muted-foreground tabular-nums">
-                        {onboarding.targetInstitutions.length}{" "}
-                        {onboarding.targetInstitutions.length === 1
+                        {institutionDisplayNames.length}{" "}
+                        {institutionDisplayNames.length === 1
                           ? "selecionada"
                           : "selecionadas"}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {onboarding.targetInstitutions.length > 0 ? (
-                        onboarding.targetInstitutions.map((inst) => (
+                      {institutionDisplayNames.length > 0 ? (
+                        institutionDisplayNames.map((inst) => (
                           <InstitutionChip key={inst} name={inst} />
                         ))
                       ) : (

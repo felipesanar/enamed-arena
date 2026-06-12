@@ -1,15 +1,16 @@
 import { useState, useMemo, useCallback } from "react";
 import { GraduationCap, Building2, Save, X, Search, Check } from "lucide-react";
 import { useEnamedSpecialties, useInstitutionsBySpecialty } from "@/hooks/useEnamedData";
+import { UNDECIDED_LABEL } from "@/lib/academic-profile";
+import type { SpecialtySelection, InstitutionSelection } from "@/types";
 import { cn } from "@/lib/utils";
 
-const AINDA_NAO_SEI = "Ainda não sei";
 const MAX_INSTITUTIONS = 3;
 
 interface AcademicProfileEditorProps {
-  initialSpecialty: string;
-  initialInstitutions: string[];
-  onSave: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
+  initialSpecialty: SpecialtySelection | null;
+  initialInstitutions: InstitutionSelection[];
+  onSave: (data: { specialtyId: string | null; targetInstitutionIds: string[] }) => Promise<void>;
   onCancel: () => void;
   saving?: boolean;
 }
@@ -21,20 +22,26 @@ export function AcademicProfileEditor({
   onCancel,
   saving = false,
 }: AcademicProfileEditorProps) {
-  const [specialty, setSpecialty] = useState(initialSpecialty);
-  const [institutions, setInstitutions] = useState<string[]>(initialInstitutions);
+  const [specialty, setSpecialty] = useState<SpecialtySelection | null>(initialSpecialty);
+  const [institutions, setInstitutions] = useState<InstitutionSelection[]>(initialInstitutions);
+  const [undecidedInst, setUndecidedInst] = useState(
+    initialInstitutions.length === 0 && initialSpecialty !== null,
+  );
   const [specSearch, setSpecSearch] = useState("");
   const [instSearch, setInstSearch] = useState("");
 
   const { data: specialties, isLoading: specLoading } = useEnamedSpecialties();
-  const { grouped: instGrouped, flat: instFlat } = useInstitutionsBySpecialty(specialty);
+  const { grouped: instGrouped } = useInstitutionsBySpecialty(specialty?.id ?? null);
 
-  const specOptions = useMemo(
+  const specOptions = useMemo<SpecialtySelection[]>(
     () => {
-      const all = [AINDA_NAO_SEI, ...(specialties?.map(s => s.name) ?? [])];
+      const all: SpecialtySelection[] = [
+        { id: null, name: UNDECIDED_LABEL },
+        ...(specialties?.map(s => ({ id: s.id, name: s.name })) ?? []),
+      ];
       if (!specSearch.trim()) return all;
       const q = specSearch.toLowerCase();
-      return all.filter(s => s.toLowerCase().includes(q));
+      return all.filter(s => s.name.toLowerCase().includes(q));
     },
     [specialties, specSearch]
   );
@@ -54,23 +61,32 @@ export function AcademicProfileEditor({
       .filter(Boolean) as [string, any[]][];
   }, [instGrouped, instSearch]);
 
-  const toggleInstitution = useCallback((name: string) => {
-    setInstitutions(prev => {
-      if (name === AINDA_NAO_SEI) return [AINDA_NAO_SEI];
-      const without = prev.filter(i => i !== AINDA_NAO_SEI);
-      if (without.includes(name)) return without.filter(i => i !== name);
-      if (without.length >= MAX_INSTITUTIONS) return without;
-      return [...without, name];
+  const toggleInstitution = useCallback((inst: InstitutionSelection) => {
+    setUndecidedInst(false);
+    setInstitutions((prev) => {
+      if (prev.some((i) => i.id === inst.id)) return prev.filter((i) => i.id !== inst.id);
+      if (prev.length >= MAX_INSTITUTIONS) return prev;
+      return [...prev, inst];
     });
   }, []);
 
+  const toggleUndecidedInst = useCallback(() => {
+    setUndecidedInst((prev) => !prev);
+    if (!undecidedInst) setInstitutions([]);
+  }, [undecidedInst]);
+
   const handleSave = async () => {
-    if (!specialty || institutions.length === 0) return;
-    await onSave({ specialty, targetInstitutions: institutions });
+    if (!specialty || (!undecidedInst && institutions.length === 0)) return;
+    await onSave({
+      specialtyId: specialty.id,
+      targetInstitutionIds: undecidedInst ? [] : institutions.map((i) => i.id),
+    });
   };
 
-  const hasChanges = specialty !== initialSpecialty ||
-    JSON.stringify([...institutions].sort()) !== JSON.stringify([...initialInstitutions].sort());
+  const hasChanges =
+    specialty?.id !== initialSpecialty?.id ||
+    JSON.stringify(institutions.map((i) => i.id).sort()) !==
+      JSON.stringify(initialInstitutions.map((i) => i.id).sort());
 
   return (
     <div className="space-y-5">
@@ -105,21 +121,24 @@ export function AcademicProfileEditor({
           ) : (
             specOptions.map(opt => (
               <button
-                key={opt}
+                key={opt.id ?? "undecided"}
                 onClick={() => {
                   setSpecialty(opt);
                   // Reset institutions when specialty changes (different programs)
-                  if (opt !== specialty) setInstitutions([]);
+                  if (opt.name !== specialty?.name) {
+                    setInstitutions([]);
+                    setUndecidedInst(false);
+                  }
                 }}
                 className={cn(
                   "w-full text-left px-3 py-2 text-body-sm flex items-center justify-between transition-colors",
-                  specialty === opt
+                  specialty?.id === opt.id
                     ? "bg-primary/10 text-primary font-semibold"
                     : "text-foreground hover:bg-muted"
                 )}
               >
-                {opt}
-                {specialty === opt && <Check className="h-3.5 w-3.5 text-primary" />}
+                {opt.name}
+                {specialty?.id === opt.id && <Check className="h-3.5 w-3.5 text-primary" />}
               </button>
             ))
           )}
@@ -135,24 +154,24 @@ export function AcademicProfileEditor({
             </div>
             <p className="text-body-sm font-semibold text-foreground">Instituições</p>
           </div>
-          <span className="text-caption text-muted-foreground">{institutions.filter(i => i !== AINDA_NAO_SEI).length}/{MAX_INSTITUTIONS}</span>
+          <span className="text-caption text-muted-foreground">{institutions.length}/{MAX_INSTITUTIONS}</span>
         </div>
 
         {/* "Ainda não sei" toggle */}
         <button
-          onClick={() => toggleInstitution(AINDA_NAO_SEI)}
+          onClick={toggleUndecidedInst}
           className={cn(
             "w-full mb-2 px-3 py-2 rounded-lg border text-body-sm font-medium flex items-center justify-between transition-colors",
-            institutions.includes(AINDA_NAO_SEI)
+            undecidedInst
               ? "bg-primary/10 border-primary/30 text-primary"
               : "border-border text-muted-foreground hover:bg-muted"
           )}
         >
-          {AINDA_NAO_SEI}
-          {institutions.includes(AINDA_NAO_SEI) && <Check className="h-3.5 w-3.5" />}
+          {UNDECIDED_LABEL}
+          {undecidedInst && <Check className="h-3.5 w-3.5" />}
         </button>
 
-        {!institutions.includes(AINDA_NAO_SEI) && specialty && specialty !== AINDA_NAO_SEI && (
+        {!undecidedInst && specialty && specialty.id !== null && (
           <>
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -181,12 +200,12 @@ export function AcademicProfileEditor({
                       {uf}
                     </div>
                     {insts.map(inst => {
-                      const selected = institutions.includes(inst.name);
+                      const selected = institutions.some(i => i.id === inst.id);
                       const disabled = !selected && institutions.length >= MAX_INSTITUTIONS;
                       return (
                         <button
-                          key={inst.name}
-                          onClick={() => toggleInstitution(inst.name)}
+                          key={inst.id}
+                          onClick={() => toggleInstitution({ id: inst.id, name: inst.name })}
                           disabled={disabled}
                           className={cn(
                             "w-full text-left px-3 py-2 text-body-sm flex items-center justify-between transition-colors",
@@ -217,14 +236,14 @@ export function AcademicProfileEditor({
         )}
 
         {/* Selected tags */}
-        {institutions.length > 0 && !institutions.includes(AINDA_NAO_SEI) && (
+        {!undecidedInst && institutions.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {institutions.map(inst => (
               <span
-                key={inst}
+                key={inst.id}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-caption font-medium"
               >
-                {inst}
+                {inst.name}
                 <button onClick={() => toggleInstitution(inst)} className="hover:text-destructive">
                   <X className="h-3 w-3" />
                 </button>
@@ -246,7 +265,7 @@ export function AcademicProfileEditor({
         </button>
         <button
           onClick={handleSave}
-          disabled={saving || !specialty || institutions.length === 0 || !hasChanges}
+          disabled={saving || !specialty || (!undecidedInst && institutions.length === 0) || !hasChanges}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-body-sm font-semibold hover:bg-wine-hover transition-colors disabled:opacity-40"
         >
           <Save className="h-3.5 w-3.5" />
