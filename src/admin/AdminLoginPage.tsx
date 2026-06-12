@@ -10,7 +10,7 @@ import { useAdminAuth } from './hooks/useAdminAuth';
 import { Navigate } from 'react-router-dom';
 
 export default function AdminLoginPage() {
-  const { user, isAdmin, loading } = useAdminAuth();
+  const { user, hasAccess: alreadyHasAccess, loading } = useAdminAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return null;
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (user && alreadyHasAccess) return <Navigate to="/admin" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +39,11 @@ export default function AdminLoginPage() {
       return;
     }
 
-    const { data: hasRole } = await supabase.rpc('has_role', { _user_id: loggedUser.id, _role: 'admin' });
-    if (!hasRole) {
-      setError('Você não tem permissão de administrador.');
+    const { data, error: accessError } = await supabase.rpc('admin_get_access');
+    const row = Array.isArray(data) ? data[0] : data;
+    const hasAccess = !accessError && (row?.roles?.length ?? 0) > 0;
+    if (!hasAccess) {
+      setError('Sua conta não tem acesso ao painel.');
       await supabase.auth.signOut();
       setSubmitting(false);
       return;
