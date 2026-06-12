@@ -58,6 +58,8 @@ interface UseRankingReturn {
   // User context
   userSpecialty: string;
   userInstitutions: string[];
+  userSpecialtyId: string | null;
+  userInstitutionIds: string[];
 
   // Actions
   refetch: () => void;
@@ -102,6 +104,11 @@ export function useRanking(): UseRankingReturn {
   const userInstitutions = useMemo(
     () => onboarding?.targetInstitutions || [],
     [onboarding?.targetInstitutions],
+  );
+  const userSpecialtyId = onboarding?.specialtyId ?? null;
+  const userInstitutionIds = useMemo(
+    () => onboarding?.targetInstitutionIds || [],
+    [onboarding?.targetInstitutionIds],
   );
 
   // Fetch available simulados — dep é user.id, não o objeto user (que troca de
@@ -234,6 +241,8 @@ export function useRanking(): UseRankingReturn {
     setSegmentFilter,
     userSpecialty,
     userInstitutions,
+    userSpecialtyId,
+    userInstitutionIds,
     refetch,
   };
 }
