@@ -50,14 +50,14 @@ export function RankingTable({
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
-      <table className="w-full">
+      <table className="w-full" aria-label="Tabela de classificação do simulado">
         <thead>
           <tr className="border-b border-border">
-            <th className={`${th} text-left w-10 pl-4`}>#</th>
-            <th className={`${th} text-left`}>Candidato</th>
-            <th className={`${th} text-left hidden md:table-cell`}>Especialidade</th>
-            <th className={`${th} text-left hidden md:table-cell`}>Instituição</th>
-            <th className={`${th} text-right pr-4`}>Nota</th>
+            <th scope="col" className={`${th} text-left w-10 pl-4`}>#</th>
+            <th scope="col" className={`${th} text-left`}>Candidato</th>
+            <th scope="col" className={`${th} text-left hidden md:table-cell`}>Especialidade</th>
+            <th scope="col" className={`${th} text-left hidden md:table-cell`}>Instituição</th>
+            <th scope="col" className={`${th} text-right pr-4`}>Nota</th>
           </tr>
         </thead>
         <tbody>

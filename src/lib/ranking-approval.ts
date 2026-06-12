@@ -54,7 +54,7 @@ export function deriveApprovalEntries(
       institutionName: row.institution_name,
       cutoffGeneral: general,
       cutoffQuota: row.cutoff_score_quota,
-      gap: Math.round(Math.abs(userScore - general)),
+      gap: pass ? Math.floor(userScore - general) : Math.ceil(general - userScore),
       status: pass ? ('pass' as const) : ('fail' as const),
     };
   });

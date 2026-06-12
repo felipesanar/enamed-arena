@@ -112,6 +112,8 @@ export interface RankingViewProps {
   trackSource: RankingTrackSource;
   /** public: masks others as Candidato #n; admin: shows profile name when available */
   participantDisplay: 'public' | 'admin';
+  /** Oculta o painel "Você passaria?" (ex.: preview admin). Default: true */
+  showApprovalPanel?: boolean;
   toolbar?: React.ReactNode;
 }
 
@@ -136,6 +138,7 @@ export function RankingView({
   allowedSegments,
   trackSource,
   participantDisplay,
+  showApprovalPanel = true,
   toolbar,
 }: RankingViewProps) {
   const mountedAtRef = useRef<number>(Date.now());
@@ -274,12 +277,14 @@ export function RankingView({
             />
 
             {/* ── Approval panel ("Você passaria?") ────────────────────────── */}
-            <RankingApprovalPanel
-              state={approvalState}
-              entries={approvalEntries}
-              userScore={currentUser ? currentUser.score : null}
-              onOpenCutoffTable={() => setCutoffModalOpen(true)}
-            />
+            {showApprovalPanel && (
+              <RankingApprovalPanel
+                state={approvalState}
+                entries={approvalEntries}
+                userScore={currentUser ? currentUser.score : null}
+                onOpenCutoffTable={() => setCutoffModalOpen(true)}
+              />
+            )}
 
             {/* ── Stats row (posição / percentil / vs. média) ──────────────── */}
             {currentUser && (
@@ -344,6 +349,3 @@ export function RankingView({
     </>
   );
 }
-
-/** Re-export para uso em páginas que só precisam do skeleton */
-export { RankingSkeleton };

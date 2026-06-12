@@ -367,7 +367,7 @@ export function CutoffScoreModal({
                             : null;
                         return (
                           <div
-                            key={`${r.institution_name}-${r.specialty_name}`}
+                            key={`${r.institution_name}-${r.specialty_name}-${r.practice_scenario}`}
                             className="grid px-5 py-[9px] items-center bg-primary/10 border-b border-border"
                             style={{ gridTemplateColumns: GRID_COLS }}
                           >
@@ -421,7 +421,7 @@ export function CutoffScoreModal({
                     const tint = scoreTint(row.cutoff_score_general);
                     return (
                       <div
-                        key={`${row.institution_name}-${row.specialty_name}`}
+                        key={`${row.institution_name}-${row.specialty_name}-${row.practice_scenario}`}
                         className="grid px-5 py-[9px] items-center transition-colors duration-150 border-b border-border hover:bg-muted/50"
                         style={{ gridTemplateColumns: GRID_COLS }}
                       >

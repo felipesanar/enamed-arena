@@ -33,6 +33,15 @@ describe('deriveApprovalEntries', () => {
     expect(entries[0]).toMatchObject({ status: 'fail', gap: 8 });
   });
 
+  it('corte decimal acima da nota nunca vira "faltam 0" (79.4 vs 79 => fail, gap 1)', () => {
+    const entries = deriveApprovalEntries(
+      targets,
+      [cutoff({ institution_id: 'i1', cutoff_score_general: 79.4 })],
+      79,
+    );
+    expect(entries[0]).toMatchObject({ status: 'fail', gap: 1 });
+  });
+
   it('marca unavailable para instituição sem linha de corte', () => {
     const entries = deriveApprovalEntries(targets, [cutoff({ institution_id: 'i1' })], 75);
     expect(entries[1]).toMatchObject({

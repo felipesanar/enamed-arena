@@ -75,6 +75,7 @@ export default function AdminRankingPreviewPage() {
       allowedSegments={allowedSegments}
       trackSource="admin_preview"
       participantDisplay="admin"
+      showApprovalPanel={false}
       toolbar={
         <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-caption text-muted-foreground max-w-xl">

@@ -10,12 +10,12 @@ interface Props {
 export function RankingStatsRow({ currentUser, totalParticipants, stats }: Props) {
   const percentil = Math.min(
     99,
-    Math.round((currentUser.position / Math.max(1, totalParticipants)) * 100),
+    Math.max(1, Math.ceil((currentUser.position / Math.max(1, totalParticipants)) * 100)),
   );
   const delta = currentUser.score - stats.notaMedia;
 
   return (
-    <div className="grid grid-cols-3 gap-2.5 mb-5">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-5">
       <div className="rounded-xl border border-border bg-card px-4 py-3">
         <p className="text-overline uppercase text-muted-foreground">Posição</p>
         <p className="text-heading-3 font-bold text-foreground tabular-nums">
