@@ -37,8 +37,13 @@ export function AdminApp() {
         toggleSidebar()
       }
     }
+    const sidebarHandler = () => toggleSidebar()
     document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
+    document.addEventListener('admin:toggle-sidebar', sidebarHandler)
+    return () => {
+      document.removeEventListener('keydown', handler)
+      document.removeEventListener('admin:toggle-sidebar', sidebarHandler)
+    }
   }, [toggleSidebar])
 
   return (

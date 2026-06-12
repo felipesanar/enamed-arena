@@ -221,3 +221,10 @@ export interface CadernoFunnelRow {
   total_events: number
   unique_users: number
 }
+
+export interface QuickSearchResult {
+  kind: 'user' | 'simulado'
+  id: string
+  title: string
+  subtitle: string | null
+}
