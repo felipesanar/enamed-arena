@@ -337,7 +337,7 @@ export function RankingView({
           open={cutoffModalOpen}
           onClose={() => setCutoffModalOpen(false)}
           userSpecialty={userSpecialty}
-          userInstitution={userInstitutions[0]}
+          userInstitutions={userInstitutions}
           currentUserScore={currentUser?.score}
         />
       </div>

@@ -295,7 +295,7 @@ export async function fetchAllCutoffScores(): Promise<CutoffScoreRow[]> {
   const { data, error } = await supabase
     .from('enamed_cutoff_scores')
     .select(
-      'institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
+      'institution_id, institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
     )
     .order('institution_name')
     .order('specialty_name')
