@@ -81,7 +81,7 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
             </div>
             {i < steps.length - 1 && (
               <ChevronRight
-                className="h-4 w-4 shrink-0 text-muted-foreground/50 self-center"
+                className="h-4 w-4 shrink-0 text-admin-muted/50 self-center"
                 aria-hidden
               />
             )}

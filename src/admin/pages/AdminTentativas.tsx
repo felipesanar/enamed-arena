@@ -122,6 +122,7 @@ function AdminTentativasContent() {
             onClick={() => handleStatus(opt.value)}
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50',
               status === opt.value
                 ? 'bg-admin-accent text-admin-accent-contrast border-admin-accent'
                 : 'bg-admin-surface text-admin-muted border-admin-line hover:text-admin-text hover:bg-admin-raised',

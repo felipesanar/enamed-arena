@@ -34,7 +34,7 @@ export function AdminConfirmDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             disabled={loading}
-            onClick={onConfirm}
+            onClick={(e) => { e.preventDefault(); onConfirm() }}
             className={cn(
               destructive
                 ? 'bg-admin-destructive text-white hover:bg-admin-destructive/90'

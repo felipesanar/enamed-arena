@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/admin/services/adminApi'
+import { toast } from '@/hooks/use-toast'
 
 export function useAdminAttemptKpis(days: number) {
   return useQuery({
@@ -40,6 +41,9 @@ export function useAdminCancelAttempt() {
       qc.invalidateQueries({ queryKey: ['admin', 'attempts'] })
       qc.invalidateQueries({ queryKey: ['admin', 'attempt-kpis'] })
     },
+    onError: () => {
+      toast({ title: 'Erro ao cancelar tentativa', variant: 'destructive' })
+    },
   })
 }
 
@@ -50,6 +54,9 @@ export function useAdminDeleteAttempt() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'attempts'] })
       qc.invalidateQueries({ queryKey: ['admin', 'attempt-kpis'] })
+    },
+    onError: () => {
+      toast({ title: 'Erro ao excluir tentativa', variant: 'destructive' })
     },
   })
 }
