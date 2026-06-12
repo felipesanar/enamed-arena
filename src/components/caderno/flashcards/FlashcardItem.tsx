@@ -1,15 +1,14 @@
 /**
- * FlashcardItem — card premium do flashcard na grade.
+ * FlashcardItem — carta vertical do flashcard no grid.
  *
- * Desktop: thumbnail de imagem, frente em preview (markdown limpo),
- *          status SRS badge, ações no hover.
- * Mobile: mesma estrutura, alvos ≥44px, sem hover.
- * Sensação de "deck de estudo premium".
+ * Clique abre o preview (flip) — edição só pelo lápis.
+ * Sem preview da resposta: a frente é a estrela.
+ * Imagem da frente vira capa quando existe.
  */
 
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Pencil, Trash2, Image as ImageIcon, Star, Clock, Zap } from 'lucide-react';
+import { Pencil, Trash2, Star, Clock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CadernoCard } from '@/components/caderno/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -49,13 +48,15 @@ const SRS_VARIANT_STYLES = {
 
 export interface FlashcardItemProps {
   card: Flashcard;
+  onPreview: (card: Flashcard) => void;
   onEdit: (card: Flashcard) => void;
   onDelete: (id: string) => void;
 }
 
 /* ── Component ── */
 
-export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
+export const FlashcardItem = forwardRef<HTMLDivElement, FlashcardItemProps>(
+  function FlashcardItem({ card, onPreview, onEdit, onDelete }, ref) {
   const prefersReducedMotion = useReducedMotion();
   const [deleteHovered, setDeleteHovered] = useState(false);
 
@@ -68,69 +69,60 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
   const srsLabel = isMastered ? 'Dominado' : srs.label;
 
   const cleanFront = card.front_md.replace(/[#*_`[\]]/g, '').trim() || '(frente vazia)';
-  const cleanBack = card.back_md.replace(/[#*_`[\]]/g, '').trim() || '(verso vazio)';
 
   return (
     <motion.div
+      ref={ref}
       layout={!prefersReducedMotion}
       initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      className="h-full"
     >
       <CadernoCard
         variant="interactive"
         className={cn(
-          'group relative flex items-start gap-4 p-4',
+          'group relative flex h-full flex-col overflow-hidden',
           isMastered && 'opacity-60',
         )}
-        onClick={() => onEdit(card)}
+        onClick={() => onPreview(card)}
         tabIndex={0}
         role="button"
-        aria-label={`Editar flashcard: ${cleanFront}`}
+        aria-label={`Ver flashcard: ${cleanFront}`}
         onKeyDown={(e) => {
+          if (e.repeat) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onEdit(card);
+            onPreview(card);
           }
         }}
       >
-        {/* Thumbnail de imagem */}
-        <div className="shrink-0">
-          {card.front_image_url ? (
-            <div className="h-16 w-16 overflow-hidden rounded-xl border border-[var(--c-border)] bg-[var(--c-surface-2)] shadow-[var(--c-shadow-sm)]">
-              <img
-                src={card.front_image_url}
-                alt="Imagem da frente do card"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : (
-            <div
-              className={cn(
-                'flex h-16 w-16 items-center justify-center rounded-xl',
-                'border border-dashed border-[var(--c-border)] bg-[var(--c-surface-2)]',
-              )}
+        {/* Capa (imagem da frente) */}
+        {card.front_image_url && (
+          <div className="h-28 w-full overflow-hidden border-b border-[var(--c-border)] bg-[var(--c-surface-2)]">
+            <img
+              src={card.front_image_url}
+              alt=""
               aria-hidden
-            >
-              <ImageIcon className="h-5 w-5 text-[var(--c-muted-2)]" aria-hidden />
-            </div>
-          )}
-        </div>
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            />
+          </div>
+        )}
 
-        {/* Conteúdo principal */}
-        <div className="min-w-0 flex-1 space-y-1.5">
-          {/* Frente */}
-          <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--c-ink)]">
+        {/* Pergunta */}
+        <div className="flex flex-1 flex-col gap-3 p-4">
+          <p
+            className={cn(
+              'line-clamp-3 text-[14px] font-semibold leading-snug text-[var(--c-ink)]',
+              !card.front_image_url && 'min-h-[3.5rem]',
+            )}
+          >
             {cleanFront}
           </p>
-          {/* Verso preview */}
-          <p className="line-clamp-1 text-[11px] leading-relaxed text-[var(--c-muted)]">
-            {cleanBack}
-          </p>
 
-          {/* SRS badge + reps */}
-          <div className="flex items-center gap-2 pt-0.5">
+          {/* Rodapé: badge SRS + revisões */}
+          <div className="mt-auto flex items-center gap-2">
             <span
               className={cn(
                 'inline-flex items-center gap-1 rounded-[var(--c-radius-pill)] border px-2 py-0.5 text-[10px] font-bold',
@@ -148,9 +140,12 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
           </div>
         </div>
 
-        {/* Ações — visíveis no hover (desktop) / sempre visíveis (mobile via focus) */}
+        {/* Ações — hover no desktop, sempre visíveis no mobile (sm:) */}
         <div
-          className="flex shrink-0 flex-col gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100"
+          className={cn(
+            'absolute right-2 top-2 flex gap-1 rounded-lg bg-[color-mix(in_srgb,var(--c-surface)_85%,transparent)] p-0.5 backdrop-blur-sm',
+            'opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100',
+          )}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
@@ -170,7 +165,7 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left">Editar</TooltipContent>
+            <TooltipContent side="bottom">Editar</TooltipContent>
           </Tooltip>
 
           <Tooltip delayDuration={400}>
@@ -193,10 +188,11 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
                 <Trash2 className="h-3.5 w-3.5" aria-hidden />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left">Excluir</TooltipContent>
+            <TooltipContent side="bottom">Excluir</TooltipContent>
           </Tooltip>
         </div>
       </CadernoCard>
     </motion.div>
   );
-}
+});
+FlashcardItem.displayName = 'FlashcardItem';

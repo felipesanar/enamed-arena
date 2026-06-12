@@ -10,7 +10,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -18,10 +17,12 @@ import {
   Star,
   Loader2,
   RotateCcw,
-  Image as ImageIcon,
   Trash2,
+  Timer,
+  Dumbbell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CardFace } from './CardFace';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
@@ -29,7 +30,8 @@ import { simuladosApi } from '@/services/simuladosApi';
 import { Button } from '@/components/ui/button';
 import { BottomActionBar, ProgressBar } from '@/components/caderno/ui';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import type { Flashcard, FlashcardReviewOutcome, SrsState } from '@/types/caderno';
+import { REVIEW_MODE_CONFIGS, type ReviewModeConfig } from '@/lib/flashcardReviewModes';
+import type { Flashcard, FlashcardReviewOutcome, ReviewMode, SrsState } from '@/types/caderno';
 
 /* ── Grade options config ── */
 
@@ -82,77 +84,19 @@ const GRADE_OPTIONS: GradeOption[] = [
   },
 ];
 
-/* ── CardFace ── */
-
-interface CardFaceProps {
-  md: string;
-  imageUrl: string | null;
-  faceLabel: 'Frente' | 'Verso';
-  isMobile: boolean;
-}
-
-function CardFace({ md, imageUrl, faceLabel, isMobile }: CardFaceProps) {
-  const isBack = faceLabel === 'Verso';
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-4',
-        isMobile ? 'min-h-[240px] p-6' : 'min-h-[280px] p-8 sm:min-h-[320px]',
-      )}
-    >
-      {/* Face label badge */}
-      <span
-        className={cn(
-          'self-start rounded-[var(--c-radius-pill)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]',
-          isBack
-            ? 'bg-[var(--c-surface-2)] text-[var(--c-muted)]'
-            : 'bg-[var(--c-wine-50)] text-[var(--c-wine-600)]',
-        )}
-      >
-        {faceLabel}
-      </span>
-
-      {/* Image */}
-      {imageUrl ? (
-        <div className="overflow-hidden rounded-xl border border-[var(--c-border)]">
-          <img
-            src={imageUrl}
-            alt={`Imagem do ${faceLabel.toLowerCase()} do flashcard`}
-            className="max-h-48 w-full object-contain"
-          />
-        </div>
-      ) : null}
-
-      {/* Content */}
-      {md.trim() ? (
-        <div
-          className={cn(
-            'prose dark:prose-invert max-w-none flex-1',
-            isMobile ? 'prose-sm text-[14px] leading-relaxed' : 'prose-base text-[15px] leading-relaxed',
-          )}
-        >
-          <ReactMarkdown>{md}</ReactMarkdown>
-        </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center gap-2 text-[var(--c-muted-2)]">
-          <ImageIcon className="h-5 w-5" aria-hidden />
-          <span className="text-[13px] italic">(conteúdo vazio)</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── SessionSummary ── */
 
 interface SessionSummaryProps {
   total: number;
   results: Record<FlashcardReviewOutcome, number>;
   removedCount: number;
+  modeLabel: string;
+  timedSeconds: number | null;
+  writesSrs: boolean;
   onFinish: () => void;
 }
 
-function SessionSummary({ total, results, removedCount, onFinish }: SessionSummaryProps) {
+function SessionSummary({ total, results, removedCount, modeLabel, timedSeconds, writesSrs, onFinish }: SessionSummaryProps) {
   const mastered = (results.bom ?? 0) + (results.facil ?? 0);
   return (
     <div className="flex flex-col items-center gap-8 py-16 text-center">
@@ -171,7 +115,10 @@ function SessionSummary({ total, results, removedCount, onFinish }: SessionSumma
           Sessão concluída!
         </h3>
         <p className="mt-1.5 text-[14px] text-[var(--c-muted)]">
+          {modeLabel}
+          {' — '}
           {total} {total === 1 ? 'flashcard revisado' : 'flashcards revisados'}
+          {timedSeconds !== null && ` em ${formatTime(timedSeconds)}`}
         </p>
       </div>
 
@@ -200,7 +147,8 @@ function SessionSummary({ total, results, removedCount, onFinish }: SessionSumma
       {mastered > 0 && (
         <p className="text-[13px] text-[var(--c-muted)]">
           <span className="font-bold text-[var(--c-ink)]">{mastered}</span>{' '}
-          {mastered === 1 ? 'card com bom desempenho' : 'cards com bom desempenho'}. Revisão reagendada.
+          {mastered === 1 ? 'card com bom desempenho' : 'cards com bom desempenho'}.
+          {writesSrs && ' Revisão reagendada.'}
         </p>
       )}
 
@@ -220,14 +168,24 @@ function SessionSummary({ total, results, removedCount, onFinish }: SessionSumma
   );
 }
 
+/* ── Helpers ── */
+
+const formatTime = (s: number) =>
+  `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 /* ── FlashcardReviewSession ── */
 
 export interface FlashcardReviewSessionProps {
   cards: Flashcard[];
+  /** Modo da sessão (fixo por sessão — remonte o componente para trocar). Default 'due' grava SRS. */
+  mode?: ReviewMode;
   onFinish: () => void;
 }
 
-export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessionProps) {
+export function FlashcardReviewSession({ cards, mode = 'due', onFinish }: FlashcardReviewSessionProps) {
+  const config: ReviewModeConfig = REVIEW_MODE_CONFIGS[mode];
+  const isTraining = !config.writesSrs;
+
   const prefersReducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
 
@@ -240,9 +198,29 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
   });
   const [done, setDone] = useState(false);
   const [removedCount, setRemovedCount] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(config.timerSeconds);
+
+  // Countdown do modo cronometrado: ao zerar, encerra a sessão.
+  useEffect(() => {
+    if (secondsLeft === null || done || cards.length === 0) return;
+    if (secondsLeft <= 0) {
+      setDone(true);
+      return;
+    }
+    const t = setTimeout(() => setSecondsLeft((s) => (s === null ? null : s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [secondsLeft, done, cards.length]);
 
   const currentCard = cards[currentIndex];
   const progressPct = (currentIndex / cards.length) * 100;
+
+  // Modo invertido mostra o verso primeiro e pede a frente.
+  const firstFace = config.reversed
+    ? { md: currentCard?.back_md ?? '', imageUrl: currentCard?.back_image_url ?? null, label: 'Verso' as const }
+    : { md: currentCard?.front_md ?? '', imageUrl: currentCard?.front_image_url ?? null, label: 'Frente' as const };
+  const secondFace = config.reversed
+    ? { md: currentCard?.front_md ?? '', imageUrl: currentCard?.front_image_url ?? null, label: 'Frente' as const }
+    : { md: currentCard?.back_md ?? '', imageUrl: currentCard?.back_image_url ?? null, label: 'Verso' as const };
 
   const handleGradeRef = useRef<(outcome: FlashcardReviewOutcome) => Promise<void>>(
     async () => { /* placeholder */ },
@@ -275,14 +253,24 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       if (grading || !currentCard) return;
       setGrading(true);
       try {
-        const srs: SrsState = await simuladosApi.scheduleFlashcardReview(currentCard.id, outcome);
+        if (config.writesSrs) {
+          const srs: SrsState = await simuladosApi.scheduleFlashcardReview(currentCard.id, outcome);
+          trackEvent('caderno_flashcard_reviewed', {
+            flashcard_id: currentCard.id,
+            outcome,
+            mode,
+            mastered: srs.mastered,
+            srs_interval: srs.srsInterval,
+          });
+        } else {
+          trackEvent('caderno_flashcard_reviewed', {
+            flashcard_id: currentCard.id,
+            outcome,
+            mode,
+            training: true,
+          });
+        }
         setResults((prev) => ({ ...prev, [outcome]: (prev[outcome] ?? 0) + 1 }));
-        trackEvent('caderno_flashcard_reviewed', {
-          flashcard_id: currentCard.id,
-          outcome,
-          mastered: srs.mastered,
-          srs_interval: srs.srsInterval,
-        });
       } catch (err) {
         logger.error('[FlashcardReviewSession] Error scheduling review:', err);
         toast({ title: 'Erro ao registrar avaliação', description: 'Tente novamente.', variant: 'destructive' });
@@ -299,7 +287,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       }
       setGrading(false);
     },
-    [currentCard, currentIndex, cards.length, grading],
+    [currentCard, currentIndex, cards.length, grading, config.writesSrs, mode],
   );
 
   handleGradeRef.current = handleGrade;
@@ -316,6 +304,11 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       setGrading(false);
       return;
     }
+    if (done) {
+      setRemovedCount((n) => n + 1);
+      setGrading(false);
+      return;
+    }
     toast({ title: 'Card removido' });
     setRemovedCount((n) => n + 1);
     const next = currentIndex + 1;
@@ -327,10 +320,21 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       setRevealed(false);
     }
     setGrading(false);
-  }, [currentCard, currentIndex, cards.length, grading]);
+  }, [currentCard, currentIndex, cards.length, grading, done]);
 
   if (done) {
-    return <SessionSummary total={cards.length - removedCount} results={results} removedCount={removedCount} onFinish={onFinish} />;
+    const reviewedCount = Object.values(results).reduce((a, b) => a + b, 0);
+    return (
+      <SessionSummary
+        total={reviewedCount}
+        results={results}
+        removedCount={removedCount}
+        modeLabel={config.label}
+        timedSeconds={config.timerSeconds !== null ? config.timerSeconds - (secondsLeft ?? 0) : null}
+        writesSrs={config.writesSrs}
+        onFinish={onFinish}
+      />
+    );
   }
 
   if (!currentCard) return null;
@@ -353,7 +357,7 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
       };
 
   const gradeButtons = (
-    <div className={cn('grid gap-3', isMobile ? 'grid-cols-4' : 'grid-cols-4')}>
+    <div className="grid gap-3 grid-cols-4">
       {GRADE_OPTIONS.map((g, i) => (
         <button
           key={g.outcome}
@@ -414,10 +418,27 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
           Sair
         </button>
 
-        <span className="text-[13px] font-bold tabular-nums text-[var(--c-muted)]">
-          {currentIndex + 1}
-          <span className="font-normal opacity-60"> / {cards.length}</span>
-        </span>
+        <div className="flex items-center gap-3">
+          {secondsLeft !== null && (
+            <span
+              role="timer"
+              className={cn(
+                'inline-flex items-center gap-1 rounded-[var(--c-radius-pill)] border px-2.5 py-1 text-[12px] font-bold tabular-nums',
+                secondsLeft <= 30
+                  ? 'border-red-500/30 bg-red-500/10 text-red-500'
+                  : 'border-[var(--c-border)] bg-[var(--c-surface-2)] text-[var(--c-ink)]',
+              )}
+              aria-label={`Tempo restante: ${formatTime(secondsLeft)}`}
+            >
+              <Timer className="h-3.5 w-3.5" aria-hidden />
+              {formatTime(secondsLeft)}
+            </span>
+          )}
+          <span className="text-[13px] font-bold tabular-nums text-[var(--c-muted)]">
+            {currentIndex + 1}
+            <span className="font-normal opacity-60"> / {cards.length}</span>
+          </span>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -426,6 +447,17 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
         label={`${currentIndex} de ${cards.length} flashcards revisados`}
         className="h-[3px]"
       />
+
+      {/* Banner de treino */}
+      {isTraining && (
+        <div className="flex items-center justify-center gap-2 rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface-2)] px-3 py-2">
+          <Dumbbell className="h-3.5 w-3.5 shrink-0 text-[var(--c-muted)]" aria-hidden />
+          <p className="text-[11.5px] font-medium text-[var(--c-muted)]">
+            <span className="font-bold text-[var(--c-ink)]">{config.label}</span>
+            {' · '}modo treino — não altera seu agendamento
+          </p>
+        </div>
+      )}
 
       {/* Card com flip 3D */}
       <div
@@ -451,9 +483,9 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
               )}
             >
               <CardFace
-                md={currentCard.front_md}
-                imageUrl={currentCard.front_image_url}
-                faceLabel="Frente"
+                md={firstFace.md}
+                imageUrl={firstFace.imageUrl}
+                faceLabel={firstFace.label}
                 isMobile={isMobile}
               />
 
@@ -477,9 +509,9 @@ export function FlashcardReviewSession({ cards, onFinish }: FlashcardReviewSessi
               className="overflow-hidden rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface-2)] shadow-[var(--c-shadow-md)]"
             >
               <CardFace
-                md={currentCard.back_md}
-                imageUrl={currentCard.back_image_url}
-                faceLabel="Verso"
+                md={secondFace.md}
+                imageUrl={secondFace.imageUrl}
+                faceLabel={secondFace.label}
                 isMobile={isMobile}
               />
             </motion.div>

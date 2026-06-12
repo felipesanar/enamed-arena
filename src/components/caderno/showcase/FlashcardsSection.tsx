@@ -290,11 +290,12 @@ export function FlashcardsSection() {
             }
           />
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredCards.map((card) => (
               <FlashcardItem
                 key={card.id}
                 card={card}
+                onPreview={(c) => { console.log('[Showcase] preview:', c.id); setEditorOpen(true); }}
                 onEdit={(c) => { console.log('[Showcase] edit:', c.id); setEditorOpen(true); }}
                 onDelete={(id) => { console.log('[Showcase] delete:', id); }}
               />

@@ -183,6 +183,9 @@ export interface Flashcard {
   deleted_at: string | null;
 }
 
+/** Modos de sessão de revisão de flashcards. Só `due` grava SRS. */
+export type ReviewMode = 'due' | 'free' | 'hard' | 'shuffle' | 'reversed' | 'timed';
+
 /** Payload for creating a new flashcard. */
 export interface CreateFlashcardPayload {
   deck_id: string;
