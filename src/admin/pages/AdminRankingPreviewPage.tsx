@@ -70,6 +70,8 @@ export default function AdminRankingPreviewPage() {
       setSegmentFilter={setSegmentFilter}
       userSpecialty={userSpecialty}
       userInstitutions={userInstitutions}
+      userSpecialtyId={null}
+      userInstitutionIds={[]}
       allowedSegments={allowedSegments}
       trackSource="admin_preview"
       participantDisplay="admin"

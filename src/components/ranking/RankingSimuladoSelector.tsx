@@ -1,19 +1,16 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface Props {
   simuladosWithResults: Array<{ id: string; title: string; sequence_number: number }>;
   selectedSimuladoId: string | null;
   setSelectedSimuladoId: (id: string) => void;
-  chipActive: React.CSSProperties;
-  chipInactive: React.CSSProperties;
 }
 
 export function RankingSimuladoSelector({
   simuladosWithResults,
   selectedSimuladoId,
   setSelectedSimuladoId,
-  chipActive,
-  chipInactive,
 }: Props) {
   if (simuladosWithResults.length <= 1) return null;
 
@@ -25,8 +22,12 @@ export function RankingSimuladoSelector({
           key={s.id}
           type="button"
           onClick={() => setSelectedSimuladoId(s.id)}
-          className="px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0"
-          style={s.id === selectedSimuladoId ? chipActive : chipInactive}
+          className={cn(
+            'px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0',
+            s.id === selectedSimuladoId
+              ? 'bg-primary text-white'
+              : 'bg-muted text-muted-foreground border border-border hover:bg-accent',
+          )}
         >
           {s.title}
         </button>

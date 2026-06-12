@@ -31,6 +31,8 @@ export default function RankingPage() {
     setSegmentFilter,
     userSpecialty,
     userInstitutions,
+    userSpecialtyId,
+    userInstitutionIds,
     refetch,
   } = useRanking();
 
@@ -112,6 +114,8 @@ export default function RankingPage() {
         setSegmentFilter={setSegmentFilter}
         userSpecialty={userSpecialty}
         userInstitutions={userInstitutions}
+        userSpecialtyId={userSpecialtyId}
+        userInstitutionIds={userInstitutionIds}
         allowedSegments={allowedSegments}
         trackSource="page"
         participantDisplay="public"
