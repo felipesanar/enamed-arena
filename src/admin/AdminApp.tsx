@@ -27,11 +27,12 @@ export function AdminApp() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      if (e.repeat) return
+      if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() === 'k') {
         e.preventDefault()
         setPaletteOpen(open => !open)
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+      if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() === 'b') {
         e.preventDefault()
         toggleSidebar()
       }

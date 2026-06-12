@@ -60,7 +60,8 @@ export function AdminTopbar() {
         <button
           type="button"
           title="Alertas (em breve)"
-          aria-disabled
+          aria-label="Alertas (em breve)"
+          disabled
           className="w-7 h-7 rounded-md flex items-center justify-center text-admin-faint opacity-50 cursor-not-allowed"
         >
           <Bell className="h-3.5 w-3.5" aria-hidden />

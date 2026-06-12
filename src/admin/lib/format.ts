@@ -10,12 +10,15 @@ export function getInitials(name: string | null | undefined): string {
     .toUpperCase() || 'A'
 }
 
+const COMPACT = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
+const INT = new Intl.NumberFormat('pt-BR')
+
 /** Número compacto pt-BR */
 export function formatCompact(n: number): string {
-  return new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  return COMPACT.format(n)
 }
 
 /** Inteiro com separador pt-BR */
 export function formatInt(n: number): string {
-  return new Intl.NumberFormat('pt-BR').format(n)
+  return INT.format(n)
 }

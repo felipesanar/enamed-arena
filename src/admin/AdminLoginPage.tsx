@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,8 +41,15 @@ export default function AdminLoginPage() {
     }
 
     const { data, error: accessError } = await supabase.rpc('admin_get_access');
+    if (accessError) {
+      logger.error('[AdminLoginPage] admin_get_access falhou:', accessError);
+      setError('Não foi possível verificar seu acesso. Tente novamente.');
+      setSubmitting(false);
+      return;
+    }
+
     const row = Array.isArray(data) ? data[0] : data;
-    const hasAccess = !accessError && (row?.roles?.length ?? 0) > 0;
+    const hasAccess = (row?.roles?.length ?? 0) > 0;
     if (!hasAccess) {
       setError('Sua conta não tem acesso ao painel.');
       await supabase.auth.signOut();

@@ -71,7 +71,7 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 flex flex-col gap-4">
+        <nav aria-label="Navegação administrativa" className="flex-1 overflow-y-auto px-2 flex flex-col gap-4">
           {nav.map(group => (
             <div key={group.title}>
               {!collapsed && (
@@ -87,6 +87,7 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
                       key={item.to}
                       to={item.to}
                       end={item.end}
+                      aria-label={item.label}
                       className={({ isActive }) =>
                         cn(
                           'relative flex items-center gap-2.5 rounded-md motion-safe:transition-colors',
