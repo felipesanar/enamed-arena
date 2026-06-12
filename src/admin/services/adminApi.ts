@@ -245,6 +245,7 @@ export const adminApi = {
       total_attempts: Number(r.total_attempts),
       last_finished_at: r.last_finished_at as string | null,
       is_admin: Boolean(r.is_admin),
+      roles: (r.roles as string[] | null) ?? [],
     }
   },
 

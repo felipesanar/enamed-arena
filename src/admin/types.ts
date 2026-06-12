@@ -75,6 +75,7 @@ export interface UserDetail {
   total_attempts: number
   last_finished_at: string | null
   is_admin: boolean
+  roles: string[]
 }
 
 export interface UserAttemptRow {
