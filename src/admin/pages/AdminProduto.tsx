@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
@@ -47,7 +48,7 @@ function severityLabel(severity: FrictionPoint['severity']) {
   return 'Saudável'
 }
 
-export default function AdminProduto() {
+function AdminProdutoContent() {
   const [days, setDays] = useState(30)
   const [segment, setSegment] = useState('all')
 
@@ -310,5 +311,13 @@ export default function AdminProduto() {
         </AdminPanel>
       </div>
     </div>
+  )
+}
+
+export default function AdminProduto() {
+  return (
+    <AdminCapabilityGate capability="intel.view">
+      <AdminProdutoContent />
+    </AdminCapabilityGate>
   )
 }

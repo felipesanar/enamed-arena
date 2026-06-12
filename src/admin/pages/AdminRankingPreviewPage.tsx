@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useMemo } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { EmptyState } from '@/components/EmptyState'
@@ -86,7 +87,7 @@ export function RankingPreviewContent() {
   )
 }
 
-export default function AdminRankingPreviewPage() {
+function AdminRankingPreviewPageContent() {
   return (
     <>
       <PageHeader
@@ -96,5 +97,13 @@ export default function AdminRankingPreviewPage() {
       />
       <RankingPreviewContent />
     </>
+  )
+}
+
+export default function AdminRankingPreviewPage() {
+  return (
+    <AdminCapabilityGate capability="previews.view">
+      <AdminRankingPreviewPageContent />
+    </AdminCapabilityGate>
   )
 }

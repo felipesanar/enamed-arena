@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 // src/admin/pages/AdminDashboard.tsx
 import { Link } from 'react-router-dom'
 import { useAdminPeriod } from '@/admin/contexts/AdminPeriodContext'
@@ -33,7 +34,7 @@ function formatPct(n: number): string {
   return `${n.toFixed(1)}%`
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const { period, setPeriod } = useAdminPeriod()
 
   const kpis       = useAdminDashboardKpis(period)
@@ -208,5 +209,13 @@ export default function AdminDashboard() {
       </section>
 
     </div>
+  )
+}
+
+export default function AdminDashboard() {
+  return (
+    <AdminCapabilityGate capability="dashboard.view">
+      <AdminDashboardContent />
+    </AdminCapabilityGate>
   )
 }

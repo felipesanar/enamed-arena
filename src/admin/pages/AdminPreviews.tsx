@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -50,7 +51,7 @@ function SimuladoPicker({ onPick, cta }: { onPick: (id: string) => void; cta: st
   )
 }
 
-export default function AdminPreviews() {
+function AdminPreviewsContent() {
   const navigate = useNavigate()
 
   return (
@@ -78,5 +79,13 @@ export default function AdminPreviews() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function AdminPreviews() {
+  return (
+    <AdminCapabilityGate capability="previews.view">
+      <AdminPreviewsContent />
+    </AdminCapabilityGate>
   )
 }

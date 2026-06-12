@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminTrendChart } from '@/admin/components/ui/AdminTrendChart'
@@ -23,7 +24,7 @@ function convColor(pct: number) {
   return 'text-destructive'
 }
 
-export default function AdminAnalytics() {
+function AdminAnalyticsContent() {
   const [days, setDays] = useState(30)
 
   const { data: funnel = [], isLoading: fLoading } = useAdminAnalyticsFunnel(days)
@@ -168,5 +169,13 @@ export default function AdminAnalytics() {
         </AdminPanel>
       </div>
     </div>
+  )
+}
+
+export default function AdminAnalytics() {
+  return (
+    <AdminCapabilityGate capability="intel.view">
+      <AdminAnalyticsContent />
+    </AdminCapabilityGate>
   )
 }

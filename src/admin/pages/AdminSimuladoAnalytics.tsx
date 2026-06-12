@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useParams, Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
@@ -15,7 +16,7 @@ function discriminationLabel(index: number): { label: string; description: strin
   return { label: 'Questão confusa', description: 'Os melhores alunos erram mais que os piores', cls: 'text-destructive' }
 }
 
-export default function AdminSimuladoAnalytics() {
+function AdminSimuladoAnalyticsContent() {
   const { id } = useParams<{ id: string }>()
   const { data: stats, isLoading: statsLoading } = useAdminSimuladoDetailStats(id!)
   const { data: questions = [], isLoading: qLoading } = useAdminSimuladoQuestionStats(id!)
@@ -119,5 +120,13 @@ export default function AdminSimuladoAnalytics() {
         )}
       </section>
     </div>
+  )
+}
+
+export default function AdminSimuladoAnalytics() {
+  return (
+    <AdminCapabilityGate capability="content.manage">
+      <AdminSimuladoAnalyticsContent />
+    </AdminCapabilityGate>
   )
 }

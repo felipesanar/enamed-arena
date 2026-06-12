@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { renderWithAccess } from './test-utils'
 
 vi.mock('@/admin/hooks/useAdminAnalytics')
 vi.mock('@/admin/components/ui/AdminTrendChart', (): Record<string, unknown> => ({
@@ -41,7 +42,7 @@ const mockTtc = {
 }
 
 function renderPage() {
-  return render(<MemoryRouter><AdminAnalytics /></MemoryRouter>)
+  return renderWithAccess(<MemoryRouter><AdminAnalytics /></MemoryRouter>)
 }
 
 import AdminAnalytics from '@/admin/pages/AdminAnalytics'

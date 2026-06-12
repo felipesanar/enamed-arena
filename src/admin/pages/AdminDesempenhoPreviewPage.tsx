@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PageTransition } from '@/components/premium/PageTransition';
@@ -12,7 +13,7 @@ import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import { BarChart3, ArrowLeft } from 'lucide-react';
 
-export default function AdminDesempenhoPreviewPage() {
+function AdminDesempenhoPreviewPageContent() {
   const { id } = useParams<{ id: string }>();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
@@ -143,4 +144,12 @@ export default function AdminDesempenhoPreviewPage() {
       />
     </PageTransition>
   );
+}
+
+export default function AdminDesempenhoPreviewPage() {
+  return (
+    <AdminCapabilityGate capability="previews.view">
+      <AdminDesempenhoPreviewPageContent />
+    </AdminCapabilityGate>
+  )
 }

@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ const empty = {
   status: 'draft' as 'draft' | 'published' | 'test',
 };
 
-export default function AdminSimuladoForm() {
+function AdminSimuladoFormContent() {
   const { id } = useParams();
   const isEdit = !!id && id !== 'novo';
   const navigate = useNavigate();
@@ -164,4 +165,12 @@ export default function AdminSimuladoForm() {
       </Card>
     </div>
   );
+}
+
+export default function AdminSimuladoForm() {
+  return (
+    <AdminCapabilityGate capability="content.manage">
+      <AdminSimuladoFormContent />
+    </AdminCapabilityGate>
+  )
 }

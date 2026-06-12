@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { renderWithAccess } from './test-utils'
 
 vi.mock('@/admin/hooks/useAdminProduto')
 
@@ -33,7 +34,7 @@ const mockTopEvents = [
 ]
 
 function renderPage() {
-  return render(<MemoryRouter><AdminProduto /></MemoryRouter>)
+  return renderWithAccess(<MemoryRouter><AdminProduto /></MemoryRouter>)
 }
 
 import AdminProduto from '@/admin/pages/AdminProduto'

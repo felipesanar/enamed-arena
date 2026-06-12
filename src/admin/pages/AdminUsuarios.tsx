@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -37,7 +38,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced
 }
 
-export default function AdminUsuarios() {
+function AdminUsuariosContent() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [segment, setSegment] = useState('all')
@@ -243,5 +244,13 @@ export default function AdminUsuarios() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AdminUsuarios() {
+  return (
+    <AdminCapabilityGate capability="users.view">
+      <AdminUsuariosContent />
+    </AdminCapabilityGate>
   )
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { renderWithAccess } from './test-utils'
 
 vi.mock('@/admin/hooks/useAdminTentativas')
 vi.mock('@/admin/services/adminApi')
@@ -32,7 +33,7 @@ const mockRows = [
 ]
 
 function renderPage() {
-  return render(
+  return renderWithAccess(
     <MemoryRouter>
       <AdminTentativas />
     </MemoryRouter>

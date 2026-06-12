@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { renderWithAccess } from './test-utils'
 
 vi.mock('@/admin/hooks/useAdminUsuarios')
 import { useAdminUserList } from '@/admin/hooks/useAdminUsuarios'
@@ -19,7 +20,7 @@ const mockUsers: Record<string, unknown>[] = [
 ]
 
 function renderList() {
-  return render(
+  return renderWithAccess(
     <MemoryRouter>
       <AdminUsuarios />
     </MemoryRouter>

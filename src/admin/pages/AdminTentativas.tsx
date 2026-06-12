@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -53,7 +54,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 type ConfirmAction = { type: 'cancel' | 'delete'; attemptId: string } | null
 
-export default function AdminTentativas() {
+function AdminTentativasContent() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [simuladoId, setSimuladoId] = useState<string>('')
@@ -299,5 +300,13 @@ export default function AdminTentativas() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AdminTentativas() {
+  return (
+    <AdminCapabilityGate capability="attempts.view">
+      <AdminTentativasContent />
+    </AdminCapabilityGate>
   )
 }

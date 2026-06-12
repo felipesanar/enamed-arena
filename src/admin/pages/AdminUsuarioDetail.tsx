@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -34,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   submitted: 'Concluído', expired: 'Expirado', in_progress: 'Em andamento',
 }
 
-export default function AdminUsuarioDetail() {
+function AdminUsuarioDetailContent() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -358,5 +359,13 @@ export default function AdminUsuarioDetail() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AdminUsuarioDetail() {
+  return (
+    <AdminCapabilityGate capability="users.view">
+      <AdminUsuarioDetailContent />
+    </AdminCapabilityGate>
   )
 }

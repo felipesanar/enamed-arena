@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -49,7 +50,7 @@ function exportCampaignsCsv(rows: MarketingCampaignRow[]) {
   URL.revokeObjectURL(url)
 }
 
-export default function AdminMarketing() {
+function AdminMarketingContent() {
   const [days, setDays] = useState(30)
 
   const { data: kpis, isLoading: kLoading } = useAdminMarketingKpis(days)
@@ -199,5 +200,13 @@ export default function AdminMarketing() {
         )}
       </AdminPanel>
     </div>
+  )
+}
+
+export default function AdminMarketing() {
+  return (
+    <AdminCapabilityGate capability="intel.view">
+      <AdminMarketingContent />
+    </AdminCapabilityGate>
   )
 }

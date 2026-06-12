@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { renderWithAccess } from './test-utils'
 
 vi.mock('@/admin/hooks/useAdminUsuarios')
 vi.mock('@/admin/services/adminApi')
@@ -35,7 +36,7 @@ const mockAttempts = [
 ]
 
 function renderDetail(userId = 'u1') {
-  return render(
+  return renderWithAccess(
     <MemoryRouter initialEntries={[`/admin/usuarios/${userId}`]}>
       <Routes>
         <Route path="/admin/usuarios/:id" element={<AdminUsuarioDetail />} />

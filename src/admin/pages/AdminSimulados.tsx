@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ interface SimuladoListItem {
   execution_window_end: string;
 }
 
-export default function AdminSimulados() {
+function AdminSimuladosContent() {
   const navigate = useNavigate();
   const { data: engagementMap } = useAdminSimuladoEngagementMap();
   const [simulados, setSimulados] = useState<SimuladoListItem[]>([]);
@@ -177,4 +178,12 @@ export default function AdminSimulados() {
       )}
     </div>
   );
+}
+
+export default function AdminSimulados() {
+  return (
+    <AdminCapabilityGate capability="content.manage">
+      <AdminSimuladosContent />
+    </AdminCapabilityGate>
+  )
 }
