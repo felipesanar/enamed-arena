@@ -9,7 +9,11 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Trophy } from 'lucide-react'
 
-export default function AdminRankingPreviewPage() {
+/**
+ * Miolo do preview de ranking, sem header de página — reutilizado pela
+ * página standalone (default export) e pela aba "Ranking" em AdminPreviews.
+ */
+export function RankingPreviewContent() {
   const {
     loading,
     simuladosWithResults,
@@ -34,30 +38,17 @@ export default function AdminRankingPreviewPage() {
 
   if (!loading && simuladosWithResults.length === 0) {
     return (
-      <>
-        <PageHeader
-          title="Preview do ranking"
-          subtitle="Lista completa para validação de UI (somente administradores)."
-          badge="Admin"
-        />
-        <EmptyState
-          icon={Trophy}
-          title="Nenhum simulado com tentativas finalizadas"
-          description="Quando houver provas concluídas no projeto, elas aparecerão aqui para preview."
-        />
-      </>
+      <EmptyState
+        icon={Trophy}
+        title="Nenhum simulado com tentativas finalizadas"
+        description="Quando houver provas concluídas no projeto, elas aparecerão aqui para preview."
+      />
     )
   }
 
   return (
-    <>
-      <PageHeader
-        title="Preview do ranking"
-        subtitle="Mesma experiência do ranking público, sem depender da liberação de resultados."
-        badge="Admin"
-      />
-      <RankingView
-        loading={loading}
+    <RankingView
+      loading={loading}
       simuladosWithResults={simuladosWithResults}
       selectedSimuladoId={selectedSimuladoId}
       setSelectedSimuladoId={setSelectedSimuladoId}
@@ -91,7 +82,19 @@ export default function AdminRankingPreviewPage() {
           </div>
         </div>
       }
+    />
+  )
+}
+
+export default function AdminRankingPreviewPage() {
+  return (
+    <>
+      <PageHeader
+        title="Preview do ranking"
+        subtitle="Mesma experiência do ranking público, sem depender da liberação de resultados."
+        badge="Admin"
       />
+      <RankingPreviewContent />
     </>
   )
 }
