@@ -186,6 +186,11 @@ export default function OnboardingPage() {
       setError("Seu perfil só pode ser editado entre janelas de execução.");
       return;
     }
+    // Estado persistido pode estar stale (chaves de seleção mudaram): volta ao início.
+    if (!selectedSpecialty) {
+      setStep(0);
+      return;
+    }
     if (!canProceed()) return;
     setIsSaving(true);
     setError("");
