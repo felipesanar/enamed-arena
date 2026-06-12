@@ -289,21 +289,31 @@ export async function fetchCutoffScores(
 /**
  * Fetches all cutoff score rows, ordered by institution then specialty.
  * Used by CutoffScoreModal to display the full table.
+ * Paginated: o PostgREST limita cada resposta a 1000 linhas (max-rows) e a
+ * tabela tem mais que isso — um range único truncava o fim do alfabeto.
  */
 export async function fetchAllCutoffScores(): Promise<CutoffScoreRow[]> {
   logger.log('[rankingApi] Fetching all cutoff scores');
-  const { data, error } = await supabase
-    .from('enamed_cutoff_scores')
-    .select(
-      'institution_id, institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
-    )
-    .order('institution_name')
-    .order('specialty_name')
-    .range(0, 1999);
+  const PAGE_SIZE = 1000;
+  const all: CutoffScoreRow[] = [];
 
-  if (error) {
-    logger.error('[rankingApi] Error fetching all cutoff scores:', error);
-    throw error;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('enamed_cutoff_scores')
+      .select(
+        'institution_id, institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
+      )
+      .order('institution_name')
+      .order('specialty_name')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      logger.error('[rankingApi] Error fetching all cutoff scores:', error);
+      throw error;
+    }
+    all.push(...((data || []) as CutoffScoreRow[]));
+    if (!data || data.length < PAGE_SIZE) break;
   }
-  return (data || []) as CutoffScoreRow[];
+
+  return all;
 }
