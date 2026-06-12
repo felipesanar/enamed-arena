@@ -38,21 +38,21 @@ export function AdminDataTable<T extends Record<string, unknown>>({
 
   const shell = cn(
     'rounded-lg border overflow-hidden',
-    embedded ? 'border-border/60 bg-muted/15' : 'border-border bg-card',
+    embedded ? 'border-admin-line/60 bg-admin-raised/15' : 'border-admin-line bg-admin-surface',
   )
 
   if (isLoading) {
     return (
       <div className={cn(shell, 'animate-pulse')}>
-        <div className="grid border-b border-border px-3.5 py-2" style={gridStyle}>
+        <div className="grid border-b border-admin-line px-3.5 py-2" style={gridStyle}>
           {columns.map(c => (
-            <div key={c.key} className="h-2.5 bg-muted rounded w-2/3" />
+            <div key={c.key} className="h-2.5 bg-admin-raised rounded w-2/3" />
           ))}
         </div>
         {[1, 2].map(i => (
-          <div key={i} className="grid border-b border-border/50 px-3.5 py-2.5" style={gridStyle}>
+          <div key={i} className="grid border-b border-admin-line/50 px-3.5 py-2.5" style={gridStyle}>
             {columns.map(c => (
-              <div key={c.key} className="h-3 bg-muted/60 rounded w-4/5" />
+              <div key={c.key} className="h-3 bg-admin-raised/60 rounded w-4/5" />
             ))}
           </div>
         ))}
@@ -64,10 +64,10 @@ export function AdminDataTable<T extends Record<string, unknown>>({
     <div className={cn(shell, 'overflow-x-auto')}>
       <div className="min-w-[640px] md:min-w-0">
       {/* Header */}
-      <div className="grid border-b border-border" style={gridStyle}>
+      <div className="grid border-b border-admin-line" style={gridStyle}>
         {columns.map(c => (
           <div key={c.key} className={cn(cellPadding)}>
-            <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wide">
+            <span className="text-[9px] font-bold text-admin-muted/60 uppercase tracking-wide">
               {c.label}
             </span>
           </div>
@@ -76,7 +76,7 @@ export function AdminDataTable<T extends Record<string, unknown>>({
 
       {/* Rows */}
       {data.length === 0 ? (
-        <div className={cn(cellPadding, 'text-center text-muted-foreground', textSize)}>
+        <div className={cn(cellPadding, 'text-center text-admin-muted', textSize)}>
           {emptyMessage}
         </div>
       ) : (
@@ -84,14 +84,14 @@ export function AdminDataTable<T extends Record<string, unknown>>({
           <div
             key={i}
             className={cn(
-              'grid border-b border-border/40 last:border-0 motion-safe:transition-colors',
-              'hover:bg-muted/30 focus-within:bg-muted/20',
-              i % 2 === 0 ? 'bg-transparent' : 'bg-muted/15',
+              'grid border-b border-admin-line/40 last:border-0 motion-safe:transition-colors',
+              'hover:bg-admin-raised/30 focus-within:bg-admin-raised/20',
+              i % 2 === 0 ? 'bg-transparent' : 'bg-admin-raised/15',
             )}
             style={gridStyle}
           >
             {columns.map(c => (
-              <div key={c.key} className={cn(cellPadding, textSize, 'text-foreground')}>
+              <div key={c.key} className={cn(cellPadding, textSize, 'text-admin-text')}>
                 {c.render ? c.render(row) : String(row[c.key] ?? '')}
               </div>
             ))}
@@ -100,7 +100,7 @@ export function AdminDataTable<T extends Record<string, unknown>>({
       )}
 
       {footer && (
-        <div className={cn(cellPadding, 'border-t border-border text-muted-foreground', textSize)}>
+        <div className={cn(cellPadding, 'border-t border-admin-line text-admin-muted', textSize)}>
           {footer}
         </div>
       )}

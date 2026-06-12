@@ -21,10 +21,10 @@ export function AdminStatCard({
 }: AdminStatCardProps) {
   if (isLoading) {
     return (
-      <div className="animate-pulse rounded-xl border border-border/80 bg-card p-3 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-        <div className="h-3 bg-muted rounded w-2/3 mb-3" />
-        <div className="h-6 bg-muted rounded w-1/2 mb-2" />
-        <div className="h-2.5 bg-muted rounded w-1/3" />
+      <div className="animate-pulse rounded-xl border border-admin-line/80 bg-admin-surface p-3 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+        <div className="h-3 bg-admin-raised rounded w-2/3 mb-3" />
+        <div className="h-6 bg-admin-raised rounded w-1/2 mb-2" />
+        <div className="h-2.5 bg-admin-raised rounded w-1/3" />
       </div>
     )
   }
@@ -35,21 +35,21 @@ export function AdminStatCard({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/80 bg-card p-3',
+        'rounded-xl border border-admin-line/80 bg-admin-surface p-3',
         'shadow-sm shadow-black/[0.04] dark:shadow-black/25',
         'transition-colors duration-200 motion-reduce:transition-none',
-        accentBorder && 'border-l-[3px] border-l-primary',
+        accentBorder && 'border-l-[3px] border-l-admin-accent',
       )}
     >
-      <p className="text-micro-label text-muted-foreground uppercase tracking-wide mb-1.5">{label}</p>
-      <p className="text-2xl font-bold text-foreground leading-none mb-1.5">{value}</p>
+      <p className="text-micro-label text-admin-muted uppercase tracking-wide mb-1.5">{label}</p>
+      <p className="text-2xl font-bold text-admin-text leading-none mb-1.5">{value}</p>
       {delta !== undefined ? (
         <p
           className={cn(
             'text-caption flex items-center gap-1',
-            isPositive && 'text-success',
-            isNegative && 'text-destructive',
-            !isPositive && !isNegative && 'text-muted-foreground',
+            isPositive && 'text-admin-success',
+            isNegative && 'text-admin-destructive',
+            !isPositive && !isNegative && 'text-admin-muted',
           )}
         >
           {isPositive && (
@@ -70,7 +70,7 @@ export function AdminStatCard({
               <span>{Math.abs(delta)}</span>
             </>
           )}
-          {deltaLabel && <span className="text-muted-foreground font-normal">{deltaLabel}</span>}
+          {deltaLabel && <span className="text-admin-muted font-normal">{deltaLabel}</span>}
         </p>
       ) : null}
     </div>
