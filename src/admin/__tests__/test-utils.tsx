@@ -12,6 +12,7 @@ export const ALL_CAPABILITIES = [
   'intel.view',
   'previews.view',
   'roles.manage',
+  'audit.view',
 ]
 
 /** Renderiza com AdminAccessProvider (admin + todas as capabilities) para páginas gated. */
