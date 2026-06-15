@@ -77,7 +77,7 @@ export const PageHeaderPremium = React.forwardRef<HTMLDivElement, PageHeaderPrem
         )}
         {...props}
       >
-        <div className="flex items-start justify-between gap-6">
+        <div className="flex items-end justify-between gap-8">
           {/* Título + subtítulo */}
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1 font-bold tracking-tight text-[var(--c-ink)]">
@@ -87,39 +87,41 @@ export const PageHeaderPremium = React.forwardRef<HTMLDivElement, PageHeaderPrem
               <p className="text-body text-[var(--c-muted)]">{subtitle}</p>
             )}
           </div>
-          {/* Ação primária */}
-          {primaryAction && <div className="shrink-0">{primaryAction}</div>}
-        </div>
 
-        {/* Stats tiles em linha */}
-        {stats && stats.length > 0 && (
-          <div
-            className="flex flex-wrap gap-x-8 gap-y-3"
-            role="region"
-            aria-label="Estatísticas"
-          >
-            {stats.map((stat, i) => (
-              <div key={i} className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--c-muted)]">
-                  {stat.label}
-                </span>
-                <div className="flex items-baseline gap-0.5">
-                  <span
-                    className="text-kpi font-extrabold tabular-nums leading-none"
-                    style={{ color: stat.color ?? "var(--c-ink)" }}
-                  >
-                    {stat.value}
-                  </span>
-                  {stat.suffix && (
-                    <span className="text-base font-semibold text-[var(--c-muted)]">
-                      {stat.suffix}
+          <div className="flex shrink-0 items-end gap-8">
+            {/* Stats tiles em linha, à direita do título */}
+            {stats && stats.length > 0 && (
+              <div
+                className="flex flex-wrap items-end justify-end gap-x-8 gap-y-2"
+                role="region"
+                aria-label="Estatísticas"
+              >
+                {stats.map((stat, i) => (
+                  <div key={i} className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--c-muted)]">
+                      {stat.label}
                     </span>
-                  )}
-                </div>
+                    <div className="flex items-baseline gap-0.5">
+                      <span
+                        className="text-kpi font-extrabold tabular-nums leading-none"
+                        style={{ color: stat.color ?? "var(--c-ink)" }}
+                      >
+                        {stat.value}
+                      </span>
+                      {stat.suffix && (
+                        <span className="text-base font-semibold text-[var(--c-muted)]">
+                          {stat.suffix}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {/* Ação primária */}
+            {primaryAction && <div className="shrink-0">{primaryAction}</div>}
           </div>
-        )}
+        </div>
       </div>
     );
   },
