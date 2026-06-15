@@ -93,8 +93,9 @@ function AdminInteligenciaContent() {
   const segmentsQ = useAdminSegmentBreakdown()
 
   const insights = (insightsQ.data ?? []) as IntelInsight[]
-  const areas = (areasQ.data ?? []) as AreaPerformanceRow[]
-  const evolution = (evolutionQ.data ?? []) as ScoreEvolutionRow[]
+  // areas/evolution alimentam deps de useMemo/useEffect — memoizados para identidade estável.
+  const areas = useMemo(() => (areasQ.data ?? []) as AreaPerformanceRow[], [areasQ.data])
+  const evolution = useMemo(() => (evolutionQ.data ?? []) as ScoreEvolutionRow[], [evolutionQ.data])
   const dist = (distQ.data ?? []) as ScoreBucket[]
   const cohorts = (cohortsQ.data ?? []) as CohortRetentionRow[]
   const segments = (segmentsQ.data ?? []) as SegmentBreakdownRow[]
