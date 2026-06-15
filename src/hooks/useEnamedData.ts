@@ -84,22 +84,17 @@ export function useEnamedPrograms() {
 }
 
 /**
- * Returns institutions that offer a given specialty, grouped by UF.
+ * Returns institutions that offer a given specialty (by id), grouped by UF.
+ * specialtyId null/'' => "Ainda não sei" => sem lista.
  */
-export function useInstitutionsBySpecialty(specialtyName: string) {
-  const { data: specialties } = useEnamedSpecialties();
+export function useInstitutionsBySpecialty(specialtyId: string | null) {
   const { data: institutions } = useEnamedInstitutions();
   const { data: programs } = useEnamedPrograms();
 
   return useMemo(() => {
-    if (!specialties || !institutions || !programs) return { grouped: null, flat: null };
+    if (!specialtyId || !institutions || !programs) return { grouped: null, flat: null };
 
-    const specialty = specialties.find(
-      (s) => s.name.toUpperCase() === specialtyName.toUpperCase()
-    );
-    if (!specialty) return { grouped: null, flat: null };
-
-    const relevantPrograms = programs.filter((p) => p.specialty_id === specialty.id);
+    const relevantPrograms = programs.filter((p) => p.specialty_id === specialtyId);
     const instMap = new Map(institutions.map((i) => [i.id, i]));
 
     const flat: InstitutionWithProgram[] = relevantPrograms
@@ -110,19 +105,17 @@ export function useInstitutionsBySpecialty(specialtyName: string) {
       })
       .filter(Boolean) as InstitutionWithProgram[];
 
-    // Group by UF
     const grouped: Record<string, InstitutionWithProgram[]> = {};
     for (const inst of flat) {
       if (!grouped[inst.uf]) grouped[inst.uf] = [];
       grouped[inst.uf].push(inst);
     }
 
-    // Sort UFs alphabetically, sort institutions within each UF
     const sortedGrouped: Record<string, InstitutionWithProgram[]> = {};
     for (const uf of Object.keys(grouped).sort()) {
       sortedGrouped[uf] = grouped[uf].sort((a, b) => a.name.localeCompare(b.name));
     }
 
     return { grouped: sortedGrouped, flat };
-  }, [specialties, institutions, programs, specialtyName]);
+  }, [institutions, programs, specialtyId]);
 }

@@ -7,6 +7,7 @@ import { CutoffScoreModal } from './CutoffScoreModal';
 vi.mock('@/services/rankingApi', () => {
   const rows = [
     {
+      institution_id: 'inst-1',
       institution_name: 'Hospital das Clínicas FMUSP',
       practice_scenario: 'HC',
       specialty_name: 'Clínica Médica',
@@ -14,6 +15,15 @@ vi.mock('@/services/rankingApi', () => {
       cutoff_score_quota: 78,
     },
     {
+      institution_id: 'inst-2',
+      institution_name: 'UNIFESP',
+      practice_scenario: 'HSP',
+      specialty_name: 'Clínica Médica',
+      cutoff_score_general: 84,
+      cutoff_score_quota: 70,
+    },
+    {
+      institution_id: 'inst-3',
       institution_name: 'UFBA',
       practice_scenario: 'HC',
       specialty_name: 'Pediatria',
@@ -21,6 +31,7 @@ vi.mock('@/services/rankingApi', () => {
       cutoff_score_quota: 60,
     },
     {
+      institution_id: 'inst-4',
       institution_name: 'USP',
       practice_scenario: 'HCFMUSP',
       specialty_name: 'Cirurgia',
@@ -72,54 +83,96 @@ describe('CutoffScoreModal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('does not show hero card when userInstitution is not provided', async () => {
-    renderModal({ userSpecialty: 'Clínica Médica' });
-    // Wait for data to load (institution row appears)
+  it('does not render a hero card (verdict lives in the page panel)', async () => {
+    renderModal({
+      userSpecialty: 'Clínica Médica',
+      userInstitutions: ['Hospital das Clínicas FMUSP'],
+      currentUserScore: 95,
+    });
     await waitFor(() => expect(screen.getByText('Hospital das Clínicas FMUSP')).toBeTruthy());
-    // Hero card should not be present even after data loaded
     expect(screen.queryByText('Sua nota de corte')).toBeNull();
+    expect(screen.queryByText(/PASSARIA/)).toBeNull();
   });
 
-  it('shows hero card with cutoff numbers when userInstitution matches a row', async () => {
-    renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP' });
-    await waitFor(() => {
-      expect(screen.getByText('Sua nota de corte')).toBeTruthy();
-      expect(screen.getAllByText('91').length).toBeGreaterThan(0);
+  it('pins multiple user institutions under "Suas instituições"', async () => {
+    renderModal({
+      userSpecialty: 'Clínica Médica',
+      userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
     });
+    await waitFor(() => expect(screen.getByText('Suas instituições')).toBeTruthy());
+    expect(screen.getByText('Hospital das Clínicas FMUSP')).toBeTruthy();
+    expect(screen.getByText('UNIFESP')).toBeTruthy();
+    // Pinned rows are excluded from the scrollable list (no duplicates)
+    expect(screen.getAllByText('Hospital das Clínicas FMUSP')).toHaveLength(1);
+    expect(screen.getAllByText('UNIFESP')).toHaveLength(1);
   });
 
-  it('shows PASSARIA badge when currentUserScore >= cutoff_score_general', async () => {
-    renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP', currentUserScore: 92 });
-    await waitFor(() => expect(screen.getByText(/PASSARIA ✓/)).toBeTruthy());
-  });
-
-  it('shows NÃO PASSARIA badge when currentUserScore < cutoff_score_general', async () => {
-    renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP', currentUserScore: 85 });
-    await waitFor(() => expect(screen.getByText(/NÃO PASSARIA ✗/)).toBeTruthy());
-  });
-
-  it('shows no pass/fail badge when currentUserScore is not provided', async () => {
-    renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP' });
-    await waitFor(() => {
-      expect(screen.getByText('Sua nota de corte')).toBeTruthy();
-      expect(screen.queryByText(/PASSARIA/)).toBeNull();
-    });
-  });
-
-  it('pins user institution row with "Sua instituição" separator', async () => {
-    renderModal({ userSpecialty: 'Clínica Médica', userInstitution: 'FMUSP' });
-    await waitFor(() => expect(screen.getByText('Sua instituição')).toBeTruthy());
-  });
-
-  it('does not show "Sua instituição" separator when userInstitution is not provided', async () => {
+  it('does not show "Suas instituições" when userInstitutions is not provided', async () => {
     renderModal({ userSpecialty: 'Clínica Médica' });
-    await waitFor(() => expect(screen.queryByText('Sua instituição')).toBeNull());
+    await waitFor(() => expect(screen.getByText('Hospital das Clínicas FMUSP')).toBeTruthy());
+    expect(screen.queryByText('Suas instituições')).toBeNull();
+  });
+
+  it('shows pass badge per pinned row when currentUserScore >= cutoff', async () => {
+    renderModal({
+      userSpecialty: 'Clínica Médica',
+      userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
+      currentUserScore: 92,
+    });
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('acima do corte')).toHaveLength(2),
+    );
+    expect(screen.queryByLabelText('abaixo do corte')).toBeNull();
+  });
+
+  it('shows fail badge per pinned row when currentUserScore < cutoff', async () => {
+    renderModal({
+      userSpecialty: 'Clínica Médica',
+      userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
+      currentUserScore: 60,
+    });
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('abaixo do corte')).toHaveLength(2),
+    );
+    expect(screen.queryByLabelText('acima do corte')).toBeNull();
+  });
+
+  it('shows mixed badges when score is between the two cutoffs', async () => {
+    renderModal({
+      userSpecialty: 'Clínica Médica',
+      userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
+      currentUserScore: 85, // >= 84 (UNIFESP), < 91 (FMUSP)
+    });
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('acima do corte')).toHaveLength(1),
+    );
+    expect(screen.getAllByLabelText('abaixo do corte')).toHaveLength(1);
+  });
+
+  it('shows no pass/fail badges when currentUserScore is not provided', async () => {
+    renderModal({
+      userSpecialty: 'Clínica Médica',
+      userInstitutions: ['Hospital das Clínicas FMUSP'],
+    });
+    await waitFor(() => expect(screen.getByText('Suas instituições')).toBeTruthy());
+    expect(screen.queryByLabelText('acima do corte')).toBeNull();
+    expect(screen.queryByLabelText('abaixo do corte')).toBeNull();
   });
 
   it('auto-filters to userSpecialty on open', async () => {
     renderModal({ userSpecialty: 'Pediatria' });
     await waitFor(() => expect(screen.getByText('UFBA')).toBeTruthy());
-    // HC FMUSP is Clínica Médica — should be filtered out
+    // FMUSP is Clínica Médica — should be filtered out
     expect(screen.queryByText('Hospital das Clínicas FMUSP')).toBeNull();
+  });
+
+  it('filters rows by search text', async () => {
+    renderModal();
+    await waitFor(() => expect(screen.getByText('UFBA')).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Buscar instituição ou especialidade'), {
+      target: { value: 'cirurgia' },
+    });
+    expect(screen.getByText('USP')).toBeTruthy();
+    expect(screen.queryByText('UFBA')).toBeNull();
   });
 });

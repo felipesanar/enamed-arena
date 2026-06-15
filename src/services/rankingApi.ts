@@ -256,6 +256,7 @@ export function applyRankingFilters(
 // ─── Cutoff scores ────────────────────────────────────────────────────────────
 
 export interface CutoffScoreRow {
+  institution_id: string;
   institution_name: string;
   practice_scenario: string;
   specialty_name: string;
@@ -264,48 +265,55 @@ export interface CutoffScoreRow {
 }
 
 /**
- * Fetches the cutoff score for a specific specialty + institution combination.
- * Uses ilike for case-insensitive matching; institution uses %partial% match.
- * Returns null when no match found or on error.
+ * Notas de corte das instituições-alvo do usuário, por join exato de ID
+ * (RPC get_cutoff_scores). Instituições sem corte não retornam linha.
  */
-export async function fetchCutoffScore(
-  specialty: string,
-  institution: string,
-): Promise<CutoffScoreRow | null> {
-  logger.log('[rankingApi] Fetching cutoff score (normalized match)');
+export async function fetchCutoffScores(
+  specialtyId: string,
+  institutionIds: string[],
+): Promise<CutoffScoreRow[]> {
+  logger.log('[rankingApi] Fetching cutoff scores by id');
 
-  const { data, error } = await (supabase.rpc as any)('match_cutoff_score', {
-    p_specialty: specialty.trim(),
-    p_institution: institution.trim(),
+  const { data, error } = await (supabase.rpc as any)('get_cutoff_scores', {
+    p_specialty_id: specialtyId,
+    p_institution_ids: institutionIds,
   });
 
   if (error) {
-    logger.error('[rankingApi] Error fetching cutoff score:', error);
+    logger.error('[rankingApi] Error fetching cutoff scores:', error);
     throw error;
   }
-
-  const row = Array.isArray(data) ? data[0] : data;
-  return (row as CutoffScoreRow) ?? null;
+  return (data || []) as CutoffScoreRow[];
 }
 
 /**
  * Fetches all cutoff score rows, ordered by institution then specialty.
  * Used by CutoffScoreModal to display the full table.
+ * Paginated: o PostgREST limita cada resposta a 1000 linhas (max-rows) e a
+ * tabela tem mais que isso — um range único truncava o fim do alfabeto.
  */
 export async function fetchAllCutoffScores(): Promise<CutoffScoreRow[]> {
   logger.log('[rankingApi] Fetching all cutoff scores');
-  const { data, error } = await supabase
-    .from('enamed_cutoff_scores')
-    .select(
-      'institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
-    )
-    .order('institution_name')
-    .order('specialty_name')
-    .range(0, 1999);
+  const PAGE_SIZE = 1000;
+  const all: CutoffScoreRow[] = [];
 
-  if (error) {
-    logger.error('[rankingApi] Error fetching all cutoff scores:', error);
-    throw error;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('enamed_cutoff_scores')
+      .select(
+        'institution_id, institution_name, practice_scenario, specialty_name, cutoff_score_general, cutoff_score_quota',
+      )
+      .order('institution_name')
+      .order('specialty_name')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      logger.error('[rankingApi] Error fetching all cutoff scores:', error);
+      throw error;
+    }
+    all.push(...((data || []) as CutoffScoreRow[]));
+    if (!data || data.length < PAGE_SIZE) break;
   }
-  return (data || []) as CutoffScoreRow[];
+
+  return all;
 }

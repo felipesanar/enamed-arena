@@ -13,10 +13,25 @@ export interface UserProfile {
 export interface OnboardingProfile {
   id?: string;
   userId: string;
+  /** Nome canônico da especialidade ('' quando "Ainda não sei"). */
   specialty: string;
+  specialtyId: string | null;
+  /** Nomes canônicos, mesma ordem de targetInstitutionIds. */
   targetInstitutions: string[];
+  targetInstitutionIds: string[];
   status: OnboardingStatus;
   completedAt?: string;
+}
+
+/** Seleção de especialidade na UI — id null = "Ainda não sei". */
+export interface SpecialtySelection {
+  id: string | null;
+  name: string;
+}
+
+export interface InstitutionSelection {
+  id: string;
+  name: string;
 }
 
 export interface OnboardingState {

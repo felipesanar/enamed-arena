@@ -17,7 +17,7 @@ interface UserContextValue {
   onboardingEditReason: string | null;
   onboardingNextEditableAt: string | null;
 
-  saveOnboarding: (data: { specialty: string; targetInstitutions: string[] }) => Promise<void>;
+  saveOnboarding: (data: { specialtyId: string | null; targetInstitutionIds: string[] }) => Promise<void>;
   updateProfile: (
     data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>,
   ) => Promise<{ error: string | null }>;
@@ -104,8 +104,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const onb: OnboardingProfile = {
           id: o.id,
           userId: o.user_id,
-          specialty: o.specialty,
+          specialty: o.specialty ?? '',
+          specialtyId: o.specialty_id ?? null,
           targetInstitutions: o.target_institutions || [],
+          targetInstitutionIds: o.target_institution_ids || [],
           status: o.status as OnboardingStatus,
           completedAt: o.completed_at || undefined,
         };
@@ -167,11 +169,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const isOnboardingComplete = onboarding?.status === 'completed';
 
-  const saveOnboarding = useCallback(async (data: { specialty: string; targetInstitutions: string[] }) => {
+  const saveOnboarding = useCallback(async (data: { specialtyId: string | null; targetInstitutionIds: string[] }) => {
     if (!authUser) throw new Error('Not authenticated');
     const { data: savedRow, error } = await supabaseRpc('save_onboarding_guarded', {
-      p_specialty: data.specialty,
-      p_target_institutions: data.targetInstitutions,
+      p_specialty_id: data.specialtyId,
+      p_target_institution_ids: data.targetInstitutionIds,
     });
     if (error) throw error;
 
@@ -179,8 +181,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const onboardingData: OnboardingProfile = {
       id: (row as any)?.id,
       userId: (row as any)?.user_id ?? authUser.id,
-      specialty: (row as any)?.specialty ?? data.specialty,
-      targetInstitutions: (row as any)?.target_institutions ?? data.targetInstitutions,
+      specialty: (row as any)?.specialty ?? '',
+      specialtyId: (row as any)?.specialty_id ?? data.specialtyId,
+      targetInstitutions: (row as any)?.target_institutions ?? [],
+      targetInstitutionIds: (row as any)?.target_institution_ids ?? data.targetInstitutionIds,
       status: ((row as any)?.status as OnboardingStatus) ?? 'completed',
       completedAt: (row as any)?.completed_at ?? undefined,
     };

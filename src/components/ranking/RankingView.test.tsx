@@ -8,8 +8,8 @@ import { RANKING_COMPARISON_DEFAULT } from '@/services/rankingApi';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
-vi.mock('@/hooks/useCutoffScore', () => ({
-  useCutoffScore: vi.fn(() => ({ loading: false, cutoff: null })),
+vi.mock('@/hooks/useCutoffScores', () => ({
+  useCutoffScores: vi.fn(() => ({ loading: false, cutoffs: [] })),
 }));
 vi.mock('./CutoffScoreModal', () => ({
   CutoffScoreModal: (): null => null,
@@ -49,6 +49,8 @@ function renderView(overrides: Partial<Parameters<typeof RankingView>[0]> = {}) 
     setSegmentFilter: vi.fn(),
     userSpecialty: '',
     userInstitutions: [],
+    userSpecialtyId: null,
+    userInstitutionIds: [],
     allowedSegments: ['all' as const],
     trackSource: 'page' as const,
     participantDisplay: 'public' as const,
@@ -110,19 +112,38 @@ describe('RankingView', () => {
     expect(screen.getByText('Sem participantes')).toBeTruthy();
   });
 
-  it('does not show hero card or KPI cards when currentUser is undefined', () => {
+  it('does not show stats row when currentUser is undefined', () => {
     renderView({ currentUser: undefined });
-    expect(screen.queryByLabelText(/Posição \d+ de \d+/)).toBeNull();
+    expect(screen.queryByText('Percentil')).toBeNull();
   });
 
-  it('shows hero card when currentUser exists', () => {
+  it('shows stats row when currentUser exists', () => {
     const user = makeParticipant(5, true);
     const participants = Array.from({ length: 20 }, (_, i) =>
       makeParticipant(i + 1, i === 4),
     );
     renderView({ currentUser: user, filteredParticipants: participants });
-    // Hero shows position label
+    expect(screen.getByText('Percentil')).toBeTruthy();
     expect(screen.getByText('#5')).toBeTruthy();
+  });
+
+  it('shows approval panel in no_profile state when profile is incomplete', () => {
+    renderView({ userSpecialtyId: null, userInstitutionIds: [] });
+    expect(screen.getByText('Você passaria?')).toBeTruthy();
+    expect(screen.getByText('Completar perfil')).toBeTruthy();
+  });
+
+  it('shows approval panel comparison when profile is set', () => {
+    renderView({
+      userSpecialty: 'Pediatria',
+      userInstitutions: ['Hospital X'],
+      userSpecialtyId: 'spec-1',
+      userInstitutionIds: ['inst-1'],
+    });
+    expect(screen.getByText('Sua nota vs. notas de corte')).toBeTruthy();
+    // cutoffs mock is empty → institution listed as unavailable
+    expect(screen.getByText('Hospital X')).toBeTruthy();
+    expect(screen.getByText('corte indisponível')).toBeTruthy();
   });
 
   it('shows low confidence banner when fewer than 30 participants', () => {
@@ -134,6 +155,6 @@ describe('RankingView', () => {
     renderView({
       filteredParticipants: Array.from({ length: 30 }, (_, i) => makeParticipant(i + 1)),
     });
-    expect(screen.queryByText('Ranking com poucos participantes')).toBeNull();
+    expect(screen.queryByText('Poucos candidatos nesse recorte')).toBeNull();
   });
 });

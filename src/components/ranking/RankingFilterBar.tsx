@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Stethoscope, Building } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { SegmentFilter, RankingComparisonSelection } from '@/services/rankingApi';
 
 type SegmentOption = { key: SegmentFilter; label: string; icon: React.ElementType };
@@ -11,19 +12,16 @@ interface Props {
   userSpecialty: string;
   userInstitutions: string[];
   visibleSegmentOptions: SegmentOption[];
-  shimmeringPillId: string | null;
-  surfaceBg: string;
-  surfaceBorder: string;
-  borderColor: string;
-  filterLabel: string;
-  text2: string;
-  getPillStyle: (isActive: boolean, isPro?: boolean) => React.CSSProperties;
-  triggerShimmer: (id: string) => void;
-  handleSelectAllComparison: () => void;
-  handleToggleSpecialtyComparison: () => void;
-  handleToggleInstitutionComparison: () => void;
-  handleSegmentFilterChange: (newValue: SegmentFilter) => void;
+  onSelectAllComparison: () => void;
+  onToggleSpecialtyComparison: () => void;
+  onToggleInstitutionComparison: () => void;
+  onSegmentFilterChange: (f: SegmentFilter) => void;
 }
+
+const pillBase =
+  'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-caption font-medium transition-colors';
+const pillOn = 'bg-primary text-white shadow-sm';
+const pillOff = 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground border border-border';
 
 export function RankingFilterBar({
   rankingComparison,
@@ -31,134 +29,69 @@ export function RankingFilterBar({
   userSpecialty,
   userInstitutions,
   visibleSegmentOptions,
-  shimmeringPillId,
-  surfaceBg,
-  surfaceBorder,
-  borderColor,
-  filterLabel,
-  text2,
-  getPillStyle,
-  triggerShimmer,
-  handleSelectAllComparison,
-  handleToggleSpecialtyComparison,
-  handleToggleInstitutionComparison,
-  handleSegmentFilterChange,
+  onSelectAllComparison,
+  onToggleSpecialtyComparison,
+  onToggleInstitutionComparison,
+  onSegmentFilterChange,
 }: Props) {
-  return (
-    <div
-      className="px-5 py-4 mb-4 rounded-[16px]"
-      style={{ background: surfaceBg, border: surfaceBorder }}
-    >
-      <div className="flex flex-wrap items-center gap-2.5">
+  const allActive = !rankingComparison.bySpecialty && !rankingComparison.byInstitution;
 
-        {/* ─ Comparar group ─ */}
-        <span
-          className="shrink-0 whitespace-nowrap"
-          style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: filterLabel }}
-        >
+  return (
+    <div className="rounded-2xl border border-border bg-card px-5 py-4 mb-4">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="text-micro-label uppercase tracking-wider font-bold text-muted-foreground shrink-0">
           Comparar
         </span>
 
-        {/* Todos comparison pill */}
         <motion.button
           type="button"
-          onClick={() => {
-            if (rankingComparison.bySpecialty || rankingComparison.byInstitution) triggerShimmer('comp-all');
-            handleSelectAllComparison();
-          }}
-          aria-pressed={!rankingComparison.bySpecialty && !rankingComparison.byInstitution}
+          onClick={onSelectAllComparison}
+          aria-pressed={allActive}
           aria-label="Todos os candidatos"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
-          style={getPillStyle(!rankingComparison.bySpecialty && !rankingComparison.byInstitution)}
-          data-shimmer={shimmeringPillId === 'comp-all' ? '1' : undefined}
-          whileHover={{ y: -1 }}
+          className={cn(pillBase, allActive ? pillOn : pillOff)}
           whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
         >
-          <motion.span
-            className="inline-flex shrink-0"
-            whileHover={{ scale: 1.15 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          >
-            <Users className="h-4 w-4" aria-hidden />
-          </motion.span>
+          <Users className="h-4 w-4" aria-hidden />
           Todos
         </motion.button>
 
-        {/* Specialty pill — only when user has a configured specialty */}
         {userSpecialty && (
           <motion.button
             type="button"
-            onClick={() => {
-              if (!rankingComparison.bySpecialty) triggerShimmer('comp-specialty');
-              handleToggleSpecialtyComparison();
-            }}
+            onClick={onToggleSpecialtyComparison}
             aria-pressed={rankingComparison.bySpecialty}
             aria-label={`Filtrar por especialidade: ${userSpecialty}`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
-            style={getPillStyle(rankingComparison.bySpecialty)}
-            data-shimmer={shimmeringPillId === 'comp-specialty' ? '1' : undefined}
-            whileHover={{ y: -1 }}
+            className={cn(pillBase, rankingComparison.bySpecialty ? pillOn : pillOff)}
             whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           >
-            <motion.span
-              className="inline-flex shrink-0"
-              whileHover={{ scale: 1.15 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            >
-              <Stethoscope className="h-4 w-4" aria-hidden />
-            </motion.span>
+            <Stethoscope className="h-4 w-4" aria-hidden />
             {userSpecialty}
           </motion.button>
         )}
 
-        {/* Institution pill — slides in when specialty filter is active */}
         <AnimatePresence>
           {rankingComparison.bySpecialty && userInstitutions.length > 0 && (
             <motion.button
               key="institution-pill"
               type="button"
-              onClick={() => {
-                if (!rankingComparison.byInstitution) triggerShimmer('comp-institution');
-                handleToggleInstitutionComparison();
-              }}
+              onClick={onToggleInstitutionComparison}
               aria-pressed={rankingComparison.byInstitution}
               aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium max-w-[14rem]"
-              style={getPillStyle(rankingComparison.byInstitution)}
-              data-shimmer={shimmeringPillId === 'comp-institution' ? '1' : undefined}
-              initial={{ opacity: 0, x: -8, scale: 0.88 }}
+              className={cn(pillBase, 'max-w-[14rem]', rankingComparison.byInstitution ? pillOn : pillOff)}
+              initial={{ opacity: 0, x: -8, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -8, scale: 0.88 }}
-              whileHover={{ y: -1 }}
+              exit={{ opacity: 0, x: -8, scale: 0.9 }}
               whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 18 }}
             >
-              <motion.span
-                className="inline-flex shrink-0"
-                whileHover={{ scale: 1.15 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              >
-                <Building className="h-4 w-4" aria-hidden />
-              </motion.span>
+              <Building className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">{userInstitutions[0]}</span>
             </motion.button>
           )}
         </AnimatePresence>
 
-        {/* Vertical divider */}
-        <div
-          className="shrink-0"
-          style={{ width: '1px', height: '26px', background: borderColor, borderRadius: '1px' }}
-          aria-hidden
-        />
+        <div className="h-6 w-px bg-border shrink-0" aria-hidden />
 
-        {/* ─ Segmento group ─ */}
-        <span
-          className="shrink-0 whitespace-nowrap"
-          style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: filterLabel }}
-        >
+        <span className="text-micro-label uppercase tracking-wider font-bold text-muted-foreground shrink-0">
           Segmento
         </span>
 
@@ -166,52 +99,26 @@ export function RankingFilterBar({
           <motion.button
             key={f.key}
             type="button"
-            onClick={() => {
-              if (segmentFilter !== f.key) triggerShimmer(`seg-${f.key}`);
-              handleSegmentFilterChange(f.key);
-            }}
+            onClick={() => onSegmentFilterChange(f.key)}
             aria-pressed={segmentFilter === f.key}
             aria-label={f.label}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[0.82rem] font-medium"
-            style={getPillStyle(segmentFilter === f.key, f.key === 'pro' && segmentFilter !== f.key)}
-            data-shimmer={shimmeringPillId === `seg-${f.key}` ? '1' : undefined}
-            whileHover={{ y: -1 }}
+            className={cn(pillBase, segmentFilter === f.key ? pillOn : pillOff)}
             whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           >
-            <motion.span
-              className="inline-flex shrink-0"
-              whileHover={{ scale: 1.15 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            >
-              <f.icon className="h-4 w-4" aria-hidden />
-            </motion.span>
+            <f.icon className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">{f.label}</span>
           </motion.button>
         ))}
-
       </div>
 
-      {/* Active filter summary */}
       {rankingComparison.bySpecialty && (
-        <p
-          className="text-xs mt-2.5 leading-snug"
-          style={{ color: filterLabel }}
-        >
-          <span style={{ color: '#7a1a32', marginRight: '4px' }}>●</span>
+        <p className="text-caption text-muted-foreground mt-2.5 leading-snug">
+          <span className="text-primary mr-1">●</span>
+          Comparando com candidatos de <span className="text-foreground">{userSpecialty}</span>
           {rankingComparison.byInstitution && userInstitutions[0] ? (
-            <>
-              Comparando com candidatos de{' '}
-              <span style={{ color: text2 }}>{userSpecialty}</span>
-              {' · '}
-              <span style={{ color: text2 }}>{userInstitutions[0]}</span>
-            </>
+            <> · <span className="text-foreground">{userInstitutions[0]}</span></>
           ) : (
-            <>
-              Comparando com candidatos de{' '}
-              <span style={{ color: text2 }}>{userSpecialty}</span>
-              <span style={{ color: filterLabel }}> (todas as instituições)</span>
-            </>
+            <span> (todas as instituições)</span>
           )}
         </p>
       )}
