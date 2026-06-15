@@ -99,10 +99,10 @@ export function StudyPanel({ dueCount, cards, onStart }: StudyPanelProps) {
         </div>
       )}
 
-      {/* Modos de treino */}
+      {/* Modos de estudo */}
       <div className="mb-2 mt-1 flex items-center gap-2">
         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--c-muted-2)]">
-          Modos de treino
+          Modos de estudo
         </span>
         <span className="h-px flex-1 bg-[var(--c-border)]" aria-hidden />
       </div>
@@ -130,11 +130,13 @@ export function StudyPanel({ dueCount, cards, onStart }: StudyPanelProps) {
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]',
               )}
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--c-surface)] shadow-[var(--c-shadow-sm)] transition-colors group-hover:bg-[var(--c-surface-2)]">
-                <Icon className="h-4 w-4 text-[var(--c-wine-500)]" aria-hidden />
-              </span>
-              <span className="text-[12.5px] font-bold leading-tight text-[var(--c-ink)]">
-                {config.label}
+              <span className="flex w-full items-center gap-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--c-surface)] shadow-[var(--c-shadow-sm)] transition-colors group-hover:bg-[var(--c-surface-2)]">
+                  <Icon className="h-4 w-4 text-[var(--c-wine-500)]" aria-hidden />
+                </span>
+                <span className="min-w-0 text-[12.5px] font-bold leading-tight text-[var(--c-ink)]">
+                  {config.label}
+                </span>
               </span>
               <span className="line-clamp-2 text-[10.5px] leading-snug text-[var(--c-muted)]">
                 {config.description}
