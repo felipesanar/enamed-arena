@@ -2,6 +2,10 @@
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,17 +16,26 @@ import {
 import { cn } from '@/lib/utils'
 import { useAdminChartTheme } from '@/admin/hooks/useAdminChartTheme'
 
-interface BarSeries {
+interface ChartSeries {
   key: string
   color: string
+  label?: string
+}
+
+interface BarSeries extends ChartSeries {
   label: string
 }
+
+type ChartType = 'bar' | 'line' | 'area'
 
 interface AdminTrendChartProps {
   title: string
   data: any[]
   xKey: string
-  bars: BarSeries[]
+  type?: ChartType
+  bars?: BarSeries[]
+  lines?: ChartSeries[]
+  areas?: ChartSeries[]
   height?: number
   isLoading?: boolean
   /** Dentro de `AdminPanel` — remove cartão duplicado */
@@ -33,7 +46,10 @@ export function AdminTrendChart({
   title,
   data,
   xKey,
-  bars,
+  type = 'bar',
+  bars = [],
+  lines = [],
+  areas = [],
   height = 120,
   isLoading,
   embedded,
@@ -59,31 +75,71 @@ export function AdminTrendChart({
     embedded ? 'border-admin-line/60 bg-admin-raised/15' : 'border-admin-line bg-admin-surface',
   )
 
+  // Séries ativas conforme o tipo (para Legend / formatter compartilhados)
+  const series: ChartSeries[] = type === 'line' ? lines : type === 'area' ? areas : bars
+  const seriesLabel = (value: string) => series.find(s => s.key === value)?.label ?? value
+
+  const sharedAxes = (
+    <>
+      <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} vertical={false} />
+      <XAxis
+        dataKey={xKey}
+        tick={chart.axisTick}
+        axisLine={false}
+        tickLine={false}
+        tickFormatter={(v: string) => (typeof v === 'string' && v.length > 5 ? v.slice(5) : v)}
+      />
+      <YAxis tick={chart.axisTick} axisLine={false} tickLine={false} />
+      <Tooltip contentStyle={chart.tooltip} cursor={{ fill: chart.cursorFill }} />
+      {series.length > 1 && (
+        <Legend wrapperStyle={chart.legend.wrapperStyle} formatter={seriesLabel} />
+      )}
+    </>
+  )
+
+  const margin = { top: 4, right: 4, left: -20, bottom: 0 }
+
   return (
     <div key={chartKey} className={shell}>
       <p className="text-[11px] font-semibold text-admin-text mb-3">{title}</p>
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} vertical={false} />
-          <XAxis
-            dataKey={xKey}
-            tick={chart.axisTick}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v: string) => v.slice(5)}
-          />
-          <YAxis tick={chart.axisTick} axisLine={false} tickLine={false} />
-          <Tooltip contentStyle={chart.tooltip} cursor={{ fill: chart.cursorFill }} />
-          {bars.length > 1 && (
-            <Legend
-              wrapperStyle={chart.legend.wrapperStyle}
-              formatter={(value) => bars.find(b => b.key === value)?.label ?? value}
-            />
-          )}
-          {bars.map(b => (
-            <Bar key={b.key} dataKey={b.key} fill={b.color} radius={[2, 2, 0, 0]} maxBarSize={32} />
-          ))}
-        </BarChart>
+        {type === 'line' ? (
+          <LineChart data={data} margin={margin}>
+            {sharedAxes}
+            {lines.map(l => (
+              <Line
+                key={l.key}
+                type="monotone"
+                dataKey={l.key}
+                stroke={l.color}
+                strokeWidth={2}
+                dot={false}
+              />
+            ))}
+          </LineChart>
+        ) : type === 'area' ? (
+          <AreaChart data={data} margin={margin}>
+            {sharedAxes}
+            {areas.map(a => (
+              <Area
+                key={a.key}
+                type="monotone"
+                dataKey={a.key}
+                stroke={a.color}
+                fill={a.color}
+                fillOpacity={0.15}
+                strokeWidth={2}
+              />
+            ))}
+          </AreaChart>
+        ) : (
+          <BarChart data={data} margin={margin}>
+            {sharedAxes}
+            {bars.map(b => (
+              <Bar key={b.key} dataKey={b.key} fill={b.color} radius={[2, 2, 0, 0]} maxBarSize={32} />
+            ))}
+          </BarChart>
+        )}
       </ResponsiveContainer>
     </div>
   )
