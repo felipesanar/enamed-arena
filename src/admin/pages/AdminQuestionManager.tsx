@@ -13,6 +13,7 @@ import {
   useDeleteQuestion,
 } from '@/admin/hooks/useAdminQuestionEditor'
 import type { AdminQuestionFull } from '@/admin/types'
+import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,15 @@ function QuestionEditDialog({ question, simuladoId, onClose }: QuestionEditDialo
   const saving = upd.isPending || updOpt.isPending || setCorrect.isPending
 
   const handleSave = async () => {
+    // Guarda de qualidade: não permitir enunciado ou alternativa em branco.
+    if (!text.trim()) {
+      toast({ title: 'O enunciado não pode ficar vazio.', variant: 'destructive' })
+      return
+    }
+    if (sortedOptions.some((opt) => !(optionTexts[opt.id] ?? '').trim())) {
+      toast({ title: 'Nenhuma alternativa pode ficar em branco.', variant: 'destructive' })
+      return
+    }
     try {
       await upd.mutateAsync({
         id: question.id,
