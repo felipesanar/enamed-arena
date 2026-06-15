@@ -474,3 +474,109 @@ warning, `participation_drop` 57.5% warning. Não disparam: `score_decline` (mé
 `integrity_spike` (3.3%). Lógica validada via clone temporário sem guard (criado e dropado).
 
 Tipos TS regenerados (`src/integrations/supabase/types.ts`); build verde.
+
+---
+
+## 2026-06-15 — `admin_audit_infra`
+
+Infra de auditoria da central de gestão (Fase 3, Task G1). Cria a tabela `admin_audit_log`
+com RLS (SELECT gated por `has_capability('audit.view')`), seed da capability `audit.view`
+para o role `admin`, a RPC de escrita `admin_log_action`, a trigger fn `tg_admin_audit`
+ligada a `simulados`/`questions`/`question_options` (after insert/update/delete), e a RPC
+de leitura paginada `admin_list_audit` (guard `admin_require('audit.view')`).
+
+A trigger fn é no-op quando `auth.uid()` é null (não polui em escritas de sistema/seed) e
+delega o INSERT para `admin_log_action` (SECURITY DEFINER) — o summary humaniza cada entidade
+(`Simulado: <title>`, `Questão nº <question_number>`, `Alternativa <label>`). As RPCs são
+`SECURITY DEFINER SET search_path='public'`; `admin_log_action` é `VOLATILE`, `admin_list_audit`
+é `STABLE`. `revoke execute from anon, public; grant execute to authenticated, service_role`
+nas duas RPCs. A trigger fn não recebe grant/revoke (roda no contexto da tabela).
+
+```sql
+create table if not exists public.admin_audit_log (
+  id uuid primary key default gen_random_uuid(),
+  actor_id uuid references auth.users(id) on delete set null,
+  actor_email text,
+  action text not null,
+  entity_type text not null,
+  entity_id uuid,
+  summary text,
+  metadata jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_audit_created on public.admin_audit_log (created_at desc);
+create index if not exists idx_audit_entity on public.admin_audit_log (entity_type, entity_id);
+create index if not exists idx_audit_actor on public.admin_audit_log (actor_id);
+
+alter table public.admin_audit_log enable row level security;
+create policy "Auditores podem ler audit log" on public.admin_audit_log
+  for select using (public.has_capability('audit.view'));
+
+insert into role_capabilities (role, capability) values ('admin','audit.view') on conflict do nothing;
+
+create or replace function public.admin_log_action(
+  p_action text, p_entity_type text, p_entity_id uuid,
+  p_summary text default null, p_metadata jsonb default '{}'
+) returns void
+language plpgsql volatile security definer set search_path to 'public'
+as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null then return; end if;
+  insert into public.admin_audit_log (actor_id, actor_email, action, entity_type, entity_id, summary, metadata)
+  values (v_uid, (select email from auth.users where id = v_uid), p_action, p_entity_type, p_entity_id, p_summary, coalesce(p_metadata,'{}'::jsonb));
+end; $$;
+
+create or replace function public.tg_admin_audit() returns trigger
+language plpgsql security definer set search_path to 'public'
+as $$
+declare v_summary text; v_id uuid;
+begin
+  if auth.uid() is null then return coalesce(NEW, OLD); end if;
+  v_id := coalesce(NEW.id, OLD.id);
+  v_summary := case TG_TABLE_NAME
+    when 'simulados' then 'Simulado: ' || coalesce(NEW.title, OLD.title)
+    when 'questions' then 'Questão nº ' || coalesce(NEW.question_number, OLD.question_number)::text
+    when 'question_options' then 'Alternativa ' || coalesce(NEW.label, OLD.label)
+    else TG_TABLE_NAME end;
+  perform public.admin_log_action(TG_OP, TG_TABLE_NAME, v_id, v_summary, jsonb_build_object('op', TG_OP));
+  return coalesce(NEW, OLD);
+end; $$;
+
+create trigger trg_audit_simulados after insert or update or delete on public.simulados for each row execute function public.tg_admin_audit();
+create trigger trg_audit_questions after insert or update or delete on public.questions for each row execute function public.tg_admin_audit();
+create trigger trg_audit_question_options after insert or update or delete on public.question_options for each row execute function public.tg_admin_audit();
+
+create or replace function public.admin_list_audit(
+  p_days int default 30, p_action text default 'all', p_entity_type text default 'all',
+  p_search text default '', p_limit int default 50, p_offset int default 0
+) returns table(id uuid, actor_email text, action text, entity_type text, entity_id uuid, summary text, metadata jsonb, created_at timestamptz, total_count bigint)
+language plpgsql stable security definer set search_path to 'public'
+as $$
+begin
+  perform public.admin_require('audit.view');
+  return query
+  select a.id, a.actor_email, a.action, a.entity_type, a.entity_id, a.summary, a.metadata, a.created_at, count(*) over () as total_count
+  from public.admin_audit_log a
+  where a.created_at >= now() - (p_days || ' days')::interval
+    and (p_action = 'all' or a.action = p_action)
+    and (p_entity_type = 'all' or a.entity_type = p_entity_type)
+    and (p_search = '' or a.summary ilike '%'||p_search||'%' or coalesce(a.actor_email,'') ilike '%'||p_search||'%')
+  order by a.created_at desc
+  limit p_limit offset p_offset;
+end; $$;
+
+revoke execute on function public.admin_log_action(text,text,uuid,text,jsonb) from anon, public;
+grant execute on function public.admin_log_action(text,text,uuid,text,jsonb) to authenticated, service_role;
+revoke execute on function public.admin_list_audit(int,text,text,text,int,int) from anon, public;
+grant execute on function public.admin_list_audit(int,text,text,text,int,int) to authenticated, service_role;
+```
+
+**Verificação de schema (pré-migration):** confirmado que `simulados.title`,
+`questions.question_number` e `question_options.label` existem — summary aplicado sem ajuste.
+
+**Smoke (2026-06-15):** `rowsecurity=true`; policy `Auditores podem ler audit log` (SELECT);
+`role_capabilities` admin/audit.view = 1; 3 triggers `trg_audit_*`; as 3 funções `prosecdef=true`;
+`admin_log_action`/`admin_list_audit` com `anon execute=false`, `authenticated execute=true`;
+`tg_admin_audit` mantém execute público (trigger fn — correto). Nenhum write em produção feito
+no smoke (apenas inspeção estrutural).
