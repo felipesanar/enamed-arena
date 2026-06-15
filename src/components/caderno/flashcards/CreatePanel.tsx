@@ -28,7 +28,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
       onClick={onCreate}
       disabled={createDisabled}
       className={cn(
-        'group flex w-full items-center gap-3 rounded-[var(--c-radius-control)] border p-4 text-left',
+        'group flex w-full items-center gap-3 rounded-[var(--c-radius-control)] border p-3.5 text-left',
         'border-[color-mix(in_srgb,var(--c-wine-500)_22%,transparent)] bg-[var(--c-surface)]',
         'transition-all duration-150',
         createDisabled
@@ -67,7 +67,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
           onClick={onGenerate}
           aria-label="Gerar vários flashcards com Prof. San (IA)"
           className={cn(
-            'group relative flex flex-1 flex-col overflow-hidden rounded-[var(--c-radius-card)] border p-4 text-left',
+            'group relative flex flex-1 flex-col overflow-hidden rounded-[var(--c-radius-card)] border p-3.5 text-left',
             'border-amber-400/40 bg-gradient-to-br from-amber-50 via-[var(--c-surface)] to-[var(--c-surface)]',
             'dark:from-amber-500/[0.12] dark:via-[var(--c-surface)] dark:to-[var(--c-surface)]',
             'transition-all duration-200',
@@ -108,7 +108,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
           </div>
 
           {/* chips de origem */}
-          <div className="relative mt-3 flex flex-wrap items-center gap-1.5">
+          <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] font-semibold text-[var(--c-muted-2)]">a partir de</span>
             {GENERATE_SOURCES.map((src) => (
               <span
@@ -123,7 +123,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
           {/* CTA */}
           <span
             className={cn(
-              'relative mt-3.5 flex items-center justify-center gap-2 self-stretch rounded-[var(--c-radius-control)] px-4 py-2.5',
+              'relative mt-3 flex items-center justify-center gap-2 self-stretch rounded-[var(--c-radius-control)] px-4 py-2',
               'bg-gradient-to-r from-amber-400 to-amber-500 text-[13px] font-bold text-white',
               'shadow-[0_8px_20px_-8px_rgba(245,158,11,0.65)] transition-all duration-200',
               'group-hover:shadow-[0_12px_26px_-8px_rgba(245,158,11,0.75)]',
