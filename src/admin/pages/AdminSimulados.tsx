@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Upload, Trash2, BarChart3, Download, ClipboardList } from 'lucide-react';
+import { Plus, Pencil, Upload, Trash2, BarChart3, Download, ClipboardList, FileEdit } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { useAdminSimuladoEngagementMap } from '@/admin/hooks/useAdminSimuladosAnalytics';
 import { exportQuestionRankingXlsx } from '@/admin/utils/exportQuestionRanking';
@@ -187,8 +187,11 @@ function AdminSimuladosContent() {
                       <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/simulados/${s.id}`)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/simulados/${s.id}/questoes`)}>
+                      <Button size="icon" variant="ghost" title="Enviar questões (planilha)" onClick={() => navigate(`/admin/simulados/${s.id}/questoes`)}>
                         <Upload className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" title="Editar questões" onClick={() => navigate(`/admin/simulados/${s.id}/questoes/editar`)}>
+                        <FileEdit className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(s)}>
                         <Trash2 className="h-4 w-4 text-admin-destructive" />
