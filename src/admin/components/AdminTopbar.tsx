@@ -1,8 +1,9 @@
 import { useLocation } from 'react-router-dom'
-import { Bell, ChevronRight, Moon, Sun } from 'lucide-react'
+import { ChevronRight, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { ADMIN_NAV } from '@/admin/lib/navigation'
+import { AdminAlertsBell } from '@/admin/components/AdminAlertsBell'
 
 function getBreadcrumb(pathname: string): { group: string | null; label: string } {
   for (const group of ADMIN_NAV) {
@@ -57,15 +58,7 @@ export function AdminTopbar() {
       </div>
       <div className="flex items-center gap-1.5">
         <AdminThemeToggle />
-        <button
-          type="button"
-          title="Alertas (em breve)"
-          aria-label="Alertas (em breve)"
-          disabled
-          className="w-7 h-7 rounded-md flex items-center justify-center text-admin-faint opacity-50 cursor-not-allowed"
-        >
-          <Bell className="h-3.5 w-3.5" aria-hidden />
-        </button>
+        <AdminAlertsBell />
       </div>
     </header>
   )

@@ -1326,6 +1326,18 @@ export type Database = {
         Args: { p_attempt_id: string }
         Returns: undefined
       }
+      admin_cohort_retention: {
+        Args: { p_months?: number }
+        Returns: {
+          avg_score: number
+          cohort_month: string
+          cohort_size: number
+          did_1_plus: number
+          did_2_plus: number
+          did_3_plus: number
+          did_onboarding: number
+        }[]
+      }
       admin_dashboard_kpis: {
         Args: { p_days?: number }
         Returns: {
@@ -1345,6 +1357,21 @@ export type Database = {
       admin_delete_attempt: {
         Args: { p_attempt_id: string }
         Returns: undefined
+      }
+      admin_engagement_metrics: {
+        Args: { p_days?: number }
+        Returns: {
+          abandonment_rate: number
+          abandonment_rate_prev: number
+          avg_fullscreen_exits: number
+          avg_minutes: number
+          avg_minutes_prev: number
+          avg_tab_exits: number
+          completed: number
+          high_integrity_flag_pct: number
+          median_minutes: number
+          started: number
+        }[]
       }
       admin_events_timeseries: {
         Args: { p_days?: number }
@@ -1420,6 +1447,19 @@ export type Database = {
           simulado_id: string
           simulado_title: string
           status: string
+        }[]
+      }
+      admin_intel_insights: {
+        Args: never
+        Returns: {
+          category: string
+          detail: string
+          id: string
+          metric_unit: string
+          metric_value: number
+          route: string
+          severity: string
+          title: string
         }[]
       }
       admin_list_attempts: {
@@ -1520,6 +1560,26 @@ export type Database = {
           user_count: number
         }[]
       }
+      admin_performance_by_area: {
+        Args: { p_segment?: string; p_simulado_id?: string }
+        Returns: {
+          area: string
+          correct_rate: number
+          correct_responses: number
+          n_questions: number
+          n_users: number
+          total_responses: number
+        }[]
+      }
+      admin_performance_by_theme: {
+        Args: { p_area?: string; p_limit?: number; p_simulado_id?: string }
+        Returns: {
+          area: string
+          correct_rate: number
+          theme: string
+          total_responses: number
+        }[]
+      }
       admin_produto_feature_adoption: {
         Args: { p_days?: number; p_segment?: string }
         Returns: {
@@ -1572,6 +1632,37 @@ export type Database = {
       admin_reset_user_onboarding: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      admin_score_distribution: {
+        Args: { p_simulado_id?: string }
+        Returns: {
+          bucket_label: string
+          bucket_min: number
+          count: number
+        }[]
+      }
+      admin_score_evolution: {
+        Args: never
+        Returns: {
+          avg_score: number
+          cutoff_proxy: number
+          median_score: number
+          participants: number
+          sequence_number: number
+          simulado_id: string
+          title: string
+        }[]
+      }
+      admin_segment_breakdown: {
+        Args: never
+        Returns: {
+          avg_attempts: number
+          avg_score: number
+          participants: number
+          participation_rate: number
+          segment: string
+          users: number
+        }[]
       }
       admin_set_user_role: {
         Args: { p_grant: boolean; p_role: string; p_user_id: string }

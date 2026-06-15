@@ -229,3 +229,80 @@ export interface QuickSearchResult {
   title: string
   subtitle: string | null
 }
+
+// ─── Inteligência ───
+
+export interface CohortRetentionRow {
+  cohort_month: string
+  cohort_size: number
+  did_onboarding: number
+  did_1_plus: number
+  did_2_plus: number
+  did_3_plus: number
+  avg_score: number
+}
+
+export interface AreaPerformanceRow {
+  area: string
+  total_responses: number
+  correct_responses: number
+  correct_rate: number
+  n_users: number
+  n_questions: number
+}
+
+export interface ThemePerformanceRow {
+  theme: string
+  area: string
+  correct_rate: number
+  total_responses: number
+}
+
+export interface ScoreBucket {
+  bucket_label: string
+  bucket_min: number
+  count: number
+}
+
+export interface ScoreEvolutionRow {
+  simulado_id: string
+  sequence_number: number
+  title: string
+  participants: number
+  avg_score: number
+  median_score: number
+  cutoff_proxy: number
+}
+
+export interface EngagementMetrics {
+  started: number
+  completed: number
+  abandonment_rate: number
+  abandonment_rate_prev: number
+  avg_minutes: number
+  avg_minutes_prev: number
+  median_minutes: number
+  avg_tab_exits: number
+  avg_fullscreen_exits: number
+  high_integrity_flag_pct: number
+}
+
+export interface SegmentBreakdownRow {
+  segment: string
+  users: number
+  participants: number
+  participation_rate: number
+  avg_score: number
+  avg_attempts: number
+}
+
+export interface IntelInsight {
+  id: string
+  severity: 'critical' | 'warning' | 'info'
+  category: string
+  title: string
+  detail: string
+  metric_value: number
+  metric_unit: string
+  route: string
+}

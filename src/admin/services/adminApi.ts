@@ -25,6 +25,14 @@ import type {
   TopEventRow,
   CadernoFunnelRow,
   QuickSearchResult,
+  CohortRetentionRow,
+  AreaPerformanceRow,
+  ThemePerformanceRow,
+  ScoreBucket,
+  ScoreEvolutionRow,
+  EngagementMetrics,
+  SegmentBreakdownRow,
+  IntelInsight,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -571,5 +579,54 @@ export const adminApi = {
       total_events: Number(r.total_events),
       unique_users: Number(r.unique_users),
     }))
+  },
+
+  // ─── Inteligência ───
+  async getCohortRetention(months = 6): Promise<CohortRetentionRow[]> {
+    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months })
+    if (error) throw error
+    return (data ?? []) as CohortRetentionRow[]
+  },
+
+  async getPerformanceByArea(simuladoId: string | null = null, segment = 'all'): Promise<AreaPerformanceRow[]> {
+    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId, p_segment: segment })
+    if (error) throw error
+    return (data ?? []) as AreaPerformanceRow[]
+  },
+
+  async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12): Promise<ThemePerformanceRow[]> {
+    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId, p_area: area, p_limit: limit })
+    if (error) throw error
+    return (data ?? []) as ThemePerformanceRow[]
+  },
+
+  async getScoreDistribution(simuladoId: string | null = null): Promise<ScoreBucket[]> {
+    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId })
+    if (error) throw error
+    return (data ?? []) as ScoreBucket[]
+  },
+
+  async getScoreEvolution(): Promise<ScoreEvolutionRow[]> {
+    const { data, error } = await supabase.rpc('admin_score_evolution')
+    if (error) throw error
+    return (data ?? []) as ScoreEvolutionRow[]
+  },
+
+  async getEngagementMetrics(days: number): Promise<EngagementMetrics | null> {
+    const { data, error } = await supabase.rpc('admin_engagement_metrics', { p_days: days })
+    if (error) throw error
+    return ((Array.isArray(data) ? data[0] : data) ?? null) as EngagementMetrics | null
+  },
+
+  async getSegmentBreakdown(): Promise<SegmentBreakdownRow[]> {
+    const { data, error } = await supabase.rpc('admin_segment_breakdown')
+    if (error) throw error
+    return (data ?? []) as SegmentBreakdownRow[]
+  },
+
+  async getIntelInsights(): Promise<IntelInsight[]> {
+    const { data, error } = await supabase.rpc('admin_intel_insights')
+    if (error) throw error
+    return (data ?? []) as IntelInsight[]
   },
 };

@@ -76,6 +76,7 @@ const AdminDesempenhoPreview = lazy(() => import('./admin/pages/AdminDesempenhoP
 const AdminAnalytics   = lazy(() => import('./admin/pages/AdminAnalytics'))
 const AdminMarketing   = lazy(() => import('./admin/pages/AdminMarketing'))
 const AdminProduto     = lazy(() => import('./admin/pages/AdminProduto'))
+const AdminInteligencia = lazy(() => import('./admin/pages/AdminInteligencia'))
 
 // Admin lazy imports — named exports
 const AdminGuard = lazy(() =>
@@ -154,6 +155,7 @@ const App = () => (
                   <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />
                   <Route path="marketing"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminMarketing /></Suspense>} />
                   <Route path="produto"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminProduto /></Suspense>} />
+                  <Route path="inteligencia" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminInteligencia /></Suspense>} />
                 </Route>
               </Route>
 

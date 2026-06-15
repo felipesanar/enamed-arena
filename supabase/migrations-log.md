@@ -316,3 +316,161 @@ usuário-alvo possuir o role `admin` em `user_roles`, o caller precisa também d
 `roles.manage` (mesmo lookup service-role `user_roles` → `role_capabilities`); senão **403**
 com `"cannot delete admin accounts without roles.manage"`. Resto intacto; `verify_jwt`
 permanece `false`.
+
+---
+
+## 2026-06-15 — `admin_intel_metrics` (Task I1)
+
+7 RPCs de métricas de inteligência (Panorama do admin), todas `STABLE SECURITY DEFINER
+SET search_path TO 'public'`, com guard `perform public.admin_require('intel.view')` como
+primeira instrução (contrato P0003 `unauthorized`). Divisões protegidas com `nullif`;
+degradam para 0 linhas / 0 valores quando não há dados. "Attempt analisável" =
+`status in ('submitted','expired')` (e `is_within_window` onde indicado).
+
+Aplicadas em 3 migrations: `admin_intel_metrics_part1` (funções 1–4),
+`admin_intel_metrics_part2` (funções 5–7), `admin_intel_metrics_grants` (revoke/grant).
+Correção pós-smoke `admin_intel_metrics_fix_percentile_cast`: `percentile_cont` retorna
+`double precision` e `round(double, int)` não existe no Postgres — cast para `::numeric`
+em `admin_score_evolution.median_score` e `admin_engagement_metrics.median_minutes`.
+
+Adaptação de schema: `onboarding_profiles` tem tanto a coluna enum `status` (valores
+`pending`/`completed`) quanto `completed_at`. `admin_cohort_retention.did_onboarding` usa
+`status = 'completed' OR completed_at is not null` (robusto a ambos).
+
+Grants (para cada função): `revoke execute ... from anon, public;
+grant execute ... to authenticated, service_role;`.
+
+Smoke (dados reais 2026-06-15): área mais fraca = Pediatria (56.6%); tema mais fraco =
+Medicina de Família e Comunidade > Introdução (6.7%); 3 simulados na evolução (avg
+61.6/64.1/71.9); distribuição soma 1432 (pico em 60–70: 440); engajamento 30d started=1384
+completed=701 abandono 49.3% (prev 64.8%) mediana 189.4 min; segmentos: pro participa 51.4%
+vs guest 11.5% / standard 12.1%. Verificado: anon_exec=false e guard presente nas 7.
+
+---
+
+## 2026-06-15 — `admin_intel_metrics_trim_fix`
+
+Correção cirúrgica nas 3 RPCs de desempenho de inteligência para eliminar agrupamentos
+duplicados causados por espaços extras em `questions.area` e `questions.theme`
+(e.g. `'Preventiva'` vs `'Preventiva '`), e corrigir cast implícito em `cutoff_proxy`.
+
+Verificação de impacto: `count(distinct area) raw = 11` vs `count(distinct trim(area)) trimmed = 10`
+— 1 área com espaço à direita colapsou corretamente.
+
+### `admin_performance_by_area`
+
+- `coalesce(q.area, '(sem área)')` → `coalesce(nullif(trim(q.area), ''), '(sem área)')` em SELECT e GROUP BY.
+- O `nullif` garante que strings que viram vazias após trim também caem no placeholder.
+
+### `admin_performance_by_theme`
+
+- Mesma transformação trim+nullif para `q.theme` em SELECT/GROUP BY.
+- Mesma transformação trim+nullif para `q.area` em SELECT/GROUP BY.
+- Filtro de área: `q.area = p_area` → `trim(q.area) = trim(p_area)` para compatibilidade com callers que passam valor sem espaço.
+
+### `admin_score_evolution`
+
+- `cutoff_proxy`: `round(avg(...) - 0.5 * coalesce(stddev_pop(...), 0), 1)` →
+  `round((avg(h.score_percentage) - 0.5 * coalesce(stddev_pop(h.score_percentage)::numeric, 0))::numeric, 1)`
+  — cast explícito em `stddev_pop(double precision)` e na expressão completa antes do `round`,
+  evitando falha implícita de tipo em Postgres estrito.
+
+Verificações pós-aplicação:
+
+- `trim(` presente no functiondef de `admin_performance_by_area` e `admin_performance_by_theme`. ✓
+- `::numeric` presente no functiondef de `admin_score_evolution` (linha cutoff_proxy). ✓
+- `admin_require('intel.view')` presente nas 3 funções (guard intacto). ✓
+- `has_function_privilege('anon', oid, 'execute')` = false nas 3 (grants intactos). ✓
+- `count(distinct trim(area)) = 10 < count(distinct area) = 11` (colisão por espaço confirmada). ✓
+
+```sql
+-- admin_performance_by_area: área SELECT alias e GROUP BY
+coalesce(nullif(trim(q.area), ''), '(sem área)') as area
+-- (group by usa a mesma expressão)
+
+-- admin_performance_by_theme: tema e área, mais filtro de área
+coalesce(nullif(trim(q.theme), ''), '(sem tema)') as theme,
+coalesce(nullif(trim(q.area),  ''), '(sem área)') as area
+-- filtro: (p_area is null or trim(q.area) = trim(p_area))
+
+-- admin_score_evolution: cutoff_proxy com cast explícito
+round((avg(h.score_percentage) - 0.5 * coalesce(stddev_pop(h.score_percentage)::numeric, 0))::numeric, 1) as cutoff_proxy
+```
+
+---
+
+## Apêndice — RPCs Task I1 (definições de referência)
+
+```sql
+-- 1. admin_cohort_retention(p_months int default 6)
+--    -> (cohort_month date, cohort_size, did_onboarding, did_1_plus, did_2_plus, did_3_plus, avg_score)
+--    Coorte = date_trunc('month', profiles.created_at); did_N_plus via COUNT(DISTINCT simulado_id)
+--    em attempts analisáveis; janela = últimas p_months coortes; ordena cohort_month desc.
+
+-- 2. admin_performance_by_area(p_simulado_id uuid default null, p_segment text default 'all')
+--    -> (area, total_responses, correct_responses, correct_rate, n_users, n_questions)
+--    base aqr JOIN attempts JOIN questions JOIN profiles; filtros status analisável +
+--    is_within_window + was_answered; group by coalesce(area,'(sem área)'); ordena correct_rate asc.
+
+-- 3. admin_performance_by_theme(p_simulado_id uuid, p_area text, p_limit int default 12)
+--    -> (theme, area, correct_rate, total_responses); mesma base; group by theme,area; limit p_limit.
+
+-- 4. admin_score_distribution(p_simulado_id uuid default null)
+--    -> (bucket_label, bucket_min, count); generate_series(0,90,10) LEFT JOIN history
+--    (buckets vazios = 0); valor 100 cai no bucket 90 via least(...,90).
+
+-- 5. admin_score_evolution()
+--    -> (simulado_id, sequence_number, title, participants, avg_score, median_score, cutoff_proxy)
+--    median via percentile_cont(0.5)::numeric; cutoff_proxy = avg - 0.5*stddev_pop.
+
+-- 6. admin_engagement_metrics(p_days int default 30)
+--    -> (started, completed, abandonment_rate(+_prev), avg_minutes(+_prev), median_minutes,
+--        avg_tab_exits, avg_fullscreen_exits, high_integrity_flag_pct); janela atual vs prev;
+--    high_integrity = tab_exit_count >= 3; sempre 1 linha (coalesce 0).
+
+-- 7. admin_segment_breakdown()
+--    -> (segment, users, participants, participation_rate, avg_score, avg_attempts)
+--    profiles LEFT JOIN (distinct user_id com attempt analisável) LEFT JOIN user_performance_summary;
+--    ordena CASE guest,standard,pro.
+
+-- Para cada função:
+-- revoke execute on function public.<nome>(<assinatura>) from anon, public;
+-- grant  execute on function public.<nome>(<assinatura>) to authenticated, service_role;
+```
+
+---
+
+## 2026-06-15 — `admin_intel_insights` (Task I2)
+
+Motor de alertas/insights por regras. Função `admin_intel_insights()`
+-> `(id, severity, category, title, detail, metric_value numeric, metric_unit, route)[]`,
+`STABLE SECURITY DEFINER SET search_path = 'public'`, guard `admin_require('intel.view')`.
+`revoke execute from anon, public; grant execute to authenticated, service_role`.
+
+Cada regra roda em bloco `begin ... exception when others then null; end;` (nunca lança por
+falta de dados) e emite 0 ou 1 linha quando a métrica cruza o threshold. As linhas são
+acumuladas num `jsonb` e devolvidas via `jsonb_to_recordset`, ordenadas por
+severity (critical=0, warning=1, info=2) e depois `metric_value`.
+
+**Gotcha (corrigido):** versão inicial acumulava num `CREATE TEMPORARY TABLE` — ilegal em
+função `STABLE` (`0A000: CREATE TABLE is not allowed in a non-volatile function`); o guard
+mascarava o erro no smoke sob MCP. `record[]` também é proibido (pseudo-tipo). Solução final:
+acumulador `jsonb`.
+
+Regras (replicam as queries-base das RPCs da I1, sem depender do guard delas):
+- `weakest_area`: menor correct_rate por área (aqr+attempts+questions, status analisável,
+  is_within_window, was_answered). < 60 → emite; critical se < 50, senão warning. `#areas`.
+- `score_decline`: 2 últimas linhas de score_evolution; cur < prev-5 → warning; metric = cur-prev (points). `#evolucao`.
+- `participation_drop`: participants último vs anterior; queda > 15% → warning. `#evolucao`.
+- `high_abandonment`: abandono 30d = 100*(started-completed)/started (completed=submitted);
+  > 25 → emite; critical se > 40, senão warning. `#engajamento`.
+- `integrity_spike`: % attempts 30d com tab_exit_count >= 3; > 20 → warning. `#engajamento`.
+- `low_cohort_activation`: coorte de cadastro mais recente com idade >= 30d; did_1_plus/cohort_size
+  < 40% → emite; warning se < 25, senão info. `#cohorts`.
+
+**Validação (dados de produção em 2026-06-15):** disparam 4 insights — `high_abandonment` 49.3%
+critical, `low_cohort_activation` 6.4% (coorte 05/2026) warning, `weakest_area` Pediatria 56.6%
+warning, `participation_drop` 57.5% warning. Não disparam: `score_decline` (média subiu 64.1→71.9),
+`integrity_spike` (3.3%). Lógica validada via clone temporário sem guard (criado e dropado).
+
+Tipos TS regenerados (`src/integrations/supabase/types.ts`); build verde.
