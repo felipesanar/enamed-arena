@@ -38,12 +38,12 @@ export function FlashcardPanel({
         className,
       )}
     >
-      <header className="mb-4 flex items-center gap-3">
+      <header className="mb-3 flex items-center gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--c-soft-wine-bg)]">
           <Icon className="h-[18px] w-[18px] text-[var(--c-wine-600)] dark:text-[var(--c-wine-300)]" aria-hidden />
         </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-bold leading-tight text-[var(--c-ink)]">{title}</h2>
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <h2 className="shrink-0 text-[15px] font-bold leading-tight text-[var(--c-ink)]">{title}</h2>
           <p className="truncate text-[11.5px] leading-tight text-[var(--c-muted)]">{subtitle}</p>
         </div>
         {headerAside && <div className="shrink-0">{headerAside}</div>}

@@ -83,7 +83,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
 
           <div className="relative flex items-start gap-3.5">
             <span className="relative shrink-0">
-              <span className="block overflow-hidden rounded-full ring-2 ring-amber-300/60">
+              <span className="flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full ring-2 ring-amber-300/60">
                 <ProfSanorAvatar size={52} />
               </span>
               <span
@@ -108,7 +108,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
           </div>
 
           {/* chips de origem */}
-          <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
+          <div className="relative mt-auto pt-3 flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] font-semibold text-[var(--c-muted-2)]">a partir de</span>
             {GENERATE_SOURCES.map((src) => (
               <span
