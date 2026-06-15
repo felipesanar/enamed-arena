@@ -591,19 +591,19 @@ export const adminApi = {
   },
 
   async getPerformanceByArea(simuladoId: string | null = null, segment = 'all'): Promise<AreaPerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId, p_segment: segment })
+    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId as string, p_segment: segment })
     if (error) throw error
     return (data ?? []) as AreaPerformanceRow[]
   },
 
   async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12): Promise<ThemePerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId, p_area: area, p_limit: limit })
+    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId as string, p_area: area as string, p_limit: limit })
     if (error) throw error
     return (data ?? []) as ThemePerformanceRow[]
   },
 
   async getScoreDistribution(simuladoId: string | null = null): Promise<ScoreBucket[]> {
-    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId })
+    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId as string })
     if (error) throw error
     return (data ?? []) as ScoreBucket[]
   },
@@ -637,7 +637,7 @@ export const adminApi = {
   async getSimuladoQuestions(simuladoId: string): Promise<AdminQuestionFull[]> {
     const { data, error } = await supabase.rpc('admin_get_simulado_questions', { p_simulado_id: simuladoId })
     if (error) throw error
-    return (data ?? []) as AdminQuestionFull[]
+    return (data ?? []) as unknown as AdminQuestionFull[]
   },
 
   async updateQuestion(
@@ -659,10 +659,10 @@ export const adminApi = {
       p_area: p.area,
       p_theme: p.theme,
       p_difficulty: p.difficulty,
-      p_explanation: p.explanation,
-      p_image_url: p.image_url,
-      p_explanation_image_url: p.explanation_image_url,
-      p_image_url_2: p.image_url_2,
+      p_explanation: p.explanation as string,
+      p_image_url: p.image_url as string,
+      p_explanation_image_url: p.explanation_image_url as string,
+      p_image_url_2: p.image_url_2 as string,
     })
     if (error) throw error
   },
