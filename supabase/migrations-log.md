@@ -316,3 +316,69 @@ usuário-alvo possuir o role `admin` em `user_roles`, o caller precisa também d
 `roles.manage` (mesmo lookup service-role `user_roles` → `role_capabilities`); senão **403**
 com `"cannot delete admin accounts without roles.manage"`. Resto intacto; `verify_jwt`
 permanece `false`.
+
+---
+
+## 2026-06-15 — `admin_intel_metrics` (Task I1)
+
+7 RPCs de métricas de inteligência (Panorama do admin), todas `STABLE SECURITY DEFINER
+SET search_path TO 'public'`, com guard `perform public.admin_require('intel.view')` como
+primeira instrução (contrato P0003 `unauthorized`). Divisões protegidas com `nullif`;
+degradam para 0 linhas / 0 valores quando não há dados. "Attempt analisável" =
+`status in ('submitted','expired')` (e `is_within_window` onde indicado).
+
+Aplicadas em 3 migrations: `admin_intel_metrics_part1` (funções 1–4),
+`admin_intel_metrics_part2` (funções 5–7), `admin_intel_metrics_grants` (revoke/grant).
+Correção pós-smoke `admin_intel_metrics_fix_percentile_cast`: `percentile_cont` retorna
+`double precision` e `round(double, int)` não existe no Postgres — cast para `::numeric`
+em `admin_score_evolution.median_score` e `admin_engagement_metrics.median_minutes`.
+
+Adaptação de schema: `onboarding_profiles` tem tanto a coluna enum `status` (valores
+`pending`/`completed`) quanto `completed_at`. `admin_cohort_retention.did_onboarding` usa
+`status = 'completed' OR completed_at is not null` (robusto a ambos).
+
+Grants (para cada função): `revoke execute ... from anon, public;
+grant execute ... to authenticated, service_role;`.
+
+Smoke (dados reais 2026-06-15): área mais fraca = Pediatria (56.6%); tema mais fraco =
+Medicina de Família e Comunidade > Introdução (6.7%); 3 simulados na evolução (avg
+61.6/64.1/71.9); distribuição soma 1432 (pico em 60–70: 440); engajamento 30d started=1384
+completed=701 abandono 49.3% (prev 64.8%) mediana 189.4 min; segmentos: pro participa 51.4%
+vs guest 11.5% / standard 12.1%. Verificado: anon_exec=false e guard presente nas 7.
+
+```sql
+-- 1. admin_cohort_retention(p_months int default 6)
+--    -> (cohort_month date, cohort_size, did_onboarding, did_1_plus, did_2_plus, did_3_plus, avg_score)
+--    Coorte = date_trunc('month', profiles.created_at); did_N_plus via COUNT(DISTINCT simulado_id)
+--    em attempts analisáveis; janela = últimas p_months coortes; ordena cohort_month desc.
+
+-- 2. admin_performance_by_area(p_simulado_id uuid default null, p_segment text default 'all')
+--    -> (area, total_responses, correct_responses, correct_rate, n_users, n_questions)
+--    base aqr JOIN attempts JOIN questions JOIN profiles; filtros status analisável +
+--    is_within_window + was_answered; group by coalesce(area,'(sem área)'); ordena correct_rate asc.
+
+-- 3. admin_performance_by_theme(p_simulado_id uuid, p_area text, p_limit int default 12)
+--    -> (theme, area, correct_rate, total_responses); mesma base; group by theme,area; limit p_limit.
+
+-- 4. admin_score_distribution(p_simulado_id uuid default null)
+--    -> (bucket_label, bucket_min, count); generate_series(0,90,10) LEFT JOIN history
+--    (buckets vazios = 0); valor 100 cai no bucket 90 via least(...,90).
+
+-- 5. admin_score_evolution()
+--    -> (simulado_id, sequence_number, title, participants, avg_score, median_score, cutoff_proxy)
+--    median via percentile_cont(0.5)::numeric; cutoff_proxy = avg - 0.5*stddev_pop.
+
+-- 6. admin_engagement_metrics(p_days int default 30)
+--    -> (started, completed, abandonment_rate(+_prev), avg_minutes(+_prev), median_minutes,
+--        avg_tab_exits, avg_fullscreen_exits, high_integrity_flag_pct); janela atual vs prev;
+--    high_integrity = tab_exit_count >= 3; sempre 1 linha (coalesce 0).
+
+-- 7. admin_segment_breakdown()
+--    -> (segment, users, participants, participation_rate, avg_score, avg_attempts)
+--    profiles LEFT JOIN (distinct user_id com attempt analisável) LEFT JOIN user_performance_summary;
+--    ordena CASE guest,standard,pro.
+
+-- Para cada função:
+-- revoke execute on function public.<nome>(<assinatura>) from anon, public;
+-- grant  execute on function public.<nome>(<assinatura>) to authenticated, service_role;
+```
