@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
 import { adminApi } from '../services/adminApi';
 import { toast } from '@/hooks/use-toast';
+import { validateWindows } from '@/admin/lib/validateWindows';
 
 /** Classes admin para inputs (tema control-room sem editar o componente shadcn) */
 const inputCls = 'bg-admin-bg border-admin-line-strong text-admin-text placeholder:text-admin-faint';
@@ -56,6 +57,17 @@ function AdminSimuladoFormContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const windowError = validateWindows(
+      form.execution_window_start,
+      form.execution_window_end,
+      form.results_release_at,
+    );
+    if (windowError) {
+      toast({ title: windowError, variant: 'destructive' });
+      return;
+    }
+
     setSaving(true);
 
     const payload = {

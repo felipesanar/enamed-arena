@@ -306,3 +306,40 @@ export interface IntelInsight {
   metric_unit: string
   route: string
 }
+
+// ─── Gestão de Questões ───
+
+export interface AdminQuestionOption {
+  id: string
+  label: string
+  text: string
+  is_correct: boolean
+}
+
+export interface AdminQuestionFull {
+  id: string
+  question_number: number
+  text: string
+  area: string
+  theme: string
+  difficulty: string
+  explanation: string | null
+  image_url: string | null
+  explanation_image_url: string | null
+  image_url_2: string | null
+  options: AdminQuestionOption[]
+}
+
+// ─── Auditoria ───
+
+export interface AuditLogRow {
+  id: string
+  actor_email: string | null
+  action: string
+  entity_type: string
+  entity_id: string | null
+  summary: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  total_count: number
+}

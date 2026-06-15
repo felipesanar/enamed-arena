@@ -35,6 +35,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+          summary: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+          summary?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          summary?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -1358,6 +1394,10 @@ export type Database = {
         Args: { p_attempt_id: string }
         Returns: undefined
       }
+      admin_delete_question: {
+        Args: { p_question_id: string }
+        Returns: undefined
+      }
       admin_engagement_metrics: {
         Args: { p_days?: number }
         Returns: {
@@ -1413,6 +1453,22 @@ export type Database = {
           total_candidatos: number
           total_correct: number
           user_id: string
+        }[]
+      }
+      admin_get_simulado_questions: {
+        Args: { p_simulado_id: string }
+        Returns: {
+          area: string
+          difficulty: string
+          explanation: string
+          explanation_image_url: string
+          id: string
+          image_url: string
+          image_url_2: string
+          options: Json
+          question_number: number
+          text: string
+          theme: string
         }[]
       }
       admin_get_user: {
@@ -1487,6 +1543,27 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_audit: {
+        Args: {
+          p_action?: string
+          p_days?: number
+          p_entity_type?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+        }
+        Returns: {
+          action: string
+          actor_email: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          summary: string
+          total_count: number
+        }[]
+      }
       admin_list_simulados_for_ranking_preview: {
         Args: never
         Returns: {
@@ -1522,6 +1599,16 @@ export type Database = {
           online_last_15min: number
           open_tickets: number
         }[]
+      }
+      admin_log_action: {
+        Args: {
+          p_action: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_summary?: string
+        }
+        Returns: undefined
       }
       admin_marketing_campaigns: {
         Args: { p_days?: number }
@@ -1664,6 +1751,10 @@ export type Database = {
           users: number
         }[]
       }
+      admin_set_correct_option: {
+        Args: { p_correct_option_id: string; p_question_id: string }
+        Returns: undefined
+      }
       admin_set_user_role: {
         Args: { p_grant: boolean; p_role: string; p_user_id: string }
         Returns: undefined
@@ -1710,6 +1801,24 @@ export type Database = {
           theme: string
           total_responses: number
         }[]
+      }
+      admin_update_option: {
+        Args: { p_option_id: string; p_text: string }
+        Returns: undefined
+      }
+      admin_update_question: {
+        Args: {
+          p_area: string
+          p_difficulty: string
+          p_explanation: string
+          p_explanation_image_url: string
+          p_image_url: string
+          p_image_url_2: string
+          p_question_id: string
+          p_text: string
+          p_theme: string
+        }
+        Returns: undefined
       }
       bump_guest_signup_bucket: {
         Args: {

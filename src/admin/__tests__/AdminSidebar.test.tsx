@@ -26,6 +26,15 @@ describe('visibleNav', () => {
     const gestao = nav.find(g => g.title === 'Gestão')
     expect(gestao?.items.map(i => i.label)).toEqual(['Usuários', 'Tentativas'])
   })
+
+  it('grupo Governança aparece com audit.view e some sem', () => {
+    const withAudit = visibleNav(new Set(['dashboard.view', 'audit.view']))
+    const gov = withAudit.find(g => g.title === 'Governança')
+    expect(gov?.items.map(i => i.label)).toEqual(['Auditoria'])
+
+    const withoutAudit = visibleNav(new Set(['dashboard.view']))
+    expect(withoutAudit.find(g => g.title === 'Governança')).toBeUndefined()
+  })
 })
 
 describe('AdminSidebar', () => {

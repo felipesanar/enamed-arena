@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FileText, Users, ClipboardList,
-  Route, Megaphone, Compass, Eye, Gauge, type LucideIcon,
+  Route, Megaphone, Compass, Eye, Gauge, ScrollText, type LucideIcon,
 } from 'lucide-react'
 
 export interface AdminNavItem {
@@ -45,6 +45,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     title: 'Ferramentas',
     items: [
       { to: '/admin/previews', label: 'Previews', icon: Eye, capability: 'previews.view' },
+    ],
+  },
+  {
+    title: 'Governança',
+    items: [
+      { to: '/admin/auditoria', label: 'Auditoria', icon: ScrollText, capability: 'audit.view' },
     ],
   },
 ]
