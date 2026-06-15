@@ -61,7 +61,7 @@ export function StudyPanel({ dueCount, cards, onStart }: StudyPanelProps) {
             'group mb-3 flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--c-radius-control)]',
             'border border-[color-mix(in_srgb,var(--c-wine-500)_22%,transparent)]',
             'bg-gradient-to-r from-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] via-[color-mix(in_srgb,var(--c-wine-500)_5%,transparent)] to-transparent',
-            'px-4 py-3 transition-all duration-200',
+            'px-4 py-2.5 transition-all duration-200',
             'hover:border-[color-mix(in_srgb,var(--c-wine-500)_45%,transparent)] hover:shadow-[var(--c-shadow-glow)]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
           )}
@@ -90,7 +90,7 @@ export function StudyPanel({ dueCount, cards, onStart }: StudyPanelProps) {
           </span>
         </button>
       ) : (
-        <div className="mb-3 flex items-center gap-2.5 rounded-[var(--c-radius-control)] border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3">
+        <div className="mb-3 flex items-center gap-2.5 rounded-[var(--c-radius-control)] border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-2.5">
           <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-emerald-500" aria-hidden />
           <p className="text-[12.5px] font-semibold text-[var(--c-ink)]">
             Tudo revisado por hoje
@@ -121,7 +121,7 @@ export function StudyPanel({ dueCount, cards, onStart }: StudyPanelProps) {
               onClick={() => onStart(mode)}
               aria-label={`${config.label} — ${config.description}`}
               className={cn(
-                'flex h-full w-full flex-col items-start gap-1.5 rounded-2xl border border-transparent bg-[var(--c-surface-2)] p-3 text-left',
+                'flex h-full w-full flex-col items-start gap-1.5 rounded-2xl border border-transparent bg-[var(--c-surface-2)] p-2.5 text-left',
                 'transition-all duration-150',
                 disabled
                   // pointer-events-none so the wrapper span captures hover for the Tooltip.
