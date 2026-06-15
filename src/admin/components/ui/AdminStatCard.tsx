@@ -9,6 +9,9 @@ interface AdminStatCardProps {
   deltaLabel?: string
   accentBorder?: boolean
   isLoading?: boolean
+  /** Quando true, delta positivo é tratado como ruim (vermelho) e negativo como bom
+   *  (verde) — para métricas em que "subir é pior", como taxa de abandono. */
+  invertDelta?: boolean
 }
 
 export function AdminStatCard({
@@ -18,6 +21,7 @@ export function AdminStatCard({
   deltaLabel,
   accentBorder,
   isLoading,
+  invertDelta,
 }: AdminStatCardProps) {
   if (isLoading) {
     return (
@@ -29,8 +33,12 @@ export function AdminStatCard({
     )
   }
 
-  const isPositive = delta !== undefined && delta > 0
-  const isNegative = delta !== undefined && delta < 0
+  const isUp = delta !== undefined && delta > 0
+  const isDown = delta !== undefined && delta < 0
+  // Direção visual (cor): por padrão subir = bom. invertDelta troca a semântica de cor,
+  // mantendo a seta apontando para a direção real da variação.
+  const isGood = invertDelta ? isDown : isUp
+  const isBad = invertDelta ? isUp : isDown
 
   return (
     <div
@@ -47,24 +55,24 @@ export function AdminStatCard({
         <p
           className={cn(
             'text-caption flex items-center gap-1',
-            isPositive && 'text-admin-success',
-            isNegative && 'text-admin-destructive',
-            !isPositive && !isNegative && 'text-admin-muted',
+            isGood && 'text-admin-success',
+            isBad && 'text-admin-destructive',
+            !isGood && !isBad && 'text-admin-muted',
           )}
         >
-          {isPositive && (
+          {isUp && (
             <>
               <TrendingUp className="h-3 w-3 shrink-0" aria-hidden />
               <span>+{delta}</span>
             </>
           )}
-          {isNegative && (
+          {isDown && (
             <>
               <TrendingDown className="h-3 w-3 shrink-0" aria-hidden />
               <span>−{Math.abs(delta)}</span>
             </>
           )}
-          {!isPositive && !isNegative && (
+          {!isUp && !isDown && (
             <>
               <Minus className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
               <span>{Math.abs(delta)}</span>

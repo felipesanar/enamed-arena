@@ -385,16 +385,17 @@ function AdminInteligenciaContent() {
               value={metrics ? `${metrics.abandonment_rate}%` : '—'}
               delta={metrics ? round1(metrics.abandonment_rate - metrics.abandonment_rate_prev) : undefined}
               deltaLabel={metrics ? 'p.p. vs período anterior' : undefined}
+              invertDelta
             />
             <AdminStatCard
               isLoading={engagementQ.isLoading}
               label="Tempo médio"
-              value={metrics ? `${metrics.avg_minutes} min` : '—'}
+              value={metrics ? `${round1(metrics.avg_minutes)} min` : '—'}
             />
             <AdminStatCard
               isLoading={engagementQ.isLoading}
               label="Saídas de aba (média)"
-              value={metrics ? metrics.avg_tab_exits : '—'}
+              value={metrics ? round1(metrics.avg_tab_exits) : '—'}
             />
             <AdminStatCard
               isLoading={engagementQ.isLoading}
