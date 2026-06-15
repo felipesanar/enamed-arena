@@ -123,7 +123,7 @@ export function SimuladoSourcePicker({ onChange }: SimuladoSourcePickerProps) {
                     key={q.id} type="button" onClick={() => toggle(q.id)}
                     className={cn(
                       'flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors',
-                      checked ? 'border-[var(--c-wine-500)] bg-[var(--c-wine-50)]' : 'border-[var(--c-border)] hover:border-[var(--c-wine-300)]',
+                      checked ? 'border-[var(--c-wine-500)] bg-[var(--c-soft-wine-bg)]' : 'border-[var(--c-border)] hover:border-[var(--c-wine-300)] hover:bg-[var(--c-soft-wine-bg)]',
                     )}
                   >
                     <span className={cn(
