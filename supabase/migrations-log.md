@@ -346,6 +346,61 @@ Medicina de Família e Comunidade > Introdução (6.7%); 3 simulados na evoluç�
 completed=701 abandono 49.3% (prev 64.8%) mediana 189.4 min; segmentos: pro participa 51.4%
 vs guest 11.5% / standard 12.1%. Verificado: anon_exec=false e guard presente nas 7.
 
+---
+
+## 2026-06-15 — `admin_intel_metrics_trim_fix`
+
+Correção cirúrgica nas 3 RPCs de desempenho de inteligência para eliminar agrupamentos
+duplicados causados por espaços extras em `questions.area` e `questions.theme`
+(e.g. `'Preventiva'` vs `'Preventiva '`), e corrigir cast implícito em `cutoff_proxy`.
+
+Verificação de impacto: `count(distinct area) raw = 11` vs `count(distinct trim(area)) trimmed = 10`
+— 1 área com espaço à direita colapsou corretamente.
+
+### `admin_performance_by_area`
+
+- `coalesce(q.area, '(sem área)')` → `coalesce(nullif(trim(q.area), ''), '(sem área)')` em SELECT e GROUP BY.
+- O `nullif` garante que strings que viram vazias após trim também caem no placeholder.
+
+### `admin_performance_by_theme`
+
+- Mesma transformação trim+nullif para `q.theme` em SELECT/GROUP BY.
+- Mesma transformação trim+nullif para `q.area` em SELECT/GROUP BY.
+- Filtro de área: `q.area = p_area` → `trim(q.area) = trim(p_area)` para compatibilidade com callers que passam valor sem espaço.
+
+### `admin_score_evolution`
+
+- `cutoff_proxy`: `round(avg(...) - 0.5 * coalesce(stddev_pop(...), 0), 1)` →
+  `round((avg(h.score_percentage) - 0.5 * coalesce(stddev_pop(h.score_percentage)::numeric, 0))::numeric, 1)`
+  — cast explícito em `stddev_pop(double precision)` e na expressão completa antes do `round`,
+  evitando falha implícita de tipo em Postgres estrito.
+
+Verificações pós-aplicação:
+
+- `trim(` presente no functiondef de `admin_performance_by_area` e `admin_performance_by_theme`. ✓
+- `::numeric` presente no functiondef de `admin_score_evolution` (linha cutoff_proxy). ✓
+- `admin_require('intel.view')` presente nas 3 funções (guard intacto). ✓
+- `has_function_privilege('anon', oid, 'execute')` = false nas 3 (grants intactos). ✓
+- `count(distinct trim(area)) = 10 < count(distinct area) = 11` (colisão por espaço confirmada). ✓
+
+```sql
+-- admin_performance_by_area: área SELECT alias e GROUP BY
+coalesce(nullif(trim(q.area), ''), '(sem área)') as area
+-- (group by usa a mesma expressão)
+
+-- admin_performance_by_theme: tema e área, mais filtro de área
+coalesce(nullif(trim(q.theme), ''), '(sem tema)') as theme,
+coalesce(nullif(trim(q.area),  ''), '(sem área)') as area
+-- filtro: (p_area is null or trim(q.area) = trim(p_area))
+
+-- admin_score_evolution: cutoff_proxy com cast explícito
+round((avg(h.score_percentage) - 0.5 * coalesce(stddev_pop(h.score_percentage)::numeric, 0))::numeric, 1) as cutoff_proxy
+```
+
+---
+
+## Apêndice — RPCs Task I1 (definições de referência)
+
 ```sql
 -- 1. admin_cohort_retention(p_months int default 6)
 --    -> (cohort_month date, cohort_size, did_onboarding, did_1_plus, did_2_plus, did_3_plus, avg_score)
