@@ -202,7 +202,7 @@ export function BulkGenerateModal({ decks, onDone, onClose }: BulkGenerateModalP
                 key={s.key} type="button" onClick={() => handlePickSource(s.key)}
                 className={cn(
                   'flex flex-col items-start gap-2 rounded-2xl border border-[var(--c-border)] p-4 text-left transition-all',
-                  'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-wine-50)] hover:shadow-[var(--c-shadow-sm)]',
+                  'hover:border-[var(--c-wine-400)] hover:bg-[var(--c-soft-wine-bg)] hover:shadow-[var(--c-shadow-sm)]',
                 )}
               >
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] text-[var(--c-wine-500)]">
