@@ -108,7 +108,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
           </div>
 
           {/* chips de origem */}
-          <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
+          <div className="relative mt-auto pt-3 flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] font-semibold text-[var(--c-muted-2)]">a partir de</span>
             {GENERATE_SOURCES.map((src) => (
               <span
