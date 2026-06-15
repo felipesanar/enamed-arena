@@ -1,36 +1,34 @@
 /**
- * Tema de gráficos admin (Recharts) alinhado a tokens CSS em `src/index.css`.
- * Usa `hsl(var(--token))` para respeitar `:root` e `.dark` automaticamente.
- *
- * Variáveis consumidas: `--border`, `--muted`, `--muted-foreground`, `--card`,
- * `--foreground`, `--primary`, `--success`.
+ * Tema de gráficos admin (Recharts) alinhado aos tokens `--admin-*` em `src/index.css`.
+ * Usa `hsl(var(--token))` para respeitar light/dark automaticamente.
  */
 export function getAdminChartTheme() {
   return {
-    gridStroke: 'hsl(var(--border))',
-    axisTick: { fontSize: 9, fill: 'hsl(var(--muted-foreground))' },
+    gridStroke: 'hsl(var(--admin-line))',
+    axisTick: { fontSize: 9, fill: 'hsl(var(--admin-muted))' },
     tooltip: {
-      backgroundColor: 'hsl(var(--card))',
-      border: '1px solid hsl(var(--border))',
+      backgroundColor: 'hsl(var(--admin-raised))',
+      border: '1px solid hsl(var(--admin-line-strong))',
       borderRadius: '8px',
       fontSize: '11px',
-      color: 'hsl(var(--foreground))',
+      color: 'hsl(var(--admin-text))',
     },
-    cursorFill: 'hsl(var(--muted) / 0.4)',
+    cursorFill: 'hsl(var(--admin-raised) / 0.6)',
     legend: {
       wrapperStyle: {
         fontSize: '10px',
         paddingTop: '8px',
-        color: 'hsl(var(--muted-foreground))',
+        color: 'hsl(var(--admin-muted))',
       },
     },
   } as const
 }
 
-/** Cores de séries sugeridas (preenchimento de <Bar />) — tokens semânticos */
+/** Cores de séries (ordem: wine, teal, âmbar, azul, neutro) */
 export const adminChartSeriesColors = {
-  primary: 'hsl(var(--primary))',
-  success: 'hsl(var(--success))',
-  muted: 'hsl(var(--muted-foreground) / 0.45)',
-  info: 'hsl(var(--info))',
+  primary: 'hsl(var(--admin-accent))',
+  success: 'hsl(var(--admin-success))',
+  warning: 'hsl(var(--admin-warning))',
+  info: 'hsl(var(--admin-info))',
+  muted: 'hsl(var(--admin-muted) / 0.45)',
 } as const

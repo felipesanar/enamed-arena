@@ -1,11 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { renderWithAccess, ALL_CAPABILITIES } from './test-utils'
+import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext'
 
 vi.mock('@/admin/hooks/useAdminUsuarios')
 vi.mock('@/admin/services/adminApi')
 
-import { useAdminUser, useAdminUserAttempts } from '@/admin/hooks/useAdminUsuarios'
+import {
+  useAdminUser,
+  useAdminUserAttempts,
+  useAdminSetUserSegment,
+  useAdminSetUserRole,
+  useAdminResetUserOnboarding,
+  useAdminDeleteUser,
+} from '@/admin/hooks/useAdminUsuarios'
 import { adminApi } from '@/admin/services/adminApi'
 
 const mockUser: Record<string, unknown> = {
@@ -24,6 +33,7 @@ const mockUser: Record<string, unknown> = {
   total_attempts: 8,
   last_finished_at: '2026-04-04T12:00:00Z',
   is_admin: false,
+  roles: ['support'],
 }
 
 const mockAttempts = [
@@ -34,8 +44,10 @@ const mockAttempts = [
   },
 ]
 
-function renderDetail(userId = 'u1') {
-  return render(
+const setRoleMutate = vi.fn()
+
+function detailUi(userId = 'u1') {
+  return (
     <MemoryRouter initialEntries={[`/admin/usuarios/${userId}`]}>
       <Routes>
         <Route path="/admin/usuarios/:id" element={<AdminUsuarioDetail />} />
@@ -44,16 +56,25 @@ function renderDetail(userId = 'u1') {
   )
 }
 
+function renderDetail(userId = 'u1') {
+  return renderWithAccess(detailUi(userId))
+}
+
 import AdminUsuarioDetail from '@/admin/pages/AdminUsuarioDetail'
 
 describe('AdminUsuarioDetail', () => {
   beforeEach(() => {
+    setRoleMutate.mockClear()
     vi.mocked(useAdminUser).mockReturnValue({
       data: mockUser, isLoading: false, isError: false,
     } as any)
     vi.mocked(useAdminUserAttempts).mockReturnValue({
       data: mockAttempts, isLoading: false, isError: false,
     } as any)
+    vi.mocked(useAdminSetUserSegment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any)
+    vi.mocked(useAdminSetUserRole).mockReturnValue({ mutate: setRoleMutate, isPending: false } as any)
+    vi.mocked(useAdminResetUserOnboarding).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any)
+    vi.mocked(useAdminDeleteUser).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any)
     vi.mocked(adminApi.setUserSegment).mockResolvedValue(undefined)
     vi.mocked(adminApi.setUserRole).mockResolvedValue(undefined)
     vi.mocked(adminApi.resetUserOnboarding).mockResolvedValue(undefined)
@@ -89,7 +110,54 @@ describe('AdminUsuarioDetail', () => {
 
   it('shows delete confirmation modal before deleting', () => {
     renderDetail()
-    fireEvent.click(screen.getByRole('button', { name: /excluir/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^excluir$/i }))
     expect(screen.getByText(/confirmar exclusão/i)).toBeInTheDocument()
+  })
+
+  describe('Acesso ao painel (roles)', () => {
+    it('shows the roles section when user has roles.manage', () => {
+      renderDetail()
+      expect(screen.getByText('Acesso ao painel')).toBeInTheDocument()
+      expect(screen.getByText('Admin')).toBeInTheDocument()
+      expect(screen.getByText('Editor de conteúdo')).toBeInTheDocument()
+      expect(screen.getByText('Suporte')).toBeInTheDocument()
+      expect(screen.getByText('Analista')).toBeInTheDocument()
+    })
+
+    it('checks granted roles and unchecks the rest', () => {
+      renderDetail()
+      const support = screen.getByRole('checkbox', { name: /suporte/i }) as HTMLInputElement
+      const admin = screen.getByRole('checkbox', { name: /admin/i }) as HTMLInputElement
+      expect(support.checked).toBe(true)
+      expect(admin.checked).toBe(false)
+    })
+
+    it('hides the roles section without roles.manage capability', () => {
+      const caps = ALL_CAPABILITIES.filter(c => c !== 'roles.manage')
+      render(
+        <AdminAccessProvider roles={['support']} capabilities={caps}>
+          {detailUi()}
+        </AdminAccessProvider>,
+      )
+      expect(screen.queryByText('Acesso ao painel')).not.toBeInTheDocument()
+    })
+
+    it('toggling a checkbox triggers the role mutation', () => {
+      renderDetail()
+      fireEvent.click(screen.getByRole('checkbox', { name: /editor de conteúdo/i }))
+      expect(setRoleMutate).toHaveBeenCalledWith(
+        { userId: 'u1', role: 'content_editor', grant: true },
+        expect.anything(),
+      )
+    })
+
+    it('revokes a granted role on uncheck', () => {
+      renderDetail()
+      fireEvent.click(screen.getByRole('checkbox', { name: /suporte/i }))
+      expect(setRoleMutate).toHaveBeenCalledWith(
+        { userId: 'u1', role: 'support', grant: false },
+        expect.anything(),
+      )
+    })
   })
 })

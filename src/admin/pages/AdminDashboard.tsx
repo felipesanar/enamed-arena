@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 // src/admin/pages/AdminDashboard.tsx
 import { Link } from 'react-router-dom'
 import { useAdminPeriod } from '@/admin/contexts/AdminPeriodContext'
@@ -15,15 +16,18 @@ import { AdminFunnelChart } from '@/admin/components/ui/AdminFunnelChart'
 import { AdminLivePanel } from '@/admin/components/ui/AdminLivePanel'
 import { AdminDataTable } from '@/admin/components/ui/AdminDataTable'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
+import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { adminChartSeriesColors } from '@/admin/lib/adminChartTheme'
+import { PERIOD_OPTIONS } from '@/admin/lib/constants'
+import { formatInt } from '@/admin/lib/format'
 import { cn } from '@/lib/utils'
 import type { AdminPeriod, SimuladoEngagementRow } from '@/admin/types'
 
-const PERIOD_OPTIONS: { label: string; value: AdminPeriod }[] = [
-  { label: '7d',  value: 7 },
-  { label: '30d', value: 30 },
-  { label: '90d', value: 90 },
-]
+/** O dashboard só opera com os períodos suportados por AdminPeriod (7/30/90). */
+const DASHBOARD_PERIOD_OPTIONS = PERIOD_OPTIONS.filter(
+  (opt): opt is (typeof PERIOD_OPTIONS)[number] & { value: AdminPeriod } =>
+    opt.value === 7 || opt.value === 30 || opt.value === 90,
+)
 
 function delta(current: number, prev: number): number {
   return Math.round((current - prev) * 10) / 10
@@ -33,7 +37,7 @@ function formatPct(n: number): string {
   return `${n.toFixed(1)}%`
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const { period, setPeriod } = useAdminPeriod()
 
   const kpis       = useAdminDashboardKpis(period)
@@ -56,30 +60,30 @@ export default function AdminDashboard() {
     <div className="space-y-6 max-w-[1400px]">
 
       {/* Page header + period selector */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-heading-1 text-foreground">Dashboard</h1>
-          <p className="text-caption text-muted-foreground">Central de comando · ENAMED Arena</p>
-        </div>
-        <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-          {PERIOD_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setPeriod(opt.value)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                period === opt.value
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Dashboard"
+        subtitle={`Central de comando · ENAMED Arena · últimos ${period} dias`}
+        actions={
+          <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+            {DASHBOARD_PERIOD_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setPeriod(opt.value)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                  period === opt.value
+                    ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                    : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {/* ── SEÇÃO 1: Visão Executiva ── */}
       <section>
@@ -88,7 +92,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <AdminStatCard
             label="Usuários totais"
-            value={k?.total_users.toLocaleString('pt-BR') ?? 0}
+            value={k ? formatInt(k.total_users) : 0}
             delta={k ? delta(k.new_users, k.new_users_prev) : undefined}
             deltaLabel="novos vs período ant."
             isLoading={kpis.isLoading}
@@ -124,7 +128,7 @@ export default function AdminDashboard() {
           />
         </div>
         {kpis.isError && (
-          <p className="text-xs text-destructive mt-2">
+          <p className="text-xs text-admin-destructive mt-2">
             Erro ao carregar KPIs.{' '}
             <button type="button" className="underline" onClick={() => kpis.refetch()}>Tentar novamente</button>
           </p>
@@ -159,7 +163,7 @@ export default function AdminDashboard() {
           <AdminLivePanel embedded data={live.data} isLoading={live.isLoading} />
         </div>
         {timeseries.isError && (
-          <p className="text-xs text-destructive mt-2">
+          <p className="text-xs text-admin-destructive mt-2">
             Erro nos gráficos.{' '}
             <button type="button" className="underline" onClick={() => timeseries.refetch()}>Tentar novamente</button>
           </p>
@@ -174,7 +178,7 @@ export default function AdminDashboard() {
           <AdminFunnelChart embedded steps={funnel.data ?? []} isLoading={funnel.isLoading} />
         </AdminPanel>
         {funnel.isError && (
-          <p className="text-xs text-destructive mt-2">
+          <p className="text-xs text-admin-destructive mt-2">
             Erro no funil.{' '}
             <button type="button" className="underline" onClick={() => funnel.refetch()}>Tentar novamente</button>
           </p>
@@ -193,14 +197,14 @@ export default function AdminDashboard() {
           isLoading={engagement.isLoading}
           emptyMessage="Nenhum simulado encontrado."
           footer={
-            <Link to="/admin/simulados" className="text-primary hover:underline text-[11px] inline-flex items-center gap-1 font-medium">
+            <Link to="/admin/simulados" className="text-admin-accent hover:underline text-[11px] inline-flex items-center gap-1 font-medium">
               Ver todos os simulados
             </Link>
           }
         />
         </AdminPanel>
         {engagement.isError && (
-          <p className="text-xs text-destructive mt-2">
+          <p className="text-xs text-admin-destructive mt-2">
             Erro ao carregar simulados.{' '}
             <button type="button" className="underline" onClick={() => engagement.refetch()}>Tentar novamente</button>
           </p>
@@ -208,5 +212,13 @@ export default function AdminDashboard() {
       </section>
 
     </div>
+  )
+}
+
+export default function AdminDashboard() {
+  return (
+    <AdminCapabilityGate capability="dashboard.view">
+      <AdminDashboardContent />
+    </AdminCapabilityGate>
   )
 }

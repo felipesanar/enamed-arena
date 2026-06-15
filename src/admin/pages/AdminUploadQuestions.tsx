@@ -1,3 +1,4 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
 import { adminApi } from '../services/adminApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -156,7 +158,7 @@ function normalizeRow(row: ParsedRow): NormalizedQuestion {
   };
 }
 
-export default function AdminUploadQuestions() {
+function AdminUploadQuestionsContent() {
   const { id: simuladoId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [simulado, setSimulado] = useState<any>(null);
@@ -191,15 +193,6 @@ export default function AdminUploadQuestions() {
     setEnunciadoImages(eImgs);
     setComentarioImages(cImgs);
 
-    // TODO: remover log [upload-debug] após validação do pipeline
-    console.log('[upload-debug] EXTRACTOR resultado:', {
-      enunciadoSize: eImgs.size,
-      comentarioSize: cImgs.size,
-      enunciadoKeys: Array.from(eImgs.keys()).slice(0, 10),
-      comentarioKeys: Array.from(cImgs.keys()).slice(0, 10),
-      totalRows: rows.length,
-    });
-
     if (eImgs.size > 0 || cImgs.size > 0) {
       toast({ title: `${eImgs.size + cImgs.size} imagens extraídas da planilha` });
     }
@@ -224,14 +217,6 @@ export default function AdminUploadQuestions() {
         const cImg = comentarioImages.get(index);
         if (eImg) imageJobs.push({ qNum, kind: 'enunciado', img: eImg });
         if (cImg) imageJobs.push({ qNum, kind: 'comentario', img: cImg });
-      });
-
-      // TODO: remover log [upload-debug] após validação do pipeline
-      console.log('[upload-debug] JOBS montados:', {
-        imageJobsLength: imageJobs.length,
-        jobsSample: imageJobs.slice(0, 5).map(j => ({ qNum: j.qNum, kind: j.kind, mime: j.img.mimeType })),
-        enunciadoImagesSize: enunciadoImages.size,
-        comentarioImagesSize: comentarioImages.size,
       });
 
       const imageUrls: Record<number, { enunciado_url?: string; comentario_url?: string }> = {};
@@ -287,14 +272,6 @@ export default function AdminUploadQuestions() {
 
       setUploadProgress({ step: 'Salvando questões no servidor...', percent: 75 });
 
-      // TODO: remover log [upload-debug] após validação do pipeline
-      console.log('[upload-debug] PAYLOAD invoke:', {
-        simulado_id: simuladoId,
-        questionsCount: normalized.length,
-        imageUrlsKeysCount: Object.keys(imageUrls).length,
-        imageUrlsSample: Object.entries(imageUrls).slice(0, 3),
-      });
-
       const { data: result, error: invokeError } = await supabase.functions.invoke('admin-upload-questions', {
         body: {
           simulado_id: simuladoId,
@@ -338,26 +315,32 @@ export default function AdminUploadQuestions() {
   };
 
   if (!simulado) {
-    return <div className="flex justify-center py-12"><div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
+    return <div className="flex justify-center py-12"><div className="h-8 w-8 border-2 border-admin-accent/30 border-t-admin-accent rounded-full animate-spin" /></div>;
   }
 
   const totalImages = enunciadoImages.size + comentarioImages.size;
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Upload de Questões</h1>
-          <p className="text-muted-foreground">#{simulado.sequence_number} — {simulado.title}</p>
-        </div>
-        <Button variant="outline" onClick={() => navigate('/admin/simulados')}>Voltar</Button>
-      </div>
+      <AdminPageHeader
+        title="Upload de Questões"
+        subtitle={`#${simulado.sequence_number} — ${simulado.title}`}
+        actions={
+          <Button
+            variant="outline"
+            className="border-admin-line bg-transparent text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+            onClick={() => navigate('/admin/simulados')}
+          >
+            Voltar
+          </Button>
+        }
+      />
 
-      <Card>
+      <Card className="bg-admin-surface border-admin-line text-admin-text">
         <CardContent className="flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{existingCount} questões cadastradas</span>
+            <CheckCircle className="h-4 w-4 text-admin-muted" />
+            <span className="text-sm text-admin-text">{existingCount} questões cadastradas</span>
           </div>
           {existingCount > 0 && (
             <Button size="sm" variant="destructive" onClick={handleDeleteExisting}>
@@ -367,23 +350,23 @@ export default function AdminUploadQuestions() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-admin-surface border-admin-line text-admin-text">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="text-base text-admin-text flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4" />
             Importar planilha XLSX
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Colunas esperadas: <code className="text-xs bg-muted px-1 rounded">numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário</code>
+          <p className="text-sm text-admin-muted">
+            Colunas esperadas: <code className="text-xs bg-admin-raised px-1 rounded">numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário</code>
           </p>
 
           <div className="flex items-center gap-4">
             <label className="cursor-pointer">
               <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
-              <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg hover:bg-muted/50 transition-colors">
-                <Upload className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-admin-line rounded-lg hover:bg-admin-raised/50 transition-colors">
+                <Upload className="h-4 w-4 text-admin-muted" />
                 <span className="text-sm">{fileName || 'Selecionar arquivo'}</span>
               </div>
             </label>
@@ -391,7 +374,7 @@ export default function AdminUploadQuestions() {
             {parsedRows.length > 0 && (
               <div className="flex items-center gap-3">
                 {totalImages > 0 && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
+                  <Badge variant="outline" className="flex items-center gap-1 bg-admin-raised text-admin-muted border-admin-line">
                     <ImageIcon className="h-3 w-3" />
                     {totalImages} imagens
                   </Badge>
@@ -406,23 +389,23 @@ export default function AdminUploadQuestions() {
           {uploadProgress && (
             <div className="space-y-2 pt-2">
               <div className="flex items-center gap-2">
-                {uploadProgress.percent < 100 && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
-                {uploadProgress.percent === 100 && <CheckCircle className="h-3.5 w-3.5 text-success" />}
-                <span className="text-sm text-muted-foreground">{uploadProgress.step}</span>
+                {uploadProgress.percent < 100 && <Loader2 className="h-3.5 w-3.5 animate-spin text-admin-accent" />}
+                {uploadProgress.percent === 100 && <CheckCircle className="h-3.5 w-3.5 text-admin-success" />}
+                <span className="text-sm text-admin-muted">{uploadProgress.step}</span>
               </div>
-              <Progress value={uploadProgress.percent} className="h-2" />
+              <Progress value={uploadProgress.percent} className="h-2 bg-admin-raised" />
             </div>
           )}
         </CardContent>
       </Card>
 
       {parsedRows.length > 0 && (
-        <Card>
+        <Card className="bg-admin-surface border-admin-line text-admin-text">
           <CardHeader>
-            <CardTitle className="text-base">Preview — {parsedRows.length} questões</CardTitle>
+            <CardTitle className="text-base text-admin-text">Preview — {parsedRows.length} questões</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg overflow-auto max-h-[500px]">
+            <div className="border border-admin-line rounded-lg overflow-auto max-h-[500px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -442,23 +425,23 @@ export default function AdminUploadQuestions() {
                       <TableRow
                         key={i}
                         onClick={() => setPreviewIndex(i)}
-                        className="cursor-pointer hover:bg-muted/40"
+                        className="cursor-pointer hover:bg-admin-raised/40"
                       >
                         <TableCell>{q.numero}</TableCell>
                         <TableCell className="text-xs max-w-[400px] truncate">{q.Enunciado}</TableCell>
-                        <TableCell><Badge variant="secondary" className="text-xs">{q['Grande Área']}</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs bg-admin-raised text-admin-muted border-admin-line">{q['Grande Área']}</Badge></TableCell>
                         <TableCell className="text-xs">{q.Especialidade}</TableCell>
-                        <TableCell><Badge>{q.Gabarito}</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="bg-admin-accent/10 text-admin-accent border-admin-accent/30">{q.Gabarito}</Badge></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             {hasEnunciado && (
                               <span title="Imagem do enunciado">
-                                <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                                <ImageIcon className="h-3.5 w-3.5 text-admin-accent" />
                               </span>
                             )}
                             {hasComentario && (
                               <span title="Imagem do comentário">
-                                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                <ImageIcon className="h-3.5 w-3.5 text-admin-muted" />
                               </span>
                             )}
                           </div>
@@ -482,4 +465,12 @@ export default function AdminUploadQuestions() {
       />
     </div>
   );
+}
+
+export default function AdminUploadQuestions() {
+  return (
+    <AdminCapabilityGate capability="content.manage">
+      <AdminUploadQuestionsContent />
+    </AdminCapabilityGate>
+  )
 }

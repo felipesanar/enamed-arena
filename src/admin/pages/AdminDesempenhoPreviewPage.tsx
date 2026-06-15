@@ -1,9 +1,9 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PageTransition } from '@/components/premium/PageTransition';
-import { PageHeader } from '@/components/PageHeader';
-import { EmptyState } from '@/components/EmptyState';
-import { SkeletonCard } from '@/components/SkeletonCard';
+import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
+import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState';
 import { DesempenhoSimuladoPanel } from '@/components/desempenho/DesempenhoSimuladoPanel';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamResult } from '@/hooks/useExamResult';
@@ -12,7 +12,18 @@ import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import { BarChart3, ArrowLeft } from 'lucide-react';
 
-export default function AdminDesempenhoPreviewPage() {
+function BackToRankingPreviewLink() {
+  return (
+    <Link
+      to="/admin/ranking-preview"
+      className="inline-flex items-center gap-1.5 text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao preview do ranking
+    </Link>
+  );
+}
+
+function AdminDesempenhoPreviewPageContent() {
   const { id } = useParams<{ id: string }>();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
@@ -37,18 +48,18 @@ export default function AdminDesempenhoPreviewPage() {
   if (loading && !breakdown) {
     return (
       <>
-        <PageHeader
+        <AdminPageHeader
           title="Desempenho"
           subtitle="Preview admin — mesma análise do aluno sem depender da liberação pública."
-          badge="Admin · preview"
+          actions={<BackToRankingPreviewLink />}
         />
-        <div className="space-y-3">
-          <SkeletonCard className="h-[140px] rounded-[22px] bg-primary/[0.06]" />
+        <div className="space-y-3 animate-pulse">
+          <div className="h-[140px] rounded-xl bg-admin-raised/60" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <SkeletonCard className="h-[280px]" />
-            <SkeletonCard className="h-[280px]" />
+            <div className="h-[280px] rounded-xl bg-admin-raised/60" />
+            <div className="h-[280px] rounded-xl bg-admin-raised/60" />
           </div>
-          <SkeletonCard className="h-[160px]" />
+          <div className="h-[160px] rounded-xl bg-admin-raised/60" />
         </div>
       </>
     );
@@ -57,13 +68,16 @@ export default function AdminDesempenhoPreviewPage() {
   if (!simulado) {
     return (
       <>
-        <PageHeader title="Desempenho" subtitle="Preview admin" badge="Admin · preview" />
-        <EmptyState
+        <AdminPageHeader
+          title="Desempenho"
+          subtitle="Preview admin"
+          actions={<BackToRankingPreviewLink />}
+        />
+        <AdminEmptyState
           icon={BarChart3}
           title="Simulado não encontrado"
           description="O ID do simulado na URL não existe ou foi removido."
-          backHref="/admin/ranking-preview"
-          backLabel="Preview do ranking"
+          action={<BackToRankingPreviewLink />}
         />
       </>
     );
@@ -72,25 +86,16 @@ export default function AdminDesempenhoPreviewPage() {
   if (!resultsAllowed) {
     return (
       <>
-        <div className="mb-4">
-          <Link
-            to="/admin/ranking-preview"
-            className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao preview do ranking
-          </Link>
-        </div>
-        <PageHeader
+        <AdminPageHeader
           title="Desempenho"
           subtitle="Preview admin"
-          badge="Admin · preview"
+          actions={<BackToRankingPreviewLink />}
         />
-        <EmptyState
+        <AdminEmptyState
           icon={BarChart3}
           title="Preview indisponível"
           description="Não há tentativa finalizada para este simulado com o usuário logado, ou a análise ainda não pode ser exibida."
-          backHref="/admin/ranking-preview"
-          backLabel="Preview do ranking"
+          action={<BackToRankingPreviewLink />}
         />
       </>
     );
@@ -99,25 +104,16 @@ export default function AdminDesempenhoPreviewPage() {
   if (!breakdown) {
     return (
       <>
-        <div className="mb-4">
-          <Link
-            to="/admin/ranking-preview"
-            className="inline-flex items-center gap-1.5 text-body-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao preview do ranking
-          </Link>
-        </div>
-        <PageHeader
+        <AdminPageHeader
           title="Desempenho"
           subtitle="Preview admin"
-          badge="Admin · preview"
+          actions={<BackToRankingPreviewLink />}
         />
-        <EmptyState
+        <AdminEmptyState
           icon={BarChart3}
           title="Sem dados de desempenho"
           description="Finalize uma tentativa deste simulado com o usuário logado para ver a análise aqui."
-          backHref="/admin/ranking-preview"
-          backLabel="Preview do ranking"
+          action={<BackToRankingPreviewLink />}
         />
       </>
     );
@@ -127,20 +123,31 @@ export default function AdminDesempenhoPreviewPage() {
 
   return (
     <PageTransition>
-      <PageHeader
+      <AdminPageHeader
         title={`Desempenho — ${simulado.title}`}
         subtitle="Preview admin — mesma análise do aluno sem depender da liberação pública."
-        badge="Admin · preview"
+        actions={<BackToRankingPreviewLink />}
       />
 
-      <DesempenhoSimuladoPanel
-        simuladosWithResults={simuladosWithResults}
-        selectedSimuladoId={simulado.id}
-        onSelectSimulado={() => {}}
-        breakdown={breakdown}
-        questions={questions}
-        resultNavVariant="admin"
-      />
+      {/* Conteúdo do aluno "emoldurado" com o fundo próprio dele */}
+      <div className="bg-background rounded-lg border border-admin-line overflow-hidden p-4">
+        <DesempenhoSimuladoPanel
+          simuladosWithResults={simuladosWithResults}
+          selectedSimuladoId={simulado.id}
+          onSelectSimulado={() => {}}
+          breakdown={breakdown}
+          questions={questions}
+          resultNavVariant="admin"
+        />
+      </div>
     </PageTransition>
   );
+}
+
+export default function AdminDesempenhoPreviewPage() {
+  return (
+    <AdminCapabilityGate capability="previews.view">
+      <AdminDesempenhoPreviewPageContent />
+    </AdminCapabilityGate>
+  )
 }

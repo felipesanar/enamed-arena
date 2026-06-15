@@ -1,6 +1,11 @@
+import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
+import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
+import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
+import { PERIOD_OPTIONS, SEGMENT_META } from '@/admin/lib/constants'
+import { formatInt } from '@/admin/lib/format'
 import {
   useAdminProdutoSegmentedFunnel,
   useAdminProdutoFriction,
@@ -10,23 +15,21 @@ import {
 } from '@/admin/hooks/useAdminProduto'
 import type { SegmentedFunnelRow, FrictionPoint, FeatureAdoptionRow, TopEventRow, CadernoFunnelRow } from '@/admin/types'
 
-const PERIODS = [
-  { label: '7 dias', value: 7 },
-  { label: '30 dias', value: 30 },
-  { label: '90 dias', value: 90 },
-]
+/** Mantém os mesmos períodos exibidos antes da centralização (7/30/90). */
+const PERIODS = PERIOD_OPTIONS.filter(opt => opt.value !== 14)
 
 const SEGMENTS = [
   { label: 'Todos', value: 'all' },
-  { label: 'Guest', value: 'guest' },
-  { label: 'Standard', value: 'standard' },
-  { label: 'Pro', value: 'pro' },
+  ...(['guest', 'standard', 'pro'] as const).map(value => ({
+    label: SEGMENT_META[value].label,
+    value,
+  })),
 ]
 
 function pctColor(pct: number) {
-  if (pct >= 70) return 'text-success'
-  if (pct >= 40) return 'text-warning'
-  return 'text-destructive'
+  if (pct >= 70) return 'text-admin-success'
+  if (pct >= 40) return 'text-admin-warning'
+  return 'text-admin-destructive'
 }
 
 function formatMetric(value: number, unit: FrictionPoint['metric_unit']) {
@@ -36,9 +39,9 @@ function formatMetric(value: number, unit: FrictionPoint['metric_unit']) {
 }
 
 function severityClass(severity: FrictionPoint['severity']) {
-  if (severity === 'critical') return 'bg-destructive/15 text-destructive border-destructive/30'
-  if (severity === 'warning') return 'bg-warning/15 text-warning border-warning/30'
-  return 'bg-success/15 text-success border-success/30'
+  if (severity === 'critical') return 'bg-admin-destructive/15 text-admin-destructive border-admin-destructive/30'
+  if (severity === 'warning') return 'bg-admin-warning/15 text-admin-warning border-admin-warning/30'
+  return 'bg-admin-success/15 text-admin-success border-admin-success/30'
 }
 
 function severityLabel(severity: FrictionPoint['severity']) {
@@ -47,7 +50,7 @@ function severityLabel(severity: FrictionPoint['severity']) {
   return 'Saudável'
 }
 
-export default function AdminProduto() {
+function AdminProdutoContent() {
   const [days, setDays] = useState(30)
   const [segment, setSegment] = useState('all')
 
@@ -78,73 +81,69 @@ export default function AdminProduto() {
 
   return (
     <div className="space-y-5 max-w-[1400px]">
-      <div>
-        <h1 className="text-heading-1 text-foreground">Produto — Análise de Uso</h1>
-        <p className="text-caption text-muted-foreground">Funil segmentado, pontos de fricção e adoção de features</p>
-      </div>
-
-      {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Period pills */}
-        <div className="flex items-center gap-2">
-          {PERIODS.map(p => (
-            <button
-              key={p.value}
-              type="button"
-              aria-label={p.label}
-              onClick={() => setDays(p.value)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border motion-safe:transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                days === p.value
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted',
-              )}
-            >{p.label}</button>
-          ))}
-        </div>
-
-        <div className="w-px h-5 bg-border" />
-
-        {/* Segment pills */}
-        <div className="flex items-center gap-2">
-          {SEGMENTS.map(s => (
-            <button
-              key={s.value}
-              type="button"
-              aria-label={s.label}
-              onClick={() => setSegment(s.value)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border motion-safe:transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                segment === s.value
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted',
-              )}
-            >{s.label}</button>
-          ))}
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Produto"
+        subtitle="Funil segmentado, pontos de fricção e adoção de features"
+        actions={
+          <>
+            <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+              {PERIODS.map(p => (
+                <button
+                  key={p.value}
+                  type="button"
+                  aria-label={p.label}
+                  onClick={() => setDays(p.value)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                    days === p.value
+                      ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                      : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+                  )}
+                >{p.label}</button>
+              ))}
+            </div>
+            <div className="w-px h-5 bg-admin-line" />
+            <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+              {SEGMENTS.map(s => (
+                <button
+                  key={s.value}
+                  type="button"
+                  aria-label={s.label}
+                  onClick={() => setSegment(s.value)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                    segment === s.value
+                      ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                      : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+                  )}
+                >{s.label}</button>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       {/* Section 1: Segmented Funnel */}
       <AdminPanel flush className="overflow-hidden p-0">
-        <div className="px-4 py-3 border-b border-border/80 bg-muted/10">
-          <p className="text-micro-label text-muted-foreground uppercase">Funil Segmentado</p>
+        <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
+          <p className="text-micro-label text-admin-muted uppercase">Funil Segmentado</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Etapa</th>
-                <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Guest</th>
-                <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Standard</th>
-                <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Pro</th>
+              <tr className="border-b border-admin-line bg-admin-raised/30">
+                <th className="px-4 py-2 text-left text-[10px] font-bold text-admin-faint uppercase tracking-wide">Etapa</th>
+                <th className="px-4 py-2 text-right text-[10px] font-bold text-admin-faint uppercase tracking-wide">Guest</th>
+                <th className="px-4 py-2 text-right text-[10px] font-bold text-admin-faint uppercase tracking-wide">Standard</th>
+                <th className="px-4 py-2 text-right text-[10px] font-bold text-admin-faint uppercase tracking-wide">Pro</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-admin-line/40">
               {(funnel as SegmentedFunnelRow[]).map(row => (
-                <tr key={row.step_order} className="hover:bg-muted/20 motion-safe:transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-foreground">{row.step_label}</td>
+                <tr key={row.step_order} className="hover:bg-admin-raised/20 motion-safe:transition-colors">
+                  <td className="px-4 py-2.5 font-medium text-admin-text">{row.step_label}</td>
                   <td className="px-4 py-2.5 text-right">
                     <span className={cn('font-semibold text-[11px]', pctColor(row.guest_pct))}>
                       {row.guest_pct}%
@@ -165,19 +164,19 @@ export default function AdminProduto() {
             </tbody>
           </table>
           {funnel.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sem dados no período.</div>
+            <AdminEmptyState title="Sem dados no período" />
           )}
         </div>
       </AdminPanel>
 
       {/* Section 2: Friction Map */}
       <div>
-        <p className="text-micro-label text-muted-foreground uppercase mb-3">Mapa de Fricção</p>
+        <p className="text-micro-label text-admin-muted uppercase mb-3">Mapa de Fricção</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {(friction as FrictionPoint[]).map(point => (
             <AdminPanel key={point.key} className="flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold text-foreground leading-snug">{point.title}</p>
+                <p className="text-xs font-semibold text-admin-text leading-snug">{point.title}</p>
                 <span className={cn(
                   'shrink-0 px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wide',
                   severityClass(point.severity),
@@ -185,14 +184,14 @@ export default function AdminProduto() {
                   {severityLabel(point.severity)}
                 </span>
               </div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-2xl font-bold text-admin-text">
                 {formatMetric(point.metric_value, point.metric_unit)}
               </p>
             </AdminPanel>
           ))}
           {friction.length === 0 && (
-            <AdminPanel className="col-span-full text-center text-sm text-muted-foreground py-8">
-              Sem dados no período.
+            <AdminPanel className="col-span-full">
+              <AdminEmptyState title="Sem dados no período" />
             </AdminPanel>
           )}
         </div>
@@ -200,14 +199,14 @@ export default function AdminProduto() {
 
       {/* Section 3: Feature Adoption */}
       <AdminPanel>
-        <p className="text-micro-label text-muted-foreground uppercase mb-4">Adoção de Features</p>
+        <p className="text-micro-label text-admin-muted uppercase mb-4">Adoção de Features</p>
         <div className="space-y-3">
           {(adoption as FeatureAdoptionRow[]).map(row => (
             <div key={row.event_name} className="flex items-center gap-3">
-              <span className="text-[11px] text-muted-foreground w-36 truncate shrink-0">{row.feature}</span>
-              <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+              <span className="text-[11px] text-admin-muted w-36 truncate shrink-0">{row.feature}</span>
+              <div className="flex-1 h-3 bg-admin-raised rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full transition-all"
+                  className="h-full bg-admin-accent rounded-full transition-all"
                   style={{ width: `${(row.adoption_pct / maxAdoption) * 100}%` }}
                 />
               </div>
@@ -217,60 +216,60 @@ export default function AdminProduto() {
             </div>
           ))}
           {adoption.length === 0 && (
-            <div className="py-4 text-center text-sm text-muted-foreground">Sem dados no período.</div>
+            <AdminEmptyState title="Sem dados no período" />
           )}
         </div>
       </AdminPanel>
 
       {/* Section 4: Top Events */}
       <AdminPanel flush className="overflow-hidden p-0">
-        <div className="px-4 py-3 border-b border-border/80 bg-muted/10">
-          <p className="text-micro-label text-muted-foreground uppercase">Top Eventos</p>
+        <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
+          <p className="text-micro-label text-admin-muted uppercase">Top Eventos</p>
         </div>
-        <div className="divide-y divide-border/40">
+        <div className="divide-y divide-admin-line/40">
           {(topEvents as TopEventRow[]).map((ev, idx) => (
-            <div key={ev.event_name} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 motion-safe:transition-colors">
+            <div key={ev.event_name} className="flex items-center justify-between px-4 py-2.5 hover:bg-admin-raised/20 motion-safe:transition-colors">
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold text-muted-foreground/40 w-4">{idx + 1}</span>
-                <span className="text-xs font-mono text-foreground">{ev.event_name}</span>
+                <span className="text-[10px] font-bold text-admin-faint w-4">{idx + 1}</span>
+                <span className="text-xs font-mono text-admin-text">{ev.event_name}</span>
               </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                {ev.cnt.toLocaleString('pt-BR')}
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-admin-accent/10 text-admin-accent border border-admin-accent/20">
+                {formatInt(ev.cnt)}
               </span>
             </div>
           ))}
           {topEvents.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sem dados no período.</div>
+            <AdminEmptyState title="Sem dados no período" />
           )}
         </div>
       </AdminPanel>
 
       {/* Section 5: Caderno de Erros — Funil & Saúde (cutover) */}
       <div>
-        <p className="text-micro-label text-muted-foreground uppercase mb-3">Caderno de Erros — Funil &amp; Saúde</p>
+        <p className="text-micro-label text-admin-muted uppercase mb-3">Caderno de Erros — Funil &amp; Saúde</p>
 
         {/* Headline rates */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
           <AdminPanel className="flex flex-col gap-1">
-            <p className="text-xs font-semibold text-foreground leading-snug">Conversão de triagem</p>
-            <p className="text-[10px] text-muted-foreground">triagem vista → lote adicionado (usuários)</p>
+            <p className="text-xs font-semibold text-admin-text leading-snug">Conversão de triagem</p>
+            <p className="text-[10px] text-admin-muted">triagem vista → lote adicionado (usuários)</p>
             <p className={cn('text-2xl font-bold', pctColor(triageConvRate))}>{triageConvRate}%</p>
-            <p className="text-[10px] text-muted-foreground">
-              {(triageAdded?.unique_users ?? 0).toLocaleString('pt-BR')} de {(triageViewed?.unique_users ?? 0).toLocaleString('pt-BR')} usuários
+            <p className="text-[10px] text-admin-muted">
+              {formatInt(triageAdded?.unique_users ?? 0)} de {formatInt(triageViewed?.unique_users ?? 0)} usuários
             </p>
           </AdminPanel>
           <AdminPanel className="flex flex-col gap-1">
-            <p className="text-xs font-semibold text-foreground leading-snug">Abertura de lembretes</p>
-            <p className="text-[10px] text-muted-foreground">enviados → abertos (eventos)</p>
+            <p className="text-xs font-semibold text-admin-text leading-snug">Abertura de lembretes</p>
+            <p className="text-[10px] text-admin-muted">enviados → abertos (eventos)</p>
             <p className={cn('text-2xl font-bold', pctColor(reminderOpenRate))}>{reminderOpenRate}%</p>
-            <p className="text-[10px] text-muted-foreground">
-              {(reminderOpened?.total_events ?? 0).toLocaleString('pt-BR')} de {(reminderSent?.total_events ?? 0).toLocaleString('pt-BR')} envios
+            <p className="text-[10px] text-admin-muted">
+              {formatInt(reminderOpened?.total_events ?? 0)} de {formatInt(reminderSent?.total_events ?? 0)} envios
             </p>
           </AdminPanel>
           <AdminPanel className="flex flex-col gap-1">
-            <p className="text-xs font-semibold text-foreground leading-snug">Eventos do Caderno</p>
-            <p className="text-[10px] text-muted-foreground">volume total no período</p>
-            <p className="text-2xl font-bold text-foreground">{cadernoTotal.toLocaleString('pt-BR')}</p>
+            <p className="text-xs font-semibold text-admin-text leading-snug">Eventos do Caderno</p>
+            <p className="text-[10px] text-admin-muted">volume total no período</p>
+            <p className="text-2xl font-bold text-admin-text">{formatInt(cadernoTotal)}</p>
           </AdminPanel>
         </div>
 
@@ -279,36 +278,45 @@ export default function AdminProduto() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Métrica</th>
-                  <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Evento</th>
-                  <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Eventos</th>
-                  <th className="px-4 py-2 text-right text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wide">Usuários</th>
+                <tr className="border-b border-admin-line bg-admin-raised/30">
+                  <th className="px-4 py-2 text-left text-[10px] font-bold text-admin-faint uppercase tracking-wide">Métrica</th>
+                  <th className="px-4 py-2 text-left text-[10px] font-bold text-admin-faint uppercase tracking-wide">Evento</th>
+                  <th className="px-4 py-2 text-right text-[10px] font-bold text-admin-faint uppercase tracking-wide">Eventos</th>
+                  <th className="px-4 py-2 text-right text-[10px] font-bold text-admin-faint uppercase tracking-wide">Usuários</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-admin-line/40">
                 {cadernoRows.map(row => (
-                  <tr key={row.metric_key} className="hover:bg-muted/20 motion-safe:transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-foreground">{row.metric_label}</td>
-                    <td className="px-4 py-2.5 font-mono text-[10px] text-muted-foreground">{row.event_name}</td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-[11px] text-foreground">
-                      {row.total_events.toLocaleString('pt-BR')}
+                  <tr key={row.metric_key} className="hover:bg-admin-raised/20 motion-safe:transition-colors">
+                    <td className="px-4 py-2.5 font-medium text-admin-text">{row.metric_label}</td>
+                    <td className="px-4 py-2.5 font-mono text-[10px] text-admin-muted">{row.event_name}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-[11px] text-admin-text">
+                      {formatInt(row.total_events)}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-[11px] text-muted-foreground">
-                      {row.unique_users.toLocaleString('pt-BR')}
+                    <td className="px-4 py-2.5 text-right text-[11px] text-admin-muted">
+                      {formatInt(row.unique_users)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {cadernoRows.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                Sem dados no período (ou RPC ainda não publicada).
-              </div>
+              <AdminEmptyState
+                title="Sem dados no período"
+                description="Ou a RPC ainda não foi publicada."
+              />
             )}
           </div>
         </AdminPanel>
       </div>
     </div>
+  )
+}
+
+export default function AdminProduto() {
+  return (
+    <AdminCapabilityGate capability="intel.view">
+      <AdminProdutoContent />
+    </AdminCapabilityGate>
   )
 }

@@ -24,6 +24,7 @@ import type {
   FeatureAdoptionRow,
   TopEventRow,
   CadernoFunnelRow,
+  QuickSearchResult,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -244,6 +245,7 @@ export const adminApi = {
       total_attempts: Number(r.total_attempts),
       last_finished_at: r.last_finished_at as string | null,
       is_admin: Boolean(r.is_admin),
+      roles: (r.roles as string[] | null) ?? [],
     }
   },
 
@@ -541,6 +543,13 @@ export const adminApi = {
       event_name: r.event_name as string,
       cnt:        Number(r.cnt),
     }))
+  },
+
+  // ─── Busca rápida (paleta de comandos) ───
+  async quickSearch(query: string): Promise<QuickSearchResult[]> {
+    const { data, error } = await supabase.rpc('admin_quick_search', { p_query: query });
+    if (error) throw error;
+    return (data ?? []) as QuickSearchResult[];
   },
 
   // ─── Caderno de Erros funnel / health (plano 08 §3.6) ───

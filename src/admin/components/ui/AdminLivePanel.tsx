@@ -25,14 +25,14 @@ function LiveCard({
       className={cn(
         'rounded-md px-2.5 py-2 border',
         warning && value > 0
-          ? 'bg-warning/5 border-warning/30'
-          : 'bg-background/80 border-border',
+          ? 'bg-admin-warning/5 border-admin-warning/30'
+          : 'bg-admin-bg/80 border-admin-line',
       )}
     >
       <p
         className={cn(
           'text-[9px] mb-0.5 flex items-center gap-1',
-          warning && value > 0 ? 'text-warning' : 'text-muted-foreground',
+          warning && value > 0 ? 'text-admin-warning' : 'text-admin-muted',
         )}
       >
         {warning && value > 0 ? (
@@ -41,9 +41,9 @@ function LiveCard({
         {label}
       </p>
       {isLoading ? (
-        <div className="h-5 w-8 bg-muted rounded animate-pulse" />
+        <div className="h-5 w-8 bg-admin-raised rounded animate-pulse" />
       ) : (
-        <p className={cn('text-lg font-bold', warning && value > 0 ? 'text-warning' : 'text-foreground')}>
+        <p className={cn('text-lg font-bold', warning && value > 0 ? 'text-admin-warning' : 'text-admin-text')}>
           {value}
         </p>
       )}
@@ -56,7 +56,7 @@ export function AdminLivePanel({ data, isLoading, embedded }: AdminLivePanelProp
     <div
       className={cn(
         'rounded-lg border p-3 flex flex-col gap-2',
-        embedded ? 'border-border/60 bg-muted/15' : 'border-border bg-card',
+        embedded ? 'border-admin-line/60 bg-admin-raised/15' : 'border-admin-line bg-admin-surface',
       )}
     >
       <div className="flex items-center gap-1.5">
@@ -64,12 +64,12 @@ export function AdminLivePanel({ data, isLoading, embedded }: AdminLivePanelProp
           <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
         </span>
-        <p className="text-[11px] font-semibold text-foreground">Ao vivo</p>
+        <p className="text-[11px] font-semibold text-admin-text">Ao vivo</p>
       </div>
       <LiveCard label="Online agora" value={data?.online_last_15min ?? 0} isLoading={isLoading} />
       <LiveCard label="Em prova agora" value={data?.active_exams ?? 0} isLoading={isLoading} />
       <LiveCard label="Tickets abertos" value={data?.open_tickets ?? 0} warning isLoading={isLoading} />
-      <p className="text-[8px] text-muted-foreground/50 text-center leading-tight">
+      <p className="text-[8px] text-admin-muted/50 text-center leading-tight">
         &quot;online&quot; = eventos nos últimos 15 min
       </p>
     </div>

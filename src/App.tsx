@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -71,7 +71,7 @@ const AdminUsuarios    = lazy(() => import('./admin/pages/AdminUsuarios'))
 const AdminUsuarioDetail = lazy(() => import('./admin/pages/AdminUsuarioDetail'))
 const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAnalytics'))
 const AdminTentativas  = lazy(() => import('./admin/pages/AdminTentativas'))
-const AdminRankingPreview = lazy(() => import('./admin/pages/AdminRankingPreviewPage'))
+const AdminPreviews = lazy(() => import('./admin/pages/AdminPreviews'))
 const AdminDesempenhoPreview = lazy(() => import('./admin/pages/AdminDesempenhoPreviewPage'))
 const AdminAnalytics   = lazy(() => import('./admin/pages/AdminAnalytics'))
 const AdminMarketing   = lazy(() => import('./admin/pages/AdminMarketing'))
@@ -147,7 +147,8 @@ const App = () => (
                   <Route path="usuarios/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarioDetail /></Suspense>} />
                   <Route path="simulados/:id/analytics" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoAnalytics /></Suspense>} />
                   <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
-                  <Route path="ranking-preview" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminRankingPreview /></Suspense>} />
+                  <Route path="previews" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminPreviews /></Suspense>} />
+                  <Route path="ranking-preview" element={<Navigate to="/admin/previews" replace />} />
                   <Route path="preview/simulados/:id/correcao" element={<Suspense fallback={<PageLoadingSkeleton />}><CorrecaoPage adminPreview /></Suspense>} />
                   <Route path="preview/simulados/:id/desempenho" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDesempenhoPreview /></Suspense>} />
                   <Route path="analytics"  element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAnalytics /></Suspense>} />

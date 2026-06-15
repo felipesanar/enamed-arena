@@ -75,6 +75,7 @@ export interface UserDetail {
   total_attempts: number
   last_finished_at: string | null
   is_admin: boolean
+  roles: string[]
 }
 
 export interface UserAttemptRow {
@@ -220,4 +221,11 @@ export interface CadernoFunnelRow {
   event_name: string
   total_events: number
   unique_users: number
+}
+
+export interface QuickSearchResult {
+  kind: 'user' | 'simulado'
+  id: string
+  title: string
+  subtitle: string | null
 }

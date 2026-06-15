@@ -44,24 +44,24 @@ export function AdminTrendChart({
     return (
       <div
         className={cn(
-          'animate-pulse rounded-lg border border-border p-3',
-          embedded ? 'border-border/60 bg-muted/20' : 'bg-card',
+          'animate-pulse rounded-lg border border-admin-line p-3',
+          embedded ? 'border-admin-line/60 bg-admin-raised/20' : 'bg-admin-surface',
         )}
       >
-        <div className="h-3 bg-muted rounded w-1/3 mb-3" />
-        <div className="bg-muted rounded" style={{ height }} />
+        <div className="h-3 bg-admin-raised rounded w-1/3 mb-3" />
+        <div className="bg-admin-raised rounded" style={{ height }} />
       </div>
     )
   }
 
   const shell = cn(
     'rounded-lg border p-3',
-    embedded ? 'border-border/60 bg-muted/15' : 'border-border bg-card',
+    embedded ? 'border-admin-line/60 bg-admin-raised/15' : 'border-admin-line bg-admin-surface',
   )
 
   return (
     <div key={chartKey} className={shell}>
-      <p className="text-[11px] font-semibold text-foreground mb-3">{title}</p>
+      <p className="text-[11px] font-semibold text-admin-text mb-3">{title}</p>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} vertical={false} />
