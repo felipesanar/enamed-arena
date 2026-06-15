@@ -580,3 +580,47 @@ grant execute on function public.admin_list_audit(int,text,text,text,int,int) to
 `admin_log_action`/`admin_list_audit` com `anon execute=false`, `authenticated execute=true`;
 `tg_admin_audit` mantém execute público (trigger fn — correto). Nenhum write em produção feito
 no smoke (apenas inspeção estrutural).
+
+---
+
+## G2 — RPCs de edição de questão + retrofit de logging de auditoria (2026-06-15)
+
+**Migration `admin_question_editing`** — 5 funções `content.manage`, todas `SECURITY DEFINER
+SET search_path TO 'public'`, guard `admin_require('content.manage')` como 1ª instrução,
+`revoke ... from anon, public` + `grant ... to authenticated, service_role`:
+
+- `admin_get_simulado_questions(uuid)` (stable) — retorna questões + `options` jsonb (jsonb_agg
+  ordenado por label) de um simulado.
+- `admin_update_question(uuid, text x8)` — atualiza texto/área/tema/dificuldade/explicação/imagens;
+  `not_found` P0007 se questão inexistente.
+- `admin_update_option(uuid, text)` — atualiza texto da alternativa; `not_found` P0007 se `not found`.
+- `admin_set_correct_option(uuid, uuid)` — marca alternativa correta (uma só); `invalid_option`
+  P0008 se a opção não pertence à questão.
+- `admin_delete_question(uuid)` — bloqueia com `question_has_answers` P0009 se há
+  `attempt_question_results`; `not_found` P0007 se questão inexistente; decrementa
+  `simulados.questions_count` (greatest 0).
+
+**Migration `admin_audit_retrofit_rpcs`** — `CREATE OR REPLACE` das 5 RPCs mutadoras já existentes,
+adicionando ao fim do caminho de sucesso um bloco tolerante
+`begin perform public.admin_log_action(...); exception when others then null; end;`. Assinaturas e
+guards originais 100% preservados:
+
+- `admin_set_user_role(uuid,text,boolean)` — log `grant_role`/`revoke_role`; guards P0004
+  (revogar próprio admin), P0005 (role inválida), P0006 (último admin) preservados.
+- `admin_set_user_segment(uuid,text)` — log `set_segment`.
+- `admin_reset_user_onboarding(uuid)` — log `reset_onboarding`.
+- `admin_cancel_attempt(uuid)` — log `cancel_attempt`; guard P0004 (not found / not in_progress) preservado.
+- `admin_delete_attempt(uuid)` — log `delete_attempt`.
+
+**Smoke (2026-06-15):** 5 funções novas com `prosecdef=true`, `anon execute=false`,
+`authenticated execute=true`, guard `content.manage` presente. Montagem do `options` jsonb validada
+crua (ordem A–D, estrutura id/label/text/is_correct). Condição de bloqueio do delete confirmada
+(`exists` de questão respondida = true → delete bloqueado). 5 RPCs retrofitadas confirmadas via
+`pg_get_functiondef`: `admin_log_action` presente; assinaturas inalteradas; P0004/P0005/P0006
+preservados em `admin_set_user_role`, P0004 em `admin_cancel_attempt`. Nenhum write/delete em
+produção no smoke.
+
+**Types:** regenerados via MCP; `src/integrations/supabase/types.ts` substituído; contém
+`admin_get_simulado_questions`, `admin_update_question`, `admin_update_option`,
+`admin_set_correct_option`, `admin_delete_question`, `admin_list_audit`, `admin_audit_log`.
+`npm run build` verde.
