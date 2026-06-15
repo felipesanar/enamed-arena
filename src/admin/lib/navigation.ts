@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FileText, Users, ClipboardList,
-  Route, Megaphone, Compass, Eye, type LucideIcon,
+  Route, Megaphone, Compass, Eye, Gauge, type LucideIcon,
 } from 'lucide-react'
 
 export interface AdminNavItem {
@@ -35,6 +35,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     title: 'Inteligência',
     items: [
+      { to: '/admin/inteligencia', label: 'Panorama', icon: Gauge,    capability: 'intel.view' },
       { to: '/admin/analytics', label: 'Jornada',   icon: Route,      capability: 'intel.view' },
       { to: '/admin/marketing', label: 'Aquisição', icon: Megaphone,  capability: 'intel.view' },
       { to: '/admin/produto',   label: 'Produto',   icon: Compass,    capability: 'intel.view' },
