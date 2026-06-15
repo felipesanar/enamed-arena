@@ -33,6 +33,8 @@ import type {
   EngagementMetrics,
   SegmentBreakdownRow,
   IntelInsight,
+  AdminQuestionFull,
+  AuditLogRow,
 } from '@/admin/types'
 
 export const adminApi = {
@@ -628,5 +630,80 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_intel_insights')
     if (error) throw error
     return (data ?? []) as IntelInsight[]
+  },
+
+  // ─── Edição de Questões ───
+
+  async getSimuladoQuestions(simuladoId: string): Promise<AdminQuestionFull[]> {
+    const { data, error } = await supabase.rpc('admin_get_simulado_questions', { p_simulado_id: simuladoId })
+    if (error) throw error
+    return (data ?? []) as AdminQuestionFull[]
+  },
+
+  async updateQuestion(
+    id: string,
+    p: {
+      text: string
+      area: string
+      theme: string
+      difficulty: string
+      explanation: string | null
+      image_url: string | null
+      explanation_image_url: string | null
+      image_url_2: string | null
+    }
+  ): Promise<void> {
+    const { error } = await supabase.rpc('admin_update_question', {
+      p_question_id: id,
+      p_text: p.text,
+      p_area: p.area,
+      p_theme: p.theme,
+      p_difficulty: p.difficulty,
+      p_explanation: p.explanation,
+      p_image_url: p.image_url,
+      p_explanation_image_url: p.explanation_image_url,
+      p_image_url_2: p.image_url_2,
+    })
+    if (error) throw error
+  },
+
+  async updateOption(optionId: string, text: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_update_option', { p_option_id: optionId, p_text: text })
+    if (error) throw error
+  },
+
+  async setCorrectOption(questionId: string, optionId: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_correct_option', {
+      p_question_id: questionId,
+      p_correct_option_id: optionId,
+    })
+    if (error) throw error
+  },
+
+  async deleteQuestion(id: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_delete_question', { p_question_id: id })
+    if (error) throw error
+  },
+
+  // ─── Auditoria ───
+
+  async listAudit(p: {
+    days: number
+    action: string
+    entityType: string
+    search: string
+    limit: number
+    offset: number
+  }): Promise<AuditLogRow[]> {
+    const { data, error } = await supabase.rpc('admin_list_audit', {
+      p_days: p.days,
+      p_action: p.action,
+      p_entity_type: p.entityType,
+      p_search: p.search,
+      p_limit: p.limit,
+      p_offset: p.offset,
+    })
+    if (error) throw error
+    return (data ?? []) as AuditLogRow[]
   },
 };
