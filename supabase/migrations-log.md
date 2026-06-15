@@ -437,3 +437,40 @@ round((avg(h.score_percentage) - 0.5 * coalesce(stddev_pop(h.score_percentage)::
 -- revoke execute on function public.<nome>(<assinatura>) from anon, public;
 -- grant  execute on function public.<nome>(<assinatura>) to authenticated, service_role;
 ```
+
+---
+
+## 2026-06-15 — `admin_intel_insights` (Task I2)
+
+Motor de alertas/insights por regras. Função `admin_intel_insights()`
+-> `(id, severity, category, title, detail, metric_value numeric, metric_unit, route)[]`,
+`STABLE SECURITY DEFINER SET search_path = 'public'`, guard `admin_require('intel.view')`.
+`revoke execute from anon, public; grant execute to authenticated, service_role`.
+
+Cada regra roda em bloco `begin ... exception when others then null; end;` (nunca lança por
+falta de dados) e emite 0 ou 1 linha quando a métrica cruza o threshold. As linhas são
+acumuladas num `jsonb` e devolvidas via `jsonb_to_recordset`, ordenadas por
+severity (critical=0, warning=1, info=2) e depois `metric_value`.
+
+**Gotcha (corrigido):** versão inicial acumulava num `CREATE TEMPORARY TABLE` — ilegal em
+função `STABLE` (`0A000: CREATE TABLE is not allowed in a non-volatile function`); o guard
+mascarava o erro no smoke sob MCP. `record[]` também é proibido (pseudo-tipo). Solução final:
+acumulador `jsonb`.
+
+Regras (replicam as queries-base das RPCs da I1, sem depender do guard delas):
+- `weakest_area`: menor correct_rate por área (aqr+attempts+questions, status analisável,
+  is_within_window, was_answered). < 60 → emite; critical se < 50, senão warning. `#areas`.
+- `score_decline`: 2 últimas linhas de score_evolution; cur < prev-5 → warning; metric = cur-prev (points). `#evolucao`.
+- `participation_drop`: participants último vs anterior; queda > 15% → warning. `#evolucao`.
+- `high_abandonment`: abandono 30d = 100*(started-completed)/started (completed=submitted);
+  > 25 → emite; critical se > 40, senão warning. `#engajamento`.
+- `integrity_spike`: % attempts 30d com tab_exit_count >= 3; > 20 → warning. `#engajamento`.
+- `low_cohort_activation`: coorte de cadastro mais recente com idade >= 30d; did_1_plus/cohort_size
+  < 40% → emite; warning se < 25, senão info. `#cohorts`.
+
+**Validação (dados de produção em 2026-06-15):** disparam 4 insights — `high_abandonment` 49.3%
+critical, `low_cohort_activation` 6.4% (coorte 05/2026) warning, `weakest_area` Pediatria 56.6%
+warning, `participation_drop` 57.5% warning. Não disparam: `score_decline` (média subiu 64.1→71.9),
+`integrity_spike` (3.3%). Lógica validada via clone temporário sem guard (criado e dropado).
+
+Tipos TS regenerados (`src/integrations/supabase/types.ts`); build verde.
