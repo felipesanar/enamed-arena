@@ -84,7 +84,7 @@ export function CreatePanel({ onGenerate, onCreate, createDisabled }: CreatePane
           <div className="relative flex items-start gap-3.5">
             <span className="relative shrink-0">
               <span className="flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full ring-2 ring-amber-300/60">
-                <ProfSanorAvatar size={52} className="!block" />
+                <ProfSanorAvatar size={52} />
               </span>
               <span
                 className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--c-surface)] bg-gradient-to-br from-amber-400 to-amber-500 shadow-sm"
