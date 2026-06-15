@@ -3,8 +3,9 @@
  *
  * Rota: /caderno/flashcards  (gate PRO).
  *
- * Desktop: PageHeaderPremium + ReviewModesHub (devidos + modos de treino) +
- *          CreateActionsRow + DeckList chips + grid de FlashcardItem
+ * Desktop: PageHeaderPremium + dois blocos lado a lado (StudyPanel "Estudar"
+ *          com devidos + modos de treino, e CreatePanel "Criar" com Prof. San +
+ *          criação manual) + DeckList chips + grid de FlashcardItem
  *          (clique abre FlashcardPreviewModal).
  * Mobile: 1 coluna, FlashcardEditor em bottom sheet (AdaptiveModal),
  *         review session em tela cheia com BottomActionBar.
@@ -59,8 +60,8 @@ import { FlashcardEditor } from '@/components/caderno/flashcards/FlashcardEditor
 import { FlashcardReviewSession } from '@/components/caderno/flashcards/FlashcardReviewSession';
 import { BulkGenerateModal } from '@/components/caderno/flashcards/BulkGenerateModal';
 import { FlashcardPreviewModal } from '@/components/caderno/flashcards/FlashcardPreviewModal';
-import { ReviewModesHub } from '@/components/caderno/flashcards/ReviewModesHub';
-import { CreateActionsRow } from '@/components/caderno/flashcards/CreateActionsRow';
+import { StudyPanel } from '@/components/caderno/flashcards/StudyPanel';
+import { CreatePanel } from '@/components/caderno/flashcards/CreatePanel';
 import { buildReviewPool } from '@/lib/flashcardReviewModes';
 
 import { useUser } from '@/contexts/UserContext';
@@ -428,22 +429,20 @@ function FlashcardsContent() {
           />
         </StaggerItem>
 
-        {/* Hub de revisão: devidos + modos de treino */}
+        {/* Ações: dois blocos lado a lado — Estudar | Criar */}
         <StaggerItem>
-          <ReviewModesHub
-            dueCount={dueFlashcards.length}
-            cards={flashcards}
-            onStart={handleStartReview}
-          />
-        </StaggerItem>
-
-        {/* CTAs de criação */}
-        <StaggerItem>
-          <CreateActionsRow
-            onGenerate={() => setBulkOpen(true)}
-            onCreate={() => handleOpenEditor()}
-            createDisabled={!selectedDeckId && decks.length > 0}
-          />
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[1.5fr_1fr]">
+            <StudyPanel
+              dueCount={dueFlashcards.length}
+              cards={flashcards}
+              onStart={handleStartReview}
+            />
+            <CreatePanel
+              onGenerate={() => setBulkOpen(true)}
+              onCreate={() => handleOpenEditor()}
+              createDisabled={!selectedDeckId && decks.length > 0}
+            />
+          </div>
         </StaggerItem>
 
         {/* DeckList chips */}

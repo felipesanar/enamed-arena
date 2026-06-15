@@ -486,72 +486,82 @@ export function FlashcardEditor({
           )}
         </AnimatePresence>
 
-        {/* Grid frente / verso */}
-        <div className="grid gap-5 sm:grid-cols-2">
+        {/* Grid frente / verso — duas faces do card */}
+        <div className="grid gap-4 sm:grid-cols-2">
           {/* Frente */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[var(--c-wine-500)]" aria-hidden />
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
+            <div className="flex items-center gap-2 border-b border-[var(--c-border)] bg-[var(--c-soft-wine-bg)] px-3.5 py-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-[var(--c-wine-500)] to-[var(--c-wine-700)] text-[10px] font-bold text-white">
+                F
+              </span>
               <label
                 htmlFor="fc-front"
-                className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]"
+                className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-700)] dark:text-[var(--c-wine-300)]"
               >
                 Frente
               </label>
+              <span className="ml-auto text-[10px] font-medium text-[var(--c-muted-2)]">o que você vê</span>
             </div>
-            <textarea
-              id="fc-front"
-              value={frontMd}
-              onChange={(e) => setFrontMd(e.target.value)}
-              rows={5}
-              placeholder="Pergunta, conceito ou imagem… (aceita formatação)"
-              className={cn(
-                'w-full resize-none rounded-xl border bg-[var(--c-surface-2)] px-3.5 py-3',
-                'text-[13px] leading-relaxed text-[var(--c-ink)]',
-                'placeholder:text-[var(--c-muted-2)] outline-none transition-colors',
-                'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
-              )}
-            />
-            <ImageUploadZone
-              label="da frente"
-              imageUrl={frontImageUrl}
-              uploading={uploadingFront}
-              onFile={(f) => handleUpload(f, 'front')}
-              onClear={() => setFrontImageUrl(null)}
-            />
+            <div className="flex flex-col gap-3 p-3.5">
+              <textarea
+                id="fc-front"
+                value={frontMd}
+                onChange={(e) => setFrontMd(e.target.value)}
+                rows={5}
+                placeholder="Pergunta, conceito ou imagem… (aceita formatação)"
+                className={cn(
+                  'w-full resize-none rounded-xl border bg-[var(--c-surface-2)] px-3.5 py-3',
+                  'text-[13px] leading-relaxed text-[var(--c-ink)]',
+                  'placeholder:text-[var(--c-muted-2)] outline-none transition-colors',
+                  'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
+                )}
+              />
+              <ImageUploadZone
+                label="da frente"
+                imageUrl={frontImageUrl}
+                uploading={uploadingFront}
+                onFile={(f) => handleUpload(f, 'front')}
+                onClear={() => setFrontImageUrl(null)}
+              />
+            </div>
           </div>
 
           {/* Verso */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[var(--c-surface-2)] ring-2 ring-[var(--c-border)]" aria-hidden />
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
+            <div className="flex items-center gap-2 border-b border-[var(--c-border)] bg-[var(--c-surface-2)] px-3.5 py-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[var(--c-ink)] text-[10px] font-bold text-[var(--c-surface)]">
+                V
+              </span>
               <label
                 htmlFor="fc-back"
                 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--c-muted)]"
               >
                 Verso
               </label>
+              <span className="ml-auto text-[10px] font-medium text-[var(--c-muted-2)]">o que você lembra</span>
             </div>
-            <textarea
-              id="fc-back"
-              value={backMd}
-              onChange={(e) => setBackMd(e.target.value)}
-              rows={5}
-              placeholder="Resposta, explicação ou gabarito… (aceita formatação)"
-              className={cn(
-                'w-full resize-none rounded-xl border bg-[var(--c-surface-2)] px-3.5 py-3',
-                'text-[13px] leading-relaxed text-[var(--c-ink)]',
-                'placeholder:text-[var(--c-muted-2)] outline-none transition-colors',
-                'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
-              )}
-            />
-            <ImageUploadZone
-              label="do verso"
-              imageUrl={backImageUrl}
-              uploading={uploadingBack}
-              onFile={(f) => handleUpload(f, 'back')}
-              onClear={() => setBackImageUrl(null)}
-            />
+            <div className="flex flex-col gap-3 p-3.5">
+              <textarea
+                id="fc-back"
+                value={backMd}
+                onChange={(e) => setBackMd(e.target.value)}
+                rows={5}
+                placeholder="Resposta, explicação ou gabarito… (aceita formatação)"
+                className={cn(
+                  'w-full resize-none rounded-xl border bg-[var(--c-surface-2)] px-3.5 py-3',
+                  'text-[13px] leading-relaxed text-[var(--c-ink)]',
+                  'placeholder:text-[var(--c-muted-2)] outline-none transition-colors',
+                  'border-[var(--c-border)] focus:border-[var(--c-wine-400)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)]',
+                )}
+              />
+              <ImageUploadZone
+                label="do verso"
+                imageUrl={backImageUrl}
+                uploading={uploadingBack}
+                onFile={(f) => handleUpload(f, 'back')}
+                onClear={() => setBackImageUrl(null)}
+              />
+            </div>
           </div>
         </div>
       </div>
