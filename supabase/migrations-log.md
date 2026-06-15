@@ -624,3 +624,64 @@ produção no smoke.
 `admin_get_simulado_questions`, `admin_update_question`, `admin_update_option`,
 `admin_set_correct_option`, `admin_delete_question`, `admin_list_audit`, `admin_audit_log`.
 `npm run build` verde.
+
+---
+
+## 2026-06-15 — `admin_gestao_hardening` (Fase 3 — hardening pós-review)
+
+Dois fixes de defesa em profundidade aplicados no DB de produção. Não há mudança de
+comportamento para o fluxo normal de estudantes (as alterações afetam apenas permissões de
+escrita em tabela de auditoria e comportamento de DELETE em questões, operação exclusiva de admins).
+
+### Fix 1 — Revoke de grants de escrita inerte em `admin_audit_log`
+
+`anon` e `authenticated` possuíam grants de tabela INSERT/UPDATE/DELETE/TRUNCATE em
+`admin_audit_log`. Esses grants eram **inerts** (RLS default-deny sem policies de escrita para
+esses roles), mas representavam dívida de defesa em profundidade. Revogados:
+
+```sql
+revoke insert, update, delete, truncate on public.admin_audit_log from anon, authenticated;
+```
+
+`SELECT` e `REFERENCES`/`TRIGGER` foram mantidos (SELECT é governado pela policy RLS
+`Auditores podem ler audit log`; `service_role` não foi tocado).
+
+**Verificação (após migration):** `information_schema.role_table_grants` para `anon`/`authenticated`
+em `admin_audit_log` mostra apenas `REFERENCES`, `SELECT`, `TRIGGER` — INSERT/UPDATE/DELETE/TRUNCATE
+ausentes. ✓
+
+**Situação antes da migration:** anon e authenticated tinham INSERT, UPDATE, DELETE, REFERENCES,
+SELECT, TRIGGER, TRUNCATE (7 grants cada).
+
+### Fix 2 — FK `attempt_question_results.question_id`: CASCADE → RESTRICT
+
+**Constraint confirmada antes da alteração:**
+```
+FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+```
+Exatamente FK simples `(question_id) → questions(id)`, safe para alterar.
+
+O comportamento CASCADE significava que deletar uma questão eliminaria silenciosamente todas as
+~143k linhas de histórico em `attempt_question_results`. O guard de aplicação
+(`admin_delete_question` P0009) era a única proteção. A migration adiciona enforcement no DB:
+
+```sql
+alter table public.attempt_question_results
+  drop constraint attempt_question_results_question_id_fkey;
+alter table public.attempt_question_results
+  add constraint attempt_question_results_question_id_fkey
+    foreign key (question_id) references public.questions(id) on delete restrict;
+```
+
+As FKs de `selected_option_id` e `correct_option_id` não foram tocadas (permanecem `confdeltype='a'`).
+
+**Verificação (após migration):**
+
+| Constraint | confdeltype | Significado |
+|---|---|---|
+| `attempt_question_results_attempt_id_fkey` | `c` (cascade) | inalterado |
+| `attempt_question_results_correct_option_id_fkey` | `a` (no action) | inalterado |
+| `attempt_question_results_question_id_fkey` | **`r` (restrict)** | ✓ alterado |
+| `attempt_question_results_selected_option_id_fkey` | `a` (no action) | inalterado |
+
+**Row count smoke:** `count(*) from attempt_question_results = 143200` (ALTER não toca linhas). ✓
