@@ -11,6 +11,7 @@ import { AdminConfirmDialog } from '@/admin/components/ui/AdminConfirmDialog'
 import { ATTEMPT_STATUS_META, PERIOD_OPTIONS } from '@/admin/lib/constants'
 import { getInitials, formatInt } from '@/admin/lib/format'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAdminCan } from '@/admin/contexts/AdminAccessContext'
 import {
   useAdminAttemptKpis,
   useAdminAttemptList,
@@ -47,6 +48,7 @@ function AdminTentativasContent() {
   const { data: simulados } = useAdminSimuladoList()
   const cancelMutation = useAdminCancelAttempt()
   const deleteMutation = useAdminDeleteAttempt()
+  const canManage = useAdminCan('attempts.manage')
 
   const rows: AttemptListRow[] = data ?? []
   const totalCount = rows[0]?.total_count ?? 0
@@ -198,7 +200,7 @@ function AdminTentativasContent() {
                     onClick={() => navigate(`/admin/usuarios/${row.user_id}`)}
                     className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-accent hover:bg-admin-accent/10 transition-colors text-sm"
                   >→</button>
-                  {row.status === 'in_progress' && (
+                  {canManage && row.status === 'in_progress' && (
                     <button
                       aria-label="Cancelar"
                       title="Cancelar"
@@ -206,12 +208,14 @@ function AdminTentativasContent() {
                       className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-warning hover:bg-admin-warning/10 transition-colors text-xs"
                     >✕</button>
                   )}
-                  <button
-                    aria-label="Excluir"
-                    title="Excluir"
-                    onClick={() => setConfirm({ type: 'delete', attemptId: row.attempt_id })}
-                    className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-destructive hover:bg-admin-destructive/10 transition-colors text-xs"
-                  >🗑</button>
+                  {canManage && (
+                    <button
+                      aria-label="Excluir"
+                      title="Excluir"
+                      onClick={() => setConfirm({ type: 'delete', attemptId: row.attempt_id })}
+                      className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-destructive hover:bg-admin-destructive/10 transition-colors text-xs"
+                    >🗑</button>
+                  )}
                 </div>
               </div>
             ))
