@@ -287,7 +287,7 @@ export interface EngagementMetrics {
   high_integrity_flag_pct: number
 }
 
-export interface SegmentBreakdownRow {
+export type SegmentBreakdownRow = {
   segment: string
   users: number
   participants: number
@@ -332,7 +332,7 @@ export interface AdminQuestionFull {
 
 // ─── Auditoria ───
 
-export interface AuditLogRow {
+export type AuditLogRow = {
   id: string
   actor_email: string | null
   action: string

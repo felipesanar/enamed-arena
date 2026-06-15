@@ -1,40 +1,52 @@
-## Problema
+## Objetivo
 
-Hoje o modal `OfflineModeSimpleDialog` (escolha entre fazer online ou baixar PDF) só aparece no `HeroCard` da página `/simulados`. Em todos os outros pontos de entrada o usuário vai direto pra `/simulados/:id/prova`, pulando a escolha:
+1. Corrigir os erros de build de TypeScript no módulo admin (surgiram após a regeração do `types.ts`).
+2. Ajustar a página de Flashcards: colocar as estatísticas (Total / Decks / Para hoje) na mesma linha do título, à direita; e reduzir um pouco a altura dos painéis "Estudar" e "Criar".
 
-- Cards da timeline (`SimuladosTimelineSection`) — link direto para `/start` (página de detalhe).
-- Página de detalhe (`SimuladoDetailPage`) — os 2 botões "Iniciar Simulado" (veterano + checklist) e o "Continuar Simulado" navegam direto para `/prova`.
+---
 
-Resultado: a maioria dos alunos nem vê a opção offline.
+## Parte 1 — Corrigir erros de build
 
-## Solução
+### a) Tabelas admin (`AuditLogRow`, `SegmentBreakdownRow`)
+O componente `AdminDataTable` exige `T extends Record<string, unknown>`. `interface` em TS não satisfaz essa restrição, mas um `type` (alias de objeto) satisfaz.
 
-Tornar o modal de escolha o **único** ponto de partida para uma tentativa nova, em qualquer entrada.
+- Em `src/admin/types.ts`: converter `export interface AuditLogRow {...}` e `export interface SegmentBreakdownRow {...}` para `export type AuditLogRow = {...}` e `export type SegmentBreakdownRow = {...}` (mesmos campos, só troca `interface` → `type =`).
+- Resolve `AdminAuditoria.tsx(192)` e `AdminInteligencia.tsx(415)`.
 
-### 1. `SimuladoDetailPage.tsx`
-- Adicionar estado `showModeModal` + `<OfflineModeSimpleDialog>` na página.
-- Trocar os 2 botões "Iniciar Simulado" (linhas ~405 e ~538) de `navigate(.../prova)` para `setShowModeModal(true)`.
-- O botão "Continuar Simulado" (linha ~614, quando `userState.started === true`) continua indo direto para `/prova` — não faz sentido reabrir escolha numa tentativa já em andamento.
-- Se já existir `offline_pending` ativo (via `useOfflineAttempt`), pular o modal e ir para o gabarito digital, mantendo o comportamento atual de resume.
+### b) Argumentos de RPC com `string | null` (`src/admin/services/adminApi.ts`)
+Os tipos gerados passaram a recusar `null` nos argumentos. Os RPCs de filtro usam `IS NULL` para "todos", então é preciso **manter o `null` em runtime** — a correção é apenas de tipo, com cast `as string`:
 
-### 2. `SimuladosTimelineSection.tsx`
-- Trocar o `<Link to="/start">` da CTA dos cards `available` / `available_late` por um `<button>` que dispara um callback `onStartSimulado(sim)` recebido por prop.
-- Manter o resume (`/prova`) como `<Link>` direto quando `userState.started === true`.
-- Em `SimuladosPage.tsx`, passar `onStartSimulado={(sim) => { setSelectedSim(sim); setShowModeModal(true); }}` para a seção, reutilizando o modal único já existente na página.
+- L594 `getPerformanceByArea`: `p_simulado_id: simuladoId as string` (idem `p_segment` já é string).
+- L600 `getPerformanceByTheme`: `p_simulado_id: simuladoId as string`, `p_area: area as string`.
+- L606 `getScoreDistribution`: `p_simulado_id: simuladoId as string`.
+- L662–665 `updateQuestion`: `p_explanation`, `p_image_url`, `p_explanation_image_url`, `p_image_url_2` recebem `... as string` (preserva o envio de `null` quando o campo é limpo).
 
-### 3. Microcopy
-- Confirmar que o título do modal ("Como deseja realizar o simulado?") e os 2 cards (online vs offline) estão claros — já estão, manter.
-- Adicionar pequeno texto no card offline reforçando "Disponível sempre, mesmo fora da janela" para alinhar com a regra de treino.
+### c) Cast do retorno de questões (L640)
+`admin_get_simulado_questions` retorna `options` como `Json`, incompatível com `AdminQuestionOption[]`. Corrigir o cast para passar por `unknown`:
+- `return (data ?? []) as unknown as AdminQuestionFull[]`.
 
-### 4. Validação
-- Verificar manualmente: timeline → modal aparece; página de detalhe → modal aparece; resume de prova em andamento → vai direto pra `/prova`.
-- Rodar `npm run test` (não há teste específico desse fluxo; só garantir que nada quebre).
+Nenhuma alteração em `src/integrations/supabase/types.ts` (arquivo gerado).
 
-## Arquivos tocados
+---
 
-- `src/pages/SimuladoDetailPage.tsx` — adicionar modal + trocar handlers dos botões "Iniciar".
-- `src/components/simulados/SimuladosTimelineSection.tsx` — aceitar prop `onStartSimulado` e usar button no lugar de Link.
-- `src/pages/SimuladosPage.tsx` — passar handler para a seção (modal já existe lá).
-- `src/components/simulados/OfflineModeSimpleDialog.tsx` — ajuste pequeno de copy no card offline.
+## Parte 2 — Layout da página de Flashcards
 
-Sem mudanças em backend, RPCs ou regras de negócio — apenas roteamento de UI para o modal de escolha.
+### a) Stats na mesma linha do título (à direita)
+No `PageHeaderPremium` (desktop), hoje o título fica em cima e os stats numa linha abaixo. Ajustar para que, no desktop, os tiles de stat fiquem na mesma linha do bloco título/subtítulo, alinhados à direita.
+
+- `src/components/caderno/ui/PageHeaderPremium.tsx`: no ramo desktop, mover o bloco de stats para dentro da linha superior (`flex items-start justify-between`), à direita, com `items-end`/alinhamento à direita. O ramo mobile permanece igual (stats abaixo, scrolláveis).
+- Observação: o `PageHeaderPremium` é compartilhado por outras abas do Caderno (Favoritos, Treino, etc.), então elas também passarão a exibir os stats na mesma linha do título — comportamento consistente. Se preferir aplicar **só** em Flashcards, eu isolo a mudança nessa página.
+
+### b) Painéis "Estudar" e "Criar" um pouco menores em altura
+Reduzir levemente o padding vertical/altura dos tiles e CTAs:
+
+- `StudyPanel.tsx`: reduzir o padding do card "Revisar devidos" (`py-3` → `py-2.5`) e dos tiles de modos (`p-3` → `p-2.5`), encurtando a altura geral.
+- `CreatePanel.tsx`: reduzir padding do card "Gerar com Prof. San" e do "Criar flashcard" (`p-4` → `p-3.5`) e os espaçamentos internos (`mt-3`/`mt-3.5` levemente menores), além do CTA (`py-2.5` → `py-2`).
+
+Ajustes finos de valores serão validados visualmente no preview após a implementação.
+
+---
+
+## Verificação
+- Confirmar que o build/typecheck passa sem os erros listados.
+- Abrir `/caderno/flashcards` no preview e conferir: stats à direita do título na mesma linha; painéis Estudar/Criar mais baixos; nenhuma quebra de layout nas demais abas do Caderno.
