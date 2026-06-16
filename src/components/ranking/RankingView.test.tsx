@@ -117,12 +117,12 @@ describe('RankingView', () => {
     expect(screen.getByText('Você ainda não está no ranking')).toBeTruthy();
   });
 
-  it('shows hero standing (Top %) from fallback when currentUser exists', () => {
+  it('shows hero standing (posição/frase) from fallback when currentUser exists', () => {
     const user = makeParticipant(5, true);
     const participants = Array.from({ length: 20 }, (_, i) => makeParticipant(i + 1, i === 4));
-    // sem heroStanding → fallback: percentil = ceil(5/20*100) = 25
+    // sem heroStanding → fallback: position 5 de 20 → supera 15 candidatos
     renderView({ currentUser: user, filteredParticipants: participants });
-    expect(screen.getByText('Top 25%')).toBeTruthy();
+    expect(screen.getByText('Você supera 15 candidatos')).toBeTruthy();
   });
 
   it('uses explicit heroStanding (global) over the filtered fallback', () => {
@@ -133,7 +133,8 @@ describe('RankingView', () => {
       filteredParticipants: participants,
       heroStanding: { position: 1, total: 100, percentil: 1, score: 99 },
     });
-    expect(screen.getByText('Top 1%')).toBeTruthy();
+    // global: position 1 de 100 → supera 99 (não o fallback de 15)
+    expect(screen.getByText('Você supera 99 candidatos')).toBeTruthy();
   });
 
   it('shows cutoff card (always visible) with the institution row', () => {
