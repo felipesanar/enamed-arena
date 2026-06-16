@@ -38,7 +38,7 @@ export function TopUtilityBar({ className }: TopUtilityBarProps) {
 
       <Link
         to="/configuracoes"
-        className="flex h-8 w-8 rounded-lg border border-primary/15 bg-[linear-gradient(135deg,rgba(142,31,61,0.08)_0%,rgba(142,31,61,0.04)_100%)] items-center justify-center shadow-[0_2px_8px_-4px_rgba(142,31,61,0.2),inset_0_1px_0_rgba(255,255,255,0.5)] hover:bg-[linear-gradient(135deg,rgba(142,31,61,0.12)_0%,rgba(142,31,61,0.06)_100%)] hover:border-primary/25 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex h-8 w-8 rounded-lg border border-primary/15 bg-[linear-gradient(135deg,hsl(var(--primary)/0.1)_0%,hsl(var(--primary)/0.05)_100%)] items-center justify-center shadow-[0_2px_8px_-4px_hsl(var(--primary)/0.25),inset_0_1px_0_rgba(255,255,255,0.5)] hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.16)_0%,hsl(var(--primary)/0.08)_100%)] hover:border-primary/25 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label="Abrir configurações"
       >
         <span className="text-[11px] font-bold text-primary/90">

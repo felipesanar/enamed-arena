@@ -108,16 +108,18 @@
 
 /* ── Dark premium (ink) ──────────────────────────────────────────────── */
 .dark .caderno-root {
-  --c-bg:        #0F0D11;
-  --c-surface:   #16131A;
-  --c-surface-2: #1E1A24;
-  --c-border:    #2A2531;
-  --c-ink:       #F4EFF2;
-  --c-muted:     #A89FB0;
-  --c-muted-2:   #6E6879;
+  /* Neutros frios (slate, hue ~224) — alinhado ao .dark global; antes eram
+     mauve/quentes (#16131A…), o que somava ao "marrom" reclamado. */
+  --c-bg:        #0c0d12;
+  --c-surface:   #14161d;
+  --c-surface-2: #1b1e27;
+  --c-border:    #262a35;
+  --c-ink:       #eef0f5;
+  --c-muted:     #9aa1b2;
+  --c-muted-2:   #686e7d;
 
-  --c-glass-bg:     rgba(22,19,26,0.72);
-  --c-glass-border: rgba(42,37,49,0.6);
+  --c-glass-bg:     rgba(20,22,29,0.72);
+  --c-glass-border: rgba(38,42,53,0.6);
 
   /* Soft wine no dark — tinte sutil de vinho sobre a superfície escura
      (substitui o antigo dark:bg-[var(--c-wine-900)]/40, que era descartado). */
