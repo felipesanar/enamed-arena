@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { PremiumSidebar, PREMIUM_SIDEBAR_COLLAPSED_W, PREMIUM_SIDEBAR_EXPANDED_W } from "@/components/premium/PremiumSidebar";
 import { DashboardOutlet } from "@/components/premium/DashboardOutlet";
-import { MobileDashboardHeader } from "@/components/premium/MobileDashboardHeader";
 import { MobileBottomNav } from "@/components/premium/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUser } from "@/contexts/UserContext";
@@ -10,10 +9,9 @@ import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "enamed-premium-sidebar-collapsed";
 
-// Alturas dos componentes mobile — manter sincronizado com MobileDashboardHeader e MobileBottomNav
-const MOBILE_HEADER_H = '3.5rem';      // MobileDashboardHeader
-const MOBILE_UPSELL_H = '3.25rem';     // UpsellBanner (guest only)
-const MOBILE_BOTTOM_NAV_H = '5.75rem'; // MobileBottomNav + tab bar area
+// Alturas dos componentes mobile — manter sincronizado com MobileBottomNav
+const MOBILE_BOTTOM_NAV_H = '5.75rem'; // MobileBottomNav
+const MOBILE_UPSELL_BAR_H = '2.5rem';  // Barra fina de upsell (somente visitante)
 
 function readSidebarCollapsed(): boolean {
   try {
@@ -82,12 +80,7 @@ export function DashboardLayout() {
         </div>
       )}
 
-      {isMobile && !isExamRoute && (
-        <>
-          <MobileDashboardHeader />
-          <MobileBottomNav />
-        </>
-      )}
+      {isMobile && !isExamRoute && <MobileBottomNav />}
 
       <div
         className={cn(
@@ -106,13 +99,13 @@ export function DashboardLayout() {
               !isArenaRoute &&
               !isFullBleedRoute &&
               cn(
+                // Sem header: apenas a status bar + um respiro
+                "pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]",
                 isGuestMobile
-                  // MOBILE_HEADER_H + MOBILE_UPSELL_H + safe-area + gap
-                  ? "pt-[calc(3.5rem+3.25rem+env(safe-area-inset-top,0px)+0.75rem)]"
-                  // MOBILE_HEADER_H + safe-area + gap
-                  : "pt-[calc(3.5rem+env(safe-area-inset-top,0px)+0.75rem)]",
-                // MOBILE_BOTTOM_NAV_H + safe-area bottom
-                "pb-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
+                  // MOBILE_BOTTOM_NAV_H + barra de upsell + safe-area bottom
+                  ? "pb-[calc(5.75rem+2.5rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
+                  // MOBILE_BOTTOM_NAV_H + safe-area bottom
+                  : "pb-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
               )
           )}
         >
