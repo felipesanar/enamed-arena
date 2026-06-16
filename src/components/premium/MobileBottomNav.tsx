@@ -170,6 +170,13 @@ export function MobileBottomNav() {
               label={DIRECT_ITEMS[1].label}
               icon={DIRECT_ITEMS[1].icon}
             />
+            <NavIconButton
+              to={DIRECT_ITEMS[2].to}
+              end={DIRECT_ITEMS[2].end}
+              label={DIRECT_ITEMS[2].label}
+              icon={DIRECT_ITEMS[2].icon}
+            />
+
             <button
               type="button"
               onClick={() => setRankingOpen(true)}
