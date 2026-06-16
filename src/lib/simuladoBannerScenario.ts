@@ -98,3 +98,63 @@ export function notificationBellDotVisible(scenario: BannerScenario): boolean {
     scenario.type === "open_not_done" || scenario.type === "after_done"
   );
 }
+
+/** Conteúdo da central de notificações (usado na bottom nav mobile). */
+export function getNotificationHubContent(scenario: BannerScenario): {
+  title: string;
+  subtitle: string;
+  description: string;
+  primaryHref: string;
+} {
+  if (scenario.type === "open_not_done") {
+    return {
+      title: "Janela aberta agora",
+      subtitle: scenario.title,
+      description: "Você tem uma ação importante para esta janela de simulado.",
+      primaryHref: `/simulados/${scenario.simuladoId}`,
+    };
+  }
+
+  if (scenario.type === "after_done") {
+    return {
+      title: "Resultado disponível",
+      subtitle: scenario.title,
+      description: "Seu resultado já pode ser conferido.",
+      primaryHref: `/simulados/${scenario.simuladoId}`,
+    };
+  }
+
+  if (scenario.type === "open_done_waiting") {
+    return {
+      title: "Resultado em breve",
+      subtitle: `Liberação prevista para ${formatDateShort(scenario.resultsAt)}`,
+      description: "Você concluiu o simulado e o resultado será liberado em breve.",
+      primaryHref: "/simulados",
+    };
+  }
+
+  if (scenario.type === "before_window") {
+    return {
+      title: "Próxima janela programada",
+      subtitle: `${formatDateShort(scenario.start)} a ${formatDateShort(scenario.end)}`,
+      description: "Planeje sua participação para entrar no ranking nacional.",
+      primaryHref: "/simulados",
+    };
+  }
+
+  return {
+    title: "Sem alertas no momento",
+    subtitle: "Nenhuma notificação pendente",
+    description: "Acompanhe novos simulados e atualizações por aqui.",
+    primaryHref: "/simulados",
+  };
+}
+
+function formatDateShort(dateIso: string): string {
+  const d = new Date(dateIso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  }).format(d);
+}
