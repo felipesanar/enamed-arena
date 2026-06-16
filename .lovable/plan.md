@@ -1,52 +1,46 @@
+# Remover header mobile e consolidar na navbar
+
 ## Objetivo
+Eliminar o `MobileDashboardHeader` (que está visualmente ruim) e reposicionar tudo que ele continha na bottom nav, ganhando altura útil de tela. Manter a conversão PRO para visitantes.
 
-1. Corrigir os erros de build de TypeScript no módulo admin (surgiram após a regeração do `types.ts`).
-2. Ajustar a página de Flashcards: colocar as estatísticas (Total / Decks / Para hoje) na mesma linha do título, à direita; e reduzir um pouco a altura dos painéis "Estudar" e "Criar".
+## 1. Remover o header mobile
+- Em `DashboardLayout.tsx`: remover o render de `<MobileDashboardHeader />` e seu import.
+- Deletar o arquivo `src/components/premium/MobileDashboardHeader.tsx`.
+- Recalcular o padding do `<main>` mobile:
+  - **Topo:** passa a ser só `env(safe-area-inset-top)` + um respiro pequeno (sem mais a altura do header).
+  - **Base:** altura da nav + barra de upsell (quando visitante).
+- Limpar/ajustar as constantes `MOBILE_HEADER_H` / `MOBILE_UPSELL_H`.
 
----
+## 2. Novo botão "Conta" na bottom nav (6º item)
+Em `MobileBottomNav.tsx`, adicionar um item "Conta":
+- Avatar circular com a inicial do usuário (mesmo estilo do antigo header), com **ponto de notificação** quando houver alerta (`notificationBellDotVisible`).
+- Ao tocar, abre um **sheet inferior "Conta"** contendo, nesta ordem:
+  1. (Visitante) Card de upsell PRO mais descritivo no topo — reforço de conversão, já que quem abre o menu é o público-alvo.
+  2. Central de notificações (a mesma lógica `deriveScenario` + `getNotificationHubContent`, com atalho contextual + links Simulados/Ranking).
+  3. Alternância de tema (`ThemeToggle`).
+  4. Link "Conta e configurações" (`/configuracoes`).
+  5. (Se perfil incompleto) Link "Completar perfil".
 
-## Parte 1 — Corrigir erros de build
+## 3. Upsell PRO (visitante) — abordagem dupla para manter conversão
+- **Barra fina fixa acima da nav** (~40px, fundo wine/`bg-primary`, ícone + "Desbloquear PRO ENAMED" + seta), só para visitantes, abrindo `SANARFLIX_PRO_ENAMED_URL` em nova aba. Mantém o CTA sempre visível sem o header pesado.
+- **Reforço dentro do sheet "Conta"** (card maior e descritivo), conforme item 2.
 
-### a) Tabelas admin (`AuditLogRow`, `SegmentBreakdownRow`)
-O componente `AdminDataTable` exige `T extends Record<string, unknown>`. `interface` em TS não satisfaz essa restrição, mas um `type` (alias de objeto) satisfaz.
+## Layout final (mobile)
+```text
+┌─────────────────────────────┐
+│      conteúdo da página       │  ← começa logo abaixo da status bar
+├─────────────────────────────┤
+│ ✦ Desbloquear PRO ENAMED  →  │  ← barra fina (somente visitante)
+├─────────────────────────────┤
+│ Início Simul. Desemp. Rank.  │
+│ Erros               [A]•      │  ← "Conta" com ponto de alerta
+└─────────────────────────────┘
+```
+Desktop permanece inalterado. A marca "PRO: ENAMED" deixa de aparecer no topo mobile (comportamento esperado de app shell).
 
-- Em `src/admin/types.ts`: converter `export interface AuditLogRow {...}` e `export interface SegmentBreakdownRow {...}` para `export type AuditLogRow = {...}` e `export type SegmentBreakdownRow = {...}` (mesmos campos, só troca `interface` → `type =`).
-- Resolve `AdminAuditoria.tsx(192)` e `AdminInteligencia.tsx(415)`.
-
-### b) Argumentos de RPC com `string | null` (`src/admin/services/adminApi.ts`)
-Os tipos gerados passaram a recusar `null` nos argumentos. Os RPCs de filtro usam `IS NULL` para "todos", então é preciso **manter o `null` em runtime** — a correção é apenas de tipo, com cast `as string`:
-
-- L594 `getPerformanceByArea`: `p_simulado_id: simuladoId as string` (idem `p_segment` já é string).
-- L600 `getPerformanceByTheme`: `p_simulado_id: simuladoId as string`, `p_area: area as string`.
-- L606 `getScoreDistribution`: `p_simulado_id: simuladoId as string`.
-- L662–665 `updateQuestion`: `p_explanation`, `p_image_url`, `p_explanation_image_url`, `p_image_url_2` recebem `... as string` (preserva o envio de `null` quando o campo é limpo).
-
-### c) Cast do retorno de questões (L640)
-`admin_get_simulado_questions` retorna `options` como `Json`, incompatível com `AdminQuestionOption[]`. Corrigir o cast para passar por `unknown`:
-- `return (data ?? []) as unknown as AdminQuestionFull[]`.
-
-Nenhuma alteração em `src/integrations/supabase/types.ts` (arquivo gerado).
-
----
-
-## Parte 2 — Layout da página de Flashcards
-
-### a) Stats na mesma linha do título (à direita)
-No `PageHeaderPremium` (desktop), hoje o título fica em cima e os stats numa linha abaixo. Ajustar para que, no desktop, os tiles de stat fiquem na mesma linha do bloco título/subtítulo, alinhados à direita.
-
-- `src/components/caderno/ui/PageHeaderPremium.tsx`: no ramo desktop, mover o bloco de stats para dentro da linha superior (`flex items-start justify-between`), à direita, com `items-end`/alinhamento à direita. O ramo mobile permanece igual (stats abaixo, scrolláveis).
-- Observação: o `PageHeaderPremium` é compartilhado por outras abas do Caderno (Favoritos, Treino, etc.), então elas também passarão a exibir os stats na mesma linha do título — comportamento consistente. Se preferir aplicar **só** em Flashcards, eu isolo a mudança nessa página.
-
-### b) Painéis "Estudar" e "Criar" um pouco menores em altura
-Reduzir levemente o padding vertical/altura dos tiles e CTAs:
-
-- `StudyPanel.tsx`: reduzir o padding do card "Revisar devidos" (`py-3` → `py-2.5`) e dos tiles de modos (`p-3` → `p-2.5`), encurtando a altura geral.
-- `CreatePanel.tsx`: reduzir padding do card "Gerar com Prof. San" e do "Criar flashcard" (`p-4` → `p-3.5`) e os espaçamentos internos (`mt-3`/`mt-3.5` levemente menores), além do CTA (`py-2.5` → `py-2`).
-
-Ajustes finos de valores serão validados visualmente no preview após a implementação.
-
----
-
-## Verificação
-- Confirmar que o build/typecheck passa sem os erros listados.
-- Abrir `/caderno/flashcards` no preview e conferir: stats à direita do título na mesma linha; painéis Estudar/Criar mais baixos; nenhuma quebra de layout nas demais abas do Caderno.
+## Detalhes técnicos
+- `MobileBottomNav.tsx`: importar `useUser`, `useHasAccess` (já existe), `useSimulados`, `ThemeToggle`, `deriveScenario`/`notificationBellDotVisible`/`getNotificationHubContent` (mover esse helper do header para cá ou para `simuladoBannerScenario.ts`), `SANARFLIX_PRO_ENAMED_URL`, `trackEvent`. Adicionar o item "Conta", o sheet de conta e a barra de upsell renderizada acima do `<nav>`.
+- `getNotificationHubContent` e `formatDateShort` vivem hoje dentro do header; serão movidos para o `MobileBottomNav` (ou extraídos para `simuladoBannerScenario.ts`) antes de deletar o header.
+- `DashboardLayout.tsx`: remover bloco do header, recalcular `pt`/`pb` do `<main>`, ajustar constantes. A barra de upsell vira parte do `MobileBottomNav`, então o `pb` quando `isGuestMobile` deve somar a altura dessa barra.
+- Eventos de analytics (`upsell_clicked`, `ranking_viewed`) preservados nas novas posições.
+- Validação: `browser--view_preview` em viewport mobile (375px) como visitante e como aluno, conferindo padding, ponto de alerta, sheet e barra de upsell.
