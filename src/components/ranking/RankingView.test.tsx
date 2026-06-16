@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { buildTableRows, RankingView } from './RankingView';
 import type { RankingParticipant, RankingStats } from '@/services/rankingApi';
@@ -112,38 +112,49 @@ describe('RankingView', () => {
     expect(screen.getByText('Sem participantes')).toBeTruthy();
   });
 
-  it('does not show stats row when currentUser is undefined', () => {
+  it('shows aspirational hero when currentUser is undefined', () => {
     renderView({ currentUser: undefined });
-    expect(screen.queryByText('Percentil')).toBeNull();
+    expect(screen.getByText('Você ainda não está no ranking')).toBeTruthy();
   });
 
-  it('shows stats row when currentUser exists', () => {
+  it('shows hero standing (Top %) from fallback when currentUser exists', () => {
     const user = makeParticipant(5, true);
-    const participants = Array.from({ length: 20 }, (_, i) =>
-      makeParticipant(i + 1, i === 4),
-    );
+    const participants = Array.from({ length: 20 }, (_, i) => makeParticipant(i + 1, i === 4));
+    // sem heroStanding → fallback: percentil = ceil(5/20*100) = 25
     renderView({ currentUser: user, filteredParticipants: participants });
-    expect(screen.getByText('Percentil')).toBeTruthy();
-    expect(screen.getByText('#5')).toBeTruthy();
+    expect(screen.getByText('Top 25%')).toBeTruthy();
   });
 
-  it('shows approval panel in no_profile state when profile is incomplete', () => {
-    renderView({ userSpecialtyId: null, userInstitutionIds: [] });
-    expect(screen.getByText('Você passaria?')).toBeTruthy();
-    expect(screen.getByText('Completar perfil')).toBeTruthy();
+  it('uses explicit heroStanding (global) over the filtered fallback', () => {
+    const user = makeParticipant(5, true);
+    const participants = Array.from({ length: 20 }, (_, i) => makeParticipant(i + 1, i === 4));
+    renderView({
+      currentUser: user,
+      filteredParticipants: participants,
+      heroStanding: { position: 1, total: 100, percentil: 1, score: 99 },
+    });
+    expect(screen.getByText('Top 1%')).toBeTruthy();
   });
 
-  it('shows approval panel comparison when profile is set', () => {
+  it('shows cutoff section collapsed by default; expands on click', () => {
     renderView({
       userSpecialty: 'Pediatria',
       userInstitutions: ['Hospital X'],
       userSpecialtyId: 'spec-1',
       userInstitutionIds: ['inst-1'],
     });
+    // recolhida: cabeçalho visível, conteúdo detalhado oculto
+    expect(screen.getByText('Você passaria?')).toBeTruthy();
+    expect(screen.queryByText('Sua nota vs. notas de corte')).toBeNull();
+    // expande
+    fireEvent.click(screen.getByText('Você passaria?'));
     expect(screen.getByText('Sua nota vs. notas de corte')).toBeTruthy();
-    // cutoffs mock is empty → institution listed as unavailable
     expect(screen.getByText('Hospital X')).toBeTruthy();
-    expect(screen.getByText('corte indisponível')).toBeTruthy();
+  });
+
+  it('hides cutoff section entirely when showApprovalPanel is false (admin)', () => {
+    renderView({ showApprovalPanel: false });
+    expect(screen.queryByText('Você passaria?')).toBeNull();
   });
 
   it('shows low confidence banner when fewer than 30 participants', () => {

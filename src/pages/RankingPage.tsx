@@ -11,6 +11,9 @@ import { useRanking } from '@/hooks/useRanking';
 import { Trophy } from 'lucide-react';
 import { getAllowedRankingSegmentFilters } from '@/services/rankingApi';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { computePercentile } from '@/lib/ranking-percentile';
+import { useRankingEvolution } from '@/hooks/useRankingEvolution';
 import { RankingView } from '@/components/ranking/RankingView';
 import { ProfSanorRanking } from '@/components/ranking/ProfSanorRanking';
 import { FloatingProfSan } from '@/components/FloatingProfSan';
@@ -22,6 +25,7 @@ export default function RankingPage() {
     simuladosWithResults,
     selectedSimuladoId,
     setSelectedSimuladoId,
+    allParticipants,
     filteredParticipants,
     currentUser,
     stats,
@@ -37,9 +41,30 @@ export default function RankingPage() {
   } = useRanking();
 
   const { profile } = useUser();
+  const { user } = useAuth();
   const segment = profile?.segment ?? 'guest';
 
   const allowedSegments = useMemo(() => getAllowedRankingSegmentFilters(segment), [segment]);
+
+  // Standing GLOBAL do hero (recorte "todos") — independente dos filtros aplicados na tabela.
+  const heroStanding = useMemo(() => {
+    const me = allParticipants.find((p) => p.isCurrentUser);
+    if (!me) return null;
+    const total = allParticipants.length;
+    return {
+      position: me.position,
+      total,
+      percentil: computePercentile(me.position, total),
+      score: me.score,
+    };
+  }, [allParticipants]);
+
+  const { data: heroEvolution } = useRankingEvolution(
+    user?.id ?? null,
+    simuladosWithResults,
+    selectedSimuladoId,
+    heroStanding?.percentil ?? null,
+  );
 
   if (!loading && error && simuladosWithResults.length === 0) {
     return (
@@ -119,6 +144,8 @@ export default function RankingPage() {
         allowedSegments={allowedSegments}
         trackSource="page"
         participantDisplay="public"
+        heroStanding={heroStanding}
+        heroEvolution={heroEvolution}
       />
     </PageTransition>
   );

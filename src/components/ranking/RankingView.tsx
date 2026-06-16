@@ -30,11 +30,14 @@ import { CutoffScoreModal } from './CutoffScoreModal';
 import { trackEvent } from '@/lib/analytics';
 import { RankingSkeleton } from './RankingSkeleton';
 import { RankingSimuladoSelector } from './RankingSimuladoSelector';
-import { RankingApprovalPanel, type ApprovalPanelState } from './RankingApprovalPanel';
-import { RankingStatsRow } from './RankingStatsRow';
+import { type ApprovalPanelState } from './RankingApprovalPanel';
+import { RankingCutoffSection } from './RankingCutoffSection';
+import { RankingHero, type HeroStanding } from './RankingHero';
 import { RankingLowConfidenceBanner } from './RankingLowConfidenceBanner';
 import { RankingFilterBar } from './RankingFilterBar';
 import { RankingTable } from './RankingTable';
+import { computePercentile } from '@/lib/ranking-percentile';
+import type { RankingEvolution } from '@/hooks/useRankingEvolution';
 
 // ─── Table row types ──────────────────────────────────────────────────────────
 
@@ -115,6 +118,10 @@ export interface RankingViewProps {
   /** Oculta o painel "Você passaria?" (ex.: preview admin). Default: true */
   showApprovalPanel?: boolean;
   toolbar?: React.ReactNode;
+  /** Standing GLOBAL para o hero (de allParticipants). Ausente → fallback p/ currentUser+filtered. */
+  heroStanding?: HeroStanding | null;
+  /** Série de evolução + climb. Ausente (ex.: admin) → hero sem sparkline/climb. */
+  heroEvolution?: RankingEvolution | null;
 }
 
 // ─── RankingView ──────────────────────────────────────────────────────────────
@@ -140,6 +147,8 @@ export function RankingView({
   participantDisplay,
   showApprovalPanel = true,
   toolbar,
+  heroStanding,
+  heroEvolution,
 }: RankingViewProps) {
   const mountedAtRef = useRef<number>(Date.now());
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
@@ -246,6 +255,21 @@ export function RankingView({
   const lowConfidence = filteredParticipants.length > 0 && filteredParticipants.length < 30;
   const tableRows = buildTableRows(filteredParticipants, currentUser);
 
+  // Standing do hero: global quando fornecido (RankingPage); senão, fallback ao
+  // recorte filtrado (preview admin não expõe allParticipants).
+  const heroStandingResolved: HeroStanding | null =
+    heroStanding ??
+    (currentUser
+      ? {
+          position: currentUser.position,
+          total: filteredParticipants.length,
+          percentil: computePercentile(currentUser.position, filteredParticipants.length),
+          score: currentUser.score,
+        }
+      : null);
+
+  const selectedSimuladoTitle = simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title;
+
   const hasActiveFilters =
     rankingComparison.bySpecialty ||
     rankingComparison.byInstitution ||
@@ -264,88 +288,87 @@ export function RankingView({
     <>
       {toolbar && <div className="mb-4">{toolbar}</div>}
 
-      <div className="rounded-2xl bg-background p-5">
-        {loading && <RankingSkeleton />}
+      {loading && (
+        <div className="rounded-2xl bg-background p-5">
+          <RankingSkeleton />
+        </div>
+      )}
 
-        {!loading && (
-          <>
-            {/* ── Simulado selector chips ──────────────────────────────────── */}
-            <RankingSimuladoSelector
-              simuladosWithResults={simuladosWithResults}
-              selectedSimuladoId={selectedSimuladoId}
-              setSelectedSimuladoId={setSelectedSimuladoId}
+      {!loading && (
+        <div className="space-y-5">
+          {/* ── Simulado selector chips ──────────────────────────────────── */}
+          <RankingSimuladoSelector
+            simuladosWithResults={simuladosWithResults}
+            selectedSimuladoId={selectedSimuladoId}
+            setSelectedSimuladoId={setSelectedSimuladoId}
+          />
+
+          {/* ── Hero ("Você primeiro") ───────────────────────────────────── */}
+          <RankingHero
+            simuladoTitle={selectedSimuladoTitle}
+            standing={heroStandingResolved}
+            notaMedia={stats.notaMedia}
+            evolution={heroEvolution ?? null}
+          />
+
+          {/* ── Low confidence banner ────────────────────────────────────── */}
+          {lowConfidence && <RankingLowConfidenceBanner setCutoffModalOpen={setCutoffModalOpen} />}
+
+          {/* ── Empty state ──────────────────────────────────────────────── */}
+          {filteredParticipants.length === 0 && !currentUser && !hasActiveFilters && (
+            <EmptyState
+              icon={Users}
+              title="Sem participantes"
+              description="Ainda não há participantes suficientes para exibir o ranking deste simulado."
             />
+          )}
 
-            {/* ── Approval panel ("Você passaria?") ────────────────────────── */}
-            {showApprovalPanel && (
-              <RankingApprovalPanel
-                state={approvalState}
-                entries={approvalEntries}
-                userScore={currentUser ? currentUser.score : null}
-                onOpenCutoffTable={() => setCutoffModalOpen(true)}
+          {(filteredParticipants.length > 0 || hasActiveFilters) && (
+            <>
+              {/* ── Filter bar ──────────────────────────────────────────── */}
+              <RankingFilterBar
+                rankingComparison={rankingComparison}
+                segmentFilter={segmentFilter}
+                userSpecialty={userSpecialty}
+                userInstitutions={userInstitutions}
+                visibleSegmentOptions={visibleSegmentOptions}
+                onSelectAllComparison={handleSelectAllComparison}
+                onToggleSpecialtyComparison={handleToggleSpecialtyComparison}
+                onToggleInstitutionComparison={handleToggleInstitutionComparison}
+                onSegmentFilterChange={handleSegmentFilterChange}
               />
-            )}
 
-            {/* ── Stats row (posição / percentil / vs. média) ──────────────── */}
-            {currentUser && (
-              <RankingStatsRow
+              {/* ── Table ───────────────────────────────────────────────── */}
+              <RankingTable
+                tableRows={tableRows}
+                filteredParticipants={filteredParticipants}
                 currentUser={currentUser}
-                totalParticipants={filteredParticipants.length}
-                stats={stats}
+                participantLabel={participantLabel}
+                handleClearAllFilters={handleClearAllFilters}
               />
-            )}
+            </>
+          )}
 
-            {/* ── Low confidence banner ────────────────────────────────────── */}
-            {lowConfidence && (
-              <RankingLowConfidenceBanner setCutoffModalOpen={setCutoffModalOpen} />
-            )}
+          {/* ── Nota de corte ("Você passaria?") — recolhida, secundária ──── */}
+          {showApprovalPanel && (
+            <RankingCutoffSection
+              state={approvalState}
+              entries={approvalEntries}
+              userScore={currentUser ? currentUser.score : null}
+              onOpenCutoffTable={() => setCutoffModalOpen(true)}
+            />
+          )}
+        </div>
+      )}
 
-            {/* ── Empty state ──────────────────────────────────────────────── */}
-            {filteredParticipants.length === 0 && !currentUser && !hasActiveFilters && (
-              <EmptyState
-                icon={Users}
-                title="Sem participantes"
-                description="Ainda não há participantes suficientes para exibir o ranking deste simulado."
-              />
-            )}
-
-            {(filteredParticipants.length > 0 || hasActiveFilters) && (
-              <>
-                {/* ── Filter bar ──────────────────────────────────────────── */}
-                <RankingFilterBar
-                  rankingComparison={rankingComparison}
-                  segmentFilter={segmentFilter}
-                  userSpecialty={userSpecialty}
-                  userInstitutions={userInstitutions}
-                  visibleSegmentOptions={visibleSegmentOptions}
-                  onSelectAllComparison={handleSelectAllComparison}
-                  onToggleSpecialtyComparison={handleToggleSpecialtyComparison}
-                  onToggleInstitutionComparison={handleToggleInstitutionComparison}
-                  onSegmentFilterChange={handleSegmentFilterChange}
-                />
-
-                {/* ── Table ───────────────────────────────────────────────── */}
-                <RankingTable
-                  tableRows={tableRows}
-                  filteredParticipants={filteredParticipants}
-                  currentUser={currentUser}
-                  participantLabel={participantLabel}
-                  handleClearAllFilters={handleClearAllFilters}
-                />
-              </>
-            )}
-          </>
-        )}
-
-        {/* ── CutoffScoreModal ─────────────────────────────────────────────── */}
-        <CutoffScoreModal
-          open={cutoffModalOpen}
-          onClose={() => setCutoffModalOpen(false)}
-          userSpecialty={userSpecialty}
-          userInstitutions={userInstitutions}
-          currentUserScore={currentUser?.score}
-        />
-      </div>
+      {/* ── CutoffScoreModal ─────────────────────────────────────────────── */}
+      <CutoffScoreModal
+        open={cutoffModalOpen}
+        onClose={() => setCutoffModalOpen(false)}
+        userSpecialty={userSpecialty}
+        userInstitutions={userInstitutions}
+        currentUserScore={currentUser?.score}
+      />
     </>
   );
 }
