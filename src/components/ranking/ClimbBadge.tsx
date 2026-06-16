@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight, ArrowDownRight, Minus, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import type { Climb } from '@/lib/ranking-percentile';
 
 /** Badge de evolução da colocação (subiu / caiu / manteve / estreia) sobre o hero wine. */
