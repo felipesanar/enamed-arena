@@ -19,7 +19,7 @@ retorna `can_edit=false`, `reason='edicao_bloqueada_janela_aberta'` e
 (`ConfiguracoesPage`) já estava pronta para esse estado (banner "Bloqueado").
 
 Arquivo: `supabase/migrations/20260616120000_restore_onboarding_edit_guard.sql`.
-**Status: criada no repo — ainda NÃO aplicada no projeto remoto.**
+**Status: aplicada no projeto remoto em 2026-06-16 (via MCP).**
 
 ---
 
