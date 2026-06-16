@@ -8,11 +8,7 @@ export function ClimbBadge({ climb }: { climb: Climb }) {
   const reduced = useReducedMotion();
 
   if (climb.kind === 'debut') {
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white/85">
-        <Sparkles className="h-4 w-4 text-amber-200" aria-hidden /> Sua estreia no ranking
-      </span>
-    );
+    return null;
   }
 
   const up = climb.delta > 0;
