@@ -68,7 +68,7 @@ export function RankingHero({ simuladoTitle, standing, notaMedia, evolution }: P
           <div className="min-w-0 flex-1 text-center md:text-left">
             <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">Sua colocação</p>
             <p className="mt-1 text-[22px] font-bold leading-snug">{aheadHeadline(standing)}</p>
-            {evolution && (
+            {evolution && evolution.climb.kind !== 'debut' && (
               <div className="mt-3 flex justify-center md:justify-start">
                 <ClimbBadge climb={evolution.climb} />
               </div>
