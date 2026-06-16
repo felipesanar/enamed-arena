@@ -67,14 +67,14 @@ export function RankingHero({ simuladoTitle, standing, notaMedia, evolution }: P
 
           <div className="min-w-0 flex-1 text-center md:text-left">
             <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">Sua colocação</p>
-            <p className="mt-0.5 text-[30px] font-bold leading-tight">Top {standing.percentil}%</p>
-            {evolution && (
+            <p className="mt-1 text-[22px] font-bold leading-snug">{aheadHeadline(standing)}</p>
+            {evolution && evolution.climb.kind !== 'debut' && (
               <div className="mt-3 flex justify-center md:justify-start">
                 <ClimbBadge climb={evolution.climb} />
               </div>
             )}
             <p className="mt-3 text-[12px] leading-relaxed text-white/55">
-              Você está à frente de {Math.max(0, standing.total - standing.position)} candidatos.
+              {standing.position}º de {standing.total} candidatos neste simulado.
             </p>
           </div>
 
@@ -99,6 +99,13 @@ export function RankingHero({ simuladoTitle, standing, notaMedia, evolution }: P
       )}
     </section>
   );
+}
+
+/** Frase de colocação focada em posição (sem "Top X%", que confunde em posições baixas). */
+function aheadHeadline(standing: HeroStanding): string {
+  const ahead = Math.max(0, standing.total - standing.position);
+  if (ahead === 0) return 'Você está no início da escalada';
+  return `Você supera ${ahead} candidato${ahead === 1 ? '' : 's'}`;
 }
 
 function DeltaVsMedia({ score, media }: { score: number; media: number }) {

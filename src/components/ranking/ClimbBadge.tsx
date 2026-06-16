@@ -7,9 +7,8 @@ import type { Climb } from '@/lib/ranking-percentile';
 export function ClimbBadge({ climb }: { climb: Climb }) {
   const reduced = useReducedMotion();
 
-  if (climb.kind === 'debut') {
-    return null;
-  }
+  // Estreia (sem simulado anterior) não mostra badge — nada a comparar.
+  if (climb.kind === 'debut') return null;
 
   const up = climb.delta > 0;
   const down = climb.delta < 0;
