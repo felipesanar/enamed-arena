@@ -30,8 +30,7 @@ import { CutoffScoreModal } from './CutoffScoreModal';
 import { trackEvent } from '@/lib/analytics';
 import { RankingSkeleton } from './RankingSkeleton';
 import { RankingSimuladoSelector } from './RankingSimuladoSelector';
-import { type ApprovalPanelState } from './RankingApprovalPanel';
-import { RankingCutoffSection } from './RankingCutoffSection';
+import { RankingCutoffSection, type ApprovalPanelState } from './RankingCutoffSection';
 import { RankingHero, type HeroStanding } from './RankingHero';
 import { RankingLowConfidenceBanner } from './RankingLowConfidenceBanner';
 import { RankingFilterBar } from './RankingFilterBar';
@@ -311,6 +310,16 @@ export function RankingView({
             evolution={heroEvolution ?? null}
           />
 
+          {/* ── Nota de corte ("Você passaria?") — junto ao hero, subordinada ── */}
+          {showApprovalPanel && (
+            <RankingCutoffSection
+              state={approvalState}
+              entries={approvalEntries}
+              userScore={currentUser ? currentUser.score : null}
+              onOpenCutoffTable={() => setCutoffModalOpen(true)}
+            />
+          )}
+
           {/* ── Low confidence banner ────────────────────────────────────── */}
           {lowConfidence && <RankingLowConfidenceBanner setCutoffModalOpen={setCutoffModalOpen} />}
 
@@ -347,16 +356,6 @@ export function RankingView({
                 handleClearAllFilters={handleClearAllFilters}
               />
             </>
-          )}
-
-          {/* ── Nota de corte ("Você passaria?") — recolhida, secundária ──── */}
-          {showApprovalPanel && (
-            <RankingCutoffSection
-              state={approvalState}
-              entries={approvalEntries}
-              userScore={currentUser ? currentUser.score : null}
-              onOpenCutoffTable={() => setCutoffModalOpen(true)}
-            />
           )}
         </div>
       )}

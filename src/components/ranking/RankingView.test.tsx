@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { buildTableRows, RankingView } from './RankingView';
 import type { RankingParticipant, RankingStats } from '@/services/rankingApi';
@@ -136,20 +136,19 @@ describe('RankingView', () => {
     expect(screen.getByText('Top 1%')).toBeTruthy();
   });
 
-  it('shows cutoff section collapsed by default; expands on click', () => {
+  it('shows cutoff card (always visible) with the institution row', () => {
     renderView({
       userSpecialty: 'Pediatria',
       userInstitutions: ['Hospital X'],
       userSpecialtyId: 'spec-1',
       userInstitutionIds: ['inst-1'],
     });
-    // recolhida: cabeçalho visível, conteúdo detalhado oculto
+    // card visível direto (sem collapse)
     expect(screen.getByText('Você passaria?')).toBeTruthy();
-    expect(screen.queryByText('Sua nota vs. notas de corte')).toBeNull();
-    // expande
-    fireEvent.click(screen.getByText('Você passaria?'));
     expect(screen.getByText('Sua nota vs. notas de corte')).toBeTruthy();
+    // cutoffs mock vazio → instituição listada como indisponível
     expect(screen.getByText('Hospital X')).toBeTruthy();
+    expect(screen.getByText('corte indisponível')).toBeTruthy();
   });
 
   it('hides cutoff section entirely when showApprovalPanel is false (admin)', () => {
