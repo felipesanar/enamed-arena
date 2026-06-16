@@ -12,7 +12,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
     "[@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:px-2 [@media(max-height:700px)]:py-1.5 [@media(max-height:700px)]:text-[12px]",
     "text-white/60 hover:bg-white/[0.06] hover:text-white/85",
     "transition-[color,background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101218]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]",
     "before:pointer-events-none before:absolute before:left-1.5 before:top-1/2 before:z-[1] before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[linear-gradient(180deg,#E83862_0%,#B7214A_100%)] before:shadow-[0_0_10px_rgba(232,56,98,0.45)] before:content-[''] before:origin-center before:opacity-0 before:scale-y-[0.35] before:transition-[opacity,transform] before:duration-300 before:ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:before:transition-none motion-reduce:before:duration-0",
     isActive &&
       "border-white/[0.14] bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_10px_-4px_rgba(0,0,0,0.4)] before:opacity-100 before:scale-y-100",
@@ -42,7 +42,7 @@ export function SidebarProSection({ collapsed }: { collapsed?: boolean }) {
           />
           {showDue && (
             <span
-              className="pointer-events-none absolute right-3 top-1.5 z-[3] flex h-4 min-w-4 items-center justify-center rounded-full border border-[#0c0d12] bg-[#E83862] px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_8px_rgba(232,56,98,0.55)]"
+              className="pointer-events-none absolute right-3 top-1.5 z-[3] flex h-4 min-w-4 items-center justify-center rounded-full border border-[#270812] bg-[#E83862] px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_8px_rgba(232,56,98,0.55)]"
               aria-label={`${dueCount} revisões para hoje`}
             >
               {dueLabel}

@@ -294,7 +294,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
       {/* Glow 2 */}
       <div
         className="pointer-events-none absolute -bottom-16 -right-8 w-72 h-72 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(232,56,98,.14) 0%, transparent 65%)" }}
+        style={{ background: "radial-gradient(circle, rgba(142,31,61,.18) 0%, transparent 65%)" }}
       />
       {/* Lateral overlay */}
       <div
@@ -438,8 +438,8 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
     <div
       className="relative w-full rounded-[24px] overflow-hidden p-5 md:p-6"
       style={{
-        background: "linear-gradient(142deg, #1b1d26 0%, #15161d 55%, #0d0e13 100%)",
-        border: "1px solid rgba(255,255,255,.08)",
+        background: "linear-gradient(142deg, #3d0d22 0%, #220810 55%, #120408 100%)",
+        border: "1px solid rgba(142,31,61,.3)",
       }}
     >
       {/* White top thread */}
@@ -450,7 +450,7 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
       {/* Glow subdued */}
       <div
         className="pointer-events-none absolute -top-12 -left-12 w-64 h-64 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(96,130,210,.14) 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(142,31,61,.15) 0%, transparent 70%)" }}
       />
 
       <div className="relative z-10">
@@ -459,7 +459,7 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
           <div className="flex items-center gap-2">
             <span
               className="w-2.5 h-2.5 rounded-full border-2"
-              style={{ borderColor: "rgba(150,170,215,.6)", background: "transparent" }}
+              style={{ borderColor: "rgba(220,140,170,.6)", background: "transparent" }}
             />
             <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
               Em breve

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { UserSegment } from "@/types";
 
 const railIconBtn =
-  "flex w-full h-11 items-center justify-center rounded-[10px] text-white/55 transition-all duration-200 hover:bg-white/[0.07] hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0d12]";
+  "flex w-full h-11 items-center justify-center rounded-[10px] text-white/55 transition-all duration-200 hover:bg-white/[0.07] hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#270812]";
 
 const segmentColors: Record<string, string> = {
   pro: "#e83862",
@@ -39,14 +39,14 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
               to="/configuracoes"
               className="group relative flex w-full h-11 items-center justify-center rounded-[10px] transition-all duration-200 hover:bg-white/[0.07]"
             >
-              <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#9a2249_0%,#5e162f_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08] transition-all duration-200 group-hover:ring-white/[0.16]">
+              <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#4A1528_0%,#361019_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08] transition-all duration-200 group-hover:ring-white/[0.16]">
                 <Avatar className="h-full w-full rounded-lg bg-transparent shadow-none ring-0">
                   <AvatarFallback className="rounded-lg bg-transparent text-[11px] font-bold text-white/90">
                     {initial}
                   </AvatarFallback>
                 </Avatar>
                 <span
-                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#0c0d12]"
+                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#270812]"
                   style={{ backgroundColor: dotColor }}
                 />
               </div>
@@ -55,7 +55,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
           <TooltipContent
             side="right"
             sideOffset={10}
-            className="max-w-[220px] border-white/10 bg-[#15171e] text-left text-xs text-white/95 shadow-lg"
+            className="max-w-[220px] border-white/10 bg-[#2a0c15] text-left text-xs text-white/95 shadow-lg"
           >
             <p className="font-semibold text-white">{name}</p>
             {email ? <p className="mt-0.5 text-[10px] text-white/50">{email}</p> : null}
@@ -70,7 +70,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
               <ThemeToggle variant="icon" />
             </div>
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10} className="border-white/10 bg-[#15171e] text-xs font-medium text-white/95 shadow-lg">
+          <TooltipContent side="right" sideOffset={10} className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg">
             Tema
           </TooltipContent>
         </Tooltip>
@@ -82,7 +82,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
               <LogOut className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10} className="border-white/10 bg-[#15171e] text-xs font-medium text-white/95 shadow-lg">
+          <TooltipContent side="right" sideOffset={10} className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg">
             Sair
           </TooltipContent>
         </Tooltip>
@@ -93,7 +93,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
   return (
     <div className="mt-auto">
       <div className="mb-3 flex items-center gap-3 px-0.5 [@media(max-height:700px)]:mb-2 [@media(max-height:700px)]:gap-2">
-        <Avatar className="h-9 w-9 rounded-xl border border-white/[0.1] bg-[linear-gradient(135deg,#9a2249_0%,#5e162f_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-2 ring-white/[0.06] ring-offset-1 ring-offset-transparent [@media(max-height:700px)]:h-7 [@media(max-height:700px)]:w-7">
+        <Avatar className="h-9 w-9 rounded-xl border border-white/[0.1] bg-[linear-gradient(135deg,#4A1528_0%,#361019_100%)] shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] ring-2 ring-white/[0.06] ring-offset-1 ring-offset-transparent [@media(max-height:700px)]:h-7 [@media(max-height:700px)]:w-7">
           <AvatarFallback className="rounded-xl bg-transparent text-[11px] font-bold text-white/90">
             {initial}
           </AvatarFallback>
@@ -139,7 +139,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
           to="/configuracoes"
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/55 transition-all duration-[220ms] ease-out hover:bg-white/[0.06] hover:text-white/80 [@media(max-height:700px)]:gap-1 [@media(max-height:700px)]:px-1.5 [@media(max-height:700px)]:py-1 [@media(max-height:700px)]:text-[11px]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101218]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]",
           )}
         >
           <Settings className="h-3.5 w-3.5 shrink-0 opacity-80 [@media(max-height:700px)]:h-3 [@media(max-height:700px)]:w-3" aria-hidden />
@@ -155,7 +155,7 @@ export function SidebarFooterAccount({ collapsed }: { collapsed?: boolean }) {
           onClick={signOut}
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/40 transition-all duration-[220ms] ease-out hover:bg-white/[0.06] hover:text-white/65 [@media(max-height:700px)]:gap-1 [@media(max-height:700px)]:px-1.5 [@media(max-height:700px)]:py-1 [@media(max-height:700px)]:text-[11px]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101218]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#361019]",
           )}
           aria-label="Sair"
         >

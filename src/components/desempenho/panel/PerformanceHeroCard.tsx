@@ -117,7 +117,7 @@ export function PerformanceHeroCard({
               aria-label={`${overall.totalCorrect} de ${overall.totalQuestions} questões corretas`}
             >
               <motion.div
-                className="h-full rounded-full bg-[linear-gradient(90deg,#B7214A_0%,#FF5C82_100%)]"
+                className="h-full rounded-full bg-[linear-gradient(90deg,#8E1F3D_0%,#E83862_100%)]"
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
                 transition={{

@@ -34,7 +34,7 @@ const variantStyles: Record<
   },
   performance: {
     container:
-      "border-white/[0.08] bg-[linear-gradient(155deg,#14161d_0%,#1d1826_48%,#34182b_100%)] text-white shadow-[0_20px_36px_-24px_rgba(0,0,0,0.85),0_4px_12px_-6px_rgba(0,0,0,0.45)] hover:shadow-[0_26px_42px_-24px_rgba(0,0,0,0.92),0_8px_18px_-8px_rgba(0,0,0,0.5)]",
+      "border-white/[0.08] bg-[linear-gradient(155deg,#1A0A12_0%,#2D0F1C_50%,#3D1426_100%)] text-white shadow-[0_20px_36px_-24px_rgba(40,10,22,0.8),0_4px_12px_-6px_rgba(40,10,22,0.4)] hover:shadow-[0_26px_42px_-24px_rgba(40,10,22,0.9),0_8px_18px_-8px_rgba(40,10,22,0.5)]",
     icon: "from-white/[0.08] to-white/[0.14] border-white/[0.1]",
     cta: "text-white/80 hover:text-white",
   },

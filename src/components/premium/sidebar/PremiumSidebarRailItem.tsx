@@ -51,7 +51,7 @@ export function PremiumSidebarRailItem({
       to={to}
       end={end}
       className={cn(
-        "flex w-full min-w-0 max-w-[80px] justify-center rounded-lg px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ebbac0]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0d12]",
+        "flex w-full min-w-0 max-w-[80px] justify-center rounded-lg px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ebbac0]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#270812]",
         className,
       )}
     >
@@ -148,7 +148,7 @@ export function PremiumSidebarRailItem({
       <TooltipContent
         side="right"
         sideOffset={10}
-        className="border-white/10 bg-[#15171e] text-xs font-medium text-white/95 shadow-lg"
+        className="border-white/10 bg-[#2a0c15] text-xs font-medium text-white/95 shadow-lg"
       >
         {tip}
       </TooltipContent>
