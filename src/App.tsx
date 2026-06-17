@@ -12,6 +12,7 @@ import { DashboardLayout } from "@/components/premium/DashboardLayout";
 import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
 import { LegacyCadernoGate } from "@/components/caderno/LegacyCadernoGate";
 import { CadernoLayout } from "@/components/caderno/CadernoLayout";
+import { AnalyticsSync } from "@/components/AnalyticsSync";
 
 // Page lazy imports — default exports
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -128,6 +129,7 @@ const App = () => (
           <UserProvider>
             <Toaster />
             <BrowserRouter>
+            <AnalyticsSync />
             <Routes>
               {/* Public — own Suspense boundary */}
               <Route path="/landing" element={<Suspense fallback={<PageShell />}><LandingPage /></Suspense>} />
