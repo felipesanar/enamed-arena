@@ -31,11 +31,12 @@ function toDataUrl(img?: ExtractedImage): string | null {
   return `data:${img.mimeType};base64,${img.base64}`;
 }
 
-export function QuestionPreviewModal({ row, enunciadoImage, enunciado2Image: _enunciado2Image, comentarioImage, open, onOpenChange }: Props) {
+export function QuestionPreviewModal({ row, enunciadoImage, enunciado2Image, comentarioImage, open, onOpenChange }: Props) {
   if (!row) return null;
 
   const gabarito = (row.Gabarito || '').toUpperCase();
   const enunciadoUrl = toDataUrl(enunciadoImage);
+  const enunciado2Url = toDataUrl(enunciado2Image);
   const comentarioUrl = toDataUrl(comentarioImage);
 
   const options: Array<{ label: 'A' | 'B' | 'C' | 'D'; text: string }> = [
@@ -75,6 +76,17 @@ export function QuestionPreviewModal({ row, enunciadoImage, enunciado2Image: _en
               <img
                 src={enunciadoUrl}
                 alt={`Imagem da questão ${row.numero}`}
+                className="max-w-full rounded-lg border border-admin-line bg-admin-raised/40"
+              />
+            </div>
+          )}
+
+          {enunciado2Url && (
+            <div className="mt-3 mb-2">
+              <p className="text-xs text-admin-muted mb-1">Imagem 2</p>
+              <img
+                src={enunciado2Url}
+                alt={`Imagem 2 da questão ${row.numero}`}
                 className="max-w-full rounded-lg border border-admin-line bg-admin-raised/40"
               />
             </div>
@@ -132,6 +144,12 @@ export function QuestionPreviewModal({ row, enunciadoImage, enunciado2Image: _en
               )}
             </div>
           )}
+
+          <div className="mt-6 flex flex-wrap gap-3 text-xs text-admin-muted border-t border-admin-line pt-3">
+            <span>Enunciado: {enunciadoUrl ? '✓ imagem' : '— sem imagem'}</span>
+            <span>Imagem 2: {enunciado2Url ? '✓ imagem' : '— sem imagem'}</span>
+            <span>Comentário: {comentarioUrl ? '✓ imagem' : '— sem imagem'}</span>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
