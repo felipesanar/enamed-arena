@@ -87,6 +87,9 @@ registerAnalyticsHandler((event) => {
   supabase.rpc('log_analytics_event', {
     p_event_name: event.name,
     p_payload: event.payload,
+    p_event_id: event.event_id,
+    p_client_timestamp: event.timestamp,
+    p_route: window.location.pathname,
   });
 });
 

@@ -102,6 +102,7 @@ export type AnalyticsEventName =
   | "caderno_flashcard_reviewed"
   | "caderno_flashcard_disliked"
   | "caderno_flashcards_bulk_generated"
+  | "caderno_flashcard_session_started"
   // Error notebook — Caderno v2: Anotações (Fase 2)
   | "caderno_note_created"
   | "caderno_note_updated"
@@ -174,6 +175,7 @@ export type PayloadFor<E extends AnalyticsEventName> =
 
 interface AnalyticsEvent {
   name: AnalyticsEventName;
+  event_id: string;
   payload: AnalyticsPayload;
   timestamp: string;
 }
@@ -421,6 +423,12 @@ const cadernoCalibrationViewedSchema = z.object({
 }).passthrough();
 export type CadernoCalibrationViewedPayload = z.infer<typeof cadernoCalibrationViewedSchema>;
 
+const cadernoFlashcardSessionStartedSchema = z.object({
+  mode: z.enum(["due", "free", "hard", "shuffle", "reversed", "timed"]),
+  count: z.number(),
+}).passthrough();
+export type CadernoFlashcardSessionStartedPayload = z.infer<typeof cadernoFlashcardSessionStartedSchema>;
+
 // ---------------------------------------------------------------------------
 // Mapa nome → schema para validação de runtime em trackEvent.
 // Eventos ausentes = payload solto aceito (retrocompatível com 64 call-sites).
@@ -457,6 +465,7 @@ const eventSchemas = {
   caderno_tts_played: cadernoTtsPlayedSchema,
   caderno_treino_started: cadernoTreinoStartedSchema,
   caderno_calibration_viewed: cadernoCalibrationViewedSchema,
+  caderno_flashcard_session_started: cadernoFlashcardSessionStartedSchema,
 };
 
 // ---------------------------------------------------------------------------
@@ -495,6 +504,7 @@ export interface EventPayloadMap {
   caderno_tts_played: CadernoTtsPlayedPayload;
   caderno_treino_started: CadernoTreinoStartedPayload;
   caderno_calibration_viewed: CadernoCalibrationViewedPayload;
+  caderno_flashcard_session_started: CadernoFlashcardSessionStartedPayload;
 }
 
 export function trackEvent<E extends AnalyticsEventName>(
@@ -515,6 +525,7 @@ export function trackEvent<E extends AnalyticsEventName>(
 
   const event: AnalyticsEvent = {
     name,
+    event_id: crypto.randomUUID(),
     payload: { ...superProperties, ...(payload as AnalyticsPayload) },
     timestamp: new Date().toISOString(),
   };
