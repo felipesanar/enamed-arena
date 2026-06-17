@@ -37,6 +37,18 @@ import type {
   AuditLogRow,
 } from '@/admin/types'
 
+export interface SimuladoResultRow {
+  rank: number; total_rows: number; user_id: string; attempt_id: string;
+  name: string | null; email: string | null; segment: string;
+  institution: string; specialty: string; score: number | null;
+  correct_count: number; total_count: number; duration_seconds: number;
+  submitted_at: string; is_within_window: boolean;
+}
+export interface ResultsRosterParams {
+  simuladoId: string; sort?: string; dir?: 'asc' | 'desc'; scope?: 'valid' | 'training' | 'all';
+  search?: string; segment?: string; institution?: string; limit?: number; offset?: number;
+}
+
 export interface QuestionVerifyFinding {
   question_number: number;
   check_type: 'missing_image';
@@ -370,6 +382,28 @@ export const adminApi = {
       area: r.area as string,
       theme: r.theme as string,
       total_responses: Number(r.total_responses),
+    }))
+  },
+
+  async getSimuladoResultsRoster(params: ResultsRosterParams): Promise<SimuladoResultRow[]> {
+    const { data, error } = await supabase.rpc('admin_simulado_results_roster', {
+      p_simulado_id: params.simuladoId,
+      p_sort: params.sort ?? 'score',
+      p_dir: params.dir ?? 'desc',
+      p_scope: params.scope ?? 'valid',
+      p_search: params.search ?? '',
+      p_segment: params.segment ?? 'all',
+      p_institution: params.institution ?? 'all',
+      p_limit: params.limit ?? 50,
+      p_offset: params.offset ?? 0,
+    })
+    if (error) throw error
+    return (data as any[]).map((r) => ({
+      rank: Number(r.rank), total_rows: Number(r.total_rows), user_id: r.user_id, attempt_id: r.attempt_id,
+      name: r.name, email: r.email, segment: r.segment, institution: r.institution, specialty: r.specialty,
+      score: r.score != null ? Number(r.score) : null,
+      correct_count: Number(r.correct_count), total_count: Number(r.total_count),
+      duration_seconds: Number(r.duration_seconds), submitted_at: r.submitted_at, is_within_window: r.is_within_window,
     }))
   },
 

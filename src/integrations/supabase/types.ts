@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -1800,6 +1800,36 @@ export type Database = {
           text: string
           theme: string
           total_responses: number
+        }[]
+      }
+      admin_simulado_results_roster: {
+        Args: {
+          p_dir?: string
+          p_institution?: string
+          p_limit?: number
+          p_offset?: number
+          p_scope?: string
+          p_search?: string
+          p_segment?: string
+          p_simulado_id: string
+          p_sort?: string
+        }
+        Returns: {
+          attempt_id: string
+          correct_count: number
+          duration_seconds: number
+          email: string
+          institution: string
+          is_within_window: boolean
+          name: string
+          rank: number
+          score: number
+          segment: string
+          specialty: string
+          submitted_at: string
+          total_count: number
+          total_rows: number
+          user_id: string
         }[]
       }
       admin_update_option: {
