@@ -7,6 +7,7 @@ interface Column<T> {
   label: string
   width?: string
   render?: (row: T) => ReactNode
+  sortable?: boolean
 }
 
 interface AdminDataTableProps<T extends Record<string, unknown>> {
@@ -18,6 +19,9 @@ interface AdminDataTableProps<T extends Record<string, unknown>> {
   emptyMessage?: string
   /** Dentro de `AdminPanel` */
   embedded?: boolean
+  sortKey?: string
+  sortDir?: 'asc' | 'desc'
+  onSort?: (key: string) => void
 }
 
 export function AdminDataTable<T extends Record<string, unknown>>({
@@ -28,6 +32,9 @@ export function AdminDataTable<T extends Record<string, unknown>>({
   isLoading,
   emptyMessage = 'Nenhum dado encontrado.',
   embedded,
+  sortKey,
+  sortDir,
+  onSort,
 }: AdminDataTableProps<T>) {
   const cellPadding = compact ? 'px-3.5 py-2' : 'px-4 py-3'
   const textSize = compact ? 'text-[11px]' : 'text-sm'
@@ -67,9 +74,24 @@ export function AdminDataTable<T extends Record<string, unknown>>({
       <div className="grid border-b border-admin-line" style={gridStyle}>
         {columns.map(c => (
           <div key={c.key} className={cn(cellPadding)}>
-            <span className="text-[9px] font-bold text-admin-muted/60 uppercase tracking-wide">
-              {c.label}
-            </span>
+            {c.sortable && onSort ? (
+              <button
+                type="button"
+                className="flex items-center gap-1 cursor-pointer"
+                onClick={() => onSort(c.key)}
+              >
+                <span className="text-[9px] font-bold text-admin-muted/60 uppercase tracking-wide">
+                  {c.label}
+                </span>
+                <span className="text-[9px] text-admin-muted/40">
+                  {sortKey === c.key ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                </span>
+              </button>
+            ) : (
+              <span className="text-[9px] font-bold text-admin-muted/60 uppercase tracking-wide">
+                {c.label}
+              </span>
+            )}
           </div>
         ))}
       </div>
