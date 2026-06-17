@@ -429,6 +429,17 @@ const cadernoFlashcardSessionStartedSchema = z.object({
 }).passthrough();
 export type CadernoFlashcardSessionStartedPayload = z.infer<typeof cadernoFlashcardSessionStartedSchema>;
 
+const resultadoViewedSchema = z.object({
+  simulado_id: z.string(),
+  score_percentage: z.number(),
+  total_correct: z.number(),
+  total_questions: z.number(),
+  worst_area: z.string(),
+  best_area: z.string(),
+  segment: z.enum(["guest", "standard", "pro"]),
+}).passthrough();
+export type ResultadoViewedPayload = z.infer<typeof resultadoViewedSchema>;
+
 // ---------------------------------------------------------------------------
 // Mapa nome → schema para validação de runtime em trackEvent.
 // Eventos ausentes = payload solto aceito (retrocompatível com 64 call-sites).
@@ -466,6 +477,7 @@ const eventSchemas = {
   caderno_treino_started: cadernoTreinoStartedSchema,
   caderno_calibration_viewed: cadernoCalibrationViewedSchema,
   caderno_flashcard_session_started: cadernoFlashcardSessionStartedSchema,
+  resultado_viewed: resultadoViewedSchema,
 };
 
 // ---------------------------------------------------------------------------
@@ -505,6 +517,7 @@ export interface EventPayloadMap {
   caderno_treino_started: CadernoTreinoStartedPayload;
   caderno_calibration_viewed: CadernoCalibrationViewedPayload;
   caderno_flashcard_session_started: CadernoFlashcardSessionStartedPayload;
+  resultado_viewed: ResultadoViewedPayload;
 }
 
 export function trackEvent<E extends AnalyticsEventName>(

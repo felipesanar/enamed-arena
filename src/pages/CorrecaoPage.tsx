@@ -129,6 +129,20 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     });
   }, [id, simulado, segment]);
 
+  useEffect(() => {
+    if (!id || !score || !breakdown) return;
+    const sorted = [...breakdown.byArea].sort((a, b) => a.score - b.score);
+    trackEvent('resultado_viewed', {
+      simulado_id: id,
+      score_percentage: score.percentageScore,
+      total_correct: score.totalCorrect,
+      total_questions: score.totalQuestions,
+      worst_area: sorted[0]?.area ?? '',
+      best_area: sorted[sorted.length - 1]?.area ?? '',
+      segment,
+    });
+  }, [id, score, breakdown, segment]);
+
   if (loading) {
     return <><div className="space-y-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div></>;
   }
