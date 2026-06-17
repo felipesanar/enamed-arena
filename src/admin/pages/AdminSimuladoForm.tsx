@@ -86,10 +86,12 @@ function AdminSimuladoFormContent() {
       return;
     }
 
+    // Converte para UTC antes de avaliar avisos: o check "começa no passado" compara
+    // contra agora e precisa do instante real (independe do fuso da máquina do admin).
     const warnings = windowWarnings(
-      form.execution_window_start,
-      form.execution_window_end,
-      form.results_release_at,
+      localInputToUtcISO(form.execution_window_start),
+      localInputToUtcISO(form.execution_window_end),
+      localInputToUtcISO(form.results_release_at),
       Number(form.duration_minutes),
     );
     if (warnings.length > 0) {
