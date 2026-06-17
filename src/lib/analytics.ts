@@ -159,6 +159,20 @@ export type AnalyticsEventName =
 
 export type AnalyticsPayload = Record<string, string | number | boolean | null | undefined>;
 
+/**
+ * Resolve o tipo de payload de um evento (Fase 2, passo 1 — amarração nome→payload).
+ *
+ * - Evento COM contrato em `EventPayloadMap`: os campos obrigatórios passam a ser
+ *   exigidos em tempo de compilação. Propriedades extras de contexto continuam
+ *   permitidas (payload "aberto", via `& AnalyticsPayload`) — a régua estrita
+ *   (rejeitar propriedade fora do schema) entra na Fase 2, passo 2, com validação
+ *   de runtime (Zod) derivada destes mesmos contratos.
+ * - Evento SEM contrato: payload solto (`AnalyticsPayload`), 100% compatível com
+ *   os call-sites existentes.
+ */
+export type PayloadFor<E extends AnalyticsEventName> =
+  E extends keyof EventPayloadMap ? EventPayloadMap[E] & AnalyticsPayload : AnalyticsPayload;
+
 interface AnalyticsEvent {
   name: AnalyticsEventName;
   payload: AnalyticsPayload;
@@ -178,10 +192,13 @@ export function registerAnalyticsHandler(handler: AnalyticsHandler) {
   handlers.push(handler);
 }
 
-export function trackEvent(name: AnalyticsEventName, payload: AnalyticsPayload = {}) {
+export function trackEvent<E extends AnalyticsEventName>(
+  name: E,
+  payload: PayloadFor<E> = {} as PayloadFor<E>,
+) {
   const event: AnalyticsEvent = {
     name,
-    payload: { ...superProperties, ...payload },
+    payload: { ...superProperties, ...(payload as AnalyticsPayload) },
     timestamp: new Date().toISOString(),
   };
 
@@ -242,11 +259,16 @@ export interface CadernoRecallSelfGradedPayload {
   srs_next_interval_days: number;
 }
 
-/** Substitui `caderno_revisao_snoozed` (deprecado). Ver spec 06 B.2 + 00-contratos-canonicos §5. */
+/**
+ * Substitui `caderno_revisao_snoozed` (deprecado). Ver spec 06 B.2 + 00-contratos-canonicos §5.
+ * `reason` é opcional: alinhado à emissão real (2026-06-17) — `useActiveRecallSession` envia
+ * `reason: 'manual_override'`, mas `CadernoPage` não envia. Candidato a enriquecimento (Fase 3):
+ * padronizar o envio de `reason` em ambos os call-sites.
+ */
 export interface CadernoEntrySnoozedPayload {
   entry_id: string;
   days_snoozed: number;
-  reason: "manual_override";
+  reason?: "manual_override";
 }
 
 export interface CadernoEntryMasteredPayload {
@@ -262,9 +284,12 @@ export interface CadernoEntryLeechTriggeredPayload {
   area: string;
 }
 
+/** Alinhado à emissão real (2026-06-17): `LessonUnlockDialog` envia entry_id + area/theme/reason (area pode ser undefined). */
 export interface CadernoLessonAccessedPayload {
   entry_id: string;
-  area: string;
+  area?: string;
+  theme?: string;
+  reason?: string;
   lesson_url?: string;
 }
 
@@ -307,31 +332,47 @@ export interface CadernoRoiViewedPayload {
   has_positive_roi: boolean;
 }
 
+/** `mastered_count` opcional: alinhado à emissão real (2026-06-17) — `RoiPanel` só envia area + delta_pp. */
 export interface CadernoRoiAreaExpandedPayload {
   area: string;
-  mastered_count: number;
+  mastered_count?: number;
   delta_pp: number;
 }
 
 // Error notebook — Caderno v2: Flashcards (Fase 2)
+/**
+ * Alinhado à emissão real (2026-06-17): `FlashcardEditor` envia deck_id/has_image/ai_generated.
+ * O contrato antigo (flashcard_id/entry_id/area) era do design pré-deck e nunca foi emitido aqui.
+ */
 export interface CadernoFlashcardCreatedPayload {
-  flashcard_id: string;
-  entry_id: string;
-  area: string;
+  deck_id: string;
+  has_image: boolean;
+  ai_generated: boolean;
 }
 
+/**
+ * Alinhado à emissão real (2026-06-17): `FlashcardEditor` dispara na GERAÇÃO (antes de salvar),
+ * quando ainda não há flashcard_id/entry_id — só `has_context`. O contrato antigo
+ * (flashcard_id/entry_id/front_generated/back_generated) era do design pré-deck e nunca foi emitido.
+ * Candidato a enriquecimento (Fase 3) se quisermos medir front/back gerados.
+ */
 export interface CadernoFlashcardAiGeneratedPayload {
-  flashcard_id: string;
-  entry_id: string;
-  front_generated: boolean;
-  back_generated: boolean;
+  has_context: boolean;
 }
 
+/**
+ * Alinhado à emissão real (2026-06-17): dois call-sites em `FlashcardReviewSession` —
+ * branch SRS envia `mastered` + `srs_interval`; branch treino envia `training` sem `mastered`.
+ * (Há um 3º call-site em `CadernoFlashcardsPage` com `as any` — fora do contrato; ver Fase 3.)
+ * `srs_interval` é o nome realmente emitido (não `srs_interval_days`).
+ */
 export interface CadernoFlashcardReviewedPayload {
   flashcard_id: string;
   outcome: "errei" | "dificil" | "bom" | "facil";
-  mastered: boolean;
-  srs_interval_days?: number;
+  mode?: string;
+  mastered?: boolean;
+  srs_interval?: number;
+  training?: boolean;
 }
 
 // Error notebook — Caderno v2: Anotações (Fase 2)
@@ -355,15 +396,25 @@ export interface CadernoFavoriteAddedPayload {
   area: string;
 }
 
+/** `area` opcional + `favorite_id` opcional: alinhado à emissão real (2026-06-17) em 3 call-sites (área pode ser undefined em FavoriteCard). */
 export interface CadernoFavoriteRemovedPayload {
+  favorite_id?: string;
   question_id: string;
-  area: string;
+  area?: string;
 }
 
 // Error notebook — Caderno v2: Fase 3 (War Room, Export, TTS, Treino)
+/**
+ * Alinhado à emissão real (2026-06-17): `CadernoRetaFinalPage` envia o detalhamento de cobertura
+ * (total_active/overdue/covered/uncovered/segment), não `pending_count`. Contrato antigo estava obsoleto.
+ */
 export interface CadernoRetaFinalViewedPayload {
   days_until: number;
-  pending_count: number;
+  total_active: number;
+  overdue: number;
+  covered: number;
+  uncovered: number;
+  segment: string;
 }
 
 export interface CadernoExportPdfPayload {
@@ -374,8 +425,11 @@ export interface CadernoExportAnkiPayload {
   entry_count: number;
 }
 
+/** Alinhado à emissão real (2026-06-17): `RevealPanel` envia entry_id + area. `section` mantido opcional para uso futuro. */
 export interface CadernoTtsPlayedPayload {
-  section: string;
+  entry_id: string;
+  area?: string;
+  section?: string;
 }
 
 export interface CadernoTreinoStartedPayload {
@@ -389,4 +443,45 @@ export interface CadernoCalibrationViewedPayload {
   total_answered_with_confidence: number;
   alta_but_wrong: number;
   baixa_but_correct: number;
+}
+
+// ---------------------------------------------------------------------------
+// Fonte única de tipos: mapa nome do evento → contrato de payload.
+// `trackEvent` usa este mapa (via `PayloadFor`) para exigir os campos
+// obrigatórios em tempo de compilação. Eventos ausentes daqui usam payload
+// solto (`AnalyticsPayload`). Adicionar um evento ao mapa = amarrar seu contrato.
+// A Fase 2, passo 2, deriva os schemas Zod a partir destes mesmos tipos.
+// ---------------------------------------------------------------------------
+export interface EventPayloadMap {
+  caderno_triage_viewed: CadernoTriageViewedPayload;
+  caderno_triage_item_toggled: CadernoTriageItemToggledPayload;
+  caderno_triage_batch_added: CadernoTriageBatchAddedPayload;
+  caderno_recall_answer_selected: CadernoRecallAnswerSelectedPayload;
+  caderno_recall_confidence_set: CadernoRecallConfidenceSetPayload;
+  caderno_recall_revealed: CadernoRecallRevealedPayload;
+  caderno_recall_self_graded: CadernoRecallSelfGradedPayload;
+  caderno_entry_snoozed: CadernoEntrySnoozedPayload;
+  caderno_entry_mastered: CadernoEntryMasteredPayload;
+  caderno_entry_leech_triggered: CadernoEntryLeechTriggeredPayload;
+  caderno_lesson_accessed: CadernoLessonAccessedPayload;
+  caderno_revisao_session_ended: CadernoRevisaoSessionEndedPayload;
+  caderno_insights_viewed: CadernoInsightsViewedPayload;
+  caderno_insight_expanded: CadernoInsightExpandedPayload;
+  caderno_insight_cta_clicked: CadernoInsightCtaClickedPayload;
+  caderno_insights_refreshed: CadernoInsightsRefreshedPayload;
+  caderno_roi_viewed: CadernoRoiViewedPayload;
+  caderno_roi_area_expanded: CadernoRoiAreaExpandedPayload;
+  caderno_flashcard_created: CadernoFlashcardCreatedPayload;
+  caderno_flashcard_ai_generated: CadernoFlashcardAiGeneratedPayload;
+  caderno_flashcard_reviewed: CadernoFlashcardReviewedPayload;
+  caderno_note_created: CadernoNoteCreatedPayload;
+  caderno_note_updated: CadernoNoteUpdatedPayload;
+  caderno_favorite_added: CadernoFavoriteAddedPayload;
+  caderno_favorite_removed: CadernoFavoriteRemovedPayload;
+  caderno_reta_final_viewed: CadernoRetaFinalViewedPayload;
+  caderno_export_pdf: CadernoExportPdfPayload;
+  caderno_export_anki: CadernoExportAnkiPayload;
+  caderno_tts_played: CadernoTtsPlayedPayload;
+  caderno_treino_started: CadernoTreinoStartedPayload;
+  caderno_calibration_viewed: CadernoCalibrationViewedPayload;
 }
