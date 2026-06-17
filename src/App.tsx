@@ -70,6 +70,7 @@ const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestio
 const AdminUsuarios    = lazy(() => import('./admin/pages/AdminUsuarios'))
 const AdminUsuarioDetail = lazy(() => import('./admin/pages/AdminUsuarioDetail'))
 const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAnalytics'))
+const AdminSimuladoResultados = lazy(() => import('./admin/pages/AdminSimuladoResultados'))
 const AdminQuestionManager = lazy(() => import('./admin/pages/AdminQuestionManager'))
 const AdminTentativas  = lazy(() => import('./admin/pages/AdminTentativas'))
 const AdminPreviews = lazy(() => import('./admin/pages/AdminPreviews'))
@@ -150,6 +151,7 @@ const App = () => (
                   <Route path="usuarios"   element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarios /></Suspense>} />
                   <Route path="usuarios/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarioDetail /></Suspense>} />
                   <Route path="simulados/:id/analytics" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoAnalytics /></Suspense>} />
+                  <Route path="simulados/:id/resultados" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoResultados /></Suspense>} />
                   <Route path="tentativas" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminTentativas /></Suspense>} />
                   <Route path="previews" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminPreviews /></Suspense>} />
                   <Route path="ranking-preview" element={<Navigate to="/admin/previews" replace />} />
