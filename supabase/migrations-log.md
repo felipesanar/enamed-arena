@@ -714,3 +714,9 @@ Fase 4 (Dados & Ranking). Cria a RPC **`admin_simulado_results_roster(p_simulado
 - **Ordenação:** por `CASE` whitelistado (name/segment/institution/specialty/score/correct_count/duration_seconds/submitted_at), sem SQL dinâmico → sem injeção. Tiebreaker estável por `rnk`.
 
 **Smoke:** corpo da query sobre simulado `887c0554…` (552 concluintes válidos) retornou ranking com empates corretos (1,2,2,4…), `total_rows` estável (552), e todos os campos (nome/email/segmento/instituição/especialidade/score/acertos/duração) populados. Chamada direta da RPC sob role sem capability → `P0003 unauthorized` (guard OK). ✓
+
+---
+
+## 2026-06-17 — `fase4_results_roster_rpc_email_sort`
+
+Fase 4 (refino). `CREATE OR REPLACE` da `admin_simulado_results_roster` (mesma assinatura) acrescentando os dois `CASE` de ordenação por `email` no `ORDER BY`, para que a coluna E-mail do roster seja de fato ordenável no servidor (antes caía no rank por fallback). Sem outras mudanças.
