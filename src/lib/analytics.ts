@@ -538,3 +538,16 @@ export function trackEvent<E extends AnalyticsEventName>(
     });
   });
 }
+
+/** Valida um payload contra o schema do evento. Uso: ferramentas DEV/QA. */
+export function validateEventPayload(
+  name: string,
+  payload: Record<string, unknown>,
+): { ok: boolean; issues: unknown[] } {
+  const schema = (eventSchemas as Record<string, z.ZodTypeAny>)[name];
+  if (!schema) return { ok: true, issues: [] };
+  const result = schema.safeParse(payload);
+  return result.success
+    ? { ok: true, issues: [] }
+    : { ok: false, issues: result.error.issues };
+}

@@ -5,6 +5,7 @@ import { registerAnalyticsHandler, setSuperProperties } from "@/lib/analytics";
 import { initAnalyticsQueue, enqueueAnalyticsEvent } from "@/lib/analyticsQueue";
 import type { QueueItem } from "@/lib/analyticsQueue";
 import { supabase } from "@/integrations/supabase/client";
+import { mountDevTools, pushToDevBuffer } from "@/lib/analyticsDevTools";
 
 // Force light mode globally — dark theme temporarily disabled.
 document.documentElement.classList.remove("dark");
@@ -154,9 +155,14 @@ initAnalyticsQueue(
 // Handler DEV — console agrupado + buffer inspecionável em window.__ea_events
 // ---------------------------------------------------------------------------
 if (import.meta.env.DEV) {
-  (window as unknown as Record<string, unknown>).__ea_events = [];
+  mountDevTools();
   registerAnalyticsHandler((event) => {
-    (window as unknown as Record<string, unknown[]>).__ea_events.push(event);
+    pushToDevBuffer({
+      name: event.name,
+      event_id: event.event_id,
+      payload: event.payload as Record<string, unknown>,
+      timestamp: event.timestamp,
+    });
     // eslint-disable-next-line no-console
     console.groupCollapsed(`%c[analytics] ${event.name}`, 'color:#8e1f3d;font-weight:bold');
     // eslint-disable-next-line no-console
