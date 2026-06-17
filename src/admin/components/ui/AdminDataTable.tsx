@@ -22,6 +22,7 @@ interface AdminDataTableProps<T extends Record<string, unknown>> {
   sortKey?: string
   sortDir?: 'asc' | 'desc'
   onSort?: (key: string) => void
+  onRowClick?: (row: T, index: number) => void
 }
 
 export function AdminDataTable<T extends Record<string, unknown>>({
@@ -35,6 +36,7 @@ export function AdminDataTable<T extends Record<string, unknown>>({
   sortKey,
   sortDir,
   onSort,
+  onRowClick,
 }: AdminDataTableProps<T>) {
   const cellPadding = compact ? 'px-3.5 py-2' : 'px-4 py-3'
   const textSize = compact ? 'text-[11px]' : 'text-sm'
@@ -105,12 +107,17 @@ export function AdminDataTable<T extends Record<string, unknown>>({
         data.map((row, i) => (
           <div
             key={i}
+            role={onRowClick ? 'button' : undefined}
+            tabIndex={onRowClick ? 0 : undefined}
             className={cn(
               'grid border-b border-admin-line/40 last:border-0 motion-safe:transition-colors',
               'hover:bg-admin-raised/30 focus-within:bg-admin-raised/20',
               i % 2 === 0 ? 'bg-transparent' : 'bg-admin-raised/15',
+              onRowClick && 'cursor-pointer',
             )}
             style={gridStyle}
+            onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+            onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick(row, i) } } : undefined}
           >
             {columns.map(c => (
               <div key={c.key} className={cn(cellPadding, textSize, 'text-admin-text')}>

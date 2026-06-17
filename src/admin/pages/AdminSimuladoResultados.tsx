@@ -26,6 +26,7 @@ import { formatInt } from '@/admin/lib/format'
 import { toast } from '@/hooks/use-toast'
 import { logger } from '@/lib/logger'
 import { exportResultsRosterXlsx } from '@/admin/utils/exportResultsRoster'
+import { AdminAttemptSummaryDialog } from '@/admin/components/AdminAttemptSummaryDialog'
 import { Download } from 'lucide-react'
 
 // ─── helpers ───────────────────────────────────────────────────────────────
@@ -263,6 +264,7 @@ function AdminSimuladoResultadosContent() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(0)
   const [exportingXlsx, setExportingXlsx] = useState(false)
+  const [selectedRow, setSelectedRow] = useState<SimuladoResultRow | null>(null)
 
   // debounce search
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -609,6 +611,7 @@ function AdminSimuladoResultadosContent() {
             sortKey={sort}
             sortDir={dir}
             onSort={handleSort}
+            onRowClick={(row) => setSelectedRow(row as unknown as SimuladoResultRow)}
           />
         </div>
 
@@ -641,6 +644,15 @@ function AdminSimuladoResultadosContent() {
           </div>
         )}
       </section>
+
+      {/* ── Drill-down individual ─────────────────────────────────────────── */}
+      <AdminAttemptSummaryDialog
+        open={selectedRow !== null}
+        onOpenChange={(open) => { if (!open) setSelectedRow(null) }}
+        row={selectedRow}
+        simuladoId={id!}
+        cohortAvgScore={stats?.avg_score ?? null}
+      />
     </div>
   )
 }
