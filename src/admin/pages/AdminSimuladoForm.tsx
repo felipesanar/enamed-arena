@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
 import { adminApi } from '../services/adminApi';
 import { toast } from '@/hooks/use-toast';
-import { validateWindows } from '@/admin/lib/validateWindows';
+import { validateWindows, windowWarnings } from '@/admin/lib/validateWindows';
+import { localInputToUtcISO, utcISOToLocalInput, formatWindowSummary } from '@/admin/lib/timezone';
 
 /** Classes admin para inputs (tema control-room sem editar o componente shadcn) */
 const inputCls = 'bg-admin-bg border-admin-line-strong text-admin-text placeholder:text-admin-faint';
@@ -44,9 +45,9 @@ function AdminSimuladoFormContent() {
         description: s.description,
         duration_minutes: s.duration_minutes,
         questions_count: s.questions_count,
-        execution_window_start: s.execution_window_start.slice(0, 16),
-        execution_window_end: s.execution_window_end.slice(0, 16),
-        results_release_at: s.results_release_at.slice(0, 16),
+        execution_window_start: utcISOToLocalInput(s.execution_window_start),
+        execution_window_end: utcISOToLocalInput(s.execution_window_end),
+        results_release_at: utcISOToLocalInput(s.results_release_at),
         theme_tags: s.theme_tags.join(', '),
         status: s.status as 'draft' | 'published' | 'test',
       });
@@ -68,6 +69,16 @@ function AdminSimuladoFormContent() {
       return;
     }
 
+    const warnings = windowWarnings(
+      form.execution_window_start,
+      form.execution_window_end,
+      form.results_release_at,
+      Number(form.duration_minutes),
+    );
+    if (warnings.length > 0) {
+      toast({ title: 'Avisos sobre a janela', description: warnings.join(' ') });
+    }
+
     setSaving(true);
 
     const payload = {
@@ -77,9 +88,9 @@ function AdminSimuladoFormContent() {
       description: form.description,
       duration_minutes: Number(form.duration_minutes),
       questions_count: Number(form.questions_count),
-      execution_window_start: new Date(form.execution_window_start).toISOString(),
-      execution_window_end: new Date(form.execution_window_end).toISOString(),
-      results_release_at: new Date(form.results_release_at).toISOString(),
+      execution_window_start: localInputToUtcISO(form.execution_window_start),
+      execution_window_end: localInputToUtcISO(form.execution_window_end),
+      results_release_at: localInputToUtcISO(form.results_release_at),
       theme_tags: (form.theme_tags as string).split(',').map(t => t.trim()).filter(Boolean),
       status: form.status as 'draft' | 'published' | 'test',
     };
@@ -144,18 +155,27 @@ function AdminSimuladoFormContent() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Início da janela</Label>
+                <Label>Início da janela <span className="text-admin-muted font-normal">(Brasília)</span></Label>
                 <Input className={inputCls} type="datetime-local" value={form.execution_window_start} onChange={e => set('execution_window_start', e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Fim da janela</Label>
+                <Label>Fim da janela <span className="text-admin-muted font-normal">(Brasília)</span></Label>
                 <Input className={inputCls} type="datetime-local" value={form.execution_window_end} onChange={e => set('execution_window_end', e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Liberação resultados</Label>
+                <Label>Liberação resultados <span className="text-admin-muted font-normal">(Brasília)</span></Label>
                 <Input className={inputCls} type="datetime-local" value={form.results_release_at} onChange={e => set('results_release_at', e.target.value)} required />
               </div>
             </div>
+            {form.execution_window_start && form.execution_window_end && form.results_release_at && (
+              <p className="text-xs text-admin-muted">
+                {formatWindowSummary(
+                  localInputToUtcISO(form.execution_window_start),
+                  localInputToUtcISO(form.execution_window_end),
+                  localInputToUtcISO(form.results_release_at),
+                )}
+              </p>
+            )}
 
             <div className="space-y-2">
               <Label>Tags de tema (separadas por vírgula)</Label>
