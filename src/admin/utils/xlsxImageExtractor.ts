@@ -10,6 +10,39 @@ export interface ExtractedImage {
   mimeType: string;
 }
 
+export type ImageSlot = 'enunciado' | 'enunciado2' | 'comentario';
+
+export interface ImageColumns {
+  enunciadoCol: number;
+  enunciado2Col: number;
+  comentarioCol: number;
+}
+
+/** Aliases normalizados (sem acento, minúsculo) por slot. */
+const IMAGE_HEADER_ALIASES: Record<ImageSlot, string[]> = {
+  enunciado: ['imagem do enunciado', 'imagem enunciado', 'imagem'],
+  enunciado2: ['imagem 2 do enunciado', 'imagem 2 enunciado', 'imagem 2', 'img 2', 'imagem secundaria', 'segunda imagem'],
+  comentario: ['imagem do comentario', 'imagem comentario', 'imagem do comentário'],
+};
+
+/** Decide o slot de uma imagem a partir do índice de coluna. Estrito: sem tolerância ±1. */
+export function slotForColumn(col: number, cols: ImageColumns): ImageSlot | null {
+  if (cols.enunciado2Col >= 0 && col === cols.enunciado2Col) return 'enunciado2';
+  if (cols.enunciadoCol >= 0 && col === cols.enunciadoCol) return 'enunciado';
+  if (cols.comentarioCol >= 0 && col === cols.comentarioCol) return 'comentario';
+  return null;
+}
+
+/** Casa o texto de um header de coluna com um slot, via aliases normalizados. */
+export function slotForHeader(headerText: string): ImageSlot | null {
+  const n = normalize(headerText);
+  // ordem importa: 'imagem 2' antes de 'imagem' pra não ser engolido
+  for (const slot of ['enunciado2', 'comentario', 'enunciado'] as ImageSlot[]) {
+    if (IMAGE_HEADER_ALIASES[slot].some((a) => n === a)) return slot;
+  }
+  return null;
+}
+
 function parseXml(xml: string): Document {
   return new DOMParser().parseFromString(xml, 'application/xml');
 }
@@ -71,16 +104,17 @@ async function getSharedStrings(zip: JSZip): Promise<string[]> {
     );
 }
 
-/** Read header row from a worksheet XML and return { enunciadoCol, comentarioCol } */
+/** Read header row from a worksheet XML and return ImageColumns (3 slots). */
 function findImageColumns(
   worksheetXml: string,
   sharedStrings: string[],
-): { enunciadoCol: number; comentarioCol: number } {
+): ImageColumns {
   const doc = parseXml(worksheetXml);
   const rows = Array.from(doc.getElementsByTagName('*')).filter((n) => n.localName === 'row');
-  if (rows.length === 0) return { enunciadoCol: -1, comentarioCol: -1 };
+  if (rows.length === 0) return { enunciadoCol: -1, enunciado2Col: -1, comentarioCol: -1 };
 
   let enunciadoCol = -1;
+  let enunciado2Col = -1;
   let comentarioCol = -1;
 
   const firstRow = rows[0];
@@ -105,23 +139,26 @@ function findImageColumns(
     } else {
       value = Array.from(cell.children).find((n) => n.localName === 'v')?.textContent ?? '';
     }
-    const n = normalize(value);
-    if (n === 'imagem do enunciado') enunciadoCol = colIdx;
-    else if (n === 'imagem do comentario') comentarioCol = colIdx;
+    const slot = slotForHeader(value);
+    if (slot === 'enunciado') enunciadoCol = colIdx;
+    else if (slot === 'enunciado2') enunciado2Col = colIdx;
+    else if (slot === 'comentario') comentarioCol = colIdx;
   }
 
-  return { enunciadoCol, comentarioCol };
+  return { enunciadoCol, enunciado2Col, comentarioCol };
 }
 
 /**
  * Extract embedded images from an XLSX ArrayBuffer.
- * Returns two maps keyed by 0-based data row index.
+ * Returns three maps keyed by 0-based data row index.
  */
 export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
   enunciadoImages: Map<number, ExtractedImage>;
+  enunciado2Images: Map<number, ExtractedImage>;
   comentarioImages: Map<number, ExtractedImage>;
 }> {
   const enunciadoImages = new Map<number, ExtractedImage>();
+  const enunciado2Images = new Map<number, ExtractedImage>();
   const comentarioImages = new Map<number, ExtractedImage>();
 
   try {
@@ -134,7 +171,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         mediaFiles.set(path, file);
       }
     });
-    if (mediaFiles.size === 0) return { enunciadoImages, comentarioImages };
+    if (mediaFiles.size === 0) return { enunciadoImages, enunciado2Images, comentarioImages };
 
     const sharedStrings = await getSharedStrings(zip);
 
@@ -151,8 +188,8 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
       if (!wsFile) continue;
       const wsXml = await wsFile.async('text');
 
-      const { enunciadoCol, comentarioCol } = findImageColumns(wsXml, sharedStrings);
-      if (enunciadoCol < 0 && comentarioCol < 0) continue;
+      const { enunciadoCol, enunciado2Col, comentarioCol } = findImageColumns(wsXml, sharedStrings);
+      if (enunciadoCol < 0 && enunciado2Col < 0 && comentarioCol < 0) continue;
 
       const rowIndexMap = buildWorksheetRowIndexMap(wsXml);
 
@@ -224,25 +261,20 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         const dataRow = rowIndexMap.get(excelRowNumber);
         if (dataRow === undefined) continue;
 
-        if (enunciadoCol >= 0 && col === enunciadoCol) {
-          enunciadoImages.set(dataRow, image);
-        } else if (comentarioCol >= 0 && col === comentarioCol) {
-          comentarioImages.set(dataRow, image);
-        } else {
-          // Fallback: if image is near a known image column, accept it
-          if (enunciadoCol >= 0 && Math.abs(col - enunciadoCol) <= 1) {
-            enunciadoImages.set(dataRow, image);
-          } else if (comentarioCol >= 0 && Math.abs(col - comentarioCol) <= 1) {
-            comentarioImages.set(dataRow, image);
-          }
-        }
+        const slot = slotForColumn(col, { enunciadoCol, enunciado2Col, comentarioCol });
+        if (slot === 'enunciado') enunciadoImages.set(dataRow, image);
+        else if (slot === 'enunciado2') enunciado2Images.set(dataRow, image);
+        else if (slot === 'comentario') comentarioImages.set(dataRow, image);
+        // sem slot reconhecido: ignora (não chuta vizinho)
       }
 
       logger.info('[xlsxImageExtractor]', {
         worksheet: wsPath,
         enunciadoCol,
+        enunciado2Col,
         comentarioCol,
         enunciadoFound: enunciadoImages.size,
+        enunciado2Found: enunciado2Images.size,
         comentarioFound: comentarioImages.size,
         drawingPath,
         anchorsCount: anchorDebug.length,
@@ -254,7 +286,7 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
     logger.error('[xlsxImageExtractor] Error extracting images:', err);
   }
 
-  return { enunciadoImages, comentarioImages };
+  return { enunciadoImages, enunciado2Images, comentarioImages };
 }
 
 /**
