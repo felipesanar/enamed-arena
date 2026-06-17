@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Trash2, ScanSearch } from 'lucide-react'
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { AdminConfirmDialog } from '@/admin/components/ui/AdminConfirmDialog'
+import { VerifyFindingsPanel } from '@/admin/components/VerifyFindingsPanel'
 import {
   useAdminSimuladoQuestions,
   useUpdateQuestion,
@@ -13,6 +14,8 @@ import {
   useDeleteQuestion,
 } from '@/admin/hooks/useAdminQuestionEditor'
 import type { AdminQuestionFull } from '@/admin/types'
+import { adminApi } from '@/admin/services/adminApi'
+import type { QuestionVerifyFinding } from '@/admin/services/adminApi'
 import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -298,6 +301,30 @@ function AdminQuestionManagerContent() {
   const { id } = useParams<{ id: string }>()
   const { data: questions = [], isLoading, isError } = useAdminSimuladoQuestions(id!)
   const [editing, setEditing] = useState<AdminQuestionFull | null>(null)
+  const [findings, setFindings] = useState<QuestionVerifyFinding[]>([])
+  const [verifying, setVerifying] = useState(false)
+  const [verifyRan, setVerifyRan] = useState(false)
+
+  const runVerify = async () => {
+    setVerifying(true)
+    try {
+      const inputs = questions.map((q) => ({
+        question_number: q.question_number,
+        enunciado_text: q.text ?? '',
+        comentario_text: q.explanation ?? '',
+        has_image: !!q.image_url,
+        has_image_2: !!q.image_url_2,
+        has_explanation_image: !!q.explanation_image_url,
+      }))
+      const result = await adminApi.verifyQuestions(inputs)
+      setFindings(result)
+      setVerifyRan(true)
+    } catch {
+      toast({ title: 'Erro ao verificar questões com IA.', variant: 'destructive' })
+    } finally {
+      setVerifying(false)
+    }
+  }
 
   return (
     <div className="max-w-[1100px] space-y-6">
@@ -305,14 +332,30 @@ function AdminQuestionManagerContent() {
         title="Editar questões"
         subtitle={isLoading ? 'Carregando…' : `${questions.length} questões`}
         actions={
-          <Link
-            to="/admin/simulados"
-            className="text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
-          >
-            ← Voltar aos simulados
-          </Link>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runVerify}
+              disabled={verifying || isLoading || questions.length === 0}
+              className="border-admin-line bg-transparent text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+            >
+              <ScanSearch className="h-4 w-4 mr-1.5" />
+              {verifying ? 'Verificando…' : 'Verificar com IA'}
+            </Button>
+            <Link
+              to="/admin/simulados"
+              className="text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
+            >
+              ← Voltar aos simulados
+            </Link>
+          </div>
         }
       />
+
+      {(verifyRan || verifying) && (
+        <VerifyFindingsPanel findings={findings} loading={verifying} />
+      )}
 
       {isError ? (
         <p className="text-sm text-admin-destructive">
