@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 
 export type AnalyticsEventName =
@@ -101,6 +102,7 @@ export type AnalyticsEventName =
   | "caderno_flashcard_reviewed"
   | "caderno_flashcard_disliked"
   | "caderno_flashcards_bulk_generated"
+  | "caderno_flashcard_session_started"
   // Error notebook — Caderno v2: Anotações (Fase 2)
   | "caderno_note_created"
   | "caderno_note_updated"
@@ -159,8 +161,21 @@ export type AnalyticsEventName =
 
 export type AnalyticsPayload = Record<string, string | number | boolean | null | undefined>;
 
+/**
+ * Resolve o tipo de payload de um evento (Fase 2, passo 1 — amarração nome→payload).
+ *
+ * - Evento COM contrato em `EventPayloadMap`: os campos obrigatórios passam a ser
+ *   exigidos em tempo de compilação. Propriedades extras de contexto continuam
+ *   permitidas (payload "aberto", via `& AnalyticsPayload`).
+ * - Evento SEM contrato: payload solto (`AnalyticsPayload`), 100% compatível com
+ *   os call-sites existentes.
+ */
+export type PayloadFor<E extends AnalyticsEventName> =
+  E extends keyof EventPayloadMap ? EventPayloadMap[E] & AnalyticsPayload : AnalyticsPayload;
+
 interface AnalyticsEvent {
   name: AnalyticsEventName;
+  event_id: string;
   payload: AnalyticsPayload;
   timestamp: string;
 }
@@ -178,10 +193,353 @@ export function registerAnalyticsHandler(handler: AnalyticsHandler) {
   handlers.push(handler);
 }
 
-export function trackEvent(name: AnalyticsEventName, payload: AnalyticsPayload = {}) {
+// ---------------------------------------------------------------------------
+// Caderno v2 — schemas Zod (Fase 2, passo 2)
+// Fonte única de contratos: schemas Zod definem a forma; tipos TS via z.infer.
+// `.passthrough()` tolera props extras (super-props de contexto automático).
+// ---------------------------------------------------------------------------
+
+const cadernoTriageViewedSchema = z.object({
+  attempt_id: z.string(),
+  simulado_id: z.string(),
+  candidate_count: z.number(),
+}).passthrough();
+export type CadernoTriageViewedPayload = z.infer<typeof cadernoTriageViewedSchema>;
+
+const cadernoTriageItemToggledSchema = z.object({
+  question_id: z.string(),
+  action: z.enum(["accepted", "rejected"]),
+  reason: z.string(),
+  reason_changed: z.boolean(),
+}).passthrough();
+export type CadernoTriageItemToggledPayload = z.infer<typeof cadernoTriageItemToggledSchema>;
+
+const cadernoTriageBatchAddedSchema = z.object({
+  attempt_id: z.string(),
+  added_count: z.number(),
+  rejected_count: z.number(),
+}).passthrough();
+export type CadernoTriageBatchAddedPayload = z.infer<typeof cadernoTriageBatchAddedSchema>;
+
+const cadernoRecallAnswerSelectedSchema = z.object({
+  entry_id: z.string(),
+  was_correct: z.boolean(),
+  option_label: z.string(),
+}).passthrough();
+export type CadernoRecallAnswerSelectedPayload = z.infer<typeof cadernoRecallAnswerSelectedSchema>;
+
+const cadernoRecallConfidenceSetSchema = z.object({
+  entry_id: z.string(),
+  confidence: z.enum(["baixa", "media", "alta"]),
+}).passthrough();
+export type CadernoRecallConfidenceSetPayload = z.infer<typeof cadernoRecallConfidenceSetSchema>;
+
+const cadernoRecallRevealedSchema = z.object({
+  entry_id: z.string(),
+  was_correct: z.boolean(),
+}).passthrough();
+export type CadernoRecallRevealedPayload = z.infer<typeof cadernoRecallRevealedSchema>;
+
+const cadernoRecallSelfGradedSchema = z.object({
+  entry_id: z.string(),
+  grade: z.enum(["errei", "dificil", "bom", "facil"]),
+  was_correct: z.boolean(),
+  srs_next_interval_days: z.number(),
+}).passthrough();
+export type CadernoRecallSelfGradedPayload = z.infer<typeof cadernoRecallSelfGradedSchema>;
+
+const cadernoEntrySnoozedSchema = z.object({
+  entry_id: z.string(),
+  days_snoozed: z.number(),
+  reason: z.literal("manual_override").optional(),
+}).passthrough();
+export type CadernoEntrySnoozedPayload = z.infer<typeof cadernoEntrySnoozedSchema>;
+
+const cadernoEntryMasteredSchema = z.object({
+  entry_id: z.string(),
+  via_srs: z.boolean(),
+  srs_interval_days: z.number().optional(),
+  entry_age_days: z.number().optional(),
+}).passthrough();
+export type CadernoEntryMasteredPayload = z.infer<typeof cadernoEntryMasteredSchema>;
+
+const cadernoEntryLeechTriggeredSchema = z.object({
+  entry_id: z.string(),
+  srs_lapses: z.number(),
+  area: z.string(),
+}).passthrough();
+export type CadernoEntryLeechTriggeredPayload = z.infer<typeof cadernoEntryLeechTriggeredSchema>;
+
+const cadernoLessonAccessedSchema = z.object({
+  entry_id: z.string(),
+  area: z.string().optional(),
+  theme: z.string().optional(),
+  reason: z.string().optional(),
+  lesson_url: z.string().optional(),
+}).passthrough();
+export type CadernoLessonAccessedPayload = z.infer<typeof cadernoLessonAccessedSchema>;
+
+const cadernoRevisaoSessionEndedSchema = z.object({
+  session_duration_seconds: z.number(),
+  entries_reviewed: z.number(),
+  entries_mastered: z.number(),
+  entries_snoozed: z.number(),
+  top_area: z.string(),
+}).passthrough();
+export type CadernoRevisaoSessionEndedPayload = z.infer<typeof cadernoRevisaoSessionEndedSchema>;
+
+const cadernoInsightsViewedSchema = z.object({
+  from_cache: z.boolean(),
+  cache_age_hours: z.number(),
+  insight_count: z.number(),
+  has_sufficient_data: z.boolean(),
+}).passthrough();
+export type CadernoInsightsViewedPayload = z.infer<typeof cadernoInsightsViewedSchema>;
+
+const cadernoInsightExpandedSchema = z.object({
+  insight_id: z.string(),
+  insight_type: z.enum(["weak_area", "dominant_cause", "recurring_confusion", "overconfidence", "roi"]),
+  severity: z.enum(["critical", "attention", "positive", "info"]),
+}).passthrough();
+export type CadernoInsightExpandedPayload = z.infer<typeof cadernoInsightExpandedSchema>;
+
+const cadernoInsightCtaClickedSchema = z.object({
+  insight_id: z.string(),
+  insight_type: z.enum(["weak_area", "dominant_cause", "recurring_confusion", "overconfidence", "roi"]),
+  cta_label: z.string(),
+  cta_href: z.string(),
+}).passthrough();
+export type CadernoInsightCtaClickedPayload = z.infer<typeof cadernoInsightCtaClickedSchema>;
+
+const cadernoInsightsRefreshedSchema = z.object({
+  previous_cache_age_hours: z.number(),
+  entry_count: z.number(),
+}).passthrough();
+export type CadernoInsightsRefreshedPayload = z.infer<typeof cadernoInsightsRefreshedSchema>;
+
+const cadernoRoiViewedSchema = z.object({
+  areas_with_roi: z.number(),
+  best_delta_pp: z.number(),
+  has_positive_roi: z.boolean(),
+}).passthrough();
+export type CadernoRoiViewedPayload = z.infer<typeof cadernoRoiViewedSchema>;
+
+const cadernoRoiAreaExpandedSchema = z.object({
+  area: z.string(),
+  mastered_count: z.number().optional(),
+  delta_pp: z.number(),
+}).passthrough();
+export type CadernoRoiAreaExpandedPayload = z.infer<typeof cadernoRoiAreaExpandedSchema>;
+
+const cadernoFlashcardCreatedSchema = z.object({
+  deck_id: z.string(),
+  has_image: z.boolean(),
+  ai_generated: z.boolean(),
+}).passthrough();
+export type CadernoFlashcardCreatedPayload = z.infer<typeof cadernoFlashcardCreatedSchema>;
+
+const cadernoFlashcardAiGeneratedSchema = z.object({
+  has_context: z.boolean(),
+}).passthrough();
+export type CadernoFlashcardAiGeneratedPayload = z.infer<typeof cadernoFlashcardAiGeneratedSchema>;
+
+const cadernoFlashcardReviewedSchema = z.object({
+  flashcard_id: z.string(),
+  outcome: z.enum(["errei", "dificil", "bom", "facil"]),
+  mode: z.string().optional(),
+  mastered: z.boolean().optional(),
+  srs_interval: z.number().optional(),
+  training: z.boolean().optional(),
+}).passthrough();
+export type CadernoFlashcardReviewedPayload = z.infer<typeof cadernoFlashcardReviewedSchema>;
+
+const cadernoNoteCreatedSchema = z.object({
+  note_id: z.string(),
+  question_id: z.string().optional(),
+  simulado_id: z.string().optional(),
+  area: z.string().optional(),
+}).passthrough();
+export type CadernoNoteCreatedPayload = z.infer<typeof cadernoNoteCreatedSchema>;
+
+const cadernoNoteUpdatedSchema = z.object({
+  note_id: z.string(),
+  question_id: z.string().optional(),
+  area: z.string().optional(),
+}).passthrough();
+export type CadernoNoteUpdatedPayload = z.infer<typeof cadernoNoteUpdatedSchema>;
+
+const cadernoFavoriteAddedSchema = z.object({
+  question_id: z.string(),
+  simulado_id: z.string().optional(),
+  area: z.string(),
+}).passthrough();
+export type CadernoFavoriteAddedPayload = z.infer<typeof cadernoFavoriteAddedSchema>;
+
+const cadernoFavoriteRemovedSchema = z.object({
+  favorite_id: z.string().optional(),
+  question_id: z.string(),
+  area: z.string().optional(),
+}).passthrough();
+export type CadernoFavoriteRemovedPayload = z.infer<typeof cadernoFavoriteRemovedSchema>;
+
+const cadernoRetaFinalViewedSchema = z.object({
+  days_until: z.number(),
+  total_active: z.number(),
+  overdue: z.number(),
+  covered: z.number(),
+  uncovered: z.number(),
+  segment: z.string(),
+}).passthrough();
+export type CadernoRetaFinalViewedPayload = z.infer<typeof cadernoRetaFinalViewedSchema>;
+
+const cadernoExportPdfSchema = z.object({
+  entry_count: z.number(),
+}).passthrough();
+export type CadernoExportPdfPayload = z.infer<typeof cadernoExportPdfSchema>;
+
+const cadernoExportAnkiSchema = z.object({
+  entry_count: z.number(),
+}).passthrough();
+export type CadernoExportAnkiPayload = z.infer<typeof cadernoExportAnkiSchema>;
+
+const cadernoTtsPlayedSchema = z.object({
+  entry_id: z.string(),
+  area: z.string().optional(),
+  section: z.string().optional(),
+}).passthrough();
+export type CadernoTtsPlayedPayload = z.infer<typeof cadernoTtsPlayedSchema>;
+
+const cadernoTreinoStartedSchema = z.object({
+  area: z.string().optional(),
+  count: z.number(),
+}).passthrough();
+export type CadernoTreinoStartedPayload = z.infer<typeof cadernoTreinoStartedSchema>;
+
+const cadernoCalibrationViewedSchema = z.object({
+  has_data: z.boolean(),
+  total_answered_with_confidence: z.number(),
+  alta_but_wrong: z.number(),
+  baixa_but_correct: z.number(),
+}).passthrough();
+export type CadernoCalibrationViewedPayload = z.infer<typeof cadernoCalibrationViewedSchema>;
+
+const cadernoFlashcardSessionStartedSchema = z.object({
+  mode: z.enum(["due", "free", "hard", "shuffle", "reversed", "timed"]),
+  count: z.number(),
+}).passthrough();
+export type CadernoFlashcardSessionStartedPayload = z.infer<typeof cadernoFlashcardSessionStartedSchema>;
+
+const resultadoViewedSchema = z.object({
+  simulado_id: z.string(),
+  score_percentage: z.number(),
+  total_correct: z.number(),
+  total_questions: z.number(),
+  worst_area: z.string(),
+  best_area: z.string(),
+  segment: z.enum(["guest", "standard", "pro"]),
+}).passthrough();
+export type ResultadoViewedPayload = z.infer<typeof resultadoViewedSchema>;
+
+// ---------------------------------------------------------------------------
+// Mapa nome → schema para validação de runtime em trackEvent.
+// Eventos ausentes = payload solto aceito (retrocompatível com 64 call-sites).
+// ---------------------------------------------------------------------------
+const eventSchemas = {
+  caderno_triage_viewed: cadernoTriageViewedSchema,
+  caderno_triage_item_toggled: cadernoTriageItemToggledSchema,
+  caderno_triage_batch_added: cadernoTriageBatchAddedSchema,
+  caderno_recall_answer_selected: cadernoRecallAnswerSelectedSchema,
+  caderno_recall_confidence_set: cadernoRecallConfidenceSetSchema,
+  caderno_recall_revealed: cadernoRecallRevealedSchema,
+  caderno_recall_self_graded: cadernoRecallSelfGradedSchema,
+  caderno_entry_snoozed: cadernoEntrySnoozedSchema,
+  caderno_entry_mastered: cadernoEntryMasteredSchema,
+  caderno_entry_leech_triggered: cadernoEntryLeechTriggeredSchema,
+  caderno_lesson_accessed: cadernoLessonAccessedSchema,
+  caderno_revisao_session_ended: cadernoRevisaoSessionEndedSchema,
+  caderno_insights_viewed: cadernoInsightsViewedSchema,
+  caderno_insight_expanded: cadernoInsightExpandedSchema,
+  caderno_insight_cta_clicked: cadernoInsightCtaClickedSchema,
+  caderno_insights_refreshed: cadernoInsightsRefreshedSchema,
+  caderno_roi_viewed: cadernoRoiViewedSchema,
+  caderno_roi_area_expanded: cadernoRoiAreaExpandedSchema,
+  caderno_flashcard_created: cadernoFlashcardCreatedSchema,
+  caderno_flashcard_ai_generated: cadernoFlashcardAiGeneratedSchema,
+  caderno_flashcard_reviewed: cadernoFlashcardReviewedSchema,
+  caderno_note_created: cadernoNoteCreatedSchema,
+  caderno_note_updated: cadernoNoteUpdatedSchema,
+  caderno_favorite_added: cadernoFavoriteAddedSchema,
+  caderno_favorite_removed: cadernoFavoriteRemovedSchema,
+  caderno_reta_final_viewed: cadernoRetaFinalViewedSchema,
+  caderno_export_pdf: cadernoExportPdfSchema,
+  caderno_export_anki: cadernoExportAnkiSchema,
+  caderno_tts_played: cadernoTtsPlayedSchema,
+  caderno_treino_started: cadernoTreinoStartedSchema,
+  caderno_calibration_viewed: cadernoCalibrationViewedSchema,
+  caderno_flashcard_session_started: cadernoFlashcardSessionStartedSchema,
+  resultado_viewed: resultadoViewedSchema,
+};
+
+// ---------------------------------------------------------------------------
+// Fonte única de tipos: mapa nome → contrato de payload.
+// Tipos derivados dos schemas Zod — sem duplicação manual.
+// ---------------------------------------------------------------------------
+export interface EventPayloadMap {
+  caderno_triage_viewed: CadernoTriageViewedPayload;
+  caderno_triage_item_toggled: CadernoTriageItemToggledPayload;
+  caderno_triage_batch_added: CadernoTriageBatchAddedPayload;
+  caderno_recall_answer_selected: CadernoRecallAnswerSelectedPayload;
+  caderno_recall_confidence_set: CadernoRecallConfidenceSetPayload;
+  caderno_recall_revealed: CadernoRecallRevealedPayload;
+  caderno_recall_self_graded: CadernoRecallSelfGradedPayload;
+  caderno_entry_snoozed: CadernoEntrySnoozedPayload;
+  caderno_entry_mastered: CadernoEntryMasteredPayload;
+  caderno_entry_leech_triggered: CadernoEntryLeechTriggeredPayload;
+  caderno_lesson_accessed: CadernoLessonAccessedPayload;
+  caderno_revisao_session_ended: CadernoRevisaoSessionEndedPayload;
+  caderno_insights_viewed: CadernoInsightsViewedPayload;
+  caderno_insight_expanded: CadernoInsightExpandedPayload;
+  caderno_insight_cta_clicked: CadernoInsightCtaClickedPayload;
+  caderno_insights_refreshed: CadernoInsightsRefreshedPayload;
+  caderno_roi_viewed: CadernoRoiViewedPayload;
+  caderno_roi_area_expanded: CadernoRoiAreaExpandedPayload;
+  caderno_flashcard_created: CadernoFlashcardCreatedPayload;
+  caderno_flashcard_ai_generated: CadernoFlashcardAiGeneratedPayload;
+  caderno_flashcard_reviewed: CadernoFlashcardReviewedPayload;
+  caderno_note_created: CadernoNoteCreatedPayload;
+  caderno_note_updated: CadernoNoteUpdatedPayload;
+  caderno_favorite_added: CadernoFavoriteAddedPayload;
+  caderno_favorite_removed: CadernoFavoriteRemovedPayload;
+  caderno_reta_final_viewed: CadernoRetaFinalViewedPayload;
+  caderno_export_pdf: CadernoExportPdfPayload;
+  caderno_export_anki: CadernoExportAnkiPayload;
+  caderno_tts_played: CadernoTtsPlayedPayload;
+  caderno_treino_started: CadernoTreinoStartedPayload;
+  caderno_calibration_viewed: CadernoCalibrationViewedPayload;
+  caderno_flashcard_session_started: CadernoFlashcardSessionStartedPayload;
+  resultado_viewed: ResultadoViewedPayload;
+}
+
+export function trackEvent<E extends AnalyticsEventName>(
+  name: E,
+  payload: PayloadFor<E> = {} as PayloadFor<E>,
+) {
+  const schema = (eventSchemas as Partial<Record<AnalyticsEventName, z.ZodTypeAny>>)[name];
+  if (schema) {
+    const result = schema.safeParse(payload);
+    if (!result.success) {
+      logger.error(
+        `[analytics] payload inválido — evento "${name}" descartado`,
+        result.error.issues,
+      );
+      return;
+    }
+  }
+
   const event: AnalyticsEvent = {
     name,
-    payload: { ...superProperties, ...payload },
+    event_id: crypto.randomUUID(),
+    payload: { ...superProperties, ...(payload as AnalyticsPayload) },
     timestamp: new Date().toISOString(),
   };
 
@@ -194,199 +552,15 @@ export function trackEvent(name: AnalyticsEventName, payload: AnalyticsPayload =
   });
 }
 
-// ---------------------------------------------------------------------------
-// Caderno v2 — typed payload interfaces (spec 06 Parte B + 00-contratos-canonicos §5)
-// Agentes de UI devem usar estes tipos ao chamar trackEvent para garantir
-// que as propriedades obrigatórias estejam presentes.
-// ---------------------------------------------------------------------------
-
-export interface CadernoTriageViewedPayload {
-  attempt_id: string;
-  simulado_id: string;
-  candidate_count: number;
-}
-
-export interface CadernoTriageItemToggledPayload {
-  question_id: string;
-  action: "accepted" | "rejected";
-  reason: string;
-  reason_changed: boolean;
-}
-
-export interface CadernoTriageBatchAddedPayload {
-  attempt_id: string;
-  added_count: number;
-  rejected_count: number;
-}
-
-export interface CadernoRecallAnswerSelectedPayload {
-  entry_id: string;
-  was_correct: boolean;
-  option_label: string;
-}
-
-export interface CadernoRecallConfidenceSetPayload {
-  entry_id: string;
-  confidence: "baixa" | "media" | "alta";
-}
-
-export interface CadernoRecallRevealedPayload {
-  entry_id: string;
-  was_correct: boolean;
-}
-
-export interface CadernoRecallSelfGradedPayload {
-  entry_id: string;
-  grade: "errei" | "dificil" | "bom" | "facil";
-  was_correct: boolean;
-  srs_next_interval_days: number;
-}
-
-/** Substitui `caderno_revisao_snoozed` (deprecado). Ver spec 06 B.2 + 00-contratos-canonicos §5. */
-export interface CadernoEntrySnoozedPayload {
-  entry_id: string;
-  days_snoozed: number;
-  reason: "manual_override";
-}
-
-export interface CadernoEntryMasteredPayload {
-  entry_id: string;
-  via_srs: boolean;
-  srs_interval_days?: number;
-  entry_age_days?: number;
-}
-
-export interface CadernoEntryLeechTriggeredPayload {
-  entry_id: string;
-  srs_lapses: number;
-  area: string;
-}
-
-export interface CadernoLessonAccessedPayload {
-  entry_id: string;
-  area: string;
-  lesson_url?: string;
-}
-
-export interface CadernoRevisaoSessionEndedPayload {
-  session_duration_seconds: number;
-  entries_reviewed: number;
-  entries_mastered: number;
-  entries_snoozed: number;
-  top_area: string;
-}
-
-export interface CadernoInsightsViewedPayload {
-  from_cache: boolean;
-  cache_age_hours: number;
-  insight_count: number;
-  has_sufficient_data: boolean;
-}
-
-export interface CadernoInsightExpandedPayload {
-  insight_id: string;
-  insight_type: "weak_area" | "dominant_cause" | "recurring_confusion" | "overconfidence" | "roi";
-  severity: "critical" | "attention" | "positive" | "info";
-}
-
-export interface CadernoInsightCtaClickedPayload {
-  insight_id: string;
-  insight_type: "weak_area" | "dominant_cause" | "recurring_confusion" | "overconfidence" | "roi";
-  cta_label: string;
-  cta_href: string;
-}
-
-export interface CadernoInsightsRefreshedPayload {
-  previous_cache_age_hours: number;
-  entry_count: number;
-}
-
-export interface CadernoRoiViewedPayload {
-  areas_with_roi: number;
-  best_delta_pp: number;
-  has_positive_roi: boolean;
-}
-
-export interface CadernoRoiAreaExpandedPayload {
-  area: string;
-  mastered_count: number;
-  delta_pp: number;
-}
-
-// Error notebook — Caderno v2: Flashcards (Fase 2)
-export interface CadernoFlashcardCreatedPayload {
-  flashcard_id: string;
-  entry_id: string;
-  area: string;
-}
-
-export interface CadernoFlashcardAiGeneratedPayload {
-  flashcard_id: string;
-  entry_id: string;
-  front_generated: boolean;
-  back_generated: boolean;
-}
-
-export interface CadernoFlashcardReviewedPayload {
-  flashcard_id: string;
-  outcome: "errei" | "dificil" | "bom" | "facil";
-  mastered: boolean;
-  srs_interval_days?: number;
-}
-
-// Error notebook — Caderno v2: Anotações (Fase 2)
-export interface CadernoNoteCreatedPayload {
-  note_id: string;
-  question_id?: string;
-  simulado_id?: string;
-  area?: string;
-}
-
-export interface CadernoNoteUpdatedPayload {
-  note_id: string;
-  question_id?: string;
-  area?: string;
-}
-
-// Error notebook — Caderno v2: Favoritos (Fase 2)
-export interface CadernoFavoriteAddedPayload {
-  question_id: string;
-  simulado_id?: string;
-  area: string;
-}
-
-export interface CadernoFavoriteRemovedPayload {
-  question_id: string;
-  area: string;
-}
-
-// Error notebook — Caderno v2: Fase 3 (War Room, Export, TTS, Treino)
-export interface CadernoRetaFinalViewedPayload {
-  days_until: number;
-  pending_count: number;
-}
-
-export interface CadernoExportPdfPayload {
-  entry_count: number;
-}
-
-export interface CadernoExportAnkiPayload {
-  entry_count: number;
-}
-
-export interface CadernoTtsPlayedPayload {
-  section: string;
-}
-
-export interface CadernoTreinoStartedPayload {
-  area?: string;
-  count: number;
-}
-
-// Error notebook — Caderno v2: Fase 4 — calibração de confiança
-export interface CadernoCalibrationViewedPayload {
-  has_data: boolean;
-  total_answered_with_confidence: number;
-  alta_but_wrong: number;
-  baixa_but_correct: number;
+/** Valida um payload contra o schema do evento. Uso: ferramentas DEV/QA. */
+export function validateEventPayload(
+  name: string,
+  payload: Record<string, unknown>,
+): { ok: boolean; issues: unknown[] } {
+  const schema = (eventSchemas as Record<string, z.ZodTypeAny>)[name];
+  if (!schema) return { ok: true, issues: [] };
+  const result = schema.safeParse(payload);
+  return result.success
+    ? { ok: true, issues: [] }
+    : { ok: false, issues: result.error.issues };
 }

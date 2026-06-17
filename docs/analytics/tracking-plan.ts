@@ -1,10 +1,15 @@
 /**
- * SanarFlix PRO: ENAMED — Analytics Tracking Plan
+ * @deprecated FONTE DERIVADA — não editar manualmente.
  *
- * Fonte da verdade para nomes de eventos e tipos de payload.
- * Importar EVENTS (e não strings literais) em todo o codebase para evitar typos.
+ * A fonte única de eventos é `src/lib/analytics.ts`:
+ *   - `AnalyticsEventName` — union com todos os nomes válidos
+ *   - `EventPayloadMap` — contratos de payload (Zod + z.infer)
+ *   - `trackEvent<E>(name, payload)` — função de captura
  *
- * Gerado em: 2026-04-05
+ * Este arquivo é mantido apenas como referência histórica.
+ * Para adicionar eventos: edite `analytics.ts`.
+ *
+ * Gerado em: 2026-04-05 · Deprecado em: 2026-06-17 (Fase 2, passo 8)
  * Baseado em: docs/analytics/event-catalog.md
  */
 
