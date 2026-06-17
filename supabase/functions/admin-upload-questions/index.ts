@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     };
 
     // New (preferred) payload: client uploaded images directly to Storage and sends only URLs.
-    const urlMap: Record<number, { enunciado_url?: string; comentario_url?: string }> = image_urls || {};
+    const urlMap: Record<number, { enunciado_url?: string; enunciado2_url?: string; comentario_url?: string }> = image_urls || {};
     // Legacy fallback: base64 payload (kept for backward compatibility).
     const imageMap: Record<number, {
       enunciado?: { data: string; mime: string };
@@ -74,10 +74,12 @@ Deno.serve(async (req) => {
 
       // Upload images to Storage if present
       let imageUrl: string | null = q.image_url || null;
+      let imageUrl2: string | null = q.image_url_2 || null;
       let explanationImageUrl: string | null = null;
 
       const urls = urlMap[qNum];
       if (urls?.enunciado_url) imageUrl = urls.enunciado_url;
+      if (urls?.enunciado2_url) imageUrl2 = urls.enunciado2_url;
       if (urls?.comentario_url) explanationImageUrl = urls.comentario_url;
 
       const qImages = imageMap[qNum];
@@ -141,6 +143,7 @@ Deno.serve(async (req) => {
           difficulty: q.dificuldade || "medium",
           explanation: q.explicacao || null,
           image_url: imageUrl,
+          image_url_2: imageUrl2,
           explanation_image_url: explanationImageUrl,
         })
         .select("id")
