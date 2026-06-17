@@ -104,7 +104,9 @@ function AdminSimuladoFormContent() {
       sequence_number: Number(form.sequence_number),
       description: form.description,
       duration_minutes: Number(form.duration_minutes),
-      questions_count: Number(form.questions_count),
+      // Em edição, persiste a contagem REAL de questões quando conhecida, evitando
+      // re-gravar um valor defasado (o upload de questões já mantém este campo).
+      questions_count: Number(isEdit && realCount != null ? realCount : form.questions_count),
       execution_window_start: localInputToUtcISO(form.execution_window_start),
       execution_window_end: localInputToUtcISO(form.execution_window_end),
       results_release_at: localInputToUtcISO(form.results_release_at),
