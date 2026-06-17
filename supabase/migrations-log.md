@@ -685,3 +685,32 @@ As FKs de `selected_option_id` e `correct_option_id` não foram tocadas (permane
 | `attempt_question_results_selected_option_id_fkey` | `a` (no action) | inalterado |
 
 **Row count smoke:** `count(*) from attempt_question_results = 143200` (ALTER não toca linhas). ✓
+
+---
+
+## 2026-06-17 — `fase4_results_view_capability`
+
+Fase 4 (Dados & Ranking). Adiciona a capability **`results.view`** à `role_capabilities` para os roles `admin`, `content_editor` e `analyst` (o roster de concluintes expõe PII — nome + e-mail — então é separada de `content.manage`). Aditiva e idempotente.
+
+```sql
+insert into public.role_capabilities (role, capability) values
+  ('admin'::app_role,          'results.view'),
+  ('content_editor'::app_role, 'results.view'),
+  ('analyst'::app_role,        'results.view')
+on conflict (role, capability) do nothing;
+```
+
+**Smoke:** `select role from role_capabilities where capability='results.view'` → admin, content_editor, analyst (support **não** tem). ✓
+
+---
+
+## 2026-06-17 — `fase4_results_roster_rpc`
+
+Fase 4 (Dados & Ranking). Cria a RPC **`admin_simulado_results_roster(p_simulado_id, p_sort, p_dir, p_scope, p_search, p_segment, p_institution, p_limit, p_offset)`** — roster de concluintes (`status='submitted'`) de um simulado com ordenação/filtro/paginação **no servidor** (contorna o teto de 1000 do PostgREST). `SECURITY DEFINER`, `set search_path=public`, primeiro statement `perform admin_require('results.view')`. Read-only (sem audit log). `revoke all ... from public, anon`.
+
+- **Joins:** `attempts` → `simulados` (total_count = questions_count) → `profiles` (nome/segmento) → `auth.users` (email) → `onboarding_profiles` (instituição = `target_institutions[1]`, especialidade). Score = `coalesce(user_performance_history.score_percentage, attempts.score_percentage)`.
+- **rank:** `rank() over (order by score desc)` calculado no escopo (valid/training/all) **antes** dos filtros de exibição (busca/segmento/instituição), refletindo a posição real no simulado.
+- **scope:** `valid` (is_within_window), `training` (not), `all`.
+- **Ordenação:** por `CASE` whitelistado (name/segment/institution/specialty/score/correct_count/duration_seconds/submitted_at), sem SQL dinâmico → sem injeção. Tiebreaker estável por `rnk`.
+
+**Smoke:** corpo da query sobre simulado `887c0554…` (552 concluintes válidos) retornou ranking com empates corretos (1,2,2,4…), `total_rows` estável (552), e todos os campos (nome/email/segmento/instituição/especialidade/score/acertos/duração) populados. Chamada direta da RPC sob role sem capability → `P0003 unauthorized` (guard OK). ✓
