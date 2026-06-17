@@ -37,6 +37,23 @@ import type {
   AuditLogRow,
 } from '@/admin/types'
 
+export interface QuestionVerifyFinding {
+  question_number: number;
+  check_type: 'missing_image';
+  slot: 'enunciado' | 'enunciado2' | 'comentario';
+  severity: 'error' | 'warning';
+  evidence: string;
+}
+
+export interface QuestionVerifyInput {
+  question_number: number;
+  enunciado_text: string;
+  comentario_text?: string;
+  has_image: boolean;
+  has_image_2: boolean;
+  has_explanation_image: boolean;
+}
+
 export const adminApi = {
   // ─── Dashboard KPIs ───
   async getDashboardStats() {
@@ -683,6 +700,12 @@ export const adminApi = {
   async deleteQuestion(id: string): Promise<void> {
     const { error } = await supabase.rpc('admin_delete_question', { p_question_id: id })
     if (error) throw error
+  },
+
+  async verifyQuestions(questions: QuestionVerifyInput[]): Promise<QuestionVerifyFinding[]> {
+    const { data, error } = await supabase.functions.invoke('admin-verify-questions', { body: { questions } });
+    if (error) throw error;
+    return (data?.findings ?? []) as QuestionVerifyFinding[];
   },
 
   // ─── Auditoria ───
