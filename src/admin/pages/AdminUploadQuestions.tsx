@@ -22,6 +22,7 @@ interface ParsedRow {
   Tema: string;
   Enunciado: string;
   'Imagem do Enunciado': string;
+  'Imagem 2 do Enunciado': string;
   'Alternativa A': string;
   'Alternativa B': string;
   'Alternativa C': string;
@@ -39,6 +40,7 @@ interface NormalizedQuestion {
   dificuldade: string;
   explicacao: string;
   image_url: string;
+  image_url_2: string;
   alternativa_a: string;
   alternativa_b: string;
   alternativa_c: string;
@@ -97,6 +99,7 @@ const HEADER_ALIASES: Record<keyof ParsedRow, string[]> = {
   Tema: ['tema', 'assunto'],
   Enunciado: ['enunciado'],
   'Imagem do Enunciado': ['imagem do enunciado'],
+  'Imagem 2 do Enunciado': ['imagem 2 do enunciado', 'imagem 2 enunciado', 'imagem 2', 'img 2', 'imagem secundaria', 'segunda imagem'],
   'Alternativa A': ['alternativa a'],
   'Alternativa B': ['alternativa b'],
   'Alternativa C': ['alternativa c'],
@@ -150,6 +153,7 @@ function normalizeRow(row: ParsedRow): NormalizedQuestion {
     dificuldade: 'medium',
     explicacao: row['Comentário'] || '',
     image_url: normalizeStoragePublicUrl(row['Imagem do Enunciado']),
+    image_url_2: normalizeStoragePublicUrl(row['Imagem 2 do Enunciado']),
     alternativa_a: row['Alternativa A'] || '',
     alternativa_b: row['Alternativa B'] || '',
     alternativa_c: row['Alternativa C'] || '',
@@ -165,6 +169,7 @@ function AdminUploadQuestionsContent() {
   const [existingCount, setExistingCount] = useState(0);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [enunciadoImages, setEnunciadoImages] = useState<Map<number, ExtractedImage>>(new Map());
+  const [enunciado2Images, setEnunciado2Images] = useState<Map<number, ExtractedImage>>(new Map());
   const [comentarioImages, setComentarioImages] = useState<Map<number, ExtractedImage>>(new Map());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ step: string; percent: number } | null>(null);
@@ -189,12 +194,13 @@ function AdminUploadQuestionsContent() {
     setParsedRows(rows);
 
     // Extract embedded images with JSZip
-    const { enunciadoImages: eImgs, comentarioImages: cImgs } = await extractImagesFromXlsx(arrayBuffer);
+    const { enunciadoImages: eImgs, enunciado2Images: e2Imgs, comentarioImages: cImgs } = await extractImagesFromXlsx(arrayBuffer);
     setEnunciadoImages(eImgs);
+    setEnunciado2Images(e2Imgs);
     setComentarioImages(cImgs);
 
-    if (eImgs.size > 0 || cImgs.size > 0) {
-      toast({ title: `${eImgs.size + cImgs.size} imagens extraídas da planilha` });
+    if (eImgs.size > 0 || e2Imgs.size > 0 || cImgs.size > 0) {
+      toast({ title: `${eImgs.size + e2Imgs.size + cImgs.size} imagens extraídas da planilha` });
     }
   }, []);
 
@@ -210,16 +216,18 @@ function AdminUploadQuestionsContent() {
       const normalized = parsedRows.map(normalizeRow);
 
       // Collect images to upload
-      const imageJobs: Array<{ qNum: number; kind: 'enunciado' | 'comentario'; img: ExtractedImage }> = [];
+      const imageJobs: Array<{ qNum: number; kind: 'enunciado' | 'enunciado2' | 'comentario'; img: ExtractedImage }> = [];
       parsedRows.forEach((row, index) => {
         const qNum = Number(row.numero);
         const eImg = enunciadoImages.get(index);
+        const e2Img = enunciado2Images.get(index);
         const cImg = comentarioImages.get(index);
         if (eImg) imageJobs.push({ qNum, kind: 'enunciado', img: eImg });
+        if (e2Img) imageJobs.push({ qNum, kind: 'enunciado2', img: e2Img });
         if (cImg) imageJobs.push({ qNum, kind: 'comentario', img: cImg });
       });
 
-      const imageUrls: Record<number, { enunciado_url?: string; comentario_url?: string }> = {};
+      const imageUrls: Record<number, { enunciado_url?: string; enunciado2_url?: string; comentario_url?: string }> = {};
 
       const mimeToExt = (mime: string) => {
         if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
@@ -258,6 +266,7 @@ function AdminUploadQuestionsContent() {
           const { data: pub } = supabase.storage.from('question-images').getPublicUrl(path);
           if (!imageUrls[job.qNum]) imageUrls[job.qNum] = {};
           if (job.kind === 'enunciado') imageUrls[job.qNum].enunciado_url = pub.publicUrl;
+          else if (job.kind === 'enunciado2') imageUrls[job.qNum].enunciado2_url = pub.publicUrl;
           else imageUrls[job.qNum].comentario_url = pub.publicUrl;
           done++;
           if (total > 0) {
@@ -292,6 +301,7 @@ function AdminUploadQuestionsContent() {
       setParsedRows([]);
       setFileName('');
       setEnunciadoImages(new Map());
+      setEnunciado2Images(new Map());
       setComentarioImages(new Map());
       setExistingCount(result.inserted);
     } catch (err: any) {
@@ -318,7 +328,7 @@ function AdminUploadQuestionsContent() {
     return <div className="flex justify-center py-12"><div className="h-8 w-8 border-2 border-admin-accent/30 border-t-admin-accent rounded-full animate-spin" /></div>;
   }
 
-  const totalImages = enunciadoImages.size + comentarioImages.size;
+  const totalImages = enunciadoImages.size + enunciado2Images.size + comentarioImages.size;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -359,7 +369,7 @@ function AdminUploadQuestionsContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-admin-muted">
-            Colunas esperadas: <code className="text-xs bg-admin-raised px-1 rounded">numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário</code>
+            Colunas esperadas: <code className="text-xs bg-admin-raised px-1 rounded">numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Imagem 2 do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário</code>
           </p>
 
           <div className="flex items-center gap-4">
@@ -420,6 +430,7 @@ function AdminUploadQuestionsContent() {
                 <TableBody>
                   {parsedRows.map((q, i) => {
                     const hasEnunciado = enunciadoImages.has(i);
+                    const hasEnunciado2 = enunciado2Images.has(i);
                     const hasComentario = comentarioImages.has(i);
                     return (
                       <TableRow
@@ -437,6 +448,11 @@ function AdminUploadQuestionsContent() {
                             {hasEnunciado && (
                               <span title="Imagem do enunciado">
                                 <ImageIcon className="h-3.5 w-3.5 text-admin-accent" />
+                              </span>
+                            )}
+                            {hasEnunciado2 && (
+                              <span title="Imagem 2 do enunciado">
+                                <ImageIcon className="h-3.5 w-3.5 text-admin-accent/60" />
                               </span>
                             )}
                             {hasComentario && (
@@ -461,6 +477,7 @@ function AdminUploadQuestionsContent() {
         onOpenChange={(open) => !open && setPreviewIndex(null)}
         row={previewIndex !== null ? parsedRows[previewIndex] : null}
         enunciadoImage={previewIndex !== null ? enunciadoImages.get(previewIndex) : undefined}
+        enunciado2Image={previewIndex !== null ? enunciado2Images.get(previewIndex) : undefined}
         comentarioImage={previewIndex !== null ? comentarioImages.get(previewIndex) : undefined}
       />
     </div>

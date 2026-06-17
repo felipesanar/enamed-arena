@@ -20,6 +20,7 @@ interface PreviewRow {
 interface Props {
   row: PreviewRow | null;
   enunciadoImage?: ExtractedImage;
+  enunciado2Image?: ExtractedImage;
   comentarioImage?: ExtractedImage;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,7 +31,7 @@ function toDataUrl(img?: ExtractedImage): string | null {
   return `data:${img.mimeType};base64,${img.base64}`;
 }
 
-export function QuestionPreviewModal({ row, enunciadoImage, comentarioImage, open, onOpenChange }: Props) {
+export function QuestionPreviewModal({ row, enunciadoImage, enunciado2Image: _enunciado2Image, comentarioImage, open, onOpenChange }: Props) {
   if (!row) return null;
 
   const gabarito = (row.Gabarito || '').toUpperCase();
