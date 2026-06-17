@@ -5,15 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon, Loader2, ScanSearch } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
-import { adminApi } from '../services/adminApi';
+import { adminApi, type QuestionVerifyFinding } from '../services/adminApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageExtractor';
 import { parseXlsxFirstWorksheetRows } from '../utils/xlsxTextParser';
 import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
+import { VerifyFindingsPanel } from '../components/VerifyFindingsPanel';
 
 interface ParsedRow {
   numero: number;
@@ -175,6 +176,9 @@ function AdminUploadQuestionsContent() {
   const [uploadProgress, setUploadProgress] = useState<{ step: string; percent: number } | null>(null);
   const [fileName, setFileName] = useState('');
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [findings, setFindings] = useState<QuestionVerifyFinding[]>([]);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyRan, setVerifyRan] = useState(false);
 
   useEffect(() => {
     if (!simuladoId) return;
@@ -186,6 +190,8 @@ function AdminUploadQuestionsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
+    setFindings([]);
+    setVerifyRan(false);
 
     const arrayBuffer = await file.arrayBuffer();
 
@@ -203,6 +209,27 @@ function AdminUploadQuestionsContent() {
       toast({ title: `${eImgs.size + e2Imgs.size + cImgs.size} imagens extraídas da planilha` });
     }
   }, []);
+
+  const runVerify = async () => {
+    setVerifying(true);
+    try {
+      const inputs = parsedRows.map((row, i) => ({
+        question_number: Number(row.numero),
+        enunciado_text: row.Enunciado || '',
+        comentario_text: row['Comentário'] || '',
+        has_image: enunciadoImages.has(i),
+        has_image_2: enunciado2Images.has(i),
+        has_explanation_image: comentarioImages.has(i),
+      }));
+      const result = await adminApi.verifyQuestions(inputs);
+      setFindings(result);
+      setVerifyRan(true);
+    } catch (err: any) {
+      toast({ title: 'Erro ao verificar', description: err.message, variant: 'destructive' });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleUpload = async () => {
     if (!simuladoId || parsedRows.length === 0) return;
@@ -382,13 +409,26 @@ function AdminUploadQuestionsContent() {
             </label>
 
             {parsedRows.length > 0 && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {totalImages > 0 && (
                   <Badge variant="outline" className="flex items-center gap-1 bg-admin-raised text-admin-muted border-admin-line">
                     <ImageIcon className="h-3 w-3" />
                     {totalImages} imagens
                   </Badge>
                 )}
+                <Button
+                  variant="outline"
+                  className="border-admin-line bg-transparent text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+                  onClick={runVerify}
+                  disabled={verifying || uploading}
+                >
+                  {verifying ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <ScanSearch className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {verifying ? 'Verificando...' : 'Verificar com IA'}
+                </Button>
                 <Button onClick={handleUpload} disabled={uploading}>
                   {uploading ? 'Enviando...' : `Enviar ${parsedRows.length} questões`}
                 </Button>
@@ -470,6 +510,10 @@ function AdminUploadQuestionsContent() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {parsedRows.length > 0 && (verifyRan || verifying) && (
+        <VerifyFindingsPanel findings={findings} loading={verifying} />
       )}
 
       <QuestionPreviewModal
