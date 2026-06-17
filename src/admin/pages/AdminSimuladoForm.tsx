@@ -4,12 +4,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
+import { AdminSectionHeader } from '@/admin/components/ui/AdminSectionHeader';
 import { adminApi } from '../services/adminApi';
 import { toast } from '@/hooks/use-toast';
 import { validateWindows, windowWarnings } from '@/admin/lib/validateWindows';
 import { localInputToUtcISO, utcISOToLocalInput, formatWindowSummary } from '@/admin/lib/timezone';
+import { slugify } from '@/admin/lib/slugify';
 
 /** Classes admin para inputs (tema control-room sem editar o componente shadcn) */
 const inputCls = 'bg-admin-bg border-admin-line-strong text-admin-text placeholder:text-admin-faint';
@@ -34,6 +36,8 @@ function AdminSimuladoFormContent() {
   const navigate = useNavigate();
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [realCount, setRealCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -52,9 +56,22 @@ function AdminSimuladoFormContent() {
         status: s.status as 'draft' | 'published' | 'test',
       });
     });
+    adminApi.getQuestionsCount(id!).then(setRealCount);
   }, [id, isEdit]);
 
   const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const handleTitleChange = (v: string) => {
+    set('title', v);
+    if (!isEdit && !slugTouched) {
+      set('slug', slugify(v));
+    }
+  };
+
+  const handleSlugChange = (v: string) => {
+    setSlugTouched(true);
+    set('slug', v);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,80 +136,162 @@ function AdminSimuladoFormContent() {
       />
 
       <Card className="bg-admin-surface border-admin-line text-admin-text">
-        <CardHeader><CardTitle className="text-base text-admin-text">Configuração</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Título</Label>
-                <Input className={inputCls} value={form.title} onChange={e => set('title', e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input className={inputCls} value={form.slug} onChange={e => set('slug', e.target.value)} required placeholder="simulado-1" />
-              </div>
-            </div>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
+            {/* ── Identificação ── */}
+            <div className="space-y-4">
+              <AdminSectionHeader title="Identificação" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Título</Label>
+                  <Input
+                    className={inputCls}
+                    value={form.title}
+                    onChange={e => handleTitleChange(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input
+                    className={inputCls}
+                    value={form.slug}
+                    onChange={e => handleSlugChange(e.target.value)}
+                    required
+                    placeholder="simulado-1"
+                  />
+                </div>
+              </div>
+              <div className="w-40 space-y-2">
                 <Label>Nº sequencial</Label>
-                <Input className={inputCls} type="number" value={form.sequence_number} onChange={e => set('sequence_number', e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Duração (min)</Label>
-                <Input className={inputCls} type="number" value={form.duration_minutes} onChange={e => set('duration_minutes', e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Nº questões</Label>
-                <Input className={inputCls} type="number" value={form.questions_count} onChange={e => set('questions_count', e.target.value)} />
+                <Input
+                  className={inputCls}
+                  type="number"
+                  value={form.sequence_number}
+                  onChange={e => set('sequence_number', e.target.value)}
+                  required
+                />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Descrição</Label>
-              <Input className={inputCls} value={form.description} onChange={e => set('description', e.target.value)} />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
+            {/* ── Conteúdo ── */}
+            <div className="space-y-4">
+              <AdminSectionHeader title="Conteúdo" />
               <div className="space-y-2">
-                <Label>Início da janela <span className="text-admin-muted font-normal">(Brasília)</span></Label>
-                <Input className={inputCls} type="datetime-local" value={form.execution_window_start} onChange={e => set('execution_window_start', e.target.value)} required />
+                <Label>Descrição</Label>
+                <Input
+                  className={inputCls}
+                  value={form.description}
+                  onChange={e => set('description', e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Duração (min)</Label>
+                  <Input
+                    className={inputCls}
+                    type="number"
+                    value={form.duration_minutes}
+                    onChange={e => set('duration_minutes', e.target.value)}
+                    required
+                  />
+                </div>
+                {isEdit ? (
+                  <div className="space-y-2">
+                    <Label>Nº questões</Label>
+                    <Input
+                      className={inputCls}
+                      type="number"
+                      value={realCount ?? form.questions_count}
+                      readOnly
+                    />
+                    <p className="text-xs text-admin-muted">
+                      Definido automaticamente pelo upload de questões.
+                    </p>
+                    {realCount != null && realCount !== form.questions_count && (
+                      <p className="text-xs text-amber-500">
+                        O valor salvo ({form.questions_count}) difere do real ({realCount}).
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label>Fim da janela <span className="text-admin-muted font-normal">(Brasília)</span></Label>
-                <Input className={inputCls} type="datetime-local" value={form.execution_window_end} onChange={e => set('execution_window_end', e.target.value)} required />
+                <Label>Tags de tema (separadas por vírgula)</Label>
+                <Input
+                  className={inputCls}
+                  value={form.theme_tags}
+                  onChange={e => set('theme_tags', e.target.value)}
+                  placeholder="Clínica Médica, Cirurgia"
+                />
               </div>
+            </div>
+
+            {/* ── Agenda ── */}
+            <div className="space-y-4">
+              <AdminSectionHeader title="Agenda" />
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Início da janela <span className="text-admin-muted font-normal">(Brasília)</span></Label>
+                  <Input
+                    className={inputCls}
+                    type="datetime-local"
+                    value={form.execution_window_start}
+                    onChange={e => set('execution_window_start', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fim da janela <span className="text-admin-muted font-normal">(Brasília)</span></Label>
+                  <Input
+                    className={inputCls}
+                    type="datetime-local"
+                    value={form.execution_window_end}
+                    onChange={e => set('execution_window_end', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Liberação resultados <span className="text-admin-muted font-normal">(Brasília)</span></Label>
+                  <Input
+                    className={inputCls}
+                    type="datetime-local"
+                    value={form.results_release_at}
+                    onChange={e => set('results_release_at', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              {form.execution_window_start && form.execution_window_end && form.results_release_at && (
+                <p className="text-xs text-admin-muted">
+                  {formatWindowSummary(
+                    localInputToUtcISO(form.execution_window_start),
+                    localInputToUtcISO(form.execution_window_end),
+                    localInputToUtcISO(form.results_release_at),
+                  )}
+                </p>
+              )}
+            </div>
+
+            {/* ── Publicação ── */}
+            <div className="space-y-4">
+              <AdminSectionHeader title="Publicação" />
               <div className="space-y-2">
-                <Label>Liberação resultados <span className="text-admin-muted font-normal">(Brasília)</span></Label>
-                <Input className={inputCls} type="datetime-local" value={form.results_release_at} onChange={e => set('results_release_at', e.target.value)} required />
+                <Label>Status</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-admin-line-strong bg-admin-bg text-admin-text px-3 py-2 text-sm"
+                  value={form.status}
+                  onChange={e => set('status', e.target.value)}
+                >
+                  <option value="draft">Rascunho</option>
+                  <option value="published">Publicado</option>
+                  <option value="test">Teste (só admins)</option>
+                </select>
+                <p className="text-xs text-admin-muted">
+                  Rascunho: não aparece para o aluno. · Publicado: visível na janela de execução. · Teste: visível apenas para admins.
+                </p>
               </div>
-            </div>
-            {form.execution_window_start && form.execution_window_end && form.results_release_at && (
-              <p className="text-xs text-admin-muted">
-                {formatWindowSummary(
-                  localInputToUtcISO(form.execution_window_start),
-                  localInputToUtcISO(form.execution_window_end),
-                  localInputToUtcISO(form.results_release_at),
-                )}
-              </p>
-            )}
-
-            <div className="space-y-2">
-              <Label>Tags de tema (separadas por vírgula)</Label>
-              <Input className={inputCls} value={form.theme_tags} onChange={e => set('theme_tags', e.target.value)} placeholder="Clínica Médica, Cirurgia" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-admin-line-strong bg-admin-bg text-admin-text px-3 py-2 text-sm"
-                value={form.status}
-                onChange={e => set('status', e.target.value)}
-              >
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-                <option value="test">Teste (só admins)</option>
-              </select>
             </div>
 
             <div className="flex gap-2 pt-2">
