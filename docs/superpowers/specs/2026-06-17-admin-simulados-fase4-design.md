@@ -32,7 +32,7 @@ Tudo isolado no worktree do admin. RPCs `SECURITY DEFINER` + `admin_require()` p
 |------|---------|
 | Estrutura | Uma fase só, cobrindo as 5 frentes, num worktree dedicado. |
 | Modelo de imagem | **Modelo A**: imagens continuam **coladas na célula** do XLSX. O time NÃO muda o fluxo. Adicionar coluna da imagem 2 + extrator robusto por coluna + prévia com miniaturas. |
-| Verificador IA | **1 check** ("imagem faltando"), infra extensível por `check_type`. Roda **no upload (antes de gravar)** e por **botão sob demanda** (pós-upload). Sem cron. |
+| Verificador IA | **Gemini** (`gemini-2.5-flash`, padrão já em produção, `GEMINI_API_KEY` existente). **1 check** ("imagem faltando"), infra extensível por `check_type`. Roda **no upload (antes de gravar)** e por **botão sob demanda** (pós-upload). Sem cron. |
 | Datas | Fuso **America/Sao_Paulo** explícito; validação forte; resumo legível pós-save. |
 | Cadastro | **Só reorganizar UX** + validação + clareza. Sem novos campos de domínio (capa/instruções/corte/segmentação ficam fora). `questions_count` automático é a única exceção (correção de erro, não campo cosmético). |
 | Roster | Colunas: #, Nome, **E-mail**, Segmento, Instituição, Especialidade, Nota, Acertos, Tempo, Concluído, Tipo (válido/treino). Ordenável no servidor. Detalhe por área no drill-down. |
@@ -59,18 +59,18 @@ Tudo isolado no worktree do admin. RPCs `SECURITY DEFINER` + `admin_require()` p
 ## Frente 2 — Verificador de IA
 
 **Edge Function nova `admin-verify-questions`:**
+- Reusa o **padrão Gemini já em produção** no projeto (ex.: `supabase/functions/gemini-error-notebook-review/index.ts`): env var **`GEMINI_API_KEY`** (já configurada), modelo **`gemini-2.5-flash`**, endpoint `generativelanguage.googleapis.com/v1beta/.../generateContent`, saída estruturada via `responseMimeType: 'application/json'` + `responseSchema`. **Não exige chave nova.**
 - Input: lista de `{ question_number, enunciado_text, comentario_text, has_image, has_image_2, has_explanation_image }`.
-- Chama o **Claude** (modelo atual recomendado; ver skill claude-api na implementação) com **tool use / saída estruturada** (JSON forçado), sem texto livre.
-- Output: `findings: [{ question_number, check_type: "missing_image", slot: "enunciado"|"enunciado2"|"comentario", severity: "error"|"warning", evidence: string }]`.
-- O check detecta referência textual a figura ("observe a radiografia", "figuras A e B", "o ECG/ECО mostra", "imagem a seguir", etc.) **sem** o slot correspondente preenchido.
+- Output (via `responseSchema`): `findings: [{ question_number, check_type: "missing_image", slot: "enunciado"|"enunciado2"|"comentario", severity: "error"|"warning", evidence: string }]`.
+- O check detecta referência textual a figura ("observe a radiografia", "figuras A e B", "o ECG mostra", "imagem a seguir", etc.) **sem** o slot correspondente preenchido.
 - Contrato genérico por `check_type` para plugar checagens futuras sem refatorar o consumidor.
-- Auth: exige capability `content.manage` (`admin_require`); rate/erro tolerante (degrada com mensagem clara se a chave não estiver configurada).
+- Erro tolerante: degrada com mensagem clara se `GEMINI_API_KEY` ausente ou se a API falhar (padrão das funções existentes). Sem auth de capability na própria função (segue o padrão das demais funções Gemini, que validam no app); o acesso à UI é gateado por `content.manage`.
 
 **Gatilhos (UI):**
 1. **No upload:** após o parse e antes de gravar, rodar sobre a prévia. Mostrar achados; admin decide "subir mesmo assim" ou voltar e corrigir.
 2. **Sob demanda:** botão "Verificar com IA" em `AdminSimulados` (linha do simulado) e/ou no editor de questões (`AdminQuestionManager`), rodando sobre as questões já gravadas.
 
-**Pré-requisito:** segredo `ANTHROPIC_API_KEY` configurado na Edge Function (ação do Felipe; a função degrada com aviso claro se ausente). Custo: 1 chamada por lote de questões; sem execução recorrente.
+**Sem pré-requisito de chave:** usa a `GEMINI_API_KEY` já configurada em produção. Custo: 1 chamada por lote de questões; sem execução recorrente.
 
 **Isolamento/testes:** cliente do verificador e a normalização do input em módulo puro; a detecção de "texto implica figura" é responsabilidade do LLM (não testar o modelo em unit test — testar o parsing do contrato de achados e a degradação sem chave).
 
@@ -124,8 +124,9 @@ Sem novos campos de domínio. `questions_count` automático é a única mudança
 - Novos campos de domínio do simulado (capa, instruções, nota de corte por simulado, segmentação/visibilidade).
 - Checks adicionais do verificador além de "imagem faltando" (infra fica pronta, checks não).
 
-## Pré-requisitos do Felipe
+## Decisões confirmadas (Felipe, 2026-06-17)
 
-1. Configurar `ANTHROPIC_API_KEY` como segredo da Edge Function (sem isso o verificador degrada com aviso).
-2. Confirmar/vetar: `questions_count` automático.
-3. Confirmar/vetar: capability nova `results.view` (vs. reusar `content.manage`).
+1. **Implementar tudo.** As 5 frentes vão juntas nesta fase.
+2. **IA via Gemini** (`GEMINI_API_KEY` já em produção) — não Anthropic. Sem chave nova.
+3. `questions_count` automático: **sim** (recomendado, confirmado).
+4. Capability nova `results.view`: **sim** (roster expõe PII; separar de `content.manage`).
