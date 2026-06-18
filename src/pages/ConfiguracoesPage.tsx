@@ -78,6 +78,7 @@ export default function ConfiguracoesPage() {
     onboardingNextEditableAt,
     saveOnboarding,
     refreshProfile,
+    refreshOnboardingEditGuard,
   } = useUser();
   const { user: authUser, signOut } = useAuth();
   const segment = profile?.segment ?? "guest";
@@ -336,11 +337,29 @@ export default function ConfiguracoesPage() {
                           "[ConfiguracoesPage] Error saving academic profile:",
                           err,
                         );
-                        toast({
-                          title: "Erro ao salvar",
-                          description: "Tente novamente em instantes.",
-                          variant: "destructive",
-                        });
+                        const message =
+                          err instanceof Error ? err.message : String(err ?? "");
+                        const isWindowLock = /entre janelas de execucao/i.test(
+                          message,
+                        );
+                        if (isWindowLock) {
+                          // Janela abriu enquanto o editor estava aberto: re-sincroniza
+                          // o guard para fechar/bloquear o editor e mostrar o banner.
+                          await refreshOnboardingEditGuard();
+                          setEditingAcademic(false);
+                          toast({
+                            title: "Edição bloqueada durante janela ativa",
+                            description:
+                              "Um simulado oficial está em andamento. Você poderá editar o perfil quando a janela fechar.",
+                            variant: "destructive",
+                          });
+                        } else {
+                          toast({
+                            title: "Erro ao salvar",
+                            description: "Tente novamente em instantes.",
+                            variant: "destructive",
+                          });
+                        }
                       } finally {
                         setSavingAcademic(false);
                       }

@@ -5,6 +5,24 @@ Este arquivo mantém rastreabilidade das migrations aplicadas diretamente no pro
 
 ---
 
+## 2026-06-16 — `restore_onboarding_edit_guard`
+
+Restaura `get_onboarding_edit_guard_state()`. Desde `20260327171414` a função era um
+stub que sempre retornava `can_edit=true`, enquanto `save_onboarding_guarded` continuava
+bloqueando edição durante janela de simulado aberta. Resultado: usuário preenchia o editor
+de perfil acadêmico e só ao salvar recebia um erro genérico ("Erro ao salvar"). Bug
+reportado por aluna editando perfil durante a janela do Simulado 3.
+
+A função volta ao comportamento original (paridade com `is_any_simulado_window_open`):
+retorna `can_edit=false`, `reason='edicao_bloqueada_janela_aberta'` e
+`next_edit_available_at = MIN(execution_window_end)` quando há janela aberta. A UI
+(`ConfiguracoesPage`) já estava pronta para esse estado (banner "Bloqueado").
+
+Arquivo: `supabase/migrations/20260616120000_restore_onboarding_edit_guard.sql`.
+**Status: aplicada no projeto remoto em 2026-06-16 (via MCP).**
+
+---
+
 ## 2026-06-11 — `admin_capabilities_infra`
 
 Cria a tabela `role_capabilities` (mapeamento role → capability) com RLS, seed de 21 pares,
