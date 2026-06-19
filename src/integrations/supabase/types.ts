@@ -73,24 +73,33 @@ export type Database = {
       }
       analytics_events: {
         Row: {
+          client_timestamp: string | null
           created_at: string
+          event_id: string | null
           event_name: string
           id: string
           payload: Json
+          route: string | null
           user_id: string | null
         }
         Insert: {
+          client_timestamp?: string | null
           created_at?: string
+          event_id?: string | null
           event_name: string
           id?: string
           payload?: Json
+          route?: string | null
           user_id?: string | null
         }
         Update: {
+          client_timestamp?: string | null
           created_at?: string
+          event_id?: string | null
           event_name?: string
           id?: string
           payload?: Json
+          route?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -2025,9 +2034,16 @@ export type Database = {
         Returns: boolean
       }
       log_analytics_event: {
-        Args: { p_event_name: string; p_payload?: Json }
+        Args: {
+          p_client_timestamp?: string
+          p_event_id?: string
+          p_event_name: string
+          p_payload?: Json
+          p_route?: string
+        }
         Returns: undefined
       }
+      log_analytics_events: { Args: { events: Json }; Returns: undefined }
       match_cutoff_score: {
         Args: { p_institution: string; p_specialty: string }
         Returns: {

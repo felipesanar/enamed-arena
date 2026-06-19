@@ -309,20 +309,22 @@ async function generateInsightsFromGemini(
   let r: Response;
   try {
     r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
         signal: controller.signal,
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.55,
-            maxOutputTokens: 3000,
-            topP: 0.9,
-            thinkingConfig: { thinkingBudget: 0 },
-            responseMimeType: 'application/json',
-            responseSchema: GEMINI_RESPONSE_SCHEMA,
+          model: 'google/gemini-2.5-flash',
+          temperature: 0.55,
+          max_tokens: 3000,
+          messages: [{ role: 'user', content: prompt }],
+          response_format: {
+            type: 'json_schema',
+            json_schema: { name: 'caderno_insights', schema: GEMINI_RESPONSE_SCHEMA_OPENAI },
           },
         }),
       },
@@ -333,17 +335,14 @@ async function generateInsightsFromGemini(
 
   if (!r.ok) {
     const txt = await r.text();
-    console.error('[caderno-pattern-insights] Gemini error', r.status, txt.slice(0, 500));
-    const err = new Error(`Gemini API error ${r.status}`);
+    console.error('[caderno-pattern-insights] AI gateway error', r.status, txt.slice(0, 500));
+    const err = new Error(`AI gateway error ${r.status}`);
     (err as Error & { status: number }).status = r.status;
     throw err;
   }
 
   const geminiData = await r.json();
-  const rawJson =
-    geminiData?.candidates?.[0]?.content?.parts
-      ?.map((p: { text?: string }) => p.text ?? '')
-      .join('') ?? '';
+  const rawJson = geminiData?.choices?.[0]?.message?.content ?? '';
 
   let parsed: { insights?: unknown[] } = {};
   try {
