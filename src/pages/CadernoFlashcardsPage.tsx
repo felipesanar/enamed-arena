@@ -344,11 +344,7 @@ function FlashcardsContent() {
       if (pool.length === 0) return;
       setReviewCards(pool);
       setReviewMode(mode);
-      trackEvent('caderno_flashcard_reviewed', {
-        source: 'review_session_started',
-        mode,
-        count: pool.length,
-      } as any);
+      trackEvent('caderno_flashcard_session_started', { mode, count: pool.length });
     },
     [dueFlashcards, flashcards],
   );
