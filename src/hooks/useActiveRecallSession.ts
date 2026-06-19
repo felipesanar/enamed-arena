@@ -407,8 +407,11 @@ export function useActiveRecallSession(
       try {
         const q = reviewData.question;
         const correctLabel = q.options.find((o) => o.id === q.correctOptionId)?.label ?? null;
+        // Use the answer the student just gave in this review ("na hora"),
+        // not the one selected in the original simulado.
+        const answeredOptionId = selectedOptionId ?? reviewData.originalSelectedOptionId;
         const userLabel =
-          q.options.find((o) => o.id === reviewData.originalSelectedOptionId)?.label ?? null;
+          q.options.find((o) => o.id === answeredOptionId)?.label ?? null;
 
         const { data, error } = await supabase.functions.invoke('gemini-error-notebook-review', {
           body: {
@@ -469,7 +472,7 @@ export function useActiveRecallSession(
         setGeneratingAi(false);
       }
     },
-    [currentEntry, reviewData, studentName, userId],
+    [currentEntry, reviewData, selectedOptionId, studentName, userId],
   );
 
   // ── FSM actions ──────────────────────────────────────────────────────────────
@@ -781,8 +784,10 @@ export function useActiveRecallSession(
     try {
       const q = reviewData.question;
       const correctLabel = q.options.find((o) => o.id === q.correctOptionId)?.label ?? null;
+      // Match the in-review answer used by the AI analysis ("na hora"), not the simulado one.
+      const answeredOptionId = selectedOptionId ?? reviewData.originalSelectedOptionId;
       const userLabel =
-        q.options.find((o) => o.id === reviewData.originalSelectedOptionId)?.label ?? null;
+        q.options.find((o) => o.id === answeredOptionId)?.label ?? null;
 
       const { data, error } = await supabase.functions.invoke('gemini-error-notebook-chat', {
         body: {
@@ -845,7 +850,7 @@ export function useActiveRecallSession(
     } finally {
       setChatLoading(false);
     }
-  }, [currentEntry, reviewData, chatInput, chatLoading, chatMessages, studentName]);
+  }, [currentEntry, reviewData, selectedOptionId, chatInput, chatLoading, chatMessages, studentName]);
 
   const finishSession = useCallback(() => {
     const elapsed = Math.round((Date.now() - stats.startedAt) / 1000);

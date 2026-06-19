@@ -10,14 +10,11 @@
  */
 
 import { useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import {
   Sparkles,
   Loader2,
   RefreshCw,
-  ChevronRight,
-  Zap,
   MessageCircle,
   Send,
   Volume2,
@@ -91,10 +88,6 @@ export function RevealPanel({
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
-
-  const practice = reviewData.aiPractice;
-  const topic = practice?.topic ?? entry.theme ?? entry.area ?? null;
-  const count = practice?.suggestedCount ?? 5;
 
   return (
     <motion.div
@@ -216,27 +209,6 @@ export function RevealPanel({
             <div className="prose prose-sm max-w-none text-[var(--c-ink)] prose-headings:text-[var(--c-ink)] prose-headings:font-bold prose-h3:text-[14px] prose-h3:mt-4 prose-h3:mb-2 prose-p:text-body prose-p:text-[var(--c-muted)] prose-p:leading-relaxed prose-li:text-body prose-li:text-[var(--c-muted)] prose-strong:text-[var(--c-ink)] prose-strong:font-semibold">
               <ReactMarkdown>{reviewData.aiReviewMd}</ReactMarkdown>
             </div>
-
-            {/* Practice CTA */}
-            {topic && (
-              <Link
-                to={(() => {
-                  const params = new URLSearchParams();
-                  if (practice?.area ?? entry.area) params.set('area', practice?.area ?? entry.area ?? '');
-                  if (practice?.theme ?? entry.theme) params.set('theme', practice?.theme ?? entry.theme ?? '');
-                  if (practice?.topic) params.set('topic', practice.topic);
-                  return `/simulados?${params.toString()}`;
-                })()}
-                className="mt-5 inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[color-mix(in_srgb,var(--c-wine-500)_25%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_5%,transparent)] px-4 py-2.5 text-[13px] font-semibold text-[var(--c-wine-500)] transition-all duration-150 hover:border-[color-mix(in_srgb,var(--c-wine-500)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_9%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2 no-underline"
-              >
-                <Zap className="h-3.5 w-3.5" aria-hidden />
-                Treinar{' '}
-                <span className="font-extrabold tabular-nums">{count}</span>{' '}
-                questões de{' '}
-                <span className="font-extrabold">{topic}</span>
-                <ChevronRight className="h-3.5 w-3.5 ml-auto" aria-hidden />
-              </Link>
-            )}
 
             {/* ── Chat ──────────────────────────────────────────────────────── */}
             <div className="mt-5 border-t border-[color-mix(in_srgb,var(--c-wine-500)_10%,transparent)] pt-4">
