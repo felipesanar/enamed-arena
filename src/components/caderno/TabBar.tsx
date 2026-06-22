@@ -29,7 +29,7 @@ const TABS: Tab[] = [
   { label: 'Favoritos',  to: '/caderno/favoritos',  icon: Heart },
   { label: 'Anotações',  to: '/caderno/anotacoes',  icon: NotebookPen },
   { label: 'Flashcards', to: '/caderno/flashcards', icon: Layers, adminOnly: true },
-  { label: 'Diagnóstico', to: '/caderno/insights',   icon: Sparkles },
+  { label: 'Diagnóstico', to: '/caderno/insights',   icon: Sparkles, adminOnly: true },
 ];
 
 /**
