@@ -49,10 +49,18 @@ export interface ResultsRosterParams {
   search?: string; segment?: string; institution?: string; limit?: number; offset?: number;
 }
 
+export type FindingSource = 'structural' | 'ai';
+export type FindingSlot = 'enunciado' | 'enunciado2' | 'comentario';
+export type FindingCheckType =
+  | 'missing_image' | 'orphan_image' | 'image_mismatch' | 'illegible_image'
+  | 'invalid_gabarito' | 'empty_enunciado' | 'empty_option'
+  | 'duplicate_options' | 'duplicate_question' | 'bad_numbering';
+
 export interface QuestionVerifyFinding {
   question_number: number;
-  check_type: 'missing_image';
-  slot: 'enunciado' | 'enunciado2' | 'comentario';
+  source: FindingSource;
+  check_type: FindingCheckType;
+  slot?: FindingSlot;
   severity: 'error' | 'warning';
   evidence: string;
 }
