@@ -65,13 +65,12 @@ export interface QuestionVerifyFinding {
   evidence: string;
 }
 
+export interface VerifyImage { slot: FindingSlot; mime: string; base64: string; }
 export interface QuestionVerifyInput {
   question_number: number;
   enunciado_text: string;
   comentario_text?: string;
-  has_image: boolean;
-  has_image_2: boolean;
-  has_explanation_image: boolean;
+  images: VerifyImage[];
 }
 
 export const adminApi = {

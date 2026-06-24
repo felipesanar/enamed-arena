@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, FileSpreadsheet, Trash2, CheckCircle, Image as ImageIcon, Loader2, ScanSearch } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
-import { adminApi, type QuestionVerifyFinding } from '../services/adminApi';
+import { adminApi, type QuestionVerifyFinding, type QuestionVerifyInput } from '../services/adminApi';
+import { chunk } from '@/admin/lib/chunk';
+import { downscaleImage } from '@/admin/utils/downscaleImage';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageExtractor';
@@ -225,21 +227,48 @@ function AdminUploadQuestionsContent() {
   const runVerify = async () => {
     setVerifying(true);
     try {
-      const inputs = parsedRows.map((row, i) => ({
-        question_number: Number(row.numero),
-        enunciado_text: row.Enunciado || '',
-        comentario_text: row['Comentário'] || '',
-        has_image: enunciadoImages.has(i),
-        has_image_2: enunciado2Images.has(i),
-        has_explanation_image: comentarioImages.has(i),
+      const inputs: QuestionVerifyInput[] = await Promise.all(parsedRows.map(async (row, i) => {
+        const imgs: QuestionVerifyInput['images'] = [];
+        const e = enunciadoImages.get(i);
+        const e2 = enunciado2Images.get(i);
+        const c = comentarioImages.get(i);
+        if (e) { const d = await downscaleImage(e.base64, e.mimeType); imgs.push({ slot: 'enunciado', mime: d.mime, base64: d.base64 }); }
+        if (e2) { const d = await downscaleImage(e2.base64, e2.mimeType); imgs.push({ slot: 'enunciado2', mime: d.mime, base64: d.base64 }); }
+        if (c) { const d = await downscaleImage(c.base64, c.mimeType); imgs.push({ slot: 'comentario', mime: d.mime, base64: d.base64 }); }
+        return {
+          question_number: Number(row.numero),
+          enunciado_text: row.Enunciado || '',
+          comentario_text: row['Comentário'] || '',
+          images: imgs,
+        };
       }));
-      const result = await adminApi.verifyQuestions(inputs);
-      setFindings(result);
+
+      const batches = chunk(inputs, 7);
+      const results: QuestionVerifyFinding[] = [];
+      let done = 0;
+      const concurrency = 4;
+      let cursor = 0;
+
+      async function worker() {
+        while (cursor < batches.length) {
+          const my = cursor++;
+          const batch = batches[my];
+          if (!batch) return;
+          const part = await adminApi.verifyQuestions(batch);
+          results.push(...part);
+          done++;
+          setUploadProgress({ step: `Verificando com IA (lote ${done}/${batches.length})...`, percent: Math.round((done / batches.length) * 100) });
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(concurrency, batches.length || 1) }, worker));
+
+      setFindings(results);
       setVerifyRan(true);
     } catch (err: any) {
       toast({ title: 'Erro ao verificar', description: err.message, variant: 'destructive' });
     } finally {
       setVerifying(false);
+      setTimeout(() => setUploadProgress(null), 1500);
     }
   };
 
