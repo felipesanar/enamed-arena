@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { summarizeFindings, findingLabel } from '@/admin/lib/verifyFindings'
@@ -7,9 +7,10 @@ import type { QuestionVerifyFinding } from '@/admin/services/adminApi'
 interface VerifyFindingsPanelProps {
   findings: QuestionVerifyFinding[]
   loading: boolean
+  aiRan?: boolean
 }
 
-export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelProps) {
+export function VerifyFindingsPanel({ findings, loading, aiRan }: VerifyFindingsPanelProps) {
   const { errorCount, warningCount, byQuestion } = summarizeFindings(findings)
 
   return (
@@ -19,7 +20,11 @@ export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelPr
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin text-admin-accent" />
           ) : findings.length === 0 ? (
-            <CheckCircle2 className="h-4 w-4 text-admin-success" />
+            aiRan ? (
+              <CheckCircle2 className="h-4 w-4 text-admin-success" />
+            ) : (
+              <Info className="h-4 w-4 text-admin-muted" />
+            )
           ) : errorCount > 0 ? (
             <AlertCircle className="h-4 w-4 text-admin-destructive" />
           ) : (
@@ -38,10 +43,17 @@ export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelPr
         )}
 
         {!loading && findings.length === 0 && (
-          <div className="flex items-center gap-2 text-sm text-admin-success py-2">
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-            Nenhum problema detectado ✓
-          </div>
+          aiRan ? (
+            <div className="flex items-center gap-2 text-sm text-admin-success py-2">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              Nenhum problema detectado ✓
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-admin-muted py-2">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              Sem problemas estruturais. Clique em &quot;Verificar com IA&quot; para checar as imagens.
+            </div>
+          )
         )}
 
         {!loading && findings.length > 0 && (

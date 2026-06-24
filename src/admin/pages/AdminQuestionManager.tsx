@@ -316,11 +316,14 @@ function AdminQuestionManagerContent() {
           const res = await fetch(url)
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const mime = res.headers.get('content-type')?.split(';')[0]?.trim() || 'image/jpeg'
-          const buffer = await res.arrayBuffer()
-          const bytes = new Uint8Array(buffer)
+          const bytes = new Uint8Array(await res.arrayBuffer())
           let bin = ''
-          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
-          return { base64: btoa(bin), mime }
+          const CH = 0x8000
+          for (let i = 0; i < bytes.length; i += CH) {
+            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH) as unknown as number[])
+          }
+          const base64 = btoa(bin)
+          return { base64, mime }
         } catch (err) {
           logger.error('[AdminQuestionManager] Falha ao buscar imagem:', err)
           return null
@@ -404,7 +407,7 @@ function AdminQuestionManagerContent() {
       />
 
       {(verifyRan || verifying) && (
-        <VerifyFindingsPanel findings={findings} loading={verifying} />
+        <VerifyFindingsPanel findings={findings} loading={verifying} aiRan={verifyRan} />
       )}
 
       {isError ? (

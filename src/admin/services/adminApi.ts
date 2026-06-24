@@ -746,6 +746,7 @@ export const adminApi = {
   async verifyQuestions(questions: QuestionVerifyInput[]): Promise<QuestionVerifyFinding[]> {
     const { data, error } = await supabase.functions.invoke('admin-verify-questions', { body: { questions } });
     if (error) throw error;
+    if ((data as any)?.error) throw new Error((data as any).error);
     return (data?.findings ?? []) as QuestionVerifyFinding[];
   },
 

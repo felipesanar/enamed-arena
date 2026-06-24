@@ -554,7 +554,7 @@ function AdminUploadQuestionsContent() {
       )}
 
       {parsedRows.length > 0 && (
-        <VerifyFindingsPanel findings={[...structuralFindings, ...findings]} loading={verifying} />
+        <VerifyFindingsPanel findings={[...structuralFindings, ...findings]} loading={verifying} aiRan={verifyRan} />
       )}
 
       <QuestionPreviewModal
