@@ -15,6 +15,7 @@ import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageEx
 import { parseXlsxFirstWorksheetRows } from '../utils/xlsxTextParser';
 import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
 import { VerifyFindingsPanel } from '../components/VerifyFindingsPanel';
+import { validateQuestions } from '@/admin/lib/validateQuestions';
 
 interface ParsedRow {
   numero: number;
@@ -177,6 +178,7 @@ function AdminUploadQuestionsContent() {
   const [fileName, setFileName] = useState('');
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [findings, setFindings] = useState<QuestionVerifyFinding[]>([]);
+  const [structuralFindings, setStructuralFindings] = useState<QuestionVerifyFinding[]>([]);
   const [verifying, setVerifying] = useState(false);
   const [verifyRan, setVerifyRan] = useState(false);
 
@@ -191,6 +193,7 @@ function AdminUploadQuestionsContent() {
     if (!file) return;
     setFileName(file.name);
     setFindings([]);
+    setStructuralFindings([]);
     setVerifyRan(false);
 
     const arrayBuffer = await file.arrayBuffer();
@@ -198,6 +201,15 @@ function AdminUploadQuestionsContent() {
     const rawRows = await parseXlsxFirstWorksheetRows(arrayBuffer);
     const rows = canonicalizeRows(rawRows);
     setParsedRows(rows);
+    setStructuralFindings(validateQuestions(rows.map((r) => ({
+      numero: Number(r.numero),
+      enunciado: r.Enunciado || '',
+      alternativaA: r['Alternativa A'] || '',
+      alternativaB: r['Alternativa B'] || '',
+      alternativaC: r['Alternativa C'] || '',
+      alternativaD: r['Alternativa D'] || '',
+      gabarito: r.Gabarito || '',
+    }))));
 
     // Extract embedded images with JSZip
     const { enunciadoImages: eImgs, enunciado2Images: e2Imgs, comentarioImages: cImgs } = await extractImagesFromXlsx(arrayBuffer);
@@ -512,8 +524,8 @@ function AdminUploadQuestionsContent() {
         </Card>
       )}
 
-      {parsedRows.length > 0 && (verifyRan || verifying) && (
-        <VerifyFindingsPanel findings={findings} loading={verifying} />
+      {parsedRows.length > 0 && (
+        <VerifyFindingsPanel findings={[...structuralFindings, ...findings]} loading={verifying} />
       )}
 
       <QuestionPreviewModal
