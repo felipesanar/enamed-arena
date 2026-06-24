@@ -15,7 +15,10 @@ import {
 } from '@/admin/hooks/useAdminQuestionEditor'
 import type { AdminQuestionFull } from '@/admin/types'
 import { adminApi } from '@/admin/services/adminApi'
-import type { QuestionVerifyFinding } from '@/admin/services/adminApi'
+import type { QuestionVerifyFinding, QuestionVerifyInput } from '@/admin/services/adminApi'
+import { chunk } from '@/admin/lib/chunk'
+import { downscaleImage } from '@/admin/utils/downscaleImage'
+import { logger } from '@/lib/logger'
 import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -308,16 +311,63 @@ function AdminQuestionManagerContent() {
   const runVerify = async () => {
     setVerifying(true)
     try {
-      const inputs = questions.map((q) => ({
-        question_number: q.question_number,
-        enunciado_text: q.text ?? '',
-        comentario_text: q.explanation ?? '',
-        has_image: !!q.image_url,
-        has_image_2: !!q.image_url_2,
-        has_explanation_image: !!q.explanation_image_url,
-      }))
-      const result = await adminApi.verifyQuestions(inputs)
-      setFindings(result)
+      const fetchToBase64 = async (url: string): Promise<{ base64: string; mime: string } | null> => {
+        try {
+          const res = await fetch(url)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const mime = res.headers.get('content-type')?.split(';')[0]?.trim() || 'image/jpeg'
+          const buffer = await res.arrayBuffer()
+          const bytes = new Uint8Array(buffer)
+          let bin = ''
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+          return { base64: btoa(bin), mime }
+        } catch (err) {
+          logger.error('[AdminQuestionManager] Falha ao buscar imagem:', err)
+          return null
+        }
+      }
+
+      const inputs: QuestionVerifyInput[] = await Promise.all(
+        questions.map(async (q) => {
+          const imgs: QuestionVerifyInput['images'] = []
+          const slots: Array<{ url: string | null | undefined; slot: 'enunciado' | 'enunciado2' | 'comentario' }> = [
+            { url: q.image_url, slot: 'enunciado' },
+            { url: q.image_url_2, slot: 'enunciado2' },
+            { url: q.explanation_image_url, slot: 'comentario' },
+          ]
+          for (const { url, slot } of slots) {
+            if (!url) continue
+            const fetched = await fetchToBase64(url)
+            if (!fetched) continue
+            const d = await downscaleImage(fetched.base64, fetched.mime)
+            imgs.push({ slot, mime: d.mime, base64: d.base64 })
+          }
+          return {
+            question_number: q.question_number,
+            enunciado_text: q.text ?? '',
+            comentario_text: q.explanation ?? '',
+            images: imgs,
+          }
+        })
+      )
+
+      const batches = chunk(inputs, 7)
+      const results: QuestionVerifyFinding[] = []
+      const concurrency = 4
+      let cursor = 0
+
+      async function worker() {
+        while (cursor < batches.length) {
+          const my = cursor++
+          const batch = batches[my]
+          if (!batch) return
+          const part = await adminApi.verifyQuestions(batch)
+          results.push(...part)
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(concurrency, batches.length || 1) }, worker))
+
+      setFindings(results)
       setVerifyRan(true)
     } catch {
       toast({ title: 'Erro ao verificar questões com IA.', variant: 'destructive' })
