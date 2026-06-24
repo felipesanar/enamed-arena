@@ -1,18 +1,12 @@
 import { Loader2, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { summarizeFindings } from '@/admin/lib/verifyFindings'
+import { summarizeFindings, findingLabel } from '@/admin/lib/verifyFindings'
 import type { QuestionVerifyFinding } from '@/admin/services/adminApi'
 
 interface VerifyFindingsPanelProps {
   findings: QuestionVerifyFinding[]
   loading: boolean
-}
-
-const SLOT_LABEL: Record<QuestionVerifyFinding['slot'], string> = {
-  enunciado: 'imagem do enunciado',
-  enunciado2: 'imagem 2',
-  comentario: 'imagem do comentário',
 }
 
 export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelProps) {
@@ -31,7 +25,7 @@ export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelPr
           ) : (
             <AlertTriangle className="h-4 w-4 text-admin-warning" />
           )}
-          Verificação de IA
+          Verificação de questões
         </CardTitle>
       </CardHeader>
 
@@ -46,7 +40,7 @@ export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelPr
         {!loading && findings.length === 0 && (
           <div className="flex items-center gap-2 text-sm text-admin-success py-2">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-            Nenhuma imagem faltando detectada ✓
+            Nenhum problema detectado ✓
           </div>
         )}
 
@@ -69,14 +63,15 @@ export function VerifyFindingsPanel({ findings, loading }: VerifyFindingsPanelPr
                       : 'border-l-admin-warning',
                   )}
                 >
-                  <p className="text-sm font-semibold text-admin-text">
+                  <p className="text-sm font-semibold text-admin-text flex items-center gap-1.5">
+                    <span className="text-admin-muted">{finding.source === 'ai' ? '🤖' : '⚙️'}</span>
                     Q{finding.question_number} —{' '}
                     <span className={cn(
                       finding.severity === 'error'
                         ? 'text-admin-destructive'
                         : 'text-admin-warning',
                     )}>
-                      {SLOT_LABEL[finding.slot]} ausente
+                      {findingLabel(finding)}
                     </span>
                   </p>
                   {finding.evidence && (

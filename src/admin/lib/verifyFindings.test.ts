@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { summarizeFindings } from './verifyFindings';
+import { summarizeFindings, findingLabel } from './verifyFindings';
 
 it('conta erros e avisos e ordena por questão', () => {
   const out = summarizeFindings([
@@ -16,4 +16,19 @@ it('vazio retorna zeros', () => {
   expect(out.errorCount).toBe(0);
   expect(out.warningCount).toBe(0);
   expect(out.byQuestion).toEqual([]);
+});
+
+describe('findingLabel', () => {
+  it('missing_image usa o slot', () => {
+    expect(findingLabel({ question_number: 1, source: 'ai', check_type: 'missing_image', slot: 'enunciado2', severity: 'error', evidence: '' }))
+      .toBe('imagem 2 ausente');
+  });
+  it('image_mismatch', () => {
+    expect(findingLabel({ question_number: 1, source: 'ai', check_type: 'image_mismatch', slot: 'enunciado', severity: 'error', evidence: '' }))
+      .toBe('imagem do enunciado não corresponde ao texto');
+  });
+  it('invalid_gabarito', () => {
+    expect(findingLabel({ question_number: 1, source: 'structural', check_type: 'invalid_gabarito', severity: 'error', evidence: '' }))
+      .toBe('gabarito inválido');
+  });
 });
