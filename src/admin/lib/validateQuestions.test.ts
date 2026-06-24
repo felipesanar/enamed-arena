@@ -63,4 +63,15 @@ describe('validateQuestions', () => {
     const dups = out.filter((x) => x.check_type === 'duplicate_question');
     expect(dups.map((d) => d.question_number).sort()).toEqual([1, 2]);
   });
+
+  it('numero NaN: evidence aponta a linha da planilha', () => {
+    const out = validateQuestions([base, { ...base, numero: NaN }]);
+    const f = out.find((x) => x.check_type === 'bad_numbering' && x.severity === 'error');
+    expect(f?.evidence).toContain('linha 3');
+  });
+
+  it('gabarito só com espaços → invalid_gabarito', () => {
+    expect(validateQuestions([{ ...base, gabarito: '   ' }])
+      .some((x) => x.check_type === 'invalid_gabarito')).toBe(true);
+  });
 });

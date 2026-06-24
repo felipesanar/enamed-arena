@@ -8,4 +8,7 @@ describe('chunk', () => {
   it('lista vazia → vazio', () => {
     expect(chunk([], 3)).toEqual([]);
   });
+  it('tamanho maior que a lista retorna um único lote', () => {
+    expect(chunk([1, 2], 5)).toEqual([[1, 2]]);
+  });
 });

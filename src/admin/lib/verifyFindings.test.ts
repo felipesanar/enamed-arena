@@ -31,4 +31,8 @@ describe('findingLabel', () => {
     expect(findingLabel({ question_number: 1, source: 'structural', check_type: 'invalid_gabarito', severity: 'error', evidence: '' }))
       .toBe('gabarito inválido');
   });
+  it('missing_image sem slot usa fallback "imagem"', () => {
+    expect(findingLabel({ question_number: 1, source: 'ai', check_type: 'missing_image', severity: 'warning', evidence: '' }))
+      .toBe('imagem ausente');
+  });
 });

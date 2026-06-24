@@ -11,4 +11,7 @@ describe('targetDimensions', () => {
   it('reduz quando a altura é a maior', () => {
     expect(targetDimensions(1000, 2000, 1000)).toEqual({ w: 500, h: 1000 });
   });
+  it('mantém dimensões quando a maior é exatamente o máximo', () => {
+    expect(targetDimensions(1024, 512, 1024)).toEqual({ w: 1024, h: 512 });
+  });
 });

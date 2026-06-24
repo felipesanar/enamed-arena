@@ -23,13 +23,13 @@ export function validateQuestions(rows: QuestionRow[]): QuestionVerifyFinding[] 
   const numeroCount = new Map<number, number>();
   const enunciadoMap = new Map<string, number[]>();
 
-  for (const row of rows) {
+  rows.forEach((row, i) => {
     const qn = Number.isFinite(row.numero) ? row.numero : 0;
 
     if (!Number.isFinite(row.numero)) {
       findings.push({
         question_number: 0, source: 'structural', check_type: 'bad_numbering',
-        severity: 'error', evidence: 'Questão sem número válido na coluna "numero".',
+        severity: 'error', evidence: `Questão na linha ${i + 2} da planilha sem número válido (coluna "numero").`,
       });
     } else {
       numeroCount.set(row.numero, (numeroCount.get(row.numero) ?? 0) + 1);
@@ -82,7 +82,7 @@ export function validateQuestions(rows: QuestionRow[]): QuestionVerifyFinding[] 
         severity: 'warning', evidence: `Alternativas idênticas: ${dupLetters.join(', ')}.`,
       });
     }
-  }
+  });
 
   for (const [num, count] of numeroCount) {
     if (count > 1) {

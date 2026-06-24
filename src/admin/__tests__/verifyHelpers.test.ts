@@ -34,4 +34,21 @@ describe('buildContents', () => {
     expect(flat).toContain('AAAA');
     expect(flat).toContain('Q1');
   });
+  it('buildContents sem imagens não emite inline_data', () => {
+    const parts = buildContents([
+      { question_number: 9, enunciado_text: 'Texto sem figura', comentario_text: '', images: [] },
+    ]);
+    const flat = JSON.stringify(parts);
+    expect(flat).toContain('nenhuma');
+    expect(flat).not.toContain('inline_data');
+  });
+});
+
+describe('parseFindings source override', () => {
+  it('parseFindings força source=ai mesmo se o modelo mandar outro source', () => {
+    const raw = JSON.stringify({ findings: [
+      { question_number: 1, source: 'human', check_type: 'orphan_image', severity: 'warning', evidence: 'x' },
+    ]});
+    expect(parseFindings(raw)[0].source).toBe('ai');
+  });
 });
