@@ -114,7 +114,26 @@ export interface UserAttemptRow {
   created_at: string
   status: string
   score_percentage: number | null
-  ranking_position: number
+  /** null for training attempts (is_within_window = false) */
+  ranking_position: number | null
+  is_within_window: boolean
+}
+
+export interface AttemptQuestionRow {
+  question_id: string
+  question_number: number
+  area: string | null
+  theme: string | null
+  difficulty: string | null
+  question_text: string
+  was_answered: boolean
+  is_correct: boolean
+  selected_label: string | null
+  selected_text: string | null
+  correct_label: string | null
+  correct_text: string | null
+  ai_suggested_reason: string | null
+  confidence: string | null
 }
 
 export interface SimuladoDetailStats {

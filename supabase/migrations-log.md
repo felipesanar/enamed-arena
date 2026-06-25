@@ -5,6 +5,29 @@ Este arquivo mantém rastreabilidade das migrations aplicadas diretamente no pro
 
 ---
 
+## 2026-06-24 — `fix_admin_get_user_attempts_and_attempt_questions`
+
+**Aplicada em PROD.** Arquivo: `20260624120000_fix_admin_get_user_attempts_and_attempt_questions.sql`.
+
+Corrige `admin_get_user_attempts`, que referenciava `user_performance_history.is_within_window`
+(coluna inexistente — `is_within_window` vive em `attempts`). A subquery de ranking lançava
+`42703: column uph2.is_within_window does not exist` em runtime, então a RPC inteira falhava e o
+"Histórico de tentativas" no detalhe do usuário (admin) sempre exibia "Nenhuma tentativa
+encontrada", mesmo com KPIs (de `user_performance_summary`) mostrando tentativas.
+
+- Ranking agora calculado contra tentativas in-window submetidas do mesmo simulado, espelhando
+  `admin_simulado_results_roster` (`coalesce(uph.score_percentage, attempts.score_percentage)`);
+  tentativas de treino (`is_within_window = false`) recebem `ranking_position = null`.
+- Return type ganhou `is_within_window` (drop+recreate; grants re-aplicados: authenticated, service_role).
+- **Nova RPC** `admin_get_attempt_questions(p_attempt_id uuid)` — breakdown por questão de uma
+  tentativa (sobre `attempt_question_results` + `questions`/`question_options`/`answers`), para o
+  drill-down do detalhe do usuário. Gate `admin_require('users.view')`. Grants: authenticated, service_role.
+
+Também (não-migration, mesmo PR): edge function `sso-magic-link` v60 — restaura elevação de
+segment PRO/standard (modo unsigned quando `SSO_SIGNING_SECRET` ausente) + regra never-downgrade.
+
+---
+
 ## 2026-06-11 — `admin_capabilities_infra`
 
 Cria a tabela `role_capabilities` (mapeamento role → capability) com RLS, seed de 21 pares,

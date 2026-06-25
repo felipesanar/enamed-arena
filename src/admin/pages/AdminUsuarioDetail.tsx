@@ -14,6 +14,7 @@ import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminBadge } from '@/admin/components/ui/AdminBadge'
 import { AdminConfirmDialog } from '@/admin/components/ui/AdminConfirmDialog'
+import { AdminAttemptQuestionsDialog } from '@/admin/components/AdminAttemptQuestionsDialog'
 import { useAdminCan } from '@/admin/contexts/AdminAccessContext'
 import { ROLE_META } from '@/admin/lib/constants'
 import { getInitials } from '@/admin/lib/format'
@@ -23,6 +24,7 @@ function AdminUsuarioDetailContent() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedAttempt, setSelectedAttempt] = useState<UserAttemptRow | null>(null)
   const canManageRoles = useAdminCan('roles.manage')
 
   const { data: user, isLoading } = useAdminUser(id!)
@@ -297,7 +299,7 @@ function AdminUsuarioDetailContent() {
           <div className="bg-admin-surface border border-admin-line rounded-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-admin-line flex items-center justify-between">
               <p className="text-[9px] font-bold text-admin-faint uppercase tracking-widest">Histórico de tentativas</p>
-              <span className="text-[9px] text-admin-muted">últimas 10</span>
+              <span className="text-[9px] text-admin-muted">{attempts.length > 0 ? 'clique para ver as questões · ' : ''}últimas 10</span>
             </div>
             {attempts.length === 0 ? (
               <p className="px-4 py-6 text-xs text-admin-muted text-center">Nenhuma tentativa encontrada.</p>
@@ -314,7 +316,15 @@ function AdminUsuarioDetailContent() {
                 </thead>
                 <tbody>
                   {attempts.map((a: UserAttemptRow) => (
-                    <tr key={a.attempt_id} className="border-b border-admin-line/40 last:border-0 hover:bg-admin-raised/30">
+                    <tr
+                      key={a.attempt_id}
+                      onClick={() => setSelectedAttempt(a)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedAttempt(a) } }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Ver questões da tentativa #${a.sequence_number} — ${a.simulado_title}`}
+                      className="border-b border-admin-line/40 last:border-0 hover:bg-admin-raised/40 cursor-pointer focus:outline-none focus:bg-admin-raised/40 transition-colors"
+                    >
                       <td className="px-4 py-2.5 text-xs text-admin-text">
                         <span className="text-admin-muted mr-1">#{a.sequence_number} —</span>
                         <span>{a.simulado_title}</span>
@@ -329,7 +339,11 @@ function AdminUsuarioDetailContent() {
                         {a.score_percentage != null ? `${a.score_percentage.toFixed(1)}%` : '—'}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-admin-muted">
-                        {a.score_percentage != null ? `${a.ranking_position}º` : '—'}
+                        {a.is_within_window && a.ranking_position != null
+                          ? `${a.ranking_position}º`
+                          : a.score_percentage != null
+                            ? <span className="text-admin-faint">treino</span>
+                            : '—'}
                       </td>
                     </tr>
                   ))}
@@ -350,6 +364,13 @@ function AdminUsuarioDetailContent() {
         destructive
         loading={deleteUser.isPending}
         onConfirm={handleDelete}
+      />
+
+      {/* Drill-down por questão da tentativa */}
+      <AdminAttemptQuestionsDialog
+        open={selectedAttempt != null}
+        onOpenChange={open => { if (!open) setSelectedAttempt(null) }}
+        attempt={selectedAttempt}
       />
     </div>
   )
