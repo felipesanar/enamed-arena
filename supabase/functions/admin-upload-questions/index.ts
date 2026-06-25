@@ -172,7 +172,14 @@ Deno.serve(async (req) => {
 
     const inserted = qNumToId.size;
 
-    await adminClient.from("simulados").update({ questions_count: inserted }).eq("id", simulado_id);
+    // questions_count = total REAL de questões do simulado (count exato), para que
+    // chamadas em LOTE (client envia em chunks) não sobrescrevam a contagem com a do
+    // último lote. Fallback para `inserted` se a contagem falhar.
+    const { count: totalCount } = await adminClient
+      .from("questions")
+      .select("id", { count: "exact", head: true })
+      .eq("simulado_id", simulado_id);
+    await adminClient.from("simulados").update({ questions_count: totalCount ?? inserted }).eq("id", simulado_id);
 
     return new Response(JSON.stringify({ inserted }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
