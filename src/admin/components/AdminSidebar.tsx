@@ -20,7 +20,7 @@ interface AdminSidebarProps {
 
 /**
  * Barra lateral do painel. SEMPRE escura nos dois temas (não acompanha o tema),
- * por isso usa valores fixos (#1A1715 / #C9C4BF) em vez de tokens admin.
+ * por isso usa valores fixos (#0B0C0E / #C9C4BF) em vez de tokens admin.
  * Redesign 2026-06 (Fundação · Shell do app).
  */
 export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSidebarProps) {
@@ -44,7 +44,7 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
     <TooltipProvider delayDuration={100}>
       <aside
         className={cn(
-          'shrink-0 h-screen z-20 flex flex-col bg-[#1A1715] text-[#C9C4BF] border-r border-[#2A2522]',
+          'shrink-0 h-screen z-20 flex flex-col bg-[#0B0C0E] text-[#C9C4BF] border-r border-[#1F2329]',
           'motion-safe:transition-[width] motion-safe:duration-200',
           collapsed ? 'w-14' : 'w-60',
         )}
@@ -72,8 +72,8 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
             onClick={onOpenPalette}
             aria-label="Buscar (Ctrl K)"
             className={cn(
-              'flex items-center gap-2 w-full rounded-lg border border-[#332E2B] bg-[#221E1B]',
-              'text-[#8A8580] hover:border-[#403A36] hover:text-[#C9C4BF] motion-safe:transition-colors',
+              'flex items-center gap-2 w-full rounded-lg border border-[#1C1F23] bg-[#141619]',
+              'text-[#8A8580] hover:border-[#292D33] hover:text-[#C9C4BF] motion-safe:transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AB2350]/60',
               collapsed ? 'h-9 justify-center' : 'h-9 px-2.5',
             )}
@@ -82,7 +82,7 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
             {!collapsed && (
               <>
                 <span className="text-[12.5px] flex-1 text-left">Buscar…</span>
-                <kbd className="text-[10px] bg-[#1A1715] border border-[#332E2B] rounded px-1.5 py-0.5 text-[#8A8580] font-medium">
+                <kbd className="text-[10px] bg-[#0B0C0E] border border-[#1C1F23] rounded px-1.5 py-0.5 text-[#8A8580] font-medium">
                   Ctrl K
                 </kbd>
               </>
@@ -151,9 +151,9 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
         </nav>
 
         {/* Rodapé: perfil + sair */}
-        <div className="border-t border-[#2A2522] p-2.5 flex flex-col gap-1">
+        <div className="border-t border-[#1F2329] p-2.5 flex flex-col gap-1">
           <div className={cn('flex items-center gap-2.5 px-1 py-1', collapsed && 'justify-center px-0')}>
-            <div className="w-8 h-8 rounded-full bg-[#332E2B] border border-[#403A36] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#1C1F23] border border-[#292D33] flex items-center justify-center shrink-0">
               <span className="text-[11px] font-bold text-[#C9C4BF] leading-none">
                 {getInitials(userName)}
               </span>
