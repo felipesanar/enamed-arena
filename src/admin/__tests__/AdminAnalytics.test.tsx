@@ -25,8 +25,8 @@ const mockFunnel = [
 ]
 
 const mockTimeseries = [
-  { week_start: '2026-03-23', new_users: 80,  first_exams: 55 },
-  { week_start: '2026-03-30', new_users: 110, first_exams: 70 },
+  { week_start: '2026-03-23', new_users: 80,  first_exams: 55, started_attempts: 60 },
+  { week_start: '2026-03-30', new_users: 110, first_exams: 70, started_attempts: 90 },
 ]
 
 const mockSources = [
@@ -39,6 +39,10 @@ const mockTtc = {
   signup_to_onboarding_min: 4,
   onboarding_to_first_exam_days: 3.2,
   first_to_second_exam_days: 12.4,
+  landing_to_signup_n: 120,
+  landing_to_signup_insufficient: false,
+  first_to_second_exam_days_p90: 12.4,
+  first_to_second_exam_n: 80,
 }
 
 function renderPage() {
@@ -92,5 +96,26 @@ describe('AdminAnalytics', () => {
     vi.mocked(useAdminAnalyticsFunnel).mockReturnValue({ data: [], isLoading: false } as any)
     renderPage()
     expect(screen.getByText('Sem dados de jornada no período')).toBeInTheDocument()
+  })
+
+  it('shows "Dados insuficientes" for visita→cadastro when flagged', () => {
+    vi.mocked(useAdminAnalyticsTimeToConvert).mockReturnValue({
+      data: { ...mockTtc, landing_to_signup_min: -1, landing_to_signup_insufficient: true },
+      isLoading: false,
+    } as any)
+    renderPage()
+    expect(screen.getByText('Dados insuficientes')).toBeInTheDocument()
+  })
+
+  it('renders "sem rastreio nesta etapa" for a null conversion step', () => {
+    vi.mocked(useAdminAnalyticsFunnel).mockReturnValue({
+      data: [
+        { step_order: 1, step_label: 'Visitou', user_count: 1000, conversion_from_prev: null },
+        { step_order: 2, step_label: 'Cadastrou', user_count: 300, conversion_from_prev: null },
+      ],
+      isLoading: false,
+    } as any)
+    renderPage()
+    expect(screen.getByText('sem rastreio nesta etapa')).toBeInTheDocument()
   })
 })

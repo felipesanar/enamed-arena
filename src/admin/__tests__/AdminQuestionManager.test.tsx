@@ -60,12 +60,13 @@ const mockStat: SimuladoQuestionStat = {
   question_number: 1,
   text: mockQuestion.text,
   correct_rate: 64,
-  discrimination_index: 0.3,
+  discrimination_index: 30, // escala 0–100 (antes 0–1)
   most_common_wrong_label: 'A',
   most_common_wrong_pct: 22,
   area: 'Clínica Médica',
   theme: 'Sepse',
   total_responses: 120,
+  total_responses_all: 180,
 }
 
 const setCorrectMutateAsync = vi.fn().mockResolvedValue(undefined)

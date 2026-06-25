@@ -11,6 +11,8 @@ const rows: CohortRetentionRow[] = [
     did_2_plus: 80,
     did_3_plus: 20,
     avg_score: 60,
+    did_offline_pending: 12,
+    started_any: 240,
   },
 ]
 
@@ -30,5 +32,15 @@ describe('AdminCohortMatrix', () => {
   it('renders a skeleton when isLoading', () => {
     const { container } = render(<AdminCohortMatrix rows={[]} isLoading />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+  })
+
+  it('does not crash and shows a dash when avg_score is null', () => {
+    const nullScore: CohortRetentionRow[] = [{
+      cohort_month: '2026-06-01', cohort_size: 500,
+      did_onboarding: 100, did_1_plus: 0, did_2_plus: 0, did_3_plus: 0,
+      avg_score: null, did_offline_pending: 0, started_any: 0,
+    }]
+    render(<AdminCohortMatrix rows={nullScore} />)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 })

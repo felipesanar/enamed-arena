@@ -407,9 +407,9 @@ function AdminInteligenciaContent() {
         )}
       </section>
 
-      {/* 5 ── Retenção por coorte */}
+      {/* 5 ── Ativação acumulada por coorte */}
       <section id="cohorts">
-        <p className={SECTION_LABEL}>Retenção por coorte</p>
+        <p className={SECTION_LABEL}>Ativação acumulada por coorte</p>
         {cohortsQ.isError ? (
           <AdminPanel><ErrorNote message={(cohortsQ.error as Error)?.message} /></AdminPanel>
         ) : !cohortsQ.isLoading && cohorts.length === 0 ? (

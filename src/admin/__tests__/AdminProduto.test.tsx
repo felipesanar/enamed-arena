@@ -14,13 +14,13 @@ import {
 } from '@/admin/hooks/useAdminProduto'
 
 const mockFunnel = [
-  { step_order: 1, step_label: 'Cadastrou', guest_count: 500, guest_pct: 100, standard_count: 300, standard_pct: 100, pro_count: 200, pro_pct: 100 },
-  { step_order: 2, step_label: 'Onboarding', guest_count: 300, guest_pct: 60, standard_count: 270, standard_pct: 90, pro_count: 190, pro_pct: 95 },
+  { step_order: 1, step_label: 'Cadastrou', guest_count: 500, guest_pct: 100, standard_count: 300, standard_pct: 100, pro_count: 200, pro_pct: 100, insufficient_data: false },
+  { step_order: 2, step_label: 'Onboarding', guest_count: 300, guest_pct: 60, standard_count: 270, standard_pct: 90, pro_count: 190, pro_pct: 95, insufficient_data: false },
 ]
 
 const mockFriction = [
-  { key: 'post_exam_churn', title: 'Abandono pós-1ª prova', event_name: 'exam_submitted', metric_value: 62, metric_unit: 'percent', severity: 'critical' },
-  { key: 'onb_dropout', title: 'Dropout no onboarding', event_name: 'signup', metric_value: 15, metric_unit: 'percent', severity: 'healthy' },
+  { key: 'post_exam_churn', title: 'Abandono pós-1ª prova', event_name: 'exam_submitted', metric_value: 62, metric_unit: 'percent', severity: 'critical', numerator: 124, denominator: 200, insufficient_data: false },
+  { key: 'onb_dropout', title: 'Dropout no onboarding', event_name: 'signup', metric_value: 15, metric_unit: 'percent', severity: 'healthy', numerator: 15, denominator: 100, insufficient_data: false },
 ]
 
 const mockAdoption = [
@@ -68,5 +68,14 @@ describe('AdminProduto', () => {
   it('renders top event names', () => {
     renderPage()
     expect(screen.getByText('exam_started')).toBeInTheDocument()
+  })
+
+  it('shows "Dados insuficientes" for a friction point with metric_value -1', () => {
+    vi.mocked(useAdminProdutoFriction).mockReturnValue({
+      data: [{ key: 'k', title: 'Sem base', event_name: 'x', metric_value: -1, metric_unit: 'percent', severity: 'warning', numerator: 0, denominator: 0, insufficient_data: true }],
+      isLoading: false,
+    } as any)
+    renderPage()
+    expect(screen.getByText('Dados insuficientes')).toBeInTheDocument()
   })
 })

@@ -44,6 +44,8 @@ export interface SimuladoResultRow {
   institution: string; specialty: string; score: number | null;
   correct_count: number; total_count: number; duration_seconds: number;
   submitted_at: string; is_within_window: boolean;
+  /** Posição no ranking oficial do app (mesma ordenação da plataforma). */
+  app_rank: number | null;
 }
 export interface ResultsRosterParams {
   simuladoId: string; sort?: string; dir?: 'asc' | 'desc'; scope?: 'valid' | 'training' | 'all';
@@ -193,6 +195,9 @@ export const adminApi = {
       avg_score_prev: Number(row.avg_score_prev),
       activation_rate: Number(row.activation_rate),
       activation_rate_prev: Number(row.activation_rate_prev),
+      abandonment_rate: Number(row.abandonment_rate ?? 0),
+      abandonment_rate_prev: Number(row.abandonment_rate_prev ?? 0),
+      offline_pending: Number(row.offline_pending ?? 0),
       completion_valid_denom: Number(row.completion_valid_denom ?? 0),
     }
   },
@@ -215,7 +220,8 @@ export const adminApi = {
       step_order: Number(r.step_order),
       step_label: r.step_label as string,
       user_count: Number(r.user_count),
-      conversion_from_prev: Number(r.conversion_from_prev),
+      conversion_from_prev: r.conversion_from_prev != null ? Number(r.conversion_from_prev) : null,
+      insufficient_data: Boolean(r.insufficient_data),
     }))
   },
 
@@ -230,6 +236,11 @@ export const adminApi = {
       completion_rate: Number(r.completion_rate),
       avg_score: Number(r.avg_score),
       abandonment_rate: Number(r.abandonment_rate),
+      started_total: Number(r.started_total ?? 0),
+      treino_count: Number(r.treino_count ?? 0),
+      completed_count: Number(r.completed_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
     }))
   },
 
@@ -274,6 +285,11 @@ export const adminApi = {
       created_at: r.created_at as string,
       avg_score: Number(r.avg_score),
       total_attempts: Number(r.total_attempts),
+      started_attempts: Number(r.started_attempts ?? 0),
+      training_attempts: Number(r.training_attempts ?? 0),
+      valid_attempts: Number(r.valid_attempts ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
       total_count: Number(r.total_count),
     }))
   },
@@ -296,6 +312,11 @@ export const adminApi = {
       best_score: Number(r.best_score),
       last_score: Number(r.last_score),
       total_attempts: Number(r.total_attempts),
+      started_attempts: Number(r.started_attempts ?? 0),
+      training_attempts: Number(r.training_attempts ?? 0),
+      valid_attempts: Number(r.valid_attempts ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
       last_finished_at: r.last_finished_at as string | null,
       is_admin: Boolean(r.is_admin),
       roles: (r.roles as string[] | null) ?? [],
@@ -405,6 +426,13 @@ export const adminApi = {
       avg_score: Number(r.avg_score),
       abandonment_rate: Number(r.abandonment_rate),
       avg_time_minutes: Number(r.avg_time_minutes),
+      median_time_minutes: Number(r.median_time_minutes ?? 0),
+      p90_time_minutes: Number(r.p90_time_minutes ?? 0),
+      started_total: Number(r.started_total ?? 0),
+      treino_count: Number(r.treino_count ?? 0),
+      completed_count: Number(r.completed_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
     }
   },
 
@@ -423,6 +451,7 @@ export const adminApi = {
       area: r.area as string,
       theme: r.theme as string,
       total_responses: Number(r.total_responses),
+      total_responses_all: Number(r.total_responses_all ?? r.total_responses ?? 0),
     }))
   },
 
@@ -445,6 +474,7 @@ export const adminApi = {
       score: r.score != null ? Number(r.score) : null,
       correct_count: Number(r.correct_count), total_count: Number(r.total_count),
       duration_seconds: Number(r.duration_seconds), submitted_at: r.submitted_at, is_within_window: r.is_within_window,
+      app_rank: r.app_rank != null ? Number(r.app_rank) : null,
     }))
   },
 
@@ -453,12 +483,16 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_attempts_kpis', { p_days: days })
     if (error) throw error
     const r = (data as any[])?.[0]
-    if (!r) return { total: 0, in_progress: 0, submitted: 0, expired: 0 }
+    if (!r) return { total: 0, in_progress: 0, submitted: 0, expired: 0, offline_pending: 0, submitted_valid: 0, in_progress_valid: 0, offline_pending_valid: 0 }
     return {
-      total:       Number(r.total),
-      in_progress: Number(r.in_progress),
-      submitted:   Number(r.submitted),
-      expired:     Number(r.expired),
+      total:                 Number(r.total),
+      in_progress:           Number(r.in_progress),
+      submitted:             Number(r.submitted),
+      expired:               Number(r.expired),
+      offline_pending:       Number(r.offline_pending ?? 0),
+      submitted_valid:       Number(r.submitted_valid ?? 0),
+      in_progress_valid:     Number(r.in_progress_valid ?? 0),
+      offline_pending_valid: Number(r.offline_pending_valid ?? 0),
     }
   },
 
@@ -514,7 +548,8 @@ export const adminApi = {
       step_order:           Number(r.step_order),
       step_label:           r.step_label as string,
       user_count:           Number(r.user_count),
-      conversion_from_prev: Number(r.conversion_from_prev),
+      conversion_from_prev: r.conversion_from_prev != null ? Number(r.conversion_from_prev) : null,
+      insufficient_data:    Boolean(r.insufficient_data),
     }))
   },
 
@@ -522,9 +557,10 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_analytics_timeseries', { p_days: days })
     if (error) throw error
     return (data as any[]).map(r => ({
-      week_start:  r.week_start as string,
-      new_users:   Number(r.new_users),
-      first_exams: Number(r.first_exams),
+      week_start:       r.week_start as string,
+      new_users:        Number(r.new_users),
+      first_exams:      Number(r.first_exams),
+      started_attempts: Number(r.started_attempts ?? 0),
     }))
   },
 
@@ -542,12 +578,20 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_analytics_time_to_convert', { p_days: days })
     if (error) throw error
     const r = (data as any[])?.[0]
-    if (!r) return { landing_to_signup_min: 0, signup_to_onboarding_min: 0, onboarding_to_first_exam_days: 0, first_to_second_exam_days: 0 }
+    if (!r) return {
+      landing_to_signup_min: 0, signup_to_onboarding_min: 0, onboarding_to_first_exam_days: 0,
+      first_to_second_exam_days: 0, landing_to_signup_n: 0, landing_to_signup_insufficient: true,
+      first_to_second_exam_days_p90: 0, first_to_second_exam_n: 0,
+    }
     return {
-      landing_to_signup_min:         Number(r.landing_to_signup_min),
-      signup_to_onboarding_min:      Number(r.signup_to_onboarding_min),
-      onboarding_to_first_exam_days: Number(r.onboarding_to_first_exam_days),
-      first_to_second_exam_days:     Number(r.first_to_second_exam_days),
+      landing_to_signup_min:          Number(r.landing_to_signup_min),
+      signup_to_onboarding_min:       Number(r.signup_to_onboarding_min),
+      onboarding_to_first_exam_days:  Number(r.onboarding_to_first_exam_days),
+      first_to_second_exam_days:      Number(r.first_to_second_exam_days),
+      landing_to_signup_n:            Number(r.landing_to_signup_n ?? 0),
+      landing_to_signup_insufficient: Boolean(r.landing_to_signup_insufficient),
+      first_to_second_exam_days_p90:  Number(r.first_to_second_exam_days_p90 ?? 0),
+      first_to_second_exam_n:         Number(r.first_to_second_exam_n ?? 0),
     }
   },
 
@@ -556,13 +600,15 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_marketing_kpis', { p_days: days })
     if (error) throw error
     const r = (data as any[])?.[0]
-    if (!r) return { new_users: 0, new_users_prev: 0, landing_to_signup_pct: 0, active_campaigns: 0, organic_pct: 0 }
+    if (!r) return { new_users: 0, new_users_prev: 0, landing_to_signup_pct: -1, active_campaigns: 0, organic_pct: 0, landing_to_signup_insufficient: true, organic_low_confidence: true }
     return {
-      new_users:             Number(r.new_users),
-      new_users_prev:        Number(r.new_users_prev),
-      landing_to_signup_pct: Number(r.landing_to_signup_pct),
-      active_campaigns:      Number(r.active_campaigns),
-      organic_pct:           Number(r.organic_pct),
+      new_users:                      Number(r.new_users),
+      new_users_prev:                 Number(r.new_users_prev),
+      landing_to_signup_pct:          Number(r.landing_to_signup_pct),
+      active_campaigns:               Number(r.active_campaigns),
+      organic_pct:                    Number(r.organic_pct),
+      landing_to_signup_insufficient: Boolean(r.landing_to_signup_insufficient),
+      organic_low_confidence:         Boolean(r.organic_low_confidence),
     }
   },
 
@@ -570,9 +616,10 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_marketing_sources', { p_days: days })
     if (error) throw error
     return (data as any[]).map(r => ({
-      source:     r.source as string,
-      user_count: Number(r.user_count),
-      conv_rate:  Number(r.conv_rate),
+      source:          r.source as string,
+      user_count:      Number(r.user_count),
+      conv_rate:       Number(r.conv_rate),
+      signup_conv_pct: r.signup_conv_pct != null ? Number(r.signup_conv_pct) : null,
     }))
   },
 
@@ -580,9 +627,10 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_marketing_mediums', { p_days: days })
     if (error) throw error
     return (data as any[]).map(r => ({
-      medium:     r.medium as string,
-      user_count: Number(r.user_count),
-      conv_rate:  Number(r.conv_rate),
+      medium:          r.medium as string,
+      user_count:      Number(r.user_count),
+      conv_rate:       Number(r.conv_rate),
+      signup_conv_pct: r.signup_conv_pct != null ? Number(r.signup_conv_pct) : null,
     }))
   },
 
@@ -590,12 +638,14 @@ export const adminApi = {
     const { data, error } = await supabase.rpc('admin_marketing_campaigns', { p_days: days })
     if (error) throw error
     return (data as any[]).map(r => ({
-      campaign:    r.campaign as string,
-      source:      r.source as string,
-      visits:      Number(r.visits),
-      signups:     Number(r.signups),
-      conv_rate:   Number(r.conv_rate),
-      first_exams: Number(r.first_exams),
+      campaign:          r.campaign as string,
+      source:            r.source as string,
+      visits:            Number(r.visits),
+      signups:           Number(r.signups),
+      conv_rate:         r.conv_rate != null ? Number(r.conv_rate) : null,
+      first_exams:       Number(r.first_exams),
+      started_exams:     Number(r.started_exams ?? 0),
+      insufficient_data: Boolean(r.insufficient_data),
     }))
   },
 
@@ -612,6 +662,7 @@ export const adminApi = {
       standard_pct:   Number(r.standard_pct),
       pro_count:      Number(r.pro_count),
       pro_pct:        Number(r.pro_pct),
+      insufficient_data: Boolean(r.insufficient_data),
     }))
   },
 
@@ -625,6 +676,9 @@ export const adminApi = {
       metric_value: Number(r.metric_value),
       metric_unit:  r.metric_unit as 'percent' | 'days' | 'minutes',
       severity:     r.severity as 'critical' | 'warning' | 'healthy',
+      numerator:    Number(r.numerator ?? 0),
+      denominator:  Number(r.denominator ?? 0),
+      insufficient_data: Boolean(r.insufficient_data),
     }))
   },
 

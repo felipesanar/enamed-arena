@@ -36,13 +36,18 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
 
   if (!steps.length) return null
 
-  const stepsWithDrop = steps.slice(1)
-  const biggestDropStep = stepsWithDrop.reduce((min, s) =>
-    s.conversion_from_prev < min.conversion_from_prev ? s : min,
-    stepsWithDrop[0],
-  )
-  const biggestDropIndex = steps.findIndex(s => s.step_order === biggestDropStep.step_order)
-  const prevStep = steps[biggestDropIndex - 1]
+  // "Maior queda" só considera etapas com conversão rastreada (não-null).
+  const trackedDrops = steps.slice(1).filter(s => s.conversion_from_prev != null)
+  const biggestDropStep = trackedDrops.length
+    ? trackedDrops.reduce((min, s) =>
+        (s.conversion_from_prev as number) < (min.conversion_from_prev as number) ? s : min,
+        trackedDrops[0],
+      )
+    : null
+  const biggestDropIndex = biggestDropStep
+    ? steps.findIndex(s => s.step_order === biggestDropStep.step_order)
+    : -1
+  const prevStep = biggestDropIndex > 0 ? steps[biggestDropIndex - 1] : null
 
   return (
     <div
@@ -56,7 +61,7 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
             <div
               className={cn(
                 'flex-1 rounded-md px-2 py-2.5 text-center min-w-0',
-                step.step_order === biggestDropStep.step_order && 'ring-1 ring-admin-destructive/40',
+                biggestDropStep && step.step_order === biggestDropStep.step_order && 'ring-1 ring-admin-destructive/40',
               )}
               style={{
                 backgroundColor: `hsl(var(--admin-accent) / ${stepOpacity(i, steps.length)})`,
@@ -69,14 +74,23 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
                 {step.step_label}
               </p>
               {i > 0 && (
-                <p
-                  className={cn(
-                    'text-[9px] mt-1 font-medium',
-                    step.conversion_from_prev >= 70 ? 'text-admin-success' : 'text-admin-destructive',
-                  )}
-                >
-                  {step.conversion_from_prev}%
-                </p>
+                step.conversion_from_prev == null ? (
+                  <p className="text-[9px] mt-1 font-medium text-admin-accent-contrast/60">
+                    — sem rastreio
+                  </p>
+                ) : (
+                  <p
+                    className={cn(
+                      'text-[9px] mt-1 font-medium',
+                      step.conversion_from_prev >= 70 ? 'text-admin-success' : 'text-admin-destructive',
+                    )}
+                  >
+                    {step.conversion_from_prev}%
+                    {step.insufficient_data && (
+                      <span className="ml-1 text-admin-accent-contrast/50">(base baixa)</span>
+                    )}
+                  </p>
+                )
               )}
             </div>
             {i < steps.length - 1 && (
@@ -89,7 +103,7 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
         ))}
       </div>
 
-      {biggestDropStep && prevStep && (
+      {biggestDropStep && prevStep && biggestDropStep.conversion_from_prev != null && (
         <p className="mt-3 px-3 py-2 bg-admin-destructive/5 border border-admin-destructive/20 rounded-md text-[10px] text-admin-muted flex items-start gap-2">
           <AlertTriangle className="h-3.5 w-3.5 text-admin-destructive shrink-0 mt-0.5" aria-hidden />
           <span>

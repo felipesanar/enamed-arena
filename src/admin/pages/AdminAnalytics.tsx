@@ -126,9 +126,18 @@ function AdminAnalyticsContent() {
                     <span className="text-xs font-medium text-admin-text">{step.step_label}</span>
                     <div className="flex items-center gap-3">
                       {idx > 0 && (
-                        <span className={cn('text-[10px] font-semibold', convColor(step.conversion_from_prev))}>
-                          {step.conversion_from_prev}% de quem chegou na etapa anterior
-                        </span>
+                        step.conversion_from_prev == null ? (
+                          <span className="text-[10px] font-semibold text-admin-muted">
+                            sem rastreio nesta etapa
+                          </span>
+                        ) : (
+                          <span className={cn('text-[10px] font-semibold', convColor(step.conversion_from_prev))}>
+                            {step.conversion_from_prev}% de quem chegou na etapa anterior
+                            {step.insufficient_data && (
+                              <span className="ml-1 font-normal text-admin-faint">(base baixa)</span>
+                            )}
+                          </span>
+                        )
                       )}
                       <span className="text-sm font-bold text-admin-text w-16 text-right tabular-nums">
                         {formatInt(step.user_count)}
@@ -179,7 +188,7 @@ function AdminAnalyticsContent() {
                 <div className="flex-1 h-1.5 bg-admin-raised rounded-full overflow-hidden">
                   <div
                     className="h-full bg-admin-accent/70 rounded-full"
-                    style={{ width: `${Math.min(100, src.signup_conv_pct * 1.5)}%` }}
+                    style={{ width: `${src.signup_conv_pct == null || Number.isNaN(src.signup_conv_pct) ? 0 : Math.min(100, Math.max(0, src.signup_conv_pct * 1.5))}%` }}
                   />
                 </div>
                 <span className="text-[10px] text-admin-muted w-12 text-right">
@@ -195,19 +204,29 @@ function AdminAnalyticsContent() {
           <p className="text-[11px] font-semibold text-admin-text mb-3">Tempo médio por etapa</p>
           {ttc ? (
             <div className="space-y-3">
-              {([
-                ['Visita → Cadastro',    `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
-                ['Cadastro → Onboarding', `${(ttc as JourneyTimeToConvert).signup_to_onboarding_min} min`,         (ttc as JourneyTimeToConvert).signup_to_onboarding_min < 60],
-                ['Onboarding → 1ª prova', `${(ttc as JourneyTimeToConvert).onboarding_to_first_exam_days} dias`,   (ttc as JourneyTimeToConvert).onboarding_to_first_exam_days < 2],
-                ['1ª prova → 2ª prova',   `${(ttc as JourneyTimeToConvert).first_to_second_exam_days} dias`,       (ttc as JourneyTimeToConvert).first_to_second_exam_days < 7],
-              ] as [string, string, boolean][]).map(([label, value, ok]) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="text-[10px] text-admin-muted">{label}</span>
-                  <span className={cn('text-xs font-semibold', ok ? 'text-admin-success' : 'text-admin-warning')}>
-                    {value}
-                  </span>
-                </div>
-              ))}
+              {(() => {
+                const t = ttc as JourneyTimeToConvert
+                const landingInsufficient = t.landing_to_signup_insufficient || t.landing_to_signup_min < 0
+                const secondExamInsufficient = t.first_to_second_exam_n <= 0
+                // [label, value, ok|null]; ok=null → estado neutro "dados insuficientes"
+                const rows: [string, string, boolean | null][] = [
+                  ['Visita → Cadastro',     landingInsufficient ? 'Dados insuficientes' : `${t.landing_to_signup_min} min`,   landingInsufficient ? null : t.landing_to_signup_min < 60],
+                  ['Cadastro → Onboarding', `${t.signup_to_onboarding_min} min`,                                              t.signup_to_onboarding_min < 60],
+                  ['Onboarding → 1ª prova', `${t.onboarding_to_first_exam_days} dias`,                                        t.onboarding_to_first_exam_days < 2],
+                  ['1ª prova → 2ª prova (p90)', secondExamInsufficient ? 'Dados insuficientes' : `${t.first_to_second_exam_days_p90} dias`, secondExamInsufficient ? null : t.first_to_second_exam_days_p90 < 7],
+                ]
+                return rows.map(([label, value, ok]) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="text-[10px] text-admin-muted">{label}</span>
+                    <span className={cn(
+                      'text-xs font-semibold',
+                      ok == null ? 'text-admin-faint' : ok ? 'text-admin-success' : 'text-admin-warning',
+                    )}>
+                      {value}
+                    </span>
+                  </div>
+                ))
+              })()}
             </div>
           ) : (
             <div className="animate-pulse space-y-2">
