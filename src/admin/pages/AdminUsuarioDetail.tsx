@@ -464,6 +464,45 @@ function AcessoTab({
           </button>
         </div>
 
+        {/* Perfil acadêmico (somente leitura) */}
+        <div className="rounded-xl border border-admin-line/80 bg-admin-surface p-[18px] shadow-sm shadow-black/[0.04] dark:shadow-black/30">
+          <h3 className="mb-1 text-[14px] font-bold text-admin-text">Perfil acadêmico</h3>
+          <p className="mb-3.5 max-w-[46ch] text-[12.5px] leading-relaxed text-admin-muted">
+            O que a pessoa escolheu ao entrar. Só leitura aqui.
+          </p>
+          <dl className="flex flex-col gap-3.5">
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-admin-faint">
+                Especialidade alvo
+              </dt>
+              <dd className="mt-1 text-[13px] text-admin-text">
+                {user.specialty ? user.specialty : <span className="text-admin-faint">não informado</span>}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-admin-faint">
+                Instituições alvo
+              </dt>
+              <dd className="mt-1.5">
+                {user.target_institutions && user.target_institutions.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {user.target_institutions.map((inst, i) => (
+                      <span
+                        key={`${inst}-${i}`}
+                        className="inline-flex rounded-md border border-admin-line bg-admin-raised px-2 py-0.5 text-[12px] text-admin-muted"
+                      >
+                        {inst}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[13px] text-admin-faint">não informado</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
         {/* Zona de perigo: excluir conta */}
         <div className="flex items-center justify-between gap-4 rounded-xl border border-admin-destructive/30 bg-admin-surface p-[18px]">
           <div className="min-w-0">

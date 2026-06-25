@@ -1,6 +1,5 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useParams, Link } from 'react-router-dom'
-import { cn } from '@/lib/utils'
 import {
   useAdminSimuladoDetailStats,
   useAdminSimuladoQuestionStats,
@@ -9,37 +8,84 @@ import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
 import { AdminSectionHeader } from '@/admin/components/ui/AdminSectionHeader'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
+import { AdminQuestionStatsTable } from '@/admin/components/ui/AdminQuestionStatsTable'
+import { Button } from '@/components/ui/button'
 import { formatInt } from '@/admin/lib/format'
-import type { SimuladoQuestionStat } from '@/admin/types'
+import { BarChart3, ChevronLeft, RotateCw } from 'lucide-react'
 
-function discriminationLabel(index: number): { label: string; description: string; cls: string } {
-  if (index >= 30) return { label: 'Diferencia bem', description: 'Quem estudou acerta, quem não estudou erra', cls: 'text-admin-success' }
-  if (index >= 10) return { label: 'Diferencia pouco', description: 'Não separa bem preparados de não preparados', cls: 'text-admin-warning' }
-  if (index >= 0) return { label: 'Não diferencia', description: 'Todos acertam ou todos erram igualmente', cls: 'text-admin-destructive' }
-  return { label: 'Questão confusa', description: 'Os melhores alunos erram mais que os piores', cls: 'text-admin-destructive' }
+const SUBTITLE = 'Participação, conclusão e qualidade por questão.'
+
+function BackToSimuladosLink() {
+  return (
+    <Link
+      to="/admin/simulados"
+      className="inline-flex items-center gap-1.5 text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
+    >
+      <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Voltar aos simulados
+    </Link>
+  )
 }
 
 function AdminSimuladoAnalyticsContent() {
   const { id } = useParams<{ id: string }>()
-  const { data: stats, isLoading: statsLoading } = useAdminSimuladoDetailStats(id!)
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    refetch: refetchStats,
+  } = useAdminSimuladoDetailStats(id!)
   const { data: questions = [], isLoading: qLoading } = useAdminSimuladoQuestionStats(id!)
+
+  const title = stats ? `Análise — #${stats.sequence_number} ${stats.title}` : 'Análise do simulado'
+
+  // ── Erro ao carregar as métricas gerais ──────────────────────────────────
+  if (statsError && !stats) {
+    return (
+      <div className="max-w-[1200px] space-y-6">
+        <AdminPageHeader title="Análise do simulado" subtitle={SUBTITLE} actions={<BackToSimuladosLink />} />
+        <AdminEmptyState
+          icon={BarChart3}
+          tone="error"
+          eyebrow="Erro"
+          title="Não foi possível carregar a análise"
+          description="Houve uma falha ao buscar os dados deste simulado. Tente novamente em instantes."
+          action={
+            <Button variant="outline" size="sm" className="h-8 border-admin-line text-xs" onClick={() => refetchStats()}>
+              <RotateCw className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Tentar de novo
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+
+  // ── Simulado não encontrado ───────────────────────────────────────────────
+  if (!statsLoading && !stats) {
+    return (
+      <div className="max-w-[1200px] space-y-6">
+        <AdminPageHeader title="Análise do simulado" subtitle={SUBTITLE} actions={<BackToSimuladosLink />} />
+        <AdminEmptyState
+          icon={BarChart3}
+          eyebrow="Não encontrado"
+          title="Simulado não encontrado"
+          description="O simulado indicado no endereço não existe ou foi removido."
+          action={<BackToSimuladosLink />}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-[1200px] space-y-6">
       <AdminPageHeader
-        title={stats ? `#${stats.sequence_number} — ${stats.title}` : 'Analytics do simulado'}
-        subtitle="Participação, conclusão e qualidade por questão"
+        title={title}
+        subtitle={SUBTITLE}
         actions={
           <>
-            <Link
-              to="/admin/simulados"
-              className="text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
-            >
-              ← Voltar aos simulados
-            </Link>
+            <BackToSimuladosLink />
             <Link
               to={`/admin/simulados/${id}`}
-              className="px-3 py-1.5 text-xs rounded-lg border border-admin-line bg-admin-surface text-admin-muted hover:text-admin-text hover:bg-admin-raised motion-safe:transition-colors"
+              className="rounded-lg border border-admin-line bg-admin-surface px-3 py-1.5 text-xs text-admin-muted hover:bg-admin-raised hover:text-admin-text motion-safe:transition-colors"
             >
               Editar simulado
             </Link>
@@ -47,89 +93,31 @@ function AdminSimuladoAnalyticsContent() {
         }
       />
 
-      {/* KPIs */}
+      {/* ── Métricas gerais ────────────────────────────────────────────────── */}
       <section>
         <AdminSectionHeader title="Métricas gerais" />
         {statsLoading ? (
-          <div className="grid grid-cols-5 gap-3">
-            {[1,2,3,4,5].map(i => <AdminStatCard key={i} label="..." value="..." isLoading />)}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {[1, 2, 3, 4, 5].map(i => <AdminStatCard key={i} label="..." value="..." isLoading />)}
           </div>
         ) : stats ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <AdminStatCard label="Participantes" value={formatInt(stats.participants)} />
             <AdminStatCard label="Taxa de conclusão" value={`${stats.completion_rate.toFixed(1)}%`} />
             <AdminStatCard label="Média geral" value={`${stats.avg_score.toFixed(1)}%`} />
-            <AdminStatCard label="Abandono" value={`${stats.abandonment_rate.toFixed(1)}%`} />
+            <AdminStatCard label="Abandono" value={`${stats.abandonment_rate.toFixed(1)}%`} invertDelta />
             <AdminStatCard label="Tempo médio" value={`${stats.avg_time_minutes.toFixed(0)} min`} />
           </div>
         ) : null}
       </section>
 
-      {/* Por questão */}
+      {/* ── Qualidade por questão ──────────────────────────────────────────── */}
       <section>
-        <AdminSectionHeader title="Analytics por questão" hook={`${questions.length} questões`} />
-        {qLoading ? (
-          <div className="bg-admin-surface border border-admin-line rounded-xl animate-pulse h-32" />
-        ) : questions.length === 0 ? (
-          <AdminEmptyState title="Sem dados suficientes para esta análise" />
-        ) : (
-          <div className="bg-admin-surface border border-admin-line rounded-xl overflow-hidden">
-            {/* Header */}
-            <div className="grid border-b border-admin-line bg-admin-bg-outer text-[9px] font-bold text-admin-faint uppercase tracking-wide"
-              style={{ gridTemplateColumns: '40px 1fr 160px 140px 120px' }}>
-              {['Q', 'Enunciado', 'Taxa de acerto', 'Qualidade da questão', 'Erro mais comum'].map(h => (
-                <div key={h} className="px-3 py-2">{h}</div>
-              ))}
-            </div>
-
-            {questions.map((q: SimuladoQuestionStat) => {
-              const barPct = Math.min(100, Math.max(0, q.correct_rate))
-              const barColor = barPct >= 70 ? 'bg-admin-success' : barPct >= 40 ? 'bg-admin-warning' : 'bg-admin-destructive'
-              const disc = discriminationLabel(q.discrimination_index)
-
-              return (
-                <div
-                  key={q.question_number}
-                  className="grid border-b border-admin-line/40 last:border-0 hover:bg-admin-raised/20 items-center"
-                  style={{ gridTemplateColumns: '40px 1fr 160px 140px 120px' }}
-                >
-                  <div className="px-3 py-2.5 text-xs font-bold text-admin-muted">
-                    Q{q.question_number}
-                  </div>
-                  <div className="px-3 py-2.5 text-[11px] text-admin-text truncate max-w-xs" title={q.text}>
-                    {q.text.length > 70 ? q.text.slice(0, 70) + '…' : q.text}
-                  </div>
-                  <div className="px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-admin-raised rounded-full">
-                        <div className={cn('h-1.5 rounded-full', barColor)} style={{ width: `${barPct}%` }} />
-                      </div>
-                      <span className="text-xs font-semibold text-admin-text w-10 text-right">
-                        {q.correct_rate.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="px-3 py-2.5" title={disc.description}>
-                    <span className={cn('text-[11px] font-semibold', disc.cls)}>{disc.label}</span>
-                    <p className="text-[9px] text-admin-muted">{disc.description}</p>
-                  </div>
-                  <div className="px-3 py-2.5">
-                    {q.most_common_wrong_label ? (
-                      <>
-                        <span className="text-[10px] bg-admin-raised/60 border border-admin-line text-admin-muted px-1.5 py-0.5 rounded">
-                          Alt. {q.most_common_wrong_label}
-                        </span>
-                        <span className="text-[9px] text-admin-muted ml-1">({q.most_common_wrong_pct?.toFixed(1)}%)</span>
-                      </>
-                    ) : (
-                      <span className="text-[10px] text-admin-faint">—</span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <AdminSectionHeader
+          title="Qualidade por questão"
+          hook={qLoading ? '…' : `${questions.length} questões`}
+        />
+        <AdminQuestionStatsTable questions={questions} isLoading={qLoading} />
       </section>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ChevronRight,
   ChevronLeft,
@@ -728,7 +728,7 @@ function QuestionWorkspace({ simuladoId, simuladoLabel, onBackToBank }: Question
 
 // ─── Banco de questões: escolher simulado ────────────────────────────────────
 
-function SimuladoPicker({ onPick }: { onPick: (id: string, label: string) => void }) {
+function SimuladoPicker({ onPick }: { onPick: (id: string) => void }) {
   const { data: simulados = [], isLoading, isError, refetch } = useAdminSimuladoList()
 
   return (
@@ -773,7 +773,7 @@ function SimuladoPicker({ onPick }: { onPick: (id: string, label: string) => voi
             <button
               key={s.id}
               type="button"
-              onClick={() => onPick(s.id, `Simulado ${s.sequence_number}`)}
+              onClick={() => onPick(s.id)}
               className="group text-left"
             >
               <AdminPanel hover className="flex items-center justify-between gap-3">
@@ -800,30 +800,34 @@ function SimuladoPicker({ onPick }: { onPick: (id: string, label: string) => voi
 
 /**
  * Rota /admin/simulados/:id/questoes/editar → edita direto as questões do simulado.
- * Rota /admin/questoes (Banco de questões) → escolhe o simulado e entra no mesmo editor.
+ * Rota /admin/questoes (Banco de questões) → escolhe o simulado.
+ * Rota /admin/questoes/:simuladoId → entra direto no editor (link compartilhável,
+ *   suporta voltar/avançar do navegador).
  */
 function AdminQuestionManagerContent() {
-  const { id } = useParams<{ id: string }>()
-  // Quando entra pelo banco, guardamos a escolha em estado (sem :id na URL).
-  const [picked, setPicked] = useState<{ id: string; label: string } | null>(null)
+  // `id` vem de /admin/simulados/:id/questoes/editar.
+  // `simuladoId` vem do deep-link do banco /admin/questoes/:simuladoId.
+  const { id, simuladoId } = useParams<{ id: string; simuladoId: string }>()
+  const navigate = useNavigate()
 
-  // Entrada por simulado: :id presente na URL.
+  // Entrada por simulado (edição direta): :id presente na URL.
   if (id) {
     return <QuestionWorkspace simuladoId={id} />
   }
 
-  // Entrada pelo banco: precisa escolher um simulado.
-  if (!picked) {
-    return <SimuladoPicker onPick={(pickedId, label) => setPicked({ id: pickedId, label })} />
+  // Entrada pelo banco com simulado escolhido: URL persistente em /admin/questoes/:simuladoId.
+  if (simuladoId) {
+    return (
+      <QuestionWorkspace
+        simuladoId={simuladoId}
+        onBackToBank={() => navigate('/admin/questoes')}
+      />
+    )
   }
 
-  return (
-    <QuestionWorkspace
-      simuladoId={picked.id}
-      simuladoLabel={picked.label}
-      onBackToBank={() => setPicked(null)}
-    />
-  )
+  // Banco sem simulado escolhido: mostra o seletor. Ao escolher, navega para o
+  // deep-link — assim a URL guarda a escolha e dá pra voltar/compartilhar.
+  return <SimuladoPicker onPick={(pickedId) => navigate(`/admin/questoes/${pickedId}`)} />
 }
 
 export default function AdminQuestionManager() {

@@ -86,11 +86,12 @@ function renderSimuladoRoute() {
   )
 }
 
-function renderBankRoute() {
+function renderBankRoute(initialEntry = '/admin/questoes') {
   return renderWithAccess(
-    <MemoryRouter initialEntries={['/admin/questoes']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/admin/questoes" element={<AdminQuestionManager />} />
+        <Route path="/admin/questoes/:simuladoId" element={<AdminQuestionManager />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -221,11 +222,26 @@ describe('AdminQuestionManager — Banco de questões', () => {
     vi.mocked(useDeleteQuestion).mockReturnValue(mutationMock())
   })
 
-  it('lista os simulados para escolher e entra no editor ao clicar', async () => {
+  it('lista os simulados para escolher e navega para o deep-link ao clicar', async () => {
     renderBankRoute()
     expect(screen.getByText('Banco de questões')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Simulado de Clínica'))
+    // Ao escolher, a URL passa a ser /admin/questoes/SID e o editor abre.
     expect(await screen.findByText('Questão 1 de 1')).toBeInTheDocument()
+  })
+
+  it('abre o editor direto quando o simulado vem na URL (deep-link)', async () => {
+    renderBankRoute('/admin/questoes/SID')
+    expect(await screen.findByText('Questão 1 de 1')).toBeInTheDocument()
+    // O atalho de voltar ao banco está disponível.
+    expect(screen.getByText('← Trocar de simulado')).toBeInTheDocument()
+  })
+
+  it('volta ao seletor do banco ao clicar em trocar de simulado', async () => {
+    renderBankRoute('/admin/questoes/SID')
+    await screen.findByText('Questão 1 de 1')
+    fireEvent.click(screen.getByText('← Trocar de simulado'))
+    expect(await screen.findByText('Banco de questões')).toBeInTheDocument()
   })
 
   it('mostra estado vazio quando não há simulados', () => {

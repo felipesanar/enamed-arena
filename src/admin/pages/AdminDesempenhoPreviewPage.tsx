@@ -10,7 +10,8 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
-import { BarChart3, ArrowLeft, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BarChart3, ChevronLeft, Eye, RotateCw } from 'lucide-react';
 
 function BackToPreviewLink() {
   return (
@@ -18,7 +19,7 @@ function BackToPreviewLink() {
       to="/admin/previews"
       className="inline-flex items-center gap-1.5 text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
     >
-      <ArrowLeft className="h-3.5 w-3.5" /> Voltar para a prévia do aluno
+      <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Voltar para a prévia do aluno
     </Link>
   );
 }
@@ -29,7 +30,7 @@ function AdminDesempenhoPreviewPageContent() {
   const { id } = useParams<{ id: string }>();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { examState, loading: loadingExam, error } = useExamResult(id);
+  const { examState, loading: loadingExam, error, refetch } = useExamResult(id);
 
   const attemptFinished =
     examState?.status === 'submitted' || examState?.status === 'expired';
@@ -77,7 +78,14 @@ function AdminDesempenhoPreviewPageContent() {
           eyebrow="Erro"
           title="Não foi possível carregar a prévia"
           description="Houve uma falha ao buscar os dados deste simulado. Tente novamente em instantes."
-          action={<BackToPreviewLink />}
+          action={
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="h-8 border-admin-line text-xs" onClick={() => refetch()}>
+                <RotateCw className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Tentar de novo
+              </Button>
+              <BackToPreviewLink />
+            </div>
+          }
         />
       </>
     );
