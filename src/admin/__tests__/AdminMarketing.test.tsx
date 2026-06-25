@@ -81,4 +81,11 @@ describe('AdminMarketing', () => {
     renderPage()
     expect(screen.getByRole('button', { name: /exportar/i })).toBeInTheDocument()
   })
+
+  it('uses Portuguese labels without English UTM jargon', () => {
+    renderPage()
+    expect(screen.getByText('Por canal')).toBeInTheDocument()
+    expect(screen.getByText('Por meio')).toBeInTheDocument()
+    expect(screen.queryByText(/UTM/i)).not.toBeInTheDocument()
+  })
 })

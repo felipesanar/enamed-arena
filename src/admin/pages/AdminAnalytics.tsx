@@ -171,7 +171,7 @@ function AdminAnalyticsContent() {
       <div className="grid grid-cols-2 gap-4">
         {/* Sources */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Origem dos Usuários (UTM Source)</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Origem dos usuários</p>
           <div className="space-y-2">
             {(sources as JourneySourceRow[]).map(src => (
               <div key={src.utm_source} className="flex items-center gap-2">
@@ -196,7 +196,7 @@ function AdminAnalyticsContent() {
           {ttc ? (
             <div className="space-y-3">
               {([
-                ['Landing → Cadastro',   `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
+                ['Visita → Cadastro',    `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
                 ['Cadastro → Onboarding', `${(ttc as JourneyTimeToConvert).signup_to_onboarding_min} min`,         (ttc as JourneyTimeToConvert).signup_to_onboarding_min < 60],
                 ['Onboarding → 1ª prova', `${(ttc as JourneyTimeToConvert).onboarding_to_first_exam_days} dias`,   (ttc as JourneyTimeToConvert).onboarding_to_first_exam_days < 2],
                 ['1ª prova → 2ª prova',   `${(ttc as JourneyTimeToConvert).first_to_second_exam_days} dias`,       (ttc as JourneyTimeToConvert).first_to_second_exam_days < 7],

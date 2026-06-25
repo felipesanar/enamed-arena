@@ -181,7 +181,7 @@ function AdminMarketingContent() {
           delta={delta} deltaLabel="vs mês ant." isLoading={kLoading}
         />
         <AdminStatCard
-          label="Conv. landing→cadastro" value={kpis ? `${kpis.landing_to_signup_pct}%` : '—'}
+          label="Conversão visita→cadastro" value={kpis ? `${kpis.landing_to_signup_pct}%` : '—'}
           isLoading={kLoading}
         />
         <AdminStatCard
@@ -199,7 +199,7 @@ function AdminMarketingContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Sources */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Source</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Por canal</p>
           <div className="space-y-2">
             {(sources as MarketingSourceRow[]).map((src, i) => (
               <div key={src.source} className="flex items-center gap-2">
@@ -221,7 +221,7 @@ function AdminMarketingContent() {
 
         {/* Mediums */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Medium</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Por meio</p>
           <div className="space-y-2">
             {(mediums as MarketingMediumRow[]).map((med, i) => (
               <div key={med.medium} className="flex items-center gap-2">
@@ -245,7 +245,7 @@ function AdminMarketingContent() {
       {/* Campaigns table */}
       <AdminPanel flush className="overflow-hidden p-0">
         <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
-          <p className="text-micro-label text-admin-muted uppercase">Campanhas (utm_campaign)</p>
+          <p className="text-micro-label text-admin-muted uppercase">Campanhas</p>
         </div>
         <div
           className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"

@@ -68,8 +68,10 @@ describe('AdminAnalytics', () => {
     expect(screen.getByText('Retornou (2+ provas)')).toBeInTheDocument()
   })
 
-  it('renders utm source rows', () => {
+  it('renders origin rows under a jargon-free heading', () => {
     renderPage()
+    expect(screen.getByText('Origem dos usuários')).toBeInTheDocument()
+    expect(screen.queryByText(/UTM/i)).not.toBeInTheDocument()
     expect(screen.getByText('organic')).toBeInTheDocument()
     expect(screen.getByText('instagram')).toBeInTheDocument()
   })
