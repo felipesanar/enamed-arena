@@ -150,11 +150,18 @@ function AdminUsuarioDetailContent() {
             <div className="border-t border-admin-line mt-4 pt-4 mb-3">
               <p className="text-[9px] font-bold text-admin-faint uppercase tracking-widest mb-3">Performance</p>
               <div className="grid grid-cols-2 gap-1.5">
-                <AdminStatCard label="Média geral" value={`${user.avg_score.toFixed(1)}%`} />
-                <AdminStatCard label="Melhor nota" value={`${user.best_score.toFixed(1)}%`} />
-                <AdminStatCard label="Provas feitas" value={user.total_attempts} />
-                <AdminStatCard label="Última nota" value={`${user.last_score.toFixed(1)}%`} />
+                <AdminStatCard label="Média geral" value={user.valid_attempts > 0 ? `${user.avg_score.toFixed(1)}%` : '—'} />
+                <AdminStatCard label="Melhor nota" value={user.valid_attempts > 0 ? `${user.best_score.toFixed(1)}%` : '—'} />
+                <AdminStatCard label="Provas válidas" value={user.valid_attempts} />
+                <AdminStatCard label="Última nota" value={user.valid_attempts > 0 ? `${user.last_score.toFixed(1)}%` : '—'} />
               </div>
+              {(user.training_attempts > 0 || user.offline_pending_count > 0 || user.in_progress_count > 0) && (
+                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                  <AdminStatCard label="Treino" value={user.training_attempts} />
+                  <AdminStatCard label="Offline pend." value={user.offline_pending_count} />
+                  <AdminStatCard label="Em andamento" value={user.in_progress_count} />
+                </div>
+              )}
             </div>
 
             <div className="border-t border-admin-line pt-3 space-y-1.5">

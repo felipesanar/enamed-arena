@@ -15,7 +15,10 @@ import {
 } from '@/admin/hooks/useAdminTentativas'
 import { adminApi } from '@/admin/services/adminApi'
 
-const mockKpis = { total: 120, in_progress: 5, submitted: 100, expired: 15 }
+const mockKpis = {
+  total: 120, in_progress: 5, submitted: 100, expired: 15,
+  offline_pending: 0, submitted_valid: 92, in_progress_valid: 4, offline_pending_valid: 0,
+}
 
 const mockRows = [
   {
@@ -56,6 +59,11 @@ describe('AdminTentativas', () => {
     expect(screen.getByText('120')).toBeInTheDocument()
     expect(screen.getByText('100')).toBeInTheDocument()
     expect(screen.getByText('15')).toBeInTheDocument()
+  })
+
+  it('exposes an "Offline/pendente" status filter', () => {
+    renderPage()
+    expect(screen.getByRole('button', { name: 'Offline/pendente' })).toBeInTheDocument()
   })
 
   it('renders attempt rows with user names and emails', () => {

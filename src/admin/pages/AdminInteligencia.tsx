@@ -358,9 +358,9 @@ function AdminInteligenciaContent() {
         )}
       </section>
 
-      {/* 5 ── Retenção por coorte */}
+      {/* 5 ── Ativação acumulada por coorte de cadastro */}
       <section id="cohorts">
-        <p className={SECTION_LABEL}>Retenção por coorte</p>
+        <p className={SECTION_LABEL}>Ativação acumulada por coorte de cadastro</p>
         {cohortsQ.isError ? (
           <AdminPanel><ErrorNote message={(cohortsQ.error as Error)?.message} /></AdminPanel>
         ) : !cohortsQ.isLoading && cohorts.length === 0 ? (
@@ -378,14 +378,19 @@ function AdminInteligenciaContent() {
         ) : !engagementQ.isLoading && !metrics ? (
           <AdminPanel><AdminEmptyState title="Sem métricas no período" /></AdminPanel>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <AdminStatCard
               isLoading={engagementQ.isLoading}
-              label="Abandono"
+              label="Abandono (provas válidas)"
               value={metrics ? `${metrics.abandonment_rate}%` : '—'}
               delta={metrics ? round1(metrics.abandonment_rate - metrics.abandonment_rate_prev) : undefined}
               deltaLabel={metrics ? 'p.p. vs período anterior' : undefined}
               invertDelta
+            />
+            <AdminStatCard
+              isLoading={engagementQ.isLoading}
+              label="Pendentes de sync"
+              value={metrics ? formatInt(metrics.offline_pending) : '—'}
             />
             <AdminStatCard
               isLoading={engagementQ.isLoading}
@@ -419,9 +424,11 @@ function AdminInteligenciaContent() {
             columns={[
               { key: 'segment', label: 'Segmento', render: r => SEGMENT_META[r.segment]?.label ?? r.segment },
               { key: 'users', label: 'Usuários', render: r => formatInt(r.users) },
-              { key: 'participation_rate', label: 'Participação', render: r => `${r.participation_rate}%` },
-              { key: 'avg_score', label: 'Média', render: r => `${r.avg_score}%` },
-              { key: 'avg_attempts', label: 'Tentativas/usuário', render: r => r.avg_attempts },
+              { key: 'participation_rate', label: 'Participação (prova válida)', render: r => `${r.participation_rate}%` },
+              { key: 'concluded_participants', label: 'Concluíram', render: r => formatInt(r.concluded_participants) },
+              { key: 'pending_participants', label: 'Offline pendente', render: r => formatInt(r.pending_participants) },
+              { key: 'avg_score', label: 'Média (válida)', render: r => `${r.avg_score}%` },
+              { key: 'avg_attempts', label: 'Provas válidas/usuário', render: r => r.avg_attempts },
             ]}
           />
         )}

@@ -25,6 +25,7 @@ const STATUS_OPTIONS = [
   { label: 'Todos', value: 'all' },
   { label: ATTEMPT_STATUS_META.in_progress.label, value: 'in_progress' },
   { label: ATTEMPT_STATUS_META.submitted.label, value: 'submitted' },
+  { label: 'Offline/pendente', value: 'offline_pending' },
   { label: ATTEMPT_STATUS_META.expired.label, value: 'expired' },
 ]
 
@@ -91,11 +92,12 @@ function AdminTentativasContent() {
         }
       />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* KPIs — buckets fecham com Total: in_progress + submitted + offline_pending + expired = total */}
+      <div className="grid grid-cols-5 gap-3">
         <AdminStatCard label="Total" value={kpis?.total ?? '—'} isLoading={kpisLoading} />
-        <AdminStatCard label="Em andamento" value={kpis?.in_progress ?? '—'} isLoading={kpisLoading} />
-        <AdminStatCard label="Concluídas" value={kpis?.submitted ?? '—'} isLoading={kpisLoading} />
+        <AdminStatCard label="Em andamento" value={kpis?.in_progress ?? '—'} hint={kpis ? `${formatInt(kpis.in_progress_valid)} válidas` : undefined} isLoading={kpisLoading} />
+        <AdminStatCard label="Concluídas" value={kpis?.submitted ?? '—'} hint={kpis ? `${formatInt(kpis.submitted_valid)} válidas (na janela)` : undefined} isLoading={kpisLoading} />
+        <AdminStatCard label="Offline/pendente" value={kpis?.offline_pending ?? '—'} hint={kpis ? `${formatInt(kpis.offline_pending_valid)} na janela` : undefined} isLoading={kpisLoading} />
         <AdminStatCard label="Expiradas" value={kpis?.expired ?? '—'} isLoading={kpisLoading} />
       </div>
 

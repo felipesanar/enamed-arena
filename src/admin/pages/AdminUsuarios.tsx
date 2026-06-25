@@ -51,13 +51,13 @@ function AdminUsuariosContent() {
         toast({ title: 'Nenhum usuário', description: 'Nenhum usuário encontrado com os filtros atuais.', variant: 'destructive' })
         return
       }
-      const csvHeader = 'Nome Completo,E-mail,Segmento,Especialidade,Cadastro,Média,Provas'
+      const csvHeader = 'Nome Completo,E-mail,Segmento,Especialidade,Cadastro,Média (válidas),Provas válidas'
       const csvRows = allUsers.map(u => {
         const name = (u.full_name ?? '').replace(/"/g, '""')
         const email = (u.email ?? '').replace(/"/g, '""')
         const spec = (u.specialty ?? '').replace(/"/g, '""')
         const date = new Date(u.created_at).toLocaleDateString('pt-BR')
-        return `"${name}","${email}","${u.segment}","${spec}","${date}","${u.avg_score.toFixed(1)}%","${u.total_attempts}"`
+        return `"${name}","${email}","${u.segment}","${spec}","${date}","${u.valid_attempts > 0 ? `${u.avg_score.toFixed(1)}%` : '—'}","${u.valid_attempts}"`
       })
       const blob = new Blob([csvHeader + '\n' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
@@ -132,7 +132,7 @@ function AdminUsuariosContent() {
       <div className="bg-admin-surface rounded-lg border border-admin-line overflow-hidden">
         <div className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"
           style={{ gridTemplateColumns: '2fr 80px 120px 100px 120px 40px' }}>
-          {['Usuário', 'Segmento', 'Especialidade', 'Cadastro', 'Média / Provas', ''].map(h => (
+          {['Usuário', 'Segmento', 'Especialidade', 'Cadastro', 'Média / Provas válidas', ''].map(h => (
             <div key={h} className="px-4 py-2">{h}</div>
           ))}
         </div>
@@ -172,10 +172,10 @@ function AdminUsuariosContent() {
               <div className="px-4 py-2.5 text-[10px] text-admin-muted">
                 {new Date(user.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
               </div>
-              {/* Média / Provas */}
+              {/* Média / Provas válidas */}
               <div className="px-4 py-2.5">
-                <p className="text-xs font-semibold text-admin-text">{user.avg_score.toFixed(1)}%</p>
-                <p className="text-[10px] text-admin-muted">{user.total_attempts} provas</p>
+                <p className="text-xs font-semibold text-admin-text">{user.valid_attempts > 0 ? `${user.avg_score.toFixed(1)}%` : '—'}</p>
+                <p className="text-[10px] text-admin-muted" title="Provas válidas (exclui treino)">{user.valid_attempts} provas válidas</p>
               </div>
               {/* Ação */}
               <div className="px-2 py-2.5">

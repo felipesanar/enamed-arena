@@ -15,21 +15,22 @@ import {
 const mockKpis = {
   new_users: 2860, new_users_prev: 2420, landing_to_signup_pct: 34,
   active_campaigns: 5, organic_pct: 68,
+  landing_to_signup_insufficient: false, organic_low_confidence: false,
 }
 
 const mockSources = [
-  { source: 'organic',   user_count: 1945, conv_rate: 68 },
-  { source: 'instagram', user_count: 315,  conv_rate: 11 },
+  { source: 'organic',   user_count: 1945, conv_rate: 68, signup_conv_pct: 70 },
+  { source: 'instagram', user_count: 315,  conv_rate: 11, signup_conv_pct: null },
 ]
 
 const mockMediums = [
-  { medium: '(nenhum)', user_count: 1945, conv_rate: 68 },
-  { medium: 'social',   user_count: 400,  conv_rate: 14 },
+  { medium: '(nenhum)', user_count: 1945, conv_rate: 68, signup_conv_pct: 70 },
+  { medium: 'social',   user_count: 400,  conv_rate: 14, signup_conv_pct: null },
 ]
 
 const mockCampaigns = [
-  { campaign: 'enamed_abril_2026', source: 'instagram', visits: 890, signups: 312, conv_rate: 35, first_exams: 201 },
-  { campaign: '(sem campanha)',    source: 'organic',   visits: 6312, signups: 2166, conv_rate: 34, first_exams: 1390 },
+  { campaign: 'enamed_abril_2026', source: 'instagram', visits: 890, signups: 312, conv_rate: 35, first_exams: 201, started_exams: 260, insufficient_data: false },
+  { campaign: '(sem campanha)',    source: 'organic',   visits: 0,    signups: 12,  conv_rate: null, first_exams: 4,   started_exams: 9,   insufficient_data: true },
 ]
 
 function renderPage() {
@@ -62,6 +63,12 @@ describe('AdminMarketing', () => {
     renderPage()
     expect(screen.getByText('enamed_abril_2026')).toBeInTheDocument()
     expect(screen.getByText('312')).toBeInTheDocument()
+  })
+
+  it('renders a campaign with null conv_rate (visits=0) as "—" without crashing', () => {
+    renderPage()
+    expect(screen.getByText('(sem campanha)')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
   it('export button is present', () => {

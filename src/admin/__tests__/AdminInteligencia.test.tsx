@@ -49,7 +49,7 @@ describe('AdminInteligencia', () => {
     expect(screen.getByText('Desempenho por área')).toBeInTheDocument()
     expect(screen.getByText('Evolução de notas')).toBeInTheDocument()
     expect(screen.getByText('Distribuição de notas')).toBeInTheDocument()
-    expect(screen.getByText('Retenção por coorte')).toBeInTheDocument()
+    expect(screen.getByText('Ativação acumulada por coorte de cadastro')).toBeInTheDocument()
     expect(screen.getByText(/Engajamento/)).toBeInTheDocument()
     expect(screen.getByText('Segmentos')).toBeInTheDocument()
   })

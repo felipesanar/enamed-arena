@@ -19,8 +19,9 @@ const mockFunnel = [
 ]
 
 const mockFriction = [
-  { key: 'post_exam_churn', title: 'Abandono pós-1ª prova', event_name: 'exam_submitted', metric_value: 62, metric_unit: 'percent', severity: 'critical' },
-  { key: 'onb_dropout', title: 'Dropout no onboarding', event_name: 'signup', metric_value: 15, metric_unit: 'percent', severity: 'healthy' },
+  { key: 'post_exam_churn', title: 'Abandono pós-1ª prova', event_name: 'exam_submitted', metric_value: 62, metric_unit: 'percent', severity: 'critical', numerator: 620, denominator: 1000, insufficient_data: false },
+  { key: 'onb_dropout', title: 'Dropout no onboarding', event_name: 'signup', metric_value: 15, metric_unit: 'percent', severity: 'healthy', numerator: 15, denominator: 100, insufficient_data: false },
+  { key: 'results_view', title: 'Não vê resultado', event_name: 'resultado_viewed', metric_value: -1, metric_unit: 'percent', severity: 'warning', numerator: 1, denominator: 3, insufficient_data: true },
 ]
 
 const mockAdoption = [
@@ -57,6 +58,13 @@ describe('AdminProduto', () => {
   it('renders friction severity badge for critical item', () => {
     renderPage()
     expect(screen.getByText('Abandono pós-1ª prova')).toBeInTheDocument()
+  })
+
+  it('renders "Dados insuficientes" instead of a negative metric', () => {
+    renderPage()
+    expect(screen.getByText('Não vê resultado')).toBeInTheDocument()
+    expect(screen.getByText('Dados insuficientes')).toBeInTheDocument()
+    expect(screen.queryByText('-1%')).not.toBeInTheDocument()
   })
 
   it('renders feature adoption bars', () => {

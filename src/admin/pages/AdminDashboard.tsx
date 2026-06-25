@@ -50,7 +50,8 @@ function AdminDashboardContent() {
 
   const engagementColumns = [
     { key: 'title',            label: 'Simulado',      width: '2fr',  render: (r: SimuladoEngagementRow) => `#${r.sequence_number} — ${r.title}` },
-    { key: 'participants',     label: 'Participantes', width: '90px' },
+    { key: 'participants',     label: 'Participantes', width: '100px', render: (r: SimuladoEngagementRow) => formatInt(r.participants) },
+    { key: 'started_total',    label: 'Iniciadas',     width: '90px', render: (r: SimuladoEngagementRow) => formatInt(r.started_total) },
     { key: 'completion_rate',  label: 'Conclusão',     width: '90px', render: (r: SimuladoEngagementRow) => formatPct(r.completion_rate) },
     { key: 'avg_score',        label: 'Média',         width: '80px', render: (r: SimuladoEngagementRow) => formatPct(r.avg_score) },
     { key: 'abandonment_rate', label: 'Abandono',      width: '80px', render: (r: SimuladoEngagementRow) => formatPct(r.abandonment_rate) },
@@ -89,7 +90,7 @@ function AdminDashboardContent() {
       <section>
         <AdminSectionHeader title="Visão Executiva" hook="useAdminDashboardKpis" />
         <AdminPanel className="p-3 sm:p-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <AdminStatCard
             label="Usuários totais"
             value={k ? formatInt(k.total_users) : 0}
@@ -105,7 +106,7 @@ function AdminDashboardContent() {
             isLoading={kpis.isLoading}
           />
           <AdminStatCard
-            label="Taxa de conclusão"
+            label="Conclusão (provas válidas)"
             value={k ? formatPct(k.completion_rate) : '—'}
             delta={k ? delta(k.completion_rate, k.completion_rate_prev) : undefined}
             deltaLabel="pp vs período ant."
@@ -113,7 +114,15 @@ function AdminDashboardContent() {
             isLoading={kpis.isLoading}
           />
           <AdminStatCard
-            label="Média de nota"
+            label="Abandono / incompletos"
+            value={k ? formatPct(k.abandonment_rate) : '—'}
+            delta={k ? delta(k.abandonment_rate, k.abandonment_rate_prev) : undefined}
+            deltaLabel="pp vs período ant."
+            accentBorder={k ? k.abandonment_rate > k.abandonment_rate_prev : false}
+            isLoading={kpis.isLoading}
+          />
+          <AdminStatCard
+            label="Média de nota (provas válidas)"
             value={k ? formatPct(k.avg_score) : '—'}
             delta={k ? delta(k.avg_score, k.avg_score_prev) : undefined}
             deltaLabel="pp vs período ant."

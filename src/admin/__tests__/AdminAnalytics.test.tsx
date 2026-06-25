@@ -15,18 +15,18 @@ import {
   useAdminAnalyticsTimeToConvert,
 } from '@/admin/hooks/useAdminAnalytics'
 
+// Funil reestruturado: 5 passos, sem landing; primeiro passo (Cadastrou-se) sem conversão de origem.
 const mockFunnel = [
-  { step_order: 1, step_label: 'Visitou landing',     user_count: 8000, conversion_from_prev: 100 },
-  { step_order: 2, step_label: 'Cadastrou-se',         user_count: 2800, conversion_from_prev: 35 },
-  { step_order: 3, step_label: 'Concluiu onboarding',  user_count: 2000, conversion_from_prev: 71 },
-  { step_order: 4, step_label: 'Iniciou prova',        user_count: 1400, conversion_from_prev: 70 },
-  { step_order: 5, step_label: 'Submeteu prova',       user_count: 1100, conversion_from_prev: 79 },
-  { step_order: 6, step_label: 'Retornou (2+ provas)', user_count: 450,  conversion_from_prev: 41 },
+  { step_order: 1, step_label: 'Cadastrou-se',           user_count: 2800, conversion_from_prev: null, insufficient_data: false },
+  { step_order: 2, step_label: 'Concluiu onboarding',    user_count: 2000, conversion_from_prev: 71, insufficient_data: false },
+  { step_order: 3, step_label: 'Iniciou prova',          user_count: 1400, conversion_from_prev: 70, insufficient_data: false },
+  { step_order: 4, step_label: 'Submeteu prova válida',  user_count: 1100, conversion_from_prev: 79, insufficient_data: false },
+  { step_order: 5, step_label: 'Retornou (2+ provas)',   user_count: 450,  conversion_from_prev: 41, insufficient_data: false },
 ]
 
 const mockTimeseries = [
-  { week_start: '2026-03-23', new_users: 80,  first_exams: 55 },
-  { week_start: '2026-03-30', new_users: 110, first_exams: 70 },
+  { week_start: '2026-03-23', new_users: 80,  first_exams: 55, started_attempts: 70 },
+  { week_start: '2026-03-30', new_users: 110, first_exams: 70, started_attempts: 95 },
 ]
 
 const mockSources = [
@@ -39,6 +39,10 @@ const mockTtc = {
   signup_to_onboarding_min: 4,
   onboarding_to_first_exam_days: 3.2,
   first_to_second_exam_days: 12.4,
+  landing_to_signup_n: 12,
+  landing_to_signup_insufficient: false,
+  first_to_second_exam_days_p90: 20.0,
+  first_to_second_exam_n: 8,
 }
 
 function renderPage() {
@@ -55,10 +59,11 @@ describe('AdminAnalytics', () => {
     vi.mocked(useAdminAnalyticsTimeToConvert).mockReturnValue({ data: mockTtc, isLoading: false } as any)
   })
 
-  it('renders all 6 funnel step labels', () => {
+  it('renders the restructured funnel step labels (no landing step)', () => {
     renderPage()
-    expect(screen.getByText('Visitou landing')).toBeInTheDocument()
+    expect(screen.queryByText('Visitou landing')).not.toBeInTheDocument()
     expect(screen.getByText('Cadastrou-se')).toBeInTheDocument()
+    expect(screen.getByText('Submeteu prova válida')).toBeInTheDocument()
     expect(screen.getByText('Retornou (2+ provas)')).toBeInTheDocument()
   })
 
@@ -71,7 +76,7 @@ describe('AdminAnalytics', () => {
   it('renders time-to-convert values', () => {
     renderPage()
     expect(screen.getByText('2 min')).toBeInTheDocument()
-    expect(screen.getByText('12.4 dias')).toBeInTheDocument()
+    expect(screen.getByText('p50 12.4d · p90 20d')).toBeInTheDocument()
   })
 
   it('period pill change updates hooks with new days param', () => {

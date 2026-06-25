@@ -11,6 +11,8 @@ const rows: CohortRetentionRow[] = [
     did_2_plus: 80,
     did_3_plus: 20,
     avg_score: 60,
+    did_offline_pending: 30,
+    started_any: 640,
   },
 ]
 
@@ -25,6 +27,10 @@ describe('AdminCohortMatrix', () => {
     expect(screen.getByText('20%')).toBeInTheDocument()
     // onboarding: 400/1000 = 40%
     expect(screen.getByText('40%')).toBeInTheDocument()
+    // Iniciados (started_any, inclui treino) = 640
+    expect(screen.getByText('640')).toBeInTheDocument()
+    // Offline pend.: 30/1000 = 3%
+    expect(screen.getByText('3%')).toBeInTheDocument()
   })
 
   it('renders a skeleton when isLoading', () => {

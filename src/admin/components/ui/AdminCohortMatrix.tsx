@@ -48,16 +48,18 @@ export function AdminCohortMatrix({ rows, isLoading }: AdminCohortMatrixProps) {
   return (
     <div className="overflow-x-auto rounded-lg border border-admin-line bg-admin-surface">
       <table className="w-full min-w-[560px] border-collapse">
-        <caption className="sr-only">Retenção por coorte de cadastro</caption>
+        <caption className="sr-only">Ativação acumulada por coorte de cadastro (provas válidas; iniciados inclui treino)</caption>
         <thead>
           <tr className="border-b border-admin-line">
             <th scope="col" className={HEAD_CLASS}>Coorte</th>
             <th scope="col" className={HEAD_CLASS}>Tamanho</th>
+            <th scope="col" className={HEAD_CLASS} title="Volume de tentativa — inclui treino. Não é prova válida.">Iniciados</th>
             <th scope="col" className={HEAD_CLASS}>Onboarding</th>
-            <th scope="col" className={HEAD_CLASS}>≥1 simulado</th>
+            <th scope="col" className={HEAD_CLASS} title="Provas válidas (dentro da janela). Exclui treino.">≥1 prova</th>
             <th scope="col" className={HEAD_CLASS}>≥2</th>
             <th scope="col" className={HEAD_CLASS}>≥3</th>
-            <th scope="col" className={HEAD_CLASS}>Média</th>
+            <th scope="col" className={HEAD_CLASS} title="Entrega offline aguardando processamento.">Offline pend.</th>
+            <th scope="col" className={HEAD_CLASS} title="Média de acerto em provas válidas (exclui treino).">Média</th>
           </tr>
         </thead>
         <tbody>
@@ -72,12 +74,16 @@ export function AdminCohortMatrix({ rows, isLoading }: AdminCohortMatrixProps) {
               <td className="px-3 py-2 text-xs tabular-nums text-admin-muted">
                 {formatInt(row.cohort_size)}
               </td>
+              <td className="px-3 py-2 text-center text-xs tabular-nums text-admin-muted">
+                {formatInt(row.started_any)}
+              </td>
               <MilestoneCell value={row.did_onboarding} total={row.cohort_size} />
               <MilestoneCell value={row.did_1_plus} total={row.cohort_size} />
               <MilestoneCell value={row.did_2_plus} total={row.cohort_size} />
               <MilestoneCell value={row.did_3_plus} total={row.cohort_size} />
+              <MilestoneCell value={row.did_offline_pending} total={row.cohort_size} />
               <td className="px-3 py-2 text-center text-xs font-medium tabular-nums text-admin-text">
-                {row.avg_score.toFixed(0)}
+                {row.avg_score == null ? '—' : row.avg_score.toFixed(0)}
               </td>
             </tr>
           ))}

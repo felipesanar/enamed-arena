@@ -36,13 +36,12 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
 
   if (!steps.length) return null
 
-  const stepsWithDrop = steps.slice(1)
-  const biggestDropStep = stepsWithDrop.reduce((min, s) =>
-    s.conversion_from_prev < min.conversion_from_prev ? s : min,
-    stepsWithDrop[0],
-  )
-  const biggestDropIndex = steps.findIndex(s => s.step_order === biggestDropStep.step_order)
-  const prevStep = steps[biggestDropIndex - 1]
+  const stepsWithDrop = steps.slice(1).filter(s => s.conversion_from_prev != null && !s.insufficient_data)
+  const biggestDropStep = stepsWithDrop.length
+    ? stepsWithDrop.reduce((min, s) => (s.conversion_from_prev as number) < (min.conversion_from_prev as number) ? s : min, stepsWithDrop[0])
+    : null
+  const biggestDropIndex = biggestDropStep ? steps.findIndex(s => s.step_order === biggestDropStep.step_order) : -1
+  const prevStep = biggestDropIndex > 0 ? steps[biggestDropIndex - 1] : null
 
   return (
     <div
@@ -56,7 +55,7 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
             <div
               className={cn(
                 'flex-1 rounded-md px-2 py-2.5 text-center min-w-0',
-                step.step_order === biggestDropStep.step_order && 'ring-1 ring-admin-destructive/40',
+                biggestDropStep && step.step_order === biggestDropStep.step_order && 'ring-1 ring-admin-destructive/40',
               )}
               style={{
                 backgroundColor: `hsl(var(--admin-accent) / ${stepOpacity(i, steps.length)})`,
@@ -69,14 +68,22 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
                 {step.step_label}
               </p>
               {i > 0 && (
-                <p
-                  className={cn(
-                    'text-[9px] mt-1 font-medium',
-                    step.conversion_from_prev >= 70 ? 'text-admin-success' : 'text-admin-destructive',
-                  )}
-                >
-                  {step.conversion_from_prev}%
-                </p>
+                step.conversion_from_prev == null ? (
+                  <p className="text-[9px] mt-1 font-medium text-admin-accent-contrast/50">—</p>
+                ) : step.insufficient_data ? (
+                  <p className="text-[9px] mt-1 font-medium text-admin-accent-contrast/50">
+                    {step.conversion_from_prev}%*
+                  </p>
+                ) : (
+                  <p
+                    className={cn(
+                      'text-[9px] mt-1 font-medium',
+                      step.conversion_from_prev >= 70 ? 'text-admin-success' : 'text-admin-destructive',
+                    )}
+                  >
+                    {step.conversion_from_prev}%
+                  </p>
+                )
               )}
             </div>
             {i < steps.length - 1 && (
@@ -95,7 +102,7 @@ export function AdminFunnelChart({ steps, isLoading, embedded }: AdminFunnelChar
           <span>
             <span className="text-admin-destructive font-semibold">Maior queda: </span>
             {prevStep.step_label} → {biggestDropStep.step_label} (−
-            {(100 - biggestDropStep.conversion_from_prev).toFixed(1)}pp). Possível fricção nessa etapa.
+            {(100 - (biggestDropStep.conversion_from_prev as number)).toFixed(1)}pp). Possível fricção nessa etapa.
           </span>
         </p>
       )}

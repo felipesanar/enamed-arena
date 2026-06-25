@@ -34,6 +34,11 @@ const mockUser: Record<string, unknown> = {
   last_finished_at: '2026-04-04T12:00:00Z',
   is_admin: false,
   roles: ['support'],
+  started_attempts: 11,
+  training_attempts: 2,
+  valid_attempts: 8,
+  offline_pending_count: 1,
+  in_progress_count: 0,
 }
 
 const mockAttempts = [

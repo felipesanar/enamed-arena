@@ -14,22 +14,28 @@ export function AnalyticsSync() {
   const { pathname } = useLocation();
   const { profile, onboarding } = useUser();
 
+  // Derivamos primitivos estáveis para que os efeitos dependam exatamente do que
+  // usam (satisfaz react-hooks/exhaustive-deps sem disables).
+  const segment = profile?.segment;
+  const specialty = onboarding?.specialty;
+  const targetInstitutions = onboarding?.targetInstitutions?.join(',');
+
   useEffect(() => {
     setSuperProperties({ route: pathname });
   }, [pathname]);
 
   useEffect(() => {
-    if (!profile) return;
-    setSuperProperties({ segment: profile.segment });
-  }, [profile?.segment]);
+    if (segment == null) return;
+    setSuperProperties({ segment });
+  }, [segment]);
 
   useEffect(() => {
-    if (!onboarding) return;
+    if (specialty === undefined && targetInstitutions === undefined) return;
     setSuperProperties({
-      specialty: onboarding.specialty || undefined,
-      target_institutions: onboarding.targetInstitutions?.join(',') || undefined,
+      specialty: specialty || undefined,
+      target_institutions: targetInstitutions || undefined,
     });
-  }, [onboarding?.specialty, onboarding?.targetInstitutions?.join(',')]);
+  }, [specialty, targetInstitutions]);
 
   return null;
 }

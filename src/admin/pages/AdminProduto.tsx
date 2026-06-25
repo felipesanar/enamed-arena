@@ -32,7 +32,8 @@ function pctColor(pct: number) {
   return 'text-admin-destructive'
 }
 
-function formatMetric(value: number, unit: FrictionPoint['metric_unit']) {
+function formatMetric(value: number, unit: FrictionPoint['metric_unit'], insufficient?: boolean) {
+  if (insufficient || value < 0) return 'Dados insuficientes'
   if (unit === 'percent') return `${value}%`
   if (unit === 'days') return `${value} dias`
   return `${value} min`
@@ -143,7 +144,7 @@ function AdminProdutoContent() {
             <tbody className="divide-y divide-admin-line/40">
               {(funnel as SegmentedFunnelRow[]).map(row => (
                 <tr key={row.step_order} className="hover:bg-admin-raised/20 motion-safe:transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-admin-text">{row.step_label}</td>
+                  <td className="px-4 py-2.5 font-medium text-admin-text">{row.step_label}{row.insufficient_data && (<span className="ml-2 text-[9px] font-normal text-admin-muted align-middle">dados insuficientes</span>)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <span className={cn('font-semibold text-[11px]', pctColor(row.guest_pct))}>
                       {row.guest_pct}%
@@ -185,8 +186,15 @@ function AdminProdutoContent() {
                 </span>
               </div>
               <p className="text-2xl font-bold text-admin-text">
-                {formatMetric(point.metric_value, point.metric_unit)}
+                {formatMetric(point.metric_value, point.metric_unit, point.insufficient_data)}
               </p>
+              {point.denominator != null && (
+                <p className="text-[10px] text-admin-muted">
+                  {point.insufficient_data
+                    ? `base ínfima (${formatInt(point.numerator ?? 0)}/${formatInt(point.denominator ?? 0)})`
+                    : `${formatInt(point.numerator ?? 0)} de ${formatInt(point.denominator ?? 0)}`}
+                </p>
+              )}
             </AdminPanel>
           ))}
           {friction.length === 0 && (

@@ -56,11 +56,11 @@ function AdminSimuladoAnalyticsContent() {
           </div>
         ) : stats ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <AdminStatCard label="Participantes" value={formatInt(stats.participants)} />
-            <AdminStatCard label="Taxa de conclusão" value={`${stats.completion_rate.toFixed(1)}%`} />
+            <AdminStatCard label="Participantes" value={formatInt(stats.participants)} hint="Usuários distintos com tentativa válida (treino excluído)" />
+            <AdminStatCard label="Taxa de conclusão" value={`${stats.completion_rate.toFixed(1)}%`} hint={`${formatInt(stats.completed_count)} de ${formatInt(stats.completed_count + stats.in_progress_count + stats.offline_pending_count)} válidas`} />
             <AdminStatCard label="Média geral" value={`${stats.avg_score.toFixed(1)}%`} />
-            <AdminStatCard label="Abandono" value={`${stats.abandonment_rate.toFixed(1)}%`} />
-            <AdminStatCard label="Tempo médio" value={`${stats.avg_time_minutes.toFixed(0)} min`} />
+            <AdminStatCard label="Abandono" value={`${stats.abandonment_rate.toFixed(1)}%`} hint={`${formatInt(stats.in_progress_count)} em andamento + ${formatInt(stats.offline_pending_count)} offline pendente`} />
+            <AdminStatCard label="Tempo mediano" value={`${stats.median_time_minutes.toFixed(0)} min`} hint={`p90 ${stats.p90_time_minutes.toFixed(0)} min · iniciadas ${formatInt(stats.started_total)} (inclui ${formatInt(stats.treino_count)} treino)`} />
           </div>
         ) : null}
       </section>

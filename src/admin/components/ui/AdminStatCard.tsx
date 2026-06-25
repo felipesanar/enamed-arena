@@ -12,6 +12,8 @@ interface AdminStatCardProps {
   /** Quando true, delta positivo é tratado como ruim (vermelho) e negativo como bom
    *  (verde) — para métricas em que "subir é pior", como taxa de abandono. */
   invertDelta?: boolean
+  /** Subtexto discreto abaixo do valor (ex.: base/escopo da métrica). */
+  hint?: string
 }
 
 export function AdminStatCard({
@@ -22,6 +24,7 @@ export function AdminStatCard({
   accentBorder,
   isLoading,
   invertDelta,
+  hint,
 }: AdminStatCardProps) {
   if (isLoading) {
     return (
@@ -81,6 +84,9 @@ export function AdminStatCard({
           {deltaLabel && <span className="text-admin-muted font-normal">{deltaLabel}</span>}
         </p>
       ) : null}
+      {hint && (
+        <p className="text-caption text-muted-foreground mt-0.5 leading-tight">{hint}</p>
+      )}
     </div>
   )
 }

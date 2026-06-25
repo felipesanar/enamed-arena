@@ -66,11 +66,20 @@ export function AdminLivePanel({ data, isLoading, embedded }: AdminLivePanelProp
         </span>
         <p className="text-[11px] font-semibold text-admin-text">Ao vivo</p>
       </div>
-      <LiveCard label="Online agora" value={data?.online_last_15min ?? 0} isLoading={isLoading} />
+      <LiveCard label="Online agora (aprox.)" value={data?.online_last_15min ?? 0} isLoading={isLoading} />
       <LiveCard label="Em prova agora" value={data?.active_exams ?? 0} isLoading={isLoading} />
-      <LiveCard label="Tickets abertos" value={data?.open_tickets ?? 0} warning isLoading={isLoading} />
+      <LiveCard label="Aguardando envio (offline)" value={data?.offline_pending_now ?? 0} isLoading={isLoading} />
+      {data?.tickets_supported ? (
+        <LiveCard label="Tickets abertos" value={data?.open_tickets ?? 0} warning isLoading={isLoading} />
+      ) : (
+        <div className="rounded-md px-2.5 py-2 border bg-admin-bg/80 border-admin-line">
+          <p className="text-[9px] mb-0.5 text-admin-muted">Tickets abertos</p>
+          <p className="text-lg font-bold text-admin-muted">--</p>
+          <p className="text-[8px] text-admin-muted/60 leading-tight">sem módulo de suporte</p>
+        </div>
+      )}
       <p className="text-[8px] text-admin-muted/50 text-center leading-tight">
-        &quot;online&quot; = eventos nos últimos 15 min
+        &quot;online&quot; = atividade nos últimos 15 min (estimativa, baixa confiança)
       </p>
     </div>
   )

@@ -81,9 +81,14 @@ function AdminAnalyticsContent() {
                     <span className="text-xs font-medium text-admin-text">{step.step_label}</span>
                     <div className="flex items-center gap-3">
                       {idx > 0 && (
-                        <span className={cn('text-[10px] font-semibold', convColor(step.conversion_from_prev))}>
-                          {step.conversion_from_prev}%
-                        </span>
+                        step.conversion_from_prev == null ? (
+                          <span className="text-[10px] font-medium text-admin-muted" title="Conversão não rastreável (sem evento de origem antes do cadastro).">— sem rastreio</span>
+                        ) : (
+                          <span className={cn('text-[10px] font-semibold', convColor(step.conversion_from_prev))}>
+                            {step.conversion_from_prev}%
+                            {step.insufficient_data && (<span className="ml-1 text-admin-muted font-normal">·dados insuficientes</span>)}
+                          </span>
+                        )
                       )}
                       <span className="text-sm font-bold text-admin-text w-16 text-right">
                         {formatInt(step.user_count)}
@@ -107,12 +112,13 @@ function AdminAnalyticsContent() {
       <AdminPanel className="p-3 sm:p-4">
       <AdminTrendChart
         embedded
-        title="Novos usuários vs. 1ª prova por semana"
+        title="Cadastros vs. 1ª prova válida por semana"
         data={timeseries}
         xKey="week_start"
         bars={[
-          { key: 'new_users',   color: adminChartSeriesColors.primary, label: 'Cadastros' },
-          { key: 'first_exams', color: adminChartSeriesColors.success, label: '1ª prova' },
+          { key: 'new_users',        color: adminChartSeriesColors.primary, label: 'Cadastros' },
+          { key: 'first_exams',      color: adminChartSeriesColors.success, label: '1ª prova válida' },
+          { key: 'started_attempts', color: adminChartSeriesColors.muted,   label: 'Tentativas iniciadas' },
         ]}
         height={140}
         isLoading={tLoading}
@@ -148,10 +154,10 @@ function AdminAnalyticsContent() {
           {ttc ? (
             <div className="space-y-3">
               {([
-                ['Landing → Cadastro',   `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
+                ['Landing → Cadastro',   (ttc as JourneyTimeToConvert).landing_to_signup_insufficient ? `Dados insuficientes (N=${(ttc as JourneyTimeToConvert).landing_to_signup_n})` : `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             !(ttc as JourneyTimeToConvert).landing_to_signup_insufficient && (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
                 ['Cadastro → Onboarding', `${(ttc as JourneyTimeToConvert).signup_to_onboarding_min} min`,         (ttc as JourneyTimeToConvert).signup_to_onboarding_min < 60],
-                ['Onboarding → 1ª prova', `${(ttc as JourneyTimeToConvert).onboarding_to_first_exam_days} dias`,   (ttc as JourneyTimeToConvert).onboarding_to_first_exam_days < 2],
-                ['1ª prova → 2ª prova',   `${(ttc as JourneyTimeToConvert).first_to_second_exam_days} dias`,       (ttc as JourneyTimeToConvert).first_to_second_exam_days < 7],
+                ['Onboarding → 1ª prova válida', `${(ttc as JourneyTimeToConvert).onboarding_to_first_exam_days} dias`,   (ttc as JourneyTimeToConvert).onboarding_to_first_exam_days < 2],
+                ['1ª → 2ª prova válida',   `p50 ${(ttc as JourneyTimeToConvert).first_to_second_exam_days}d · p90 ${(ttc as JourneyTimeToConvert).first_to_second_exam_days_p90}d`,       (ttc as JourneyTimeToConvert).first_to_second_exam_days < 7],
               ] as [string, string, boolean][]).map(([label, value, ok]) => (
                 <div key={label} className="flex items-center justify-between">
                   <span className="text-[10px] text-admin-muted">{label}</span>

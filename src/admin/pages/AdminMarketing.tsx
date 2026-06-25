@@ -39,9 +39,9 @@ function convColor(pct: number) {
 }
 
 function exportCampaignsCsv(rows: MarketingCampaignRow[]) {
-  const header = 'Campanha,Canal,Visitas,Cadastros,Conversão (%),1ª Prova'
+  const header = 'Campanha,Canal,Visitas,Cadastros,Conversão (%),1ª Prova (válida),Iniciadas'
   const lines = rows.map(r =>
-    [r.campaign, r.source, r.visits, r.signups, r.conv_rate.toFixed(1), r.first_exams].join(',')
+    [r.campaign, r.source, r.visits, r.signups, r.conv_rate == null ? '' : r.conv_rate.toFixed(1), r.first_exams, r.started_exams].join(',')
   )
   const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -109,7 +109,8 @@ function AdminMarketingContent() {
           delta={delta} deltaLabel="vs mês ant." isLoading={kLoading}
         />
         <AdminStatCard
-          label="Conv. landing→cadastro" value={kpis ? `${kpis.landing_to_signup_pct}%` : '—'}
+          label="Conv. landing→cadastro"
+          value={kpis ? (kpis.landing_to_signup_insufficient ? 'Dados insuf.' : `${kpis.landing_to_signup_pct}%`) : '—'}
           isLoading={kLoading}
         />
         <AdminStatCard
@@ -117,7 +118,8 @@ function AdminMarketingContent() {
           isLoading={kLoading}
         />
         <AdminStatCard
-          label="Via orgânico" value={kpis ? `${kpis.organic_pct}%` : '—'}
+          label={kpis?.organic_low_confidence ? 'Via orgânico (baixa confiança)' : 'Via orgânico'}
+          value={kpis ? `${kpis.organic_pct}%` : '—'}
           isLoading={kLoading}
         />
       </div>
@@ -127,7 +129,7 @@ function AdminMarketingContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Sources */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Source</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Source <span className="font-normal text-admin-faint">(participação · conv. real)</span></p>
           <div className="space-y-2">
             {(sources as MarketingSourceRow[]).map((src, i) => (
               <div key={src.source} className="flex items-center gap-2">
@@ -139,8 +141,9 @@ function AdminMarketingContent() {
                 <span className="text-[10px] text-admin-muted w-10 text-right">
                   {formatInt(src.user_count)}
                 </span>
-                <span className={cn('text-[10px] font-semibold w-10 text-right', convColor(src.conv_rate))}>
-                  {src.conv_rate}%
+                <span className="text-[10px] text-admin-faint w-10 text-right">{src.conv_rate}%</span>
+                <span className={cn('text-[10px] font-semibold w-12 text-right', src.signup_conv_pct == null ? 'text-admin-faint' : convColor(src.signup_conv_pct))}>
+                  {src.signup_conv_pct == null ? 's/ dados' : `${src.signup_conv_pct}%`}
                 </span>
               </div>
             ))}
@@ -149,7 +152,7 @@ function AdminMarketingContent() {
 
         {/* Mediums */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Medium</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Medium <span className="font-normal text-admin-faint">(participação · conv. real)</span></p>
           <div className="space-y-2">
             {(mediums as MarketingMediumRow[]).map((med, i) => (
               <div key={med.medium} className="flex items-center gap-2">
@@ -161,8 +164,9 @@ function AdminMarketingContent() {
                 <span className="text-[10px] text-admin-muted w-10 text-right">
                   {formatInt(med.user_count)}
                 </span>
-                <span className={cn('text-[10px] font-semibold w-10 text-right', convColor(med.conv_rate))}>
-                  {med.conv_rate}%
+                <span className="text-[10px] text-admin-faint w-10 text-right">{med.conv_rate}%</span>
+                <span className={cn('text-[10px] font-semibold w-12 text-right', med.signup_conv_pct == null ? 'text-admin-faint' : convColor(med.signup_conv_pct))}>
+                  {med.signup_conv_pct == null ? 's/ dados' : `${med.signup_conv_pct}%`}
                 </span>
               </div>
             ))}
@@ -177,9 +181,9 @@ function AdminMarketingContent() {
         </div>
         <div
           className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"
-          style={{ gridTemplateColumns: '2fr 100px 70px 70px 70px 80px' }}
+          style={{ gridTemplateColumns: '2fr 100px 70px 70px 70px 80px 80px' }}
         >
-          {['Campanha', 'Canal', 'Visitas', 'Cadastros', 'Conv.', '1ª Prova'].map(h => (
+          {['Campanha', 'Canal', 'Visitas', 'Cadastros', 'Conv.', '1ª Prova', 'Iniciadas'].map(h => (
             <div key={h} className="px-4 py-2">{h}</div>
           ))}
         </div>
@@ -187,7 +191,7 @@ function AdminMarketingContent() {
           <div
             key={row.campaign}
             className="grid border-b border-admin-line/40 last:border-0 hover:bg-admin-raised/30 motion-safe:transition-colors items-center"
-            style={{ gridTemplateColumns: '2fr 100px 70px 70px 70px 80px' }}
+            style={{ gridTemplateColumns: '2fr 100px 70px 70px 70px 80px 80px' }}
           >
             <div className="px-4 py-2.5 text-xs font-medium text-admin-text truncate">{row.campaign}</div>
             <div className="px-4 py-2.5">
@@ -197,8 +201,9 @@ function AdminMarketingContent() {
             </div>
             <div className="px-4 py-2.5 text-[11px] text-admin-muted">{formatInt(row.visits)}</div>
             <div className="px-4 py-2.5 text-[11px] text-admin-text font-semibold">{formatInt(row.signups)}</div>
-            <div className={cn('px-4 py-2.5 text-[11px] font-semibold', convColor(row.conv_rate))}>{row.conv_rate.toFixed(1)}%</div>
+            <div className={cn('px-4 py-2.5 text-[11px] font-semibold', row.conv_rate == null ? 'text-admin-faint' : convColor(row.conv_rate))}>{row.conv_rate == null ? '—' : `${row.conv_rate.toFixed(1)}%`}</div>
             <div className="px-4 py-2.5 text-[11px] text-admin-muted">{formatInt(row.first_exams)}</div>
+            <div className="px-4 py-2.5 text-[11px] text-admin-muted">{formatInt(row.started_exams)}</div>
           </div>
         ))}
         {campaigns.length === 0 && (

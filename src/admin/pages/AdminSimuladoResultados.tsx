@@ -500,7 +500,7 @@ function AdminSimuladoResultadosContent() {
               className="grid border-b border-admin-line text-[9px] font-bold text-admin-faint uppercase tracking-wide"
               style={{ gridTemplateColumns: '40px 1fr 160px 140px 120px' }}
             >
-              {['Q', 'Enunciado', 'Taxa de acerto', 'Qualidade da questão', 'Erro mais comum'].map(h => (
+              {['Q', 'Enunciado', 'Taxa de acerto (válidas)', 'Qualidade da questão', 'Erro mais comum'].map(h => (
                 <div key={h} className="px-3 py-2">{h}</div>
               ))}
             </div>
@@ -555,8 +555,11 @@ function AdminSimuladoResultadosContent() {
       <section>
         <AdminSectionHeader
           title="Concluintes"
-          hook={rosterLoading ? '…' : `${formatInt(totalRows)} registros`}
+          hook={rosterLoading ? '…' : `${formatInt(totalRows)} ${scope === 'valid' ? 'ranqueados' : 'registros'}`}
         />
+        {scope === 'valid' && (
+          <p className="text-[10px] text-admin-faint mb-2">A posição # segue o ranking oficial: melhor tentativa válida por usuário, mesma regra do app.</p>
+        )}
 
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-2 mb-3">

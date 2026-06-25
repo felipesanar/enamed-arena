@@ -5,6 +5,7 @@ import { registerAnalyticsHandler, setSuperProperties } from "@/lib/analytics";
 import { initAnalyticsQueue, enqueueAnalyticsEvent } from "@/lib/analyticsQueue";
 import type { QueueItem } from "@/lib/analyticsQueue";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { mountDevTools, pushToDevBuffer } from "@/lib/analyticsDevTools";
 
 // Force light mode globally — dark theme temporarily disabled.
@@ -133,7 +134,7 @@ function _toRpcEvents(batch: QueueItem[]) {
 
 initAnalyticsQueue(
   async (batch) => {
-    const { error } = await supabase.rpc('log_analytics_events', { events: _toRpcEvents(batch) });
+    const { error } = await supabase.rpc('log_analytics_events', { events: _toRpcEvents(batch) as unknown as Json });
     if (error) throw error;
   },
   (batch) => {
