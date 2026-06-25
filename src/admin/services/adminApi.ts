@@ -193,6 +193,7 @@ export const adminApi = {
       avg_score_prev: Number(row.avg_score_prev),
       activation_rate: Number(row.activation_rate),
       activation_rate_prev: Number(row.activation_rate_prev),
+      completion_valid_denom: Number(row.completion_valid_denom ?? 0),
     }
   },
 
@@ -241,6 +242,11 @@ export const adminApi = {
       online_last_15min: Number(row.online_last_15min),
       active_exams: Number(row.active_exams),
       open_tickets: Number(row.open_tickets),
+      offline_pending_now: Number(row.offline_pending_now ?? 0),
+      online_confidence: (row.online_confidence ?? 'low') as 'low' | 'high',
+      tickets_supported: Boolean(row.tickets_supported ?? false),
+      active_today: Number(row.active_today ?? 0),
+      last_activity_at: (row.last_activity_at ?? null) as string | null,
     }
   },
 
