@@ -48,7 +48,7 @@ export function AdminApp() {
 
   return (
     <AdminPeriodProvider>
-      <div className="admin-root flex min-h-screen antialiased bg-admin-bg-outer">
+      <div className="admin-root flex h-screen overflow-hidden antialiased bg-admin-bg-outer">
         <AdminSidebar collapsed={collapsed} onToggle={toggleSidebar} onOpenPalette={openPalette} />
         <div className="flex flex-col flex-1 min-w-0">
           <AdminTopbar />
