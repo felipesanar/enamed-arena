@@ -806,3 +806,9 @@ Dois ajustes pós-verificação adversarial das 28 RPCs:
 Bug PRÉ-EXISTENTE (não introduzido pela auditoria, mas descoberto ao revisar a página Produto): `admin_produto_feature_adoption` abortava em runtime com `42883 operator does not exist: user_segment = text` (`pr.segment` é ENUM, `p_segment` é text), fazendo o painel "Recursos mais usados" renderizar sempre vazio. Fix: `pr.segment::text = p_segment` nas 2 comparações. `CREATE OR REPLACE` (mesma assinatura → grants preservados). **Smoke (admin):** `admin_produto_feature_adoption(30,'all')` retorna 6 linhas (Ver desempenho 25,7%, Ver gabarito/Ver resultado 18,9%, Ver ranking 15,0%, Comparativo 5,3%, Caderno 3,1%). Não precisa de deploy de frontend — o front antigo já chama essa RPC; corrigir o erro de runtime já popula o painel.
 
 ---
+
+## 2026-06-25 — `fix_admin_set_user_role_enum_cast`
+
+Varredura de todo o banco (não só admin) pelo padrão enum=text descobriu um 2º bug PRÉ-EXISTENTE, mais grave: `admin_set_user_role` falhava com `42804 column "role" is of type app_role but expression is of type text` no INSERT (grant) e `42883` no DELETE (revoke) — `p_role` (text) sem cast para `app_role`. **Gestão de papéis pelo admin estava 100% quebrada** (papéis só existiam por seed SQL direto; o caminho da UI nunca funcionou). Fix: `p_role::app_role`. **Smoke (admin, tx revertida):** grant+revoke de 'analyst' rodam sem erro de tipo. Demais colunas enum (attempt_status/onboarding_status/etc.) são escritas por literais (coagem ok); `admin_set_user_segment` já tinha cast. Comparações enum=text variável: só `admin_produto_feature_adoption` e `admin_produto_friction` estavam afetadas (corrigidas).
+
+---
