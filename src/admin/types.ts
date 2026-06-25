@@ -14,6 +14,9 @@ export interface DashboardKpis {
   avg_score_prev: number
   activation_rate: number
   activation_rate_prev: number
+  /** Denominador de provas VÁLIDAS (na janela) usado na taxa de conclusão.
+   *  0 = não houve prova oficial no período → conclusão deve exibir "sem provas", não "0%". */
+  completion_valid_denom: number
 }
 
 export interface TimeseriesRow {
@@ -44,6 +47,16 @@ export interface LiveSignals {
   online_last_15min: number
   active_exams: number
   open_tickets: number
+  /** Provas reais aguardando submissão offline (na janela). */
+  offline_pending_now: number
+  /** Confiança do sinal de "online" — 'low' porque não há heartbeat/presença real. */
+  online_confidence: 'low' | 'high'
+  /** Há módulo de tickets? Hoje não (open_tickets é sempre 0). */
+  tickets_supported: boolean
+  /** Usuários distintos ativos hoje (fuso SP) — contexto para o "0" do agora. */
+  active_today: number
+  /** Última atividade observável (evento ou salvamento de prova). */
+  last_activity_at: string | null
 }
 
 export interface UserListRow {

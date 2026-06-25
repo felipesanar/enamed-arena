@@ -187,8 +187,8 @@ function AdminUsuarioDetailContent() {
 
   const name = user.full_name ?? user.email
   const bestPosition = attempts
-    .filter((a: UserAttemptRow) => a.score_percentage != null && a.ranking_position > 0)
-    .reduce<number | null>((best, a) => (best == null || a.ranking_position < best ? a.ranking_position : best), null)
+    .filter((a: UserAttemptRow) => a.score_percentage != null && a.ranking_position != null && a.ranking_position > 0)
+    .reduce<number | null>((best, a) => (best == null || a.ranking_position! < best ? a.ranking_position! : best), null)
 
   return (
     <div className="max-w-[1200px]">
@@ -418,7 +418,7 @@ function HistoricoTab({ attempts, onSelect }: { attempts: UserAttemptRow[]; onSe
                   {scored ? `${a.score_percentage!.toFixed(0)}%` : <span className="text-admin-faint">—</span>}
                 </td>
                 <td className="px-4 py-3 text-[13px] font-semibold tabular-nums text-admin-text">
-                  {scored && a.ranking_position > 0 ? `${a.ranking_position}º` : <span className="text-admin-faint">—</span>}
+                  {scored && a.ranking_position != null && a.ranking_position > 0 ? `${a.ranking_position}º` : <span className="text-admin-faint">—</span>}
                 </td>
               </tr>
             )

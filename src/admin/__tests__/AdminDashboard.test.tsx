@@ -29,6 +29,7 @@ const mockKpis = {
   avg_score_prev: 68.9,
   activation_rate: 41.2,
   activation_rate_prev: 39.0,
+  completion_valid_denom: 1900,
 }
 
 const mockTimeseries = [
@@ -52,7 +53,11 @@ const mockEngagement = [
   },
 ]
 
-const mockLive = { online_last_15min: 120, active_exams: 47, open_tickets: 0 }
+const mockLive = {
+  online_last_15min: 120, active_exams: 47, open_tickets: 0,
+  offline_pending_now: 0, online_confidence: 'low', tickets_supported: false,
+  active_today: 340, last_activity_at: '2026-06-25T09:10:00Z',
+}
 
 function setHook(overrides: Record<string, unknown> = {}) {
   vi.mocked(useAdminDashboardKpis).mockReturnValue({
@@ -106,6 +111,21 @@ describe('AdminDashboard', () => {
     expect(screen.getByText('Novos alunos')).toBeInTheDocument()
     expect(screen.getByText('2.140')).toBeInTheDocument()
     expect(screen.getByText('74,1%')).toBeInTheDocument()
+  })
+
+  it('mostra "sem provas oficiais no período" quando não houve prova válida (denominador 0)', () => {
+    setHook({ kpis: { data: { ...mockKpis, completion_rate: 0, completion_rate_prev: 62.9, completion_valid_denom: 0 } } })
+    renderPage()
+    expect(screen.getByText(/sem provas oficiais no período/i)).toBeInTheDocument()
+    // não deve exibir "0,0%" enganoso para conclusão
+    expect(screen.queryByText('0,0%')).not.toBeInTheDocument()
+  })
+
+  it('mostra contexto de atividade no painel Agora quando ninguém está em prova', () => {
+    setHook({ live: { data: { ...mockLive, active_exams: 0, online_last_15min: 0, active_today: 340 } } })
+    renderPage()
+    expect(screen.getByText(/ninguém em prova neste momento/i)).toBeInTheDocument()
+    expect(screen.getByText(/ativos hoje/i)).toBeInTheDocument()
   })
 
   it('shows a stable label when a metric did not move', () => {

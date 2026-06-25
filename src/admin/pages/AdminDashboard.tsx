@@ -73,6 +73,19 @@ function formatRelativeDelta(current: number, prev: number): string | undefined 
   return `${abs}%`
 }
 
+/** Tempo relativo curto em pt-BR (ex.: 'há 8 min', 'há 2 h'). */
+function timeAgo(iso: string | null): string {
+  if (!iso) return ''
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return ''
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60000))
+  if (mins < 1) return 'agora há pouco'
+  if (mins < 60) return `há ${mins} min`
+  const h = Math.round(mins / 60)
+  if (h < 24) return `há ${h} h`
+  return `há ${Math.round(h / 24)} d`
+}
+
 const WEEKDAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 
 /** Rótulo curto do eixo X a partir de 'YYYY-MM-DD'. */
@@ -94,10 +107,12 @@ interface KpiProps {
   deltaText?: string
   /** Quando true, delta positivo é ruim (vermelho) e negativo é bom (verde). */
   invert?: boolean
+  /** Observação que substitui a linha de delta (ex.: 'sem provas no período'). */
+  note?: string
   isLoading?: boolean
 }
 
-function KpiCard({ label, value, delta: d, deltaText, invert, isLoading }: KpiProps) {
+function KpiCard({ label, value, delta: d, deltaText, invert, note, isLoading }: KpiProps) {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-admin-line/80 bg-admin-surface p-4 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
@@ -133,7 +148,9 @@ function KpiCard({ label, value, delta: d, deltaText, invert, isLoading }: KpiPr
       <p className="mb-1.5 text-[1.5625rem] font-extrabold leading-none tabular-nums tracking-tight text-admin-text">
         {value}
       </p>
-      {deltaText !== undefined && !isStable ? (
+      {note !== undefined ? (
+        <p className="text-[11.5px] font-normal text-admin-faint">{note}</p>
+      ) : deltaText !== undefined && !isStable ? (
         <p
           className={cn(
             'flex items-center gap-1 text-[11.5px] font-semibold',
@@ -286,7 +303,8 @@ function AttemptsBarChart({
                   <div
                     className={cn(
                       'w-full rounded-t-md transition-[height] duration-300 ease-out motion-reduce:transition-none',
-                      isToday ? 'bg-admin-accent' : 'bg-admin-accent-soft',
+                      // accent com alpha tem contraste em ambos os temas (accent-soft sumia no dark).
+                      isToday ? 'bg-admin-accent' : 'bg-admin-accent/45',
                     )}
                     style={{ height: `${Math.max(pct, 2)}%` }}
                   />
@@ -320,6 +338,8 @@ function AttemptsBarChart({
 function NowPanel({
   liveCount,
   onlineCount,
+  activeToday,
+  lastActivityAt,
   topSimulados,
   isLoading,
   isError,
@@ -327,6 +347,8 @@ function NowPanel({
 }: {
   liveCount: number
   onlineCount: number
+  activeToday: number
+  lastActivityAt: string | null
   topSimulados: SimuladoEngagementRow[]
   isLoading: boolean
   isError: boolean
@@ -373,10 +395,23 @@ function NowPanel({
           </div>
 
           {liveCount === 0 ? (
-            <p className="text-[12px] leading-relaxed text-[#9BA1A9]">
-              Ninguém em prova neste momento. {formatInt(onlineCount)}{' '}
-              {onlineCount === 1 ? 'pessoa esteve ativa' : 'pessoas estiveram ativas'} nos últimos 15 minutos.
-            </p>
+            <div className="text-[12px] leading-relaxed text-[#9BA1A9]">
+              <p className="mb-2.5">Ninguém em prova neste momento.</p>
+              <div className="flex flex-col gap-1 text-[11.5px]">
+                <span>
+                  <b className="font-semibold tabular-nums text-[#ECEDEE]">{formatInt(onlineCount)}</b>{' '}
+                  {onlineCount === 1 ? 'ativo' : 'ativos'} nos últimos 15 min
+                </span>
+                <span>
+                  <b className="font-semibold tabular-nums text-[#ECEDEE]">{formatInt(activeToday)}</b>{' '}
+                  {activeToday === 1 ? 'ativo' : 'ativos'} hoje
+                </span>
+                {lastActivityAt && <span>última atividade {timeAgo(lastActivityAt)}</span>}
+              </div>
+              <p className="mt-3 text-[10px] leading-snug text-[#9BA1A9]/70">
+                Presença aproximada por atividade recente (sem rastreio em tempo real).
+              </p>
+            </div>
           ) : (
             <>
               <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9BA1A9]">
@@ -507,9 +542,10 @@ function AdminDashboardContent() {
         />
         <KpiCard
           label="Taxa de conclusão"
-          value={k ? formatPct(k.completion_rate) : '—'}
-          delta={k ? delta(k.completion_rate, k.completion_rate_prev) : undefined}
-          deltaText={k ? formatPpDelta(delta(k.completion_rate, k.completion_rate_prev)) : undefined}
+          value={k ? (k.completion_valid_denom > 0 ? formatPct(k.completion_rate) : '—') : '—'}
+          delta={k && k.completion_valid_denom > 0 ? delta(k.completion_rate, k.completion_rate_prev) : undefined}
+          deltaText={k && k.completion_valid_denom > 0 ? formatPpDelta(delta(k.completion_rate, k.completion_rate_prev)) : undefined}
+          note={k && k.completion_valid_denom === 0 ? 'sem provas oficiais no período' : undefined}
           isLoading={kpis.isLoading}
         />
         <KpiCard
@@ -553,6 +589,8 @@ function AdminDashboardContent() {
         <NowPanel
           liveCount={live.data?.active_exams ?? 0}
           onlineCount={live.data?.online_last_15min ?? 0}
+          activeToday={live.data?.active_today ?? 0}
+          lastActivityAt={live.data?.last_activity_at ?? null}
           topSimulados={(engagement.data ?? []).filter(s => s.participants > 0).slice(0, 4)}
           isLoading={live.isLoading}
           isError={live.isError}
