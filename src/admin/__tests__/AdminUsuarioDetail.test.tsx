@@ -10,6 +10,7 @@ vi.mock('@/admin/services/adminApi')
 import {
   useAdminUser,
   useAdminUserAttempts,
+  useAdminAttemptQuestions,
   useAdminSetUserSegment,
   useAdminSetUserRole,
   useAdminResetUserOnboarding,
@@ -41,6 +42,16 @@ const mockAttempts = [
     attempt_id: 'a1', simulado_id: 's1', sequence_number: 12,
     simulado_title: 'ENAMED Abril 2026', created_at: '2026-04-04T10:00:00Z',
     status: 'submitted', score_percentage: 71.5, ranking_position: 23,
+    is_within_window: true,
+  },
+]
+
+const mockAttemptQuestions = [
+  {
+    question_id: 'q1', question_number: 1, area: 'Pediatria', theme: 'Neonatologia',
+    difficulty: 'media', question_text: 'Enunciado da questão 1', was_answered: true,
+    is_correct: false, selected_label: 'A', selected_text: 'Alt A', correct_label: 'D',
+    correct_text: 'Alt D', ai_suggested_reason: null, confidence: null,
   },
 ]
 
@@ -75,6 +86,9 @@ describe('AdminUsuarioDetail', () => {
     } as any)
     vi.mocked(useAdminUserAttempts).mockReturnValue({
       data: mockAttempts, isLoading: false, isError: false,
+    } as any)
+    vi.mocked(useAdminAttemptQuestions).mockReturnValue({
+      data: mockAttemptQuestions, isLoading: false, isError: false,
     } as any)
     vi.mocked(useAdminSetUserSegment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any)
     vi.mocked(useAdminSetUserRole).mockReturnValue({ mutate: setRoleMutate, isPending: false } as any)
@@ -115,6 +129,14 @@ describe('AdminUsuarioDetail', () => {
     expect(screen.getByText('#12')).toBeInTheDocument()
     // nota arredondada para inteiro
     expect(screen.getByText('72%')).toBeInTheDocument()
+  })
+
+  it('opens the per-question drill-down when an attempt row is clicked', () => {
+    renderDetail()
+    fireEvent.click(screen.getByRole('button', { name: /ver questões da tentativa #12/i }))
+    // Dialog shows the per-question breakdown (selected vs correct labels)
+    expect(screen.getByText(/Enunciado da questão 1/)).toBeInTheDocument()
+    expect(screen.getByText(/Correta/)).toBeInTheDocument()
   })
 
   it('shows an empty state when there are no attempts', () => {

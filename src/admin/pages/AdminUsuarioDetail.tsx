@@ -24,6 +24,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { AdminAttemptQuestionsDialog } from '@/admin/components/AdminAttemptQuestionsDialog'
 import { useAdminCan } from '@/admin/contexts/AdminAccessContext'
 import { ROLE_META } from '@/admin/lib/constants'
 import { getInitials } from '@/admin/lib/format'
@@ -57,6 +58,7 @@ function AdminUsuarioDetailContent() {
   const navigate = useNavigate()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [tab, setTab] = useState<DetailTab>('historico')
+  const [selectedAttempt, setSelectedAttempt] = useState<UserAttemptRow | null>(null)
   const canManageRoles = useAdminCan('roles.manage')
 
   const { data: user, isLoading, isError, refetch } = useAdminUser(id!)
@@ -284,7 +286,7 @@ function AdminUsuarioDetailContent() {
       </div>
 
       {tab === 'historico' ? (
-        <HistoricoTab attempts={attempts} />
+        <HistoricoTab attempts={attempts} onSelect={setSelectedAttempt} />
       ) : (
         <AcessoTab
           user={user}
@@ -318,6 +320,13 @@ function AdminUsuarioDetailContent() {
         destructive
         loading={deleteUser.isPending}
         onConfirm={handleDelete}
+      />
+
+      {/* Drill-down por questão da tentativa */}
+      <AdminAttemptQuestionsDialog
+        open={selectedAttempt != null}
+        onOpenChange={open => { if (!open) setSelectedAttempt(null) }}
+        attempt={selectedAttempt}
       />
     </div>
   )
@@ -354,7 +363,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   )
 }
 
-function HistoricoTab({ attempts }: { attempts: UserAttemptRow[] }) {
+function HistoricoTab({ attempts, onSelect }: { attempts: UserAttemptRow[]; onSelect: (a: UserAttemptRow) => void }) {
   if (attempts.length === 0) {
     return (
       <div className="rounded-xl border border-admin-line/80 bg-admin-surface">
@@ -389,7 +398,15 @@ function HistoricoTab({ attempts }: { attempts: UserAttemptRow[] }) {
             return (
               <tr
                 key={a.attempt_id}
-                className={cn('border-b border-admin-line-subtle last:border-0', i % 2 === 1 && 'bg-admin-bg/40')}
+                onClick={() => onSelect(a)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(a) } }}
+                tabIndex={0}
+                role="button"
+                aria-label={`Ver questões da tentativa #${a.sequence_number}, ${a.simulado_title}`}
+                className={cn(
+                  'cursor-pointer border-b border-admin-line-subtle transition-colors last:border-0 hover:bg-admin-raised/50 focus:bg-admin-raised/50 focus:outline-none',
+                  i % 2 === 1 && 'bg-admin-bg/40',
+                )}
               >
                 <td className="px-4 py-3 text-[13px] font-medium text-admin-text">{a.simulado_title}</td>
                 <td className="px-4 py-3 font-mono text-[12px] text-admin-muted">#{a.sequence_number}</td>

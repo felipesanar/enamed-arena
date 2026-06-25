@@ -45,6 +45,13 @@ export function ProtectedRoute({ children, skipOnboardingCheck = false }: Protec
         ssoParams.set("email", params.get("email")!);
         if (params.get("name")) ssoParams.set("name", params.get("name")!);
         if (segment) ssoParams.set("segment", segment);
+        // Forward HMAC signature/timestamp if SanarFlix signed the redirect, so
+        // the hardened (signed) trust mode in sso-magic-link can verify it.
+        // Accept both signature/sig and timestamp/ts param spellings.
+        const signature = params.get("signature") ?? params.get("sig");
+        const timestamp = params.get("timestamp") ?? params.get("ts");
+        if (signature) ssoParams.set("signature", signature);
+        if (timestamp) ssoParams.set("timestamp", timestamp);
         return <Navigate to={`/auth/sso?${ssoParams.toString()}`} replace />;
       }
       return <Navigate to="/landing" replace />;
