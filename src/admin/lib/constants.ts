@@ -8,13 +8,14 @@ export const PERIOD_OPTIONS = [
 
 /**
  * Labels e classes (tokens admin) por segmento de usuário.
- * Labels espelham produção: 'Guest', 'Standard', 'PRO'.
- * (spec original sugeria 'Visitante', 'Aluno SanarFlix', 'Aluno PRO' — diverge de produção)
+ * Redesign 2026-06: rótulos amigáveis que um operador novo entende
+ * ('Visitante', 'Aluno SanarFlix', 'Aluno PRO'). As chaves (guest/standard/pro)
+ * não mudam — só o texto exibido.
  */
 export const SEGMENT_META: Record<string, { label: string; className: string }> = {
-  guest:    { label: 'Guest',    className: 'bg-admin-raised text-admin-muted border-admin-line' },
-  standard: { label: 'Standard', className: 'bg-admin-info/10 text-admin-info border-admin-info/30' },
-  pro:      { label: 'PRO',      className: 'bg-admin-accent/10 text-admin-accent border-admin-accent/30' },
+  guest:    { label: 'Visitante',       className: 'bg-admin-raised text-admin-muted border-admin-line' },
+  standard: { label: 'Aluno SanarFlix', className: 'bg-admin-info/10 text-admin-info border-admin-info/30' },
+  pro:      { label: 'Aluno PRO',       className: 'bg-admin-accent/10 text-admin-accent border-admin-accent/30' },
 }
 
 /**

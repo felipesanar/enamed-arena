@@ -12,6 +12,17 @@ interface AdminStatCardProps {
   /** Quando true, delta positivo é tratado como ruim (vermelho) e negativo como bom
    *  (verde) — para métricas em que "subir é pior", como taxa de abandono. */
   invertDelta?: boolean
+  /** Cor opcional do valor (ex.: 'accent' para Aluno PRO, 'success' para Novos). */
+  valueTone?: 'default' | 'accent' | 'success' | 'warning' | 'info' | 'destructive'
+}
+
+const VALUE_TONE: Record<NonNullable<AdminStatCardProps['valueTone']>, string> = {
+  default: 'text-admin-text',
+  accent: 'text-admin-accent',
+  success: 'text-admin-success',
+  warning: 'text-admin-warning',
+  info: 'text-admin-info',
+  destructive: 'text-admin-destructive',
 }
 
 export function AdminStatCard({
@@ -22,13 +33,20 @@ export function AdminStatCard({
   accentBorder,
   isLoading,
   invertDelta,
+  valueTone = 'default',
 }: AdminStatCardProps) {
   if (isLoading) {
     return (
-      <div className="animate-pulse rounded-xl border border-admin-line/80 bg-admin-surface p-3 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-        <div className="h-3 bg-admin-raised rounded w-2/3 mb-3" />
-        <div className="h-6 bg-admin-raised rounded w-1/2 mb-2" />
-        <div className="h-2.5 bg-admin-raised rounded w-1/3" />
+      <div className="animate-pulse rounded-xl border border-admin-line/80 bg-admin-surface p-4 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+        <div className="relative mb-3 h-2.5 w-2/3 overflow-hidden rounded bg-admin-raised">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+        </div>
+        <div className="relative mb-2 h-6 w-1/2 overflow-hidden rounded bg-admin-raised">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+        </div>
+        <div className="relative h-2.5 w-1/3 overflow-hidden rounded bg-admin-raised">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+        </div>
       </div>
     )
   }
@@ -43,18 +61,26 @@ export function AdminStatCard({
   return (
     <div
       className={cn(
-        'rounded-xl border border-admin-line/80 bg-admin-surface p-3',
+        'group rounded-xl border border-admin-line/80 bg-admin-surface p-4',
         'shadow-sm shadow-black/[0.04] dark:shadow-black/25',
-        'transition-colors duration-200 motion-reduce:transition-none',
+        'transition-[border-color,box-shadow] duration-[160ms] ease-out motion-reduce:transition-none',
+        'hover:border-admin-line-strong hover:shadow-[0_4px_16px_rgba(26,23,21,0.06)] dark:hover:shadow-black/40',
         accentBorder && 'border-l-[3px] border-l-admin-accent',
       )}
     >
-      <p className="text-micro-label text-admin-muted uppercase tracking-wide mb-1.5">{label}</p>
-      <p className="text-2xl font-bold text-admin-text leading-none mb-1.5">{value}</p>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-admin-muted">{label}</p>
+      <p
+        className={cn(
+          'mb-1.5 text-[1.4375rem] font-extrabold leading-none tabular-nums tracking-tight',
+          VALUE_TONE[valueTone],
+        )}
+      >
+        {value}
+      </p>
       {delta !== undefined ? (
         <p
           className={cn(
-            'text-caption flex items-center gap-1',
+            'flex items-center gap-1 text-caption',
             isGood && 'text-admin-success',
             isBad && 'text-admin-destructive',
             !isGood && !isBad && 'text-admin-muted',
@@ -78,7 +104,7 @@ export function AdminStatCard({
               <span>{Math.abs(delta)}</span>
             </>
           )}
-          {deltaLabel && <span className="text-admin-muted font-normal">{deltaLabel}</span>}
+          {deltaLabel && <span className="font-normal text-admin-muted">{deltaLabel}</span>}
         </p>
       ) : null}
     </div>

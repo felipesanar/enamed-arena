@@ -43,8 +43,9 @@ export function RankingPreviewContent() {
     return (
       <AdminEmptyState
         icon={Trophy}
+        eyebrow="Vazio"
         title="Nenhum simulado com tentativas finalizadas"
-        description="Quando houver provas concluídas no projeto, elas aparecerão aqui para preview."
+        description="Quando houver provas concluídas no projeto, elas aparecerão aqui na prévia."
       />
     )
   }
@@ -98,7 +99,7 @@ function AdminRankingPreviewPageContent() {
   return (
     <>
       <AdminPageHeader
-        title="Preview do ranking"
+        title="Prévia do ranking"
         subtitle="Mesma experiência do ranking público, sem depender da liberação de resultados."
       />
       <RankingPreviewContent />

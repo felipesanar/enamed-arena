@@ -55,6 +55,12 @@ describe('AdminAnalytics', () => {
     vi.mocked(useAdminAnalyticsTimeToConvert).mockReturnValue({ data: mockTtc, isLoading: false } as any)
   })
 
+  it('opens with the question the panel answers', () => {
+    renderPage()
+    expect(screen.getByText('Onde as pessoas param no caminho?')).toBeInTheDocument()
+    expect(screen.getByText('Jornada')).toBeInTheDocument()
+  })
+
   it('renders all 6 funnel step labels', () => {
     renderPage()
     expect(screen.getByText('Visitou landing')).toBeInTheDocument()
@@ -78,5 +84,11 @@ describe('AdminAnalytics', () => {
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: '7 dias' }))
     expect(vi.mocked(useAdminAnalyticsFunnel)).toHaveBeenCalledWith(7)
+  })
+
+  it('shows the empty state when there is no funnel data', () => {
+    vi.mocked(useAdminAnalyticsFunnel).mockReturnValue({ data: [], isLoading: false } as any)
+    renderPage()
+    expect(screen.getByText('Sem dados de jornada no período')).toBeInTheDocument()
   })
 })

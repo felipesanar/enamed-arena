@@ -46,6 +46,19 @@ describe('AdminMarketing', () => {
     vi.mocked(useAdminMarketingCampaigns).mockReturnValue({ data: mockCampaigns, isLoading: false } as any)
   })
 
+  it('opens with the question the panel answers', () => {
+    renderPage()
+    expect(screen.getByText('De onde vêm os novos alunos?')).toBeInTheDocument()
+    expect(screen.getByText('Aquisição')).toBeInTheDocument()
+  })
+
+  it('renders the origin breakdown with share percentages', () => {
+    renderPage()
+    expect(screen.getByText('Origens por participação nos cadastros')).toBeInTheDocument()
+    // 1945 de 2260 = 86,1% para organic
+    expect(screen.getByText('86.1%')).toBeInTheDocument()
+  })
+
   it('renders KPI values', () => {
     renderPage()
     expect(screen.getByText('2.860')).toBeInTheDocument()

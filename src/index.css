@@ -885,39 +885,45 @@
    Dual de primeira classe: cada token tem par light/dark explícito.
    Formato: canais HSL para suportar alpha via Tailwind (<alpha-value>). */
 :root {
-  --admin-bg: 40 20% 97%;
-  --admin-surface: 0 0% 100%;
-  --admin-raised: 40 15% 95%;
-  --admin-line: 40 10% 88%;
-  --admin-line-strong: 40 8% 78%;
-  --admin-text: 220 15% 12%;
-  --admin-muted: 220 8% 42%;
-  --admin-faint: 220 6% 60%;
-  --admin-accent: 345 65% 42%;
-  --admin-accent-soft: 345 45% 94%;
+  /* Paleta refinada (redesign 2026-06). Warm stone + accent vinho #AB2350. */
+  --admin-bg: 60 9% 98%;          /* #FAFAF9 */
+  --admin-bg-outer: 40 9% 94%;    /* #F2F1EF — página externa */
+  --admin-surface: 0 0% 100%;     /* #FFFFFF */
+  --admin-raised: 60 6% 96%;      /* #F4F4F3 — elevado/hover */
+  --admin-line: 30 6% 90%;        /* #E7E5E3 */
+  --admin-line-subtle: 40 13% 93%;/* #F1EFED — linha sutil */
+  --admin-line-strong: 30 5% 84%;
+  --admin-text: 28 11% 9%;        /* #1A1715 */
+  --admin-muted: 30 6% 32%;       /* #57534E */
+  --admin-faint: 32 7% 59%;       /* #9C968F */
+  --admin-accent: 342 67% 41%;    /* #AB2350 */
+  --admin-accent-soft: 342 60% 95%;/* #FBEAEF */
   --admin-accent-contrast: 0 0% 100%;
-  --admin-success: 160 60% 32%;
-  --admin-warning: 35 85% 40%;
-  --admin-info: 210 70% 45%;
-  --admin-destructive: 0 70% 45%;
+  --admin-success: 159 78% 27%;   /* #0F7A55 */
+  --admin-warning: 25 90% 37%;    /* #B45309 */
+  --admin-info: 212 74% 46%;      /* #1F6FCC */
+  --admin-destructive: 356 61% 48%;/* #C5303A */
 }
 
 .dark {
-  --admin-bg: 210 10% 7%;
-  --admin-surface: 210 9% 10%;
-  --admin-raised: 210 8% 13%;
-  --admin-line: 210 8% 16%;
-  --admin-line-strong: 210 8% 24%;
-  --admin-text: 210 14% 95%;
-  --admin-muted: 210 8% 64%;
-  --admin-faint: 210 6% 46%;
-  --admin-accent: 345 72% 58%;
-  --admin-accent-soft: 345 40% 16%;
-  --admin-accent-contrast: 210 10% 7%;
-  --admin-success: 160 50% 56%;
-  --admin-warning: 38 90% 60%;
+  /* Neutros frios (slate) + accent vinho claro #E14E78. */
+  --admin-bg: 216 12% 5%;         /* #0B0C0E */
+  --admin-bg-outer: 216 14% 4%;
+  --admin-surface: 216 11% 9%;    /* #141619 */
+  --admin-raised: 214 11% 12%;    /* #1C1F23 */
+  --admin-line: 216 11% 18%;      /* #292D33 */
+  --admin-line-subtle: 213 14% 14%;/* #1F2329 */
+  --admin-line-strong: 216 10% 26%;
+  --admin-text: 210 8% 93%;       /* #ECEDEE */
+  --admin-muted: 214 8% 64%;      /* #9BA1A9 */
+  --admin-faint: 214 6% 45%;      /* #6B7178 */
+  --admin-accent: 342 71% 60%;    /* #E14E78 */
+  --admin-accent-soft: 342 35% 18%;
+  --admin-accent-contrast: 216 12% 5%;
+  --admin-success: 158 64% 52%;   /* #34D399 */
+  --admin-warning: 38 92% 60%;
   --admin-info: 210 75% 65%;
-  --admin-destructive: 0 70% 62%;
+  --admin-destructive: 356 70% 64%;
 }
 
 /* Base do admin: aplicada pelo AdminApp no wrapper raiz */

@@ -5,11 +5,16 @@ interface AdminBadgeProps {
   kind: 'segment' | 'attemptStatus' | 'role'
   value: string
   className?: string
+  /**
+   * Mostra um ponto colorido antes do texto (mesma cor semântica do selo).
+   * Usado em status de tentativa e disponibilidade de simulado para leitura rápida.
+   */
+  dot?: boolean
 }
 
 const NEUTRAL = 'bg-admin-raised text-admin-muted border-admin-line'
 
-export function AdminBadge({ kind, value, className }: AdminBadgeProps) {
+export function AdminBadge({ kind, value, className, dot }: AdminBadgeProps) {
   let label = value
   let tone = NEUTRAL
 
@@ -25,7 +30,15 @@ export function AdminBadge({ kind, value, className }: AdminBadgeProps) {
   }
 
   return (
-    <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium', tone, className)}>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5',
+        'text-[11px] font-semibold leading-none whitespace-nowrap',
+        tone,
+        className,
+      )}
+    >
+      {dot && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden />}
       {label}
     </span>
   )

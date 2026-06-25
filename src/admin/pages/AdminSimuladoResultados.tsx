@@ -491,13 +491,13 @@ function AdminSimuladoResultadosContent() {
       <section>
         <AdminSectionHeader title="Analytics por questão" hook={`${questions.length} questões`} />
         {qLoading ? (
-          <div className="bg-admin-surface border border-admin-line rounded-lg animate-pulse h-32" />
+          <div className="bg-admin-surface border border-admin-line rounded-xl animate-pulse h-32" />
         ) : questions.length === 0 ? (
           <AdminEmptyState title="Sem dados suficientes para esta análise" />
         ) : (
-          <div className="bg-admin-surface border border-admin-line rounded-lg overflow-hidden">
+          <div className="bg-admin-surface border border-admin-line rounded-xl overflow-hidden">
             <div
-              className="grid border-b border-admin-line text-[9px] font-bold text-admin-faint uppercase tracking-wide"
+              className="grid border-b border-admin-line bg-admin-bg-outer text-[9px] font-bold text-admin-faint uppercase tracking-wide"
               style={{ gridTemplateColumns: '40px 1fr 160px 140px 120px' }}
             >
               {['Q', 'Enunciado', 'Taxa de acerto', 'Qualidade da questão', 'Erro mais comum'].map(h => (

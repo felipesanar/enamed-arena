@@ -1,14 +1,14 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, Search, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminBadge } from '@/admin/components/ui/AdminBadge'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { AdminConfirmDialog } from '@/admin/components/ui/AdminConfirmDialog'
-import { ATTEMPT_STATUS_META, PERIOD_OPTIONS } from '@/admin/lib/constants'
+import { PERIOD_OPTIONS } from '@/admin/lib/constants'
 import { getInitials, formatInt } from '@/admin/lib/format'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAdminCan } from '@/admin/contexts/AdminAccessContext'
@@ -21,16 +21,29 @@ import {
 } from '@/admin/hooks/useAdminTentativas'
 import type { AttemptListRow } from '@/admin/types'
 
-const STATUS_OPTIONS = [
-  { label: 'Todos', value: 'all' },
-  { label: ATTEMPT_STATUS_META.in_progress.label, value: 'in_progress' },
-  { label: ATTEMPT_STATUS_META.submitted.label, value: 'submitted' },
-  { label: ATTEMPT_STATUS_META.expired.label, value: 'expired' },
-]
+// Segmentado da toolbar: rótulos que um operador novo entende.
+// "Todas" mostra tudo; "Concluídas" filtra pelas que viraram nota.
+const SEGMENTS = [
+  { label: 'Todas', value: 'all' },
+  { label: 'Em andamento', value: 'in_progress' },
+  { label: 'Concluídas', value: 'submitted' },
+] as const
 
-const DAYS_OPTIONS = [...PERIOD_OPTIONS, { label: 'Todos', value: 0 }]
+const DAYS_OPTIONS = [...PERIOD_OPTIONS, { label: 'Todo o período', value: 0 }]
+
+const GRID = '1.8fr 1.6fr 110px 130px 80px 130px'
 
 type ConfirmAction = { type: 'cancel' | 'delete'; attemptId: string } | null
+
+/** Início legível: data curta para tentativas mais antigas. */
+function formatStart(iso: string): string {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 function AdminTentativasContent() {
   const navigate = useNavigate()
@@ -44,7 +57,7 @@ function AdminTentativasContent() {
   const debouncedSearch = useDebounce(search, 300)
 
   const { data: kpis, isLoading: kpisLoading } = useAdminAttemptKpis(days)
-  const { data, isLoading } = useAdminAttemptList(debouncedSearch, simuladoId || null, status, days, page)
+  const { data, isLoading, isError } = useAdminAttemptList(debouncedSearch, simuladoId || null, status, days, page)
   const { data: simulados } = useAdminSimuladoList()
   const cancelMutation = useAdminCancelAttempt()
   const deleteMutation = useAdminDeleteAttempt()
@@ -77,12 +90,13 @@ function AdminTentativasContent() {
     <div className="space-y-4 max-w-[1400px]">
       <AdminPageHeader
         title="Tentativas"
-        subtitle={`${formatInt(totalCount)} no total`}
+        subtitle="Acompanhe as provas e dê suporte: encerre o que travou ou exclua o que está errado."
         actions={
           <select
+            aria-label="Período"
             value={days}
             onChange={e => { setDays(Number(e.target.value)); setPage(1) }}
-            className="bg-admin-surface border border-admin-line-strong rounded-md px-3 py-1.5 text-xs text-admin-text focus:outline-none focus:ring-1 focus:ring-admin-accent/50"
+            className="bg-admin-surface border border-admin-line-strong rounded-md px-3 py-1.5 text-xs text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 focus-visible:border-admin-accent"
           >
             {DAYS_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -92,145 +106,238 @@ function AdminTentativasContent() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <AdminStatCard label="Total" value={kpis?.total ?? '—'} isLoading={kpisLoading} />
-        <AdminStatCard label="Em andamento" value={kpis?.in_progress ?? '—'} isLoading={kpisLoading} />
-        <AdminStatCard label="Concluídas" value={kpis?.submitted ?? '—'} isLoading={kpisLoading} />
-        <AdminStatCard label="Expiradas" value={kpis?.expired ?? '—'} isLoading={kpisLoading} />
+        <AdminStatCard label="Em andamento" value={kpis?.in_progress ?? '—'} valueTone="info" isLoading={kpisLoading} />
+        <AdminStatCard label="Concluídas" value={kpis?.submitted ?? '—'} valueTone="success" isLoading={kpisLoading} />
+        <AdminStatCard label="Expiradas" value={kpis?.expired ?? '—'} valueTone="warning" isLoading={kpisLoading} />
       </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
-        <input
-          type="text"
-          value={search}
-          onChange={handleSearch}
-          placeholder="Buscar por usuário ou e-mail…"
-          className="flex-1 min-w-[200px] bg-admin-surface border border-admin-line-strong rounded-md px-3 py-2 text-sm text-admin-text placeholder:text-admin-muted focus:outline-none focus:ring-1 focus:ring-admin-accent/50"
-        />
+        <div className="relative flex-1 min-w-[200px] max-w-[340px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-admin-faint" aria-hidden />
+          <input
+            type="text"
+            value={search}
+            onChange={handleSearch}
+            placeholder="Buscar por aluno ou simulado"
+            className="w-full bg-admin-surface border border-admin-line-strong rounded-md py-2 pl-9 pr-3 text-sm text-admin-text placeholder:text-admin-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 focus-visible:border-admin-accent"
+          />
+        </div>
+
         <select
+          aria-label="Filtrar por simulado"
           value={simuladoId}
           onChange={e => { setSimuladoId(e.target.value); setPage(1) }}
-          className="bg-admin-surface border border-admin-line-strong rounded-md px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-1 focus:ring-admin-accent/50"
+          className="bg-admin-surface border border-admin-line-strong rounded-md px-3 py-2 text-sm text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 focus-visible:border-admin-accent"
         >
           <option value="">Todos os simulados</option>
           {(simulados ?? []).map((s: any) => (
             <option key={s.id} value={s.id}>#{s.sequence_number} — {s.title}</option>
           ))}
         </select>
-        {STATUS_OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => handleStatus(opt.value)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50',
-              status === opt.value
-                ? 'bg-admin-accent text-admin-accent-contrast border-admin-accent'
-                : 'bg-admin-surface text-admin-muted border-admin-line hover:text-admin-text hover:bg-admin-raised',
-            )}
-          >{opt.label}</button>
-        ))}
+
+        {/* Segmentado */}
+        <div
+          role="tablist"
+          aria-label="Filtrar por status"
+          className="inline-flex rounded-lg border border-admin-line bg-admin-raised p-0.5"
+        >
+          {SEGMENTS.map(opt => {
+            const active = status === opt.value
+            return (
+              <button
+                key={opt.value}
+                role="tab"
+                aria-selected={active}
+                onClick={() => handleStatus(opt.value)}
+                className={cn(
+                  'rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/40',
+                  active
+                    ? 'bg-admin-surface text-admin-text shadow-sm shadow-black/[0.06] dark:shadow-black/30'
+                    : 'text-admin-muted hover:text-admin-text',
+                )}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Table */}
-      {isLoading ? (
-        <div className="space-y-2 animate-pulse">
-          {[1,2,3,4,5].map(i => <div key={i} className="h-12 bg-admin-raised/60 rounded" />)}
+      {/* Erro */}
+      {isError && !isLoading && (
+        <div className="bg-admin-surface rounded-lg border border-admin-line overflow-hidden">
+          <AdminEmptyState
+            tone="error"
+            icon={ClipboardList}
+            eyebrow="Erro"
+            title="Não foi possível carregar as tentativas"
+            description="Verifique sua conexão e tente novamente em instantes."
+          />
         </div>
-      ) : (
+      )}
+
+      {/* Tabela */}
+      {isLoading ? (
         <div className="bg-admin-surface rounded-lg border border-admin-line overflow-hidden">
           <div
             className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"
-            style={{ gridTemplateColumns: '2fr 1.4fr 80px 90px 70px 80px 80px' }}
+            style={{ gridTemplateColumns: GRID }}
           >
-            {['Usuário', 'Simulado', 'Início', 'Status', 'Nota', 'Posição', ''].map(h => (
-              <div key={h} className="px-4 py-2">{h}</div>
+            {['Aluno', 'Simulado', 'Início', 'Status', 'Nota', 'Ações'].map((h, i) => (
+              <div key={h} className={cn('px-4 py-2', i === 5 && 'text-right')}>{h}</div>
+            ))}
+          </div>
+          {[0, 1, 2, 3, 4].map(i => (
+            <div
+              key={i}
+              className="grid items-center border-b border-admin-line/40 last:border-0"
+              style={{ gridTemplateColumns: GRID }}
+            >
+              <div className="px-4 py-3 flex items-center gap-2.5">
+                <div className="relative h-7 w-7 overflow-hidden rounded-md bg-admin-raised">
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+                </div>
+                <div className="relative h-3 w-28 overflow-hidden rounded bg-admin-raised">
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+                </div>
+              </div>
+              {[0, 1, 2, 3].map(c => (
+                <div key={c} className="px-4 py-3">
+                  <div className="relative h-3 w-16 overflow-hidden rounded bg-admin-raised">
+                    <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+                  </div>
+                </div>
+              ))}
+              <div className="px-4 py-3 flex justify-end">
+                <div className="relative h-7 w-20 overflow-hidden rounded-md bg-admin-raised">
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !isError && (
+        <div className="bg-admin-surface rounded-lg border border-admin-line overflow-hidden">
+          <div
+            className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"
+            style={{ gridTemplateColumns: GRID }}
+          >
+            {['Aluno', 'Simulado', 'Início', 'Status', 'Nota', 'Ações'].map((h, i) => (
+              <div key={h} className={cn('px-4 py-2', i === 5 && 'text-right')}>{h}</div>
             ))}
           </div>
 
           {rows.length === 0 ? (
             <AdminEmptyState
               icon={ClipboardList}
+              eyebrow="Vazio"
               title="Nenhuma tentativa encontrada"
-              description="Ajuste a busca, o simulado ou o período."
+              description="Ajuste a busca, o simulado, o status ou o período."
             />
           ) : (
-            rows.map((row: AttemptListRow) => (
-              <div
-                key={row.attempt_id}
-                className="grid border-b border-admin-line/40 last:border-0 hover:bg-admin-raised/30 transition-colors items-center"
-                style={{ gridTemplateColumns: '2fr 1.4fr 80px 90px 70px 80px 80px' }}
-              >
-                {/* Usuário */}
-                <div className="px-4 py-2.5 flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-md bg-admin-accent flex items-center justify-center text-admin-accent-contrast text-xs font-bold shrink-0">
-                    {getInitials(row.full_name)}
+            rows.map((row: AttemptListRow) => {
+              const isOngoing = row.status === 'in_progress'
+              return (
+                <div
+                  key={row.attempt_id}
+                  className="grid border-b border-admin-line/40 last:border-0 hover:bg-admin-raised/30 transition-colors items-center"
+                  style={{ gridTemplateColumns: GRID }}
+                >
+                  {/* Aluno */}
+                  <div className="px-4 py-3 flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-admin-accent flex items-center justify-center text-admin-accent-contrast text-xs font-bold shrink-0">
+                      {getInitials(row.full_name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-admin-text truncate">{row.full_name ?? '—'}</p>
+                      <p className="text-[10px] text-admin-muted truncate">{row.email}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-admin-text truncate">{row.full_name ?? '—'}</p>
-                    <p className="text-[10px] text-admin-muted truncate">{row.email}</p>
+                  {/* Simulado */}
+                  <div className="px-4 py-3 text-[11px] text-admin-muted truncate">
+                    <span className="text-admin-faint">#{row.sequence_number} — </span>
+                    {row.simulado_title}
+                  </div>
+                  {/* Início */}
+                  <div className="px-4 py-3 text-[10px] text-admin-muted tabular-nums">
+                    {formatStart(row.created_at)}
+                  </div>
+                  {/* Status */}
+                  <div className="px-4 py-3">
+                    <AdminBadge kind="attemptStatus" value={row.status} dot />
+                  </div>
+                  {/* Nota */}
+                  <div className="px-4 py-3 text-xs font-semibold text-admin-text tabular-nums">
+                    {row.score_percentage != null ? `${row.score_percentage.toFixed(0)}%` : <span className="text-admin-faint">—</span>}
+                  </div>
+                  {/* Ações */}
+                  <div className="px-4 py-3 flex items-center justify-end gap-2">
+                    <button
+                      aria-label={`Ver aluno ${row.full_name ?? ''}`.trim()}
+                      title="Ver aluno"
+                      onClick={() => navigate(`/admin/usuarios/${row.user_id}`)}
+                      className="w-7 h-7 rounded-md flex items-center justify-center text-admin-muted hover:text-admin-accent hover:bg-admin-accent/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/40"
+                    >
+                      <ArrowRight className="h-4 w-4" aria-hidden />
+                    </button>
+
+                    {canManage && isOngoing && (
+                      <button
+                        onClick={() => setConfirm({ type: 'cancel', attemptId: row.attempt_id })}
+                        className="rounded-md border border-admin-line-strong bg-admin-surface px-3 py-1.5 text-xs font-semibold text-admin-text hover:bg-admin-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/40"
+                      >
+                        Encerrar
+                      </button>
+                    )}
+
+                    {canManage && !isOngoing && (
+                      <button
+                        onClick={() => setConfirm({ type: 'delete', attemptId: row.attempt_id })}
+                        className="rounded-md border border-admin-destructive/30 bg-admin-surface px-3 py-1.5 text-xs font-semibold text-admin-destructive hover:bg-admin-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-destructive/40"
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </div>
                 </div>
-                {/* Simulado */}
-                <div className="px-4 py-2.5 text-[10px] text-admin-muted truncate">
-                  <span className="text-admin-faint">#{row.sequence_number} — </span>
-                  {row.simulado_title}
-                </div>
-                {/* Início */}
-                <div className="px-4 py-2.5 text-[10px] text-admin-muted">
-                  {new Date(row.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                </div>
-                {/* Status */}
-                <div className="px-4 py-2.5">
-                  <AdminBadge kind="attemptStatus" value={row.status} />
-                </div>
-                {/* Nota */}
-                <div className="px-4 py-2.5 text-xs font-semibold text-admin-text text-right">
-                  {row.score_percentage != null ? `${row.score_percentage.toFixed(1)}%` : '—'}
-                </div>
-                {/* Posição */}
-                <div className="px-4 py-2.5 text-[10px] text-admin-muted text-right">
-                  {row.ranking_position != null ? `${row.ranking_position}º` : '—'}
-                </div>
-                {/* Ações */}
-                <div className="px-3 py-2.5 flex items-center gap-1">
-                  <button
-                    title="Ver usuário"
-                    onClick={() => navigate(`/admin/usuarios/${row.user_id}`)}
-                    className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-accent hover:bg-admin-accent/10 transition-colors text-sm"
-                  >→</button>
-                  {canManage && row.status === 'in_progress' && (
-                    <button
-                      aria-label="Cancelar"
-                      title="Cancelar"
-                      onClick={() => setConfirm({ type: 'cancel', attemptId: row.attempt_id })}
-                      className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-warning hover:bg-admin-warning/10 transition-colors text-xs"
-                    >✕</button>
-                  )}
-                  {canManage && (
-                    <button
-                      aria-label="Excluir"
-                      title="Excluir"
-                      onClick={() => setConfirm({ type: 'delete', attemptId: row.attempt_id })}
-                      className="w-7 h-7 rounded flex items-center justify-center text-admin-muted hover:text-admin-destructive hover:bg-admin-destructive/10 transition-colors text-xs"
-                    >🗑</button>
-                  )}
-                </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       )}
 
+      {/* Legenda fixa: explica a diferença ANTES de qualquer clique. */}
+      {!isLoading && !isError && (
+        <div className="flex flex-col gap-3 rounded-xl border border-admin-line bg-admin-surface px-4 py-3 text-[12px] leading-relaxed sm:flex-row sm:gap-5">
+          <div className="flex items-start gap-2">
+            <span className="shrink-0 font-bold text-admin-text">Encerrar</span>
+            <span className="text-admin-muted">
+              finaliza a prova em andamento e registra o que já foi respondido. O aluno pode tentar de novo na próxima janela.
+            </span>
+          </div>
+          <div className="hidden w-px self-stretch bg-admin-line sm:block" aria-hidden />
+          <div className="flex items-start gap-2">
+            <span className="shrink-0 font-bold text-admin-destructive">Excluir</span>
+            <span className="text-admin-muted">
+              apaga a tentativa e a nota do histórico. Não pode ser desfeito.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Paginação */}
-      {totalPages > 1 && (
+      {totalPages > 1 && !isLoading && !isError && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-admin-muted">
+          <p className="text-xs text-admin-muted tabular-nums">
             {((page - 1) * 25) + 1}–{Math.min(page * 25, totalCount)} de {formatInt(totalCount)}
           </p>
           <div className="flex gap-1">
             <button
+              aria-label="Página anterior"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
               className="w-7 h-7 rounded border border-admin-line text-xs text-admin-muted disabled:opacity-30 hover:bg-admin-raised transition-colors"
@@ -239,7 +346,7 @@ function AdminTentativasContent() {
               const p = Math.max(1, Math.min(page - 2, totalPages - 4)) + i
               return (
                 <button key={p} onClick={() => setPage(p)}
-                  className={cn('w-7 h-7 rounded border text-xs transition-colors',
+                  className={cn('w-7 h-7 rounded border text-xs transition-colors tabular-nums',
                     page === p
                       ? 'bg-admin-accent text-admin-accent-contrast border-admin-accent'
                       : 'border-admin-line text-admin-muted hover:bg-admin-raised'
@@ -248,6 +355,7 @@ function AdminTentativasContent() {
               )
             })}
             <button
+              aria-label="Próxima página"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               className="w-7 h-7 rounded border border-admin-line text-xs text-admin-muted disabled:opacity-30 hover:bg-admin-raised transition-colors"
@@ -256,15 +364,15 @@ function AdminTentativasContent() {
         </div>
       )}
 
-      {/* Confirmação cancelar/excluir */}
+      {/* Confirmação encerrar/excluir */}
       <AdminConfirmDialog
         open={!!confirm}
         onOpenChange={open => { if (!open) setConfirm(null) }}
-        title={confirm?.type === 'cancel' ? 'Confirmar cancelamento' : 'Confirmar exclusão'}
+        title={confirm?.type === 'cancel' ? 'Encerrar esta tentativa?' : 'Excluir esta tentativa?'}
         description={confirm?.type === 'cancel'
-          ? 'A tentativa será marcada como expirada. O usuário não poderá continuar.'
-          : 'A tentativa será removida permanentemente. O usuário poderá tentar novamente.'}
-        confirmLabel={confirm?.type === 'cancel' ? 'Cancelar tentativa' : 'Excluir'}
+          ? 'A prova será finalizada com o que já foi respondido. O aluno poderá tentar de novo na próxima janela.'
+          : 'A tentativa e a nota saem do histórico de forma definitiva. Não dá para desfazer.'}
+        confirmLabel={confirm?.type === 'cancel' ? 'Encerrar' : 'Excluir'}
         destructive={confirm?.type === 'delete'}
         loading={cancelMutation.isPending || deleteMutation.isPending}
         onConfirm={handleConfirm}

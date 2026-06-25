@@ -42,9 +42,10 @@ describe('AdminInteligencia', () => {
     setAllEmpty()
   })
 
-  it('renders the page title and all section headings without crashing on empty data', () => {
+  it('renders the page question and all section headings without crashing on empty data', () => {
     renderPage()
-    expect(screen.getByText('Panorama')).toBeInTheDocument()
+    expect(screen.getByText('Como está a operação como um todo?')).toBeInTheDocument()
+    expect(screen.getByText('Visão geral')).toBeInTheDocument()
     expect(screen.getByText('Insights')).toBeInTheDocument()
     expect(screen.getByText('Desempenho por área')).toBeInTheDocument()
     expect(screen.getByText('Evolução de notas')).toBeInTheDocument()
@@ -82,12 +83,12 @@ describe('AdminInteligencia', () => {
   })
 })
 
-describe('navigation — Panorama', () => {
-  it('lists Panorama as the first Inteligência item for intel.view', () => {
+describe('navigation — Visão geral', () => {
+  it('lists Visão geral as the first Análise item for intel.view', () => {
     const groups = visibleNav(new Set(['intel.view']))
-    const intel = groups.find(g => g.title === 'Inteligência')
-    expect(intel).toBeDefined()
-    expect(intel!.items[0].label).toBe('Panorama')
-    expect(intel!.items[0].to).toBe('/admin/inteligencia')
+    const analise = groups.find(g => g.title === 'Análise')
+    expect(analise).toBeDefined()
+    expect(analise!.items[0].label).toBe('Visão geral')
+    expect(analise!.items[0].to).toBe('/admin/inteligencia')
   })
 })
