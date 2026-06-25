@@ -189,6 +189,11 @@ function AdminUsuarioDetailContent() {
   const bestPosition = attempts
     .filter((a: UserAttemptRow) => a.score_percentage != null && a.ranking_position != null && a.ranking_position > 0)
     .reduce<number | null>((best, a) => (best == null || a.ranking_position! < best ? a.ranking_position! : best), null)
+  // Treino e offline pendente como contexto da contagem de provas válidas.
+  const validContext = [
+    user.training_attempts > 0 ? `${user.training_attempts} treino` : null,
+    user.offline_pending_count > 0 ? `${user.offline_pending_count} offline` : null,
+  ].filter(Boolean).join(' · ')
 
   return (
     <div className="max-w-[1200px]">
@@ -267,10 +272,17 @@ function AdminUsuarioDetailContent() {
         </div>
       </div>
 
-      {/* 4 stat cards */}
+      {/* 4 stat cards — desempenho e contagem referem-se a provas VÁLIDAS (na janela) */}
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <AdminStatCard label="Desempenho médio" value={`${user.avg_score.toFixed(1)}%`} />
-        <AdminStatCard label="Tentativas" value={user.total_attempts} />
+        <AdminStatCard
+          label="Desempenho médio"
+          value={user.valid_attempts > 0 ? `${user.avg_score.toFixed(1)}%` : '—'}
+        />
+        <AdminStatCard
+          label="Provas válidas"
+          value={user.valid_attempts}
+          hint={validContext || undefined}
+        />
         <AdminStatCard label="Melhor posição" value={bestPosition != null ? `${bestPosition}º` : '—'} />
         <AdminStatCard label="Última atividade" value={formatRelativeDays(user.last_finished_at ?? user.last_sign_in_at)} />
       </div>

@@ -14,7 +14,10 @@ import {
   useAdminDeleteAttempt,
 } from '@/admin/hooks/useAdminTentativas'
 
-const mockKpis = { total: 120, in_progress: 5, submitted: 100, expired: 15 }
+const mockKpis = {
+  total: 120, in_progress: 5, submitted: 100, expired: 15, offline_pending: 0,
+  submitted_valid: 92, in_progress_valid: 4, offline_pending_valid: 0,
+}
 
 const mockRows = [
   {
@@ -69,6 +72,22 @@ describe('AdminTentativas', () => {
     expect(screen.getByRole('tab', { name: 'Todas' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Em andamento' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Concluídas' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Offline/pendente' })).toBeInTheDocument()
+  })
+
+  it('renders the Offline/pendente KPI card and the "válidas" hint on Concluídas', () => {
+    renderPage()
+    // O card de offline tem o mesmo rótulo da aba — há dois nós com esse texto.
+    expect(screen.getAllByText('Offline/pendente').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('92 válidas')).toBeInTheDocument()
+  })
+
+  it('filters by offline_pending when clicking the tab', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('tab', { name: 'Offline/pendente' }))
+    const calls = vi.mocked(useAdminAttemptList).mock.calls
+    // o status é o 3º argumento posicional (search, simuladoId, status, days, page)
+    expect(calls.some(c => c[2] === 'offline_pending')).toBe(true)
   })
 
   it('shows "Encerrar" only for in-progress rows', () => {

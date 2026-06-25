@@ -27,6 +27,7 @@ const SEGMENTS = [
   { label: 'Todas', value: 'all' },
   { label: 'Em andamento', value: 'in_progress' },
   { label: 'Concluídas', value: 'submitted' },
+  { label: 'Offline/pendente', value: 'offline_pending' },
 ] as const
 
 const DAYS_OPTIONS = [...PERIOD_OPTIONS, { label: 'Todo o período', value: 0 }]
@@ -105,11 +106,18 @@ function AdminTentativasContent() {
         }
       />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* KPIs — os buckets fecham com o Total: em andamento + concluídas + offline/pendente + expiradas. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <AdminStatCard label="Total" value={kpis?.total ?? '—'} isLoading={kpisLoading} />
         <AdminStatCard label="Em andamento" value={kpis?.in_progress ?? '—'} valueTone="info" isLoading={kpisLoading} />
-        <AdminStatCard label="Concluídas" value={kpis?.submitted ?? '—'} valueTone="success" isLoading={kpisLoading} />
+        <AdminStatCard
+          label="Concluídas"
+          value={kpis?.submitted ?? '—'}
+          valueTone="success"
+          hint={kpis ? `${formatInt(kpis.submitted_valid)} válidas` : undefined}
+          isLoading={kpisLoading}
+        />
+        <AdminStatCard label="Offline/pendente" value={kpis?.offline_pending ?? '—'} valueTone="warning" isLoading={kpisLoading} />
         <AdminStatCard label="Expiradas" value={kpis?.expired ?? '—'} valueTone="warning" isLoading={kpisLoading} />
       </div>
 

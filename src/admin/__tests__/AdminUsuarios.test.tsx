@@ -35,11 +35,15 @@ const mockUsers: Record<string, unknown>[] = [
     user_id: 'u1', full_name: 'Felipe Matos', email: 'felipe@sanar.com',
     avatar_url: null, segment: 'pro' as const, specialty: 'Clínica Médica',
     created_at: '2026-03-12T10:00:00Z', avg_score: 74.2, total_attempts: 8, total_count: 2,
+    started_attempts: 10, training_attempts: 2, valid_attempts: 8,
+    offline_pending_count: 1, in_progress_count: 0,
   },
   {
     user_id: 'u2', full_name: 'Ana Silva', email: 'ana@gmail.com',
     avatar_url: null, segment: 'standard' as const, specialty: 'Pediatria',
     created_at: '2026-03-28T10:00:00Z', avg_score: 61.8, total_attempts: 0, total_count: 2,
+    started_attempts: 0, training_attempts: 0, valid_attempts: 0,
+    offline_pending_count: 0, in_progress_count: 0,
   },
 ]
 
