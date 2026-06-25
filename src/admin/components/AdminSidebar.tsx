@@ -44,7 +44,7 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
     <TooltipProvider delayDuration={100}>
       <aside
         className={cn(
-          'shrink-0 min-h-screen z-20 flex flex-col bg-[#1A1715] text-[#C9C4BF] border-r border-[#2A2522]',
+          'shrink-0 h-screen z-20 flex flex-col bg-[#1A1715] text-[#C9C4BF] border-r border-[#2A2522]',
           'motion-safe:transition-[width] motion-safe:duration-200',
           collapsed ? 'w-14' : 'w-60',
         )}
