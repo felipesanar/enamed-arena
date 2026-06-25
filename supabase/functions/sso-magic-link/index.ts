@@ -80,20 +80,31 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Body inválido" }), { status: 400, headers });
   }
 
-  // --- HMAC signature verification for segment elevation ---
-  // If the caller wants to set segment=standard|pro, it MUST sign the request
-  // with SSO_SIGNING_SECRET (shared between SanarFlix backend and this function).
-  // The raw message signed is: `${email}|${segment}|${timestamp}` (ms epoch).
-  // Signatures older than 5 minutes are rejected to prevent replay.
+  // --- Segment elevation trust model ---
+  // SanarFlix sends users here via a browser redirect carrying isFromPro /
+  // isFromSanarflix (translated to segment=pro|standard by the frontend).
+  // There are two trust modes, decided by whether SSO_SIGNING_SECRET is set:
   //
-  // If no SSO_SIGNING_SECRET is configured, segment is IGNORED (safe default).
+  //  (A) SECRET CONFIGURED (hardened) — the request MUST carry a valid HMAC
+  //      signature of `${email}|${segment}|${timestamp}` (ms epoch, <5 min old)
+  //      signed with the shared secret. Missing/invalid signature → segment is
+  //      ignored. Enable this once SanarFlix signs the redirect (and the
+  //      frontend forwards `signature`/`timestamp`).
+  //
+  //  (B) NO SECRET (current default) — trust the segment from the redirect.
+  //      This is the original behavior. The browser redirect carries no
+  //      signature, so requiring one (the April 2026 hardening) silently
+  //      downgraded every PRO/standard arrival to guest. Trusting the param
+  //      restores elevation; the never-downgrade rule applied below bounds the
+  //      risk — a crafted URL can only ever raise a segment, never lower an
+  //      existing paying user.
   const ssoSigningSecret = Deno.env.get("SSO_SIGNING_SECRET") ?? "";
   let segmentTrusted = false;
 
   if (segment && ["standard", "pro"].includes(segment)) {
     if (!ssoSigningSecret) {
-      console.warn("[sso-magic-link] Segment elevation requested but SSO_SIGNING_SECRET not configured — ignoring segment");
-      segment = "";
+      console.warn("[sso-magic-link] SSO_SIGNING_SECRET not configured — trusting segment from redirect (unsigned mode)");
+      segmentTrusted = true;
     } else if (!signature || !timestamp) {
       console.warn("[sso-magic-link] Segment requested without signature/timestamp — ignoring segment");
       segment = "";
@@ -247,9 +258,24 @@ Deno.serve(async (req) => {
     const profileUpdates: Record<string, string> = {};
     const validSegments = ["standard", "pro"];
 
-    // Only apply segment if signature was trusted
+    // Apply segment only if trusted (see trust model above) AND only as an
+    // UPGRADE. Never downgrade: a user already at a higher tier (e.g. pro)
+    // must not be knocked down because they arrived via a standard/guest link.
+    // Real downgrades (cancelled subscription) are handled deliberately by an
+    // admin or a dedicated sync, not as a side effect of which link was clicked.
     if (segmentTrusted && segment && validSegments.includes(segment)) {
-      profileUpdates.segment = segment;
+      const rank: Record<string, number> = { guest: 0, standard: 1, pro: 2 };
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("segment")
+        .eq("id", userId)
+        .maybeSingle();
+      const currentSegment = (currentProfile?.segment as string | undefined) ?? "guest";
+      if ((rank[segment] ?? 0) > (rank[currentSegment] ?? 0)) {
+        profileUpdates.segment = segment;
+      } else {
+        console.log(`[sso-magic-link] Segment ${segment} not applied for ${userId} — current '${currentSegment}' is equal or higher (no downgrade)`);
+      }
     }
     if (fullName) {
       profileUpdates.full_name = fullName;

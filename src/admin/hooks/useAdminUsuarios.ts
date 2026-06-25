@@ -28,6 +28,15 @@ export function useAdminUserAttempts(userId: string) {
   })
 }
 
+export function useAdminAttemptQuestions(attemptId: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'attempt-questions', attemptId],
+    queryFn: () => adminApi.getAttemptQuestions(attemptId!),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!attemptId,
+  })
+}
+
 export function useAdminSetUserSegment() {
   const qc = useQueryClient()
   return useMutation({

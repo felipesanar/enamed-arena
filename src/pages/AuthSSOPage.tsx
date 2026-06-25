@@ -18,6 +18,8 @@ export default function AuthSSOPage() {
   const email = searchParams.get('email')?.trim().toLowerCase() || '';
   const name = searchParams.get('name')?.trim() || '';
   const segment = searchParams.get('segment') || '';
+  const signature = searchParams.get('signature') || '';
+  const timestamp = searchParams.get('timestamp') || '';
 
   // noindex
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function AuthSSOPage() {
       try {
         const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>(
           'sso-magic-link',
-          { body: { email, name, segment } }
+          { body: { email, name, segment, signature, timestamp } }
         );
 
         if (error) {

@@ -8,6 +8,7 @@ import type {
   UserListRow,
   UserDetail,
   UserAttemptRow,
+  AttemptQuestionRow,
   SimuladoDetailStats,
   SimuladoQuestionStat,
   AttemptListKpis,
@@ -309,7 +310,34 @@ export const adminApi = {
       created_at: r.created_at as string,
       status: r.status as string,
       score_percentage: r.score_percentage != null ? Number(r.score_percentage) : null,
-      ranking_position: Number(r.ranking_position),
+      ranking_position: r.ranking_position != null ? Number(r.ranking_position) : null,
+      is_within_window: Boolean(r.is_within_window),
+    }))
+  },
+
+  async getAttemptQuestions(attemptId: string): Promise<AttemptQuestionRow[]> {
+    // Cast: this RPC is newer than the committed generated types (types.ts is
+    // regenerated separately; the repo's copy lags prod schema). Return rows
+    // are validated/mapped explicitly below.
+    const { data, error } = await (supabase.rpc as any)('admin_get_attempt_questions', {
+      p_attempt_id: attemptId,
+    })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      question_id: r.question_id as string,
+      question_number: Number(r.question_number),
+      area: (r.area as string | null) ?? null,
+      theme: (r.theme as string | null) ?? null,
+      difficulty: (r.difficulty as string | null) ?? null,
+      question_text: (r.question_text as string) ?? '',
+      was_answered: Boolean(r.was_answered),
+      is_correct: Boolean(r.is_correct),
+      selected_label: (r.selected_label as string | null) ?? null,
+      selected_text: (r.selected_text as string | null) ?? null,
+      correct_label: (r.correct_label as string | null) ?? null,
+      correct_text: (r.correct_text as string | null) ?? null,
+      ai_suggested_reason: (r.ai_suggested_reason as string | null) ?? null,
+      confidence: (r.confidence as string | null) ?? null,
     }))
   },
 
