@@ -720,3 +720,60 @@ Fase 4 (Dados & Ranking). Cria a RPC **`admin_simulado_results_roster(p_simulado
 ## 2026-06-17 — `fase4_results_roster_rpc_email_sort`
 
 Fase 4 (refino). `CREATE OR REPLACE` da `admin_simulado_results_roster` (mesma assinatura) acrescentando os dois `CASE` de ordenação por `email` no `ORDER BY`, para que a coluna E-mail do roster seja de fato ordenável no servidor (antes caía no rank por fallback). Sem outras mudanças.
+
+## 2026-06-24 — Auditoria de dados do admin: correção de 28 RPCs de métricas
+
+Correção severa pós-auditoria de confiabilidade dos dados do /admin. 28 RPCs `SECURITY DEFINER` reescritas e aplicadas em PROD (atômico, em ordem). **Decisões:** (1) métricas de PROVA excluem treino (`is_within_window=false`); 'iniciados' mantém treino; (2) `offline_pending` (status real, ~30% das tentativas) passa a ser visível e tratado em conclusão/abandono; (3) `expired` é bucket morto (sempre 0) e nunca mais é sinônimo de concluído; (4) funis/jornada/marketing viram COORTE por `user_id`, com conversão clampada a [0,100] e sinal `insufficient_data` (telemetria só existe desde 2026-06-17); (5) bucketização por dia/semana em `America/Sao_Paulo`; (6) anti-join `user_roles` onde fez sentido.
+
+**Mudanças de assinatura:** todas ADITIVAS (colunas novas no fim; colunas originais preservadas em nome/tipo/ordem). Funções que mudaram o row-type exigiram `DROP FUNCTION` + recriação.
+
+**Higiene de grants (segurança):** toda função recriada recebeu `REVOKE ALL ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated, service_role`. Isso REMOVEU exposição a `anon` que existia em `admin_analytics_funnel`, `admin_funnel_stats` e `admin_produto_segmented_funnel`. ACL final de todas: `authenticated` + `service_role` apenas.
+
+**Bug pré-existente corrigido:** `admin_produto_friction` já falhava em runtime em PROD (`operator does not exist: user_segment = text`) — corrigido com `pr.segment::text = p_segment`.
+
+**Funções (migration → correção):**
+
+- `fix_admin_attempts_kpis_offline_pending` — Tornar offline_pending visivel e fechar a conta total = soma dos status. Adita 4 colunas no FIM do retorno (offline_pending, submitted_valid, in_progress_valid, offline_pending_valid) preservando tota
+- `fix_admin_simulado_engagement_window_abandon_unified` — Unifica abandono = (in_progress+offline_pending DENTRO da janela)/(tentativas na janela), igual à detail RPC. Conclusão, abandono, avg_score e participants passam a excluir treino (is_within_window=fa
+- `fix_admin_simulado_detail_stats_window_median_capped_time` — Abandono unificado (in_progress+offline_pending na janela)/(tentativas na janela). Conclusão/participants/avg_time excluem treino. avg_time deixa de ser wall-clock sem cap: usa least(finished_at, effe
+- `fix_admin_dashboard_kpis_exclude_treino_offline_pending` — Corrige completion_rate e avg_score para EXCLUIR treino (is_within_window=false). Conclusão = submitted/valid; denominador valido = submitted+offline_pending+in_progress (expired NUNCA conta como conc
+- `fix_admin_events_timeseries_brt_bucket_exclude_treino` — date_trunc por dia em America/Sao_Paulo (era UTC, ~9.5% das tentativas caem em dia diferente) e ancora generate_series no horario local. exams_completed passa a contar SOMENTE provas validas submitted
+- `fix_admin_analytics_funnel_cohort` — Reconstrói o funil de Jornada como COORTE por user_id (cada passo subconjunto do anterior via IN), em vez de 5 contagens independentes de universos diferentes (8d de eventos vs anos de profiles/attemp
+- `fix_admin_funnel_stats_cohort` — Funil do Dashboard: era coorte por signup do período (7d) misturando passos de evento (simulado_detail_viewed/resultado_viewed) com passos de ação sem garantir subconjunto, e usava status in ('submitt
+- `fix_admin_produto_segmented_funnel_cohort` — Funil Segmentado por segmento: a base de cada segmento era gated por created_at >= 30d, o que ZERAVA 'standard' (maior segmento, 4214 no banco -> apenas 8 caíam na janela). Como o objetivo é COMPARAR 
+- `fix_admin_time_to_convert_honest_cohorts` — Corrige admin_analytics_time_to_convert: landing->signup vira INSALVÁVEL (N=0, landing dispara DEPOIS do signup) -> retorna -1 (sentinel 'dados insuficientes') quando a amostra < 5. signup->onboarding
+- `fix_admin_produto_friction_exclude_training_honest_results` — Corrige admin_produto_friction (assinatura key/title/event_name/metric_value/metric_unit/severity PRESERVADA; colunas aditivas no fim). post_exam_churn = coorte de quem teve 1ª PROVA VÁLIDA no período
+- `fix_admin_marketing_campaigns_cohort_granularity` — Corrige o bug CRITICO: o FULL JOIN por texto de campanha replicava signups/first_exams (ate 1076/182) em cada linha de source, gerando conv_rate=107600%. Agora signups e first_exams sao atribuidos a c
+- `fix_admin_marketing_kpis_honest_landing_conv` — Corrige landing_to_signup_pct que dava 623%/3937% (cruzava signups de meses com visitas de 8 dias, sem cap). Agora o denominador sao as visitas de landing na janela de telemetria e o numerador e a coo
+- `fix_admin_marketing_sources_real_conversion` — O conv_rate atual e PARTICIPACAO (soma ~100%), nao conversao. Mantem conv_rate (participacao) por compat de assinatura e ADICIONA signup_conv_pct = conversao REAL por origem (cadastros da coorte ident
+- `fix_admin_marketing_mediums_real_conversion` — Mesma correcao de semantica do sources para mediums: conv_rate continua sendo participacao (compat) e ADICIONA signup_conv_pct = conversao real por medium (coorte identificada / visitas de landing do 
+- `fix_admin_cohort_retention_exclude_treino_add_pending` — Corrige admin_cohort_retention: did_1/2/3_plus passam a contar APENAS provas válidas (status='submitted' AND is_within_window=true), excluindo treino e o bucket morto 'expired'. avg_score passa a vir 
+- `fix_admin_analytics_timeseries_valid_exams_sp_tz` — first_exams passa a contar a 1a PROVA VALIDA (status submitted + is_within_window=true), nao o min(created_at) de qualquer attempt (que contava treino/in_progress). Bucketizacao semanal migrada para A
+- `fix_admin_segment_breakdown_offline_pending_antijoin_no_treino` — participants passa a contar participantes REAIS de prova valida: status in (in_progress, offline_pending, submitted) com is_within_window=true (inclui offline_pending = 727 users antes excluidos; remo
+- `fix_admin_score_distribution_exclude_treino` — admin_score_distribution lê user_performance_history (uph) diretamente, que contém 345 linhas de treino (is_within_window=false). Junta a attempts via attempt_id e filtra is_within_window=true para ex
+- `fix_admin_score_evolution_exclude_treino` — admin_score_evolution agrega user_performance_history sem excluir treino, inflando participants/avg/median/cutoff com tentativas is_within_window=false. Junta a attempts via attempt_id e filtra is_wit
+- `fix_admin_engagement_metrics_treino_offline_pending` — admin_engagement_metrics tratava 'completed' como qualquer status='submitted' (incluindo treino) e abandono = (started-completed)/started misturando treino com prova. Correções: (1) started/started_pr
+- `fix_admin_users_exclude_training_expose_offline_pending` — Corrige avg_score/best_score/last_score/total_attempts dos RPCs de usuarios para EXCLUIR treino (is_within_window=false). A causa-raiz: user_performance_summary (e user_performance_history que o alime
+- `fix_admin_get_user_exclude_training_expose_offline_pending` — Mesma correcao para admin_get_user: avg_score/best_score/last_score/total_attempts agora vem de user_performance_history JOIN attempts filtrando is_within_window=true (exclui treino). last_score/last_
+- `fix_admin_live_signals_offline_pending_honest_tickets` — Corrige admin_live_signals: (1) online_last_15min passa a usar fonte confiavel = UNIAO de atividade real (analytics_events + attempts.last_saved_at) excluindo contas internas via anti-join com user_ro
+- `fix_admin_get_ranking_dedupe_best_attempt` — admin_get_ranking_for_simulado e a verdade do app (get_ranking_for_simulado) NAO deduplicam por usuario: 19 pares user/simulado tem >1 tentativa valida; no simulado 887c0554 isso gera 552 posicoes par
+- `fix_admin_results_roster_rank_dedupe_rownumber` — O 'rank' (#) do roster usava rank() sobre TODAS as tentativas do escopo apos search/segment/institution, sem dedupe por usuario e com semantica RANK (empates compartilham posicao) -> diverge do rankin
+- `fix_admin_question_stats_valid_only_and_disc_scale` — Dois bugs: (1) estatisticas por questao incluiam tentativas de treino (is_within_window=false): no simulado 887c0554, Q1 tinha 775 respostas vs 552 validas, correct_rate 36.90% vs 37.50%; percentis to
+- `fix_admin_get_user_attempts_rownumber_dedupe` — ranking_position usava count(*)+1 de tentativas validas com score estritamente maior (semantica RANK, empates compartilham posicao) e contava POR TENTATIVA sem dedupe por usuario -> diverge do ROW_NUM
+- `fix_admin_list_attempts_ranking_rownumber_valid` — ranking_position usava count(*)+1 sobre user_performance_history filtrado so por simulado (sem is_within_window, por-tentativa, semantica RANK). uph mistura tentativas de treino (is_within_window=fals
+
+**Smoke (PROD, contexto admin):** todas as 28 executam sem erro; grants = `authenticated`+`service_role` (sem anon/public); `admin_attempts_kpis` fecha total = soma dos 4 buckets; `admin_produto_friction` roda (enum corrigido) e `results_view` retorna sentinel -1/insuficiente; funis monotônicos e conversões em [0,100]. Verificação adversarial por domínio executada.
+
+**Follow-up registrado:** 31 OUTRAS RPCs admin ainda executáveis por `anon` (pré-existente, gated por `admin_require`); `admin_get_ranking_for_simulado` não chama `admin_require` (comportamento pré-existente, preservado).
+
+---
+
+## 2026-06-24 — Auditoria do admin (v2): conserto de runtime + funis honestos
+
+Dois ajustes pós-verificação adversarial das 28 RPCs:
+
+1. **`fix_admin_marketing_ambiguous_colref_v2`** — `admin_marketing_sources/mediums/campaigns` passaram a falhar em runtime com `ERROR 42702 column reference "source/medium/campaign" is ambiguous` (alias de CTE colidindo com coluna do `RETURNS TABLE`). Fix: diretiva `#variable_conflict use_column`. `CREATE OR REPLACE` (mesma assinatura → grants preservados). **Smoke (admin):** as 3 executam; `campaigns` sem fan-out (signups por (campaign,source), conv_rate ≤ 100), `sources/mediums` com `signup_conv_pct` em [0,100]/null.
+
+2. **`fix_admin_funnels_reliable_cohort_spine_v2`** — `admin_analytics_funnel` e `admin_funnel_stats` eram não-monotônicos: misturavam passos de EVENTO (telemetria só desde 2026-06-17) com passos all-time, e o `least(100,...)` mascarava conversão 1574% como "100". Fix: funil reduzido à **coorte confiável estritamente aninhada** (Cadastro→Onboarding→Iniciou prova→Submeteu válida [→Retornou 2+]), derivada de profiles/onboarding/attempts; passos de evento removidos (métricas de aquisição vivem no Marketing). **Smoke (admin, 90d):** Jornada 6899→3928(56.9%)→1736(44.2%)→769(44.3%)→314(40.8%), monotônico, conversões em [0,100].
+
+---
