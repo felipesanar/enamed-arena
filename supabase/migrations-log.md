@@ -800,3 +800,9 @@ Dois ajustes pós-verificação adversarial das 28 RPCs:
 2. **`fix_admin_funnels_reliable_cohort_spine_v2`** — `admin_analytics_funnel` e `admin_funnel_stats` eram não-monotônicos: misturavam passos de EVENTO (telemetria só desde 2026-06-17) com passos all-time, e o `least(100,...)` mascarava conversão 1574% como "100". Fix: funil reduzido à **coorte confiável estritamente aninhada** (Cadastro→Onboarding→Iniciou prova→Submeteu válida [→Retornou 2+]), derivada de profiles/onboarding/attempts; passos de evento removidos (métricas de aquisição vivem no Marketing). **Smoke (admin, 90d):** Jornada 6899→3928(56.9%)→1736(44.2%)→769(44.3%)→314(40.8%), monotônico, conversões em [0,100].
 
 ---
+
+## 2026-06-25 — `fix_admin_produto_feature_adoption_enum_cast`
+
+Bug PRÉ-EXISTENTE (não introduzido pela auditoria, mas descoberto ao revisar a página Produto): `admin_produto_feature_adoption` abortava em runtime com `42883 operator does not exist: user_segment = text` (`pr.segment` é ENUM, `p_segment` é text), fazendo o painel "Recursos mais usados" renderizar sempre vazio. Fix: `pr.segment::text = p_segment` nas 2 comparações. `CREATE OR REPLACE` (mesma assinatura → grants preservados). **Smoke (admin):** `admin_produto_feature_adoption(30,'all')` retorna 6 linhas (Ver desempenho 25,7%, Ver gabarito/Ver resultado 18,9%, Ver ranking 15,0%, Comparativo 5,3%, Caderno 3,1%). Não precisa de deploy de frontend — o front antigo já chama essa RPC; corrigir o erro de runtime já popula o painel.
+
+---
