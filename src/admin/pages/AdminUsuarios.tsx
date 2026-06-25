@@ -32,11 +32,11 @@ const PAGE_SIZE = 25
 const SEGMENTS = [
   { label: 'Todos', value: 'all' },
   { label: 'Visitante', value: 'guest' },
-  { label: 'Aluno SanarFlix', value: 'standard' },
-  { label: 'Aluno PRO', value: 'pro' },
+  { label: 'SanarFlix', value: 'standard' },
+  { label: 'PRO', value: 'pro' },
 ] as const
 
-const GRID = '2.2fr 130px 110px 1fr 110px 48px'
+const GRID = '2.2fr 120px 110px 1fr 120px 44px'
 
 /** Avatar de iniciais com cor estável por usuário (paleta neutra + accent). */
 const AVATAR_TONES = [
@@ -78,12 +78,19 @@ function AdminUsuariosContent() {
   const cardTotal = totalAll.data?.[0]?.total_count
   const cardPro = totalPro.data?.[0]?.total_count
   const cardStandard = totalStandard.data?.[0]?.total_count
-  // "Novos (7 dias)": contagem na página atual já carregada da base completa.
-  const newLast7 = useMemo(() => {
+
+  // "Novos (7 dias)": a lista vem ordenada do cadastro mais recente para o mais
+  // antigo, então os mais novos estão sempre no topo da primeira página. Contamos
+  // quem entrou na última semana entre as linhas já carregadas. Sem um RPC próprio
+  // para isso, se a página inteira couber dentro do recorte o total real pode ser
+  // maior — nesse caso mostramos "+N+" deixando claro que é um piso.
+  const recent = useMemo(() => {
     const rows = totalAll.data ?? []
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
-    return rows.filter(r => new Date(r.created_at).getTime() >= cutoff).length
-  }, [totalAll.data])
+    const count = rows.filter(r => new Date(r.created_at).getTime() >= cutoff).length
+    const isFloor = rows.length > 0 && count === rows.length && count < (cardTotal ?? count)
+    return { count, isFloor }
+  }, [totalAll.data, cardTotal])
 
   // Ações de linha
   const resetOnboarding = useAdminResetUserOnboarding()
@@ -198,13 +205,13 @@ function AdminUsuariosContent() {
           isLoading={totalPro.isLoading}
         />
         <AdminStatCard
-          label="Aluno SanarFlix"
+          label="SanarFlix"
           value={cardStandard !== undefined ? formatInt(cardStandard) : '—'}
           isLoading={totalStandard.isLoading}
         />
         <AdminStatCard
           label="Novos (7 dias)"
-          value={`+${formatInt(newLast7)}`}
+          value={`+${formatInt(recent.count)}${recent.isFloor ? '+' : ''}`}
           valueTone="success"
           isLoading={totalAll.isLoading}
         />

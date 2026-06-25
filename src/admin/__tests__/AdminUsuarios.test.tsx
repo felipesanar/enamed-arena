@@ -68,12 +68,14 @@ describe('AdminUsuarios', () => {
     expect(screen.getByRole('button', { name: 'Exportar lista' })).toBeInTheDocument()
   })
 
-  it('renders the four summary cards', () => {
+  it('renders the four summary cards with the spec labels', () => {
     renderList()
     expect(screen.getByText('Total')).toBeInTheDocument()
-    // "Aluno PRO" / "Aluno SanarFlix" também aparecem como pílula e badge: usa getAllByText.
+    // Card PRO mantém o rótulo longo "Aluno PRO" (também é o badge da linha): getAllByText.
     expect(screen.getAllByText('Aluno PRO').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Aluno SanarFlix').length).toBeGreaterThan(0)
+    // Card do segmento standard usa a forma curta "SanarFlix" (spec README §2 + .dc.html).
+    // Aparece também na pílula da toolbar, então usa getAllByText.
+    expect(screen.getAllByText('SanarFlix').length).toBeGreaterThan(0)
     expect(screen.getByText('Novos (7 dias)')).toBeInTheDocument()
   })
 
@@ -138,9 +140,19 @@ describe('AdminUsuarios', () => {
     expect(screen.getByText('Ninguém por aqui ainda')).toBeInTheDocument()
   })
 
+  it('filter pills use the short segment labels from the spec', () => {
+    renderList()
+    const group = screen.getByRole('group', { name: 'Filtrar por segmento' })
+    expect(within(group).getByRole('button', { name: 'Todos' })).toBeInTheDocument()
+    expect(within(group).getByRole('button', { name: 'Visitante' })).toBeInTheDocument()
+    expect(within(group).getByRole('button', { name: 'SanarFlix' })).toBeInTheDocument()
+    expect(within(group).getByRole('button', { name: 'PRO' })).toBeInTheDocument()
+  })
+
   it('filter pills call the hook with the correct segment', () => {
     renderList()
-    fireEvent.click(screen.getByRole('button', { name: 'Aluno PRO' }))
+    const group = screen.getByRole('group', { name: 'Filtrar por segmento' })
+    fireEvent.click(within(group).getByRole('button', { name: 'PRO' }))
     expect(vi.mocked(useAdminUserList)).toHaveBeenCalledWith(
       expect.anything(), 'pro', expect.anything()
     )
