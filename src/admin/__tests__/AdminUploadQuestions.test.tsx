@@ -71,7 +71,7 @@ describe('AdminUploadQuestions', () => {
 
     expect(await screen.findByText('Baixar planilha modelo')).toBeInTheDocument()
     expect(screen.getByText('Arraste a planilha aqui')).toBeInTheDocument()
-    expect(screen.getByText(/Formato \.xlsx · até 5 MB/)).toBeInTheDocument()
+    expect(screen.getByText(/Formato \.xlsx · sem limite de tamanho/)).toBeInTheDocument()
   })
 
   it('mostra o estado vazio do Passo 2 enquanto nenhum arquivo foi enviado', async () => {

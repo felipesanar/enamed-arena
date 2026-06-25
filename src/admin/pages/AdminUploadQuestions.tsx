@@ -68,8 +68,7 @@ interface NormalizedQuestion {
   correta: string;
 }
 
-const MAX_FILE_MB = 5;
-const COLUMNS_HINT = 'numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Imagem 2 do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário';
+const COLUMNS_HINT ='numero, Grande Área, Especialidade, Tema, Enunciado, Imagem do Enunciado, Imagem 2 do Enunciado, Alternativa A, Alternativa B, Alternativa C, Alternativa D, Gabarito, Comentário';
 
 function normalizeStoragePublicUrl(value: string | undefined | null): string {
   const raw = value?.trim();
@@ -384,11 +383,9 @@ function AdminUploadQuestionsContent() {
       setFileError('Formato não aceito. Envie um arquivo .xlsx.');
       return;
     }
-    if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      setFileError(`Arquivo muito grande. O limite é ${MAX_FILE_MB} MB.`);
-      return;
-    }
-
+    // Sem limite de tamanho: o parsing é client-side e as imagens vão direto pro
+    // Storage (limite global 50 MB/arquivo, bucket sem limite). A planilha em si
+    // nunca trafega inteira pra edge function — só texto + URLs.
     setFileName(file.name);
     setFindings([]);
     setStructuralFindings([]);
@@ -790,7 +787,7 @@ function AdminUploadQuestionsContent() {
               <p className="text-[13.5px] font-semibold text-admin-text">
                 {parsing ? 'Lendo a planilha...' : fileName ? fileName : 'Arraste a planilha aqui'}
               </p>
-              <p className="mt-1 text-xs text-admin-muted">Formato .xlsx · até {MAX_FILE_MB} MB</p>
+              <p className="mt-1 text-xs text-admin-muted">Formato .xlsx · sem limite de tamanho</p>
               {!parsing && (
                 <span className="mt-3.5 inline-flex items-center rounded-md border border-admin-line bg-admin-surface px-3.5 py-2 text-[12.5px] font-semibold text-admin-text">
                   {fileName ? 'Escolher outro arquivo' : 'Escolher arquivo'}

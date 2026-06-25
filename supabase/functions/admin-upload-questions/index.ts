@@ -6,6 +6,8 @@ const corsHeaders = {
 };
 
 const IMAGE_BUCKET = "question-images";
+const QUESTION_CHUNK = 100;
+const OPTION_CHUNK = 400;
 
 function mimeToExt(mime: string): string {
   if (mime.includes("jpeg") || mime.includes("jpg")) return "jpg";
@@ -14,6 +16,17 @@ function mimeToExt(mime: string): string {
   if (mime.includes("webp")) return "webp";
   return "png";
 }
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+const LABELS = ["A", "B", "C", "D"] as const;
+const labelToField: Record<string, string> = {
+  A: "alternativa_a", B: "alternativa_b", C: "alternativa_c", D: "alternativa_d",
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -39,10 +52,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const userId = user.id;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: isAdmin } = await adminClient.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isAdmin } = await adminClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
@@ -52,27 +64,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "simulado_id and questions array required" }), { status: 400, headers: corsHeaders });
     }
 
-    const labelMap: Record<string, string> = {
-      A: "alternativa_a",
-      B: "alternativa_b",
-      C: "alternativa_c",
-      D: "alternativa_d",
-    };
-
-    // New (preferred) payload: client uploaded images directly to Storage and sends only URLs.
     const urlMap: Record<number, { enunciado_url?: string; enunciado2_url?: string; comentario_url?: string }> = image_urls || {};
-    // Legacy fallback: base64 payload (kept for backward compatibility).
+    // Legacy fallback: base64 payload (mantido por compat; o fluxo novo sobe imagens direto pro Storage).
     const imageMap: Record<number, {
       enunciado?: { data: string; mime: string };
       comentario?: { data: string; mime: string };
     }> = images || {};
 
-    let inserted = 0;
-
+    // ── 1) Resolve URLs de imagem por questão (url_map preferido; base64 legado faz upload) ──
+    const prepared: Array<{ qNum: number; q: any; row: Record<string, unknown> }> = [];
     for (const q of questions) {
       const qNum = Number(q.numero);
-
-      // Upload images to Storage if present
       let imageUrl: string | null = q.image_url || null;
       let imageUrl2: string | null = q.image_url_2 || null;
       let explanationImageUrl: string | null = null;
@@ -83,58 +85,31 @@ Deno.serve(async (req) => {
       if (urls?.comentario_url) explanationImageUrl = urls.comentario_url;
 
       const qImages = imageMap[qNum];
-
       if (qImages?.enunciado) {
         try {
           const ext = mimeToExt(qImages.enunciado.mime);
           const storagePath = `${simulado_id}/${qNum}_enunciado.${ext}`;
-          const imageBytes = Uint8Array.from(atob(qImages.enunciado.data), c => c.charCodeAt(0));
-
-          const { error: uploadErr } = await adminClient.storage
-            .from(IMAGE_BUCKET)
-            .upload(storagePath, imageBytes, {
-              contentType: qImages.enunciado.mime,
-              upsert: true,
-            });
-
-          if (uploadErr) {
-            console.error("Enunciado image upload error:", uploadErr);
-          } else {
-            const { data: urlData } = adminClient.storage.from(IMAGE_BUCKET).getPublicUrl(storagePath);
-            imageUrl = urlData.publicUrl;
-          }
-        } catch (imgErr) {
-          console.error("Error processing enunciado image:", imgErr);
-        }
+          const bytes = Uint8Array.from(atob(qImages.enunciado.data), (c) => c.charCodeAt(0));
+          const { error } = await adminClient.storage.from(IMAGE_BUCKET).upload(storagePath, bytes, { contentType: qImages.enunciado.mime, upsert: true });
+          if (!error) imageUrl = adminClient.storage.from(IMAGE_BUCKET).getPublicUrl(storagePath).data.publicUrl;
+          else console.error("Enunciado image upload error:", error);
+        } catch (e) { console.error("enunciado img", e); }
       }
-
       if (qImages?.comentario) {
         try {
           const ext = mimeToExt(qImages.comentario.mime);
           const storagePath = `${simulado_id}/${qNum}_comentario.${ext}`;
-          const imageBytes = Uint8Array.from(atob(qImages.comentario.data), c => c.charCodeAt(0));
-
-          const { error: uploadErr } = await adminClient.storage
-            .from(IMAGE_BUCKET)
-            .upload(storagePath, imageBytes, {
-              contentType: qImages.comentario.mime,
-              upsert: true,
-            });
-
-          if (uploadErr) {
-            console.error("Comentario image upload error:", uploadErr);
-          } else {
-            const { data: urlData } = adminClient.storage.from(IMAGE_BUCKET).getPublicUrl(storagePath);
-            explanationImageUrl = urlData.publicUrl;
-          }
-        } catch (imgErr) {
-          console.error("Error processing comentario image:", imgErr);
-        }
+          const bytes = Uint8Array.from(atob(qImages.comentario.data), (c) => c.charCodeAt(0));
+          const { error } = await adminClient.storage.from(IMAGE_BUCKET).upload(storagePath, bytes, { contentType: qImages.comentario.mime, upsert: true });
+          if (!error) explanationImageUrl = adminClient.storage.from(IMAGE_BUCKET).getPublicUrl(storagePath).data.publicUrl;
+          else console.error("Comentario image upload error:", error);
+        } catch (e) { console.error("comentario img", e); }
       }
 
-      const { data: question, error: qErr } = await adminClient
-        .from("questions")
-        .insert({
+      prepared.push({
+        qNum,
+        q,
+        row: {
           simulado_id,
           question_number: qNum,
           text: q.texto || "",
@@ -145,35 +120,59 @@ Deno.serve(async (req) => {
           image_url: imageUrl,
           image_url_2: imageUrl2,
           explanation_image_url: explanationImageUrl,
-        })
-        .select("id")
-        .single();
-
-      if (qErr) {
-        console.error("Question insert error:", qErr);
-        continue;
-      }
-
-      const options = Object.keys(labelMap).map((label) => ({
-        question_id: question.id,
-        label,
-        text: q[labelMap[label]] || "",
-        is_correct: q.correta?.toUpperCase() === label,
-      }));
-
-      const { error: optErr } = await adminClient.from("question_options").insert(options);
-      if (optErr) {
-        console.error("Options insert error:", optErr);
-        continue;
-      }
-
-      inserted++;
+        },
+      });
     }
 
-    await adminClient
-      .from("simulados")
-      .update({ questions_count: inserted })
-      .eq("id", simulado_id);
+    // ── 2) Insere questões em LOTE (chunked), com fallback por linha se um lote falhar ──
+    const qNumToId = new Map<number, string>();
+    for (const part of chunk(prepared, QUESTION_CHUNK)) {
+      const { data, error } = await adminClient
+        .from("questions")
+        .insert(part.map((p) => p.row))
+        .select("id, question_number");
+      if (!error && data) {
+        for (const d of data) qNumToId.set(Number(d.question_number), d.id as string);
+      } else {
+        console.error("Batch question insert failed, fallback per-row:", error);
+        for (const p of part) {
+          const { data: one, error: e1 } = await adminClient
+            .from("questions").insert(p.row).select("id, question_number").single();
+          if (e1 || !one) { console.error("Question insert error:", p.qNum, e1); continue; }
+          qNumToId.set(Number(one.question_number), one.id as string);
+        }
+      }
+    }
+
+    // ── 3) Monta e insere opções em LOTE (chunked), com fallback por linha ──
+    const optionRows: Array<Record<string, unknown>> = [];
+    for (const p of prepared) {
+      const qid = qNumToId.get(p.qNum);
+      if (!qid) continue;
+      const correta = (p.q.correta || "").toUpperCase();
+      for (const label of LABELS) {
+        optionRows.push({
+          question_id: qid,
+          label,
+          text: p.q[labelToField[label]] || "",
+          is_correct: correta === label,
+        });
+      }
+    }
+    for (const part of chunk(optionRows, OPTION_CHUNK)) {
+      const { error } = await adminClient.from("question_options").insert(part);
+      if (error) {
+        console.error("Batch options insert failed, fallback per-row:", error);
+        for (const opt of part) {
+          const { error: e2 } = await adminClient.from("question_options").insert(opt);
+          if (e2) console.error("Option insert error:", e2);
+        }
+      }
+    }
+
+    const inserted = qNumToId.size;
+
+    await adminClient.from("simulados").update({ questions_count: inserted }).eq("id", simulado_id);
 
     return new Response(JSON.stringify({ inserted }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
