@@ -743,3 +743,9 @@ Fase 4 (Dados & Ranking). Cria a RPC **`admin_simulado_results_roster(p_simulado
 ## 2026-06-17 — `fase4_results_roster_rpc_email_sort`
 
 Fase 4 (refino). `CREATE OR REPLACE` da `admin_simulado_results_roster` (mesma assinatura) acrescentando os dois `CASE` de ordenação por `email` no `ORDER BY`, para que a coluna E-mail do roster seja de fato ordenável no servidor (antes caía no rank por fallback). Sem outras mudanças.
+
+## 2026-06-24/25 — Auditoria de dados do admin: 32 RPCs de métricas (DB-only)
+
+Migrations da auditoria severa de confiabilidade dos dados do /admin, **já aplicadas em PROD** e versionadas aqui (este PR é DB-only; o frontend correspondente foi superseubado pelo redesign — os rótulos de exibição serão reaplicados sobre as páginas do redesign em PR à parte). Cada `.sql` tem o racional no cabeçalho. **Decisões:** métricas de PROVA excluem treino (is_within_window=false); offline_pending (status real, ~30%) visível e tratado; expired é bucket morto; funis viram coorte monotônica com clamp [0,100] + insufficient_data; bucketização em America/Sao_Paulo; higiene de grants (REVOKE PUBLIC/anon + GRANT authenticated/service_role em toda função recriada). **Bugs pré-existentes de enum corrigidos:** admin_produto_friction, admin_produto_feature_adoption (faziam painel vazio/erro), admin_set_user_role (grant/revoke de papéis 100% quebrado). Verificação adversarial por domínio contra o banco real. Arquivos: 20260624210000..212700 (28), 213000/213100 (v2 marketing+funis), 20260625004000 (feature_adoption), 20260625004500 (set_user_role).
+
+---
