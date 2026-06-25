@@ -614,25 +614,48 @@ function AdminUploadQuestionsContent() {
 
       setUploadProgress({ step: 'Salvando questões...', percent: 75 });
 
-      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-upload-questions', {
-        body: {
-          simulado_id: simuladoId,
-          questions: normalized,
-          image_urls: imageUrls,
-        },
-      });
+      // Envia em LOTES (client→edge) para suportar simulados grandes sem estourar o
+      // corpo da requisição nem o tempo da edge function. As imagens já foram pro
+      // Storage; cada lote carrega só as URLs das suas questões.
+      const QUESTION_UPLOAD_CHUNK = 100;
+      const groups = chunk(normalized, QUESTION_UPLOAD_CHUNK);
+      let totalInserted = 0;
 
-      if (invokeError) {
-        throw new Error(invokeError.message || 'Falha ao salvar as questões.');
-      }
-      if (!result || typeof result.inserted !== 'number') {
-        throw new Error('Resposta inesperada do servidor ao salvar.');
+      for (let gi = 0; gi < groups.length; gi++) {
+        const group = groups[gi];
+        const subsetUrls: typeof imageUrls = {};
+        for (const q of group) {
+          const u = imageUrls[q.numero];
+          if (u) subsetUrls[q.numero] = u;
+        }
+
+        const { data: result, error: invokeError } = await supabase.functions.invoke('admin-upload-questions', {
+          body: {
+            simulado_id: simuladoId,
+            questions: group,
+            image_urls: subsetUrls,
+          },
+        });
+
+        if (invokeError) {
+          const prefix = totalInserted > 0 ? `${totalInserted} questões já foram salvas. ` : '';
+          throw new Error(`${prefix}${invokeError.message || 'Falha ao salvar as questões.'}`);
+        }
+        if (!result || typeof result.inserted !== 'number') {
+          throw new Error('Resposta inesperada do servidor ao salvar.');
+        }
+
+        totalInserted += result.inserted;
+        setUploadProgress({
+          step: `Salvando questões (${totalInserted} de ${normalized.length})...`,
+          percent: 75 + Math.round(((gi + 1) / groups.length) * 23),
+        });
       }
 
       setUploadProgress({ step: 'Pronto!', percent: 100 });
-      toast({ title: `${result.inserted} ${result.inserted === 1 ? 'questão importada' : 'questões importadas'}` });
+      toast({ title: `${totalInserted} ${totalInserted === 1 ? 'questão importada' : 'questões importadas'}` });
       resetParsedState();
-      setExistingCount((prev) => prev + result.inserted);
+      setExistingCount((prev) => prev + totalInserted);
     } catch (err: any) {
       logger.error('[AdminUploadQuestions] Falha no envio:', err);
       toast({ title: 'Erro no envio', description: err.message, variant: 'destructive' });
