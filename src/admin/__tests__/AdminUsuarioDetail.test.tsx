@@ -71,13 +71,18 @@ function renderDetail(userId = 'u1') {
   return renderWithAccess(detailUi(userId))
 }
 
+/** Abre a aba "Acesso e perfil" (onde vivem segmento, tour, exclusão e roles). */
+function openAcessoTab() {
+  fireEvent.click(screen.getByRole('button', { name: /^acesso e perfil$/i }))
+}
+
 import AdminUsuarioDetail from '@/admin/pages/AdminUsuarioDetail'
 
 describe('AdminUsuarioDetail', () => {
   beforeEach(() => {
     setRoleMutate.mockClear()
     vi.mocked(useAdminUser).mockReturnValue({
-      data: mockUser, isLoading: false, isError: false,
+      data: mockUser, isLoading: false, isError: false, refetch: vi.fn(),
     } as any)
     vi.mocked(useAdminUserAttempts).mockReturnValue({
       data: mockAttempts, isLoading: false, isError: false,
@@ -98,28 +103,32 @@ describe('AdminUsuarioDetail', () => {
     renderDetail()
     expect(screen.getAllByText('Felipe Matos').length).toBeGreaterThan(0)
     expect(screen.getByText('felipe@sanar.com')).toBeInTheDocument()
-    expect(screen.getAllByText('PRO').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Aluno PRO').length).toBeGreaterThan(0)
   })
 
-  it('renders performance KPIs', () => {
+  it('shows the back link to the users list', () => {
     renderDetail()
+    expect(screen.getByText(/voltar para usuários/i)).toBeInTheDocument()
+  })
+
+  it('renders the four stat cards', () => {
+    renderDetail()
+    expect(screen.getByText('Desempenho médio')).toBeInTheDocument()
     expect(screen.getByText('74.2%')).toBeInTheDocument()
-    expect(screen.getByText('88.0%')).toBeInTheDocument()
+    expect(screen.getByText('Tentativas')).toBeInTheDocument()
     expect(screen.getByText('8')).toBeInTheDocument()
+    expect(screen.getByText('Melhor posição')).toBeInTheDocument()
+    // Melhor posição = menor ranking_position com nota (23º) — aparece no card e na tabela
+    expect(screen.getAllByText('23º').length).toBeGreaterThan(0)
+    expect(screen.getByText('Última atividade')).toBeInTheDocument()
   })
 
-  it('renders onboarding specialty and institutions', () => {
-    renderDetail()
-    expect(screen.getByText('Clínica Médica')).toBeInTheDocument()
-    expect(screen.getByText('USP')).toBeInTheDocument()
-    expect(screen.getByText('UNIFESP')).toBeInTheDocument()
-  })
-
-  it('renders attempt history', () => {
+  it('renders attempt history in the default tab', () => {
     renderDetail()
     expect(screen.getByText('ENAMED Abril 2026')).toBeInTheDocument()
-    expect(screen.getAllByText('71.5%').length).toBeGreaterThan(0)
-    expect(screen.getByText('23º')).toBeInTheDocument()
+    expect(screen.getByText('#12')).toBeInTheDocument()
+    // nota arredondada para inteiro
+    expect(screen.getByText('72%')).toBeInTheDocument()
   })
 
   it('opens the per-question drill-down when an attempt row is clicked', () => {
@@ -130,16 +139,51 @@ describe('AdminUsuarioDetail', () => {
     expect(screen.getByText(/Correta/)).toBeInTheDocument()
   })
 
-  it('shows delete confirmation modal before deleting', () => {
+  it('shows an empty state when there are no attempts', () => {
+    vi.mocked(useAdminUserAttempts).mockReturnValue({ data: [], isLoading: false, isError: false } as any)
     renderDetail()
-    fireEvent.click(screen.getByRole('button', { name: /^excluir$/i }))
-    expect(screen.getByText(/confirmar exclusão/i)).toBeInTheDocument()
+    expect(screen.getByText(/nenhuma tentativa ainda/i)).toBeInTheDocument()
   })
 
-  describe('Acesso ao painel (roles)', () => {
-    it('shows the roles section when user has roles.manage', () => {
+  it('shows a skeleton while loading', () => {
+    vi.mocked(useAdminUser).mockReturnValue({ data: undefined, isLoading: true, isError: false, refetch: vi.fn() } as any)
+    renderDetail()
+    expect(screen.getByLabelText('Carregando')).toBeInTheDocument()
+  })
+
+  it('shows an error state with a retry action when loading fails', () => {
+    const refetch = vi.fn()
+    vi.mocked(useAdminUser).mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch } as any)
+    renderDetail()
+    expect(screen.getByText(/não deu para carregar esta pessoa/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /tentar de novo/i }))
+    expect(refetch).toHaveBeenCalled()
+  })
+
+  describe('Aba "Acesso e perfil"', () => {
+    it('shows segment, tour and danger cards after switching tab', () => {
       renderDetail()
-      expect(screen.getByText('Acesso ao painel')).toBeInTheDocument()
+      openAcessoTab()
+      expect(screen.getByText('Segmento')).toBeInTheDocument()
+      expect(screen.getByText('Boas-vindas')).toBeInTheDocument()
+      expect(screen.getByText('Reabrir tour')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^excluir conta$/i })).toBeInTheDocument()
+    })
+
+    it('opens the delete confirmation that requires typing EXCLUIR', () => {
+      renderDetail()
+      openAcessoTab()
+      fireEvent.click(screen.getByRole('button', { name: /^excluir conta$/i }))
+      expect(screen.getByText(/excluir conta de felipe matos/i)).toBeInTheDocument()
+      expect(screen.getByText('EXCLUIR')).toBeInTheDocument()
+    })
+  })
+
+  describe('Gerenciar acesso ao painel (roles)', () => {
+    it('shows the roles panel when user has roles.manage', () => {
+      renderDetail()
+      openAcessoTab()
+      expect(screen.getByText('Gerenciar acesso ao painel')).toBeInTheDocument()
       expect(screen.getByText('Admin')).toBeInTheDocument()
       expect(screen.getByText('Editor de conteúdo')).toBeInTheDocument()
       expect(screen.getByText('Suporte')).toBeInTheDocument()
@@ -148,24 +192,28 @@ describe('AdminUsuarioDetail', () => {
 
     it('checks granted roles and unchecks the rest', () => {
       renderDetail()
+      openAcessoTab()
       const support = screen.getByRole('checkbox', { name: /suporte/i }) as HTMLInputElement
       const admin = screen.getByRole('checkbox', { name: /admin/i }) as HTMLInputElement
       expect(support.checked).toBe(true)
       expect(admin.checked).toBe(false)
     })
 
-    it('hides the roles section without roles.manage capability', () => {
+    it('hides the roles panel without roles.manage capability', () => {
       const caps = ALL_CAPABILITIES.filter(c => c !== 'roles.manage')
       render(
         <AdminAccessProvider roles={['support']} capabilities={caps}>
           {detailUi()}
         </AdminAccessProvider>,
       )
-      expect(screen.queryByText('Acesso ao painel')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /^acesso e perfil$/i }))
+      expect(screen.queryByText('Gerenciar acesso ao painel')).not.toBeInTheDocument()
+      expect(screen.getByText(/acesso ao painel é restrito/i)).toBeInTheDocument()
     })
 
     it('toggling a checkbox triggers the role mutation', () => {
       renderDetail()
+      openAcessoTab()
       fireEvent.click(screen.getByRole('checkbox', { name: /editor de conteúdo/i }))
       expect(setRoleMutate).toHaveBeenCalledWith(
         { userId: 'u1', role: 'content_editor', grant: true },
@@ -175,6 +223,7 @@ describe('AdminUsuarioDetail', () => {
 
     it('revokes a granted role on uncheck', () => {
       renderDetail()
+      openAcessoTab()
       fireEvent.click(screen.getByRole('checkbox', { name: /suporte/i }))
       expect(setRoleMutate).toHaveBeenCalledWith(
         { userId: 'u1', role: 'support', grant: false },

@@ -150,6 +150,8 @@ const App = () => (
                   <Route path="simulados/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id/questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUploadQuestions /></Suspense>} />
                   <Route path="simulados/:id/questoes/editar" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
+                  <Route path="questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
+                  <Route path="questoes/:simuladoId" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
                   <Route path="usuarios"   element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarios /></Suspense>} />
                   <Route path="usuarios/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarioDetail /></Suspense>} />
                   <Route path="simulados/:id/analytics" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoAnalytics /></Suspense>} />

@@ -48,9 +48,9 @@ export function AdminAlertsBell() {
         <button
           type="button"
           aria-label="Alertas"
-          className="relative w-7 h-7 rounded-md flex items-center justify-center text-admin-muted hover:text-admin-text hover:bg-admin-raised motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50"
+          className="relative w-8 h-8 rounded-md flex items-center justify-center text-admin-muted hover:text-admin-text hover:bg-admin-raised motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50"
         >
-          <Bell className="h-3.5 w-3.5" aria-hidden />
+          <Bell className="h-4 w-4" aria-hidden />
           {alertCount > 0 && (
             <span
               aria-hidden

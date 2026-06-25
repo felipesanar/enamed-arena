@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FileText, Users, ClipboardList,
+  LayoutDashboard, FileText, Database, Users, ClipboardList,
   Route, Megaphone, Compass, Eye, Gauge, ScrollText, type LucideIcon,
 } from 'lucide-react'
 
@@ -17,40 +17,46 @@ export interface AdminNavGroup {
   items: AdminNavItem[]
 }
 
+/**
+ * Navegação Opção B (redesign 2026-06): organizada por intenção de quem usa,
+ * não por tipo de objeto. Rótulos diretos, sem jargão.
+ * Rotas existentes permanecem; só "Banco de questões" é destino novo.
+ */
 export const ADMIN_NAV: AdminNavGroup[] = [
   {
-    title: 'Visão',
+    title: 'Início',
     items: [
-      { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, capability: 'dashboard.view', end: true },
+      { to: '/admin', label: 'Início', icon: LayoutDashboard, capability: 'dashboard.view', end: true },
     ],
   },
   {
-    title: 'Gestão',
+    title: 'Conteúdo',
     items: [
-      { to: '/admin/simulados',  label: 'Simulados',  icon: FileText,      capability: 'content.manage' },
+      { to: '/admin/simulados', label: 'Simulados',         icon: FileText, capability: 'content.manage' },
+      { to: '/admin/questoes',  label: 'Banco de questões', icon: Database, capability: 'content.manage' },
+    ],
+  },
+  {
+    title: 'Pessoas',
+    items: [
       { to: '/admin/usuarios',   label: 'Usuários',   icon: Users,         capability: 'users.view' },
       { to: '/admin/tentativas', label: 'Tentativas', icon: ClipboardList, capability: 'attempts.view' },
     ],
   },
   {
-    title: 'Inteligência',
+    title: 'Análise',
     items: [
-      { to: '/admin/inteligencia', label: 'Panorama', icon: Gauge,    capability: 'intel.view' },
-      { to: '/admin/analytics', label: 'Jornada',   icon: Route,      capability: 'intel.view' },
-      { to: '/admin/marketing', label: 'Aquisição', icon: Megaphone,  capability: 'intel.view' },
-      { to: '/admin/produto',   label: 'Produto',   icon: Compass,    capability: 'intel.view' },
+      { to: '/admin/inteligencia', label: 'Visão geral', icon: Gauge,    capability: 'intel.view' },
+      { to: '/admin/analytics',    label: 'Jornada',     icon: Route,     capability: 'intel.view' },
+      { to: '/admin/marketing',    label: 'Aquisição',   icon: Megaphone, capability: 'intel.view' },
+      { to: '/admin/produto',      label: 'Produto',     icon: Compass,   capability: 'intel.view' },
     ],
   },
   {
-    title: 'Ferramentas',
+    title: 'Sistema',
     items: [
-      { to: '/admin/previews', label: 'Previews', icon: Eye, capability: 'previews.view' },
-    ],
-  },
-  {
-    title: 'Governança',
-    items: [
-      { to: '/admin/auditoria', label: 'Auditoria', icon: ScrollText, capability: 'audit.view' },
+      { to: '/admin/previews',  label: 'Prévia do aluno', icon: Eye,        capability: 'previews.view' },
+      { to: '/admin/auditoria', label: 'Auditoria',       icon: ScrollText, capability: 'audit.view' },
     ],
   },
 ]

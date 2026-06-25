@@ -48,7 +48,7 @@ export function AdminApp() {
 
   return (
     <AdminPeriodProvider>
-      <div className="admin-root flex min-h-screen antialiased">
+      <div className="admin-root flex min-h-screen antialiased bg-admin-bg-outer">
         <AdminSidebar collapsed={collapsed} onToggle={toggleSidebar} onOpenPalette={openPalette} />
         <div className="flex flex-col flex-1 min-w-0">
           <AdminTopbar />
@@ -61,7 +61,7 @@ export function AdminApp() {
               Painel admin otimizado para desktop. Recomendamos usar uma tela maior.
             </span>
           </div>
-          <main className="flex-1 p-5 overflow-auto">
+          <main className="flex-1 p-6 overflow-auto bg-admin-bg">
             <Outlet />
           </main>
         </div>

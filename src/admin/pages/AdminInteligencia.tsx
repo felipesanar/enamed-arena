@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
-import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
 import { AdminDataTable } from '@/admin/components/ui/AdminDataTable'
@@ -62,6 +61,33 @@ const NATIVE_SELECT =
   'h-8 rounded-lg border border-admin-line/80 bg-admin-surface px-2.5 text-xs font-medium text-admin-text shadow-sm shadow-black/[0.03] dark:shadow-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg'
 
 const SECTION_LABEL = 'text-micro-label text-admin-muted uppercase mb-3'
+
+/**
+ * Abertura de cada painel de Análise: o nome do painel, a pergunta que ele
+ * responde e uma linha de apoio. Ajuda quem chega novo a saber se está na tela
+ * certa sem precisar abrir as outras.
+ */
+function PanelQuestion({
+  eyebrow,
+  question,
+  helper,
+}: {
+  eyebrow: string
+  question: string
+  helper: string
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-admin-accent">
+        {eyebrow}
+      </p>
+      <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.025em] text-admin-text">
+        {question}
+      </h1>
+      <p className="mt-1 text-[13px] text-admin-muted">{helper}</p>
+    </div>
+  )
+}
 
 function ErrorNote({ message }: { message?: string }) {
   return (
@@ -130,6 +156,7 @@ function AdminInteligenciaContent() {
     evolution.length > 0
       ? round1(evolution.reduce((acc, r) => acc + r.avg_score, 0) / evolution.length)
       : 0
+  const totalParticipants = evolution.reduce((acc, r) => acc + r.participants, 0)
   const bestSim = evolution.length
     ? evolution.reduce((best, r) => (r.avg_score > best.avg_score ? r : best))
     : null
@@ -139,39 +166,61 @@ function AdminInteligenciaContent() {
 
   return (
     <div className="space-y-8 max-w-[1400px]">
-      <AdminPageHeader
-        title="Panorama"
-        subtitle="Inteligência sobre desempenho, engajamento e coortes — dados reais da plataforma."
-        actions={
-          <>
-            <div className={TOGGLE_GROUP}>
-              {PERIODS.map(p => (
-                <button
-                  key={p.value}
-                  type="button"
-                  aria-label={p.label}
-                  aria-pressed={days === p.value}
-                  onClick={() => setDays(p.value)}
-                  className={toggleBtn(days === p.value)}
-                >{p.label}</button>
-              ))}
-            </div>
-            <div className="w-px h-5 bg-admin-line" />
-            <div className={TOGGLE_GROUP}>
-              {SEGMENTS.map(s => (
-                <button
-                  key={s.value}
-                  type="button"
-                  aria-label={s.label}
-                  aria-pressed={segment === s.value}
-                  onClick={() => setSegment(s.value)}
-                  className={toggleBtn(segment === s.value)}
-                >{s.label}</button>
-              ))}
-            </div>
-          </>
-        }
-      />
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <PanelQuestion
+          eyebrow="Visão geral"
+          question="Como está a operação como um todo?"
+          helper="O resumo de tudo num lugar só: desempenho, engajamento e coortes com dados reais da plataforma."
+        />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className={TOGGLE_GROUP}>
+            {PERIODS.map(p => (
+              <button
+                key={p.value}
+                type="button"
+                aria-label={p.label}
+                aria-pressed={days === p.value}
+                onClick={() => setDays(p.value)}
+                className={toggleBtn(days === p.value)}
+              >{p.label}</button>
+            ))}
+          </div>
+          <div className="w-px h-5 bg-admin-line" />
+          <div className={TOGGLE_GROUP}>
+            {SEGMENTS.map(s => (
+              <button
+                key={s.value}
+                type="button"
+                aria-label={s.label}
+                aria-pressed={segment === s.value}
+                onClick={() => setSegment(s.value)}
+                className={toggleBtn(segment === s.value)}
+              >{s.label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Resumo de topo: três números que respondem à pergunta de cara. */}
+      <section aria-label="Resumo da operação">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <AdminStatCard
+            isLoading={engagementQ.isLoading}
+            label="Provas iniciadas no período"
+            value={metrics ? formatInt(metrics.started) : '—'}
+          />
+          <AdminStatCard
+            isLoading={evolutionQ.isLoading}
+            label="Provas avaliadas"
+            value={evolution.length > 0 ? formatInt(totalParticipants) : '—'}
+          />
+          <AdminStatCard
+            isLoading={evolutionQ.isLoading}
+            label="Nota média"
+            value={evolution.length > 0 ? `${avgGeral}%` : '—'}
+          />
+        </div>
+      </section>
 
       {/* 1 ── Insights */}
       <section id="insights">

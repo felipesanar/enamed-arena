@@ -1,5 +1,6 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { RankingView } from '@/components/ranking/RankingView'
@@ -8,7 +9,30 @@ import { getAllowedRankingSegmentFilters } from '@/services/rankingApi'
 import { useUser } from '@/contexts/UserContext'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Trophy } from 'lucide-react'
+import { Trophy, Eye, ChevronLeft } from 'lucide-react'
+
+function BackToPreviewLink() {
+  return (
+    <Link
+      to="/admin/previews"
+      className="inline-flex items-center gap-1.5 text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
+    >
+      <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Voltar para a prévia do aluno
+    </Link>
+  )
+}
+
+/** Selo que deixa claro que o conteúdo é a tela do aluno, não a do admin. */
+function VisaoDoAlunoBadge() {
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-admin-text px-2.5 py-1 text-[10.5px] font-bold text-admin-surface">
+        <Eye className="h-3 w-3" aria-hidden /> Visão do aluno
+      </span>
+      <span className="text-[11px] text-admin-faint">Ranking exatamente como o aluno enxerga</span>
+    </div>
+  )
+}
 
 /**
  * Miolo do preview de ranking, sem header de página — reutilizado pela
@@ -43,8 +67,9 @@ export function RankingPreviewContent() {
     return (
       <AdminEmptyState
         icon={Trophy}
+        eyebrow="Vazio"
         title="Nenhum simulado com tentativas finalizadas"
-        description="Quando houver provas concluídas no projeto, elas aparecerão aqui para preview."
+        description="Quando houver provas concluídas no projeto, elas aparecerão aqui na prévia."
       />
     )
   }
@@ -98,9 +123,11 @@ function AdminRankingPreviewPageContent() {
   return (
     <>
       <AdminPageHeader
-        title="Preview do ranking"
+        title="Prévia do ranking"
         subtitle="Mesma experiência do ranking público, sem depender da liberação de resultados."
+        actions={<BackToPreviewLink />}
       />
+      <VisaoDoAlunoBadge />
       <RankingPreviewContent />
     </>
   )

@@ -4,7 +4,6 @@ import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
 import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
-import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { adminChartSeriesColors } from '@/admin/lib/adminChartTheme'
 import { PERIOD_OPTIONS } from '@/admin/lib/constants'
@@ -38,6 +37,32 @@ function convColor(pct: number) {
   return 'text-admin-destructive'
 }
 
+/**
+ * Abertura do painel: a pergunta que ele responde, em português direto, para
+ * quem chega saber se está na tela certa sem abrir as outras.
+ */
+function PanelQuestion({
+  eyebrow,
+  question,
+  helper,
+}: {
+  eyebrow: string
+  question: string
+  helper: string
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-admin-accent">
+        {eyebrow}
+      </p>
+      <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.025em] text-admin-text">
+        {question}
+      </h1>
+      <p className="mt-1 text-[13px] text-admin-muted">{helper}</p>
+    </div>
+  )
+}
+
 function exportCampaignsCsv(rows: MarketingCampaignRow[]) {
   const header = 'Campanha,Canal,Visitas,Cadastros,Conversão (%),1ª Prova'
   const lines = rows.map(r =>
@@ -62,44 +87,91 @@ function AdminMarketingContent() {
 
   const delta = kpis ? kpis.new_users - kpis.new_users_prev : undefined
 
+  // Participação de cada origem no total de cadastros (resposta direta da pergunta).
+  const sourceRows = sources as MarketingSourceRow[]
+  const totalSourceUsers = sourceRows.reduce((acc, s) => acc + s.user_count, 0)
+  const originBars = sourceRows
+    .slice()
+    .sort((a, b) => b.user_count - a.user_count)
+    .map(s => ({
+      source: s.source,
+      user_count: s.user_count,
+      share: totalSourceUsers > 0 ? Math.round((s.user_count / totalSourceUsers) * 1000) / 10 : 0,
+    }))
+
   return (
     <div className="space-y-5 max-w-[1400px]">
-      <AdminPageHeader
-        title="Aquisição"
-        subtitle="UTM source, medium e campanhas"
-        actions={
-          <>
-            <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-              {PERIODS.map(p => (
-                <button
-                  key={p.value}
-                  type="button"
-                  aria-label={p.label}
-                  onClick={() => setDays(p.value)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
-                    days === p.value
-                      ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
-                      : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
-                  )}
-                >{p.label}</button>
-              ))}
-            </div>
-            <button
-              type="button"
-              aria-label="Exportar CSV"
-              onClick={() => exportCampaignsCsv(campaigns as MarketingCampaignRow[])}
-              className="px-3 py-1.5 text-xs rounded-lg border border-admin-line bg-admin-surface text-admin-muted hover:text-admin-text hover:bg-admin-raised motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg"
-            >Exportar CSV</button>
-          </>
-        }
-      />
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <PanelQuestion
+          eyebrow="Aquisição"
+          question="De onde vêm os novos alunos?"
+          helper="A origem dos cadastros no período: canal, meio e campanhas que mais trazem gente."
+        />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+            {PERIODS.map(p => (
+              <button
+                key={p.value}
+                type="button"
+                aria-label={p.label}
+                aria-pressed={days === p.value}
+                onClick={() => setDays(p.value)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                  days === p.value
+                    ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                    : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+                )}
+              >{p.label}</button>
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="Exportar CSV"
+            onClick={() => exportCampaignsCsv(campaigns as MarketingCampaignRow[])}
+            className="px-3 py-1.5 text-xs rounded-lg border border-admin-line bg-admin-surface text-admin-muted hover:text-admin-text hover:bg-admin-raised motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg"
+          >Exportar lista</button>
+        </div>
+      </div>
 
       <p className="text-[10px] text-admin-muted inline-flex items-center gap-1.5 max-w-md">
         <Info className="h-3.5 w-3.5 shrink-0 text-admin-info" aria-hidden />
-        UTM capturado a partir de quando a captura foi ativada
+        A origem só aparece a partir de quando a captura foi ativada
       </p>
+
+      {/* Resposta direta: participação de cada origem no total de cadastros, em barras horizontais. */}
+      <AdminPanel>
+        <p className="text-[11px] font-semibold text-admin-text mb-3">Origens por participação nos cadastros</p>
+        {originBars.length === 0 ? (
+          <AdminEmptyState
+            title="Sem origens no período"
+            description="Quando houver cadastros com origem capturada neste intervalo, eles aparecem aqui."
+          />
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {originBars.map(o => (
+              <div key={o.source}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs text-admin-text truncate">{o.source}</span>
+                  <span className="text-xs font-semibold tabular-nums text-admin-text">
+                    {o.share}%
+                    <span className="ml-2 font-normal text-admin-muted">
+                      {formatInt(o.user_count)} cadastros
+                    </span>
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-admin-raised">
+                  <div
+                    className="h-full rounded-full bg-admin-accent transition-all"
+                    style={{ width: `${o.share}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </AdminPanel>
 
       {/* KPIs */}
       <AdminPanel className="p-3 sm:p-4">
@@ -109,7 +181,7 @@ function AdminMarketingContent() {
           delta={delta} deltaLabel="vs mês ant." isLoading={kLoading}
         />
         <AdminStatCard
-          label="Conv. landing→cadastro" value={kpis ? `${kpis.landing_to_signup_pct}%` : '—'}
+          label="Conversão visita→cadastro" value={kpis ? `${kpis.landing_to_signup_pct}%` : '—'}
           isLoading={kLoading}
         />
         <AdminStatCard
@@ -127,7 +199,7 @@ function AdminMarketingContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Sources */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Source</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Por canal</p>
           <div className="space-y-2">
             {(sources as MarketingSourceRow[]).map((src, i) => (
               <div key={src.source} className="flex items-center gap-2">
@@ -149,7 +221,7 @@ function AdminMarketingContent() {
 
         {/* Mediums */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por UTM Medium</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Por meio</p>
           <div className="space-y-2">
             {(mediums as MarketingMediumRow[]).map((med, i) => (
               <div key={med.medium} className="flex items-center gap-2">
@@ -173,7 +245,7 @@ function AdminMarketingContent() {
       {/* Campaigns table */}
       <AdminPanel flush className="overflow-hidden p-0">
         <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
-          <p className="text-micro-label text-admin-muted uppercase">Campanhas (utm_campaign)</p>
+          <p className="text-micro-label text-admin-muted uppercase">Campanhas</p>
         </div>
         <div
           className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"

@@ -89,9 +89,11 @@ export default {
         },
         admin: {
           bg: "hsl(var(--admin-bg) / <alpha-value>)",
+          "bg-outer": "hsl(var(--admin-bg-outer) / <alpha-value>)",
           surface: "hsl(var(--admin-surface) / <alpha-value>)",
           raised: "hsl(var(--admin-raised) / <alpha-value>)",
           line: "hsl(var(--admin-line) / <alpha-value>)",
+          "line-subtle": "hsl(var(--admin-line-subtle) / <alpha-value>)",
           "line-strong": "hsl(var(--admin-line-strong) / <alpha-value>)",
           text: "hsl(var(--admin-text) / <alpha-value>)",
           muted: "hsl(var(--admin-muted) / <alpha-value>)",

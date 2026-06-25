@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminTrendChart } from '@/admin/components/ui/AdminTrendChart'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
-import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
+import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { adminChartSeriesColors } from '@/admin/lib/adminChartTheme'
 import { PERIOD_OPTIONS } from '@/admin/lib/constants'
 import { formatInt } from '@/admin/lib/format'
@@ -24,6 +24,39 @@ function convColor(pct: number) {
   return 'text-admin-destructive'
 }
 
+/** Opacidade decrescente do vinho ao longo do funil (forte no topo, claro no fim). */
+function funnelToneOpacity(index: number, total: number): number {
+  if (total <= 1) return 1
+  const min = 0.3
+  return Math.round((1 - (index / (total - 1)) * (1 - min)) * 100) / 100
+}
+
+/**
+ * Abertura do painel: a pergunta que ele responde, em português direto, para
+ * quem chega saber se está na tela certa sem abrir as outras.
+ */
+function PanelQuestion({
+  eyebrow,
+  question,
+  helper,
+}: {
+  eyebrow: string
+  question: string
+  helper: string
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-admin-accent">
+        {eyebrow}
+      </p>
+      <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.025em] text-admin-text">
+        {question}
+      </h1>
+      <p className="mt-1 text-[13px] text-admin-muted">{helper}</p>
+    </div>
+  )
+}
+
 function AdminAnalyticsContent() {
   const [days, setDays] = useState(30)
 
@@ -32,46 +65,58 @@ function AdminAnalyticsContent() {
   const { data: sources = [] } = useAdminAnalyticsSources(days)
   const { data: ttc } = useAdminAnalyticsTimeToConvert(days)
 
-  const maxCount = funnel[0]?.user_count ?? 1
+  const funnelSteps = funnel as FunnelStep[]
+  const maxCount = funnelSteps[0]?.user_count ?? 1
 
   return (
     <div className="space-y-5 max-w-[1400px]">
-      <AdminPageHeader
-        title="Jornada"
-        subtitle="Funil de conversão sequencial e origens de aquisição"
-        actions={
-          <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-            {PERIODS.map(p => (
-              <button
-                key={p.value}
-                type="button"
-                aria-label={p.label}
-                onClick={() => setDays(p.value)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
-                  days === p.value
-                    ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
-                    : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
-                )}
-              >{p.label}</button>
-            ))}
-          </div>
-        }
-      />
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <PanelQuestion
+          eyebrow="Jornada"
+          question="Onde as pessoas param no caminho?"
+          helper="Do cadastro até a prova concluída. A maior queda mostra onde a operação perde gente."
+        />
+        <div className="flex shrink-0 items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+          {PERIODS.map(p => (
+            <button
+              key={p.value}
+              type="button"
+              aria-label={p.label}
+              aria-pressed={days === p.value}
+              onClick={() => setDays(p.value)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                days === p.value
+                  ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                  : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+              )}
+            >{p.label}</button>
+          ))}
+        </div>
+      </div>
 
-      {/* Funnel steps */}
+      {/* Funil: barras decrescentes em tons de vinho (forte no topo, mais claro no fim). */}
       <AdminPanel flush className="overflow-hidden p-0">
         <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
-          <p className="text-micro-label text-admin-muted uppercase">Funil de Conversão</p>
+          <p className="text-micro-label text-admin-muted uppercase">Do cadastro até concluir a prova</p>
         </div>
         {fLoading ? (
           <div className="p-4 space-y-3 animate-pulse">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="h-10 bg-admin-raised rounded" />)}
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="relative h-10 overflow-hidden rounded bg-admin-raised">
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/60 to-transparent" />
+              </div>
+            ))}
           </div>
+        ) : funnelSteps.length === 0 ? (
+          <AdminEmptyState
+            title="Sem dados de jornada no período"
+            description="Quando houver cadastros e provas neste intervalo, o funil aparece aqui."
+          />
         ) : (
           <div className="divide-y divide-admin-line/40">
-            {(funnel as FunnelStep[]).map((step, idx) => (
+            {funnelSteps.map((step, idx) => (
               <div key={step.step_order} className="flex items-center gap-4 px-4 py-3">
                 <div className="w-5 h-5 rounded-full bg-admin-accent/10 flex items-center justify-center text-[10px] font-bold text-admin-accent shrink-0">
                   {step.step_order}
@@ -82,18 +127,21 @@ function AdminAnalyticsContent() {
                     <div className="flex items-center gap-3">
                       {idx > 0 && (
                         <span className={cn('text-[10px] font-semibold', convColor(step.conversion_from_prev))}>
-                          {step.conversion_from_prev}%
+                          {step.conversion_from_prev}% de quem chegou na etapa anterior
                         </span>
                       )}
-                      <span className="text-sm font-bold text-admin-text w-16 text-right">
+                      <span className="text-sm font-bold text-admin-text w-16 text-right tabular-nums">
                         {formatInt(step.user_count)}
                       </span>
                     </div>
                   </div>
-                  <div className="h-1.5 bg-admin-raised rounded-full overflow-hidden">
+                  <div className="h-2.5 bg-admin-raised rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-admin-accent rounded-full transition-all"
-                      style={{ width: `${(step.user_count / maxCount) * 100}%` }}
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${(step.user_count / maxCount) * 100}%`,
+                        backgroundColor: `hsl(var(--admin-accent) / ${funnelToneOpacity(idx, funnelSteps.length)})`,
+                      }}
                     />
                   </div>
                 </div>
@@ -123,7 +171,7 @@ function AdminAnalyticsContent() {
       <div className="grid grid-cols-2 gap-4">
         {/* Sources */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Origem dos Usuários (UTM Source)</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-3">Origem dos usuários</p>
           <div className="space-y-2">
             {(sources as JourneySourceRow[]).map(src => (
               <div key={src.utm_source} className="flex items-center gap-2">
@@ -148,7 +196,7 @@ function AdminAnalyticsContent() {
           {ttc ? (
             <div className="space-y-3">
               {([
-                ['Landing → Cadastro',   `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
+                ['Visita → Cadastro',    `${(ttc as JourneyTimeToConvert).landing_to_signup_min} min`,             (ttc as JourneyTimeToConvert).landing_to_signup_min < 60],
                 ['Cadastro → Onboarding', `${(ttc as JourneyTimeToConvert).signup_to_onboarding_min} min`,         (ttc as JourneyTimeToConvert).signup_to_onboarding_min < 60],
                 ['Onboarding → 1ª prova', `${(ttc as JourneyTimeToConvert).onboarding_to_first_exam_days} dias`,   (ttc as JourneyTimeToConvert).onboarding_to_first_exam_days < 2],
                 ['1ª prova → 2ª prova',   `${(ttc as JourneyTimeToConvert).first_to_second_exam_days} dias`,       (ttc as JourneyTimeToConvert).first_to_second_exam_days < 7],

@@ -13,7 +13,6 @@ import {
   useAdminCancelAttempt,
   useAdminDeleteAttempt,
 } from '@/admin/hooks/useAdminTentativas'
-import { adminApi } from '@/admin/services/adminApi'
 
 const mockKpis = { total: 120, in_progress: 5, submitted: 100, expired: 15 }
 
@@ -65,22 +64,62 @@ describe('AdminTentativas', () => {
     expect(screen.getByText('Ana Silva')).toBeInTheDocument()
   })
 
-  it('shows cancel button only for in_progress rows', () => {
+  it('shows the segmented status filter with friendly labels', () => {
     renderPage()
-    const cancelBtns = screen.queryAllByRole('button', { name: /cancelar/i })
-    expect(cancelBtns).toHaveLength(1)
+    expect(screen.getByRole('tab', { name: 'Todas' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Em andamento' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Concluídas' })).toBeInTheDocument()
   })
 
-  it('shows delete confirmation dialog when delete button clicked', () => {
+  it('shows "Encerrar" only for in-progress rows', () => {
     renderPage()
-    const deleteBtn = screen.getAllByRole('button', { name: /excluir/i })[0]
-    fireEvent.click(deleteBtn)
-    expect(screen.getByText(/confirmar exclusão/i)).toBeInTheDocument()
+    // Apenas a linha em andamento (Ana) ganha "Encerrar".
+    const encerrar = screen.getAllByRole('button', { name: 'Encerrar' })
+    expect(encerrar).toHaveLength(1)
+  })
+
+  it('shows "Excluir" for concluded/expired rows', () => {
+    renderPage()
+    // A linha concluída (Felipe) ganha "Excluir"; a em andamento não.
+    const excluir = screen.getAllByRole('button', { name: 'Excluir' })
+    expect(excluir).toHaveLength(1)
+  })
+
+  it('renders the fixed legend explaining Encerrar vs Excluir before any click', () => {
+    renderPage()
+    expect(screen.getByText(/finaliza a prova em andamento/i)).toBeInTheDocument()
+    expect(screen.getByText(/apaga a tentativa e a nota do histórico/i)).toBeInTheDocument()
+  })
+
+  it('opens the encerrar confirmation when clicking Encerrar', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Encerrar' }))
+    expect(screen.getByText(/encerrar esta tentativa\?/i)).toBeInTheDocument()
+  })
+
+  it('opens the delete confirmation when clicking Excluir', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+    expect(screen.getByText(/excluir esta tentativa\?/i)).toBeInTheDocument()
   })
 
   it('shows loading skeleton when isLoading', () => {
     vi.mocked(useAdminAttemptList).mockReturnValue({ data: undefined, isLoading: true, isError: false } as any)
     const { container } = renderPage()
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+    expect(container.querySelector('.animate-\\[shimmer_1\\.4s_infinite\\]')).toBeInTheDocument()
+    // Sem dados, a legenda não aparece durante o carregamento.
+    expect(screen.queryByText(/finaliza a prova em andamento/i)).not.toBeInTheDocument()
+  })
+
+  it('shows empty state when there are no rows', () => {
+    vi.mocked(useAdminAttemptList).mockReturnValue({ data: [], isLoading: false, isError: false } as any)
+    renderPage()
+    expect(screen.getByText('Nenhuma tentativa encontrada')).toBeInTheDocument()
+  })
+
+  it('shows error state when the list fails to load', () => {
+    vi.mocked(useAdminAttemptList).mockReturnValue({ data: undefined, isLoading: false, isError: true } as any)
+    renderPage()
+    expect(screen.getByText(/não foi possível carregar as tentativas/i)).toBeInTheDocument()
   })
 })

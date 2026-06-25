@@ -2,7 +2,6 @@ import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminPanel } from '@/admin/components/ui/AdminPanel'
-import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { PERIOD_OPTIONS, SEGMENT_META } from '@/admin/lib/constants'
 import { formatInt } from '@/admin/lib/format'
@@ -50,6 +49,32 @@ function severityLabel(severity: FrictionPoint['severity']) {
   return 'Saudável'
 }
 
+/**
+ * Abertura do painel: a pergunta que ele responde, em português direto, para
+ * quem chega saber se está na tela certa sem abrir as outras.
+ */
+function PanelQuestion({
+  eyebrow,
+  question,
+  helper,
+}: {
+  eyebrow: string
+  question: string
+  helper: string
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-admin-accent">
+        {eyebrow}
+      </p>
+      <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.025em] text-admin-text">
+        {question}
+      </h1>
+      <p className="mt-1 text-[13px] text-admin-muted">{helper}</p>
+    </div>
+  )
+}
+
 function AdminProdutoContent() {
   const [days, setDays] = useState(30)
   const [segment, setSegment] = useState('all')
@@ -81,54 +106,87 @@ function AdminProdutoContent() {
 
   return (
     <div className="space-y-5 max-w-[1400px]">
-      <AdminPageHeader
-        title="Produto"
-        subtitle="Funil segmentado, pontos de fricção e adoção de features"
-        actions={
-          <>
-            <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-              {PERIODS.map(p => (
-                <button
-                  key={p.value}
-                  type="button"
-                  aria-label={p.label}
-                  onClick={() => setDays(p.value)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
-                    days === p.value
-                      ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
-                      : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
-                  )}
-                >{p.label}</button>
-              ))}
-            </div>
-            <div className="w-px h-5 bg-admin-line" />
-            <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
-              {SEGMENTS.map(s => (
-                <button
-                  key={s.value}
-                  type="button"
-                  aria-label={s.label}
-                  onClick={() => setSegment(s.value)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
-                    segment === s.value
-                      ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
-                      : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
-                  )}
-                >{s.label}</button>
-              ))}
-            </div>
-          </>
-        }
-      />
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <PanelQuestion
+          eyebrow="Produto"
+          question="O que as pessoas mais usam?"
+          helper="Os recursos mais abertos, onde a experiência trava e como cada segmento avança."
+        />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+            {PERIODS.map(p => (
+              <button
+                key={p.value}
+                type="button"
+                aria-label={p.label}
+                aria-pressed={days === p.value}
+                onClick={() => setDays(p.value)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                  days === p.value
+                    ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                    : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+                )}
+              >{p.label}</button>
+            ))}
+          </div>
+          <div className="w-px h-5 bg-admin-line" />
+          <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-line/80 rounded-xl p-1 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
+            {SEGMENTS.map(s => (
+              <button
+                key={s.value}
+                type="button"
+                aria-label={s.label}
+                aria-pressed={segment === s.value}
+                onClick={() => setSegment(s.value)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium motion-safe:transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-admin-bg',
+                  segment === s.value
+                    ? 'bg-admin-accent text-admin-accent-contrast shadow-sm'
+                    : 'text-admin-muted hover:text-admin-text hover:bg-admin-raised',
+                )}
+              >{s.label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Resposta direta: recursos por adoção, do mais usado ao menos usado. */}
+      <AdminPanel>
+        <p className="text-micro-label text-admin-muted uppercase mb-4">Recursos mais usados</p>
+        <div className="space-y-3">
+          {(adoption as FeatureAdoptionRow[])
+            .slice()
+            .sort((a, b) => b.adoption_pct - a.adoption_pct)
+            .map(row => (
+              <div key={row.event_name} className="flex items-center gap-3">
+                <span className="text-xs text-admin-text w-40 truncate shrink-0">{row.feature}</span>
+                <div className="flex-1 h-2.5 bg-admin-raised rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-admin-accent rounded-full transition-all"
+                    style={{ width: `${(row.adoption_pct / maxAdoption) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs font-semibold w-12 text-right tabular-nums text-admin-accent">
+                  {row.adoption_pct}%
+                </span>
+              </div>
+            ))}
+          {adoption.length === 0 && (
+            <AdminEmptyState
+              title="Sem uso de recursos no período"
+              description="Quando houver atividade neste intervalo, os recursos mais abertos aparecem aqui."
+            />
+          )}
+        </div>
+      </AdminPanel>
 
       {/* Section 1: Segmented Funnel */}
       <AdminPanel flush className="overflow-hidden p-0">
         <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
-          <p className="text-micro-label text-admin-muted uppercase">Funil Segmentado</p>
+          <p className="text-micro-label text-admin-muted uppercase">Avanço por segmento</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -171,7 +229,7 @@ function AdminProdutoContent() {
 
       {/* Section 2: Friction Map */}
       <div>
-        <p className="text-micro-label text-admin-muted uppercase mb-3">Mapa de Fricção</p>
+        <p className="text-micro-label text-admin-muted uppercase mb-3">Onde a experiência trava</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {(friction as FrictionPoint[]).map(point => (
             <AdminPanel key={point.key} className="flex flex-col gap-2">
@@ -197,34 +255,10 @@ function AdminProdutoContent() {
         </div>
       </div>
 
-      {/* Section 3: Feature Adoption */}
-      <AdminPanel>
-        <p className="text-micro-label text-admin-muted uppercase mb-4">Adoção de Features</p>
-        <div className="space-y-3">
-          {(adoption as FeatureAdoptionRow[]).map(row => (
-            <div key={row.event_name} className="flex items-center gap-3">
-              <span className="text-[11px] text-admin-muted w-36 truncate shrink-0">{row.feature}</span>
-              <div className="flex-1 h-3 bg-admin-raised rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-admin-accent rounded-full transition-all"
-                  style={{ width: `${(row.adoption_pct / maxAdoption) * 100}%` }}
-                />
-              </div>
-              <span className={cn('text-[11px] font-semibold w-10 text-right', pctColor(row.adoption_pct))}>
-                {row.adoption_pct}%
-              </span>
-            </div>
-          ))}
-          {adoption.length === 0 && (
-            <AdminEmptyState title="Sem dados no período" />
-          )}
-        </div>
-      </AdminPanel>
-
       {/* Section 4: Top Events */}
       <AdminPanel flush className="overflow-hidden p-0">
         <div className="px-4 py-3 border-b border-admin-line/80 bg-admin-raised/10">
-          <p className="text-micro-label text-admin-muted uppercase">Top Eventos</p>
+          <p className="text-micro-label text-admin-muted uppercase">Ações mais frequentes</p>
         </div>
         <div className="divide-y divide-admin-line/40">
           {(topEvents as TopEventRow[]).map((ev, idx) => (

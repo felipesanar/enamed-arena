@@ -29,4 +29,24 @@ describe('AdminStatCard', () => {
     const { container } = render(<AdminStatCard label="X" value={0} isLoading />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
+
+  it('colors the value when valueTone is set', () => {
+    render(<AdminStatCard label="Aluno PRO" value="3.214" valueTone="accent" />)
+    expect(screen.getByText('3.214')).toHaveClass('text-admin-accent')
+  })
+
+  it('keeps the value neutral by default', () => {
+    render(<AdminStatCard label="Total" value="12.480" />)
+    expect(screen.getByText('12.480')).toHaveClass('text-admin-text')
+  })
+
+  it('renders the value with tabular numbers for alignment', () => {
+    render(<AdminStatCard label="Tentativas" value={7} />)
+    expect(screen.getByText('7')).toHaveClass('tabular-nums')
+  })
+
+  it('adds the accent left border when accentBorder is true', () => {
+    const { container } = render(<AdminStatCard label="Destaque" value="1" accentBorder />)
+    expect(container.querySelector('.border-l-admin-accent')).toBeInTheDocument()
+  })
 })

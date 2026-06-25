@@ -10,24 +10,27 @@ import { useExamResult } from '@/hooks/useExamResult';
 import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
-import { BarChart3, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BarChart3, ChevronLeft, Eye, RotateCw } from 'lucide-react';
 
-function BackToRankingPreviewLink() {
+function BackToPreviewLink() {
   return (
     <Link
-      to="/admin/ranking-preview"
+      to="/admin/previews"
       className="inline-flex items-center gap-1.5 text-xs text-admin-muted hover:text-admin-text motion-safe:transition-colors"
     >
-      <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao preview do ranking
+      <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Voltar para a prévia do aluno
     </Link>
   );
 }
+
+const SUBTITLE = 'Mesma análise que o aluno vê, sem depender da liberação pública.';
 
 function AdminDesempenhoPreviewPageContent() {
   const { id } = useParams<{ id: string }>();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { examState, loading: loadingExam } = useExamResult(id);
+  const { examState, loading: loadingExam, error, refetch } = useExamResult(id);
 
   const attemptFinished =
     examState?.status === 'submitted' || examState?.status === 'expired';
@@ -50,17 +53,40 @@ function AdminDesempenhoPreviewPageContent() {
       <>
         <AdminPageHeader
           title="Desempenho"
-          subtitle="Preview admin — mesma análise do aluno sem depender da liberação pública."
-          actions={<BackToRankingPreviewLink />}
+          subtitle={SUBTITLE}
+          actions={<BackToPreviewLink />}
         />
-        <div className="space-y-3 animate-pulse">
-          <div className="h-[140px] rounded-xl bg-admin-raised/60" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="h-[280px] rounded-xl bg-admin-raised/60" />
-            <div className="h-[280px] rounded-xl bg-admin-raised/60" />
+        <div className="space-y-3 motion-safe:animate-pulse">
+          <div className="h-[140px] rounded-xl bg-admin-raised" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="h-[280px] rounded-xl bg-admin-raised" />
+            <div className="h-[280px] rounded-xl bg-admin-raised" />
           </div>
-          <div className="h-[160px] rounded-xl bg-admin-raised/60" />
+          <div className="h-[160px] rounded-xl bg-admin-raised" />
         </div>
+      </>
+    );
+  }
+
+  if (error && !simulado) {
+    return (
+      <>
+        <AdminPageHeader title="Desempenho" subtitle={SUBTITLE} actions={<BackToPreviewLink />} />
+        <AdminEmptyState
+          icon={BarChart3}
+          tone="error"
+          eyebrow="Erro"
+          title="Não foi possível carregar a prévia"
+          description="Houve uma falha ao buscar os dados deste simulado. Tente novamente em instantes."
+          action={
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="h-8 border-admin-line text-xs" onClick={() => refetch()}>
+                <RotateCw className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Tentar de novo
+              </Button>
+              <BackToPreviewLink />
+            </div>
+          }
+        />
       </>
     );
   }
@@ -68,16 +94,13 @@ function AdminDesempenhoPreviewPageContent() {
   if (!simulado) {
     return (
       <>
-        <AdminPageHeader
-          title="Desempenho"
-          subtitle="Preview admin"
-          actions={<BackToRankingPreviewLink />}
-        />
+        <AdminPageHeader title="Desempenho" subtitle={SUBTITLE} actions={<BackToPreviewLink />} />
         <AdminEmptyState
           icon={BarChart3}
+          eyebrow="Não encontrado"
           title="Simulado não encontrado"
-          description="O ID do simulado na URL não existe ou foi removido."
-          action={<BackToRankingPreviewLink />}
+          description="O simulado indicado no endereço não existe ou foi removido."
+          action={<BackToPreviewLink />}
         />
       </>
     );
@@ -86,16 +109,13 @@ function AdminDesempenhoPreviewPageContent() {
   if (!resultsAllowed) {
     return (
       <>
-        <AdminPageHeader
-          title="Desempenho"
-          subtitle="Preview admin"
-          actions={<BackToRankingPreviewLink />}
-        />
+        <AdminPageHeader title="Desempenho" subtitle={SUBTITLE} actions={<BackToPreviewLink />} />
         <AdminEmptyState
           icon={BarChart3}
-          title="Preview indisponível"
-          description="Não há tentativa finalizada para este simulado com o usuário logado, ou a análise ainda não pode ser exibida."
-          action={<BackToRankingPreviewLink />}
+          eyebrow="Indisponível"
+          title="Prévia indisponível"
+          description="Não há tentativa finalizada deste simulado na sua conta, ou a análise ainda não pode ser exibida."
+          action={<BackToPreviewLink />}
         />
       </>
     );
@@ -104,16 +124,13 @@ function AdminDesempenhoPreviewPageContent() {
   if (!breakdown) {
     return (
       <>
-        <AdminPageHeader
-          title="Desempenho"
-          subtitle="Preview admin"
-          actions={<BackToRankingPreviewLink />}
-        />
+        <AdminPageHeader title="Desempenho" subtitle={SUBTITLE} actions={<BackToPreviewLink />} />
         <AdminEmptyState
           icon={BarChart3}
+          eyebrow="Vazio"
           title="Sem dados de desempenho"
-          description="Finalize uma tentativa deste simulado com o usuário logado para ver a análise aqui."
-          action={<BackToRankingPreviewLink />}
+          description="Finalize uma tentativa deste simulado na sua conta para ver a análise aqui."
+          action={<BackToPreviewLink />}
         />
       </>
     );
@@ -125,12 +142,19 @@ function AdminDesempenhoPreviewPageContent() {
     <PageTransition>
       <AdminPageHeader
         title={`Desempenho — ${simulado.title}`}
-        subtitle="Preview admin — mesma análise do aluno sem depender da liberação pública."
-        actions={<BackToRankingPreviewLink />}
+        subtitle={SUBTITLE}
+        actions={<BackToPreviewLink />}
       />
 
-      {/* Conteúdo do aluno "emoldurado" com o fundo próprio dele */}
-      <div className="bg-background rounded-lg border border-admin-line overflow-hidden p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-admin-text px-2.5 py-1 text-[10.5px] font-bold text-admin-surface">
+          <Eye className="h-3 w-3" aria-hidden /> Visão do aluno
+        </span>
+        <span className="text-[11px] text-admin-faint">{simulado.title}</span>
+      </div>
+
+      {/* Conteúdo do aluno emoldurado com o fundo próprio dele. */}
+      <div className="overflow-hidden rounded-xl border border-admin-line bg-background p-4">
         <DesempenhoSimuladoPanel
           simuladosWithResults={simuladosWithResults}
           selectedSimuladoId={simulado.id}

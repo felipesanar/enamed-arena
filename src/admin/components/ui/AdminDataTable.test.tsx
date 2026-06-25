@@ -34,3 +34,55 @@ describe('AdminDataTable sorting', () => {
     expect(screen.getByText('a')).toBeInTheDocument();
   });
 });
+
+describe('AdminDataTable estados', () => {
+  it('mostra a mensagem de vazio quando não há linhas', () => {
+    render(
+      <AdminDataTable
+        columns={[{ key: 'nome', label: 'Nome' }]}
+        data={[]}
+      />,
+    );
+    expect(screen.getByText('Nada por aqui ainda.')).toBeInTheDocument();
+  });
+
+  it('aceita mensagem de vazio customizada', () => {
+    render(
+      <AdminDataTable
+        columns={[{ key: 'nome', label: 'Nome' }]}
+        data={[]}
+        emptyMessage="Nenhuma pessoa cadastrada."
+      />,
+    );
+    expect(screen.getByText('Nenhuma pessoa cadastrada.')).toBeInTheDocument();
+  });
+
+  it('no carregando mantém o cabeçalho, marca aria-busy e não mostra dados', () => {
+    const { container } = render(
+      <AdminDataTable
+        columns={[{ key: 'nome', label: 'Nome' }]}
+        data={[{ nome: 'visivel' }]}
+        isLoading
+      />,
+    );
+    // cabeçalho continua visível
+    expect(screen.getByText('Nome')).toBeInTheDocument();
+    // dados reais não aparecem durante o carregamento
+    expect(screen.queryByText('visivel')).not.toBeInTheDocument();
+    // a tabela sinaliza ocupado para leitores de tela
+    expect(container.querySelector('[aria-busy="true"]')).toBeTruthy();
+  });
+
+  it('respeita o número de linhas-fantasma (loadingRows)', () => {
+    const { container } = render(
+      <AdminDataTable
+        columns={[{ key: 'nome', label: 'Nome' }]}
+        data={[]}
+        isLoading
+        loadingRows={3}
+      />,
+    );
+    const rows = container.querySelectorAll('[data-skeleton-row]');
+    expect(rows.length).toBe(3);
+  });
+});
