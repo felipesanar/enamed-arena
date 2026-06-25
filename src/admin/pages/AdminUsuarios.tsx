@@ -148,12 +148,12 @@ function AdminUsuariosContent() {
         toast({ title: 'Nada para exportar', description: 'Nenhum usuário com os filtros atuais.', variant: 'destructive' })
         return
       }
-      const header = 'Nome,E-mail,Segmento,Especialidade,Cadastro,Desempenho medio,Tentativas'
+      const header = 'Nome,E-mail,Segmento,Especialidade,Cadastro,Desempenho medio,Provas validas,Treino,Offline pendente'
       const rows = all.map(u => {
         const name = (u.full_name ?? '').replace(/"/g, '""')
         const email = (u.email ?? '').replace(/"/g, '""')
         const spec = (u.specialty ?? '').replace(/"/g, '""')
-        return `"${name}","${email}","${u.segment}","${spec}","${formatDateShort(u.created_at)}","${u.avg_score.toFixed(1)}%","${u.total_attempts}"`
+        return `"${name}","${email}","${u.segment}","${spec}","${formatDateShort(u.created_at)}","${u.avg_score.toFixed(1)}%","${u.valid_attempts}","${u.training_attempts}","${u.offline_pending_count}"`
       })
       const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
@@ -277,7 +277,7 @@ function AdminUsuariosContent() {
               className="grid border-b border-admin-line bg-admin-bg"
               style={{ gridTemplateColumns: GRID }}
             >
-              {['Usuário', 'Segmento', 'Cadastro', 'Desempenho médio', 'Tentativas', ''].map((h, i) => (
+              {['Usuário', 'Segmento', 'Cadastro', 'Desempenho médio', 'Provas válidas', ''].map((h, i) => (
                 <div
                   key={i}
                   className="px-4 py-3 text-[10.5px] font-bold uppercase leading-none tracking-[0.06em] text-admin-faint"
@@ -357,7 +357,13 @@ function AdminUsuariosContent() {
             ) : (
               users.map((user: UserListRow, i: number) => {
                 const score = Math.max(0, Math.min(100, user.avg_score))
-                const hasAttempts = user.total_attempts > 0
+                // avg_score / valid_attempts referem-se só a provas VÁLIDAS (na janela).
+                const validAttempts = user.valid_attempts
+                const hasAttempts = validAttempts > 0
+                // Treino e offline pendente entram como contexto, não no número principal.
+                const contextParts: string[] = []
+                if (user.training_attempts > 0) contextParts.push(`${user.training_attempts} treino`)
+                if (user.offline_pending_count > 0) contextParts.push(`${user.offline_pending_count} offline`)
                 return (
                   <div
                     key={user.user_id}
@@ -423,14 +429,21 @@ function AdminUsuariosContent() {
                       )}
                     </div>
 
-                    {/* Tentativas */}
-                    <div
-                      className={cn(
-                        'px-4 py-3 text-[12.5px] tabular-nums',
-                        hasAttempts ? 'text-admin-text' : 'text-admin-faint',
+                    {/* Provas válidas (treino/offline como contexto) */}
+                    <div className="px-4 py-3">
+                      <span
+                        className={cn(
+                          'text-[12.5px] tabular-nums',
+                          hasAttempts ? 'text-admin-text' : 'text-admin-faint',
+                        )}
+                      >
+                        {hasAttempts ? validAttempts : '—'}
+                      </span>
+                      {contextParts.length > 0 && (
+                        <span className="ml-2 text-[11px] tabular-nums text-admin-faint">
+                          {contextParts.join(' · ')}
+                        </span>
                       )}
-                    >
-                      {user.total_attempts}
                     </div>
 
                     {/* Menu de ações */}

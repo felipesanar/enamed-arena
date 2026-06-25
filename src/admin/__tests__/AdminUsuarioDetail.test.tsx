@@ -32,6 +32,11 @@ const mockUser: Record<string, unknown> = {
   best_score: 88.0,
   last_score: 71.5,
   total_attempts: 8,
+  started_attempts: 11,
+  training_attempts: 2,
+  valid_attempts: 8,
+  offline_pending_count: 1,
+  in_progress_count: 0,
   last_finished_at: '2026-04-04T12:00:00Z',
   is_admin: false,
   roles: ['support'],
@@ -115,8 +120,10 @@ describe('AdminUsuarioDetail', () => {
     renderDetail()
     expect(screen.getByText('Desempenho médio')).toBeInTheDocument()
     expect(screen.getByText('74.2%')).toBeInTheDocument()
-    expect(screen.getByText('Tentativas')).toBeInTheDocument()
+    expect(screen.getByText('Provas válidas')).toBeInTheDocument()
     expect(screen.getByText('8')).toBeInTheDocument()
+    // treino/offline aparecem como contexto da contagem
+    expect(screen.getByText('2 treino · 1 offline')).toBeInTheDocument()
     expect(screen.getByText('Melhor posição')).toBeInTheDocument()
     // Melhor posição = menor ranking_position com nota (23º) — aparece no card e na tabela
     expect(screen.getAllByText('23º').length).toBeGreaterThan(0)

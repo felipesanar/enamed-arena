@@ -14,6 +14,8 @@ interface AdminStatCardProps {
   invertDelta?: boolean
   /** Cor opcional do valor (ex.: 'accent' para Aluno PRO, 'success' para Novos). */
   valueTone?: 'default' | 'accent' | 'success' | 'warning' | 'info' | 'destructive'
+  /** Texto de contexto abaixo do valor (ex.: "12 válidas", "p90: 95 min"). Ignorado se houver delta. */
+  hint?: string
 }
 
 const VALUE_TONE: Record<NonNullable<AdminStatCardProps['valueTone']>, string> = {
@@ -34,6 +36,7 @@ export function AdminStatCard({
   isLoading,
   invertDelta,
   valueTone = 'default',
+  hint,
 }: AdminStatCardProps) {
   if (isLoading) {
     return (
@@ -106,6 +109,8 @@ export function AdminStatCard({
           )}
           {deltaLabel && <span className="font-normal text-admin-muted">{deltaLabel}</span>}
         </p>
+      ) : hint ? (
+        <p className="text-caption text-admin-muted">{hint}</p>
       ) : null}
     </div>
   )

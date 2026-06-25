@@ -106,7 +106,11 @@ function AdminSimuladoAnalyticsContent() {
             <AdminStatCard label="Taxa de conclusão" value={`${stats.completion_rate.toFixed(1)}%`} />
             <AdminStatCard label="Média geral" value={`${stats.avg_score.toFixed(1)}%`} />
             <AdminStatCard label="Abandono" value={`${stats.abandonment_rate.toFixed(1)}%`} invertDelta />
-            <AdminStatCard label="Tempo médio" value={`${stats.avg_time_minutes.toFixed(0)} min`} />
+            <AdminStatCard
+              label="Tempo mediano"
+              value={`${stats.median_time_minutes.toFixed(0)} min`}
+              hint={`p90: ${stats.p90_time_minutes.toFixed(0)} min`}
+            />
           </div>
         ) : null}
       </section>
