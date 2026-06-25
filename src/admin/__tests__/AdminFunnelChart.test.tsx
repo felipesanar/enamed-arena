@@ -33,4 +33,34 @@ describe('AdminFunnelChart', () => {
     expect(screen.getAllByText(/Simulado visto/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Iniciou prova/).length).toBeGreaterThan(0)
   })
+
+  it('renders "sem rastreio" for steps with null conversion and skips them in biggest-drop', () => {
+    const withNull: FunnelStep[] = [
+      { step_order: 1, step_label: 'Visitou',  user_count: 1000, conversion_from_prev: null },
+      { step_order: 2, step_label: 'Cadastrou', user_count: 300, conversion_from_prev: null },
+      { step_order: 3, step_label: 'Iniciou',   user_count: 90,  conversion_from_prev: 30 },
+    ]
+    render(<AdminFunnelChart steps={withNull} />)
+    expect(screen.getAllByText(/sem rastreio/).length).toBeGreaterThan(0)
+    // biggest drop must come from the only tracked step (Iniciou, 30%)
+    expect(screen.getByText(/Maior queda/)).toBeInTheDocument()
+  })
+
+  it('does not crash and shows no biggest-drop note when every step is null', () => {
+    const allNull: FunnelStep[] = [
+      { step_order: 1, step_label: 'A', user_count: 100, conversion_from_prev: null },
+      { step_order: 2, step_label: 'B', user_count: 50,  conversion_from_prev: null },
+    ]
+    render(<AdminFunnelChart steps={allNull} />)
+    expect(screen.queryByText(/Maior queda/)).not.toBeInTheDocument()
+  })
+
+  it('marks a step with insufficient_data', () => {
+    const withFlag: FunnelStep[] = [
+      { step_order: 1, step_label: 'A', user_count: 100, conversion_from_prev: 100 },
+      { step_order: 2, step_label: 'B', user_count: 4,   conversion_from_prev: 4, insufficient_data: true },
+    ]
+    render(<AdminFunnelChart steps={withFlag} />)
+    expect(screen.getByText(/base baixa/)).toBeInTheDocument()
+  })
 })

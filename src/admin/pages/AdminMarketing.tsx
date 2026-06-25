@@ -37,6 +37,12 @@ function convColor(pct: number) {
   return 'text-admin-destructive'
 }
 
+/** Largura de barra segura: nunca NaN, sempre 0–100. */
+function clampPct(pct: number | null | undefined): number {
+  if (pct == null || Number.isNaN(pct)) return 0
+  return Math.min(100, Math.max(0, pct))
+}
+
 /**
  * Abertura do painel: a pergunta que ele responde, em português direto, para
  * quem chega saber se está na tela certa sem abrir as outras.
@@ -64,9 +70,9 @@ function PanelQuestion({
 }
 
 function exportCampaignsCsv(rows: MarketingCampaignRow[]) {
-  const header = 'Campanha,Canal,Visitas,Cadastros,Conversão (%),1ª Prova'
+  const header = 'Campanha,Canal,Visitas,Cadastros,Conversão (%),Provas válidas'
   const lines = rows.map(r =>
-    [r.campaign, r.source, r.visits, r.signups, r.conv_rate.toFixed(1), r.first_exams].join(',')
+    [r.campaign, r.source, r.visits, r.signups, r.conv_rate == null ? '' : r.conv_rate.toFixed(1), r.first_exams].join(',')
   )
   const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -181,7 +187,14 @@ function AdminMarketingContent() {
           delta={delta} deltaLabel="vs mês ant." isLoading={kLoading}
         />
         <AdminStatCard
-          label="Conversão visita→cadastro" value={kpis ? `${kpis.landing_to_signup_pct}%` : '—'}
+          label="Conversão visita→cadastro"
+          value={
+            !kpis
+              ? '—'
+              : kpis.landing_to_signup_insufficient || kpis.landing_to_signup_pct < 0
+                ? 'Dados insuficientes'
+                : `${kpis.landing_to_signup_pct}%`
+          }
           isLoading={kLoading}
         />
         <AdminStatCard
@@ -189,7 +202,8 @@ function AdminMarketingContent() {
           isLoading={kLoading}
         />
         <AdminStatCard
-          label="Via orgânico" value={kpis ? `${kpis.organic_pct}%` : '—'}
+          label={kpis?.organic_low_confidence ? 'Via orgânico (baixa confiança)' : 'Via orgânico'}
+          value={kpis ? `${kpis.organic_pct}%` : '—'}
           isLoading={kLoading}
         />
       </div>
@@ -199,45 +213,61 @@ function AdminMarketingContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Sources */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por canal</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-1">Por canal</p>
+          <p className="text-[10px] text-admin-muted mb-3">Barra = participação nos cadastros · % à direita = conversão visita→cadastro</p>
           <div className="space-y-2">
-            {(sources as MarketingSourceRow[]).map((src, i) => (
-              <div key={src.source} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full shrink-0" style={{ background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
-                <span className="text-[10px] text-admin-muted w-28 truncate">{src.source}</span>
-                <div className="flex-1 h-1.5 bg-admin-raised rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${src.conv_rate}%`, background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
+            {(sources as MarketingSourceRow[]).map((src, i) => {
+              const share = clampPct(src.conv_rate)
+              return (
+                <div key={src.source} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
+                  <span className="text-[10px] text-admin-muted w-28 truncate">{src.source}</span>
+                  <div className="flex-1 h-1.5 bg-admin-raised rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${share}%`, background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
+                  </div>
+                  <span className="text-[10px] text-admin-muted w-10 text-right">
+                    {formatInt(src.user_count)}
+                  </span>
+                  {src.signup_conv_pct == null ? (
+                    <span className="text-[10px] font-semibold w-10 text-right text-admin-faint">—</span>
+                  ) : (
+                    <span className={cn('text-[10px] font-semibold w-10 text-right', convColor(src.signup_conv_pct))}>
+                      {src.signup_conv_pct}%
+                    </span>
+                  )}
                 </div>
-                <span className="text-[10px] text-admin-muted w-10 text-right">
-                  {formatInt(src.user_count)}
-                </span>
-                <span className={cn('text-[10px] font-semibold w-10 text-right', convColor(src.conv_rate))}>
-                  {src.conv_rate}%
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </AdminPanel>
 
         {/* Mediums */}
         <AdminPanel>
-          <p className="text-[11px] font-semibold text-admin-text mb-3">Por meio</p>
+          <p className="text-[11px] font-semibold text-admin-text mb-1">Por meio</p>
+          <p className="text-[10px] text-admin-muted mb-3">Barra = participação nos cadastros · % à direita = conversão visita→cadastro</p>
           <div className="space-y-2">
-            {(mediums as MarketingMediumRow[]).map((med, i) => (
-              <div key={med.medium} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full shrink-0" style={{ background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
-                <span className="text-[10px] text-admin-muted w-28 truncate">{med.medium}</span>
-                <div className="flex-1 h-1.5 bg-admin-raised rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${med.conv_rate}%`, background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
+            {(mediums as MarketingMediumRow[]).map((med, i) => {
+              const share = clampPct(med.conv_rate)
+              return (
+                <div key={med.medium} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
+                  <span className="text-[10px] text-admin-muted w-28 truncate">{med.medium}</span>
+                  <div className="flex-1 h-1.5 bg-admin-raised rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${share}%`, background: SOURCE_COLORS[i] ?? adminChartSeriesColors.muted }} />
+                  </div>
+                  <span className="text-[10px] text-admin-muted w-10 text-right">
+                    {formatInt(med.user_count)}
+                  </span>
+                  {med.signup_conv_pct == null ? (
+                    <span className="text-[10px] font-semibold w-10 text-right text-admin-faint">—</span>
+                  ) : (
+                    <span className={cn('text-[10px] font-semibold w-10 text-right', convColor(med.signup_conv_pct))}>
+                      {med.signup_conv_pct}%
+                    </span>
+                  )}
                 </div>
-                <span className="text-[10px] text-admin-muted w-10 text-right">
-                  {formatInt(med.user_count)}
-                </span>
-                <span className={cn('text-[10px] font-semibold w-10 text-right', convColor(med.conv_rate))}>
-                  {med.conv_rate}%
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </AdminPanel>
       </div>
@@ -251,7 +281,7 @@ function AdminMarketingContent() {
           className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"
           style={{ gridTemplateColumns: '2fr 100px 70px 70px 70px 80px' }}
         >
-          {['Campanha', 'Canal', 'Visitas', 'Cadastros', 'Conv.', '1ª Prova'].map(h => (
+          {['Campanha', 'Canal', 'Visitas', 'Cadastros', 'Conv.', 'Provas válidas'].map(h => (
             <div key={h} className="px-4 py-2">{h}</div>
           ))}
         </div>
@@ -269,7 +299,11 @@ function AdminMarketingContent() {
             </div>
             <div className="px-4 py-2.5 text-[11px] text-admin-muted">{formatInt(row.visits)}</div>
             <div className="px-4 py-2.5 text-[11px] text-admin-text font-semibold">{formatInt(row.signups)}</div>
-            <div className={cn('px-4 py-2.5 text-[11px] font-semibold', convColor(row.conv_rate))}>{row.conv_rate.toFixed(1)}%</div>
+            <div className={cn('px-4 py-2.5 text-[11px] font-semibold', row.conv_rate == null ? 'text-admin-faint' : convColor(row.conv_rate))}>
+              {row.conv_rate == null
+                ? '—'
+                : (<>{row.conv_rate.toFixed(1)}%{row.insufficient_data && <span className="ml-1 text-[9px] font-normal text-admin-faint">base baixa</span>}</>)}
+            </div>
             <div className="px-4 py-2.5 text-[11px] text-admin-muted">{formatInt(row.first_exams)}</div>
           </div>
         ))}

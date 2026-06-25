@@ -14,6 +14,11 @@ export interface DashboardKpis {
   avg_score_prev: number
   activation_rate: number
   activation_rate_prev: number
+  /** Taxa de abandono de provas válidas (0–100). */
+  abandonment_rate: number
+  abandonment_rate_prev: number
+  /** Provas reais aguardando submissão offline. */
+  offline_pending: number
   /** Denominador de provas VÁLIDAS (na janela) usado na taxa de conclusão.
    *  0 = não houve prova oficial no período → conclusão deve exibir "sem provas", não "0%". */
   completion_valid_denom: number
@@ -30,7 +35,11 @@ export interface FunnelStep {
   step_order: number
   step_label: string
   user_count: number
-  conversion_from_prev: number  // 0–100, percentual
+  /** 0–100, percentual de quem veio da etapa anterior.
+   *  null = etapa sem rastreio possível (ex.: visitas não capturadas). */
+  conversion_from_prev: number | null
+  /** Etapa com base pequena demais para confiar no percentual. */
+  insufficient_data?: boolean
 }
 
 export interface SimuladoEngagementRow {
@@ -41,6 +50,16 @@ export interface SimuladoEngagementRow {
   completion_rate: number   // 0–100
   avg_score: number         // 0–100
   abandonment_rate: number  // 0–100
+  /** Total de provas iniciadas (válidas + treino). */
+  started_total: number
+  /** Provas em modo treino (fora da janela). */
+  treino_count: number
+  /** Provas concluídas (válidas). */
+  completed_count: number
+  /** Provas em andamento. */
+  in_progress_count: number
+  /** Provas reais aguardando submissão offline. */
+  offline_pending_count: number
 }
 
 export interface LiveSignals {
@@ -69,6 +88,16 @@ export interface UserListRow {
   created_at: string
   avg_score: number
   total_attempts: number
+  /** Provas iniciadas (qualquer status). */
+  started_attempts: number
+  /** Provas em modo treino (fora da janela). */
+  training_attempts: number
+  /** Provas válidas (na janela, contam para ranking/score). */
+  valid_attempts: number
+  /** Provas reais aguardando submissão offline. */
+  offline_pending_count: number
+  /** Provas em andamento. */
+  in_progress_count: number
   total_count: number
 }
 
@@ -86,6 +115,16 @@ export interface UserDetail {
   best_score: number
   last_score: number
   total_attempts: number
+  /** Provas iniciadas (qualquer status). */
+  started_attempts: number
+  /** Provas em modo treino (fora da janela). */
+  training_attempts: number
+  /** Provas válidas (na janela). */
+  valid_attempts: number
+  /** Provas reais aguardando submissão offline. */
+  offline_pending_count: number
+  /** Provas em andamento. */
+  in_progress_count: number
   last_finished_at: string | null
   is_admin: boolean
   roles: string[]
@@ -130,18 +169,32 @@ export interface SimuladoDetailStats {
   avg_score: number
   abandonment_rate: number
   avg_time_minutes: number
+  /** Tempo mediano (min) das provas válidas. */
+  median_time_minutes: number
+  /** Tempo p90 (min) das provas válidas. */
+  p90_time_minutes: number
+  /** Total de provas iniciadas (válidas + treino). */
+  started_total: number
+  treino_count: number
+  completed_count: number
+  in_progress_count: number
+  offline_pending_count: number
 }
 
 export interface SimuladoQuestionStat {
   question_number: number
   text: string
   correct_rate: number
+  /** Índice de discriminação em escala 0–100 (antes 0–1). Pode ser negativo. */
   discrimination_index: number
   most_common_wrong_label: string | null
   most_common_wrong_pct: number | null
   area: string
   theme: string
+  /** Respostas válidas (na janela) usadas no cálculo. */
   total_responses: number
+  /** Respostas de qualquer origem (válidas + treino). */
+  total_responses_all: number
 }
 
 export interface AttemptListKpis {
@@ -149,6 +202,14 @@ export interface AttemptListKpis {
   in_progress: number
   submitted: number
   expired: number
+  /** Provas reais aguardando submissão offline (qualquer janela). */
+  offline_pending: number
+  /** Provas submetidas válidas (na janela). */
+  submitted_valid: number
+  /** Provas em andamento válidas (na janela). */
+  in_progress_valid: number
+  /** Provas offline pendentes válidas (na janela). */
+  offline_pending_valid: number
 }
 
 export interface AttemptListRow {
@@ -171,6 +232,8 @@ export interface JourneyTimeseriesRow {
   week_start: string
   new_users: number
   first_exams: number
+  /** Provas iniciadas na semana (válidas + treino). */
+  started_attempts: number
 }
 
 export interface JourneySourceRow {
@@ -180,30 +243,48 @@ export interface JourneySourceRow {
 }
 
 export interface JourneyTimeToConvert {
+  /** -1 = sem dado de visita confiável (usar landing_to_signup_insufficient). */
   landing_to_signup_min: number
   signup_to_onboarding_min: number
   onboarding_to_first_exam_days: number
   first_to_second_exam_days: number
+  /** Amostra de visita→cadastro; 0 → exibir "Dados insuficientes". */
+  landing_to_signup_n: number
+  landing_to_signup_insufficient: boolean
+  /** p90 de 1ª→2ª prova (dias). */
+  first_to_second_exam_days_p90: number
+  /** Amostra de 1ª→2ª prova. */
+  first_to_second_exam_n: number
 }
 
 export interface MarketingKpis {
   new_users: number
   new_users_prev: number
+  /** -1 = dados insuficientes (usar landing_to_signup_insufficient). */
   landing_to_signup_pct: number
   active_campaigns: number
   organic_pct: number
+  landing_to_signup_insufficient: boolean
+  /** % orgânico com baixa confiança (origem pouco capturada). */
+  organic_low_confidence: boolean
 }
 
 export interface MarketingSourceRow {
   source: string
   user_count: number
+  /** Participação da origem no total de cadastros (0–100). */
   conv_rate: number
+  /** Conversão real visita→cadastro (0–100); null quando não computável. */
+  signup_conv_pct: number | null
 }
 
 export interface MarketingMediumRow {
   medium: string
   user_count: number
+  /** Participação do meio no total de cadastros (0–100). */
   conv_rate: number
+  /** Conversão real visita→cadastro (0–100); null quando não computável. */
+  signup_conv_pct: number | null
 }
 
 export interface MarketingCampaignRow {
@@ -211,8 +292,14 @@ export interface MarketingCampaignRow {
   source: string
   visits: number
   signups: number
-  conv_rate: number
+  /** Conversão visita→cadastro (0–100); null quando visits=0. */
+  conv_rate: number | null
+  /** Provas válidas iniciadas pelos cadastros da campanha. */
   first_exams: number
+  /** Provas iniciadas (qualquer janela). */
+  started_exams: number
+  /** Base pequena demais para confiar na conversão. */
+  insufficient_data: boolean
 }
 
 export interface SegmentedFunnelRow {
@@ -224,15 +311,24 @@ export interface SegmentedFunnelRow {
   standard_pct: number
   pro_count: number
   pro_pct: number
+  /** Base pequena demais para confiar nos percentuais da etapa. */
+  insufficient_data?: boolean
 }
 
 export interface FrictionPoint {
   key: string
   title: string
   event_name: string
+  /** -1 = dados insuficientes (usar insufficient_data). */
   metric_value: number
   metric_unit: 'percent' | 'days' | 'minutes'
   severity: 'critical' | 'warning' | 'healthy'
+  /** Numerador do cálculo (ex.: quem abandonou). */
+  numerator: number
+  /** Denominador do cálculo (ex.: base elegível). */
+  denominator: number
+  /** Base pequena demais para confiar na métrica. */
+  insufficient_data: boolean
 }
 
 export interface FeatureAdoptionRow {
@@ -271,7 +367,12 @@ export interface CohortRetentionRow {
   did_1_plus: number
   did_2_plus: number
   did_3_plus: number
-  avg_score: number
+  /** Nota média da coorte (provas válidas); null quando ninguém concluiu. */
+  avg_score: number | null
+  /** Pessoas da coorte com prova offline pendente. */
+  did_offline_pending: number
+  /** Pessoas da coorte que iniciaram qualquer prova. */
+  started_any: number
 }
 
 export interface AreaPerformanceRow {
@@ -326,6 +427,10 @@ export type SegmentBreakdownRow = {
   participation_rate: number
   avg_score: number
   avg_attempts: number
+  /** Participantes que concluíram prova válida. */
+  concluded_participants: number
+  /** Participantes com prova ainda pendente (em andamento/offline). */
+  pending_participants: number
 }
 
 export interface IntelInsight {

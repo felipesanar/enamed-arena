@@ -48,7 +48,7 @@ export function AdminCohortMatrix({ rows, isLoading }: AdminCohortMatrixProps) {
   return (
     <div className="overflow-x-auto rounded-lg border border-admin-line bg-admin-surface">
       <table className="w-full min-w-[560px] border-collapse">
-        <caption className="sr-only">Retenção por coorte de cadastro</caption>
+        <caption className="sr-only">Ativação acumulada por coorte de cadastro</caption>
         <thead>
           <tr className="border-b border-admin-line">
             <th scope="col" className={HEAD_CLASS}>Coorte</th>
@@ -77,7 +77,7 @@ export function AdminCohortMatrix({ rows, isLoading }: AdminCohortMatrixProps) {
               <MilestoneCell value={row.did_2_plus} total={row.cohort_size} />
               <MilestoneCell value={row.did_3_plus} total={row.cohort_size} />
               <td className="px-3 py-2 text-center text-xs font-medium tabular-nums text-admin-text">
-                {row.avg_score.toFixed(0)}
+                {row.avg_score == null ? <span className="text-admin-faint">—</span> : row.avg_score.toFixed(0)}
               </td>
             </tr>
           ))}
