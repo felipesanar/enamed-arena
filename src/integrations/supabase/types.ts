@@ -1328,6 +1328,7 @@ export type Database = {
         Args: { p_days?: number }
         Returns: {
           conversion_from_prev: number
+          insufficient_data: boolean
           step_label: string
           step_order: number
           user_count: number
@@ -1345,7 +1346,11 @@ export type Database = {
         Args: { p_days?: number }
         Returns: {
           first_to_second_exam_days: number
+          first_to_second_exam_days_p90: number
+          first_to_second_exam_n: number
+          landing_to_signup_insufficient: boolean
           landing_to_signup_min: number
+          landing_to_signup_n: number
           onboarding_to_first_exam_days: number
           signup_to_onboarding_min: number
         }[]
@@ -1355,6 +1360,7 @@ export type Database = {
         Returns: {
           first_exams: number
           new_users: number
+          started_attempts: number
           week_start: string
         }[]
       }
@@ -1363,7 +1369,11 @@ export type Database = {
         Returns: {
           expired: number
           in_progress: number
+          in_progress_valid: number
+          offline_pending: number
+          offline_pending_valid: number
           submitted: number
+          submitted_valid: number
           total: number
         }[]
       }
@@ -1380,22 +1390,28 @@ export type Database = {
           did_1_plus: number
           did_2_plus: number
           did_3_plus: number
+          did_offline_pending: number
           did_onboarding: number
+          started_any: number
         }[]
       }
       admin_dashboard_kpis: {
         Args: { p_days?: number }
         Returns: {
+          abandonment_rate: number
+          abandonment_rate_prev: number
           activation_rate: number
           activation_rate_prev: number
           avg_score: number
           avg_score_prev: number
           completion_rate: number
           completion_rate_prev: number
+          completion_valid_denom: number
           exams_started: number
           exams_started_prev: number
           new_users: number
           new_users_prev: number
+          offline_pending: number
           total_users: number
         }[]
       }
@@ -1412,6 +1428,7 @@ export type Database = {
         Returns: {
           abandonment_rate: number
           abandonment_rate_prev: number
+          abandonment_rate_valid: number
           avg_fullscreen_exits: number
           avg_minutes: number
           avg_minutes_prev: number
@@ -1419,7 +1436,9 @@ export type Database = {
           completed: number
           high_integrity_flag_pct: number
           median_minutes: number
+          offline_pending: number
           started: number
+          started_valid: number
         }[]
       }
       admin_events_timeseries: {
@@ -1429,12 +1448,14 @@ export type Database = {
           exams_completed: number
           exams_started: number
           new_users: number
+          offline_pending: number
         }[]
       }
       admin_funnel_stats: {
         Args: { p_days?: number }
         Returns: {
           conversion_from_prev: number
+          insufficient_data: boolean
           step_label: string
           step_order: number
           user_count: number
@@ -1445,6 +1466,25 @@ export type Database = {
         Returns: {
           capabilities: string[]
           roles: string[]
+        }[]
+      }
+      admin_get_attempt_questions: {
+        Args: { p_attempt_id: string }
+        Returns: {
+          ai_suggested_reason: string
+          area: string
+          confidence: string
+          correct_label: string
+          correct_text: string
+          difficulty: string
+          is_correct: boolean
+          question_id: string
+          question_number: number
+          question_text: string
+          selected_label: string
+          selected_text: string
+          theme: string
+          was_answered: boolean
         }[]
       }
       admin_get_ranking_for_simulado: {
@@ -1489,16 +1529,21 @@ export type Database = {
           created_at: string
           email: string
           full_name: string
+          in_progress_count: number
           is_admin: boolean
           last_finished_at: string
           last_score: number
           last_sign_in_at: string
+          offline_pending_count: number
           roles: string[]
           segment: string
           specialty: string
+          started_attempts: number
           target_institutions: string[]
           total_attempts: number
+          training_attempts: number
           user_id: string
+          valid_attempts: number
         }[]
       }
       admin_get_user_attempts: {
@@ -1506,6 +1551,7 @@ export type Database = {
         Returns: {
           attempt_id: string
           created_at: string
+          is_within_window: boolean
           ranking_position: number
           score_percentage: number
           sequence_number: number
@@ -1594,19 +1640,29 @@ export type Database = {
           created_at: string
           email: string
           full_name: string
+          in_progress_count: number
+          offline_pending_count: number
           segment: string
           specialty: string
+          started_attempts: number
           total_attempts: number
           total_count: number
+          training_attempts: number
           user_id: string
+          valid_attempts: number
         }[]
       }
       admin_live_signals: {
         Args: never
         Returns: {
           active_exams: number
+          active_today: number
+          last_activity_at: string
+          offline_pending_now: number
+          online_confidence: string
           online_last_15min: number
           open_tickets: number
+          tickets_supported: boolean
         }[]
       }
       admin_log_action: {
@@ -1625,8 +1681,10 @@ export type Database = {
           campaign: string
           conv_rate: number
           first_exams: number
+          insufficient_data: boolean
           signups: number
           source: string
+          started_exams: number
           visits: number
         }[]
       }
@@ -1634,9 +1692,11 @@ export type Database = {
         Args: { p_days?: number }
         Returns: {
           active_campaigns: number
+          landing_to_signup_insufficient: boolean
           landing_to_signup_pct: number
           new_users: number
           new_users_prev: number
+          organic_low_confidence: boolean
           organic_pct: number
         }[]
       }
@@ -1645,6 +1705,7 @@ export type Database = {
         Returns: {
           conv_rate: number
           medium: string
+          signup_conv_pct: number
           user_count: number
         }[]
       }
@@ -1652,6 +1713,7 @@ export type Database = {
         Args: { p_days?: number }
         Returns: {
           conv_rate: number
+          signup_conv_pct: number
           source: string
           user_count: number
         }[]
@@ -1687,10 +1749,13 @@ export type Database = {
       admin_produto_friction: {
         Args: { p_days?: number; p_segment?: string }
         Returns: {
+          denominator: number
           event_name: string
+          insufficient_data: boolean
           key: string
           metric_unit: string
           metric_value: number
+          numerator: number
           severity: string
           title: string
         }[]
@@ -1700,6 +1765,7 @@ export type Database = {
         Returns: {
           guest_count: number
           guest_pct: number
+          insufficient_data: boolean
           pro_count: number
           pro_pct: number
           standard_count: number
@@ -1754,8 +1820,10 @@ export type Database = {
         Returns: {
           avg_attempts: number
           avg_score: number
+          concluded_participants: number
           participants: number
           participation_rate: number
+          pending_participants: number
           segment: string
           users: number
         }[]
@@ -1778,11 +1846,18 @@ export type Database = {
           abandonment_rate: number
           avg_score: number
           avg_time_minutes: number
+          completed_count: number
           completion_rate: number
+          in_progress_count: number
+          median_time_minutes: number
+          offline_pending_count: number
+          p90_time_minutes: number
           participants: number
           sequence_number: number
           simulado_id: string
+          started_total: number
           title: string
+          treino_count: number
         }[]
       }
       admin_simulado_engagement: {
@@ -1790,11 +1865,16 @@ export type Database = {
         Returns: {
           abandonment_rate: number
           avg_score: number
+          completed_count: number
           completion_rate: number
+          in_progress_count: number
+          offline_pending_count: number
           participants: number
           sequence_number: number
           simulado_id: string
+          started_total: number
           title: string
+          treino_count: number
         }[]
       }
       admin_simulado_question_stats: {
@@ -1809,6 +1889,7 @@ export type Database = {
           text: string
           theme: string
           total_responses: number
+          total_responses_all: number
         }[]
       }
       admin_simulado_results_roster: {
@@ -1824,6 +1905,7 @@ export type Database = {
           p_sort?: string
         }
         Returns: {
+          app_rank: number
           attempt_id: string
           correct_count: number
           duration_seconds: number
