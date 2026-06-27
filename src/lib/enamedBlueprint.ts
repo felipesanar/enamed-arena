@@ -53,6 +53,11 @@ export const ENAMED_BLUEPRINT: AreaBlueprint[] = [
     weight: 0.15,
     matchers: ['medicina de família', 'medicina de familia', 'saúde coletiva', 'saude coletiva', 'medicina preventiva', 'epidemiologia', 'atenção básica', 'atencao basica', 'saúde pública', 'saude publica', 'medicina da família', 'medicina da familia', 'mfc'],
   },
+  {
+    label: 'Saúde Mental',
+    weight: 0.05,
+    matchers: ['saúde mental', 'saude mental', 'psiquiatria', 'psiquiátrico', 'psiquiatrico', 'psicologia médica', 'psicologia medica', 'transtorno mental', 'saúde psíquica', 'saude psiquica'],
+  },
 ];
 
 /** Soma dos pesos (deve ser 1.0). */
