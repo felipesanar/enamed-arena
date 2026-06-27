@@ -60,7 +60,10 @@ export const ENAMED_BLUEPRINT: AreaBlueprint[] = [
   },
 ];
 
-/** Soma dos pesos (deve ser 1.0). */
+/**
+ * Soma dos pesos das áreas. Usada como base relativa de priorização —
+ * os pesos são comparados entre si, não precisam somar exatamente 1.0.
+ */
 export const TOTAL_WEIGHT = ENAMED_BLUEPRINT.reduce((acc, a) => acc + a.weight, 0);
 
 /**
