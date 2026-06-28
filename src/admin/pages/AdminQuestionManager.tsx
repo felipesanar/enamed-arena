@@ -764,6 +764,8 @@ function QuestionWorkspace({ simuladoId, simuladoLabel, onBackToBank }: Question
             question_number: q.question_number,
             enunciado_text: q.text ?? '',
             comentario_text: q.explanation ?? '',
+            alternativas: (q.options ?? []).map((o) => ({ label: o.label, text: o.text ?? '' })),
+            gabarito: q.options?.find((o) => o.is_correct)?.label ?? '',
             images: imgs,
           }
         }),

@@ -1,5 +1,69 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { buildContents, parseFindings, RESPONSE_SCHEMA, type QInput } from './verifyHelpers.ts';
+import { buildContents, parseFindings, filterFindings, RESPONSE_SCHEMA, type Finding, type QInput } from './verifyHelpers.ts';
+
+const GEMINI_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+// Quantas questões verificar em paralelo dentro de um lote. Cada questão vira
+// UMA chamada independente ao Gemini (evita contaminação cruzada entre questões).
+const PER_QUESTION_CONCURRENCY = 3;
+
+async function verifyOneQuestion(apiKey: string, q: QInput): Promise<Finding[]> {
+  const r = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: buildContents([q]) }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 2048,
+        thinkingConfig: { thinkingBudget: 2048 },
+        responseMimeType: 'application/json',
+        responseSchema: RESPONSE_SCHEMA,
+      },
+    }),
+  });
+
+  if (!r.ok) {
+    const txt = await r.text();
+    console.error('[admin-verify-questions] Gemini error', q.question_number, r.status, txt);
+    return [];
+  }
+
+  const data = await r.json();
+  const rawJson = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+  // Garante que o número da questão é o correto, independente do que o modelo devolver.
+  const parsed = parseFindings(rawJson).map((f) => ({ ...f, question_number: q.question_number }));
+  // Filtro determinístico: remove os falsos positivos estruturais.
+  const kept = filterFindings(parsed, q);
+  if (parsed.length !== kept.length) {
+    console.log(
+      `[admin-verify-questions] Q${q.question_number}: IA=${parsed.length} achados, pós-filtro=${kept.length} ` +
+      `(descartados: ${parsed.filter((p) => !kept.includes(p)).map((p) => p.check_type).join(', ')})`,
+    );
+  }
+  return kept;
+}
+
+async function runWithConcurrency(questions: QInput[], apiKey: string): Promise<Finding[]> {
+  const results: Finding[] = [];
+  let cursor = 0;
+  async function worker() {
+    while (cursor < questions.length) {
+      const q = questions[cursor++];
+      if (!q) return;
+      try {
+        results.push(...await verifyOneQuestion(apiKey, q));
+      } catch (err) {
+        console.error('[admin-verify-questions] question failed', q.question_number, err);
+      }
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(PER_QUESTION_CONCURRENCY, questions.length || 1) }, worker),
+  );
+  return results;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,35 +113,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: buildContents(questions) }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 4000,
-            thinkingConfig: { thinkingBudget: 0 },
-            responseMimeType: 'application/json',
-            responseSchema: RESPONSE_SCHEMA,
-          },
-        }),
-      },
-    );
-
-    if (!r.ok) {
-      const txt = await r.text();
-      console.error('[admin-verify-questions] Gemini error', r.status, txt);
-      return new Response(JSON.stringify({ error: `Gemini erro ${r.status}`, findings: [] }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const data = await r.json();
-    const rawJson = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
-    const findings = parseFindings(rawJson);
+    const findings = await runWithConcurrency(questions, apiKey);
 
     return new Response(JSON.stringify({ findings }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
