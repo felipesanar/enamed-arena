@@ -196,6 +196,10 @@ export const adminApi = {
       avg_score_prev: Number(row.avg_score_prev),
       activation_rate: Number(row.activation_rate),
       activation_rate_prev: Number(row.activation_rate_prev),
+      abandonment_rate: Number(row.abandonment_rate ?? 0),
+      abandonment_rate_prev: Number(row.abandonment_rate_prev ?? 0),
+      offline_pending: Number(row.offline_pending ?? 0),
+      completion_valid_denom: Number(row.completion_valid_denom ?? 0),
     }
   },
 
@@ -233,6 +237,11 @@ export const adminApi = {
       completion_rate: Number(r.completion_rate),
       avg_score: Number(r.avg_score),
       abandonment_rate: Number(r.abandonment_rate),
+      started_total: Number(r.started_total ?? 0),
+      treino_count: Number(r.treino_count ?? 0),
+      completed_count: Number(r.completed_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
     }))
   },
 
@@ -245,6 +254,11 @@ export const adminApi = {
       online_last_15min: Number(row.online_last_15min),
       active_exams: Number(row.active_exams),
       open_tickets: Number(row.open_tickets),
+      offline_pending_now: Number(row.offline_pending_now ?? 0),
+      online_confidence: (row.online_confidence as 'low' | 'high') ?? 'low',
+      tickets_supported: Boolean(row.tickets_supported ?? false),
+      active_today: Number(row.active_today ?? 0),
+      last_activity_at: (row.last_activity_at as string | null) ?? null,
     }
   },
 
@@ -272,6 +286,11 @@ export const adminApi = {
       created_at: r.created_at as string,
       avg_score: Number(r.avg_score),
       total_attempts: Number(r.total_attempts),
+      started_attempts: Number(r.started_attempts ?? 0),
+      training_attempts: Number(r.training_attempts ?? 0),
+      valid_attempts: Number(r.valid_attempts ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
       total_count: Number(r.total_count),
     }))
   },
@@ -294,6 +313,11 @@ export const adminApi = {
       best_score: Number(r.best_score),
       last_score: Number(r.last_score),
       total_attempts: Number(r.total_attempts),
+      started_attempts: Number(r.started_attempts ?? 0),
+      training_attempts: Number(r.training_attempts ?? 0),
+      valid_attempts: Number(r.valid_attempts ?? 0),
+      offline_pending_count: Number(r.offline_pending_count ?? 0),
+      in_progress_count: Number(r.in_progress_count ?? 0),
       last_finished_at: r.last_finished_at as string | null,
       is_admin: Boolean(r.is_admin),
       roles: (r.roles as string[] | null) ?? [],
