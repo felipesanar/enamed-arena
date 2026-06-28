@@ -57,3 +57,6 @@ supabase/.temp/
 /test-results/
 /playwright-report/
 /e2e/.cache/
+
+# Export de design handoff (HTML/assets gerados pela ferramenta de design — não é código do app)
+.design-handoff/
