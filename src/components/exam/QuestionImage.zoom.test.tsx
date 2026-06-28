@@ -5,17 +5,16 @@ import { QuestionImage } from './QuestionImage';
 describe('QuestionImage zoom lightbox', () => {
   it('opens lightbox and zooms in/out', () => {
     render(<QuestionImage src="data:image/png;base64,AAAA" alt="teste" />);
-    // open lightbox
-    fireEvent.click(screen.getByRole('button', { name: '' }) ?? screen.getAllByRole('button')[0]);
-    // toolbar zoom buttons appear
+    fireEvent.click(screen.getAllByRole('button')[0]); // thumbnail
     const zoomIn = screen.getByLabelText('Aumentar zoom');
     const zoomOut = screen.getByLabelText('Diminuir zoom');
-    expect(zoomOut).toBeDisabled(); // at 1x
+    expect(zoomOut).toBeDisabled();
     fireEvent.click(zoomIn);
-    // scale indicator shows percent > 100%
     expect(screen.getByText(/%$/)).toBeTruthy();
     expect(zoomOut).not.toBeDisabled();
     expect(screen.getByLabelText('Resetar zoom')).toBeTruthy();
     expect(screen.getByLabelText('Fechar imagem')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Resetar zoom'));
+    expect(zoomOut).toBeDisabled();
   });
 });
