@@ -170,6 +170,131 @@ describe('AdminQuestionManager — editor por simulado', () => {
     expect(screen.getByRole('button', { name: /Anterior/ })).toBeDisabled()
   })
 
+  it('avança sem salvar pelo botão Próxima quando não há alterações', async () => {
+    renderSimuladoRoute()
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    await screen.findByText('Questão 2 de 2')
+    expect(updMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('pula direto para uma questão pelos números da barra de navegação', async () => {
+    renderSimuladoRoute()
+    fireEvent.click(screen.getByRole('button', { name: 'Ir para a questão 2' }))
+    await screen.findByText('Questão 2 de 2')
+    expect(screen.getByDisplayValue(/Qual o exame inicial/)).toBeInTheDocument()
+  })
+
+  it('navega pelo campo "Ir para" ao digitar o número e pressionar Enter', async () => {
+    renderSimuladoRoute()
+    const jump = screen.getByLabelText('Ir para o número da questão')
+    fireEvent.change(jump, { target: { value: '2' } })
+    fireEvent.keyDown(jump, { key: 'Enter' })
+    await screen.findByText('Questão 2 de 2')
+    expect(screen.getByDisplayValue(/Qual o exame inicial/)).toBeInTheDocument()
+  })
+
+  it('ignora número fora da faixa no campo "Ir para" e limpa o campo', () => {
+    renderSimuladoRoute()
+    const jump = screen.getByLabelText('Ir para o número da questão') as HTMLInputElement
+    fireEvent.change(jump, { target: { value: '99' } })
+    fireEvent.keyDown(jump, { key: 'Enter' })
+    expect(screen.getByText('Questão 1 de 2')).toBeInTheDocument()
+    expect(jump.value).toBe('')
+  })
+
+  it('não mostra a guarda ao navegar sem alterações', async () => {
+    renderSimuladoRoute()
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    await screen.findByText('Questão 2 de 2')
+    expect(screen.queryByText('Alterações não salvas')).not.toBeInTheDocument()
+  })
+
+  it('mostra o selo "Não salvo" ao editar e não antes', async () => {
+    renderSimuladoRoute()
+    expect(screen.queryByText('Não salvo')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByDisplayValue(/Qual é a conduta inicial/), {
+      target: { value: 'Enunciado editado' },
+    })
+    expect(await screen.findByText('Não salvo')).toBeInTheDocument()
+  })
+
+  it('dispara a guarda ao clicar em um chip com alterações não salvas', async () => {
+    renderSimuladoRoute()
+    fireEvent.change(screen.getByDisplayValue(/Qual é a conduta inicial/), {
+      target: { value: 'Enunciado editado' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Ir para a questão 2' }))
+    expect(await screen.findByText('Alterações não salvas')).toBeInTheDocument()
+    expect(screen.getByText('Questão 1 de 2')).toBeInTheDocument()
+    expect(updMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('dispara a guarda no botão Anterior quando há alterações (antes descartava em silêncio)', async () => {
+    renderSimuladoRoute()
+    // Vai para a Q2 (limpa) para habilitar o "Anterior".
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    await screen.findByText('Questão 2 de 2')
+    fireEvent.change(screen.getByDisplayValue(/Qual o exame inicial/), {
+      target: { value: 'Editado na Q2' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Anterior/ }))
+    expect(await screen.findByText('Alterações não salvas')).toBeInTheDocument()
+    expect(screen.getByText('Questão 2 de 2')).toBeInTheDocument()
+    expect(updMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('Salvar e ir não navega quando a validação barra (enunciado vazio)', async () => {
+    renderSimuladoRoute()
+    fireEvent.change(screen.getByDisplayValue(/Qual é a conduta inicial/), {
+      target: { value: '' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    await screen.findByText('Alterações não salvas')
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar e ir' }))
+    await vi.waitFor(() => {
+      expect(screen.getByText('Questão 1 de 2')).toBeInTheDocument()
+    })
+    expect(updMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('avisa sobre alterações não salvas ao navegar e Cancelar mantém na questão', async () => {
+    renderSimuladoRoute()
+    fireEvent.change(screen.getByDisplayValue(/Qual é a conduta inicial/), {
+      target: { value: 'Enunciado editado' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    expect(await screen.findByText('Alterações não salvas')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByText('Questão 1 de 2')).toBeInTheDocument()
+    expect(updMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('Descartar e ir navega sem salvar as alterações', async () => {
+    renderSimuladoRoute()
+    fireEvent.change(screen.getByDisplayValue(/Qual é a conduta inicial/), {
+      target: { value: 'Enunciado editado' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    await screen.findByText('Alterações não salvas')
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar e ir' }))
+    await screen.findByText('Questão 2 de 2')
+    expect(updMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('Salvar e ir persiste as alterações antes de navegar', async () => {
+    renderSimuladoRoute()
+    fireEvent.change(screen.getByDisplayValue(/Qual é a conduta inicial/), {
+      target: { value: 'Enunciado editado' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    await screen.findByText('Alterações não salvas')
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar e ir' }))
+    await vi.waitFor(() => {
+      expect(updMutateAsync).toHaveBeenCalled()
+    })
+    await screen.findByText('Questão 2 de 2')
+  })
+
   it('mostra o estado vazio quando não há questões', () => {
     vi.mocked(useAdminSimuladoQuestions).mockReturnValue({
       data: [],

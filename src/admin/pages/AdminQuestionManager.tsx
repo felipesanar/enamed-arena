@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ChevronRight,
@@ -31,6 +39,14 @@ import { downscaleImage } from '@/admin/utils/downscaleImage'
 import { logger } from '@/lib/logger'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -145,151 +161,252 @@ function PerformanceCard({
   )
 }
 
-// ─── Editor de uma questão (dois painéis) ────────────────────────────────────
+// ─── Barra de navegação entre questões ───────────────────────────────────────
+
+interface QuestionNavBarProps {
+  questions: AdminQuestionFull[]
+  current: number
+  /** Números de questão com algum achado da verificação por IA. */
+  flaggedNumbers: Set<number>
+  /** Pede navegação para o índice (o workspace aplica a guarda de alterações). */
+  onSelect: (index: number) => void
+}
+
+function QuestionNavBar({ questions, current, flaggedNumbers, onSelect }: QuestionNavBarProps) {
+  const total = questions.length
+  const [jump, setJump] = useState('')
+
+  const submitJump = () => {
+    const n = Number.parseInt(jump, 10)
+    if (!Number.isNaN(n) && n >= 1 && n <= total) {
+      onSelect(n - 1)
+    }
+    setJump('')
+  }
+
+  return (
+    <div className="flex items-start gap-4 border-b border-admin-line bg-admin-surface px-6 py-2.5">
+      <nav
+        aria-label="Navegar entre as questões"
+        className="flex max-h-[84px] flex-1 flex-wrap gap-1 overflow-y-auto"
+      >
+        {questions.map((q, i) => {
+          const active = i === current
+          const flagged = flaggedNumbers.has(q.question_number)
+          return (
+            <button
+              key={q.id}
+              type="button"
+              aria-current={active ? 'true' : undefined}
+              aria-label={`Ir para a questão ${q.question_number}${flagged ? ', com achado da verificação' : ''}`}
+              onClick={() => onSelect(i)}
+              title={`Questão ${q.question_number}${flagged ? ' · tem achado da verificação' : ''}`}
+              className={cn(
+                'relative h-7 min-w-[28px] rounded-md px-1.5 font-mono text-[11px] tabular-nums',
+                'motion-safe:transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-admin-accent',
+                active
+                  ? 'bg-admin-accent font-semibold text-admin-accent-contrast'
+                  : 'bg-admin-raised text-admin-muted hover:bg-admin-line hover:text-admin-text',
+              )}
+            >
+              {q.question_number}
+              {flagged && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    'absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full',
+                    active ? 'bg-admin-accent-contrast' : 'bg-admin-warning',
+                  )}
+                />
+              )}
+            </button>
+          )
+        })}
+      </nav>
+
+      <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+        <Label htmlFor="q-jump" className="whitespace-nowrap text-[11px] text-admin-faint">
+          Ir para
+        </Label>
+        <Input
+          id="q-jump"
+          value={jump}
+          onChange={(e) => setJump(e.target.value.replace(/\D/g, ''))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              submitJump()
+            }
+          }}
+          onBlur={() => setJump('')}
+          inputMode="numeric"
+          placeholder="Nº"
+          aria-label="Ir para o número da questão"
+          className="h-7 w-14 border-admin-line bg-admin-raised text-center text-[12.5px] text-admin-text"
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Editor de uma questão (corpo de dois painéis) ───────────────────────────
+
+interface QuestionEditorHandle {
+  /** Persiste a questão atual. Retorna true se salvou, false se a validação barrou. */
+  persist: () => Promise<boolean>
+}
 
 interface QuestionEditorProps {
   question: AdminQuestionFull
   simuladoId: string
-  index: number
-  total: number
   stat: SimuladoQuestionStat | undefined
   statsLoading: boolean
-  onPrev: () => void
-  onSaved: () => void
-  canPrev: boolean
-  isLast: boolean
+  /** Informa o workspace se há alterações não salvas / se está salvando. */
+  onMetaChange: (meta: { isDirty: boolean; isSaving: boolean }) => void
+  /** Chamado após excluir a questão (o workspace ajusta o índice). */
+  onAfterDelete: () => void
 }
 
-function QuestionEditor({
-  question,
-  simuladoId,
-  index,
-  total,
-  stat,
-  statsLoading,
-  onPrev,
-  onSaved,
-  canPrev,
-  isLast,
-}: QuestionEditorProps) {
-  const upd = useUpdateQuestion(simuladoId)
-  const updOpt = useUpdateOption(simuladoId)
-  const setCorrect = useSetCorrectOption(simuladoId)
-  const del = useDeleteQuestion(simuladoId)
+const QuestionEditor = forwardRef<QuestionEditorHandle, QuestionEditorProps>(
+  function QuestionEditor(
+    { question, simuladoId, stat, statsLoading, onMetaChange, onAfterDelete },
+    ref,
+  ) {
+    const upd = useUpdateQuestion(simuladoId)
+    const updOpt = useUpdateOption(simuladoId)
+    const setCorrect = useSetCorrectOption(simuladoId)
+    const del = useDeleteQuestion(simuladoId)
 
-  const [text, setText] = useState('')
-  const [area, setArea] = useState('')
-  const [theme, setTheme] = useState('')
-  const [difficulty, setDifficulty] = useState('medium')
-  const [explanation, setExplanation] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
-  const [explanationImageUrl, setExplanationImageUrl] = useState('')
-  const [imageUrl2, setImageUrl2] = useState('')
-  const [optionTexts, setOptionTexts] = useState<Record<string, string>>({})
-  const [correctId, setCorrectId] = useState('')
-  const [confirmDelete, setConfirmDelete] = useState(false)
-
-  // Reinicializa o estado quando a questão muda
-  useEffect(() => {
-    setText(question.text ?? '')
-    setArea(question.area ?? '')
-    setTheme(question.theme ?? '')
-    setDifficulty(question.difficulty ?? 'medium')
-    setExplanation(question.explanation ?? '')
-    setImageUrl(question.image_url ?? '')
-    setExplanationImageUrl(question.explanation_image_url ?? '')
-    setImageUrl2(question.image_url_2 ?? '')
-    const texts: Record<string, string> = {}
-    question.options.forEach((o) => {
-      texts[o.id] = o.text ?? ''
-    })
-    setOptionTexts(texts)
-    setCorrectId(question.options.find((o) => o.is_correct)?.id ?? '')
-    setConfirmDelete(false)
-  }, [question.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const sortedOptions = useMemo(
-    () => [...question.options].sort((a, b) => a.label.localeCompare(b.label)),
-    [question.options],
-  )
-  const originalCorrectId = question.options.find((o) => o.is_correct)?.id ?? ''
-  const saving = upd.isPending || updOpt.isPending || setCorrect.isPending
-
-  const persist = async (): Promise<boolean> => {
-    // Guarda de qualidade: não permitir enunciado ou alternativa em branco.
-    if (!text.trim()) {
-      toast({ title: 'O enunciado não pode ficar vazio.', variant: 'destructive' })
-      return false
-    }
-    if (sortedOptions.some((opt) => !(optionTexts[opt.id] ?? '').trim())) {
-      toast({ title: 'Nenhuma alternativa pode ficar em branco.', variant: 'destructive' })
-      return false
-    }
-    try {
-      await upd.mutateAsync({
-        id: question.id,
-        payload: {
-          text,
-          area,
-          theme,
-          difficulty,
-          explanation: explanation || null,
-          image_url: imageUrl || null,
-          explanation_image_url: explanationImageUrl || null,
-          image_url_2: imageUrl2 || null,
-        },
+    // O componente é remontado por `key={question.id}`, então o estado inicial
+    // pode vir direto da questão — sem efeito de seed.
+    const initialCorrectId = useMemo(
+      () => question.options.find((o) => o.is_correct)?.id ?? '',
+      [question.options],
+    )
+    const initialOptionTexts = useMemo(() => {
+      const texts: Record<string, string> = {}
+      question.options.forEach((o) => {
+        texts[o.id] = o.text ?? ''
       })
-      // Só atualiza alternativas cujo texto mudou
-      for (const opt of sortedOptions) {
-        const next = optionTexts[opt.id] ?? ''
-        if (next !== (opt.text ?? '')) {
-          await updOpt.mutateAsync({ optionId: opt.id, text: next })
-        }
+      return texts
+    }, [question.options])
+
+    const [text, setText] = useState(question.text ?? '')
+    const [area, setArea] = useState(question.area ?? '')
+    const [theme, setTheme] = useState(question.theme ?? '')
+    const [difficulty, setDifficulty] = useState(question.difficulty ?? 'medium')
+    const [explanation, setExplanation] = useState(question.explanation ?? '')
+    const [imageUrl, setImageUrl] = useState(question.image_url ?? '')
+    const [explanationImageUrl, setExplanationImageUrl] = useState(
+      question.explanation_image_url ?? '',
+    )
+    const [imageUrl2, setImageUrl2] = useState(question.image_url_2 ?? '')
+    const [optionTexts, setOptionTexts] = useState<Record<string, string>>(initialOptionTexts)
+    const [correctId, setCorrectId] = useState(initialCorrectId)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+
+    const sortedOptions = useMemo(
+      () => [...question.options].sort((a, b) => a.label.localeCompare(b.label)),
+      [question.options],
+    )
+    const saving = upd.isPending || updOpt.isPending || setCorrect.isPending
+
+    const isDirty = useMemo(() => {
+      if (text !== (question.text ?? '')) return true
+      if (area !== (question.area ?? '')) return true
+      if (theme !== (question.theme ?? '')) return true
+      if (difficulty !== (question.difficulty ?? 'medium')) return true
+      if (explanation !== (question.explanation ?? '')) return true
+      if (imageUrl !== (question.image_url ?? '')) return true
+      if (imageUrl2 !== (question.image_url_2 ?? '')) return true
+      if (explanationImageUrl !== (question.explanation_image_url ?? '')) return true
+      if (correctId !== initialCorrectId) return true
+      for (const opt of question.options) {
+        if ((optionTexts[opt.id] ?? '') !== (opt.text ?? '')) return true
       }
-      if (correctId && correctId !== originalCorrectId) {
-        await setCorrect.mutateAsync({ questionId: question.id, optionId: correctId })
-      }
-      return true
-    } catch {
-      // Erros já viram toast pelos hooks.
       return false
-    }
-  }
+    }, [
+      text,
+      area,
+      theme,
+      difficulty,
+      explanation,
+      imageUrl,
+      imageUrl2,
+      explanationImageUrl,
+      correctId,
+      optionTexts,
+      question,
+      initialCorrectId,
+    ])
 
-  const handleSaveAndNext = async () => {
-    const ok = await persist()
-    if (ok) onSaved()
-  }
+    // Empurra o estado de edição para o workspace orquestrar a navegação.
+    useEffect(() => {
+      onMetaChange({ isDirty, isSaving: saving })
+    }, [isDirty, saving, onMetaChange])
 
-  return (
-    <>
-      <AdminPanel flush className="overflow-hidden">
-        {/* Topbar de navegação */}
-        <div className="flex items-center justify-between gap-3 border-b border-admin-line px-6 py-3">
-          <div className="flex items-center gap-2 text-[12.5px]">
-            <span className="text-admin-faint">Banco de questões</span>
-            <ChevronRight className="h-3 w-3 text-admin-faint" aria-hidden />
-            <span className="font-semibold text-admin-text">
-              Questão {index + 1} de {total}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onPrev}
-              disabled={!canPrev || saving}
-              className="text-admin-muted hover:bg-admin-raised hover:text-admin-text"
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Anterior
-            </Button>
-            <Button size="sm" onClick={handleSaveAndNext} disabled={saving}>
-              {saving ? 'Salvando…' : isLast ? 'Salvar' : 'Salvar e próxima'}
-            </Button>
-          </div>
-        </div>
+    const persist = useCallback(async (): Promise<boolean> => {
+      // Guarda de qualidade: não permitir enunciado ou alternativa em branco.
+      if (!text.trim()) {
+        toast({ title: 'O enunciado não pode ficar vazio.', variant: 'destructive' })
+        return false
+      }
+      if (sortedOptions.some((opt) => !(optionTexts[opt.id] ?? '').trim())) {
+        toast({ title: 'Nenhuma alternativa pode ficar em branco.', variant: 'destructive' })
+        return false
+      }
+      try {
+        await upd.mutateAsync({
+          id: question.id,
+          payload: {
+            text,
+            area,
+            theme,
+            difficulty,
+            explanation: explanation || null,
+            image_url: imageUrl || null,
+            explanation_image_url: explanationImageUrl || null,
+            image_url_2: imageUrl2 || null,
+          },
+        })
+        // Só atualiza alternativas cujo texto mudou.
+        for (const opt of sortedOptions) {
+          const next = optionTexts[opt.id] ?? ''
+          if (next !== (opt.text ?? '')) {
+            await updOpt.mutateAsync({ optionId: opt.id, text: next })
+          }
+        }
+        if (correctId && correctId !== initialCorrectId) {
+          await setCorrect.mutateAsync({ questionId: question.id, optionId: correctId })
+        }
+        return true
+      } catch {
+        // Erros já viram toast pelos hooks.
+        return false
+      }
+    }, [
+      text,
+      area,
+      theme,
+      difficulty,
+      explanation,
+      imageUrl,
+      imageUrl2,
+      explanationImageUrl,
+      correctId,
+      optionTexts,
+      sortedOptions,
+      question.id,
+      initialCorrectId,
+      upd,
+      updOpt,
+      setCorrect,
+    ])
 
+    useImperativeHandle(ref, () => ({ persist }), [persist])
+
+    return (
+      <>
         {/* Dois painéis */}
         <div className="grid gap-6 bg-admin-bg-outer p-6 lg:grid-cols-[1.5fr_1fr]">
           {/* Esquerda */}
@@ -478,29 +595,28 @@ function QuestionEditor({
             </p>
           </div>
         </div>
-      </AdminPanel>
 
-      <AdminConfirmDialog
-        open={confirmDelete}
-        onOpenChange={setConfirmDelete}
-        title="Excluir questão"
-        description="Esta ação não pode ser desfeita. Se a questão já foi respondida, a exclusão é bloqueada."
-        confirmLabel="Excluir"
-        destructive
-        loading={del.isPending}
-        onConfirm={() =>
-          del.mutate(question.id, {
-            onSuccess: () => {
-              setConfirmDelete(false)
-              // Após excluir, recua se era a última.
-              onPrev()
-            },
-          })
-        }
-      />
-    </>
-  )
-}
+        <AdminConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Excluir questão"
+          description="Esta ação não pode ser desfeita. Se a questão já foi respondida, a exclusão é bloqueada."
+          confirmLabel="Excluir"
+          destructive
+          loading={del.isPending}
+          onConfirm={() =>
+            del.mutate(question.id, {
+              onSuccess: () => {
+                setConfirmDelete(false)
+                onAfterDelete()
+              },
+            })
+          }
+        />
+      </>
+    )
+  },
+)
 
 // ─── Editor com lista de questões + verificação por IA ───────────────────────
 
@@ -520,18 +636,84 @@ function QuestionWorkspace({ simuladoId, simuladoLabel, onBackToBank }: Question
   const [verifying, setVerifying] = useState(false)
   const [verifyRan, setVerifyRan] = useState(false)
 
+  // Orquestração de navegação com guarda de alterações.
+  const editorRef = useRef<QuestionEditorHandle>(null)
+  const [editorMeta, setEditorMeta] = useState({ isDirty: false, isSaving: false })
+  const [pendingTarget, setPendingTarget] = useState<number | null>(null)
+
+  const total = questions.length
+
   // Mantém o índice dentro dos limites quando a lista muda (ex.: após excluir).
   useEffect(() => {
-    if (current > questions.length - 1) {
-      setCurrent(Math.max(0, questions.length - 1))
+    if (current > total - 1) {
+      setCurrent(Math.max(0, total - 1))
     }
-  }, [questions.length, current])
+  }, [total, current])
 
   const statByNumber = useMemo(() => {
     const map = new Map<number, SimuladoQuestionStat>()
     stats.forEach((s) => map.set(s.question_number, s))
     return map
   }, [stats])
+
+  const flaggedNumbers = useMemo(() => {
+    const set = new Set<number>()
+    findings.forEach((f) => set.add(f.question_number))
+    return set
+  }, [findings])
+
+  const onMetaChange = useCallback((meta: { isDirty: boolean; isSaving: boolean }) => {
+    setEditorMeta((prev) =>
+      prev.isDirty === meta.isDirty && prev.isSaving === meta.isSaving ? prev : meta,
+    )
+  }, [])
+
+  const go = useCallback(
+    (target: number) => {
+      setCurrent(Math.min(total - 1, Math.max(0, target)))
+    },
+    [total],
+  )
+
+  // Todos os gatilhos de navegação passam por aqui: aplica a guarda se houver
+  // alterações não salvas.
+  const requestNavigate = useCallback(
+    (target: number) => {
+      if (editorMeta.isSaving) return
+      if (target < 0 || target > total - 1 || target === current) return
+      if (editorMeta.isDirty) {
+        setPendingTarget(target)
+      } else {
+        go(target)
+      }
+    },
+    [total, current, editorMeta.isDirty, editorMeta.isSaving, go],
+  )
+
+  const handleSavePrimary = useCallback(async () => {
+    const ok = await editorRef.current?.persist()
+    if (ok && current < total - 1) {
+      go(current + 1)
+    }
+  }, [current, total, go])
+
+  // Ações do diálogo de guarda.
+  const handleGuardSave = useCallback(async () => {
+    const target = pendingTarget
+    const ok = await editorRef.current?.persist()
+    if (ok && target != null) {
+      go(target)
+    }
+    // Se a validação barrou (ok === false), fica na questão para corrigir.
+    setPendingTarget(null)
+  }, [pendingTarget, go])
+
+  const handleGuardDiscard = useCallback(() => {
+    if (pendingTarget != null) {
+      go(pendingTarget)
+    }
+    setPendingTarget(null)
+  }, [pendingTarget, go])
 
   const runVerify = async () => {
     setVerifying(true)
@@ -614,7 +796,6 @@ function QuestionWorkspace({ simuladoId, simuladoLabel, onBackToBank }: Question
     }
   }
 
-  const total = questions.length
   const question = questions[current]
 
   return (
@@ -708,20 +889,116 @@ function QuestionWorkspace({ simuladoId, simuladoLabel, onBackToBank }: Question
           }
         />
       ) : question ? (
-        <QuestionEditor
-          key={question.id}
-          question={question}
-          simuladoId={simuladoId}
-          index={current}
-          total={total}
-          stat={statByNumber.get(question.question_number)}
-          statsLoading={statsLoading}
-          canPrev={current > 0}
-          isLast={current >= total - 1}
-          onPrev={() => setCurrent((i) => Math.max(0, i - 1))}
-          onSaved={() => setCurrent((i) => Math.min(total - 1, i + 1))}
-        />
+        <AdminPanel flush className="overflow-hidden">
+          {/* Topbar de navegação */}
+          <div className="flex items-center justify-between gap-3 border-b border-admin-line px-6 py-3">
+            <div className="flex items-center gap-2 text-[12.5px]">
+              <span className="text-admin-faint">Banco de questões</span>
+              <ChevronRight className="h-3 w-3 text-admin-faint" aria-hidden />
+              <span className="font-semibold text-admin-text" aria-live="polite">
+                Questão {current + 1} de {total}
+              </span>
+              {editorMeta.isDirty && (
+                <span className="rounded-full bg-admin-warning/10 px-2 py-0.5 text-[10.5px] font-semibold text-admin-warning">
+                  Não salvo
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => requestNavigate(current - 1)}
+                disabled={current === 0 || editorMeta.isSaving}
+                className="text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => requestNavigate(current + 1)}
+                disabled={current >= total - 1 || editorMeta.isSaving}
+                className="border-admin-line bg-transparent text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+              >
+                Próxima
+                <ChevronRight className="ml-1 h-4 w-4" aria-hidden />
+              </Button>
+              <Button size="sm" onClick={handleSavePrimary} disabled={editorMeta.isSaving}>
+                {editorMeta.isSaving
+                  ? 'Salvando…'
+                  : current >= total - 1
+                    ? 'Salvar'
+                    : 'Salvar e próxima'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Barra de navegação entre questões */}
+          <QuestionNavBar
+            questions={questions}
+            current={current}
+            flaggedNumbers={flaggedNumbers}
+            onSelect={requestNavigate}
+          />
+
+          <QuestionEditor
+            key={question.id}
+            ref={editorRef}
+            question={question}
+            simuladoId={simuladoId}
+            stat={statByNumber.get(question.question_number)}
+            statsLoading={statsLoading}
+            onMetaChange={onMetaChange}
+            onAfterDelete={() => {
+              // A questão saiu: limpa o estado de edição (senão a guarda fica
+              // presa em "sujo") e mantém o índice dentro do novo tamanho —
+              // assim, ao excluir uma do meio, mostra a próxima em vez de recuar.
+              setEditorMeta({ isDirty: false, isSaving: false })
+              setCurrent((i) => Math.min(i, Math.max(0, total - 2)))
+            }}
+          />
+        </AdminPanel>
       ) : null}
+
+      {/* Guarda de alterações não salvas */}
+      <Dialog
+        open={pendingTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingTarget(null)
+        }}
+      >
+        <DialogContent className="border-admin-line bg-admin-surface text-admin-text sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-admin-text">Alterações não salvas</DialogTitle>
+            <DialogDescription className="text-admin-muted">
+              Você fez alterações nesta questão que ainda não foram salvas. O que deseja fazer
+              antes de continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setPendingTarget(null)}
+              className="text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleGuardDiscard}
+              disabled={editorMeta.isSaving}
+              className="border-admin-line bg-transparent text-admin-muted hover:bg-admin-raised hover:text-admin-text"
+            >
+              Descartar e ir
+            </Button>
+            <Button onClick={handleGuardSave} disabled={editorMeta.isSaving}>
+              {editorMeta.isSaving ? 'Salvando…' : 'Salvar e ir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
