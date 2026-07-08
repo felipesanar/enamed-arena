@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 // lovable-tagger is a Lovable-platform-only devDep. Resolve it lazily so a
 // dev environment without it (e.g. fresh `npm ci --omit=optional`) still
@@ -39,7 +40,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: (() => {
-    const list: unknown[] = [react()];
+    const list: unknown[] = [react(), mcpPlugin()];
     if (mode === "development") {
       const tagger = tryLoadComponentTagger();
       if (typeof tagger === "function") list.push((tagger as () => unknown)());

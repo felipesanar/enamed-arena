@@ -20,6 +20,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage"));
 const AuthSSOPage = lazy(() => import("./pages/AuthSSOPage"));
+const OAuthConsentPage = lazy(() => import("./pages/OAuthConsentPage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
@@ -139,6 +140,7 @@ const App = () => (
               <Route path="/reset-password" element={<Suspense fallback={<PageShell />}><ResetPasswordPage /></Suspense>} />
               <Route path="/auth/callback" element={<Suspense fallback={<PageShell />}><AuthCallbackPage /></Suspense>} />
               <Route path="/auth/sso" element={<Suspense fallback={<PageShell />}><AuthSSOPage /></Suspense>} />
+              <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<PageShell />}><OAuthConsentPage /></Suspense>} />
 
               {/* Admin — own Suspense boundary */}
               <Route path="/admin/login" element={<Suspense fallback={<PageShell />}><AdminLoginPage /></Suspense>} />

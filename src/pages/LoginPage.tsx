@@ -72,6 +72,11 @@ export default function LoginPage() {
 
   const hasSignupParam = searchParams.get("mode") === "signup";
 
+  // Honor a same-origin `next` redirect (used by the OAuth consent flow so the
+  // user returns to approve the MCP connection after signing in).
+  const rawNext = searchParams.get("next");
+  const nextPath = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+
   const [userType, setUserType] = useState<UserType>(() =>
     hasSignupParam ? "guest" : "undecided",
   );
@@ -98,7 +103,7 @@ export default function LoginPage() {
   }
 
   if (user && !hubspotModalOpen) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={nextPath} replace />;
   }
 
   /* ─── Handlers ─── */
