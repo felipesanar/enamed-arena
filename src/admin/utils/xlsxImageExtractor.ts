@@ -4,6 +4,7 @@
  */
 import JSZip from 'jszip';
 import { logger } from '@/lib/logger';
+import { orderImagesForStitch, stitchImagesVertical } from './stitchImages';
 
 export interface ExtractedImage {
   base64: string;
@@ -161,6 +162,15 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
   const enunciado2Images = new Map<number, ExtractedImage>();
   const comentarioImages = new Map<number, ExtractedImage>();
 
+  // Acumuladores: várias imagens podem cair na mesma linha/slot (empilhadas
+  // verticalmente na mesma célula). `order` preserva a ordem de documento
+  // pra desempate quando rowOff for igual.
+  type PendingImage = { image: ExtractedImage; rowOff: number; order: number };
+  const enunciadoAcc = new Map<number, PendingImage[]>();
+  const enunciado2Acc = new Map<number, PendingImage[]>();
+  const comentarioAcc = new Map<number, PendingImage[]>();
+  let anchorOrder = 0;
+
   try {
     const zip = await JSZip.loadAsync(buffer);
 
@@ -237,6 +247,8 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
 
         const row = parseInt(fromRowMatch[1], 10);
         const col = parseInt(fromColMatch[1], 10);
+        const rowOffMatch = fromBlock[1].match(/<(?:xdr:)?rowOff>(\d+)<\/(?:xdr:)?rowOff>/);
+        const rowOff = rowOffMatch ? parseInt(rowOffMatch[1], 10) : 0;
 
         // Embed attribute may use r: prefix or default ns
         const blipMatch = block.match(/(?:r:)?embed="(rId\d+)"/);
@@ -261,11 +273,25 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         const dataRow = rowIndexMap.get(excelRowNumber);
         if (dataRow === undefined) continue;
 
-        const slot = slotForColumn(col, { enunciadoCol, enunciado2Col, comentarioCol });
-        if (slot === 'enunciado') enunciadoImages.set(dataRow, image);
-        else if (slot === 'enunciado2') enunciado2Images.set(dataRow, image);
-        else if (slot === 'comentario') comentarioImages.set(dataRow, image);
-        // sem slot reconhecido: ignora (não chuta vizinho)
+        // A imagem pode estar ancorada na coluna do texto (to) em vez da
+        // coluna da imagem (from) — tenta a geometria real do anchor, sem
+        // chutar ±1.
+        let slot = slotForColumn(col, { enunciadoCol, enunciado2Col, comentarioCol });
+        if (slot === null) {
+          const toBlock = block.match(/<(?:xdr:)?to>([\s\S]*?)<\/(?:xdr:)?to>/);
+          const toColMatch = toBlock?.[1].match(/<(?:xdr:)?col>(\d+)<\/(?:xdr:)?col>/);
+          if (toColMatch) {
+            const toCol = parseInt(toColMatch[1], 10);
+            slot = slotForColumn(toCol, { enunciadoCol, enunciado2Col, comentarioCol });
+          }
+        }
+        if (slot === null) continue; // sem slot reconhecido: ignora (não chuta vizinho)
+
+        const pending: PendingImage = { image, rowOff, order: anchorOrder++ };
+        const acc = slot === 'enunciado' ? enunciadoAcc : slot === 'enunciado2' ? enunciado2Acc : comentarioAcc;
+        const list = acc.get(dataRow);
+        if (list) list.push(pending);
+        else acc.set(dataRow, [pending]);
       }
 
       logger.info('[xlsxImageExtractor]', {
@@ -273,15 +299,37 @@ export async function extractImagesFromXlsx(buffer: ArrayBuffer): Promise<{
         enunciadoCol,
         enunciado2Col,
         comentarioCol,
-        enunciadoFound: enunciadoImages.size,
-        enunciado2Found: enunciado2Images.size,
-        comentarioFound: comentarioImages.size,
+        enunciadoFound: enunciadoAcc.size,
+        enunciado2Found: enunciado2Acc.size,
+        comentarioFound: comentarioAcc.size,
         drawingPath,
         anchorsCount: anchorDebug.length,
         anchorsSample: anchorDebug.slice(0, 5),
         drawingXmlHead: drawingXml.slice(0, 400),
       });
     }
+
+    // Costura (stitch) verticalmente as imagens acumuladas por linha/slot
+    // numa única imagem, preservando o contrato de 1 imagem por slot/linha.
+    let stitchedRowsCount = 0;
+    const resolveAcc = async (acc: Map<number, PendingImage[]>, target: Map<number, ExtractedImage>) => {
+      for (const [dataRow, list] of acc) {
+        if (list.length > 1) stitchedRowsCount++;
+        const ordered = orderImagesForStitch(list);
+        const stitched = await stitchImagesVertical(ordered.map((x) => x.image));
+        target.set(dataRow, stitched);
+      }
+    };
+    await resolveAcc(enunciadoAcc, enunciadoImages);
+    await resolveAcc(enunciado2Acc, enunciado2Images);
+    await resolveAcc(comentarioAcc, comentarioImages);
+
+    logger.info('[xlsxImageExtractor] resultado final', {
+      enunciadoTotal: enunciadoImages.size,
+      enunciado2Total: enunciado2Images.size,
+      comentarioTotal: comentarioImages.size,
+      linhasComStitch: stitchedRowsCount,
+    });
   } catch (err) {
     logger.error('[xlsxImageExtractor] Error extracting images:', err);
   }
