@@ -2,8 +2,10 @@
 # This environment runs Apple Silicon arm64 via Colima with QEMU emulation;
 # linux/amd64 builds work but are slower than native. Tectonic only provides
 # x86_64-unknown-linux-gnu binaries.
+# Base image: node:20-trixie-slim (Debian 13, glibc 2.41) — required for
+# compatibility with Tectonic 0.17.0 binary (needs glibc >= 2.38/2.39).
 
-FROM node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS runtime
+FROM node:20-trixie-slim@sha256:abfbe12cc943141a0c9e8c0a57d710df1dadd95d35e8662cc02958b284d1f35b AS runtime
 
 # System dependencies for Tectonic binary (glibc, fontconfig, harfbuzz, icu)
 # Include curl to download Tectonic binary
@@ -13,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfontconfig1 \
     libgraphite2-3 \
     libharfbuzz0b \
-    libicu72 \
+    libicu76 \
     fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
