@@ -12,24 +12,63 @@
 
 \input{preamble}
 
+% ── Barra de cabeçalho wine-dark full-bleed, em TODA página (capa e
+% questões) — equivalente a drawHeader (legacyPdfLib.ts:474-486), que desenha
+% o retângulo de fundo em x=0..pageW antes de qualquer outro conteúdo, em
+% toda página inclusive a capa. fancyhdr sozinho só posiciona texto dentro
+% da margem, não pinta um retângulo de página inteira; por isso o fundo vem
+% de um overlay tikz (tikz já é carregado por preamble.tex) inserido via
+% eso-pic (\AddToShipoutPictureBG). Tentativa inicial: hook de kernel
+% \AddToHook{shipout/background} (LaTeX2e >= 2020-10-01) combinado com
+% "current page" do tikz — não produziu nenhuma barra visível ao compilar
+% (a combinação hook-de-kernel + tikz não posicionou o retângulo
+% corretamente neste ambiente). eso-pic é o mecanismo clássico e testado
+% para exatamente este padrão (overlay full-page independente do
+% textblock), então foi usado no lugar, conforme sugerido como alternativa.
+%
+% Cores reaproveitadas de preamble.tex (Task 3), sem novas \definecolor:
+% titlesubtitle (FFD9E6) ≈ rgb(1, 0.85, 0.9) do texto do exam label;
+% titlesubtitle2 (FFB2C7) ≈ rgb(0.9, 0.72, 0.79) do "PRO" pequeno.
+%
+% 72bp = altura exata do headerH do motor antigo (legacyPdfLib.ts:467,
+% "headerH = 72"; 1bp = 1 ponto PDF, igual à unidade usada em pdf-lib).
+\usepackage{eso-pic}
+\AddToShipoutPictureBG{%
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[winedark] (current page.north west) rectangle ([yshift=-72bp]current page.north east);
+    \node[anchor=north west, inner sep=0pt] at ([xshift=24bp,yshift=-20bp]current page.north west)
+      {\fontsize{15}{15}\selectfont\bfseries\color{white}sanarflix\,\raisebox{0.4em}{\fontsize{7.5}{7.5}\selectfont\bfseries\color{titlesubtitle2}PRO}};
+    \node[anchor=north west, inner sep=0pt] at ([xshift=24bp,yshift=-42bp]current page.north west)
+      {\fontsize{7.5}{7.5}\selectfont\bfseries\color{white}S I M U L A D O S};
+    \node[anchor=north east, inner sep=0pt] at ([xshift=-24bp,yshift=-30bp]current page.north east)
+      {\fontsize{9}{9}\selectfont\color{titlesubtitle}@@EXAM_LABEL@@};
+  \end{tikzpicture}%
+}
+
+% Margem superior aumentada para reservar espaço para a barra (72bp de altura
+% + ~30bp de respiro abaixo dela, equivalente a colTop = pageH - headerH - 30
+% em legacyPdfLib.ts:500) — vale tanto para a capa quanto para as páginas de
+% questão, já que ambas usam o mesmo textblock. 102bp ≈ 3.6cm.
+\geometry{top=3.6cm}
+
+% fancyhdr desenha por padrão uma linha fina de cabeçalho (\headrulewidth =
+% 0.4pt) mesmo com \fancyhf{} limpando o texto — redundante e visualmente
+% estranha logo abaixo da barra colorida. Zerada aqui, antes de
+% \input{cover}, para já valer também na capa (que despacha sua página
+% antes de qualquer \renewcommand posterior no corpo deste arquivo).
+\renewcommand{\headrulewidth}{0pt}
+
 \begin{document}
 
 \input{cover}
 
-% ── Cabeçalho/rodapé para as páginas de questões (equivalente a
-% drawHeader/drawFooter, legacyPdfLib.ts:474-494) ──
-% Nota: o motor antigo desenha uma barra wine-dark de fundo atrás do cabeçalho
-% (drawHeader, legacyPdfLib.ts:474-486); fancyhdr por si só só posiciona texto,
-% não pinta um retângulo de fundo. Reproduzir a barra colorida exigiria um
-% mecanismo adicional (ex. \fancypagestyle customizado com tikz overlay) fora
-% do escopo deste brief — mantido como texto simples por ora; se a aprovação
-% visual (gate desta task) pedir a barra de fundo, isso vira um ajuste de
-% rodada de fix.
-\fancyhead[L]{\small\bfseries sanarflix PRO \quad {\scriptsize S I M U L A D O S}}
-\fancyhead[R]{\small @@EXAM_LABEL@@}
+% ── Rodapé das páginas de questões (equivalente a drawFooter,
+% legacyPdfLib.ts:488-494). O cabeçalho agora vem inteiramente do overlay
+% eso-pic/tikz acima — não usamos mais \fancyhead aqui, para não
+% duplicar/sobrepor o texto (branco sobre a barra) com um segundo texto
+% (preto, dentro da margem) na mesma região. ──
 \fancyfoot[L]{\scriptsize @@FOOTER_LABEL@@}
 \fancyfoot[R]{\scriptsize \thepage}
-\renewcommand{\headrulewidth}{0.5pt}
 \renewcommand{\footrulewidth}{0.5pt}
 
 @@QUESTIONS_BODY@@
