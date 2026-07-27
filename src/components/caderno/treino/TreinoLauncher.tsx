@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, ExternalLink, BookOpen, Dumbbell, Timer, Zap } from 'lucide-react';
+import { Play, Dumbbell, Timer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { CadernoCard } from '@/components/caderno/ui/CadernoCard';
