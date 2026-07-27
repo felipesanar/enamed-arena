@@ -1,0 +1,59 @@
+% cover.tex — Capa (recriação visual de drawCoverPage, supabase/functions/generate-exam-pdf/legacyPdfLib.ts:200-414)
+% Inputted from exam.tex (Task 5) logo após \begin{document}. Placeholders @@...@@
+% são substituídos por dados reais na Task 9 (Node.js). NÃO editar valores aqui —
+% este arquivo permanece com os placeholders literais.
+
+% ── Bloco de título com fundo wine ──
+\begin{tcolorbox}[colback=winedark, colframe=winemid, sharp corners, boxrule=1pt, width=\textwidth, left=8pt, right=8pt, top=10pt, bottom=10pt]
+  {\fontsize{26}{30}\selectfont\bfseries\color{white} PROVA OFFLINE}\\[4pt]
+  {\fontsize{14}{16}\selectfont\color{titlesubtitle} @@SIMULADO_TITLE@@}\\[2pt]
+  {\fontsize{10}{12}\selectfont\color{titlesubtitle2} Modo Offline · Gabarito Digital}
+\end{tcolorbox}
+
+\vspace{18pt}
+
+% ── 3 info-cards lado a lado: Questões / Duração / Alternativas ──
+% Nota: \tcbitem só é definido pelo ambiente tcbitemize (que envolve tcbraster
+% internamente) — não por tcbraster diretamente. Mesmas opções do brief, apenas
+% o nome do ambiente corrigido.
+\begin{tcbitemize}[raster columns=3, raster equal height, colback=graybg, colframe=graylight, rounded corners, boxrule=0.5pt]
+  \tcbitem {\small\color{graymid} Questões}\\ {\Large\bfseries\color{winedark} @@QUESTIONS_COUNT@@}\\ {\tiny\color{graymid} Múltipla escolha}
+  \tcbitem {\small\color{graymid} Duração}\\ {\Large\bfseries\color{winedark} @@DURATION_HOURS@@h}\\ {\tiny\color{graymid} @@DURATION_MINUTES@@ minutos}
+  \tcbitem {\small\color{graymid} Alternativas}\\ {\Large\bfseries\color{winedark} A - D}\\ {\tiny\color{graymid} 4 opções por questão}
+\end{tcbitemize}
+
+\vspace{20pt}
+
+% ── "COMO FUNCIONA" com 4 passos e círculos numerados ──
+\textbf{\textcolor{winedark}{COMO FUNCIONA}}\\[-4pt]
+{\color{winemid}\rule{4cm}{2pt}}\\[8pt]
+\begin{itemize}[leftmargin=0pt, itemsep=8pt, label={}]
+\item \tikz[baseline=-0.6ex]\node[circle, fill=winedark, text=white, font=\bfseries, inner sep=0pt, minimum size=20pt] {1};~~Imprima esta prova e resolva no papel
+\item \tikz[baseline=-0.6ex]\node[circle, fill=winedark, text=white, font=\bfseries, inner sep=0pt, minimum size=20pt] {2};~~Volte à plataforma SanarFlix PRO
+\item \tikz[baseline=-0.6ex]\node[circle, fill=winedark, text=white, font=\bfseries, inner sep=0pt, minimum size=20pt] {3};~~Preencha o gabarito digital na plataforma
+\item \tikz[baseline=-0.6ex]\node[circle, fill=winedark, text=white, font=\bfseries, inner sep=0pt, minimum size=20pt] {4};~~Envie dentro do tempo para entrar no ranking
+\end{itemize}
+
+\vspace{6pt}
+
+% ── Caixa "REGRAS IMPORTANTES" ──
+\begin{tcolorbox}[colback=rulesboxtint, colframe=winelight, rounded corners, boxrule=1pt]
+  \textbf{\textcolor{winedark}{REGRAS IMPORTANTES}}\\[6pt]
+  {\color{winemid}$\cdot$}~O tempo de prova começa no momento do download.\\
+  {\color{winemid}$\cdot$}~Envie o gabarito dentro do prazo para participar do ranking.\\
+  {\color{winemid}$\cdot$}~Questões não respondidas serão registradas como em branco.
+\end{tcolorbox}
+
+\vfill
+
+% ── Footer próprio da capa (replica drawFooter(cover, "Capa"), legacyPdfLib.ts:413) ──
+\noindent\textcolor{graylight}{\rule{\textwidth}{0.5pt}}\par\vspace{4pt}
+\noindent
+\begin{minipage}[t]{0.75\textwidth}
+  {\fontsize{7}{9}\selectfont\color{graymid} @@SIMULADO_TITLE@@ · SanarFlix PRO · Modo Offline}
+\end{minipage}%
+\begin{minipage}[t]{0.24\textwidth}
+  \raggedleft{\fontsize{7}{9}\selectfont\color{graymid} Capa}
+\end{minipage}
+
+\newpage
