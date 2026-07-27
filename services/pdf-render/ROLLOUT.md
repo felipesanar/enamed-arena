@@ -139,7 +139,7 @@ A cache de PDFs em produção usa a chave `${simulado_id}_${updated_at}` (vide `
 5. **Monitoramento imediato** (primeiros 30 min pós-flip):
    - Observar logs do Cloud Run (`gcloud run logs read pdf-render-prod --limit 100`): erros de compilação, timeouts, falhas de fetch de imagem.
    - Observar latência agregada de geração (compare com baseline de Fase B).
-   - Alerta automático: se taxa de erro >5% em 10 minutos, rollback (voltar `PDF_ENGINE` para ausente/pdf-lib).
+   - **Sugestão de operação** (a confirmar com o time de DevOps na execução): considerar setup de alerta automático e/ou rollback rápido se a taxa de erro ultrapassar um limiar definido (ex. sugestão inicial: >5% em janela de 10 minutos) — o valor exato do threshold não foi decidido neste plano, apenas a necessidade de monitorar ativamente e ter um caminho de rollback ágil. Se disparado: voltar `PDF_ENGINE` para ausente/pdf-lib.
 
 **Gate de aprovação**: Serviço em Cloud Run respondendo, sem erros em logs, latência aceitável (< 60s p99).
 
