@@ -49,12 +49,6 @@ function buildRevisaoUrl(area: RankedWeakArea, timed: boolean, count: number): s
   return `/caderno/revisao?${params.toString()}`;
 }
 
-function buildSimuladosUrl(area: RankedWeakArea): string {
-  const params = new URLSearchParams({ area: area.area });
-  if (area.theme) params.set('theme', area.theme);
-  return `/simulados?${params.toString()}`;
-}
-
 // ─── Subcomponente: leitura rápida da área ───────────────────────────────────
 
 function StatReadout({
