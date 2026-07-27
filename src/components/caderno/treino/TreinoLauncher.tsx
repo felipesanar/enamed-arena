@@ -135,7 +135,6 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
 
   const label = area.theme ? `${area.area} › ${area.theme}` : area.area;
   const revisaoUrl = buildRevisaoUrl(area, timed, selectedQty);
-  const simuladosUrl = buildSimuladosUrl(area);
 
   const mastered = Math.max(0, area.total - area.pending);
   const masteryPct = area.total > 0 ? Math.round((mastered / area.total) * 100) : 0;
