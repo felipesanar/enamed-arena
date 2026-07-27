@@ -9,6 +9,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import type { SimuladoRow, QuestionRow, OptionRow } from "./types.ts";
 import { generateLegacyPdf } from "./legacyPdfLib.ts";
+import { buildRenderPayload } from "./renderPayload.ts";
+import { callRenderService, RenderServiceError } from "./renderClient.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,18 +48,42 @@ async function buildAndUploadPdf(simulado_id: string, pdfPath: string, lockPath:
       .in("question_id", questionIds).in("label", ["A", "B", "C", "D"]);
     if (optErr) throw optErr;
 
-    const pdfBytes = await generateLegacyPdf(
-      simuladoRow as SimuladoRow,
-      questionRows as QuestionRow[],
-      optionRows as OptionRow[],
-    );
+    const engine = Deno.env.get("PDF_ENGINE") ?? "pdf-lib";
+    let pdfBytes: Uint8Array;
+    if (engine === "pdf-lib") {
+      pdfBytes = await generateLegacyPdf(
+        simuladoRow as SimuladoRow,
+        questionRows as QuestionRow[],
+        optionRows as OptionRow[],
+      );
+    } else {
+      const questions = (questionRows as QuestionRow[]).map(q => ({
+        number: q.question_number,
+        text: q.text,
+        image_url: q.image_url,
+        options: (optionRows as OptionRow[])
+          .filter(o => o.question_id === q.id)
+          .sort((a, b) => a.label.localeCompare(b.label))
+          .map(o => ({ label: o.label, text: o.text })),
+      }));
+      const payload = buildRenderPayload(simuladoRow as SimuladoRow, questions);
+      pdfBytes = await callRenderService(payload, {
+        url: Deno.env.get("PDF_RENDER_SERVICE_URL")!,
+        secret: Deno.env.get("PDF_RENDER_SERVICE_SECRET")!,
+        timeoutMs: Number(Deno.env.get("PDF_RENDER_TIMEOUT_MS") ?? "45000"),
+      });
+    }
 
     const { error: uploadError } = await supabase.storage.from(BUCKET)
       .upload(pdfPath, pdfBytes, { contentType: "application/pdf", upsert: true });
     if (uploadError) throw uploadError;
     console.log(`[generate-exam-pdf:bg] Uploaded ${pdfPath} (${pdfBytes.byteLength} bytes)`);
   } catch (err) {
-    console.error("[generate-exam-pdf:bg] Failed:", err);
+    if (err instanceof RenderServiceError) {
+      console.error(`[generate-exam-pdf:bg] Render service failed (stage=${err.stage}, status=${err.httpStatus}): ${err.message}`);
+    } else {
+      console.error("[generate-exam-pdf:bg] Failed:", err);
+    }
   } finally {
     // Always release lock
     try { await supabase.storage.from(BUCKET).remove([lockPath]); } catch { /* ignore */ }
