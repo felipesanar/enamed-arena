@@ -1,0 +1,37 @@
+% exam.tex — Documento-mãe do PDF de simulado offline.
+% \input{preamble} (Task 3) define classe, fontes, cores, pacotes.
+% \input{cover} (Task 4) desenha a capa e termina em \newpage.
+% Depois vem o cabeçalho/rodapé das páginas de questões (equivalente a
+% drawHeader/drawFooter, supabase/functions/generate-exam-pdf/legacyPdfLib.ts:474-494)
+% e por fim o corpo de questões, montado pela Task 9 e injetado no marcador
+% @@QUESTIONS_BODY@@ (concatenação de N fragmentos no padrão de question.tex,
+% Task 5 — sem loop LaTeX, tudo já expandido em texto pelo TS).
+%
+% Placeholders literais @@...@@ substituídos pelo TS (Task 9). Este arquivo
+% permanece com os placeholders literais — não editar valores aqui.
+
+\input{preamble}
+
+\begin{document}
+
+\input{cover}
+
+% ── Cabeçalho/rodapé para as páginas de questões (equivalente a
+% drawHeader/drawFooter, legacyPdfLib.ts:474-494) ──
+% Nota: o motor antigo desenha uma barra wine-dark de fundo atrás do cabeçalho
+% (drawHeader, legacyPdfLib.ts:474-486); fancyhdr por si só só posiciona texto,
+% não pinta um retângulo de fundo. Reproduzir a barra colorida exigiria um
+% mecanismo adicional (ex. \fancypagestyle customizado com tikz overlay) fora
+% do escopo deste brief — mantido como texto simples por ora; se a aprovação
+% visual (gate desta task) pedir a barra de fundo, isso vira um ajuste de
+% rodada de fix.
+\fancyhead[L]{\small\bfseries sanarflix PRO \quad {\scriptsize S I M U L A D O S}}
+\fancyhead[R]{\small @@EXAM_LABEL@@}
+\fancyfoot[L]{\scriptsize @@FOOTER_LABEL@@}
+\fancyfoot[R]{\scriptsize \thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+
+@@QUESTIONS_BODY@@
+
+\end{document}

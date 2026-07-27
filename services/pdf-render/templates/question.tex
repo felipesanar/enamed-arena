@@ -1,0 +1,43 @@
+% question.tex — Fragmento por questão (recriação visual do loop de questões
+% de generatePdfWithDoc, supabase/functions/generate-exam-pdf/legacyPdfLib.ts:525-578).
+%
+% Referência de estrutura/estilo, não um arquivo literalmente \input'ado sem
+% modificação: cada questão tem de 0 a 4 opções e uma imagem opcional, então o
+% TS (Task 9, renderTemplate.ts) monta este fragmento dinamicamente por questão
+% a partir de um template mais granular do que o pseudo-código abaixo sugere.
+% O mecanismo exato de composição (substituição literal deste arquivo vs. TS
+% montando a string seguindo este padrão) é decisão da Task 9, não desta task.
+%
+% Placeholders literais @@...@@, substituídos pelo TS (Task 9), repetido N
+% vezes — um bloco destes por questão, sem loop LaTeX.
+
+\needspace{4\baselineskip}
+\vspace{12pt}
+\textbf{\textcolor{winemid}{Questão @@Q_NUMBER@@}}\\[4pt]
+@@Q_TEXT@@
+
+@@Q_IMAGE_BLOCK@@
+
+\begin{enumerate}[label=\textbf{@@Q_OPT_LABEL@@)}, leftmargin=*, itemsep=4pt]
+@@Q_OPTIONS@@
+\end{enumerate}
+
+% ── Bloco de imagem (usado no lugar de @@Q_IMAGE_BLOCK@@ quando a questão tem
+% imagem; substituído por string vazia quando não tem). Replica a heurística
+% de tamanho de legacyPdfLib.ts:552-565 (teto de 82% da largura de conteúdo e
+% 320pt de altura, o menor dos dois limites vence preservando proporção) —
+% em LaTeX isso é só `width=...,height=...,keepaspectratio`, sem precisar
+% calcular manualmente o `min(...)` como no pdf-lib original. graphicx também
+% cuida da quebra de página da imagem em si automaticamente; o `\needspace`
+% no topo deste arquivo cobre apenas o início do bloco da questão (equivalente
+% ao `ensureSpace()` do motor antigo, legacyPdfLib.ts:521-523), garantindo que
+% ao menos o título "Questão N" e a primeira linha do enunciado não fiquem
+% órfãos no rodapé de uma página.
+%
+% \begin{center}
+% \includegraphics[width=0.82\textwidth,height=320pt,keepaspectratio]{@@Q_IMAGE_PATH@@}
+% \end{center}
+
+% ── Padrão de uma opção dentro de @@Q_OPTIONS@@ (uma linha \item por opção,
+% rótulo A-D já vem em maiúsculo do banco — ver OptionRow.label em types.ts) ──
+% \item @@Q_OPT_TEXT@@
