@@ -1,0 +1,43 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{PlusJakartaSans-Regular.ttf}[
+  Path = /opt/fonts/PlusJakartaSans/,
+  BoldFont = PlusJakartaSans-Bold.ttf
+]
+\newfontfamily\jakartamedium{PlusJakartaSans-Medium.ttf}[Path = /opt/fonts/PlusJakartaSans/]
+\usepackage{polyglossia}
+\setmainlanguage{portuguese}
+\usepackage{ucharclasses}
+\newfontfamily\greekfallback{NotoSans-Regular.ttf}[Path = /opt/fonts/NotoSans/]
+\setTransitionsForGreek{\begingroup\greekfallback}{\endgroup}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage[margin=2cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{needspace}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+
+% Cores exatas equivalentes ao motor pdf-lib atual (supabase/functions/generate-exam-pdf/index.ts:29-36)
+\definecolor{winedark}{HTML}{591230}
+\definecolor{winemid}{HTML}{6B1C3D}
+\definecolor{winelight}{HTML}{8C2E4C}
+\definecolor{graylight}{HTML}{EBEBEB}
+\definecolor{graymid}{HTML}{8C8C8C}
+\definecolor{graybg}{HTML}{F5F5F5}
+\definecolor{titlesubtitle}{HTML}{FFD9E6}
+\definecolor{titlesubtitle2}{HTML}{FFB2C7}
+\definecolor{rulesboxtint}{HTML}{FAF0F2}
+
+\pagestyle{fancy}
+\fancyhf{}
+% cabeçalho/rodapé completos entram junto com exam.tex (Task 5) — aqui só reset de estilo
+
+% Exceções de hifenização para termos médicos compostos que o pacote de
+% PT-BR erra sozinho. Um item por entrada, sílabas separadas por hífen nos
+% pontos de quebra válidos. Vazio por padrão — popular sob demanda conforme
+% casos ruins aparecerem em revisão editorial.
+% Exemplo (comentado): \hyphenation{ele-tro-car-di-o-gra-ma}
+\hyphenation{}
