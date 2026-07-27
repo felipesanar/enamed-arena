@@ -325,23 +325,6 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
         {!isMobile && (
           <div className="relative flex flex-col gap-2.5 pt-1">
             {primaryCta}
-
-            {/* CTA secundário: questões novas no banco */}
-            <Link
-              to={simuladosUrl}
-              aria-label={`Treinar questões novas de ${label} no banco de simulados`}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
-                'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
-                'transition-all duration-[var(--c-duration-base)]',
-                'hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)] hover:bg-[color-mix(in_srgb,var(--c-wine-500)_3%,transparent)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
-              )}
-            >
-              <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
-              Treinar questões novas no banco
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[var(--c-muted-2)]" aria-hidden />
-            </Link>
           </div>
         )}
       </CadernoCard>
@@ -350,21 +333,6 @@ export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoL
       {isMobile && (
         <BottomActionBar className="flex-col gap-2 py-3">
           {primaryCta}
-          <Link
-            to={simuladosUrl}
-            aria-label={`Treinar questões novas de ${label} no banco de simulados`}
-            className={cn(
-              'inline-flex w-full items-center justify-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
-              'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
-              'transition-all duration-[var(--c-duration-base)]',
-              'hover:border-[color-mix(in_srgb,var(--c-wine-500)_30%,transparent)] hover:text-[var(--c-ink)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)] focus-visible:ring-offset-2',
-            )}
-          >
-            <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Questões novas no banco
-            <ExternalLink className="h-3 w-3 shrink-0 opacity-50" aria-hidden />
-          </Link>
         </BottomActionBar>
       )}
     </motion.div>
