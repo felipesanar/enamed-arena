@@ -1,0 +1,30 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{PlusJakartaSans-Regular.ttf}[
+  Path = /opt/fonts/PlusJakartaSans/,
+  BoldFont = PlusJakartaSans-Bold.ttf
+]
+\newfontfamily\jakartamedium{PlusJakartaSans-Medium.ttf}[Path = /opt/fonts/PlusJakartaSans/]
+\usepackage{polyglossia}
+\setmainlanguage{portuguese}
+\usepackage{ucharclasses}
+\newfontfamily\greekfallback{NotoSans-Regular.ttf}[Path = /opt/fonts/NotoSans/]
+\setTransitionsForGreek{\begingroup\greekfallback}{\endgroup}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage[margin=2cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{needspace}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\hyphenation{}
+\begin{document}
+Teste de hifenização: eletrocardiograma, otorrinolaringologista, acetilcolinesterase.
+Símbolos: µg/mL, 37°C, α-fetoproteína, β-hCG.
+\begin{tcolorbox}[colback=gray!10,colframe=gray!40,rounded corners]
+Caixa de teste.
+\end{tcolorbox}
+\tikz\node[circle, fill=black, text=white] {1};
+\end{document}
