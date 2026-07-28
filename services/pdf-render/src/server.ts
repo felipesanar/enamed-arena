@@ -273,14 +273,28 @@ async function handleRender(req: IncomingMessage, res: ServerResponse, deps: Res
   try {
     const headerSecret = firstHeaderValue(req.headers['x-internal-secret']);
     if (!validateInternalSecret(headerSecret, deps.expectedSecret)) {
-      sendJson(res, 403, { error: 'Forbidden', stage: 'unknown' });
       // The request body was never read (auth is checked deliberately
       // before parsing, so an unauthenticated caller can't force us to
       // buffer an arbitrarily large body into memory). On a keep-alive
       // HTTP/1.1 connection those unread bytes would otherwise be
       // misinterpreted as the start of the next request on the same
-      // socket — destroy the connection instead of leaving it open.
-      req.destroy();
+      // socket, so the connection is destroyed rather than left open.
+      //
+      // Ordering matters here: `res.end()` can be asynchronous (TLS,
+      // backpressure on a slow client), so `IncomingMessage#destroy()`
+      // (which tears down the shared underlying socket) must only run
+      // AFTER the response has actually finished sending — calling it
+      // immediately after `res.end()` risked truncating the 403 body
+      // before the client received it. `res.end()`'s callback fires once
+      // the data has been fully flushed, guaranteeing that ordering.
+      const payload = JSON.stringify({ error: 'Forbidden', stage: 'unknown' });
+      res.writeHead(403, {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      });
+      res.end(payload, () => {
+        req.destroy();
+      });
       outcome = { stage: 'unknown', httpStatus: 403 };
       return;
     }
