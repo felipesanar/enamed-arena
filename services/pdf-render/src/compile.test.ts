@@ -40,7 +40,6 @@ describeIfTectonic('compileTex (real tectonic binary)', () => {
 
   beforeAll(() => {
     if (!tectonicAvailable) {
-      // eslint-disable-next-line no-console
       console.warn('[compile.test] tectonic not found on PATH — skipping compileTex suite');
     }
   });

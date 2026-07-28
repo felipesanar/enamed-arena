@@ -5,7 +5,12 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "archive/**", "src/sandbox/**", "supabase/functions/**"] },
+  // `services/pdf-render/` is a fully standalone Node.js backend service
+  // (its own `package.json`/tsconfig/tests, no React/browser code) — same
+  // treatment as `supabase/functions/**` below. It is linted separately via
+  // its own `services/pdf-render/eslint.config.js` (Node globals, no
+  // React/browser rules), not by this frontend-oriented flat config.
+  { ignores: ["dist", "archive/**", "src/sandbox/**", "supabase/functions/**", "services/pdf-render/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

@@ -74,7 +74,7 @@ export function reflowText(raw: string): TextBlock[] {
  * `supabase/functions/generate-exam-pdf/legacyPdfLib.ts`.
  */
 export function stripLabel(optionText: string): string {
-  return optionText.replace(/^\s*[A-Da-d][)\.]\s*/, '');
+  return optionText.replace(/^\s*[A-Da-d][).]\s*/, '');
 }
 
 /**

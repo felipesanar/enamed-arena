@@ -31,8 +31,8 @@
  */
 
 import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import type { AddressInfo } from 'node:net';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import net, { type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -156,10 +156,11 @@ describe('server.ts (POST /render, GET /healthz)', () => {
   describe('authentication', () => {
     let server: Server;
     let baseUrl: string;
+    let port: number;
 
     beforeAll(async () => {
       server = createServer({ templatesDir: localTemplatesDir, expectedSecret: TEST_SECRET });
-      const port = await listenEphemeral(server);
+      port = await listenEphemeral(server);
       baseUrl = `http://127.0.0.1:${port}`;
     });
 
@@ -185,6 +186,53 @@ describe('server.ts (POST /render, GET /healthz)', () => {
         body: JSON.stringify(buildValidPayload(null)),
       });
       expect(res.status).toBe(403);
+    });
+
+    // Regression test for the fix that moved `req.destroy()` into
+    // `res.end()`'s flush callback instead of calling it immediately after
+    // `res.end()`. Speaks raw HTTP over a `net.Socket` (rather than `fetch`)
+    // so it can observe the exact ordering: every byte of the 403 response
+    // is collected as it arrives, and only resolved once the socket itself
+    // closes. If `req.destroy()` ran before the response had actually been
+    // flushed to the client, this would very likely observe a truncated
+    // (incomplete/unparseable) body instead of the full, valid JSON error.
+    it('fully delivers the 403 response body before the request socket closes', async () => {
+      const responseText = await new Promise<string>((resolve, reject) => {
+        const socket = net.connect(port, '127.0.0.1', () => {
+          const body = JSON.stringify(buildValidPayload(null));
+          socket.write(
+            `POST /render HTTP/1.1\r\n` +
+              `Host: 127.0.0.1:${port}\r\n` +
+              `Content-Type: application/json\r\n` +
+              `Content-Length: ${Buffer.byteLength(body)}\r\n` +
+              `Connection: keep-alive\r\n` +
+              `\r\n${body}`,
+          );
+        });
+        let data = '';
+        const timer = setTimeout(() => {
+          socket.destroy();
+          reject(new Error('timed out waiting for socket to close'));
+        }, 5000);
+        socket.on('data', (chunk: Buffer) => {
+          data += chunk.toString('utf8');
+        });
+        socket.on('close', () => {
+          clearTimeout(timer);
+          resolve(data);
+        });
+        socket.on('error', (e) => {
+          clearTimeout(timer);
+          reject(e);
+        });
+      });
+
+      expect(responseText).toMatch(/^HTTP\/1\.1 403/);
+      const headerEnd = responseText.indexOf('\r\n\r\n');
+      expect(headerEnd).toBeGreaterThan(-1);
+      const bodyText = responseText.slice(headerEnd + 4);
+      const json = JSON.parse(bodyText) as { error: string; stage: string };
+      expect(json).toEqual({ error: 'Forbidden', stage: 'unknown' });
     });
   });
 
@@ -241,6 +289,26 @@ describe('server.ts (POST /render, GET /healthz)', () => {
       const json = (await res.json()) as { error: string; stage: string };
       expect(json.stage).toBe('unknown');
     });
+
+    // `MAX_BODY_BYTES` (server.ts, 10_000_000) — the body-size guard rejects
+    // a request before JSON parsing is even attempted, once the accumulated
+    // bytes read so far exceed the limit. This constructs a real payload
+    // (valid JSON otherwise) padded past 10MB via a long question text, so
+    // the only thing that can make this request fail is the byte-count
+    // guard, not any other validation rule.
+    it('rejects a request body larger than the 10MB body-size limit with 400', async () => {
+      const payload = buildValidPayload(null);
+      payload.questions[0].text = 'x'.repeat(10_000_001);
+      const res = await fetch(`${baseUrl}/render`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-internal-secret': TEST_SECRET },
+        body: JSON.stringify(payload),
+      });
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: string; stage: string };
+      expect(json.stage).toBe('unknown');
+      expect(json.error).toContain('10000000 byte limit');
+    }, 20_000);
   });
 
   // ─── Healthcheck ────────────────────────────────────────────────────────
