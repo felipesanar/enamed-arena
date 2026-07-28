@@ -48,20 +48,21 @@ async function buildAndUploadPdf(simulado_id: string, pdfPath: string, lockPath:
       .in("question_id", questionIds).in("label", ["A", "B", "C", "D"]);
     if (optErr) throw optErr;
 
+    // Feature flag polarity is deliberately "opt IN to the new engine,
+    // default to legacy for anything else" — not the other way around. This
+    // is a safety/rollback mechanism: unset must fall back to the
+    // battle-tested legacy renderer, but so must any unexpected/malformed
+    // value (a typo like "pdflib", "pdf_lib", "Pdf-lib", or trailing
+    // whitespace "pdf-lib "). Only the exact literal "latex" routes to the
+    // newer, less battle-tested LaTeX engine.
     const engine = Deno.env.get("PDF_ENGINE") ?? "pdf-lib";
     let pdfBytes: Uint8Array;
-    if (engine === "pdf-lib") {
-      pdfBytes = await generateLegacyPdf(
-        simuladoRow as SimuladoRow,
-        questionRows as QuestionRow[],
-        optionRows as OptionRow[],
-      );
-    } else {
+    if (engine === "latex") {
       const questions = (questionRows as QuestionRow[]).map(q => ({
         number: q.question_number,
         text: q.text,
         image_url: q.image_url,
-        options: (optionRows as OptionRow[])
+        options: ((optionRows ?? []) as OptionRow[])
           .filter(o => o.question_id === q.id)
           .sort((a, b) => a.label.localeCompare(b.label))
           .map(o => ({ label: o.label, text: o.text })),
@@ -72,6 +73,14 @@ async function buildAndUploadPdf(simulado_id: string, pdfPath: string, lockPath:
         secret: Deno.env.get("PDF_RENDER_SERVICE_SECRET")!,
         timeoutMs: Number(Deno.env.get("PDF_RENDER_TIMEOUT_MS") ?? "45000"),
       });
+    } else {
+      // Legacy (default): anything other than the exact literal "latex",
+      // including unset/absent, a typo, or a malformed value.
+      pdfBytes = await generateLegacyPdf(
+        simuladoRow as SimuladoRow,
+        questionRows as QuestionRow[],
+        (optionRows ?? []) as OptionRow[],
+      );
     }
 
     const { error: uploadError } = await supabase.storage.from(BUCKET)

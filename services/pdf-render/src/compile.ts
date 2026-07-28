@@ -43,8 +43,20 @@ export interface CompileResult {
   compileMs: number;
 }
 
-/** Default compile timeout: 60s. Generous for a single-exam `.tex` document, short enough to bound a hung worker. */
-export const DEFAULT_COMPILE_TIMEOUT_MS = 60_000;
+/**
+ * Default compile timeout: 40s.
+ *
+ * Deliberately kept safely BELOW `supabase/functions/generate-exam-pdf/renderClient.ts`'s
+ * default per-attempt timeout (`PDF_RENDER_TIMEOUT_MS`, 45s) — the render
+ * service must always be the side that times out first. If this value were
+ * higher than the Edge Function's timeout (as a previous 60s default was),
+ * a compile legitimately taking 45-60s would get abandoned by the Edge
+ * Function caller while this service kept burning CPU on a PDF nobody would
+ * ever receive, with no chance to fail cleanly with an actionable
+ * `stage: 'compile'` error. Both values remain independently configurable
+ * via env vars — only the relative ORDER of the two defaults matters here.
+ */
+export const DEFAULT_COMPILE_TIMEOUT_MS = 40_000;
 
 /** Captured stdout/stderr is truncated past this many bytes each, per the brief ("buffer com limite, ex. truncar em 2MB"). */
 export const MAX_CAPTURED_OUTPUT_BYTES = 2_000_000;
@@ -154,7 +166,7 @@ function runTectonic(texFilePath: string, outDir: string, timeoutMs: number): {
  * @param outDir Directory `tectonic --outdir=` writes into; the compiled
  *   PDF is expected at `${outDir}/${basename(texFilePath, '.tex')}.pdf`.
  * @param timeoutMs Kill the subprocess if it hasn't finished within this
- *   many milliseconds. Defaults to `DEFAULT_COMPILE_TIMEOUT_MS` (60s).
+ *   many milliseconds. Defaults to `DEFAULT_COMPILE_TIMEOUT_MS` (40s).
  * @throws {RenderStageError} with `stage: 'compile'` if `tectonic` fails to
  *   start, exits non-zero, times out, or produces a missing/empty PDF.
  */
