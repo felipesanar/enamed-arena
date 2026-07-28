@@ -305,7 +305,7 @@ Este runbook não inclui guia para Milestone 7. Consulte o task backlog quando c
 - "Decisões já fechadas" no plano (não reabrir):
   - Host: Cloud Run (fora de escopo provisioning).
   - Linguagem: Node.js + TypeScript.
-  - Diagramação: 1 coluna.
+  - Diagramação: **2 colunas no corpo das questões** (revertido de "1 coluna" — pedido do responsável pelo produto, fidelidade ao formato real da prova impressa do ENAMED). Capa permanece em 1 coluna. Imagens (inclusive largas) restritas à largura de 1 coluna, nunca usam `figure*`/float cruzando colunas — mitigação para o risco de posicionamento incerto de float, confirmado empiricamente durante a implementação desta mudança (`figure*[H]` falha silenciosamente em compilação real). Justificação/hifenização tunadas (`\tolerance`, `\emergencystretch`, penalidades de hifenização) para a coluna mais estreita.
   - Secret compartilhado: Header `x-internal-secret`, constant-time comparison.
   - Resposta: PDF bytes diretos (`Content-Type: application/pdf`).
   - Fidelidade visual: Recriação com tcolorbox/tikz, aprovação manual obrigatória.
