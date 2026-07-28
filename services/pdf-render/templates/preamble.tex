@@ -1,9 +1,18 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec}
+% NOTE: `BoldFont` is declared but there is no `ItalicFont`/`BoldItalicFont`
+% configured — no current template uses \emph/\textit, but if one ever
+% does, fontspec will synthesize a faux-italic (slanted Regular) rather
+% than using a real italic face, since none is registered here. Add
+% `ItalicFont = ...` (and a matching Plus Jakarta Sans italic weight, if
+% one is vendored under assets/fonts/) before relying on real italics.
 \setmainfont{PlusJakartaSans-Regular.ttf}[
   Path = /opt/fonts/PlusJakartaSans/,
   BoldFont = PlusJakartaSans-Bold.ttf
 ]
+% Medium weight defined for future use — no current template references
+% `\jakartamedium`. Kept available rather than removed since it's a cheap
+% declaration and a plausible near-term need (e.g. subheadings).
 \newfontfamily\jakartamedium{PlusJakartaSans-Medium.ttf}[Path = /opt/fonts/PlusJakartaSans/]
 \usepackage{polyglossia}
 \setmainlanguage{portuguese}

@@ -22,8 +22,22 @@ export interface RenderStageErrorOptions extends ErrorOptions {
    * `500` (generic server-side failure) — most render-pipeline failures are
    * not the caller's fault (a malformed `.tex` from our own template, a
    * flaky image host, a `tectonic` crash), so `500` is the safer default;
-   * pass a specific status (e.g. `502` for an upstream image fetch failure)
-   * when a stage can tell the difference.
+   * pass a specific status (e.g. `502`) when a stage can tell the
+   * difference and genuinely represents an upstream/bad-gateway failure.
+   *
+   * Note: as of this writing, no current call site actually passes `502`.
+   * The one place that constructs a `'fetch_images'`-stage error
+   * (`server.ts`'s catch around `fetchAndNormalizeImages`) is documented
+   * there as a defensive guard against failures OUTSIDE that module's own
+   * contract (e.g. a disk error creating the temp directory's entries) —
+   * genuine upstream image-fetch failures (a slow/unreachable host, a
+   * non-200 response) are tolerated INSIDE `fetchAndNormalizeImages`
+   * itself and reported as `localPath: null` per question, never thrown.
+   * So the one real call site's failure mode is "something on our side
+   * broke," for which the `500` default is the semantically correct
+   * status — not `502`. If a future call site is added that genuinely
+   * represents an upstream/bad-gateway failure, that is the place to pass
+   * `httpStatus: 502`.
    */
   httpStatus?: number;
   /** PID of the subprocess involved, if any (e.g. the killed `tectonic` process on timeout). */

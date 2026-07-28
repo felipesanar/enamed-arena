@@ -152,21 +152,43 @@ function validateRequestBody(raw: unknown): RenderRequestBody {
   return { simulado, questions };
 }
 
-/** Reads the full request body into a `Buffer`, rejecting once it exceeds `MAX_BODY_BYTES`. */
+/**
+ * Reads the full request body into a `Buffer`, rejecting once it exceeds
+ * `MAX_BODY_BYTES`.
+ *
+ * Deliberately does NOT call `req.destroy()` when the limit is exceeded:
+ * once `chunks.push` stops (the early `return` below), memory stays
+ * bounded regardless of how much more the client sends, and the `'data'`
+ * handler keeps firing (silently discarding) for every subsequent chunk
+ * until the client finishes writing and `'end'` fires — so the connection
+ * is naturally fully drained of the request body by the time this
+ * settles, with no leftover unread bytes for a keep-alive connection to
+ * misinterpret as the start of a new request (unlike the auth-failure
+ * case in `handleRender`, which destroys deliberately because it returns
+ * BEFORE ever reading the body at all). Destroying here previously tore
+ * down the shared socket immediately — before `sendErrorResponse` ever got
+ * a chance to flush the 400 JSON body — so callers saw a raw connection
+ * reset instead of a clean error response.
+ */
 function readRequestBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let total = 0;
+    let rejected = false;
     req.on('data', (chunk: Buffer) => {
       total += chunk.length;
       if (total > MAX_BODY_BYTES) {
-        reject(new ValidationError(`request body exceeds ${MAX_BODY_BYTES} byte limit`));
-        req.destroy();
+        if (!rejected) {
+          rejected = true;
+          reject(new ValidationError(`request body exceeds ${MAX_BODY_BYTES} byte limit`));
+        }
         return;
       }
       chunks.push(chunk);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('end', () => {
+      if (!rejected) resolve(Buffer.concat(chunks));
+    });
     req.on('error', (e) => reject(e));
   });
 }
@@ -268,7 +290,13 @@ async function handleRender(req: IncomingMessage, res: ServerResponse, deps: Res
   let imageCount = 0;
   let imageFailCount = 0;
   let questionCount = 0;
-  let outcome: { stage: RenderStage; httpStatus: number } = { stage: 'unknown', httpStatus: 200 };
+  // 'none' is the success sentinel — distinct from the 'unknown' stage,
+  // which means "an error happened but it doesn't cleanly attribute to one
+  // of the three named pipeline stages." Logging 'unknown' on every
+  // successful (200) request would pollute any stage-based log
+  // filtering/alerting built on this field (it would look identical to an
+  // actual unattributed failure).
+  let outcome: { stage: RenderStage | 'none'; httpStatus: number } = { stage: 'none', httpStatus: 200 };
 
   try {
     const headerSecret = firstHeaderValue(req.headers['x-internal-secret']);
@@ -371,7 +399,7 @@ async function handleRender(req: IncomingMessage, res: ServerResponse, deps: Res
       'Content-Length': pdfBytes.length,
     });
     res.end(pdfBytes);
-    outcome = { stage: 'unknown', httpStatus: 200 };
+    outcome = { stage: 'none', httpStatus: 200 };
   } catch (e) {
     outcome = sendErrorResponse(res, e);
   } finally {
@@ -437,6 +465,33 @@ export function createServer(options: CreateServerOptions = {}): Server {
   return createHttpServer(requestListener(deps));
 }
 
+/**
+ * Cloud Run sends `SIGTERM` ~10s before forcibly killing an instance
+ * (scale-down, revision swap, deploy). Without a handler, the default
+ * Node behavior is to terminate immediately, dropping any in-flight
+ * `/render` request mid-compile instead of letting it finish (or fail
+ * cleanly). `server.close()` stops the server from accepting NEW
+ * connections but lets already-in-flight requests complete normally —
+ * exactly the graceful-shutdown behavior Cloud Run's grace period expects.
+ * Idempotent-ish: a second `SIGTERM` while shutdown is already in progress
+ * just calls `close()` again (a no-op beyond invoking the callback once
+ * more), so it's safe even if Cloud Run sends more than one.
+ */
+function registerSigtermHandler(server: Server): void {
+  process.on('SIGTERM', () => {
+    console.log('[pdf-render] received SIGTERM, closing server (letting in-flight requests finish)');
+    server.close((err) => {
+      if (err) {
+        console.error('[pdf-render] error while closing server on SIGTERM:', err);
+        process.exit(1);
+        return;
+      }
+      console.log('[pdf-render] server closed cleanly after SIGTERM');
+      process.exit(0);
+    });
+  });
+}
+
 const isMainModule = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMainModule) {
@@ -445,4 +500,5 @@ if (isMainModule) {
   server.listen(port, () => {
     console.log(`[pdf-render] listening on port ${port}`);
   });
+  registerSigtermHandler(server);
 }

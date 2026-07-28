@@ -80,6 +80,44 @@ function readTemplate(templatesDir: string, filename: string): string {
 }
 
 /**
+ * Substitutes every `@@TOKEN@@` key in `tokens` for its value, in a SINGLE
+ * pass over `template` via one combined regex (alternation of every key).
+ *
+ * Two correctness properties this buys over calling `.replaceAll()` once
+ * per token in a chain (the previous approach):
+ *
+ * 1. **No re-expansion**: a single pass scans the ORIGINAL template once;
+ *    a replacement VALUE that happens to itself contain a literal
+ *    `@@OTHER_TOKEN@@` substring (e.g. a `simulado.title` a user typed
+ *    that literally contains that text) becomes part of the OUTPUT and is
+ *    never rescanned — so it can't accidentally get replaced again by a
+ *    later token substitution in the chain, which would silently garble
+ *    the output. A chain of separate `.replaceAll()` calls does not have
+ *    this guarantee: each call rescans the ENTIRE (already partially
+ *    substituted) string, so an earlier substitution's value can
+ *    collide with a later token and get replaced again.
+ * 2. **Safe against replacement-pattern syntax**: using a replacer
+ *    FUNCTION (`(match) => tokens[match]`) rather than passing `value`
+ *    directly as `String.prototype.replace`'s 2nd argument means `$$`,
+ *    `$&`, `` $` ``, `$'`, `$<name>` in a value are never interpreted as
+ *    replacement-pattern syntax — they're inserted literally, exactly as
+ *    provided. (Passing a raw string as the 2nd argument is latent/safe
+ *    today only because escaped content never happens to produce a lone
+ *    `$` followed by one of those characters — but `cover.tex` already
+ *    contains a literal `$\cdot$`, so this is structural safety, not
+ *    "currently doesn't matter.")
+ */
+function substituteTokens(template: string, tokens: Record<string, string>): string {
+  const map = new Map(Object.entries(tokens));
+  if (map.size === 0) return template;
+  const pattern = new RegExp(
+    [...map.keys()].map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+    'g',
+  );
+  return template.replace(pattern, (match) => map.get(match) ?? match);
+}
+
+/**
  * Matches the legacy pdf-lib engine's rounding EXACTLY:
  * `legacyPdfLib.ts:470` — `const durationH = Math.round(simulado.duration_minutes / 60);`
  * (Not `Math.floor` — verified against the actual legacy source, since the
@@ -99,11 +137,12 @@ function renderCover(
   // control characters), but it's applied anyway per the brief's
   // "defense in depth" guidance — harmless no-op today, and free insurance
   // if a caller ever passes a non-numeric-looking value through this path.
-  return stripFullLineComments(coverTemplate)
-    .replaceAll('@@SIMULADO_TITLE@@', escapeLatex(simulado.title))
-    .replaceAll('@@QUESTIONS_COUNT@@', escapeLatex(String(simulado.questions_count)))
-    .replaceAll('@@DURATION_HOURS@@', escapeLatex(String(durationHours)))
-    .replaceAll('@@DURATION_MINUTES@@', escapeLatex(String(simulado.duration_minutes)));
+  return substituteTokens(stripFullLineComments(coverTemplate), {
+    '@@SIMULADO_TITLE@@': escapeLatex(simulado.title),
+    '@@QUESTIONS_COUNT@@': escapeLatex(String(simulado.questions_count)),
+    '@@DURATION_HOURS@@': escapeLatex(String(durationHours)),
+    '@@DURATION_MINUTES@@': escapeLatex(String(simulado.duration_minutes)),
+  });
 }
 
 function renderOption(option: { label: string; text: string }): string {
@@ -198,10 +237,20 @@ export function renderExamTex(input: RenderInput, templatesDir: string): string 
   const footerLabel = escapeLatex(`${input.simulado.title} · SanarFlix PRO · Modo Offline`);
   const questionsBody = input.questions.map(renderQuestion).join('\n\n');
 
-  return stripFullLineComments(examTemplate)
-    .replace('\\input{preamble}', preambleTex)
-    .replace('\\input{cover}', coverTex)
-    .replaceAll('@@EXAM_LABEL@@', examLabel)
-    .replaceAll('@@FOOTER_LABEL@@', footerLabel)
-    .replaceAll('@@QUESTIONS_BODY@@', questionsBody);
+  // `\input{preamble}` / `\input{cover}` are plain (non-`@@TOKEN@@`) literal
+  // markers substituted separately from the token map below, via replacer
+  // FUNCTIONS rather than raw-string 2nd arguments — `preambleTex`/`coverTex`
+  // are untrusted-shape strings by the time they get here (already-escaped
+  // user content plus literal LaTeX like `cover.tex`'s `$\cdot$`), so a
+  // replacer function avoids `String.prototype.replace`'s special
+  // replacement-pattern handling (`$$`, `$&`, etc.) entirely.
+  const withIncludes = stripFullLineComments(examTemplate)
+    .replace('\\input{preamble}', () => preambleTex)
+    .replace('\\input{cover}', () => coverTex);
+
+  return substituteTokens(withIncludes, {
+    '@@EXAM_LABEL@@': examLabel,
+    '@@FOOTER_LABEL@@': footerLabel,
+    '@@QUESTIONS_BODY@@': questionsBody,
+  });
 }
