@@ -1,0 +1,7 @@
+% Deliberately invalid fixture for compile.test.ts's failure case:
+% \begin{document} with no matching \end{document}. Tectonic/XeTeX treats
+% this as a fatal "Emergency stop ... no legal \end found" and exits
+% non-zero without writing an output PDF.
+\documentclass{article}
+\begin{document}
+Hello, this document never closes its document environment.

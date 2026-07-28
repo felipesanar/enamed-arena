@@ -1,0 +1,19 @@
+% Self-contained fixture for compile.test.ts's "successful compile" case.
+%
+% Deliberately does NOT use `fontspec`/custom fonts the way the production
+% templates (and `test/fixtures/minimal.tex` from Task 2) do: those load
+% Plus Jakarta Sans / Noto Sans via an absolute `Path = /opt/fonts/...`,
+% which only exists inside the production Docker image (populated by the
+% Dockerfile's `COPY assets/fonts/ /opt/fonts/`). On a plain dev machine
+% (confirmed: this one) that path doesn't exist, so `minimal.tex` fails
+% with "Package fontspec Error: The font ... cannot be found" — a
+% test-environment gap, not a bug in compile.ts. This fixture uses only
+% Tectonic's bundled default fonts so `compileTex`'s happy path can be
+% exercised for real (no mocked subprocess) on any host that merely has the
+% `tectonic` binary installed, matching the brief's `it.skip`-if-missing
+% spirit for the binary itself while not also requiring the production font
+% layout.
+\documentclass{article}
+\begin{document}
+Hello, world! Ol\'a, mundo!
+\end{document}
