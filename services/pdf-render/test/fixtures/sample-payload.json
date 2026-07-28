@@ -1,0 +1,36 @@
+{
+  "simulado": {
+    "title": "Simulado ENAMED — Clínica Médica & Cirurgia",
+    "sequence_number": 3,
+    "questions_count": 3,
+    "duration_minutes": 90
+  },
+  "questions": [
+    {
+      "number": 1,
+      "text": "Paciente de 45 anos apresenta dor torácica típica.\n\nConsidere o quadro clínico:\n- Dor retroesternal\n- Sudorese profusa\nQual a conduta inicial?",
+      "image_url": null,
+      "options": [
+        { "label": "A", "text": "Solicitar ECG de 12 derivações imediatamente" },
+        { "label": "B", "text": "Aguardar 50% de melhora espontânea antes de agir" },
+        { "label": "C", "text": "Prescrever apenas paracetamol_500mg e reavaliar em 24h" },
+        { "label": "D", "text": "Encaminhar para fisioterapia respiratória" }
+      ]
+    },
+    {
+      "number": 2,
+      "text": "A dosagem de α-fetoproteína e β-hCG está elevada, sugerindo neoplasia germinativa.",
+      "image_url": null,
+      "options": [
+        { "label": "A", "text": "Investigar tumor de células germinativas" },
+        { "label": "B", "text": "Repetir exame em 90% dos casos assintomáticos" }
+      ]
+    },
+    {
+      "number": 3,
+      "text": "Questão sem alternativas, usada apenas para testar o caso de 0 opções.",
+      "image_url": null,
+      "options": []
+    }
+  ]
+}
