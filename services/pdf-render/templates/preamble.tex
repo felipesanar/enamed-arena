@@ -20,6 +20,19 @@
 \newfontfamily\greekfallback{NotoSans-Regular.ttf}[Path = /opt/fonts/NotoSans/]
 \setTransitionsForGreek{\begingroup\greekfallback}{\endgroup}
 \usepackage{microtype}
+% Corpo de questões em duas colunas (exam.tex, \twocolumn) tem uma medida
+% (\columnwidth) bem mais estreita que a página inteira; com a tolerância
+% padrão do LaTeX + polyglossia PT-BR, uma amostra real de texto médico
+% produziu ~24 avisos de "Overfull \hbox" (texto vazando a margem) nessa
+% largura. Os quatro ajustes abaixo (testados empiricamente, ver relatório)
+% eliminaram todos os avisos, com hifenização natural e sem "rios" visíveis.
+% Aplicados globalmente (valem também para a capa, em 1 coluna) porque só
+% relaxam a tolerância de justificação — nunca pioram o resultado em texto
+% de largura cheia, apenas dão mais margem de manobra ao algoritmo.
+\tolerance=1500
+\emergencystretch=2em
+\hyphenpenalty=50
+\exhyphenpenalty=50
 \usepackage{graphicx}
 \usepackage[margin=2cm]{geometry}
 \usepackage{fancyhdr}

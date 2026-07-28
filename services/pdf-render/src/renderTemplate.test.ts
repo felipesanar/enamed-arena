@@ -122,7 +122,7 @@ describe('renderExamTex', () => {
   it('emits an \\includegraphics block with the exact local path for a non-null localImagePath', () => {
     const tex = renderExamTex(buildInput('/tmp/some-dir/q1-image.png'), templatesDir);
     expect(tex).toContain(
-      '\\includegraphics[width=0.82\\textwidth,height=320pt,keepaspectratio]{/tmp/some-dir/q1-image.png}',
+      '\\includegraphics[width=0.82\\columnwidth,height=320pt,keepaspectratio]{/tmp/some-dir/q1-image.png}',
     );
   });
 

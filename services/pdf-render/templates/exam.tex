@@ -62,6 +62,25 @@
 
 \input{cover}
 
+% ── Corpo de questões em 2 colunas; a capa acima permanece em 1 coluna.
+% `\twocolumn` (comando, não a opção de classe `[twocolumn]`) porque só o
+% corpo de questões deve mudar de modo — a opção de classe afetaria o
+% documento inteiro desde o início, inclusive a capa. `\twocolumn` força uma
+% nova página a partir daqui, o que é inofensivo: `cover.tex` já termina em
+% `\newpage` de qualquer forma. O overlay de cabeçalho full-bleed (eso-pic/
+% \AddToShipoutPictureBG acima) é independente do modo de colunas — testado
+% e confirmado que continua aparecendo igual em 1 e em 2 colunas.
+%
+% Imagens dentro das questões (ver renderTemplate.ts/renderQuestion) NÃO
+% cruzam colunas — ficam restritas à largura de uma coluna
+% (`\columnwidth`), mesmo as originalmente "largas" (ECG, raio-X, lâmina).
+% `figure*[H]` (float atravessando as 2 colunas) foi testado e descartado:
+% a imagem não renderizava no PDF final e ainda causava sobreposição de
+% texto. Alternar `\onecolumn`/`\twocolumn` pontualmente por imagem também
+% foi descartado: força quebra de página a cada troca e gera linhas
+% "soltas" (underfull) na coluna anterior.
+\twocolumn
+
 % ── Rodapé das páginas de questões (equivalente a drawFooter,
 % legacyPdfLib.ts:488-494). O cabeçalho agora vem inteiramente do overlay
 % eso-pic/tikz acima — não usamos mais \fancyhead aqui, para não

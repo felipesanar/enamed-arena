@@ -23,19 +23,36 @@
 \end{enumerate}
 
 % ── Bloco de imagem (usado no lugar de @@Q_IMAGE_BLOCK@@ quando a questão tem
-% imagem; substituído por string vazia quando não tem). Replica a heurística
-% de tamanho de legacyPdfLib.ts:552-565 (teto de 82% da largura de conteúdo e
-% 320pt de altura, o menor dos dois limites vence preservando proporção) —
-% em LaTeX isso é só `width=...,height=...,keepaspectratio`, sem precisar
-% calcular manualmente o `min(...)` como no pdf-lib original. graphicx também
-% cuida da quebra de página da imagem em si automaticamente; o `\needspace`
-% no topo deste arquivo cobre apenas o início do bloco da questão (equivalente
-% ao `ensureSpace()` do motor antigo, legacyPdfLib.ts:521-523), garantindo que
-% ao menos o título "Questão N" e a primeira linha do enunciado não fiquem
-% órfãos no rodapé de uma página.
+% imagem; substituído por string vazia quando não tem). O corpo de questões
+% roda em modo de 2 colunas (exam.tex, \twocolumn), então a largura de
+% referência é a de UMA coluna (`\columnwidth`), não mais a largura de
+% página inteira (`\textwidth`, usado quando o corpo era 1 coluna) — teto de
+% 320pt de altura mantido, o menor dos dois limites vence preservando
+% proporção via `keepaspectratio`, igual à heurística original de
+% legacyPdfLib.ts:552-565. O fator `0.82` (originalmente `0.82\textwidth`)
+% também foi preservado, agora sobre `\columnwidth`: uma compilação real
+% comparando `width=\columnwidth` puro (100% da coluna) contra
+% `width=0.82\columnwidth` mostrou a versão sem fator com a imagem colada
+% nas duas margens da coluna, sem respiro lateral algum, enquanto os 82%
+% reproduziram o mesmo recuo proporcional e centralizado que a imagem já
+% tinha no layout de 1 coluna — por isso o fator foi mantido em vez de
+% descartado.
+%
+% Isso vale para TODAS as imagens, sem exceção para imagens largas (ECG,
+% raio-X, lâmina histológica): nenhuma imagem cruza colunas, e nenhuma usa
+% ambiente `figure`/float algum — é só conteúdo inline, exatamente onde a
+% questão a referencia, igual ao padrão de 1 coluna, só que com largura de
+% referência menor. `figure*[H]` foi testado e descartado (a imagem não
+% renderizava no PDF final, e ainda causava sobreposição de texto);
+% decisão deliberada de não implementar "imagem larga cruza colunas".
+% graphicx cuida da quebra de página da imagem em si automaticamente; o
+% `\needspace` no topo deste arquivo cobre apenas o início do bloco da
+% questão (equivalente ao `ensureSpace()` do motor antigo,
+% legacyPdfLib.ts:521-523), garantindo que ao menos o título "Questão N" e a
+% primeira linha do enunciado não fiquem órfãos no rodapé de uma página.
 %
 % \begin{center}
-% \includegraphics[width=0.82\textwidth,height=320pt,keepaspectratio]{@@Q_IMAGE_PATH@@}
+% \includegraphics[width=0.82\columnwidth,height=320pt,keepaspectratio]{@@Q_IMAGE_PATH@@}
 % \end{center}
 
 % ── Padrão de uma opção dentro de @@Q_OPTIONS@@ (uma linha \item por opção,

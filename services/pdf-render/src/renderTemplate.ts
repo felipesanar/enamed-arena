@@ -170,6 +170,31 @@ function renderQuestion(question: RenderInput['questions'][number]): string {
   // block is omitted rather than substituted with an empty string inside
   // otherwise-fixed markup.
   //
+  // Width reference is `\columnwidth`, not `\textwidth`: exam.tex switches
+  // the question body to 2-column mode (`\twocolumn`), so `\textwidth`
+  // would still measure the full page width and let images overflow into
+  // the adjacent column. `\columnwidth` resolves automatically to a single
+  // column's width inside `\twocolumn` mode — no JS-side math needed. This
+  // applies to every image, including originally "wide" ones (ECG, X-ray,
+  // histology slide): there is no float/`figure*` path letting an image
+  // span both columns. That was tried and discarded — `figure*[H]` never
+  // actually rendered the image in the compiled PDF (it was processed in
+  // the log but never appeared) and still caused visible text overlap near
+  // it. Height cap (320pt) and `keepaspectratio` (smaller of the two limits
+  // wins) are unchanged from the original 1-column heuristic.
+  //
+  // The `0.82` factor (kept from the original 1-column formula,
+  // `0.82\textwidth`, now applied to `\columnwidth` instead) is a
+  // deliberate choice, re-verified visually for the narrower 2-column
+  // measure: a real end-to-end compile with `width=\columnwidth` (i.e.
+  // 100%, no factor) rendered the image perfectly flush against both side
+  // margins of the column, with zero lateral breathing room, while
+  // `width=0.82\columnwidth` reproduced the same proportionally-inset,
+  // clearly-centered look the original 1-column layout had (visible margin
+  // on both sides inside `\begin{center}`, comfortably narrower than the
+  // surrounding text measure). 100% was rejected as looking "glued" to the
+  // column edges, not because it broke or overflowed anything.
+  //
   // The path itself is embedded as-is (NOT passed through `escapeLatex`):
   // it's a filesystem path, not LaTeX text content, and `escapeLatex`'s
   // replacements (e.g. turning `_` into `\_{}`, `%` into `\%`) would
@@ -184,7 +209,7 @@ function renderQuestion(question: RenderInput['questions'][number]): string {
   // assumption, not a guarantee enforced by this module — flagged in the
   // task report.
   const imageBlock = question.localImagePath
-    ? `\\begin{center}\n\\includegraphics[width=0.82\\textwidth,height=320pt,keepaspectratio]{${question.localImagePath}}\n\\end{center}`
+    ? `\\begin{center}\n\\includegraphics[width=0.82\\columnwidth,height=320pt,keepaspectratio]{${question.localImagePath}}\n\\end{center}`
     : '';
 
   // A question may have 0 options (`templates/question.tex`'s own comment:
