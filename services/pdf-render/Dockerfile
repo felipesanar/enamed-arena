@@ -1,10 +1,36 @@
-# Build for linux/amd64 explicitly (e.g., docker build --platform linux/amd64 ...)
-# This environment runs Apple Silicon arm64 via Colima with QEMU emulation;
-# linux/amd64 builds work but are slower than native. Tectonic only provides
-# x86_64-unknown-linux-gnu binaries.
+# Build for linux/amd64 explicitly — always via `docker buildx build
+# --builder multiarch --platform linux/amd64 --load ...`, never plain
+# `docker build --platform ...`. This environment runs Apple Silicon arm64
+# via Colima with QEMU emulation; plain `docker build --platform` was found
+# in Task 1 to silently produce the WRONG architecture image here (a real
+# bug), whereas the `multiarch` buildx builder (docker-container driver)
+# builds/emulates correctly. Tectonic only provides x86_64-unknown-linux-gnu
+# binaries, so linux/amd64 is required even on arm64 hosts.
 # Base image: node:20-trixie-slim (Debian 13, glibc 2.41) — required for
 # compatibility with Tectonic 0.17.0 binary (needs glibc >= 2.38/2.39).
 
+# ─── Stage: build ───────────────────────────────────────────────────────────
+# Compiles the TypeScript app (src/ -> dist/) in isolation from the Tectonic
+# runtime layers below. Uses the same pinned Debian trixie base as `runtime`
+# (rather than a separate bookworm/alpine image) so this single base layer is
+# shared/cached across both stages instead of pulling two different base
+# images — the only thing this stage needs from the base is a Node 20
+# toolchain to run `npm ci` + `tsc`, which node:20-trixie-slim already
+# provides. devDependencies (typescript, vitest, @types/node) are installed
+# here and intentionally never copied into `runtime` — only the compiled
+# `dist/` output crosses the stage boundary.
+FROM node:20-trixie-slim@sha256:abfbe12cc943141a0c9e8c0a57d710df1dadd95d35e8662cc02958b284d1f35b AS build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
+
+# ─── Stage: runtime ──────────────────────────────────────────────────────────
 FROM node:20-trixie-slim@sha256:abfbe12cc943141a0c9e8c0a57d710df1dadd95d35e8662cc02958b284d1f35b AS runtime
 
 # System dependencies for Tectonic binary (glibc, fontconfig, harfbuzz, icu)
@@ -65,9 +91,41 @@ RUN mkdir -p /tmp/prime && \
     test -s /tmp/prime/minimal.pdf && \
     test -n "$(ls -A "$TECTONIC_CACHE_DIR")"
 
-# Smoke stage: recompile the same fixture. If this fails, the build fails —
-# this is the final gate confirming Tectonic + vendored fonts + cached
-# packages actually produce a non-empty PDF from this image.
+# ─── Node app layers (Task 13) ───────────────────────────────────────────────
+# Production-only dependency install. Deliberately NOT copying node_modules
+# from the host or from the `build` stage: `sharp` (this service's one real
+# runtime dependency) ships platform-specific prebuilt binaries, and
+# `npm ci` must run INSIDE this build step, targeting this image's actual
+# platform/libc (linux/amd64 + glibc, per the buildx --platform flag),
+# rather than reusing whatever was resolved on the host or in the `build`
+# stage's own `npm ci` (same platform here, but the point is this install is
+# never copied — it's always freshly resolved for the stage that will run
+# it). `--omit=dev` excludes typescript/vitest/@types/node, which are only
+# needed to produce `dist/`, not to run it.
+COPY --from=build /app/package.json /app/package-lock.json ./
+RUN npm ci --omit=dev
+
+# Confirm sharp's native binding actually loaded for this platform — fails
+# the build loudly here rather than surfacing as a mysterious runtime crash
+# on the first image fetch request.
+RUN node -e "require('sharp')" && echo "sharp native binding OK"
+
+# Compiled app (dist/) from the `build` stage — never rebuilt inside
+# `runtime`, so `runtime` never needs the TypeScript toolchain at all.
+COPY --from=build /app/dist ./dist
+
+# Templates read at runtime by renderTemplate.ts (server.ts resolves
+# `templatesDir` as `<dist>/../templates`, i.e. /app/templates here).
+COPY templates ./templates
+
+EXPOSE 8080
+
+# Smoke stage: recompile the same fixture, AFTER the Node app layers above.
+# If this fails, the build fails — this is the final gate confirming that
+# adding the compiled app + production node_modules did not disturb the
+# Tectonic/vendored-fonts/cached-packages environment validated in Task 2,
+# and that Tectonic + vendored fonts + cached packages still actually
+# produce a non-empty PDF from this final image.
 # Limitation: this RUN step is not isolated from network access (Docker has
 # no per-RUN --network=none knob within a single Dockerfile stage). In
 # practice it should need zero network access because the priming step above
@@ -77,3 +135,5 @@ RUN mkdir -p /tmp/prime && \
 RUN mkdir -p /tmp/smoke && \
     tectonic test/fixtures/minimal.tex --outdir=/tmp/smoke && \
     test -s /tmp/smoke/minimal.pdf
+
+ENTRYPOINT ["node", "dist/server.js"]

@@ -1,0 +1,23 @@
+# Never send the host's node_modules/dist into the build context — every
+# stage in Dockerfile installs/builds its own inside the container (see the
+# `build` and `runtime` stages' `npm ci` / `npm ci --omit=dev` / `npm run
+# build`). Copying host artifacts in here would risk the exact "npm ci run
+# on the host, node_modules copied into the image" mistake the Dockerfile is
+# careful to avoid for `sharp`'s native binary (built for the HOST's
+# platform, not necessarily linux/amd64 inside the container).
+node_modules
+dist
+
+.git
+*.md
+deno.lock
+npm-debug.log*
+
+# NOTE: `test/` is intentionally NOT excluded here. The Dockerfile's
+# `runtime` stage does `COPY test/fixtures/minimal.tex test/fixtures/
+# minimal.tex` for the priming/smoke-test compile — Docker's .dockerignore
+# applies to every COPY/ADD (not just implicit context), so excluding the
+# whole `test/` directory here would break that explicit COPY too. The
+# Dockerfile never does a broad `COPY . .` in `runtime`, so `test/`'s other
+# contents (unit test files, other fixtures) are simply never copied into
+# the runtime image regardless of what's listed here.
