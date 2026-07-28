@@ -21,7 +21,7 @@ Este documento descreve o plano de produção para o rollout progressivo do novo
 
 **Ações**:
 1. Fazer merge da branch de desenvolvimento (contendo Tasks 1-17) para `main`.
-2. **Env var default em produção**: `PDF_ENGINE` **não configurado** (ausente dos secrets de Supabase Edge Function) → Edge Function usa `"pdf-lib"` (default em `index.ts:734`), comportamento idêntico ao de antes.
+2. **Env var default em produção**: `PDF_ENGINE` **não configurado** (ausente dos secrets de Supabase Edge Function) → Edge Function usa `"pdf-lib"` (default em `index.ts:58`; a lógica é "opt-in explícito para `latex`, qualquer outro valor cai no legado" — ver comentário no próprio código), comportamento idêntico ao de antes.
 3. Código do novo serviço (`services/pdf-render/`) está presente no repo, **mas não deployado em Cloud Run** — é apenas código-fonte, sem risco operacional.
 4. Verificar logs de produção por 24h: nenhuma regressão no fluxo de geração de PDF (mesmo tempo de resposta, mesmos erros já esperados).
 
@@ -41,13 +41,19 @@ Este documento descreve o plano de produção para o rollout progressivo do novo
 **Ações**:
 1. **Provisionar secrets em Supabase Staging**:
    - `PDF_RENDER_SERVICE_URL` = URL do Cloud Run staging (ex. `https://pdf-render-staging-xyz.run.app`)
-   - `PDF_RENDER_SERVICE_SECRET` = valor aleatório de ~32 caracteres, mesmo em ambos os lados (Supabase Edge Function e variável de ambiente do serviço)
+   - `PDF_RENDER_SERVICE_SECRET` = valor aleatório de ~32 caracteres, gerado especificamente para staging, idêntico nos dois LADOS deste ambiente (Supabase Edge Function de staging e variável de ambiente do Cloud Run de staging) — **não** o mesmo valor que será usado em produção (ver Fase C: cada ambiente tem seu próprio secret, por segurança).
    - `PDF_ENGINE` = `"latex"` (ativa o motor novo em staging)
    - `PDF_RENDER_TIMEOUT_MS` = `45000` (padrão, pode aumentar se debugging necessário)
 
 2. **Deploy do serviço em Cloud Run staging**:
    ```bash
-   docker build --platform linux/amd64 -t pdf-render-staging:latest services/pdf-render/
+   # NUNCA `docker build --platform ...` puro — em hosts Apple Silicon
+   # (Colima/Docker Desktop com QEMU) isso foi encontrado produzindo
+   # silenciosamente uma imagem da arquitetura ERRADA (bug real da Task 1,
+   # documentado em Dockerfile/README.md). Usar sempre `docker buildx` com
+   # um builder que suporte emulação cross-platform de verdade:
+   docker buildx create --name multiarch --driver docker-container --use  # one-time, se o builder ainda não existir
+   docker buildx build --builder multiarch --platform linux/amd64 --load -t pdf-render-staging:latest services/pdf-render/
    gcloud run deploy pdf-render-staging \
      --image pdf-render-staging:latest \
      --set-env-vars PDF_RENDER_SERVICE_SECRET=<valor-aleatorio> \
@@ -59,7 +65,7 @@ Este documento descreve o plano de produção para o rollout progressivo do novo
 
 3. **Teste de geração paralela**:
    - Selecionar ~5-10 simulados reais de staging com características variadas (diferentes tamanhos, conteúdo com caracteres especiais incluindo gregos, imagens, etc.).
-   - Para cada simulado, forçar regeneração **duas vezes**: uma com `PDF_ENGINE=pdf-lib`, outra com `PDF_ENGINE=latex` (usar `force:true` na Edge Function — veja `supabase/functions/generate-exam-pdf/index.ts:479-481`).
+   - Para cada simulado, forçar regeneração **duas vezes**: uma com `PDF_ENGINE=pdf-lib`, outra com `PDF_ENGINE=latex` (usar `force:true` no corpo da requisição à Edge Function — veja `supabase/functions/generate-exam-pdf/index.ts:120` para o parâmetro `force` recebido e `index.ts:137-138` para `forceRegenerate`).
    - Gerar PDFs lado a lado: `generated-pdf-lib.pdf`, `generated-latex.pdf`.
 
 4. **Comparação visual**:
@@ -92,7 +98,7 @@ Este documento descreve o plano de produção para o rollout progressivo do novo
 
 **Decisão crítica a registrar no dia**:
 
-A cache de PDFs em produção usa a chave `${simulado_id}_${updated_at}` (vide `supabase/functions/generate-exam-pdf/index.ts:487-488`). Quando flipamos o motor, PDFs já gerados e armazenados com `PDF_ENGINE=pdf-lib` **não são automaticamente regenerados** — continuam sendo servidos como estão.
+A cache de PDFs em produção usa a chave `${simulado_id}_${updated_at}` (vide `supabase/functions/generate-exam-pdf/index.ts:132-134`). Quando flipamos o motor, PDFs já gerados e armazenados com `PDF_ENGINE=pdf-lib` **não são automaticamente regenerados** — continuam sendo servidos como estão.
 
 **Opção 1: Acumular ambos os motores (sem regeneração)**
 - Deixar PDFs antigos (pdf-lib) sendo servidos para tentativas anteriores ao flip.
@@ -113,13 +119,16 @@ A cache de PDFs em produção usa a chave `${simulado_id}_${updated_at}` (vide `
 **Ações**:
 1. **Provisionar secrets em Supabase Produção**:
    - `PDF_RENDER_SERVICE_URL` = URL do Cloud Run produção (ex. `https://pdf-render-prod-xyz.run.app`)
-   - `PDF_RENDER_SERVICE_SECRET` = **mesmo valor aleatório de staging** (por segurança, usar um único secret pré-gerado compartilhado entre staging e prod).
+   - `PDF_RENDER_SERVICE_SECRET` = **um novo valor aleatório, gerado especificamente para produção — DIFERENTE do valor usado em staging**. O requisito de segurança é que o secret combine entre os dois LADOS de um mesmo ambiente (Edge Function de produção ↔ Cloud Run de produção), não que ele seja compartilhado ENTRE ambientes. Um vazamento do secret de staging (ambiente de teste, mais exposto/instável) não deve nunca comprometer produção — por isso staging e produção usam valores independentes.
    - `PDF_ENGINE` = `"latex"` (ativa o motor novo em produção)
    - `PDF_RENDER_TIMEOUT_MS` = `45000` (padrão, pode ajustar baseado em observações de Fase B)
 
 2. **Deploy do serviço em Cloud Run produção**:
    ```bash
-   docker build --platform linux/amd64 -t pdf-render-prod:latest services/pdf-render/
+   # Mesma ressalva da Fase B: NUNCA `docker build --platform ...` puro —
+   # usar sempre `docker buildx` com um builder cross-platform real (ver
+   # README.md e o comentário no topo do Dockerfile).
+   docker buildx build --builder multiarch --platform linux/amd64 --load -t pdf-render-prod:latest services/pdf-render/
    gcloud run deploy pdf-render-prod \
      --image pdf-render-prod:latest \
      --set-env-vars PDF_RENDER_SERVICE_SECRET=<valor-aleatorio> \
@@ -187,19 +196,19 @@ Prosseguir para Fase D após 30 min de logs limpos.
 - Nenhum relatório de fallback necessário para pdf-lib (i.e., todos os usuários estão usando LaTeX com sucesso).
 
 **Ações**:
-1. **Remover arquivo legado**:
+1. **Remover arquivo legado** (o import de `pdf-lib` vive inteiramente dentro deste arquivo desde a Task 14 — `index.ts` não importa `pdf-lib` diretamente, então apagar `legacyPdfLib.ts` já remove esse import por completo, nenhum passo separado é necessário):
    ```bash
    rm supabase/functions/generate-exam-pdf/legacyPdfLib.ts
    ```
 
 2. **Remover branch `PDF_ENGINE` de `index.ts`**:
-   - Remover condicional `if (engine === "pdf-lib") { ... } else { ... }`.
-   - Deixar apenas chamada a `callRenderService` (LaTeX).
+   - Remover o `import { generateLegacyPdf } from "./legacyPdfLib.ts"` (agora órfão, já que o arquivo foi apagado no passo 1).
+   - Remover condicional `if (engine === "latex") { ... } else { ... }` (a ramificação `else`, que chama `generateLegacyPdf`, é o código legado a remover — ver `index.ts:60-84`).
+   - Deixar apenas o caminho `callRenderService` (LaTeX) direto, sem branch.
    - Remover env vars obsoletos: `PDF_ENGINE` não mais necessário em `.env.example` (ou deixar documentado como "deprecated").
 
-3. **Remover imports de pdf-lib**:
-   - Remover `import { ... } from "https://esm.sh/pdf-lib@1.17.1"` de `index.ts`.
-   - Confirmar que nenhum outro arquivo Deno importa `pdf-lib` (`grep -r "pdf-lib" supabase/functions/`).
+3. **Confirmar que nenhum import de pdf-lib restou**:
+   - `grep -r "pdf-lib" supabase/functions/` deve retornar vazio (o import já foi embora junto com `legacyPdfLib.ts` no passo 1 — este é só um double-check).
 
 4. **Remover secrets órfãos de produção**:
    - Se existe secret `PDF_ENGINE` em Supabase produção, deletar (já não é lido).
@@ -226,31 +235,49 @@ Prosseguir para Fase D após 30 min de logs limpos.
 
 ## Checklist de Secrets
 
+**Modelo de secrets (importante, leia antes de gerar valores)**: existem **DOIS** valores independentes de `PDF_RENDER_SERVICE_SECRET` neste rollout — um para staging, um para produção. Cada valor deve ser idêntico apenas entre os dois LADOS de um mesmo ambiente (a Edge Function daquele ambiente e o Cloud Run daquele mesmo ambiente). Os dois valores (staging vs. produção) devem ser **DIFERENTES** entre si — nunca reutilizar o secret de staging em produção. Um vazamento do secret de staging (ambiente de teste, com mais gente com acesso e mais superfície de debug) não deve comprometer produção; secrets independentes por ambiente é o que garante isso.
+
 ### Supabase Staging (Edge Function secrets)
 
 - [ ] `PDF_RENDER_SERVICE_URL` = `https://pdf-render-staging-<project>.run.app` (ou equivalente)
-- [ ] `PDF_RENDER_SERVICE_SECRET` = `<valor-aleatorio-32-chars>` (mesmo em staging e prod)
+- [ ] `PDF_RENDER_SERVICE_SECRET` = `<valor-aleatorio-32-chars-A>` (gerado só para staging)
 - [ ] `PDF_ENGINE` = `"latex"` (apenas staging, não em produção até Fase C)
 - [ ] `PDF_RENDER_TIMEOUT_MS` = `45000`
 
 ### Supabase Produção (Edge Function secrets)
 
 - [ ] `PDF_RENDER_SERVICE_URL` = `https://pdf-render-prod-<project>.run.app` (ou equivalente)
-- [ ] `PDF_RENDER_SERVICE_SECRET` = `<mesmo-valor-que-staging>`
+- [ ] `PDF_RENDER_SERVICE_SECRET` = `<valor-aleatorio-32-chars-B>` (gerado só para produção — **diferente** do valor A usado em staging)
 - [ ] `PDF_ENGINE` = `"latex"` (ativa após Fase C)
 - [ ] `PDF_RENDER_TIMEOUT_MS` = `45000` (ajustável baseado em Fase B)
 
 ### Cloud Run Staging (variáveis de ambiente do serviço)
 
-- [ ] `PDF_RENDER_SERVICE_SECRET` = `<mesmo-valor-que-Supabase>`
+- [ ] `PDF_RENDER_SERVICE_SECRET` = `<valor-aleatorio-32-chars-A>` (idêntico ao secret de staging acima — mesmo lado do ambiente)
 - [ ] `PORT` = `8080` (padrão implícito se não setado)
 
 ### Cloud Run Produção (variáveis de ambiente do serviço)
 
-- [ ] `PDF_RENDER_SERVICE_SECRET` = `<mesmo-valor-que-Supabase>`
+- [ ] `PDF_RENDER_SERVICE_SECRET` = `<valor-aleatorio-32-chars-B>` (idêntico ao secret de produção acima — mesmo lado do ambiente; **diferente** do valor A de staging)
 - [ ] `PORT` = `8080` (padrão implícito se não setado)
 
-**Nota de segurança**: `PDF_RENDER_SERVICE_SECRET` deve ser gerado uma única vez e compartilhado identicamente entre Supabase (como secret da Edge Function) e Cloud Run (como env var do serviço). Usar um gerenciador de secrets (ex. `gcloud secrets create`, 1Password) para guardar o valor entre fases — não versionar nem deixar em commit.
+**Nota de segurança**: cada `PDF_RENDER_SERVICE_SECRET` (staging e produção) deve ser gerado uma única vez e compartilhado identicamente apenas entre os dois lados DO MESMO AMBIENTE (Supabase Edge Function daquele ambiente + Cloud Run daquele mesmo ambiente) — nunca entre staging e produção. Usar um gerenciador de secrets (ex. `gcloud secrets create`, 1Password) para guardar cada valor entre fases — não versionar nem deixar em commit.
+
+---
+
+## Recomendações de recursos/concorrência no Cloud Run (documentação apenas — infra não provisionada nesta task)
+
+Nem este runbook nem `README.md` documentavam, até agora, configurações de memória/CPU/concorrência do Cloud Run — os defaults do Cloud Run (512Mi de memória, concorrência 80) são inadequados para este serviço e provavelmente causariam OOM e comportamento patológico em produção: cada requisição `/render` roda um processo `tectonic` completo (motor TeX inteiro) mais `sharp` para normalização de imagem, e concorrência 80 significaria até 80 processos `tectonic` simultâneos disputando memória/CPU em uma única instância de container.
+
+**Recomendações para quem for provisionar/fazer o deploy (a confirmar/ajustar com DevOps na hora, mas usar como ponto de partida)**:
+
+- **Memória**: ≥ 2Gi por instância. Tectonic + fontes vendorizadas + `sharp` decodificando imagens grandes podem facilmente passar de 512Mi-1Gi em documentos com muitas questões/imagens.
+- **CPU**: pelo menos 1 vCPU completa alocada por instância durante a execução da requisição (não usar CPU throttling "apenas durante requests" de forma agressiva — a compilação LaTeX é CPU-bound do início ao fim).
+- **Concorrência (`--concurrency`)**: 1 a 4 requisições simultâneas por instância — **não** o default de 80. Cada requisição roda um processo `tectonic` isolado (motor TeX completo), então concorrência alta por instância é o oposto do que se quer aqui; preferir escalar HORIZONTALMENTE (mais instâncias) a colocar muitas requisições na mesma instância.
+- **Timeout de requisição (`--timeout`)**: ≥ ao timeout por tentativa da Edge Function (`PDF_RENDER_TIMEOUT_MS`, default 45s — ver também a Nota de Finding 6 sobre o timeout de compile no serviço, default agora 40s). Um timeout de Cloud Run menor que o timeout da Edge Function mataria a requisição no meio antes mesmo do timeout "esperado" do lado do chamador.
+- **Max instances**: definir um teto explícito (não deixar ilimitado) para evitar custo/carga de banco de dados descontrolados em caso de pico ou bug de retry; valor exato fica a critério do DevOps baseado no tráfego esperado.
+
+**Por que isso importa para a Fase D**: o gate de aprovação da Fase D exige que "uso de memória/CPU não deve atingir limites alocados" — esse gate só é verificável se os limites alocados (memória/CPU/concorrência acima) estiverem de fato configurados e documentados; sem eles, não há contra o que comparar as métricas observadas.
 
 ---
 
