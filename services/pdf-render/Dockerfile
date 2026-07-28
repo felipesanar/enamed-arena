@@ -30,6 +30,23 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
+# Generate a build-time-only priming fixture (`priming-exam.tex`) by running
+# the REAL renderExamTex() code path (dist/renderTemplate.js) against the
+# REAL sample-payload.json fixture. This closes a "no network at runtime"
+# gap found in review: priming the Tectonic package cache with only
+# `test/fixtures/minimal.tex` (Task 2) left `eso-pic` (loaded unconditionally
+# by templates/exam.tex for the full-bleed header bar) and several default
+# Computer Modern math fonts (pulled in by tikz/pgf internals and
+# cover.tex's `$\cdot$` math-mode bullets) uncached — a real POST /render
+# request needed network access at request time to download them on first
+# use. renderExamTex() inlines preamble.tex/cover.tex verbatim (see
+# renderTemplate.ts), so the fixture it produces is a single, self-contained
+# `.tex` file — no templates/ dependency needed when `runtime` compiles it.
+COPY templates ./templates
+COPY test/fixtures/sample-payload.json test/fixtures/sample-payload.json
+COPY scripts/generate-priming-fixture.mjs scripts/generate-priming-fixture.mjs
+RUN node scripts/generate-priming-fixture.mjs
+
 # ─── Stage: runtime ──────────────────────────────────────────────────────────
 FROM node:20-trixie-slim@sha256:abfbe12cc943141a0c9e8c0a57d710df1dadd95d35e8662cc02958b284d1f35b AS runtime
 
@@ -80,15 +97,27 @@ RUN fc-cache -f
 # cache in this same image build (see below).
 COPY test/fixtures/minimal.tex test/fixtures/minimal.tex
 
+# Build-time-only fixture generated in the `build` stage from the REAL
+# renderExamTex() output against the REAL sample-payload.json fixture (see
+# that stage's comment) — self-contained, no templates/ needed alongside it.
+# Primed/smoke-tested here too so the Tectonic package cache actually covers
+# every package/font the real render pipeline needs (eso-pic, tikz/pgf's
+# default Computer Modern math fonts, etc.), not just minimal.tex's subset.
+COPY --from=build /app/priming-exam.tex test/fixtures/priming-exam.tex
+
 # Prime the Tectonic package cache at build time: this is the only network
 # access needed to resolve LaTeX packages (fontspec, polyglossia,
 # ucharclasses, microtype, graphicx, geometry, fancyhdr, xcolor, enumitem,
-# needspace, tcolorbox, tikz, and transitive deps). Compiling once here
-# downloads and caches everything into $TECTONIC_CACHE_DIR so no further
-# network access is required at runtime.
+# needspace, tcolorbox, tikz, eso-pic, default Computer Modern math fonts,
+# and transitive deps). Compiling both fixtures once here downloads and
+# caches everything into $TECTONIC_CACHE_DIR so no further network access is
+# required at runtime — verified by running the final image with
+# `docker run --network none ...` and a real POST /render.
 RUN mkdir -p /tmp/prime && \
     tectonic test/fixtures/minimal.tex --outdir=/tmp/prime && \
     test -s /tmp/prime/minimal.pdf && \
+    tectonic test/fixtures/priming-exam.tex --outdir=/tmp/prime && \
+    test -s /tmp/prime/priming-exam.pdf && \
     test -n "$(ls -A "$TECTONIC_CACHE_DIR")"
 
 # ─── Node app layers (Task 13) ───────────────────────────────────────────────
@@ -129,11 +158,17 @@ EXPOSE 8080
 # Limitation: this RUN step is not isolated from network access (Docker has
 # no per-RUN --network=none knob within a single Dockerfile stage). In
 # practice it should need zero network access because the priming step above
-# already populated $TECTONIC_CACHE_DIR with everything minimal.tex requires;
-# if this step were to silently reach the network on a cache miss, it would
-# not be caught here. Documented as an accepted limitation for Task 2 scope.
+# already populated $TECTONIC_CACHE_DIR with everything both fixtures
+# require; if this step were to silently reach the network on a cache miss,
+# it would not be caught here. The real, authoritative check for "does the
+# running container need network at request time" is done post-build: see
+# README.md's `docker run --network none` verification, which exercises
+# this same priming-exam.tex content through the actual HTTP /render
+# endpoint with zero network access available to the container.
 RUN mkdir -p /tmp/smoke && \
     tectonic test/fixtures/minimal.tex --outdir=/tmp/smoke && \
-    test -s /tmp/smoke/minimal.pdf
+    test -s /tmp/smoke/minimal.pdf && \
+    tectonic test/fixtures/priming-exam.tex --outdir=/tmp/smoke && \
+    test -s /tmp/smoke/priming-exam.pdf
 
 ENTRYPOINT ["node", "dist/server.js"]
