@@ -49,6 +49,100 @@ jobs:
       - run: npm ci --omit=optional
       - run: npm run test
 
+  pdf-render:
+    name: pdf-render service (Tectonic + tests + typecheck)
+    runs-on: ubuntu-latest
+    # Separate, non-blocking-of-the-frontend job: `services/pdf-render` is a
+    # fully standalone Node.js project (its own package.json/tsconfig/tests,
+    # not covered by the root `test`/`typecheck` jobs above, which only run
+    # against the frontend + `supabase/functions`). Before this job existed,
+    # this service's 120+ tests, `tsc`, and Docker build never ran in CI at
+    # all — a regression here would only ever be caught by someone manually
+    # running `npm test` locally inside `services/pdf-render`.
+    #
+    # Docker build/buildx is intentionally OUT of scope for this job (a
+    # further nice-to-have, not required here) — this only needs a real
+    # `tectonic` binary directly on the runner's PATH, which is simpler and
+    # faster than a full multi-stage Docker build in CI.
+    defaults:
+      run:
+        working-directory: services/pdf-render
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: services/pdf-render/package-lock.json
+
+      # Pinned to the EXACT same Tectonic 0.17.0 release/checksum as
+      # `Dockerfile` (see its "Download, verify checksum, and install
+      # Tectonic 0.17.0" step) — keep these two in sync if the pin ever
+      # changes. GitHub's `ubuntu-latest` runners are native x86_64, so
+      # (unlike local dev on Apple Silicon) there is no cross-arch/QEMU
+      # concern installing this `x86_64-unknown-linux-gnu` binary here.
+      - name: Install system libraries Tectonic needs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            libfontconfig1 \
+            libgraphite2-3 \
+            libharfbuzz0b \
+            libicu-dev \
+            fontconfig
+
+      - name: Install pinned Tectonic 0.17.0 (matches Dockerfile)
+        run: |
+          set -e
+          cd /tmp
+          curl -L -o tectonic.tar.gz "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.17.0/tectonic-0.17.0-x86_64-unknown-linux-gnu.tar.gz"
+          echo "1a715688baf591e650c8aeb160ae934e181685eecbb38b317de30b269ac5d606  /tmp/tectonic.tar.gz" | sha256sum -c -
+          tar -xzf tectonic.tar.gz
+          sudo mv tectonic /usr/local/bin/tectonic
+          sudo chmod +x /usr/local/bin/tectonic
+          rm -rf /tmp/tectonic.tar.gz /tmp/tectonic
+
+      # Fail loudly here, before running tests, if Tectonic isn't actually
+      # installed/working — this is the check that stops a broken install
+      # from silently degrading into a green-but-partially-skipped test
+      # suite (see the next step).
+      - name: Verify Tectonic is installed and working
+        run: tectonic --version
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+      # `src/compile.test.ts` skips its entire "real tectonic binary" suite
+      # (`describe.skip`) if `tectonic` isn't found on PATH at import time,
+      # logging "tectonic not found on PATH — skipping compileTex suite"
+      # when it does. A naive CI job with a broken/missing Tectonic install
+      # would otherwise report a fully green suite while silently skipping
+      # the real compile, the timeout/kill test, and (in
+      # `renderTemplate.test.ts`/`server.test.ts`, which do NOT skip and
+      # would instead fail loudly) the only true end-to-end PDF assertions.
+      # Belt-and-suspenders: grep the test output for that literal skip
+      # message and fail the job if it ever appears, so this can never
+      # regress into a silent skip again even if the Tectonic install step
+      # above is edited later without noticing it broke.
+      - name: Run tests (fail if Tectonic-gated tests were skipped)
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/pdf-render-test-output.log
+          test_exit=$?
+          # NOTE: `test_exit` must be captured immediately after the piped
+          # command (pipefail makes it reflect `npm test`'s own exit code,
+          # not `tee`'s) and the script must exit with it explicitly at the
+          # end — an `if` statement with no matching branch resets `$?` to
+          # 0, so without this, a genuinely failing `npm test` would be
+          # silently swallowed by the skip-check below and the step would
+          # report success.
+          if grep -q "tectonic not found on PATH" /tmp/pdf-render-test-output.log; then
+            echo "::error::Tectonic-gated tests were skipped — the Tectonic install step above is broken. Fix it rather than letting this job pass green."
+            exit 1
+          fi
+          exit "$test_exit"
+
   edge-pins:
     name: Edge Function pins
     runs-on: ubuntu-latest
