@@ -70,8 +70,38 @@ describe("deriveHomeHeroState", () => {
     });
 
     expect(state.scenario).toBe("in_progress");
-    expect(state.ctaTo).toBe("/simulados/sim-progress");
+    expect(state.ctaTo).toBe("/simulados/sim-progress/prova");
     expect(state.ctaLabel).toBe("Retomar simulado");
+  });
+
+  it("leva para o gabarito quando a tentativa em andamento e offline", () => {
+    const state = deriveHomeHeroState({
+      userName: "Felipe",
+      isOnboardingComplete: true,
+      simulados: [
+        buildSimulado({
+          id: "sim-offline",
+          status: "in_progress",
+          title: "Simulado Offline",
+          userState: {
+            simuladoId: "sim-offline",
+            started: true,
+            startedAt: "2026-04-05T09:00:00.000Z",
+            finished: false,
+            attemptType: "offline",
+            attemptStatus: "offline_pending",
+          },
+        }),
+      ],
+      simuladosRealizados: 1,
+      mediaAtual: 72,
+      lastScore: 72,
+      recentScores: [72],
+    });
+
+    expect(state.scenario).toBe("in_progress");
+    expect(state.ctaTo).toBe("/simulados/sim-offline/gabarito");
+    expect(state.ctaLabel).toBe("Preencher gabarito");
   });
 
   it("retorna awaiting_results quando ha tentativa aguardando liberacao e sem historico anterior", () => {
