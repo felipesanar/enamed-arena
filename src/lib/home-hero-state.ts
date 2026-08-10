@@ -106,6 +106,22 @@ export function deriveHomeHeroState({
   )[0];
 
   if (inProgress) {
+    const isOffline =
+      inProgress.userState?.attemptType === "offline" ||
+      inProgress.userState?.attemptStatus === "offline_pending";
+
+    if (isOffline) {
+      return {
+        scenario: "in_progress",
+        tone: "focus",
+        eyebrow: "Prova offline",
+        headline: "Seu gabarito ainda está pendente",
+        description: `Você iniciou "${inProgress.title}" no modo offline. Transcreva as respostas da prova impressa para o gabarito digital antes do fim do prazo.`,
+        ctaLabel: "Preencher gabarito",
+        ctaTo: `/simulados/${inProgress.id}/gabarito`,
+      };
+    }
+
     return {
       scenario: "in_progress",
       tone: "focus",
@@ -113,7 +129,7 @@ export function deriveHomeHeroState({
       headline: "Seu simulado já foi iniciado",
       description: `Retome "${inProgress.title}" de onde parou para manter consistência no seu ritmo de estudo.`,
       ctaLabel: "Retomar simulado",
-      ctaTo: `/simulados/${inProgress.id}`,
+      ctaTo: `/simulados/${inProgress.id}/prova`,
     };
   }
 
