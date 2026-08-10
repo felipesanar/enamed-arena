@@ -602,26 +602,37 @@ export default function SimuladoDetailPage() {
       )}
 
       {/* In progress */}
-      {simulado.status === "in_progress" && simulado.userState?.started && (
+      {simulado.status === "in_progress" && simulado.userState?.started && (() => {
+        const isOfflineAttempt =
+          simulado.userState?.attemptType === "offline" ||
+          simulado.userState?.attemptStatus === "offline_pending";
+        return (
         <SimuladoDetailPaddedShell>
           <PremiumCard variant="hero" className="text-center mb-8">
             <div className="h-14 w-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-4">
               <Play className="h-7 w-7 text-warning" />
             </div>
-            <h2 className="text-heading-2 text-foreground mb-2">Simulado em andamento</h2>
+            <h2 className="text-heading-2 text-foreground mb-2">
+              {isOfflineAttempt ? "Prova offline em andamento" : "Simulado em andamento"}
+            </h2>
             <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
-              Você já iniciou este simulado. Continue de onde parou.
+              {isOfflineAttempt
+                ? "Você iniciou este simulado no modo offline. Transcreva suas respostas no gabarito digital."
+                : "Você já iniciou este simulado. Continue de onde parou."}
             </p>
             <button
-              onClick={() => navigate(`/simulados/${id}/prova`)}
+              onClick={() =>
+                navigate(isOfflineAttempt ? `/simulados/${id}/gabarito` : `/simulados/${id}/prova`)
+              }
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.995]"
             >
               <Play className="h-4 w-4" />
-              Continuar Simulado
+              {isOfflineAttempt ? "Preencher gabarito" : "Continuar Simulado"}
             </button>
           </PremiumCard>
         </SimuladoDetailPaddedShell>
-      )}
+        );
+      })()}
 
       {/* Closed waiting */}
       {simulado.status === "closed_waiting" && (
