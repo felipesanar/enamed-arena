@@ -14,27 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _questions_area_backup_20260522: {
-        Row: {
-          area_after: string | null
-          area_before: string
-          backed_up_at: string
-          question_id: string
-        }
-        Insert: {
-          area_after?: string | null
-          area_before: string
-          backed_up_at?: string
-          question_id: string
-        }
-        Update: {
-          area_after?: string | null
-          area_before?: string
-          backed_up_at?: string
-          question_id?: string
-        }
-        Relationships: []
-      }
       admin_audit_log: {
         Row: {
           action: string

@@ -1,34 +1,44 @@
-## Objetivo
+# Hero da Home e retomada de simulado offline
 
-No modo de imagem ampliada (lightbox) do `QuestionImage`, permitir dar zoom na imagem. Hoje o lightbox só mostra a imagem maior, sem zoom/pan.
+## Problema (confirmado no código)
 
-## Onde
+Quando o aluno inicia um simulado no modo **offline**, o attempt fica com `status = 'offline_pending'` e `attempt_type = 'offline'`. Porém o estado do usuário que alimenta a Home e a página do simulado joga fora essa informação:
 
-`src/components/exam/QuestionImage.tsx` — componente único reutilizado na prova, correção, caderno e recall. A melhoria vale para todos esses contextos automaticamente.
+- `attemptToUserState` (`src/hooks/useSimulados.ts:24`) e o mapeamento equivalente em `src/hooks/useSimuladoDetail.ts:36` só guardam `started`, `startedAt`, `finished`, `finishedAt`, `score`. Não guardam o tipo (online/offline) nem o status bruto do attempt.
+- Com isso, `deriveSimuladoStatus` classifica o attempt offline como `in_progress` e a Hero (`src/lib/home-hero-state.ts`, cenário `in_progress`) manda para `/simulados/:id`, onde o CTA "Continuar Simulado" navega para `/simulados/:id/prova` (`src/pages/SimuladoDetailPage.tsx:616`) — a prova online.
+
+O destino correto para um attempt offline em andamento é o preenchimento de gabarito: `/simulados/:id/gabarito` (rota já existente em `src/App.tsx:181`).
 
 ## O que será feito
 
-Adicionar zoom interativo dentro do lightbox já existente:
+1. **Propagar o modo do attempt até a UI**
+   - Acrescentar `attemptType` (`'online' | 'offline'`) e `attemptStatus` ao tipo `SimuladoUserState`.
+   - Preencher esses campos nos dois pontos de montagem (`useSimulados` e `useSimuladoDetail`), sem alterar a escolha de attempt feita por `pickMostRelevantAttempt`.
 
-- **Estado de zoom**: `scale` (1x → 4x) e `offset` (deslocamento x/y para pan).
-- **Controles visuais**: botões flutuantes de + (zoom in), − (zoom out) e "resetar zoom", além do botão de fechar já existente.
-- **Scroll/trackpad**: roda do mouse com zoom centrado no cursor.
-- **Pinch (mobile/trackpad)**: gesto de pinça para ampliar.
-- **Arrastar (pan)**: quando ampliada (scale > 1), arrastar move a imagem; cursor vira `grab`/`grabbing`.
-- **Duplo clique**: alterna entre 1x e 2x.
-- Ao fechar o lightbox, o zoom reseta para 1x.
+2. **Mapear todos os casos da Hero para o CTA certo**
+   A derivação da Hero passa a considerar o modo do attempt:
 
-Comportamento fora do lightbox (thumbnail clicável com `ZoomIn`) permanece igual.
+   | Situação do aluno | Cenário | CTA | Destino |
+   |---|---|---|---|
+   | Onboarding incompleto | `onboarding_pending` | Completar perfil | `/onboarding` |
+   | Attempt **offline** em andamento (aguardando gabarito) | `in_progress` (offline) | Preencher gabarito | `/simulados/:id/gabarito` |
+   | Attempt **online** em andamento | `in_progress` | Retomar simulado | `/simulados/:id/prova` |
+   | Janela aberta, nenhum attempt | `window_open` | Realizar simulado | `/simulados?openModal=:id` |
+   | Enviado, resultado não liberado | `awaiting_results` | Ver desempenho | `/desempenho` |
+   | Resultado liberado | `results_ready` | Ver resultado | `/simulados/:id` |
+   | Fora da janela, não realizado | `late_training` | Bora treinar | (mantém atual) |
+   | Sem histórico / futuro / progresso estável | `first_simulado`, `upcoming`, `steady_progress` | (mantém atual) | (mantém atual) |
+
+   Textos do caso offline em andamento: eyebrow "Prova offline", headline sobre gabarito pendente e descrição orientando a transcrever as respostas do PDF para o gabarito digital antes do fim do prazo.
+
+3. **Coerência na página do simulado**
+   Em `SimuladoDetailPage`, quando o attempt em andamento for offline, o botão passa a ser "Preencher gabarito" apontando para `/simulados/:id/gabarito`, em vez de "Continuar Simulado" → `/prova`. Isso evita o mesmo desvio quando o aluno chega pela listagem.
+
+4. **Testes**
+   Casos unitários em `home-hero-state` cobrindo attempt offline em andamento (destino gabarito) e attempt online em andamento (destino prova), além de um caso de status derivado para garantir que o offline não vira prova online.
 
 ## Detalhes técnicos
 
-- Aplicar `transform: scale(...) translate(...)` na `motion.img`, com `transformOrigin` adequado, mantendo a animação de abertura atual.
-- `onWheel` com `preventDefault` para evitar scroll da página; clamp do scale entre 1 e 4.
-- Pan via handlers `pointerdown`/`pointermove`/`pointerup`; pinch via dois pointers ativos.
-- Impedir que o clique no backdrop feche quando o usuário está arrastando/zoomando a imagem (já há `stopPropagation` no `onClick` da img; estender para os gestos).
-- Sem novas dependências — implementação manual leve. (Alternativa descartada: instalar `react-zoom-pan-pinch`, evitada para não adicionar dependência.)
-
-## Verificação
-
-- Build/typecheck.
-- Teste manual no preview via Playwright: abrir uma questão com imagem na prova, abrir o lightbox, validar zoom por botões, scroll, duplo clique e pan, e reset ao fechar.
+- Arquivos: `src/types/index.ts`, `src/hooks/useSimulados.ts`, `src/hooks/useSimuladoDetail.ts`, `src/lib/home-hero-state.ts`, `src/components/premium/home/HomePagePremium.tsx` (apenas passagem de dados, se necessário), `src/pages/SimuladoDetailPage.tsx`, novo/atualizado teste em `src/lib/`.
+- Nenhuma mudança de schema, RPC ou rota nova; apenas leitura de campos já existentes em `attempts` (`attempt_type`, `status`).
+- `AnswerSheetPage` já resolve o attempt offline ativo via `useOfflineAttempt`, então o link direto funciona sem alterações nessa página.
