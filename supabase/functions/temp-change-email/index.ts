@@ -7,9 +7,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const { userId } = await Promise.resolve({ userId: null });
-    const { data: found } = await admin.rpc("noop_never");
-    const user = { id: String(from) };
+    const user = { id: String(from) }; // from = user id
     const { data: upd, error: e2 } = await admin.auth.admin.updateUserById(user.id, {
       email: to,
       email_confirm: true,
