@@ -144,9 +144,12 @@ export const offlineApi = {
 
   /**
    * Fetches the active offline_pending attempt for the current user, joined with simulado slug.
+   * A user can have several pending offline attempts (one per simulado), so we never use
+   * `.single()` semantics without narrowing — optionally scope to a simulado and always
+   * take the most recent one.
    */
-  async getActiveOfflineAttempt(userId: string): Promise<ActiveOfflineAttempt | null> {
-    const { data, error } = await supabase
+  async getActiveOfflineAttempt(userId: string, simuladoId?: string): Promise<ActiveOfflineAttempt | null> {
+    let query = supabase
       .from('attempts')
       .select(`
         id,
@@ -157,7 +160,15 @@ export const offlineApi = {
         simulados ( slug )
       `)
       .eq('user_id', userId)
-      .eq('status', 'offline_pending' as any)
+      .eq('status', 'offline_pending' as any);
+
+    if (simuladoId) {
+      query = query.eq('simulado_id', simuladoId);
+    }
+
+    const { data, error } = await query
+      .order('started_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (error) {

@@ -34,7 +34,9 @@ export default function AnswerSheetPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const { simulado, questions, loading: loadingSim } = useSimuladoDetail(id);
-  const { activeAttempt, clearAttempt } = useOfflineAttempt();
+  // Scope the offline attempt lookup to this simulado — a student can have
+  // several pending offline attempts (one per simulado).
+  const { activeAttempt, clearAttempt } = useOfflineAttempt(simulado?.id);
 
   // answers: question_id → selected option_id
   const [answers, setAnswers] = useState<Record<string, string>>({});
