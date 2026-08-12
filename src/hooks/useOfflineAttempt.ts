@@ -112,11 +112,11 @@ export function useOfflineAttempt(simuladoId?: string) {
       };
       writeStorage(merged);
       setLocalAttempt(merged);
-    } else if (dbAttempt === null) {
+    } else if (dbAttempt === null && !simuladoId) {
       clearStorage();
       setLocalAttempt(null);
     }
-  }, [dbAttempt]);
+  }, [dbAttempt, simuladoId]);
 
   // When scoped to a simulado, never fall back to a localStorage entry that
   // belongs to a different simulado.
