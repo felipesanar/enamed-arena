@@ -67,7 +67,7 @@ export function persistOfflineAttempt(attempt: {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useOfflineAttempt() {
+export function useOfflineAttempt(simuladoId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -92,8 +92,8 @@ export function useOfflineAttempt() {
   }, []);
 
   const { data: dbAttempt } = useQuery({
-    queryKey: [QUERY_KEY, user?.id],
-    queryFn: () => offlineApi.getActiveOfflineAttempt(user!.id),
+    queryKey: [QUERY_KEY, user?.id, simuladoId ?? null],
+    queryFn: () => offlineApi.getActiveOfflineAttempt(user!.id, simuladoId),
     enabled: !!user,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
@@ -118,19 +118,25 @@ export function useOfflineAttempt() {
     }
   }, [dbAttempt]);
 
-  const activeAttempt: ActiveOfflineAttempt | null =
-    dbAttempt ?? (localAttempt as ActiveOfflineAttempt | null);
+  // When scoped to a simulado, never fall back to a localStorage entry that
+  // belongs to a different simulado.
+  const fallback =
+    simuladoId && localAttempt && localAttempt.simulado_id !== simuladoId
+      ? null
+      : (localAttempt as ActiveOfflineAttempt | null);
+
+  const activeAttempt: ActiveOfflineAttempt | null = dbAttempt ?? fallback;
 
   const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: [QUERY_KEY, user?.id] });
-  }, [queryClient, user?.id]);
+    queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+  }, [queryClient]);
 
   const clearAttempt = useCallback(() => {
     logger.log('[useOfflineAttempt] Clearing offline attempt from storage');
     clearStorage();
     setLocalAttempt(null);
-    queryClient.setQueryData([QUERY_KEY, user?.id], null);
-  }, [queryClient, user?.id]);
+    queryClient.setQueryData([QUERY_KEY, user?.id, simuladoId ?? null], null);
+  }, [queryClient, user?.id, simuladoId]);
 
   return {
     activeAttempt,
