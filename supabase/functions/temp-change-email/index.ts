@@ -7,16 +7,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    let page = 1;
-    let user: any = null;
-    while (page <= 30 && !user) {
-      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-      if (error) throw error;
-      user = data.users.find((u) => u.email?.toLowerCase() === String(from).toLowerCase());
-      if (data.users.length < 200) break;
-      page++;
-    }
-    if (!user) return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    const { userId } = await Promise.resolve({ userId: null });
+    const { data: found } = await admin.rpc("noop_never");
+    const user = { id: String(from) };
     const { data: upd, error: e2 } = await admin.auth.admin.updateUserById(user.id, {
       email: to,
       email_confirm: true,
