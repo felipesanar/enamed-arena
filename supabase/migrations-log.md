@@ -979,3 +979,72 @@ Efeito combinado: `graded` passa a ter **exatamente 1 linha por questão do simu
 **Verificação de definição em produção:** `pg_get_functiondef` confirmado igual ao arquivo aplicado (subquery escalar + `DISTINCT ON` presentes, grants inalterados: `REVOKE ALL FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE TO service_role`).
 
 ---
+
+## 2026-08-12 — `link_presencial_submission`
+
+Task 6 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100500_link_presencial_submission.sql`.
+
+Duas RPCs `service_role`-only:
+
+- **`link_presencial_submission(p_submission_id uuid, p_user_id uuid) RETURNS jsonb`** — vínculo tardio de uma submissão presencial não identificada no dia da prova (e-mail errado, sem conta, desistiu) à conta certa, resolvido depois na fila de identidade do admin. Reusa o mesmo caminho do fluxo em tempo real: chama `create_or_convert_presencial_attempt` (cria ou converte o attempt do aluno) e `submit_presencial_answers` (grava o gabarito guardado em `presencial_submissions.answers` e finaliza via `finalize_attempt_with_results_for_user`), depois marca a submissão como `linked` (`linked_user_id`, `linked_attempt_id`, `linked_at`). Retorna o mesmo `{ "attempt_id", "is_within_window" }` de `submit_presencial_answers`. Duas guardas antes de agir: `SUBMISSION_NOT_FOUND` (id inexistente), `SUBMISSION_ALREADY_LINKED` (proteção contra clique duplo no admin — `status = 'linked'`) e `SUBMISSION_HAS_NO_ANSWERS` (`jsonb_array_length(answers) = 0` — não vincula um registro sem gabarito).
+- **`bump_presencial_bucket(p_bucket_type text, p_bucket_key text, p_window_ms integer DEFAULT 3600000) RETURNS integer`** — rate limit do fluxo presencial (`checkin_ip`, `checkin_email`, `name_lookup_ip`). Reusa a mesma tabela e a mesma mecânica de janela rolante de `bump_guest_signup_bucket` (capturada via `pg_get_functiondef` antes de escrever esta função — corpo idêntico, só o nome muda): upsert em `guest_signup_rate_limit` (PK `bucket_type, bucket_key`), zera `attempts` para 1 quando `window_start + janela < now()`, senão incrementa; retorna o contador pós-incremento.
+
+**Step 1 (obrigatório):** definição capturada de `bump_guest_signup_bucket` em produção via `pg_get_functiondef`:
+
+```sql
+CREATE OR REPLACE FUNCTION public.bump_guest_signup_bucket(p_bucket_type text, p_bucket_key text, p_window_ms integer DEFAULT 3600000)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_now timestamptz := now();
+  v_attempts int;
+  v_window_start timestamptz;
+  v_window_interval interval := make_interval(secs => p_window_ms / 1000);
+BEGIN
+  INSERT INTO public.guest_signup_rate_limit (bucket_type, bucket_key, attempts, window_start, last_event_at)
+  VALUES (p_bucket_type, p_bucket_key, 1, v_now, v_now)
+  ON CONFLICT (bucket_type, bucket_key) DO UPDATE
+  SET
+    attempts = CASE
+      WHEN guest_signup_rate_limit.window_start + v_window_interval < v_now THEN 1
+      ELSE guest_signup_rate_limit.attempts + 1
+    END,
+    window_start = CASE
+      WHEN guest_signup_rate_limit.window_start + v_window_interval < v_now THEN v_now
+      ELSE guest_signup_rate_limit.window_start
+    END,
+    last_event_at = v_now
+  RETURNING attempts INTO v_attempts;
+
+  RETURN v_attempts;
+END;
+$function$;
+```
+
+`guest_signup_rate_limit` **não tem CHECK restringindo `bucket_type`** (a única constraint é `PRIMARY KEY (bucket_type, bucket_key)`, coluna `text` livre) — confirmado via `pg_get_constraintdef`, então a migration não precisou ampliar nada; `bump_presencial_bucket` reusa a mesma tabela passando valores novos de `bucket_type` (`checkin_ip`, `checkin_email`, `name_lookup_ip`) sem qualquer alteração de schema.
+
+**Smokes (via `execute_sql`, todos contra o Simulado 6 `1e802d25-05c8-4849-93ef-33580e9a4908` — o Simulado 7 tem zero questões em produção, smoke ali não provaria nada):**
+
+1. **Rate limit — 3 chamadas no mesmo bucket:** `bump_presencial_bucket('checkin_ip','smoke-key-1', 3600000)` três vezes → `c1=1`, `c2=2`, `c3=3`. ✓ Bucket de teste removido logo após (`delete from guest_signup_rate_limit where bucket_key='smoke-key-1'`; confirmado `remaining=0`).
+2. **Recusa de submissão sem respostas:** bloco `do $$...$$` criou uma `presencial_session` + `presencial_submission` (`answers` default `[]`) e chamou `link_presencial_submission` com `gen_random_uuid()` — capturado `SUBMISSION_HAS_NO_ANSWERS` (`raise notice 'OK...'`, sem propagar o `raise exception 'FALHOU...'`). Linhas de teste deletadas ao final do bloco; confirmado depois `sessions=0`, `submissions=0`. ✓
+3. **Recusa de submissão já vinculada (guarda não coberta pelo smoke do brief, adicionada por cobertura):** mesmo padrão, submissão inserida direto com `status='linked'` e `answers` não-vazio — capturado `SUBMISSION_ALREADY_LINKED`. Linhas deletadas ao final; confirmado `sessions=0`, `submissions=0`. ✓
+4. **Ciclo completo de vínculo tardio, com rollback forçado na mesma transação:** bloco `do $$...$$` monta `answers` com a alternativa correta de todas as 100 questões do Simulado 6, cria `presencial_session` + `presencial_submission`, chama `link_presencial_submission` para o usuário de teste `ed480c3b-64c7-47ed-89b5-667728c8f45f` (confirmado sem attempt prévio no Simulado 6 antes do smoke), verifica `presencial_submissions.status='linked'` e `attempts.status='submitted' AND score_percentage=100.00`, e força `raise exception 'ROLLBACK proposital do smoke'` na mesma transação (mesma técnica do smoke 2 da Task 4) — como `link_presencial_submission`, `create_or_convert_presencial_attempt`, `submit_presencial_answers`, `finalize_attempt_with_results_for_user` e `recalculate_user_performance` rodam todos `SECURITY DEFINER` sem `COMMIT` interno, tudo fica na mesma transação da chamada. Saída literal: `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke\nCONTEXT:  PL/pgSQL function inline_code_block line 43 at RAISE\n"}}` — a exceção chegou até a linha 43 (o `raise exception` proposital), ou seja, as duas asserções anteriores (`status <> 'linked'` e attempt fora do esperado) não dispararam. ✓
+
+**Verificação pós-rollback (prova de limpeza):**
+
+```sql
+select
+  (select count(*) from public.presencial_sessions) as sessions,
+  (select count(*) from public.presencial_submissions) as submissions,
+  (select count(*) from public.attempts where simulado_id='1e802d25-05c8-4849-93ef-33580e9a4908' and user_id='ed480c3b-64c7-47ed-89b5-667728c8f45f') as attempts_for_test_user;
+-- => {"sessions":0,"submissions":0,"attempts_for_test_user":0}
+```
+
+`presencial_sessions` e `presencial_submissions` voltaram a zero linhas; o usuário de teste não ganhou attempt nenhum no Simulado 6 (rollback via exceção desfez `attempts`, `answers`, `attempt_question_results`, `user_performance_history` e o efeito de `recalculate_user_performance` inteiros, dentro da mesma transação — nenhuma limpeza manual foi necessária).
+
+**Grants (via `execute_sql`):** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('link_presencial_submission','bump_presencial_bucket')` → apenas `postgres` (owner) e `service_role`, para as duas funções. Nenhum grant para `public`/`anon`/`authenticated`. ✓
+
+---
