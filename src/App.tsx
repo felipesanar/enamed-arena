@@ -28,6 +28,7 @@ const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
 const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
 const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
 const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
+const PresencialPage = lazy(() => import("./pages/PresencialPage"));
 const CorrecaoPage = lazy(() => import("./pages/CorrecaoPage"));
 const DesempenhoPage = lazy(() => import("./pages/DesempenhoPage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
@@ -141,6 +142,7 @@ const App = () => (
               <Route path="/reset-password" element={<Suspense fallback={<PageShell />}><ResetPasswordPage /></Suspense>} />
               <Route path="/auth/callback" element={<Suspense fallback={<PageShell />}><AuthCallbackPage /></Suspense>} />
               <Route path="/auth/sso" element={<Suspense fallback={<PageShell />}><AuthSSOPage /></Suspense>} />
+              <Route path="/presencial/:codigo" element={<Suspense fallback={<PageShell />}><PresencialPage /></Suspense>} />
               <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<PageShell />}><OAuthConsentPage /></Suspense>} />
 
               {/* Admin — own Suspense boundary */}
