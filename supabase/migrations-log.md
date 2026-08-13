@@ -1128,3 +1128,30 @@ Todas as tabelas do presencial seguem em zero linhas; os dois usuários de teste
 **Gap conhecido, documentado no código e fora do escopo desta task:** `admin_presencial_reassign` não move entradas de `error_notebook` (Caderno de Erros) — essa tabela não referencia `attempt_id`, só `user_id`/`simulado_id`/`question_id`; mover exigiria uma decisão de produto própria sobre o Caderno, não pedida no brief.
 
 ---
+
+## 2026-08-12 — `presencial_queue_deterministic` (fix round 1/5 do review da Task 7)
+
+**Aplicada em PROD.** Arquivo: `20260812100650_presencial_queue_deterministic.sql`. `CREATE OR REPLACE` de `admin_presencial_queue` — não altera `20260812100600_presencial_admin_rpcs.sql` (já aplicada).
+
+O review aprovou a task (spec ✅) e confirmou explicitamente duas decisões da versão anterior: reusar `public.normalize_text_for_match` em vez de inlinar `unaccent` (o brief teria falhado em runtime — `unaccent` vive em `extensions`, não em `public`), e mover `presencial_submissions.linked_user_id` em `admin_presencial_reassign` (consistência necessária, não YAGNI). Deixar `error_notebook` de fora também foi aprovado.
+
+Ficou 1 Important: **o desempate do `DISTINCT ON (subs.id)` em `admin_presencial_queue` não era determinístico.** O `ORDER BY subs.id, (pe.id IS NOT NULL) DESC` só desempata entre "casou por e-mail" e "casou por nome" — quando o nome normalizado colide entre várias contas (a base tem nomes com até 19 contas), não havia terceira chave, e o Postgres não garante ordem estável entre linhas empatadas. Resultado: o `suggested_user_id` da mesma submissão podia mudar entre chamadas conforme o plano de execução mudasse — um admin recarrega a fila e vê outra conta sugerida para a mesma submissão, o que convida ao clique errado (atribuir a nota de um aluno a outro), justo no momento em que a fila está sendo usada com a sala esperando.
+
+**Fix:** acrescentadas duas chaves determinísticas ao `ORDER BY` do `DISTINCT ON`, só relevantes no ramo de nome (`pn`): `pn.created_at ASC` (a conta mais antiga é a heurística melhor para "qual é a conta real" quando há duplicata — exatamente o caso que a fila existe para resolver) e, como critério final à prova de empate, `pn.id ASC` (PK, determinismo absoluto). `ORDER BY` final: `subs.id, (pe.id IS NOT NULL) DESC, pn.created_at ASC, pn.id ASC`. O ramo de e-mail (`pe`) não precisou de blindagem adicional — confirmado que `profiles` não tem hoje nenhum e-mail duplicado na prática (`auth.users` garante unicidade a montante via FK + constraint de auth), então esse ramo já era determinístico. Assinatura, retorno, capability (`attempts.manage`), `admin_require` como 1º statement e grants idênticos à versão anterior.
+
+Os dois Minor do round não exigiram ação: falta de validação amigável de `closes_at > opens_at`/formato de `code` em `admin_presencial_session_upsert` (consistente com o precedente de `admin_cancel_attempt`/`admin_delete_attempt`) e o resíduo de `error_notebook` em `admin_presencial_reassign` (já justificado).
+
+**Smokes (via `execute_sql`):**
+
+1. **Guard intacto:** `admin_presencial_queue('unlinked')` sem `request.jwt.claim.sub` configurado → `P0003: unauthorized` (mesma linha, `admin_require('attempts.manage')` como 1º statement). ✓
+2. **Fila vazia continua sem erro** (0 submissões em produção): com sessão de admin simulada (`2223a982-6682-496e-a459-261e1c867e31`), `admin_presencial_queue('unlinked')` → `{"cnt_unlinked":0}`; `admin_presencial_queue('all')` → `{"cnt_all":0}`. ✓
+3. **Prova de determinismo — o smoke que importa neste round.** A fila está vazia em produção, então não dá pra provar determinismo com dado real; criada 1 sessão + 1 submissão de teste temporárias com `declared_name='Maria Eduarda'` (normaliza para 19 contas distintas em `profiles`, o maior grupo de colisão de nome da base) e `declared_email` que não bate com nenhuma conta real (força o ramo de nome). Chamada `admin_presencial_queue('unlinked')` filtrada pela submissão de teste **3 vezes em consultas separadas**:
+   - Chamada 1: `{"suggested_user_id":"52dd7992-034f-4d23-9ab7-a8339771ace1","suggested_name":"Maria Eduarda","suggested_email":"madubonimails@gmail.com"}`
+   - Chamada 2: `{"suggested_user_id":"52dd7992-034f-4d23-9ab7-a8339771ace1","suggested_name":"Maria Eduarda","suggested_email":"madubonimails@gmail.com"}`
+   - Chamada 3: `{"suggested_user_id":"52dd7992-034f-4d23-9ab7-a8339771ace1","suggested_name":"Maria Eduarda","suggested_email":"madubonimails@gmail.com"}`
+   As 3 chamadas devolveram o **mesmo** `suggested_user_id` nas 3 vezes. `52dd7992-034f-4d23-9ab7-a8339771ace1` é confirmadamente o mais antigo dos 19 profiles "Maria Eduarda" (`created_at = 2026-04-05 15:15:38`, contra o segundo mais antigo em `2026-04-05 17:33:48` e os demais 17 espalhados até `2026-07-24`) — o fix está escolhendo a conta certa pela heurística (mais antiga), não só sendo determinístico por acidente.
+4. **Limpeza:** `DELETE` da sessão e da submissão de teste na mesma chamada; `SELECT count(*)` imediato e uma chamada `execute_sql` separada depois confirmaram `{"sessions":0,"submissions":0}` (persistido, não só dentro da mesma transação).
+
+**Grants inalterados:** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name = 'admin_presencial_queue'` → apenas `postgres` (owner), `authenticated`, `service_role`. ✓
+
+---
