@@ -2379,6 +2379,100 @@ git commit -m "feat(db): sessão presencial do Simulado 7"
 
 ---
 
+### Task 17: Tornar a tentativa presencial visível para o aluno
+
+**Origem:** defeito de plano descoberto durante a Task 14. `simuladosApi.getAttempt` e `getUserAttempts` filtram `.eq('attempt_type', attemptType)` com default `'online'`, e os hooks do aluno só chamam com `'online'`/`'offline'`. Como a Task 4 converte o attempt **in-place** para `presencial`, o aluno deixaria de ver a própria tentativa: o card voltaria a mostrar o S7 como disponível, o histórico perderia a nota, e o selo da Task 14 nunca renderizaria. Não é cosmético — é o fluxo central.
+
+**Files:**
+- Modify: `src/services/simuladosApi.ts:353` (`getAttempt`), `src/services/simuladosApi.ts:372` (`getUserAttempts`)
+- Modify: `src/hooks/useSimulados.ts:17`, `src/hooks/useSimuladoDetail.ts:30`
+- Test: `src/services/simuladosApi.test.ts`
+
+**Interfaces:**
+- Consumes: Task 4 (o attempt convertido tem `attempt_type='presencial'`).
+- Produces: `type AttemptTypeFilter = 'online' | 'offline' | 'presencial' | Array<'online' | 'offline' | 'presencial'>`, aceito por ambos os métodos.
+
+**O que NÃO mudar, e por quê:**
+- `useSimulados.ts:18` e `useSimuladoDetail.ts:31` (o ramo `'offline'`) ficam como estão: o fluxo offline precisa localizar especificamente o attempt `offline_pending`, e misturar modalidades ali quebraria o `FloatingOfflineTimer` e o gate do gabarito offline.
+- `useExamStorageReal.ts:109` (`getAttempt(..., 'online')`) fica como está: é o motor de prova retomando um attempt online. Não se retoma prova presencial no motor — o gabarito presencial é outro fluxo.
+
+- [ ] **Step 1: Escrever o teste (falhando)**
+
+Acrescentar em `src/services/simuladosApi.test.ts`, seguindo o padrão de mock do arquivo existente (leia-o antes):
+
+```ts
+describe('simuladosApi — filtro de modalidade', () => {
+  it('usa .eq quando recebe uma única modalidade', async () => {
+    const { eq } = setupAttemptQueryMock()
+    await simuladosApi.getUserAttempts('user-1', 'online')
+    expect(eq).toHaveBeenCalledWith('attempt_type', 'online')
+  })
+
+  it('usa .in quando recebe um array de modalidades', async () => {
+    const { inFn } = setupAttemptQueryMock()
+    await simuladosApi.getUserAttempts('user-1', ['online', 'presencial'])
+    expect(inFn).toHaveBeenCalledWith('attempt_type', ['online', 'presencial'])
+  })
+
+  it('getAttempt também aceita array', async () => {
+    const { inFn } = setupAttemptQueryMock()
+    await simuladosApi.getAttempt('sim-1', 'user-1', ['online', 'presencial'])
+    expect(inFn).toHaveBeenCalledWith('attempt_type', ['online', 'presencial'])
+  })
+})
+```
+
+`setupAttemptQueryMock` é um helper local que devolve um query builder encadeável com `select`/`eq`/`in`/`order`/`limit`/`maybeSingle` mockados — escreva-o no mesmo arquivo, espelhando como o mock existente do Supabase é montado ali.
+
+- [ ] **Step 2: Rodar e confirmar que falha**
+
+```bash
+npx vitest run src/services/simuladosApi.test.ts
+```
+Esperado: FAIL — o método hoje sempre chama `.eq`, então o teste do array falha.
+
+- [ ] **Step 3: Implementar**
+
+Em `src/services/simuladosApi.ts`, acima dos dois métodos:
+
+```ts
+export type AttemptModality = 'online' | 'offline' | 'presencial';
+export type AttemptTypeFilter = AttemptModality | AttemptModality[];
+
+/**
+ * Aplica o filtro de modalidade: `.in` para lista, `.eq` para valor único.
+ * Existe porque o attempt presencial substitui o online in-place (a mesma
+ * linha muda de `attempt_type`), então as telas do aluno precisam pedir
+ * ['online','presencial'] para continuar achando a tentativa dele.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyAttemptTypeFilter(query: any, filter: AttemptTypeFilter) {
+  return Array.isArray(filter)
+    ? query.in('attempt_type', filter)
+    : query.eq('attempt_type', filter);
+}
+```
+
+Trocar a assinatura dos dois métodos para receber `attemptType: AttemptTypeFilter = 'online'` e substituir a linha `.eq('attempt_type', attemptType)` por uma chamada a `applyAttemptTypeFilter`, mantendo o resto da cadeia (`order`, `limit`, `maybeSingle`) intacto.
+
+Em `src/hooks/useSimulados.ts:17` e `src/hooks/useSimuladoDetail.ts:30`, trocar `'online'` por `['online', 'presencial']`. Nada mais nesses arquivos.
+
+- [ ] **Step 4: Rodar e confirmar que passa**
+
+```bash
+npx vitest run src/services/simuladosApi.test.ts
+```
+Esperado: PASS. Depois a suíte inteira: `npm run test` — sem regressão (o baseline atual do worktree é 753 testes / 91 arquivos).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/services/simuladosApi.ts src/services/simuladosApi.test.ts src/hooks/useSimulados.ts src/hooks/useSimuladoDetail.ts
+git commit -m "fix(presencial): tentativa presencial visível nas telas do aluno"
+```
+
+---
+
 ## Self-Review
 
 **Cobertura da spec:**
