@@ -1195,3 +1195,45 @@ Todas as tabelas do presencial voltaram a zero linhas; o usuário de teste não 
 **Grants (via `execute_sql`):** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('link_presencial_submission','submit_presencial_answers')` → apenas `postgres` (owner) e `service_role`, para as duas funções (inalterado). ✓
 
 ---
+
+## 2026-08-12 — `presencial_link_preserva_finished_at` (fix round 2/5 do review da Task 6)
+
+**Aplicada em PROD.** Arquivo: `20260812100560_presencial_link_preserva_finished_at.sql`. `CREATE OR REPLACE` de `link_presencial_submission` — não altera nenhuma migration anterior, nem `submit_presencial_answers`.
+
+**Mesma classe de bug do round 1, achada pelo re-review, em campo diferente.** `submit_presencial_answers` grava `attempts.finished_at = now()`. Correto no fluxo em tempo real; errado quando `link_presencial_submission` chama a mesma função dias depois do evento — `finished_at` passava a registrar o momento em que o **admin** resolveu a fila, não o momento em que o **aluno** enviou o gabarito. Isso importa porque `finished_at` é o critério de **desempate do ranking real**: `get_ranking_for_simulado` e `admin_get_ranking_for_simulado` ordenam por `score_percentage DESC, finished_at ASC` (confirmado via `pg_get_functiondef` das duas — ambas leem `attempts.finished_at` diretamente, não uma tabela derivada); o dedupe de melhor tentativa por usuário dentro de `admin_get_ranking_for_simulado` (`DISTINCT ON (a.user_id) ... ORDER BY a.user_id, a.score_percentage DESC, a.finished_at ASC`) usa o mesmo critério. O round 1 corrigiu a elegibilidade de entrada no ranking (`is_within_window`); faltava a posição dentro dele — sem este fix, um aluno presencial vinculado pela fila (o cenário normal, por definição do próprio round 1) ficava sistematicamente atrás de qualquer aluno com a mesma nota, por causa de quando o time resolveu a fila, não da prova dele.
+
+**Fix:** mesma técnica do round 1 (recalcular e sobrescrever depois de chamar `submit_presencial_answers`, sem tocar nela). Unificado no mesmo `UPDATE` que já sobrescrevia `is_within_window`:
+
+```sql
+UPDATE public.attempts SET
+  is_within_window = v_is_within,
+  finished_at      = v_sub.submitted_at
+WHERE id = v_attempt;
+```
+
+**Conclusão sobre outros campos temporais gravados por `now()` dentro de `submit_presencial_answers`** (pedido explícito do orquestrador, registrado para não inflar escopo):
+
+- **`last_saved_at`** (gravado por `finalize_attempt_with_results_for_user`, chamada de dentro de `submit_presencial_answers`) — **irrelevante para ranking/exibição ao aluno, confirmado.** Único consumidor de leitura encontrado: `admin_live_signals` (`select proname from pg_proc where prosrc ilike '%last_saved_at%'` → só `admin_live_signals`, `create_or_convert_presencial_attempt`, `finalize_attempt_with_results_for_user`, `submit_presencial_answers`, `update_attempt_progress_guarded` — só o primeiro LÊ, os demais só escrevem), que o usa para sinalizar "online nos últimos 15 min" / "ativo hoje" / "última atividade observável" no dashboard admin — um sinal de "quando esta linha foi escrita por último", semântica diferente de "quando o aluno fez a prova". O vínculo tardio realmente É uma escrita nova na linha nesse momento, então `last_saved_at = now()` continua correto sob essa semântica — **não é a mesma classe de bug**, não precisa de correção.
+- **`answered_at`** (por resposta, em `public.answers`) — **irrelevante, confirmado.** `select proname from pg_proc where prosrc ilike '%answered_at%'` → só `submit_offline_answers_guarded` e `submit_presencial_answers`, as duas só ESCREVEM; nenhuma RPC lê/ordena por `answered_at`. Busca no frontend (`grep -rn "answered_at" src/`) só encontra escritas do lado do aluno durante a prova (autosave), nunca leitura para exibição ou ranking. Não precisa de correção.
+
+**Achado adicional, fora do pedido, sinalizado e não corrigido nesta migration (aguardando decisão para eventual round 3):** `finalize_attempt_with_results_for_user` (chamada de dentro de `submit_presencial_answers`, antes do `UPDATE` de correção acima) grava `user_performance_history.finished_at = COALESCE(v_attempt.finished_at, v_finished_at)` — usando o `attempts.finished_at` que **já** foi setado para `now()` pelo próprio `submit_presencial_answers` alguns statements antes, ou seja, o `INSERT`/`UPDATE ... ON CONFLICT` em `user_performance_history` acontece ANTES da correção de `finished_at` em `attempts` (que só roda depois, de volta em `link_presencial_submission`). Consequência: `user_performance_history.finished_at` (e, por tabela, `user_performance_summary.last_finished_at`, atualizado logo depois por `recalculate_user_performance`) ficam com o momento do vínculo administrativo, não o do envio real — divergindo de `attempts.finished_at` (agora correto). Impacto real, confirmado: `get_user_performance_history` ordena por `uph.finished_at DESC` e alimenta `useRankingEvolution.ts` (gráfico de evolução de notas do próprio aluno — um simulado presencial linkado tarde apareceria fora de ordem cronológica); `user_performance_summary.last_finished_at` alimenta `AdminUsuarioDetail.tsx` ("Última atividade" do usuário, visível ao admin). Não corrigido aqui porque não foi pedido e porque a correção tocaria uma tabela adicional (`user_performance_history`) fora do escopo desta função — registrado para o orquestrador decidir se vira um round 3.
+
+**Smokes (via `execute_sql`, Simulado 6, rollback forçado na mesma transação):**
+
+1. **submitted_at DENTRO da janela → finished_at == submitted_at (não now()) E is_within_window=true, provados juntos:** `DO $$...$$` cria sessão + submissão com `submitted_at='2026-08-10 12:00:00+00'`, vincula, lê `attempts.is_within_window` e `attempts.finished_at` do attempt resultante, afirma `status='linked'`, `is_within_window IS DISTINCT FROM true` (falha se) e `finished_at IS DISTINCT FROM submitted_at` (falha se). Saída literal: `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke 1\nCONTEXT:  PL/pgSQL function inline_code_block line 37 at RAISE\n"}}` — chegou até o rollback proposital (37), as 3 asserções passaram. ✓
+2. **submitted_at FORA da janela → finished_at == submitted_at E is_within_window=false, provados juntos:** mesmo padrão, `submitted_at='2026-08-20 12:00:00+00'` (depois de `execution_window_end`). Saída literal: `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke 2\nCONTEXT:  PL/pgSQL function inline_code_block line 37 at RAISE\n"}}` — chegou até o rollback proposital (37), as 3 asserções passaram (`finished_at` e `is_within_window` são de fato independentes: um dá `true`/igual a submitted_at, o outro `false`, sem se contaminar). ✓
+3. **Fluxo em tempo real intacto — chamada direta de `submit_presencial_answers` continua gravando `finished_at = now()`:** primeira tentativa usou `clock_timestamp()` como janela de comparação e falhou por engano de metodologia — `now()` é fixo pela duração inteira da transação em Postgres (não avança entre statements), enquanto `clock_timestamp()` reflete o relógio real a cada chamada; comparar um `now()` congelado contra um intervalo medido com `clock_timestamp()` depois dele é comparar coisas diferentes (`finished_at` veio ligeiramente ANTES do intervalo `[v_before, v_after]` porque `v_before` já era um `clock_timestamp()` posterior ao `now()` congelado da transação). Corrigido capturando `v_txn_now := now()` (mesmo mecanismo que a função usa internamente) e comparando `finished_at IS DISTINCT FROM v_txn_now`. Saída literal (tentativa corrigida): `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke 3\nCONTEXT:  PL/pgSQL function inline_code_block line 29 at RAISE\n"}}` — chegou até o rollback proposital (29), `finished_at` bateu exatamente com `now()` da transação. ✓ `submit_presencial_answers` permanece intocada (nem assinatura, nem corpo) durante todo o fix.
+
+**Verificação pós-rollback (prova de limpeza, depois dos 3 smokes):**
+
+```sql
+select
+  (select count(*) from public.presencial_sessions) as sessions,
+  (select count(*) from public.presencial_submissions) as submissions,
+  (select count(*) from public.attempts where simulado_id='1e802d25-05c8-4849-93ef-33580e9a4908' and user_id='ed480c3b-64c7-47ed-89b5-667728c8f45f') as attempts_for_test_user;
+-- => {"sessions":0,"submissions":0,"attempts_for_test_user":0}
+```
+
+**Grants (via `execute_sql`):** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('link_presencial_submission','submit_presencial_answers')` → apenas `postgres` (owner) e `service_role` para as duas (inalterado). ✓
+
+---
