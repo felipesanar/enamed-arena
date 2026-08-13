@@ -27,3 +27,8 @@ verify_jwt = false
 # x-internal-secret. Sem isto o gateway rejeitaria com 401 antes do handler.
 [functions.caderno-reminders]
 verify_jwt = false
+
+# Fluxo presencial: chamado de uma rota pública, sem sessão de usuário.
+# O gate é o código da sala + janela + rate limit dentro do handler.
+[functions.presencial]
+verify_jwt = false
