@@ -56,28 +56,61 @@ const MAX_SUBMIT_PER_IP = 120;           // mesma lógica do checkin: uma sala i
 // o teto some de vez com 2+ IPs (trivial numa sala com wifi + dados móveis).
 //
 // Um teto por sessão neutraliza isso porque `presencial_sessions` não é
-// criável pelo atacante (só pelo admin) — diferente de token/e-mail/IP, que
-// ele controla livremente. Volume anômalo de "não achei minha conta"
-// também é, por si, um sinal que deve chegar à fila do admin: numa sala com
-// ~100 pessoas e um fiscal, alguém fazendo dezenas de check-ins sem conta
-// seria notado.
+// criável pelo atacante (só pelo admin, via `admin_presencial_session_upsert`
+// gated por `content.manage` — confirmado por leitura no round 3) —
+// diferente de token/e-mail/IP, que ele controla livremente. Volume
+// anômalo de "não achei minha conta" também é, por si, um sinal que deve
+// chegar à fila do admin: numa sala com ~100 pessoas e um fiscal, alguém
+// fazendo dezenas de check-ins sem conta seria notado.
 //
-// Valor: sala de ~100 alunos, taxa plausível de fallback ("não achei minha
-// conta") bem abaixo de 20% → ~20 unlinked esperados no cenário legítimo.
-// 30 dá ~50% de folga sobre essa expectativa (evita 429 em alunos legítimos
-// numa sala com fallback um pouco acima da média) e ainda corta o teto de
-// pontos de dado disponíveis ao ataque em mais de uma ordem de grandeza
-// frente ao anterior (várias centenas via múltiplos e-mails/IPs → 30 fixos
-// por sessão, esgotáveis uma única vez, para sempre, não por hora).
+// Valor default: sala de ~100 alunos, taxa plausível de fallback ("não
+// achei minha conta") bem abaixo de 20% → ~20 unlinked esperados no
+// cenário legítimo. 30 dá ~50% de folga sobre essa expectativa (evita 429
+// em alunos legítimos numa sala com fallback um pouco acima da média) e
+// ainda corta o teto de pontos de dado disponíveis ao ataque em mais de
+// uma ordem de grandeza frente ao anterior (várias centenas via múltiplos
+// e-mails/IPs → 30 fixos por sessão, esgotáveis uma única vez, para
+// sempre, não por hora). Os dois números (tamanho de sala, taxa de
+// fallback) ainda não foram validados contra a logística real do evento —
+// por isso o valor é uma env var (abaixo), não uma constante fixa: se
+// mudar, muda a configuração do projeto, não o código/redeploy.
 //
-// Não virou coluna configurável em `presencial_sessions` (ex.: `max_unlinked`)
-// porque isso pede migration + exposição em qualquer RPC de admin que
-// cria/edita sessão — código que este round não toca e que pertence à
-// task de admin de sessões. Constante documentada aqui evita inflar escopo
-// e invadir uma superfície que não é desta task; fica fácil de promover a
-// coluna depois, se o dono do produto quiser afrouxar por sessão sem
-// redeploy.
-const MAX_UNLINKED_PER_SESSION = 30;
+// Fix round 3/5, dois ajustes:
+//   1. Contagem + inserção agora são atômicas dentro de uma RPC nova
+//      (`claim_presencial_unlinked_submission`, ver migration
+//      20260812100700), serializada por
+//      `SELECT ... FROM presencial_sessions WHERE id = ? FOR UPDATE`. O
+//      round 2 fazia SELECT count e INSERT como duas chamadas PostgREST
+//      separadas — um atacante disparando dezenas de start-unlinked
+//      concorrentes para a mesma sessão lia o mesmo count defasado antes
+//      de qualquer INSERT commitar, estourando o teto por uma fração
+//      relevante do lote sob rajada deliberada (o próprio perfil de
+//      atacante que motiva este fix inteiro). Não virou coluna
+//      configurável em `presencial_sessions` (ex.: `max_unlinked`) pelo
+//      mesmo motivo do round 2: pede migration + exposição em RPC de admin
+//      de sessão, fora do escopo/arquivo desta task.
+//   2. Teto lido de env var (`PRESENCIAL_MAX_UNLINKED_PER_SESSION`), com
+//      fallback 30 — ajustável pela config do projeto Supabase, sem
+//      redeploy. Motivação operacional, não só de escopo: a function já
+//      ficou horas no ar sem poder ser testada por faltar configurar
+//      `PRESENCIAL_TOKEN_SECRET`; se a mesma fricção de deploy acontecesse
+//      com uma fila de alunos travados no teto, o custo seria bem maior.
+const DEFAULT_MAX_UNLINKED_PER_SESSION = 30;
+
+function getMaxUnlinkedPerSession(): number {
+  const raw = Deno.env.get("PRESENCIAL_MAX_UNLINKED_PER_SESSION");
+  if (!raw) return DEFAULT_MAX_UNLINKED_PER_SESSION;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.warn(
+      "[presencial] PRESENCIAL_MAX_UNLINKED_PER_SESSION inválido, usando fallback:",
+      raw,
+    );
+    return DEFAULT_MAX_UNLINKED_PER_SESSION;
+  }
+  return parsed;
+}
+
 const CLAIM_RETRY_ATTEMPTS = 3;          // reduz a chance de "attempt certo, submissão incompleta"
 const CLAIM_RETRY_BASE_DELAY_MS = 150;
 
@@ -190,6 +223,10 @@ interface ProfileRow {
 }
 
 class AlreadySubmittedError extends Error {}
+
+// Fix round 3/5: sinaliza que a RPC atômica recusou por teto de sessão
+// (PRESENCIAL_UNLINKED_CAP_REACHED), sem confundir com outros erros de RPC.
+class UnlinkedCapReachedError extends Error {}
 
 interface ScorePayload {
   total_questions: number;
@@ -398,31 +435,58 @@ async function buildSkeleton(
 
 // ─── Criação/conversão do attempt + submissão + token ────────────────────
 
+// Cauda compartilhada por createSession (ramo vinculado) e
+// createUnlinkedSession (ramo unlinked, fix round 3/5): monta o esqueleto de
+// questões + assina o token. Extraído para não duplicar essa lógica entre os
+// dois caminhos, que agora divergem na etapa de criação da submissão (a
+// unlinked passa pela RPC atômica, ver createUnlinkedSession).
+async function buildReadyResponse(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  session: SessionRow,
+  submissionId: string,
+  attemptId: string | null,
+): Promise<unknown> {
+  const questions = await buildSkeleton(supabaseAdmin, session.simulado_id);
+
+  // Token assinado, não cifrado (ver comentário em token.ts): user_id nunca
+  // entra aqui. Quem consumir o token depois (Task 10) deriva o user_id no
+  // servidor via attempt_id (public.attempts) ou submission_id
+  // (public.presencial_submissions.linked_user_id) — nunca do cliente.
+  const token = await signToken({
+    submission_id: submissionId,
+    simulado_id: session.simulado_id,
+    session_id: session.id,
+    attempt_id: attemptId,
+    exp: Date.now() + TOKEN_TTL_MS,
+  }, PRESENCIAL_TOKEN_SECRET);
+
+  return { status: "ready", token, questions };
+}
+
+// Ramo VINCULADO (checkin com e-mail direto, ou claim de sugestão por
+// nome): sempre resolve para uma conta real antes de chegar aqui.
 async function createSession(
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
   session: SessionRow,
-  path: "email_direct" | "name_suggestion" | "unlinked",
-  user: ProfileRow | null,
+  path: "email_direct" | "name_suggestion",
+  user: ProfileRow,
   ipHash: string,
   name: string,
   email: string,
 ): Promise<{ submissionId: string; body: unknown }> {
-  let attemptId: string | null = null;
-
-  if (user) {
-    const { data, error } = await supabaseAdmin.rpc("create_or_convert_presencial_attempt", {
-      p_simulado_id: session.simulado_id,
-      p_user_id: user.id,
-    });
-    if (error) {
-      if (error.message?.includes("PRESENCIAL_ALREADY_SUBMITTED")) {
-        throw new AlreadySubmittedError();
-      }
-      throw error;
+  const { data, error } = await supabaseAdmin.rpc("create_or_convert_presencial_attempt", {
+    p_simulado_id: session.simulado_id,
+    p_user_id: user.id,
+  });
+  if (error) {
+    if (error.message?.includes("PRESENCIAL_ALREADY_SUBMITTED")) {
+      throw new AlreadySubmittedError();
     }
-    attemptId = data as string;
+    throw error;
   }
+  const attemptId = data as string;
 
   const { data: submission, error: subErr } = await supabaseAdmin
     .from("presencial_submissions")
@@ -433,29 +497,51 @@ async function createSession(
       declared_email: email,
       identification_path: path,
       ip_hash: ipHash,
-      linked_user_id: user?.id ?? null,
+      linked_user_id: user.id,
       linked_attempt_id: attemptId,
-      status: user ? "linked" : "unlinked",
+      status: "linked",
     })
     .select("id")
     .single();
   if (subErr) throw subErr;
 
-  const questions = await buildSkeleton(supabaseAdmin, session.simulado_id);
+  const body = await buildReadyResponse(supabaseAdmin, session, submission.id, attemptId);
+  return { submissionId: submission.id, body };
+}
 
-  // Token assinado, não cifrado (ver comentário em token.ts): user_id nunca
-  // entra aqui. Quem consumir o token depois (Task 10) deriva o user_id no
-  // servidor via attempt_id (public.attempts) ou submission_id
-  // (public.presencial_submissions.linked_user_id) — nunca do cliente.
-  const token = await signToken({
-    submission_id: submission.id,
-    simulado_id: session.simulado_id,
-    session_id: session.id,
-    attempt_id: attemptId,
-    exp: Date.now() + TOKEN_TTL_MS,
-  }, PRESENCIAL_TOKEN_SECRET);
+// Ramo UNLINKED (fix round 3/5): contagem + inserção acontecem atomicamente
+// dentro de `claim_presencial_unlinked_submission` (migration
+// 20260812100700), serializadas por um lock de linha em `presencial_sessions`
+// — ver comentário completo na migration e em DEFAULT_MAX_UNLINKED_PER_SESSION.
+// Sem isso, um SELECT count + INSERT feitos como duas chamadas PostgREST
+// separadas (round 2) deixava uma janela onde chamadas concorrentes liam o
+// mesmo count defasado e estouravam o teto sob rajada.
+async function createUnlinkedSession(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  session: SessionRow,
+  ipHash: string,
+  name: string,
+  email: string,
+  maxUnlinked: number,
+): Promise<{ submissionId: string; body: unknown }> {
+  const { data: submissionId, error } = await supabaseAdmin.rpc("claim_presencial_unlinked_submission", {
+    p_session_id: session.id,
+    p_simulado_id: session.simulado_id,
+    p_declared_name: name,
+    p_declared_email: email,
+    p_ip_hash: ipHash,
+    p_max_unlinked: maxUnlinked,
+  });
+  if (error) {
+    if (error.message?.includes("PRESENCIAL_UNLINKED_CAP_REACHED")) {
+      throw new UnlinkedCapReachedError();
+    }
+    throw error;
+  }
 
-  return { submissionId: submission.id, body: { status: "ready", token, questions } };
+  const body = await buildReadyResponse(supabaseAdmin, session, submissionId as string, null);
+  return { submissionId: submissionId as string, body };
 }
 
 // ─── Envio do gabarito (action `submit`) ──────────────────────────────────
@@ -840,36 +926,34 @@ Deno.serve(async (req) => {
     if (emailLimited) return emailLimited;
 
     if (action === "start-unlinked") {
-      // Fix round 2/5: teto por sessão (ver comentário de MAX_UNLINKED_PER_SESSION).
-      // Único ponto do arquivo que cria presencial_submissions com
-      // status='unlinked' — checkin/claim sempre resolvem para um usuário
-      // real antes de chamar createSession.
-      const { count: unlinkedCount, error: unlinkedCountErr } = await supabaseAdmin
-        .from("presencial_submissions")
-        .select("id", { count: "exact", head: true })
-        .eq("session_id", session.id)
-        .eq("status", "unlinked");
-      if (unlinkedCountErr) throw unlinkedCountErr;
-
-      if ((unlinkedCount ?? 0) >= MAX_UNLINKED_PER_SESSION) {
-        console.warn(
-          "[presencial] start-unlinked: teto de submissões não vinculadas atingido para a sessão:",
-          session.id, "count:", unlinkedCount,
+      // Fix round 3/5: contagem + inserção atômicas via RPC (ver
+      // createUnlinkedSession e a migration 20260812100700) — fecha a
+      // corrida contagem→insere que existia no round 2 (duas chamadas
+      // PostgREST separadas, sem lock entre elas). Único ponto do arquivo
+      // que cria presencial_submissions com status='unlinked' — checkin/
+      // claim sempre resolvem para um usuário real antes de createSession.
+      try {
+        const { body: resultBody } = await createUnlinkedSession(
+          supabaseAdmin, session, ipHash, name, email, getMaxUnlinkedPerSession(),
         );
-        // Copy deliberadamente neutra: não confirma "limite atingido" (ensinaria
-        // o atacante a variar sessão) nem alarma o aluno legítimo — direciona
-        // pro fiscal, que é quem deve investigar um volume assim na sala.
-        return json(
-          { error: "Não foi possível registrar agora. Chame o fiscal da sala." },
-          429,
-          cors,
-        );
+        return json(resultBody, 200, cors);
+      } catch (err) {
+        if (err instanceof UnlinkedCapReachedError) {
+          console.warn(
+            "[presencial] start-unlinked: teto de submissões não vinculadas atingido para a sessão:",
+            session.id,
+          );
+          // Copy deliberadamente neutra: não confirma "limite atingido" (ensinaria
+          // o atacante a variar sessão) nem alarma o aluno legítimo — direciona
+          // pro fiscal, que é quem deve investigar um volume assim na sala.
+          return json(
+            { error: "Não foi possível registrar agora. Chame o fiscal da sala." },
+            429,
+            cors,
+          );
+        }
+        throw err;
       }
-
-      const { body: resultBody } = await createSession(
-        supabaseAdmin, session, "unlinked", null, ipHash, name, email,
-      );
-      return json(resultBody, 200, cors);
     }
 
     if (action === "checkin") {
