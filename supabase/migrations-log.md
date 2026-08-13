@@ -848,3 +848,96 @@ Nem `submit_offline_answers_guarded` nem `process_attempt_reprocessing_queue` pr
 3. `select grantee, privilege_type from information_schema.role_routine_grants where routine_name = 'finalize_attempt_with_results_for_user'` → apenas `service_role` (EXECUTE) e `postgres` (owner, EXECUTE). Nenhum grant para `public`/`anon`/`authenticated`. ✓ Confirmado também que a wrapper (`finalize_attempt_with_results`) manteve seus grants originais: `authenticated`, `service_role`, `postgres`. ✓
 
 ---
+
+## 2026-08-12 — `presencial_attempt_rpcs`
+
+Task 4 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100300_presencial_attempt_rpcs.sql`.
+
+Duas RPCs `service_role`-only que fecham o ciclo do fluxo presencial:
+
+- **`create_or_convert_presencial_attempt(p_simulado_id uuid, p_user_id uuid) RETURNS uuid`** — implementa "presencial ganha" por **conversão in-place**: se o aluno já tem attempt `online`/`offline` do simulado, o mesmo attempt vira `presencial`/`presencial_pending` (snapshot das respostas antigas vai para `backup.presencial_superseded_answers`, nota zerada, `user_performance_history` do attempt removido e recalculado). Se já é `presencial_pending`, retorna idempotente. Se já foi `presencial`/`submitted`, levanta `PRESENCIAL_ALREADY_SUBMITTED`. Sem attempt prévio, cria um novo. Motivo de ser in-place e não "arquivar + criar novo": manter UMA linha por aluno por simulado, invariante que ~30 RPCs de ranking/admin/performance já assumem — arquivar exigiria ensinar todas elas a ignorar attempts arquivados.
+- **`submit_presencial_answers(p_attempt_id uuid, p_user_id uuid, p_answers jsonb) RETURNS jsonb`** — grava o gabarito em `answers` (upsert por `(attempt_id, question_id)`), calcula `is_within_window` pela mesma regra do offline (envio dentro de `[execution_window_start, execution_window_end]`), chama `finalize_attempt_with_results_for_user` (a variante com `p_user_id` explícito, não a wrapper de `auth.uid()` — este fluxo roda sem sessão de aluno) e reafirma `is_within_window` depois, porque o finalize pode sobrescrevê-lo. Retorna `{ "attempt_id", "is_within_window" }`.
+
+Ambas `SECURITY DEFINER`, `SET search_path TO 'public'`, `REVOKE ALL FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE TO service_role`. Migration aplicada sem incidentes (sem `42P13` — são funções novas).
+
+**Nota sobre o smoke do brief:** o brief propunha rodar o smoke de ciclo completo contra o Simulado 7 (`6be18ec8-db68-482d-9417-281d66d13ff1`), mas **o Simulado 7 tem zero questões em produção** (confirmado via `count(*) from questions`). Rodar o smoke ali passaria de forma degenerada (0 respostas, `finalize` não teria como levantar "questão sem resposta"). Por instrução do orquestrador, o smoke 1 foi rodado contra o **Simulado 6** (`1e802d25-05c8-4849-93ef-33580e9a4908`, 100 questões reais) — pré-requisito de conteúdo do S7 fica fora do escopo desta task.
+
+**Smoke 1 — ciclo completo (criação nova, sem attempt prévio), contra o Simulado 6:**
+
+Usuário escolhido (sem attempt do S6 antes de mexer): `ed480c3b-64c7-47ed-89b5-667728c8f45f`.
+
+```sql
+select public.create_or_convert_presencial_attempt(
+  '1e802d25-05c8-4849-93ef-33580e9a4908'::uuid,
+  'ed480c3b-64c7-47ed-89b5-667728c8f45f'::uuid
+) as attempt_id;
+-- => {"attempt_id":"d1e23568-2125-429a-869b-23cc3f000cbc"}
+```
+
+Attempt recém-criado (antes do submit): `status=presencial_pending`, `attempt_type=presencial`, `is_within_window=false`, `effective_deadline` = `started_at` + `duration_minutes` do simulado. ✓ (attempt novo, não conversão — não havia attempt prévio para este usuário neste simulado.)
+
+```sql
+select public.submit_presencial_answers(
+  'd1e23568-2125-429a-869b-23cc3f000cbc'::uuid,
+  'ed480c3b-64c7-47ed-89b5-667728c8f45f'::uuid,
+  (select jsonb_agg(jsonb_build_object('question_id', q.id, 'selected_option_id', qo.id))
+   from public.questions q join public.question_options qo
+     on qo.question_id = q.id and qo.is_correct
+   where q.simulado_id = '1e802d25-05c8-4849-93ef-33580e9a4908')
+) as submit_result;
+-- => {"submit_result":{"attempt_id":"d1e23568-2125-429a-869b-23cc3f000cbc","is_within_window":true}}
+```
+
+Estado final do attempt: `attempt_type=presencial`, `status=submitted`, `score_percentage=100.00`, `total_correct=100`, `total_answered=100`, `is_within_window=true`. ✓ OK: ciclo presencial completo, score 100 (gabarito enviado = todas as alternativas corretas do S6).
+
+Rollback do smoke (delete em `user_performance_history`, `attempt_question_results`, `answers`, `attempts` + `recalculate_user_performance`): confirmado — `attempts_left=0`, `answers_left=0`, `aqr_left=0`, `uph_left=0` para o attempt `d1e23568-...`.
+
+**Smoke 2 — conversão in-place sobre um attempt online já submetido, contra o Simulado 6:**
+
+Attempt e usuário escolhidos **antes** de qualquer mutação (registrados para a verificação pós-rollback ser auditável):
+`id = 859d75f0-b6f8-4a79-a10a-624569e6223a`, `user_id = ac043705-05c9-425d-a1ed-070c3b1f79be`, estado original `attempt_type=online`, `status=submitted`, `score_percentage=78.00`, `total_correct=78`, `total_answered=100`.
+
+```sql
+do $$
+declare v_user uuid; v_old uuid; v_conv uuid; v_bkp int;
+begin
+  v_user := 'ac043705-05c9-425d-a1ed-070c3b1f79be'::uuid;
+  v_old  := '859d75f0-b6f8-4a79-a10a-624569e6223a'::uuid;
+
+  v_conv := public.create_or_convert_presencial_attempt(
+    '1e802d25-05c8-4849-93ef-33580e9a4908', v_user);
+
+  if v_conv <> v_old then raise exception 'FALHOU: criou attempt novo em vez de converter'; end if;
+
+  select count(*) into v_bkp from backup.presencial_superseded_answers where attempt_id = v_old;
+  if v_bkp <> 1 then raise exception 'FALHOU: snapshot não gravado'; end if;
+
+  raise notice 'OK: conversão in-place + snapshot';
+  raise exception 'ROLLBACK proposital do smoke';
+end $$;
+```
+
+Saída literal (via `execute_sql`):
+
+```
+{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke\nCONTEXT:  PL/pgSQL function inline_code_block line 16 at RAISE\n"}}
+```
+
+A exceção chegou até a linha do `raise exception 'ROLLBACK proposital do smoke'` — ou seja, os dois `if ... raise exception 'FALHOU...'` anteriores não dispararam: `v_conv = v_old` (converteu, não criou novo) e o snapshot foi gravado (`v_bkp = 1`) antes do rollback proposital abortar a transação inteira.
+
+**Verificação pós-rollback (obrigatória antes de prosseguir):**
+
+```sql
+select attempt_type, status, score_percentage, score_percentage is not null as tem_nota, total_correct, total_answered
+from public.attempts where id = '859d75f0-b6f8-4a79-a10a-624569e6223a';
+-- => {"attempt_type":"online","status":"submitted","score_percentage":"78.00","tem_nota":true,"total_correct":78,"total_answered":100}
+
+select count(*) as backup_count from backup.presencial_superseded_answers;
+-- => {"backup_count":0}
+```
+
+Idêntico ao estado original capturado antes do smoke (`online` / `submitted` / `78.00` / `78` / `100`) e `backup.presencial_superseded_answers` vazia. Rollback completo confirmado — nenhuma ação corretiva necessária.
+
+**Grants (via `execute_sql`):** `select grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('create_or_convert_presencial_attempt','submit_presencial_answers')` → apenas `postgres` (owner) e `service_role`, para as duas funções. Nenhum grant para `public`/`anon`/`authenticated`. ✓
+
+---
