@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FileText, Loader2, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePdfDownload, getStageLabel } from '@/hooks/usePdfDownload';
+import { AttemptModalityBadge } from '@/components/AttemptModalityBadge';
 
 function MiniStat({
   label,
@@ -52,6 +53,7 @@ export function PerformanceHeroCard({
   pdf,
   simuladoId,
   correcaoVariant,
+  attemptType,
 }: {
   overall: { percentageScore: number; totalCorrect: number; totalQuestions: number };
   bestArea: { area: string; score: number; correct: number; questions: number } | null;
@@ -60,6 +62,8 @@ export function PerformanceHeroCard({
   pdf: ReturnType<typeof usePdfDownload>;
   simuladoId: string;
   correcaoVariant: 'public' | 'admin';
+  /** Modo da tentativa selecionada — exibe o selo "Aplicação presencial" quando aplicável. */
+  attemptType?: 'online' | 'offline' | 'presencial';
 }) {
   const pct = overall.percentageScore;
   const pdfLabel = pdf.stage
@@ -93,9 +97,12 @@ export function PerformanceHeroCard({
       <div className="relative z-10 grid gap-6 md:grid-cols-[1fr_auto] md:items-end md:gap-8">
         {/* Score block */}
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[rgba(249,168,212,0.9)]">
-            Aproveitamento geral
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[rgba(249,168,212,0.9)]">
+              Aproveitamento geral
+            </p>
+            <AttemptModalityBadge attemptType={attemptType} />
+          </div>
           <div className="mt-2 flex items-baseline gap-3">
             <p className="text-[36px] font-extrabold leading-none tracking-[-0.035em] text-white tabular-nums sm:text-[44px] md:text-[52px] lg:text-[56px]">
               {overall.totalCorrect}

@@ -6,6 +6,7 @@ import { PremiumCard } from "@/components/PremiumCard";
 import { EmptyState } from "@/components/EmptyState";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { SimuladoResultNav } from "@/components/simulado/SimuladoResultNav";
+import { AttemptModalityBadge } from "@/components/AttemptModalityBadge";
 import { useUser } from "@/contexts/UserContext";
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useSimulados } from "@/hooks/useSimulados";
@@ -668,6 +669,11 @@ export default function SimuladoDetailPage() {
                   O gabarito comentado e ranking deste simulado já estão liberados.
                 </p>
               </>
+            )}
+            {simulado.userState?.attemptType === 'presencial' && (
+              <div className="-mt-3 mb-6 flex justify-center">
+                <AttemptModalityBadge attemptType={simulado.userState.attemptType} />
+              </div>
             )}
             {id && <SimuladoResultNav simuladoId={id} className="justify-center" />}
           </PremiumCard>
