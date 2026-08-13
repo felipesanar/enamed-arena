@@ -749,3 +749,22 @@ Fase 4 (refino). `CREATE OR REPLACE` da `admin_simulado_results_roster` (mesma a
 Migrations da auditoria severa de confiabilidade dos dados do /admin, **já aplicadas em PROD** e versionadas aqui (este PR é DB-only; o frontend correspondente foi superseubado pelo redesign — os rótulos de exibição serão reaplicados sobre as páginas do redesign em PR à parte). Cada `.sql` tem o racional no cabeçalho. **Decisões:** métricas de PROVA excluem treino (is_within_window=false); offline_pending (status real, ~30%) visível e tratado; expired é bucket morto; funis viram coorte monotônica com clamp [0,100] + insufficient_data; bucketização em America/Sao_Paulo; higiene de grants (REVOKE PUBLIC/anon + GRANT authenticated/service_role em toda função recriada). **Bugs pré-existentes de enum corrigidos:** admin_produto_friction, admin_produto_feature_adoption (faziam painel vazio/erro), admin_set_user_role (grant/revoke de papéis 100% quebrado). Verificação adversarial por domínio contra o banco real. Arquivos: 20260624210000..212700 (28), 213000/213100 (v2 marketing+funis), 20260625004000 (feature_adoption), 20260625004500 (set_user_role).
 
 ---
+
+## 2026-08-12 — `presencial_schema`
+
+Task 1 (fundação) da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100000_presencial_schema.sql`.
+
+- **`attempts.attempt_type`**: `DROP CONSTRAINT` + `ADD CONSTRAINT` alargando o `CHECK` de `('online','offline')` para `('online','offline','presencial')`. Confirmado antes de aplicar que as 5905 linhas existentes de `attempts` só têm `online` (3704) e `offline` (2201) — alargamento, sem risco de violar dado existente.
+- **`backup.presencial_superseded_answers`**: guarda o snapshot (respostas/status/score) de um attempt online que for supersedido quando o aluno também faz a prova presencial (conversão trata o presencial como a fonte de verdade). Schema `backup` já é convenção do projeto (hardening de 04/08).
+- **`public.presencial_sessions`**: a "sala" que o QR code aponta — code (slug curto, `CHECK ~ '^[a-z0-9-]{3,32}$'`), janela `opens_at < closes_at`.
+- **`public.presencial_submissions`**: escrita **sempre**, vinculada ou não a uma conta (`status unlinked|linked`), independente de identificação. `identification_path` documenta como a submissão foi (ou não) associada a um usuário. Índice único parcial `presencial_submissions_one_per_user_simulado (linked_user_id, simulado_id) WHERE linked_user_id IS NOT NULL` é a trava que implementa a regra de negócio "1 envio presencial por conta por simulado, irreversível" — intencionalmente não filtra por status para não permitir reenvio após vínculo.
+- **`public.presencial_duplicate_candidates`**: subproduto do desempate por nome quando `declared_email` não bate com nenhuma conta — lista candidatos por nome para revisão humana.
+- **RLS ligada e SEM nenhuma policy nas três tabelas novas** (`presencial_sessions`, `presencial_submissions`, `presencial_duplicate_candidates`), mais `REVOKE ALL ... FROM PUBLIC, anon, authenticated`: não existe fluxo client-side direto contra essas tabelas — toda escrita/leitura é por `service_role` (edge functions do fluxo presencial) ou RPC `SECURITY DEFINER`, então RLS sem policy fecha o acesso por padrão em vez de precisar acertar policies de aluno/admin agora.
+
+**Smokes (via `execute_sql`):**
+
+1. `pg_get_constraintdef` de `attempts_attempt_type_check` → `CHECK ((attempt_type = ANY (ARRAY['online'::text, 'offline'::text, 'presencial'::text])))`. ✓
+2. Insert de `code = 'CODIGO INVALIDO'` em `presencial_sessions` dentro de bloco `do $$ ... exception when check_violation$$` → capturado (`OK: code inválido rejeitado`, sem erro do `raise exception 'FALHOU'`); confirmado depois que `count(*) from presencial_sessions = 0` (nenhuma linha residual do insert que falhou). ✓
+3. `relrowsecurity` e contagem de `pg_policies` nas três tabelas → `presencial_sessions`, `presencial_submissions`, `presencial_duplicate_candidates` todas com `relrowsecurity = true` e `policies = 0`. ✓
+
+---
