@@ -953,5 +953,29 @@ Task 5 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `
 
 1. `select prosrc ilike '%PRESENCIAL_ATTEMPT_EXISTS%' as tem_guard from pg_proc ... where proname='create_attempt_guarded'` → `tem_guard = true`. ✓
 2. `select grantee, privilege_type from information_schema.role_routine_grants where routine_name = 'create_attempt_guarded'` → `service_role`, `authenticated`, `postgres` (owner). Grants intactos. ✓
+## 2026-08-12 — `score_presencial_answers_dedupe` (fix crítico do round 1 de review da `score_presencial_answers`)
+
+**Aplicada em PROD.** Arquivo: `20260812100250_score_presencial_answers_dedupe.sql`. Não altera `20260812100200_score_presencial_answers.sql` (já aplicada) — `CREATE OR REPLACE` da mesma função, mesma assinatura/retorno/`SECURITY DEFINER`/`STABLE`/`search_path`/grants.
+
+**Achado Critical do review:** o `LEFT JOIN public.question_options qo ON qo.question_id = q.id AND qo.is_correct = true` produzia **uma linha por opção correta**. Como não existe unique parcial em `question_options` que impeça 2+ alternativas `is_correct=true` na mesma questão, uma questão com gabarito duplicado contaria 2x em `graded`, inflando `total_questions`/`by_area` e distorcendo a nota — quebra silenciosa do invariante "soma dos `total` por área = nº de questões". Fix: substituído por **subquery escalar** `(SELECT qo.id FROM question_options qo WHERE qo.question_id = q.id AND qo.is_correct ORDER BY qo.id LIMIT 1)`, que por construção nunca devolve mais de uma linha.
+
+**Achado Important do review:** `marked` não deduplicava `question_id` — payload de `p_answers` com a mesma questão duas vezes também multiplicava a linha via o `LEFT JOIN m ON m.question_id = q.id`. Fix: `marked` agora usa `DISTINCT ON (question_id) ... ORDER BY question_id` antes do join.
+
+Efeito combinado: `graded` passa a ter **exatamente 1 linha por questão do simulado**, independente do estado de `question_options` ou de duplicatas em `p_answers`. Dado de produção confirmado limpo hoje (600 questões dos Simulados 1–6, todas com exatamente 1 `is_correct=true`) — isto é blindagem preventiva, não correção de bug ativo, justificada pelo histórico de 2 incidentes de gabarito errado neste projeto (S5, S6) e pelo fato de a prova presencial ser feita uma única vez.
+
+**Smokes (via `execute_sql`):**
+
+1. **Regressão — os 2 smokes originais contra o Simulado 6, resultado idêntico ao pré-fix:**
+   - Gabarito 100% correto: `total_questions=100, total_correct=100, score_percentage=100.00, soma_areas=100`. ✓
+   - Gabarito vazio (`'[]'::jsonb`): `total_correct=0, score_percentage=0.00, areas=8`. ✓
+2. **Blindagem do Critical — transação reversível em dado real, IDs registrados antes de mexer:**
+   `question_id = 2e2a49df-d309-449f-8276-70a0e52db2cb` (Simulado 6); opção originalmente correta (label D) `option_id = 62537558-78f6-4857-98f0-e56eb1335551`; opção usada para o teste (label C) `option_id = e3bc659e-63ba-4f84-8073-55ca0ed44a9a`.
+   - `UPDATE question_options SET is_correct=true WHERE id='e3bc659e-...'` → confirmado via `RETURNING` (`label=C, is_correct=true`); questão passou a ter 2 alternativas corretas (C e D).
+   - `score_presencial_answers('1e802d25...', '[]'::jsonb)` → **`total_questions=100`** (antes do fix daria 101). ✓
+   - Revert imediato: `UPDATE question_options SET is_correct=false WHERE id='e3bc659e-...'` → confirmado via `RETURNING` (`label=C, is_correct=false`).
+   - Verificação pós-revert: `SELECT` das 4 alternativas da questão mostra só D com `is_correct=true`; `count(*) is_correct=true` em todo o Simulado 6 = **100** (estado original restaurado, 1 correta por questão). ✓
+3. **Blindagem do Important — `p_answers` com a mesma questão duas vezes:** payload com `question_id=2e2a49df-...` repetido (uma entrada com a opção correta D, outra com a opção A) → **`total_questions=100`** (não duplicou), `total_correct=1`. ✓ Observação sem impacto no invariante testado: como o `DISTINCT ON (question_id)` não tem critério de desempate além do próprio `question_id`, qual das duas entradas duplicadas "vence" é implementation-defined do plano de execução — irrelevante para o caso real (duplicata é bug de client/edge enviando a mesma resposta), mas registrado para transparência.
+
+**Verificação de definição em produção:** `pg_get_functiondef` confirmado igual ao arquivo aplicado (subquery escalar + `DISTINCT ON` presentes, grants inalterados: `REVOKE ALL FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE TO service_role`).
 
 ---
