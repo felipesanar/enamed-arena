@@ -1237,3 +1237,42 @@ select
 **Grants (via `execute_sql`):** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('link_presencial_submission','submit_presencial_answers')` → apenas `postgres` (owner) e `service_role` para as duas (inalterado). ✓
 
 ---
+
+## 2026-08-12 — `presencial_link_preserva_historico` (fix round 3/5 do review da Task 6)
+
+**Aplicada em PROD.** Arquivo: `20260812100570_presencial_link_preserva_historico.sql`. `CREATE OR REPLACE` de `link_presencial_submission` — não altera nenhuma migration anterior, nem `submit_presencial_answers`, nem `finalize_attempt_with_results_for_user`, nem `recalculate_user_performance`.
+
+**Terceira instância da mesma classe de bug** (campo temporal gravado a partir de `now()` em vez do `submitted_at` real do aluno), achada pelo orquestrador a partir do achado que eu havia sinalizado (não corrigido) no round 2: `finalize_attempt_with_results_for_user` (chamada de dentro de `submit_presencial_answers`, **antes** dos `UPDATE`s de correção que `link_presencial_submission` faz depois) grava `user_performance_history.finished_at = COALESCE(attempts.finished_at, now())` — e nesse ponto `attempts.finished_at` já foi setado para `now()` pelo próprio `submit_presencial_answers`. `finalize` também chama `recalculate_user_performance()` uma vez nesse momento, então `user_performance_summary.last_finished_at` (e potencialmente `last_score`/`last_simulado_id`, se o attempt recém-linkado — com `finished_at=now()`, quase certamente o mais recente possível — vencer o `ORDER BY finished_at DESC LIMIT 1`) também herdam o valor errado.
+
+**Impacto real confirmado no round 2 e que motiva este round:** `get_user_performance_history` ordena por `finished_at DESC` e alimenta `src/hooks/useRankingEvolution.ts` — o gráfico de evolução de notas do PRÓPRIO ALUNO; um presencial vinculado tarde apareceria fora de ordem cronológica (deslocando o ponto no gráfico e distorcendo a leitura da trajetória do aluno). `last_finished_at` aparece como "Última atividade" em `src/admin/pages/AdminUsuarioDetail.tsx:287`.
+
+**Fix:** mesma técnica dos rounds 1 e 2 (sem tocar `submit_presencial_answers`, `finalize_attempt_with_results_for_user` ou `recalculate_user_performance`), estendida à cadeia de tabelas derivadas. Depois do `UPDATE` em `attempts`, corrige o histórico e recalcula o resumo — ordem importa, corrigir antes de recalcular:
+
+```sql
+UPDATE public.user_performance_history SET finished_at = v_sub.submitted_at
+WHERE attempt_id = v_attempt;
+PERFORM public.recalculate_user_performance(p_user_id);
+```
+
+**Conclusão sobre a chamada extra de `recalculate_user_performance` (pedido explícito do orquestrador, confirmado antes de escrever):** **não é redundante.** Lendo o corpo de `recalculate_user_performance` (capturado via `pg_get_functiondef`): as três primeiras colunas do resumo (`total_attempts`, `avg_score`, `best_score`) são agregados (`COUNT`, `AVG`, `MAX`) sobre TODAS as linhas de `user_performance_history` do usuário, independentes de `finished_at` — ficam idênticas nas duas chamadas, porque não mudamos o conjunto de linhas nem os scores, só uma coluna de data numa linha existente. Já `last_score`/`last_simulado_id`/`last_finished_at` vêm de `ORDER BY finished_at DESC LIMIT 1` — dependem diretamente do valor que acabamos de corrigir. A primeira chamada (dentro de `finalize`, antes da correção) rodou com o `finished_at` do attempt recém-linkado ainda em `now()` — quase certamente o timestamp mais recente da tabela para esse usuário — então ela quase certamente escolheu ESSE attempt como "o mais recente", com a data errada. A segunda chamada, depois da correção, recomputa a partir do `submitted_at` real, podendo inclusive mudar `last_simulado_id`/`last_score` para OUTRO attempt do usuário, se o presencial vinculado tarde não for de fato o mais recente cronologicamente. Sem efeito colateral: a função só lê `user_performance_history` e faz upsert idempotente em `user_performance_summary` (`ON CONFLICT (user_id) DO UPDATE`) — chamar duas vezes é seguro e barato, e a segunda é a que produz o valor correto aqui.
+
+**Smokes (via `execute_sql`, Simulado 6, rollback forçado na mesma transação):**
+
+1. **Vínculo com submitted_at DENTRO da janela → os 4 confirmados juntos:** `DO $$...$$` cria sessão + submissão de teste (`submitted_at='2026-08-10 12:00:00+00'`), vincula, e afirma em sequência: `presencial_submissions.status='linked'`; `attempts.is_within_window=true`; `attempts.finished_at=submitted_at`; `user_performance_history.finished_at=submitted_at` (para a linha do `attempt_id` recém-criado); `user_performance_summary` coerente com o histórico corrigido (`last_finished_at=submitted_at`, `last_score=100.00`, `total_attempts=1`, `last_simulado_id=`Simulado 6 — o único attempt deste usuário de teste). Saída literal: `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke 1\nCONTEXT:  PL/pgSQL function inline_code_block line 53 at RAISE\n"}}` — chegou até o rollback proposital (53), todas as asserções passaram. ✓
+2. **Fluxo em tempo real intacto — os 3 campos continuam em now():** `DO $$...$$` captura `v_txn_now := now()` (metodologia já corrigida no round 2 — `now()` é fixo pela transação inteira, `clock_timestamp()` não serve para essa comparação), cria um attempt via `create_or_convert_presencial_attempt` e chama `submit_presencial_answers` diretamente (sem passar por `link_presencial_submission`), e afirma `attempts.finished_at`, `user_performance_history.finished_at` e `user_performance_summary.last_finished_at` todos iguais a `v_txn_now`. Saída literal: `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: ROLLBACK proposital do smoke 2\nCONTEXT:  PL/pgSQL function inline_code_block line 38 at RAISE\n"}}` — chegou até o rollback proposital (38), as 3 asserções passaram. ✓
+3. **Resumo do aluno idêntico antes e depois do rollback (o mais importante deste round — tabela agregada de aluno real):** capturado ANTES de qualquer smoke, via `select ... from user_performance_summary where user_id='ed480c3b-64c7-47ed-89b5-667728c8f45f'` → `{"total_attempts":0,"avg_score":"0.00","best_score":"0.00","last_score":"0.00","last_simulado_id":null,"last_finished_at":null,"updated_at":"2026-08-13 15:21:13.511024+00"}`. Depois dos smokes 1 e 2 (ambos com rollback forçado), a MESMA query devolveu exatamente a mesma linha, byte a byte, **incluindo `updated_at`** — prova de que o rollback desfez tudo, sem nenhuma escrita persistida na tabela de resumo (nem sequer o `updated_at` do `ON CONFLICT DO UPDATE` avançou). ✓
+
+**Verificação pós-rollback (prova de limpeza geral, depois dos 2 smokes de escrita):**
+
+```sql
+select
+  (select count(*) from public.presencial_sessions) as sessions,
+  (select count(*) from public.presencial_submissions) as submissions,
+  (select count(*) from public.attempts where simulado_id='1e802d25-05c8-4849-93ef-33580e9a4908' and user_id='ed480c3b-64c7-47ed-89b5-667728c8f45f') as attempts_for_test_user,
+  (select count(*) from public.user_performance_history where user_id='ed480c3b-64c7-47ed-89b5-667728c8f45f') as history_for_test_user;
+-- => {"sessions":0,"submissions":0,"attempts_for_test_user":0,"history_for_test_user":0}
+```
+
+**Grants (via `execute_sql`):** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('link_presencial_submission','submit_presencial_answers','recalculate_user_performance')` → apenas `postgres` (owner) e `service_role`, para as três (inalterado). ✓
+
+---
