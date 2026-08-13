@@ -1070,5 +1070,61 @@ Três achados do review:
 3. **Attempt presencial já `submitted` continua bloqueado:** criado e finalizado um attempt presencial de teste (`f3eaf773-ba57-4abb-a7f6-634275099cb6`, mesmo usuário `ed480c3b-...`, gabarito 100%). Nova chamada de `create_or_convert_presencial_attempt` para o mesmo par `(simulado, usuário)` → `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: PRESENCIAL_ALREADY_SUBMITTED\nCONTEXT:  PL/pgSQL function create_or_convert_presencial_attempt(uuid,uuid) line 24 at RAISE\n"}}`. Rollback (delete em `user_performance_history`/`attempt_question_results`/`answers`/`attempts` + `recalculate_user_performance`) confirmado: `attempts_left=0`, `answers_left=0`, `aqr_left=0`, `uph_left=0`. ✓
 
 **Grants inalterados:** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('create_or_convert_presencial_attempt','submit_presencial_answers')` → apenas `postgres` (owner) e `service_role` para as duas funções. ✓
+## 2026-08-12 — `presencial_admin_rpcs`
+
+Task 7 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100600_presencial_admin_rpcs.sql`.
+
+Cinco RPCs de admin do fluxo presencial, chamadas pelo frontend de admin autenticado — diferente das RPCs anteriores do presencial (Tasks 1–6, todas `service_role`-only), estas têm `GRANT ... TO authenticated, service_role`:
+
+- **`admin_presencial_sessions_list() RETURNS TABLE(...)`** (`content.manage`) — lista as salas presenciais com contagem de submissões (total e vinculadas), agregada por `LEFT JOIN` + `COUNT(...) FILTER`.
+- **`admin_presencial_session_upsert(p_id, p_simulado_id, p_code, p_label, p_opens_at, p_closes_at, p_is_active) RETURNS uuid`** (`content.manage`) — `p_id IS NULL` cria, senão atualiza; `SESSION_NOT_FOUND` se o update não casar nenhuma linha. Não duplica validação de `closes_at > opens_at` / formato de `code` — a própria tabela já tem esses `CHECK`.
+- **`admin_presencial_queue(p_status text DEFAULT 'unlinked') RETURNS TABLE(...)`** (`attempts.manage`) — fila de identidade: submissões (filtráveis por status, `'all'` para todas) com a conta sugerida pela mesma regra da Tela 1 (e-mail exato primeiro, nome normalizado depois). `DISTINCT ON (subs.id)` — desvio deliberado do brief, que sugeria o `LEFT JOIN` simples — evita multiplicar linha quando o nome declarado colide com várias contas (base tem nomes com até 19 contas); prioriza o match por e-mail via `ORDER BY subs.id, (pe.id IS NOT NULL) DESC`.
+- **`admin_presencial_link(p_submission_id uuid, p_user_id uuid) RETURNS jsonb`** (`attempts.manage`) — repassa para `link_presencial_submission` (Task 6, `service_role`-only — funciona porque esta função é `SECURITY DEFINER` com owner `postgres`) e grava no audit log.
+- **`admin_presencial_reassign(p_attempt_id uuid, p_to_user_id uuid) RETURNS jsonb`** (`attempts.manage`) — move `attempts.user_id` (o trigger `prevent_direct_attempts_update` libera `SECURITY DEFINER`), migra a linha de `user_performance_history` e o `presencial_submissions.linked_user_id` (se o attempt tinha submissão vinculada) para a conta nova, e chama `recalculate_user_performance` nas DUAS contas (origem e destino) — sem isso as duas ficariam com resumo desatualizado. Guardas: `ATTEMPT_NOT_FOUND`, `ATTEMPT_ALREADY_ASSIGNED_TO_USER`, `TARGET_USER_NOT_FOUND`, `TARGET_USER_ALREADY_HAS_ATTEMPT` (a unique `(simulado_id, user_id, attempt_type)` de `attempts` receberia um erro cru do Postgres sem essa guarda).
+
+**Step 1 (obrigatório):** padrão capturado via `pg_get_functiondef` em produção antes de escrever, em 5 funções (`admin_simulado_results_roster`, `admin_cancel_attempt`, `admin_delete_attempt`, `admin_log_action`, `admin_require`):
+- 1º statement de toda RPC de admin: `perform public.admin_require('<capability>')`.
+- RPCs de leitura: `language plpgsql stable security definer set search_path to 'public'`.
+- RPCs de escrita (`admin_cancel_attempt`, `admin_delete_attempt`): sem `stable`; ao final chamam `perform public.admin_log_action(action, entity_type, entity_id, summary, metadata)` dentro de `begin ... exception when others then null; end;` — o audit log nunca pode derrubar a operação principal. `admin_log_action` insere em `admin_audit_log` usando `auth.uid()` (silenciosamente não grava se `auth.uid()` for null).
+- Grant hygiene: `REVOKE ALL ... FROM PUBLIC` + `REVOKE ALL ... FROM anon` em linhas separadas, depois `GRANT EXECUTE ... TO authenticated, service_role` (padrão confirmado em `20260624212400_fix_admin_results_roster_rank_dedupe_rownumber.sql`, um `[grant-hygiene]` anterior).
+
+**Bug pego no smoke, corrigido antes de fechar a task:** a primeira versão de `admin_presencial_queue` inlinava `unaccent(...)` diretamente — `unaccent` vive no schema `extensions`, não em `public`, e a função só tem `SET search_path TO 'public'`. Deu `42883: function unaccent(text) does not exist` no primeiro smoke com sessão de admin simulada. Corrigido reusando `public.normalize_text_for_match(text)` (helper já existente desde `20260414145505`, usado por `match_cutoff_score`) em vez de inlinar `unaccent` — essa função tem `SET search_path = public, extensions` própria, então funciona não importa o search_path de quem a chama. Arquivo local e produção corrigidos antes do commit (nunca houve uma versão quebrada commitada).
+
+**Smokes (via `execute_sql`):**
+
+1. **Guard sem sessão — reproduzido de verdade, ao contrário do que o brief antecipava:** diferente da hipótese de que "chamando como `postgres` o `admin_require` passa", isso não se confirmou — `execute_sql` roda como `current_user = postgres`, mas `auth.uid()` (que lê `request.jwt.claim.sub`) fica `null` nessa sessão, e `has_capability` exige `auth.uid()` não-nulo. As 5 funções, chamadas sem `request.jwt.claim.sub` configurado, devolveram `P0003: unauthorized` de verdade: `admin_presencial_queue('unlinked')`, `admin_presencial_queue('all')`, `admin_presencial_sessions_list()`, `admin_presencial_link(gen_random_uuid(), gen_random_uuid())`, `admin_presencial_reassign(gen_random_uuid(), gen_random_uuid())`, `admin_presencial_session_upsert(null, gen_random_uuid(), 'smoke-x', 'Smoke', now(), now()+'1h', true)` — todas as 6 chamadas (as 2 de leitura testadas 2x, mais as 3 de escrita) erraram com a mesma mensagem `ERRO: P0003: unauthorized ... PL/pgSQL function admin_require(text) line 4 at RAISE`. ✓
+2. **Fila e sessões vazias, com sessão de admin simulada (`set_config('request.jwt.claim.sub', ...)` para o usuário de teste `2223a982-6682-496e-a459-261e1c867e31`, "Claude Teste Flashcards", `role=admin`, confirmado com `attempts.manage` e `content.manage` em `role_capabilities`):** `admin_presencial_queue('unlinked')` → `{"cnt_unlinked":0}`; `admin_presencial_queue('all')` → `{"cnt_all":0}`; `admin_presencial_sessions_list()` → `{"cnt_sessions":0}`. Sem erro. ✓
+3. **Ciclo completo de escrita (session upsert create+update+not_found, queue, link, reassign ok+guardas), com rollback forçado na mesma transação — mesma técnica do smoke da Task 6:** um único bloco `do $$...$$` (usando a mesma sessão de admin simulada) executou, em sequência, e afirmou cada resultado com `RAISE EXCEPTION 'SMOKE_FAIL: ...'` caso a asserção falhasse:
+   - `admin_presencial_session_upsert(null, ...)` cria a sala `smoke-task7`; confirma que ela aparece em `admin_presencial_sessions_list()`.
+   - `admin_presencial_session_upsert(<id>, ...)` atualiza label/`is_active`; confirma persistência.
+   - `admin_presencial_session_upsert(<uuid aleatório>, ...)` (update de sala inexistente) → capturado `SESSION_NOT_FOUND`.
+   - Monta gabarito 100% correto das 100 questões do Simulado 6 (`1e802d25-05c8-4849-93ef-33580e9a4908`, mesmo simulado dos smokes da Task 6 — Simulado 7 tem zero questões em produção), insere `presencial_submissions` `unlinked`.
+   - Confirma que a submissão aparece em `admin_presencial_queue('unlinked')`.
+   - `admin_presencial_link(<submission_id>, <user_a>)` com o usuário de teste `ed480c3b-64c7-47ed-89b5-667728c8f45f` (confirmado sem attempt prévio no Simulado 6 antes do smoke) → confirma `presencial_submissions.status='linked'`, `linked_user_id=<user_a>`, `attempts.status='submitted'`, `score_percentage=100.00`.
+   - Confirma que a submissão some da fila `unlinked` depois de linkada.
+   - `admin_presencial_reassign(<attempt_id>, <user_b>)` com o segundo usuário de teste `c3e9fa22-2f15-474c-bb3f-8a99ea697ce9` ("Diego Teste", confirmado sem attempt prévio no Simulado 6) → confirma `attempts.user_id=<user_b>`, `user_performance_history.user_id=<user_b>` para o mesmo `attempt_id`, `presencial_submissions.linked_user_id=<user_b>` (acompanhou o attempt), e que `user_performance_summary` tem linha para as DUAS contas (prova de que `recalculate_user_performance` rodou nas duas).
+   - `admin_presencial_reassign(<attempt_id>, <user_b>)` de novo (mesma conta) → capturado `ATTEMPT_ALREADY_ASSIGNED_TO_USER`.
+   - `admin_presencial_reassign(<uuid aleatório>, <user_a>)` (attempt inexistente) → capturado `ATTEMPT_NOT_FOUND`.
+   - Todas as asserções passaram → `RAISE EXCEPTION 'SMOKE_OK_ROLLBACK_PROPOSITAL: ...'` proposital ao final. Saída literal: `{"error":{"name":"HttpException","message":"Failed to run sql query: ERROR:  P0001: SMOKE_OK_ROLLBACK_PROPOSITAL: sessions upsert (create+update+not_found), queue, link, reassign (ok+same_user+not_found) passaram em todas as asserções\nCONTEXT:  PL/pgSQL function inline_code_block line 152 at RAISE\n"}}` — a exceção chegou até a última linha do bloco (nenhuma das ~15 asserções anteriores disparou `SMOKE_FAIL`), e por não ter havido nenhum `COMMIT` interno (mesmo raciocínio do smoke da Task 6: `create_or_convert_presencial_attempt`, `submit_presencial_answers`, `finalize_attempt_with_results_for_user`, `recalculate_user_performance`, `admin_log_action` são todos `SECURITY DEFINER` sem `COMMIT`), o `ROLLBACK` desfez tudo — sessão, submissão, attempt, respostas, `user_performance_history`, os dois `recalculate_user_performance` e as duas linhas de `admin_audit_log`.
+
+**Verificação pós-rollback (prova de limpeza):**
+
+```sql
+select
+  (select count(*) from public.presencial_sessions) as sessions,
+  (select count(*) from public.presencial_submissions) as submissions,
+  (select count(*) from public.presencial_duplicate_candidates) as dup_candidates,
+  (select count(*) from public.attempts where simulado_id='1e802d25-05c8-4849-93ef-33580e9a4908'
+     and user_id in ('ed480c3b-64c7-47ed-89b5-667728c8f45f','c3e9fa22-2f15-474c-bb3f-8a99ea697ce9')) as attempts_for_test_users,
+  (select count(*) from public.admin_audit_log where entity_type in ('presencial_session','presencial_submission','attempt')
+     and created_at > now() - interval '10 minutes') as recent_audit_rows;
+-- => {"sessions":0,"submissions":0,"dup_candidates":0,"attempts_for_test_users":0,"recent_audit_rows":0}
+```
+
+Todas as tabelas do presencial seguem em zero linhas; os dois usuários de teste não ganharam attempt nenhum no Simulado 6; nenhuma linha de audit log da smoke persistiu.
+
+**Grants (via `execute_sql`):** `select routine_name, grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('admin_presencial_sessions_list','admin_presencial_session_upsert','admin_presencial_queue','admin_presencial_link','admin_presencial_reassign')` → apenas `postgres` (owner), `authenticated` e `service_role`, para as 5 funções. Nenhum grant para `public`/`anon`. ✓
+
+**Gap conhecido, documentado no código e fora do escopo desta task:** `admin_presencial_reassign` não move entradas de `error_notebook` (Caderno de Erros) — essa tabela não referencia `attempt_id`, só `user_id`/`simulado_id`/`question_id`; mover exigiria uma decisão de produto própria sobre o Caderno, não pedida no brief.
 
 ---
