@@ -1,22 +1,31 @@
-// Fluxo presencial — identificação do aluno na sala de prova.
+// Fluxo presencial — identificação do aluno na sala de prova e, ao final,
+// envio do gabarito transcrito (action `submit`).
 //
 // Rota pública, chamada de um QR code, SEM sessão de usuário. O aluno nunca
 // ganha um JWT do Supabase Auth aqui: o que sai é um token opaco (HMAC,
 // token.ts) escopado a um único gabarito, com TTL curto.
 //
-// Três propriedades de segurança que não podem ser violadas:
+// Quatro propriedades de segurança que não podem ser violadas:
 //   1. O esqueleto de questões devolvido ao cliente NUNCA contém conteúdo de
 //      prova (question_id, number, options:[{id,label}] — só isso).
 //   2. O `user_id` nunca sai numa resposta HTTP. A `ref` do candidato
 //      sugerido é um HMAC opaco de `user_id` + `code`, recomputável no
 //      servidor com o segredo — nunca o `user_id` em claro.
 //   3. O e-mail sugerido sai sempre mascarado (maskEmail).
+//   4. A action `submit` NUNCA devolve qual era a alternativa correta nem
+//      resultado questão-a-questão — só agregados (score_presencial_answers).
+//      O `answers` de entrada é validado a fio: array, tamanho == número de
+//      questões do simulado, todo question_id do simulado, sem duplicata,
+//      todo selected_option_id da própria questão, nenhuma resposta nula.
+//      Sem essa validação um envio parcial repetido revelaria o gabarito por
+//      diferença — mas como o envio é único (status one-way do attempt +
+//      índice único por conta), isso também fecha esse vetor de vez.
 //
 // Pin completo obrigatório em import externo (docs/INCIDENTE_2026_05_17.md).
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { maskEmail } from "./mask.ts";
 import { normalizeName, firstLastKey, pickCandidates } from "./identity.ts";
-import { signToken } from "./token.ts";
+import { signToken, verifyToken } from "./token.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -31,7 +40,7 @@ const MAX_NAME_LOOKUP_PER_IP = 20;       // busca por nome é mais sensível (en
 const EMAIL_RE = /^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/;
 const PROFILES_PAGE_SIZE = 1000; // PostgREST cap por página (gotcha do projeto)
 
-const VALID_ACTIONS = new Set(["checkin", "claim", "start-unlinked"]);
+const VALID_ACTIONS = new Set(["checkin", "claim", "start-unlinked", "submit"]);
 
 const SEGMENT_LABELS: Record<string, string> = {
   guest: "Visitante",
@@ -137,6 +146,13 @@ interface ProfileRow {
 }
 
 class AlreadySubmittedError extends Error {}
+
+interface ScorePayload {
+  total_questions: number;
+  total_correct: number;
+  score_percentage: number;
+  by_area: { area: string; total: number; correct: number; percentage: number }[];
+}
 
 // ─── Sessão + rate limit ─────────────────────────────────────────────────
 
@@ -398,6 +414,199 @@ async function createSession(
   return { submissionId: submission.id, body: { status: "ready", token, questions } };
 }
 
+// ─── Envio do gabarito (action `submit`) ──────────────────────────────────
+//
+// A validação abaixo é a peça mais crítica de todo o fluxo presencial: sem
+// ela, alguém enviaria um gabarito parcial, veria a nota, mudaria uma
+// resposta e enviaria de novo, derivando a alternativa correta de cada
+// questão por diferença (com 100 questões e nota agregada isso é totalmente
+// viável). Combinada com o `status` one-way do attempt e o índice único por
+// conta (uma submissão vinculada por usuário/simulado), o envio passa a ser
+// único de verdade — a validação aqui garante que esse único envio já chega
+// completo e íntegro, então não sobra brecha de "tentativa parcial".
+//
+// As 5 condições abaixo (nenhuma pode ser relaxada):
+//   1. `answers` precisa ser um array.
+//   2. Tamanho tem que bater com o número de questões do simulado.
+//   3. Todo `question_id` tem que pertencer àquele simulado.
+//   4. Todo `selected_option_id` tem que pertencer à SUA PRÓPRIA questão.
+//   5. Nenhuma resposta pode ser nula — a Tela 2 exige as 100 marcadas antes
+//      de liberar o envio; aceitar nulo aqui reabriria o envio parcial.
+//
+// Reforço além das 5 (não relaxa nenhuma, só fecha uma variante do mesmo
+// ataque): question_id não pode se repetir. Sem isso, dava para duplicar uma
+// resposta para "preencher" o tamanho do array enquanto se omite a resposta
+// real de outra questão — o efeito prático seria idêntico a mandar null
+// para aquela questão (fica de fora do cômputo), só que sem violar
+// literalmente a condição 5. Dedupe fecha essa variante.
+async function validateAnswers(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  simuladoId: string,
+  answers: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Condição 1: precisa ser array.
+  if (!Array.isArray(answers)) {
+    return { ok: false, error: "O gabarito enviado é inválido." };
+  }
+
+  const { data: questions, error: qErr } = await supabaseAdmin
+    .from("questions")
+    .select("id")
+    .eq("simulado_id", simuladoId);
+  if (qErr) throw qErr;
+
+  const questionIds = new Set<string>((questions ?? []).map((q: { id: string }) => q.id));
+
+  // Condição 2: tamanho tem que bater com o número de questões do simulado.
+  if (questionIds.size === 0 || answers.length !== questionIds.size) {
+    return { ok: false, error: "O gabarito enviado não corresponde ao número de questões do simulado." };
+  }
+
+  const { data: options, error: oErr } = await supabaseAdmin
+    .from("question_options")
+    .select("id, question_id")
+    .in("question_id", Array.from(questionIds));
+  if (oErr) throw oErr;
+
+  const optionsByQuestion = new Map<string, Set<string>>();
+  for (const opt of (options ?? []) as { id: string; question_id: string }[]) {
+    const set = optionsByQuestion.get(opt.question_id) ?? new Set<string>();
+    set.add(opt.id);
+    optionsByQuestion.set(opt.question_id, set);
+  }
+
+  const seen = new Set<string>();
+
+  for (const raw of answers) {
+    if (!raw || typeof raw !== "object") {
+      return { ok: false, error: "O gabarito enviado é inválido." };
+    }
+    const questionId = (raw as Record<string, unknown>).question_id;
+    const selectedOptionId = (raw as Record<string, unknown>).selected_option_id;
+
+    // Condição 3: question_id precisa pertencer ao simulado.
+    if (typeof questionId !== "string" || !questionIds.has(questionId)) {
+      return { ok: false, error: "O gabarito enviado contém uma questão que não pertence a este simulado." };
+    }
+
+    // Reforço: sem duplicata de question_id (ver comentário acima).
+    if (seen.has(questionId)) {
+      return { ok: false, error: "O gabarito enviado contém uma questão duplicada." };
+    }
+    seen.add(questionId);
+
+    // Condição 5: nenhuma resposta nula.
+    if (typeof selectedOptionId !== "string" || selectedOptionId.length === 0) {
+      return { ok: false, error: "Todas as questões precisam de uma alternativa marcada." };
+    }
+
+    // Condição 4: selected_option_id precisa pertencer à SUA PRÓPRIA questão.
+    const validOptions = optionsByQuestion.get(questionId);
+    if (!validOptions || !validOptions.has(selectedOptionId)) {
+      return { ok: false, error: "O gabarito enviado contém uma alternativa que não pertence à questão." };
+    }
+  }
+
+  return { ok: true };
+}
+
+async function handleSubmit(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  cors: Record<string, string>,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  const token = typeof body?.token === "string" ? body.token : "";
+  const answers = body?.answers;
+
+  if (!token) {
+    return json({ error: "Token é obrigatório" }, 400, cors);
+  }
+
+  const payload = await verifyToken(token, PRESENCIAL_TOKEN_SECRET, Date.now());
+  if (!payload) {
+    return json({ error: "Sua sessão de gabarito expirou. Chame o fiscal." }, 401, cors);
+  }
+
+  const validation = await validateAnswers(supabaseAdmin, payload.simulado_id, answers);
+  if (!validation.ok) {
+    return json({ error: validation.error }, 400, cors);
+  }
+
+  // Fonte única do payload de resposta, nos dois ramos (vinculado e unlinked):
+  // o finalize devolve totais mas não a quebra por área, e a Tela 3 precisa
+  // de uma fonte só.
+  const { data: scoreData, error: scoreErr } = await supabaseAdmin.rpc("score_presencial_answers", {
+    p_simulado_id: payload.simulado_id,
+    p_answers: answers,
+  });
+  if (scoreErr) throw scoreErr;
+  const score = scoreData as ScorePayload;
+
+  // O token nunca carrega user_id (payload assinado, mas legível). Só
+  // derivamos o user_id no servidor, via join por attempt_id — nunca aceito
+  // do cliente e nunca devolvido na resposta.
+  let isLinked = false;
+  let isWithinWindow = false;
+
+  if (payload.attempt_id) {
+    const { data: attemptRow, error: attemptErr } = await supabaseAdmin
+      .from("attempts")
+      .select("user_id")
+      .eq("id", payload.attempt_id)
+      .maybeSingle();
+    if (attemptErr) throw attemptErr;
+
+    if (attemptRow?.user_id) {
+      isLinked = true;
+
+      const { data: submitData, error: submitErr } = await supabaseAdmin.rpc("submit_presencial_answers", {
+        p_attempt_id: payload.attempt_id,
+        p_user_id: attemptRow.user_id,
+        p_answers: answers,
+      });
+      if (submitErr) {
+        if (submitErr.message?.includes("PRESENCIAL_ATTEMPT_NOT_PENDING")) {
+          return json({ error: "Este gabarito já foi enviado." }, 409, cors);
+        }
+        throw submitErr;
+      }
+      isWithinWindow = Boolean((submitData as { is_within_window?: boolean } | null)?.is_within_window);
+    } else {
+      console.warn("[presencial] submit: attempt_id do token sem attempt correspondente:", payload.attempt_id);
+    }
+  }
+  // Ramo unlinked (sem attempt_id): não há janela de execução vinculada a
+  // nenhum attempt, então is_within_window fica false — o mesmo valor que
+  // create_or_convert_presencial_attempt usa para todo attempt presencial
+  // ainda pendente, e consistente com "não entra no ranking" (só attempts
+  // com is_within_window=true entram).
+
+  // Grava em presencial_submissions nos DOIS ramos. No ramo unlinked esta
+  // linha é a ÚNICA coisa que preserva o trabalho do aluno: se não gravar
+  // aqui, o gabarito se perde e não há como recuperar.
+  const { error: updSubErr } = await supabaseAdmin
+    .from("presencial_submissions")
+    .update({
+      answers,
+      total_correct: score.total_correct,
+      score_percentage: score.score_percentage,
+      submitted_at: new Date().toISOString(),
+    })
+    .eq("id", payload.submission_id);
+  if (updSubErr) throw updSubErr;
+
+  return json({
+    total_questions: score.total_questions,
+    total_correct: score.total_correct,
+    score_percentage: score.score_percentage,
+    by_area: score.by_area,
+    is_linked: isLinked,
+    is_within_window: isWithinWindow,
+  }, 200, cors);
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -437,6 +646,13 @@ Deno.serve(async (req) => {
     if (!VALID_ACTIONS.has(action)) {
       return json({ error: "Ação inválida" }, 400, cors);
     }
+
+    // `submit` não usa code/name/email/candidate_ref — usa o token opaco
+    // emitido no checkin/claim/start-unlinked. Fluxo totalmente separado.
+    if (action === "submit") {
+      return await handleSubmit(supabaseAdmin, cors, body);
+    }
+
     if (!code) {
       return json({ error: "Código da sala é obrigatório" }, 400, cors);
     }
