@@ -383,12 +383,15 @@ async function createSession(
 
   const questions = await buildSkeleton(supabaseAdmin, session.simulado_id);
 
+  // Token assinado, não cifrado (ver comentário em token.ts): user_id nunca
+  // entra aqui. Quem consumir o token depois (Task 10) deriva o user_id no
+  // servidor via attempt_id (public.attempts) ou submission_id
+  // (public.presencial_submissions.linked_user_id) — nunca do cliente.
   const token = await signToken({
     submission_id: submission.id,
     simulado_id: session.simulado_id,
     session_id: session.id,
     attempt_id: attemptId,
-    user_id: user?.id ?? null,
     exp: Date.now() + TOKEN_TTL_MS,
   }, PRESENCIAL_TOKEN_SECRET);
 

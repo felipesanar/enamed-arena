@@ -5,13 +5,21 @@
  * de erros, desempenho, ranking nem qualquer dado da conta. TTL de 2h.
  *
  * Usa Web Crypto, disponível tanto no Deno quanto no Node do Vitest.
+ *
+ * O payload é ASSINADO (HMAC), não CIFRADO: qualquer um com o token consegue
+ * decodificar o base64url e ler o JSON — a assinatura só garante que não foi
+ * adulterado, não que é secreto. Por isso nenhum identificador de usuário
+ * (user_id, e-mail, etc.) entra aqui: violaria a invariante "o user_id nunca
+ * sai numa resposta HTTP". Quando o servidor precisar do user_id depois,
+ * derive por join a partir de `attempt_id` (public.attempts) ou
+ * `submission_id` (public.presencial_submissions.linked_user_id) — nunca
+ * confie num user_id vindo do cliente.
  */
 export interface PresencialTokenPayload {
   submission_id: string
   simulado_id: string
   session_id: string
   attempt_id: string | null
-  user_id: string | null
   exp: number
 }
 

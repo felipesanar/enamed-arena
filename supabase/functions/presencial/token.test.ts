@@ -10,7 +10,6 @@ const payload: PresencialTokenPayload = {
   simulado_id: 'sim-1',
   session_id: 'sess-1',
   attempt_id: 'att-1',
-  user_id: 'user-1',
   exp: NOW + 2 * 60 * 60 * 1000,
 }
 
@@ -28,7 +27,7 @@ describe('token', () => {
   it('rejeita payload adulterado', async () => {
     const t = await signToken(payload, SECRET)
     const [body, sig] = t.split('.')
-    const tampered = btoa(JSON.stringify({ ...payload, user_id: 'invasor' }))
+    const tampered = btoa(JSON.stringify({ ...payload, submission_id: 'invasor' }))
       .replace(/=+$/, '')
     expect(await verifyToken(`${tampered}.${sig}`, SECRET, NOW)).toBeNull()
     expect(body).not.toBe(tampered)
