@@ -112,7 +112,7 @@ export default function TriagemPage() {
 
     try {
       // 1. Pega o attempt mais recente finalizado
-      const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
+      const attempt = await simuladosApi.getAttempt(simuladoId, user.id, ['online', 'presencial']);
       if (!attempt || (attempt.status !== 'submitted' && attempt.status !== 'expired')) {
         setLoadingCandidates(false);
         return;

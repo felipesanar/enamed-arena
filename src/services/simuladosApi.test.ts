@@ -61,6 +61,20 @@ describe("simuladosApi — filtro de modalidade", () => {
     await simuladosApi.getAttempt("sim-1", "user-1", ["online", "presencial"]);
     expect(inFn).toHaveBeenCalledWith("attempt_type", ["online", "presencial"]);
   });
+
+  it("rejeita array vazio em vez de devolver zero linhas silenciosamente (getUserAttempts)", async () => {
+    setupAttemptQueryMock();
+    await expect(simuladosApi.getUserAttempts("user-1", [])).rejects.toThrow(
+      /filter array vazio/i,
+    );
+  });
+
+  it("rejeita array vazio em vez de devolver zero linhas silenciosamente (getAttempt)", async () => {
+    setupAttemptQueryMock();
+    await expect(simuladosApi.getAttempt("sim-1", "user-1", [])).rejects.toThrow(
+      /filter array vazio/i,
+    );
+  });
 });
 
 describe("simuladosApi.updateAttempt", () => {

@@ -81,7 +81,7 @@ export function useExamResult(simuladoId: string | undefined) {
       }
 
       const [onlineAttempt, offlineAttempt] = await Promise.all([
-        simuladosApi.getAttempt(config.id, user.id, 'online'),
+        simuladosApi.getAttempt(config.id, user.id, ['online', 'presencial']),
         simuladosApi.getAttempt(config.id, user.id, 'offline'),
       ]);
       if (reqId !== reqIdRef.current) return;
