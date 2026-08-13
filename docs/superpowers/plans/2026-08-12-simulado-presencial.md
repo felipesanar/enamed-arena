@@ -14,7 +14,8 @@
 
 - **Simulado 7:** `id = 6be18ec8-db68-482d-9417-281d66d13ff1`, `slug = simulado-7`. Janela de execução `2026-08-30 12:01Z → 2026-09-06 02:59Z`. `results_release_at = 2026-09-07 12:01Z`.
 - **A aplicação presencial acontece dentro da janela de execução.** Nenhuma exceção de ranking é implementada.
-- `attempts.attempt_type` CHECK final: `('online','offline','presencial')`. Status novo: `'presencial_pending'`.
+- `attempts.attempt_type` é `text` com CHECK — final: `('online','offline','presencial')`.
+- **`attempts.status` NÃO é text: é o enum `public.attempt_status`** (valores em produção: `in_progress, submitted, expired, offline_pending`). O status novo `'presencial_pending'` exige `ALTER TYPE public.attempt_status ADD VALUE`, seguindo o bloco guardado que a migration `20260404163153_3bb9574e-63e9-46d8-8550-f5d05f56c804.sql` usou para `'offline_pending'`. Sem isso, qualquer INSERT/UPDATE com esse status falha com `invalid input value for enum attempt_status`.
 - **Toda** RPC nova é `SECURITY DEFINER`, `SET search_path TO 'public'`, e termina com `REVOKE ALL ... FROM public, anon, authenticated;` + `GRANT EXECUTE ... TO service_role;` (exceto as de admin, que vão para `authenticated` e usam `admin_require`).
 - Tabelas novas: RLS **habilitada, sem nenhuma policy**. Acesso só via `service_role` e RPC `SECURITY DEFINER`.
 - RPCs de admin: primeiro statement é `PERFORM admin_require('<capability>')`. Capabilities existentes usadas: `content.manage` (sessões) e `attempts.manage` (fila de identidade).
@@ -24,7 +25,9 @@
 - Imports com alias `@/`, nunca caminho relativo longo.
 - Todo texto de UI em **pt-BR**.
 - O fluxo presencial **nunca** transmite `questions.text`, `question_options.text`, `explanation` nem `user_id` ao cliente.
-- `npm run test`, `npm run typecheck` e `npm run lint` precisam passar ao fim de cada task.
+- `npm run test` precisa passar ao fim de cada task, **sem regressão** no baseline de 735 testes.
+- `npm run lint` é limpo (0 erros, ~285 warnings pré-existentes) — não introduza erro novo.
+- **`npm run typecheck` e `npm run check:edge-pins` JÁ FALHAM no baseline** e não é sua tarefa consertá-los: `typecheck` tem 18 erros pré-existentes, todos em `src/lib/mcp/*` (módulo `@lovable.dev/mcp-js` ausente + `implicit any`); `check:edge-pins` tem 8 ofensores pré-existentes em `mcp`, `caderno-pattern-insights`, `caderno-reminders`, `generate-flashcard`, `generate-flashcards-batch`. O critério é **não regredir**: rode os dois e confirme que nenhuma linha da saída aponta para arquivo que você criou ou alterou.
 - Cada task de banco registra uma entrada em `supabase/migrations-log.md` com o racional e o resultado do smoke, seguindo o formato das entradas existentes.
 
 ## File Structure
