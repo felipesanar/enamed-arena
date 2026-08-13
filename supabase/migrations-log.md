@@ -939,5 +939,19 @@ select count(*) as backup_count from backup.presencial_superseded_answers;
 Idêntico ao estado original capturado antes do smoke (`online` / `submitted` / `78.00` / `78` / `100`) e `backup.presencial_superseded_answers` vazia. Rollback completo confirmado — nenhuma ação corretiva necessária.
 
 **Grants (via `execute_sql`):** `select grantee, privilege_type from information_schema.role_routine_grants where routine_name in ('create_or_convert_presencial_attempt','submit_presencial_answers')` → apenas `postgres` (owner) e `service_role`, para as duas funções. Nenhum grant para `public`/`anon`/`authenticated`. ✓
+## 2026-08-12 — `block_online_after_presencial`
+
+Task 5 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100400_block_online_after_presencial.sql`.
+
+`create_attempt_guarded` só considerava attempts `attempt_type='online'` nos checks de "já enviado" — um aluno que já tivesse feito a prova presencialmente ainda conseguiria abrir a versão online do mesmo simulado. `CREATE OR REPLACE` sobre a definição capturada em produção via `pg_get_functiondef` (retorno `attempts`, inalterado): um único bloco novo inserido logo depois do `IF NOT FOUND THEN RAISE EXCEPTION 'Simulado not found or not published'; END IF;` e antes de qualquer outro check de attempt existente.
+
+- Novo bloco: `SELECT ... FROM public.attempts WHERE simulado_id = p_simulado_id AND user_id = auth.uid() AND attempt_type = 'presencial'` — sem filtro de `status`: qualquer attempt presencial (`presencial_pending` ou `submitted`) fecha a prova online. `IF FOUND THEN RAISE EXCEPTION 'PRESENCIAL_ATTEMPT_EXISTS'; END IF;`
+- Resto do corpo idêntico byte a byte ao capturado (diff conferido linha a linha: só o bloco novo entra, nada mais muda). Grants re-aplicados: `authenticated`, `service_role`.
+- Frontend: `src/hooks/exam/useExamLifecycle.ts` mapeia `PRESENCIAL_ATTEMPT_EXISTS` no catch de `storage.initializeState` (o mesmo catch que hoje só faz `logger.error` + `navigate`) para o toast "Você já fez este simulado presencialmente. Seu resultado sai em 07/09." antes de navegar de volta para o detalhe do simulado. O catch de `useExamStorageReal.initializeState` já dispara um toast genérico ("Erro ao criar tentativa") antes de repropagar o erro; como o `use-toast` mantém só o último toast (`TOAST_LIMIT = 1`), o toast específico — disparado depois, no catch de `useExamLifecycle` — é o que o usuário efetivamente vê.
+
+**Smoke (via `execute_sql`; rodar sob JWT de usuário não é possível aqui — validação de comportamento real fica para o smoke end-to-end de outra task):**
+
+1. `select prosrc ilike '%PRESENCIAL_ATTEMPT_EXISTS%' as tem_guard from pg_proc ... where proname='create_attempt_guarded'` → `tem_guard = true`. ✓
+2. `select grantee, privilege_type from information_schema.role_routine_grants where routine_name = 'create_attempt_guarded'` → `service_role`, `authenticated`, `postgres` (owner). Grants intactos. ✓
 
 ---
