@@ -18,8 +18,15 @@
 //      questões do simulado, todo question_id do simulado, sem duplicata,
 //      todo selected_option_id da própria questão, nenhuma resposta nula.
 //      Sem essa validação um envio parcial repetido revelaria o gabarito por
-//      diferença — mas como o envio é único (status one-way do attempt +
-//      índice único por conta), isso também fecha esse vetor de vez.
+//      diferença. Mas essa validação SÓ funciona se o envio também for
+//      único: o `status` one-way do attempt (`submit_presencial_answers`,
+//      via `FOR UPDATE ... AND status = 'presencial_pending'`) garante isso
+//      no ramo VINCULADO; o índice único por conta é PARCIAL
+//      (`WHERE linked_user_id IS NOT NULL`) e não cobre o ramo UNLINKED — lá
+//      quem tranca o reenvio é o claim atômico em `presencial_submissions`
+//      (`WHERE submitted_at IS NULL`, ver `claimSubmission`). Os dois
+//      mecanismos precisam estar de pé; nenhum sozinho cobre os dois ramos
+//      (fix round 1/5: o `submit` original só tinha o primeiro).
 //
 // Pin completo obrigatório em import externo (docs/INCIDENTE_2026_05_17.md).
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
@@ -36,6 +43,9 @@ const WINDOW_MS = 60 * 60 * 1000;        // janela rolante do rate limit
 const MAX_CHECKIN_PER_IP = 120;          // uma sala inteira cabe folgado
 const MAX_CHECKIN_PER_EMAIL = 5;
 const MAX_NAME_LOOKUP_PER_IP = 20;       // busca por nome é mais sensível (enumeração)
+const MAX_SUBMIT_PER_IP = 120;           // mesma lógica do checkin: uma sala inteira cabe folgado
+const CLAIM_RETRY_ATTEMPTS = 3;          // reduz a chance de "attempt certo, submissão incompleta"
+const CLAIM_RETRY_BASE_DELAY_MS = 150;
 
 const EMAIL_RE = /^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/;
 const PROFILES_PAGE_SIZE = 1000; // PostgREST cap por página (gotcha do projeto)
@@ -511,11 +521,83 @@ async function validateAnswers(
   return { ok: true };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── Claim atômico de presencial_submissions (fix round 1/5) ─────────────
+//
+// CRITICAL corrigido aqui: no ramo UNLINKED não existe attempt, logo não
+// existe o `FOR UPDATE ... status = 'presencial_pending'` que trava reenvio
+// no ramo vinculado. O índice único de `presencial_submissions` também não
+// cobre esse ramo (é parcial, `WHERE linked_user_id IS NOT NULL`). Sem essa
+// função, `submit` no ramo unlinked podia ser chamado quantas vezes o
+// cliente quisesse para o MESMO token, mudando uma resposta por vez e lendo
+// `total_correct`/`by_area` a cada chamada — o ataque que toda a validação
+// de `answers` existe para impedir, disponível sem limite para quem
+// simplesmente escolhe não se identificar.
+//
+// O UPDATE abaixo é um compare-and-swap atômico do Postgres:
+// `WHERE submitted_at IS NULL` só casa a linha na PRIMEIRA chamada bem
+// sucedida; qualquer chamada concorrente ou posterior para o mesmo
+// submission_id encontra 0 linhas e sabe, sem ambiguidade, que já foi
+// atendida. Vale para os dois ramos: é a ÚNICA trava do ramo unlinked e um
+// reforço (defesa em profundidade) do ramo vinculado, cujo gate primário
+// continua sendo `submit_presencial_answers`.
+async function claimSubmission(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  submissionId: string,
+  answers: unknown,
+  score: ScorePayload,
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("presencial_submissions")
+    .update({
+      answers,
+      total_correct: score.total_correct,
+      score_percentage: score.score_percentage,
+      submitted_at: new Date().toISOString(),
+    })
+    .eq("id", submissionId)
+    .is("submitted_at", null)
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+// Retry curto (3 tentativas, backoff linear) só para erro de transporte/DB
+// no claim — não para "0 linhas" (que é um resultado válido, não uma
+// falha). Reduz a chance da janela residual descrita no comentário de
+// `handleSubmit` sobre o ramo vinculado: submit_presencial_answers ter
+// sucesso e o claim falhar logo em seguida por um problema transitório.
+async function claimSubmissionWithRetry(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  submissionId: string,
+  answers: unknown,
+  score: ScorePayload,
+): Promise<boolean> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= CLAIM_RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await claimSubmission(supabaseAdmin, submissionId, answers, score);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < CLAIM_RETRY_ATTEMPTS) {
+        await sleep(CLAIM_RETRY_BASE_DELAY_MS * attempt);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function handleSubmit(
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
   cors: Record<string, string>,
   body: Record<string, unknown>,
+  req: Request,
 ): Promise<Response> {
   const token = typeof body?.token === "string" ? body.token : "";
   const answers = body?.answers;
@@ -529,6 +611,15 @@ async function handleSubmit(
     return json({ error: "Sua sessão de gabarito expirou. Chame o fiscal." }, 401, cors);
   }
 
+  // `submit` era o único endpoint público sem teto de chamadas (checkin/
+  // claim/start-unlinked já tinham rate limit desde a v1). Mesmo com o
+  // claim atômico abaixo, deixar sem limite é convite a abuso — bucket
+  // próprio, mesma ordem de grandeza do checkin (uma sala inteira cabe).
+  const ip = getClientIp(req);
+  const ipHash = await sha256Hex(ip);
+  const submitLimited = await rateLimit(supabaseAdmin, cors, "submit_ip", ipHash, MAX_SUBMIT_PER_IP);
+  if (submitLimited) return submitLimited;
+
   const validation = await validateAnswers(supabaseAdmin, payload.simulado_id, answers);
   if (!validation.ok) {
     return json({ error: validation.error }, 400, cors);
@@ -536,7 +627,8 @@ async function handleSubmit(
 
   // Fonte única do payload de resposta, nos dois ramos (vinculado e unlinked):
   // o finalize devolve totais mas não a quebra por área, e a Tela 3 precisa
-  // de uma fonte só.
+  // de uma fonte só. Chamada pura/stateless (STABLE, sem side effect) —
+  // segura de rodar de novo em qualquer retry.
   const { data: scoreData, error: scoreErr } = await supabaseAdmin.rpc("score_presencial_answers", {
     p_simulado_id: payload.simulado_id,
     p_answers: answers,
@@ -561,6 +653,12 @@ async function handleSubmit(
     if (attemptRow?.user_id) {
       isLinked = true;
 
+      // Gate primário do ramo vinculado: FOR UPDATE + status='presencial_pending'
+      // dentro da própria RPC, atômico no Postgres. Uma segunda chamada
+      // concorrente para o MESMO attempt (double-click, retry de rede) bloqueia
+      // aqui até a primeira commitar, então relê o status e recusa com
+      // PRESENCIAL_ATTEMPT_NOT_PENDING — nunca chega a reexpor `score` calculado
+      // com um `answers` diferente.
       const { data: submitData, error: submitErr } = await supabaseAdmin.rpc("submit_presencial_answers", {
         p_attempt_id: payload.attempt_id,
         p_user_id: attemptRow.user_id,
@@ -581,21 +679,48 @@ async function handleSubmit(
   // nenhum attempt, então is_within_window fica false — o mesmo valor que
   // create_or_convert_presencial_attempt usa para todo attempt presencial
   // ainda pendente, e consistente com "não entra no ranking" (só attempts
-  // com is_within_window=true entram).
+  // com is_within_window=true entram). Se esta submissão for vinculada
+  // depois pela fila do admin, o is_within_window real é recalculado
+  // naquele fluxo a partir de `submitted_at` (20260812100550), não aqui.
 
-  // Grava em presencial_submissions nos DOIS ramos. No ramo unlinked esta
-  // linha é a ÚNICA coisa que preserva o trabalho do aluno: se não gravar
-  // aqui, o gabarito se perde e não há como recuperar.
-  const { error: updSubErr } = await supabaseAdmin
-    .from("presencial_submissions")
-    .update({
-      answers,
-      total_correct: score.total_correct,
-      score_percentage: score.score_percentage,
-      submitted_at: new Date().toISOString(),
-    })
-    .eq("id", payload.submission_id);
-  if (updSubErr) throw updSubErr;
+  // Claim atômico + gravação de presencial_submissions, nos DOIS ramos. No
+  // ramo unlinked esta linha é a ÚNICA coisa que preserva o trabalho do
+  // aluno E a ÚNICA trava contra reenvio (ver comentário de claimSubmission).
+  let claimed: boolean;
+  try {
+    claimed = await claimSubmissionWithRetry(supabaseAdmin, payload.submission_id, answers, score);
+  } catch (err) {
+    if (!isLinked) {
+      // Ramo unlinked: nada irreversível aconteceu antes deste ponto (não há
+      // attempt). Se o claim não commitou de jeito nenhum após os retries,
+      // `submitted_at` permanece NULL — estado seguro "não enviado, pode
+      // tentar de novo". 500 é a resposta honesta: nada foi perdido, o
+      // aluno pode reenviar o mesmo token.
+      throw err;
+    }
+    // Ramo vinculado: `submit_presencial_answers` já commitou (o attempt já
+    // saiu de 'presencial_pending' — mudança one-way, por desenho). Se o
+    // claim falhar aqui, `presencial_submissions` fica incompleta, mas a
+    // nota do aluno NÃO se perde — já está em `attempts`/
+    // `user_performance_history`, íntegra e correta. Falhar a resposta pra
+    // ele com 500 seria pior: mentiria "não deu certo" sobre algo que já
+    // deu certo, e um retry dele nunca mais teria uma segunda chance (o
+    // attempt não pode voltar a 'presencial_pending'). Por isso devolvemos
+    // o resultado real ao aluno e registramos o log abaixo como incidente
+    // acionável — não é um meio-termo silencioso, é um meio-termo logado
+    // com log crítico, para reconciliação manual da fila do admin.
+    console.error(
+      "[presencial] submit: submit_presencial_answers OK mas claim em presencial_submissions falhou " +
+      "após retries — presencial_submissions ficou incompleta, attempts está correto. " +
+      "Requer reconciliação manual.",
+      { submission_id: payload.submission_id, attempt_id: payload.attempt_id, error: err },
+    );
+    claimed = true; // trata como concluído para o aluno; a linha requer reparo manual.
+  }
+
+  if (!claimed) {
+    return json({ error: "Este gabarito já foi enviado." }, 409, cors);
+  }
 
   return json({
     total_questions: score.total_questions,
@@ -650,7 +775,7 @@ Deno.serve(async (req) => {
     // `submit` não usa code/name/email/candidate_ref — usa o token opaco
     // emitido no checkin/claim/start-unlinked. Fluxo totalmente separado.
     if (action === "submit") {
-      return await handleSubmit(supabaseAdmin, cors, body);
+      return await handleSubmit(supabaseAdmin, cors, body, req);
     }
 
     if (!code) {
