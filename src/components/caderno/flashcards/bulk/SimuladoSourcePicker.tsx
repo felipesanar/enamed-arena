@@ -26,7 +26,7 @@ export function SimuladoSourcePicker({ onChange }: SimuladoSourcePickerProps) {
   const { data: attempts = [], isLoading: loadingAttempts } = useQuery({
     queryKey: ['flashcards', 'finished-attempts', userId],
     queryFn: async () => {
-      const rows = await simuladosApi.getUserAttempts(userId!, 'online', 200);
+      const rows = await simuladosApi.getUserAttempts(userId!, ['online', 'presencial'], 200);
       const finished = rows.filter((a: any) => !!a.finished_at);
       const ids = Array.from(new Set(finished.map((a: any) => a.simulado_id)));
       const sims = await Promise.all(ids.map((id) => simuladosApi.getSimulado(id as string)));

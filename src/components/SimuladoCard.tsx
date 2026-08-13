@@ -1,6 +1,7 @@
 import { Calendar, Trophy } from "lucide-react";
 import { PremiumCard } from "./PremiumCard";
 import { StatusBadge } from "./StatusBadge";
+import { AttemptModalityBadge } from "./AttemptModalityBadge";
 import type { SimuladoWithStatus } from "@/types";
 import { Link } from "react-router-dom";
 import { getSimuladoCTA, formatDateShort, buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
@@ -46,6 +47,12 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
           <Trophy className="h-4 w-4 text-primary" />
           <span className="text-body-sm text-muted-foreground">Sua nota:</span>
           <span className="text-body font-bold text-primary ml-auto">{simulado.userState!.score}%</span>
+        </div>
+      )}
+
+      {simulado.userState?.attemptType === 'presencial' && (
+        <div className="mt-2">
+          <AttemptModalityBadge attemptType={simulado.userState.attemptType} />
         </div>
       )}
 

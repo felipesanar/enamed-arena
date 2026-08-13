@@ -27,7 +27,7 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined,
   const canonicalId = config.id;
   const [questionData, onlineAttempt, offlineAttempt] = await Promise.all([
     simuladosApi.getQuestions(canonicalId, includeCorrectAnswers),
-    userId ? simuladosApi.getAttempt(canonicalId, userId, 'online') : Promise.resolve(null),
+    userId ? simuladosApi.getAttempt(canonicalId, userId, ['online', 'presencial']) : Promise.resolve(null),
     userId ? simuladosApi.getAttempt(canonicalId, userId, 'offline') : Promise.resolve(null),
   ]);
 
@@ -43,7 +43,7 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined,
         score: attempt.score_percentage != null ? Math.round(Number(attempt.score_percentage)) : undefined,
         attemptType:
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ((attempt as any).attempt_type as 'online' | 'offline' | undefined) ??
+          ((attempt as any).attempt_type as 'online' | 'offline' | 'presencial' | undefined) ??
           (attempt.status === 'offline_pending' ? 'offline' : 'online'),
         attemptStatus: attempt.status,
       }

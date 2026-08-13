@@ -23,7 +23,11 @@ import { EvoBarsSection } from './panel/EvoBarsSection';
  * ────────────────────────────────────────────────────────────────────────── */
 
 export type DesempenhoSimuladoPanelProps = {
-  simuladosWithResults: Array<{ id: string; title: string }>;
+  simuladosWithResults: Array<{
+    id: string;
+    title: string;
+    userState?: { attemptType?: 'online' | 'offline' | 'presencial' };
+  }>;
   selectedSimuladoId: string | null;
   onSelectSimulado: (id: string) => void;
   breakdown: PerformanceBreakdown;
@@ -60,10 +64,12 @@ export function DesempenhoSimuladoPanel({
   const bestArea = byArea[0] ?? null;
   const worstArea = byArea.length > 1 ? byArea[byArea.length - 1] : null;
 
-  const simuladoTitle = useMemo(
-    () => simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title ?? '',
+  const selectedSimulado = useMemo(
+    () => simuladosWithResults.find((s) => s.id === selectedSimuladoId),
     [simuladosWithResults, selectedSimuladoId],
   );
+
+  const simuladoTitle = selectedSimulado?.title ?? '';
 
   const pdf = usePdfDownload({
     simuladoId: selectedSimuladoId ?? '',
@@ -136,6 +142,7 @@ export function DesempenhoSimuladoPanel({
           pdf={pdf}
           simuladoId={selectedSimuladoId ?? ''}
           correcaoVariant={resultNavVariant}
+          attemptType={selectedSimulado?.userState?.attemptType}
         />
       </StaggerItem>
 

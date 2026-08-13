@@ -28,6 +28,7 @@ const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
 const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
 const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
 const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
+const PresencialPage = lazy(() => import("./pages/PresencialPage"));
 const CorrecaoPage = lazy(() => import("./pages/CorrecaoPage"));
 const DesempenhoPage = lazy(() => import("./pages/DesempenhoPage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
@@ -82,6 +83,7 @@ const AdminMarketing   = lazy(() => import('./admin/pages/AdminMarketing'))
 const AdminProduto     = lazy(() => import('./admin/pages/AdminProduto'))
 const AdminInteligencia = lazy(() => import('./admin/pages/AdminInteligencia'))
 const AdminAuditoria = lazy(() => import('./admin/pages/AdminAuditoria'))
+const AdminPresencial = lazy(() => import('./admin/pages/AdminPresencial'))
 
 // Admin lazy imports — named exports
 const AdminGuard = lazy(() =>
@@ -140,6 +142,7 @@ const App = () => (
               <Route path="/reset-password" element={<Suspense fallback={<PageShell />}><ResetPasswordPage /></Suspense>} />
               <Route path="/auth/callback" element={<Suspense fallback={<PageShell />}><AuthCallbackPage /></Suspense>} />
               <Route path="/auth/sso" element={<Suspense fallback={<PageShell />}><AuthSSOPage /></Suspense>} />
+              <Route path="/presencial/:codigo" element={<Suspense fallback={<PageShell />}><PresencialPage /></Suspense>} />
               <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<PageShell />}><OAuthConsentPage /></Suspense>} />
 
               {/* Admin — own Suspense boundary */}
@@ -168,6 +171,7 @@ const App = () => (
                   <Route path="produto"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminProduto /></Suspense>} />
                   <Route path="inteligencia" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminInteligencia /></Suspense>} />
                   <Route path="auditoria" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAuditoria /></Suspense>} />
+                  <Route path="presencial" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminPresencial /></Suspense>} />
                 </Route>
               </Route>
 

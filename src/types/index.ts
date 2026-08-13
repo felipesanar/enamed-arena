@@ -76,7 +76,7 @@ export interface SimuladoUserState {
   finishedAt?: string;
   score?: number;
   /** Modo em que a tentativa foi criada. */
-  attemptType?: 'online' | 'offline';
+  attemptType?: 'online' | 'offline' | 'presencial';
   /** Status bruto da tentativa no banco. */
   attemptStatus?: string;
 }

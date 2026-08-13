@@ -157,7 +157,13 @@ export type AnalyticsEventName =
   | "auth_profile_load_failed"
   | "error_boundary_triggered"
   // PDF downloads
-  | "pdf_downloaded";
+  | "pdf_downloaded"
+  // Aplicação presencial (QR → gabarito → resultado)
+  | "presencial_checkin_started"
+  | "presencial_identified"
+  | "presencial_no_account"
+  | "presencial_unlinked_started"
+  | "presencial_submitted";
 
 export type AnalyticsPayload = Record<string, string | number | boolean | null | undefined>;
 

@@ -14,7 +14,7 @@ import { enrichSimulado } from '@/lib/simulado-helpers';
 async function fetchSimuladosData(userId: string | undefined) {
   const [simuladoConfigs, onlineAttempts, offlineAttempts] = await Promise.all([
     simuladosApi.listSimulados(),
-    userId ? simuladosApi.getUserAttempts(userId, 'online') : Promise.resolve([]),
+    userId ? simuladosApi.getUserAttempts(userId, ['online', 'presencial']) : Promise.resolve([]),
     userId ? simuladosApi.getUserAttempts(userId, 'offline') : Promise.resolve([]),
   ]);
   logger.log('[useSimulados] Loaded', simuladoConfigs.length, 'simulados,', onlineAttempts.length, 'online +', offlineAttempts.length, 'offline attempts');
@@ -31,7 +31,7 @@ function attemptToUserState(attempt: AttemptRow): SimuladoUserState {
     score: attempt.score_percentage != null ? Math.round(Number(attempt.score_percentage)) : undefined,
     attemptType:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ((attempt as any).attempt_type as 'online' | 'offline' | undefined) ??
+      ((attempt as any).attempt_type as 'online' | 'offline' | 'presencial' | undefined) ??
       (attempt.status === 'offline_pending' ? 'offline' : 'online'),
     attemptStatus: attempt.status,
   };

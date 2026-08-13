@@ -165,7 +165,23 @@ export function useExamLifecycle({
             );
             if (!cancelled) setState(fresh);
           } catch (initErr) {
-            logger.error('[useExamFlow] Failed to initialize exam:', initErr);
+            // create_attempt_guarded blocks the online exam once the student
+            // has a presencial attempt for this simulado (pending or
+            // submitted) — see migration 20260812100400. The generic error
+            // toast from useExamStorageReal already fired; this specific one
+            // (dispatched after) is the one the user actually sees, since
+            // the toast hook keeps only the latest (TOAST_LIMIT=1).
+            const initErrMessage = initErr instanceof Error ? initErr.message : '';
+            if (initErrMessage.includes('PRESENCIAL_ATTEMPT_EXISTS')) {
+              logger.log('[useExamFlow] Blocked: presencial attempt already exists for this simulado');
+              toast({
+                title: 'Simulado já realizado',
+                description: 'Você já fez este simulado presencialmente. Seu resultado sai em 07/09.',
+                variant: 'destructive',
+              });
+            } else {
+              logger.error('[useExamFlow] Failed to initialize exam:', initErr);
+            }
             navigate(`/simulados/${id}`, { replace: true });
             return;
           }

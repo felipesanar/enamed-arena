@@ -36,6 +36,8 @@ import type {
   IntelInsight,
   AdminQuestionFull,
   AuditLogRow,
+  PresencialSessionRow,
+  PresencialQueueRow,
 } from '@/admin/types'
 
 export interface SimuladoResultRow {
@@ -64,6 +66,17 @@ export interface QuestionVerifyFinding {
   slot?: FindingSlot;
   severity: 'error' | 'warning';
   evidence: string;
+}
+
+export interface PresencialLinkResult {
+  attempt_id?: string
+  [key: string]: unknown
+}
+
+export interface PresencialReassignResult {
+  attempt_id: string
+  from_user_id: string
+  to_user_id: string
 }
 
 export interface VerifyImage { slot: FindingSlot; mime: string; base64: string; }
@@ -863,5 +876,85 @@ export const adminApi = {
     })
     if (error) throw error
     return (data ?? []) as AuditLogRow[]
+  },
+
+  // ─── Presencial (sessões + fila de identidade) ───
+  // Cast (supabase.rpc as any): RPCs da Task 7, mais novas que o types.ts
+  // gerado (mesmo padrão de getAttemptQuestions acima).
+
+  async presencialSessions(): Promise<PresencialSessionRow[]> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_sessions_list')
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      id: r.id as string,
+      simulado_id: r.simulado_id as string,
+      simulado_title: r.simulado_title as string,
+      code: r.code as string,
+      label: r.label as string,
+      opens_at: r.opens_at as string,
+      closes_at: r.closes_at as string,
+      is_active: Boolean(r.is_active),
+      submissions_count: Number(r.submissions_count),
+      linked_count: Number(r.linked_count),
+    }))
+  },
+
+  async presencialSessionUpsert(p: {
+    id: string | null
+    simulado_id: string
+    code: string
+    label: string
+    opens_at: string
+    closes_at: string
+    is_active: boolean
+  }): Promise<string> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_session_upsert', {
+      p_id: p.id,
+      p_simulado_id: p.simulado_id,
+      p_code: p.code,
+      p_label: p.label,
+      p_opens_at: p.opens_at,
+      p_closes_at: p.closes_at,
+      p_is_active: p.is_active,
+    })
+    if (error) throw error
+    return data as string
+  },
+
+  async presencialQueue(status = 'unlinked'): Promise<PresencialQueueRow[]> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_queue', { p_status: status })
+    if (error) throw error
+    return (data as any[]).map(r => ({
+      submission_id: r.submission_id as string,
+      session_label: r.session_label as string,
+      declared_name: r.declared_name as string,
+      declared_email: r.declared_email as string,
+      identification_path: r.identification_path as string,
+      total_correct: Number(r.total_correct),
+      score_percentage: r.score_percentage != null ? Number(r.score_percentage) : null,
+      created_at: r.created_at as string,
+      ip_hash: (r.ip_hash as string | null) ?? null,
+      suggested_user_id: (r.suggested_user_id as string | null) ?? null,
+      suggested_email: (r.suggested_email as string | null) ?? null,
+      suggested_name: (r.suggested_name as string | null) ?? null,
+    }))
+  },
+
+  async presencialLink(submissionId: string, userId: string): Promise<PresencialLinkResult> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_link', {
+      p_submission_id: submissionId,
+      p_user_id: userId,
+    })
+    if (error) throw error
+    return (data ?? {}) as PresencialLinkResult
+  },
+
+  async presencialReassign(attemptId: string, toUserId: string): Promise<PresencialReassignResult> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_reassign', {
+      p_attempt_id: attemptId,
+      p_to_user_id: toUserId,
+    })
+    if (error) throw error
+    return data as PresencialReassignResult
   },
 };
