@@ -789,5 +789,37 @@ Cria a RPC **`score_presencial_answers(p_simulado_id uuid, p_answers jsonb) RETU
 2. **Gabarito vazio** (`'[]'::jsonb`) contra o Simulado 7 → `correct=0, pct=0.00, areas=0` (esperado `areas > 0`, mas o S7 tem 0 questões, então 0 áreas é o resultado correto e consistente — não há área nenhuma para agrupar). Mesmo smoke contra o Simulado 6 → **`correct=0, pct=0.00, areas=8`** — bate com o esperado (`correct=0`, `pct=0.00`, `areas > 0`). ✓
 
 **Conclusão:** a RPC está correta e implantada exatamente como o brief especifica; os dois smokes passam integralmente quando rodados contra um simulado com questões carregadas (Simulado 6). Contra o Simulado 7 real, os smokes retornam resultados degenerados-mas-corretos (0/0/null e 0/0/0) porque **o banco de questões do Simulado 7 ainda não existe em produção** — pré-requisito de conteúdo fora do escopo desta task, a ser resolvido antes da aplicação presencial real.
+---
+
+## 2026-08-12 — `presencial_status_enum` (fix crítico do round 1 de review da `presencial_schema`)
+
+**Aplicada em PROD.** Arquivo: `20260812100050_presencial_status_enum.sql`. Não altera `20260812100000_presencial_schema.sql` (já aplicada).
+
+Achado Critical do review: o brief da Task 1 descrevia `presencial_pending` como "status novo" mas `attempts.status` **não é `text` com CHECK — é o enum `public.attempt_status`** (`in_progress, submitted, expired, offline_pending`). A migration original não criava o valor, e a Task 4 (criação de attempt presencial) quebraria em produção com `invalid input value for enum attempt_status`. Erro de leitura do banco na hora de escrever o plano, não da migration em si.
+
+Fix: bloco guardado idêntico ao padrão já usado neste projeto para adicionar `offline_pending` (`20260404163153_3bb9574e-63e9-46d8-8550-f5d05f56c804.sql`) — `IF NOT EXISTS (... pg_type/pg_enum ...) THEN ALTER TYPE public.attempt_status ADD VALUE 'presencial_pending'; END IF;`, idempotente.
+
+```sql
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    JOIN pg_enum e ON e.enumtypid = t.oid
+    WHERE n.nspname = 'public'
+      AND t.typname = 'attempt_status'
+      AND e.enumlabel = 'presencial_pending'
+  ) THEN
+    ALTER TYPE public.attempt_status ADD VALUE 'presencial_pending';
+  END IF;
+END
+$$;
+```
+
+**Smokes (via `execute_sql`, em duas chamadas separadas — `ALTER TYPE ... ADD VALUE` não pode ser consumido na mesma transação em que é criado):**
+
+1. `select string_agg(e.enumlabel, ', ' order by e.enumsortorder) ... where t.typname = 'attempt_status'` → `in_progress, submitted, expired, offline_pending, presencial_pending`. ✓
+2. `select 'presencial_pending'::public.attempt_status;` → `presencial_pending` (cast aceito, valor utilizável). ✓
 
 ---
