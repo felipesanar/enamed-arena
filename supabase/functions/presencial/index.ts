@@ -44,6 +44,40 @@ const MAX_CHECKIN_PER_IP = 120;          // uma sala inteira cabe folgado
 const MAX_CHECKIN_PER_EMAIL = 5;
 const MAX_NAME_LOOKUP_PER_IP = 20;       // busca por nome é mais sensível (enumeração)
 const MAX_SUBMIT_PER_IP = 120;           // mesma lógica do checkin: uma sala inteira cabe folgado
+
+// Fix round 2/5: teto de submissões `unlinked` por SESSÃO (não por IP, não
+// por e-mail — decisão do dono do produto). O CAS do round 1 fecha o
+// reenvio do MESMO token; mas nada impedia repetir `start-unlinked` com um
+// e-mail auto-declarado diferente a cada vez (contorna MAX_CHECKIN_PER_EMAIL,
+// que é por e-mail) para conseguir uma submissão NOVA a cada tentativa e
+// diferenciar `by_area` ENTRE submissões em vez de dentro da mesma — mesmo
+// oráculo, só que ao custo de 1 start-unlinked + 1 submit por ponto de
+// dado. Com rate limit de 120/h por IP isso ainda rende ~120 pontos/hora, e
+// o teto some de vez com 2+ IPs (trivial numa sala com wifi + dados móveis).
+//
+// Um teto por sessão neutraliza isso porque `presencial_sessions` não é
+// criável pelo atacante (só pelo admin) — diferente de token/e-mail/IP, que
+// ele controla livremente. Volume anômalo de "não achei minha conta"
+// também é, por si, um sinal que deve chegar à fila do admin: numa sala com
+// ~100 pessoas e um fiscal, alguém fazendo dezenas de check-ins sem conta
+// seria notado.
+//
+// Valor: sala de ~100 alunos, taxa plausível de fallback ("não achei minha
+// conta") bem abaixo de 20% → ~20 unlinked esperados no cenário legítimo.
+// 30 dá ~50% de folga sobre essa expectativa (evita 429 em alunos legítimos
+// numa sala com fallback um pouco acima da média) e ainda corta o teto de
+// pontos de dado disponíveis ao ataque em mais de uma ordem de grandeza
+// frente ao anterior (várias centenas via múltiplos e-mails/IPs → 30 fixos
+// por sessão, esgotáveis uma única vez, para sempre, não por hora).
+//
+// Não virou coluna configurável em `presencial_sessions` (ex.: `max_unlinked`)
+// porque isso pede migration + exposição em qualquer RPC de admin que
+// cria/edita sessão — código que este round não toca e que pertence à
+// task de admin de sessões. Constante documentada aqui evita inflar escopo
+// e invadir uma superfície que não é desta task; fica fácil de promover a
+// coluna depois, se o dono do produto quiser afrouxar por sessão sem
+// redeploy.
+const MAX_UNLINKED_PER_SESSION = 30;
 const CLAIM_RETRY_ATTEMPTS = 3;          // reduz a chance de "attempt certo, submissão incompleta"
 const CLAIM_RETRY_BASE_DELAY_MS = 150;
 
@@ -806,6 +840,32 @@ Deno.serve(async (req) => {
     if (emailLimited) return emailLimited;
 
     if (action === "start-unlinked") {
+      // Fix round 2/5: teto por sessão (ver comentário de MAX_UNLINKED_PER_SESSION).
+      // Único ponto do arquivo que cria presencial_submissions com
+      // status='unlinked' — checkin/claim sempre resolvem para um usuário
+      // real antes de chamar createSession.
+      const { count: unlinkedCount, error: unlinkedCountErr } = await supabaseAdmin
+        .from("presencial_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", session.id)
+        .eq("status", "unlinked");
+      if (unlinkedCountErr) throw unlinkedCountErr;
+
+      if ((unlinkedCount ?? 0) >= MAX_UNLINKED_PER_SESSION) {
+        console.warn(
+          "[presencial] start-unlinked: teto de submissões não vinculadas atingido para a sessão:",
+          session.id, "count:", unlinkedCount,
+        );
+        // Copy deliberadamente neutra: não confirma "limite atingido" (ensinaria
+        // o atacante a variar sessão) nem alarma o aluno legítimo — direciona
+        // pro fiscal, que é quem deve investigar um volume assim na sala.
+        return json(
+          { error: "Não foi possível registrar agora. Chame o fiscal da sala." },
+          429,
+          cors,
+        );
+      }
+
       const { body: resultBody } = await createSession(
         supabaseAdmin, session, "unlinked", null, ipHash, name, email,
       );
