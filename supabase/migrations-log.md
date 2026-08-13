@@ -768,3 +768,26 @@ Task 1 (fundação) da aplicação presencial do Simulado 7. **Aplicada em PROD.
 3. `relrowsecurity` e contagem de `pg_policies` nas três tabelas → `presencial_sessions`, `presencial_submissions`, `presencial_duplicate_candidates` todas com `relrowsecurity = true` e `policies = 0`. ✓
 
 ---
+
+## 2026-08-12 — `score_presencial_answers`
+
+Task 3 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100200_score_presencial_answers.sql`.
+
+Cria a RPC **`score_presencial_answers(p_simulado_id uuid, p_answers jsonb) RETURNS jsonb`** — correção agregada de um gabarito presencial **sem depender de attempt**, fonte única do que a Tela 3 (resultado) exibe nos dois ramos (vinculado e `unlinked`): o `finalize_attempt_with_results` devolve totais mas não a quebra por área.
+
+- `LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'`; `REVOKE ALL ... FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE ... TO service_role` — só as edge functions do fluxo presencial chamam.
+- Une `p_answers` (array de `{question_id, selected_option_id}`) contra **todas** as questões de `questions.simulado_id = p_simulado_id` via `LEFT JOIN`: questão sem resposta no payload participa do denominador e conta como erro (não é excluída), condição do smoke 2.
+- Alternativa correta = `question_options.is_correct = true`; acerto = `selected_option_id` presente **e** igual ao `id` da opção correta.
+- Área colapsa `NULL`/`''` (após `btrim`) em `'Sem Especialidade'` — mesmo rótulo do cálculo client-side em `src/lib/resultHelpers.ts`, para não divergir da nomenclatura entre as duas telas.
+- `by_area` agregado com `COUNT(*) FILTER (WHERE is_correct)`, `percentage` e `score_percentage` arredondados a 2 casas (`ROUND(..., 2)`), `by_area` ordenado por `area` e sempre um array (`COALESCE(..., '[]'::jsonb)`) mesmo com 0 questões.
+
+**Schema confirmado antes de aplicar:** `questions.question_number` (não `number`), `questions.area` (texto livre, nullable), `question_options.is_correct` (boolean) — sem alternativa E na plataforma.
+
+**Smokes (via `execute_sql`):**
+
+1. **Gabarito 100% correto**, rodado contra o simulado especificado no brief, `6be18ec8-db68-482d-9417-281d66d13ff1` ("Simulado 7", `status='published'`) — **resultado: `total=0, correct=0, pct=0, soma_areas=null`**, porque o Simulado 7 **não tem nenhuma questão carregada em produção ainda** (`count(*) from questions where simulado_id = '6be18ec8...' = 0`; confirmado via `simulados` que o ID e o título batem). Não é bug da função: é lacuna de dados (o banco de questões do S7 ainda não foi importado — a Task 1, aplicada hoje, só criou o schema da aplicação presencial). Como validação substituta da lógica, rodei o mesmo smoke contra o Simulado 6 (`1e802d25-05c8-4849-93ef-33580e9a4908`, 100 questões, todas com área): **`total=100, correct=100, pct=100.00, soma_areas=100`** — bate exatamente com o esperado (total = correct = soma_areas = nº de questões; pct = 100.00). ✓ (lógica validada; dado do S7 pendente de import)
+2. **Gabarito vazio** (`'[]'::jsonb`) contra o Simulado 7 → `correct=0, pct=0.00, areas=0` (esperado `areas > 0`, mas o S7 tem 0 questões, então 0 áreas é o resultado correto e consistente — não há área nenhuma para agrupar). Mesmo smoke contra o Simulado 6 → **`correct=0, pct=0.00, areas=8`** — bate com o esperado (`correct=0`, `pct=0.00`, `areas > 0`). ✓
+
+**Conclusão:** a RPC está correta e implantada exatamente como o brief especifica; os dois smokes passam integralmente quando rodados contra um simulado com questões carregadas (Simulado 6). Contra o Simulado 7 real, os smokes retornam resultados degenerados-mas-corretos (0/0/null e 0/0/0) porque **o banco de questões do Simulado 7 ainda não existe em produção** — pré-requisito de conteúdo fora do escopo desta task, a ser resolvido antes da aplicação presencial real.
+
+---
