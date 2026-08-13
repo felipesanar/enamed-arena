@@ -283,6 +283,22 @@ function mapFlashcardRow(row: any): Flashcard {
   } as Flashcard;
 }
 
+export type AttemptModality = 'online' | 'offline' | 'presencial';
+export type AttemptTypeFilter = AttemptModality | AttemptModality[];
+
+/**
+ * Aplica o filtro de modalidade: `.in` para lista, `.eq` para valor único.
+ * Existe porque o attempt presencial substitui o online in-place (a mesma
+ * linha muda de `attempt_type`), então as telas do aluno precisam pedir
+ * ['online','presencial'] para continuar achando a tentativa dele.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyAttemptTypeFilter(query: any, filter: AttemptTypeFilter) {
+  return Array.isArray(filter)
+    ? query.in('attempt_type', filter)
+    : query.eq('attempt_type', filter);
+}
+
 // ─── API ───
 
 export const simuladosApi = {
@@ -350,13 +366,15 @@ export const simuladosApi = {
     });
   },
 
-  async getAttempt(simuladoId: string, userId: string, attemptType: 'online' | 'offline' = 'online'): Promise<AttemptRow | null> {
-    const { data, error } = await supabase
-      .from('attempts')
-      .select('*')
-      .eq('simulado_id', simuladoId)
-      .eq('user_id', userId)
-      .eq('attempt_type', attemptType)
+  async getAttempt(simuladoId: string, userId: string, attemptType: AttemptTypeFilter = 'online'): Promise<AttemptRow | null> {
+    const { data, error } = await applyAttemptTypeFilter(
+      supabase
+        .from('attempts')
+        .select('*')
+        .eq('simulado_id', simuladoId)
+        .eq('user_id', userId),
+      attemptType,
+    )
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -371,14 +389,16 @@ export const simuladosApi = {
 
   async getUserAttempts(
     userId: string,
-    attemptType: 'online' | 'offline' = 'online',
+    attemptType: AttemptTypeFilter = 'online',
     limit = 200,
   ): Promise<AttemptRow[]> {
-    const { data, error } = await supabase
-      .from('attempts')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('attempt_type', attemptType)
+    const { data, error } = await applyAttemptTypeFilter(
+      supabase
+        .from('attempts')
+        .select('*')
+        .eq('user_id', userId),
+      attemptType,
+    )
       .order('started_at', { ascending: false })
       .limit(limit);
 

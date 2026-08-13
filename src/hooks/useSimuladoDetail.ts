@@ -27,7 +27,7 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined,
   const canonicalId = config.id;
   const [questionData, onlineAttempt, offlineAttempt] = await Promise.all([
     simuladosApi.getQuestions(canonicalId, includeCorrectAnswers),
-    userId ? simuladosApi.getAttempt(canonicalId, userId, 'online') : Promise.resolve(null),
+    userId ? simuladosApi.getAttempt(canonicalId, userId, ['online', 'presencial']) : Promise.resolve(null),
     userId ? simuladosApi.getAttempt(canonicalId, userId, 'offline') : Promise.resolve(null),
   ]);
 

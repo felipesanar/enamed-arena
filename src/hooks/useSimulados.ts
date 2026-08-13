@@ -14,7 +14,7 @@ import { enrichSimulado } from '@/lib/simulado-helpers';
 async function fetchSimuladosData(userId: string | undefined) {
   const [simuladoConfigs, onlineAttempts, offlineAttempts] = await Promise.all([
     simuladosApi.listSimulados(),
-    userId ? simuladosApi.getUserAttempts(userId, 'online') : Promise.resolve([]),
+    userId ? simuladosApi.getUserAttempts(userId, ['online', 'presencial']) : Promise.resolve([]),
     userId ? simuladosApi.getUserAttempts(userId, 'offline') : Promise.resolve([]),
   ]);
   logger.log('[useSimulados] Loaded', simuladoConfigs.length, 'simulados,', onlineAttempts.length, 'online +', offlineAttempts.length, 'offline attempts');
