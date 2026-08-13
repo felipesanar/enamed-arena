@@ -82,6 +82,7 @@ const AdminMarketing   = lazy(() => import('./admin/pages/AdminMarketing'))
 const AdminProduto     = lazy(() => import('./admin/pages/AdminProduto'))
 const AdminInteligencia = lazy(() => import('./admin/pages/AdminInteligencia'))
 const AdminAuditoria = lazy(() => import('./admin/pages/AdminAuditoria'))
+const AdminPresencial = lazy(() => import('./admin/pages/AdminPresencial'))
 
 // Admin lazy imports — named exports
 const AdminGuard = lazy(() =>
@@ -168,6 +169,7 @@ const App = () => (
                   <Route path="produto"    element={<Suspense fallback={<PageLoadingSkeleton />}><AdminProduto /></Suspense>} />
                   <Route path="inteligencia" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminInteligencia /></Suspense>} />
                   <Route path="auditoria" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminAuditoria /></Suspense>} />
+                  <Route path="presencial" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminPresencial /></Suspense>} />
                 </Route>
               </Route>
 

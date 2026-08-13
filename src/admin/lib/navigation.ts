@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FileText, Database, Users, ClipboardList,
-  Route, Megaphone, Compass, Eye, Gauge, ScrollText, type LucideIcon,
+  Route, Megaphone, Compass, Eye, Gauge, ScrollText, QrCode, type LucideIcon,
 } from 'lucide-react'
 
 export interface AdminNavItem {
@@ -41,6 +41,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: '/admin/usuarios',   label: 'Usuários',   icon: Users,         capability: 'users.view' },
       { to: '/admin/tentativas', label: 'Tentativas', icon: ClipboardList, capability: 'attempts.view' },
+      // Sessões (content.manage) e fila de identidade (attempts.manage) moram
+      // na mesma página; o gate real por seção acontece dentro dela
+      // (AdminPresencial.tsx). O item do menu usa content.manage porque é
+      // quem cadastra a sala com antecedência — quem só tem attempts.manage
+      // ainda acessa a fila digitando /admin/presencial direto.
+      { to: '/admin/presencial', label: 'Presencial', icon: QrCode, capability: 'content.manage' },
     ],
   },
   {

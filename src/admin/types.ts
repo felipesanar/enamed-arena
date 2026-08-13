@@ -480,3 +480,35 @@ export type AuditLogRow = {
   created_at: string
   total_count: number
 }
+
+// ─── Presencial (sessões + fila de identidade) ───
+
+/** Espelha admin_presencial_sessions_list() — Task 7. */
+export interface PresencialSessionRow {
+  id: string
+  simulado_id: string
+  simulado_title: string
+  code: string
+  label: string
+  opens_at: string
+  closes_at: string
+  is_active: boolean
+  submissions_count: number
+  linked_count: number
+}
+
+/** Espelha admin_presencial_queue(p_status) — Task 7. */
+export interface PresencialQueueRow {
+  submission_id: string
+  session_label: string
+  declared_name: string
+  declared_email: string
+  identification_path: string
+  total_correct: number
+  score_percentage: number | null
+  created_at: string
+  ip_hash: string | null
+  suggested_user_id: string | null
+  suggested_email: string | null
+  suggested_name: string | null
+}
