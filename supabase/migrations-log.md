@@ -823,3 +823,28 @@ $$;
 2. `select 'presencial_pending'::public.attempt_status;` → `presencial_pending` (cast aceito, valor utilizável). ✓
 
 ---
+
+## 2026-08-12 — `finalize_for_user`
+
+Task 2 da aplicação presencial do Simulado 7. **Aplicada em PROD.** Arquivo: `20260812100100_finalize_for_user.sql`.
+
+`finalize_attempt_with_results(p_attempt_id)` resolvia o usuário por `auth.uid()` — inutilizável pelo fluxo presencial, que roda sem sessão autenticada (edge function com `service_role`, sem JWT de aluno). Extraída a variante explícita **`finalize_attempt_with_results_for_user(p_attempt_id uuid, p_user_id uuid)`**; a função pública original vira **wrapper** que delega para ela passando `auth.uid()`. Nenhuma lógica de score duplicada.
+
+**Step 1 obrigatório (não confiar no brief):** capturei a definição real de produção via `pg_get_functiondef` antes de escrever a migration. O corpo batia com o que o brief assumiu em toda a lógica/assinatura, com uma divergência textual: produção usa a mensagem de erro `'Attempt not found for current user'`, o brief tinha `'Attempt not found for user'`. Mantive a **mensagem literal de produção** na variante nova (decisão confirmada: a wrapper delega para ela, então qualquer caller que hoje casa essa string em log/tratamento de erro continua vendo o mesmo texto). A única mudança de lógica no corpo é `auth.uid()` → `p_user_id` na cláusula `WHERE ... AND user_id = p_user_id` — nada mais diverge do corpo capturado.
+
+**Step 2b (dependentes, antes de aplicar):** `select proname from pg_proc where prosrc ilike '%finalize_attempt_with_results%' and proname <> 'finalize_attempt_with_results'` trouxe 3 resultados, não o único esperado (`submit_offline_answers_guarded`):
+- `submit_offline_answers_guarded` — esperado, chama a wrapper (assinatura de 1 argumento), sem alteração necessária.
+- `prevent_direct_attempts_update` — falso positivo do `ilike`: o nome só aparece dentro do texto de uma mensagem de erro do trigger (`'attempts.status must be changed via finalize RPC'`), não é uma chamada real.
+- `process_attempt_reprocessing_queue` — chamada real à wrapper de 1 argumento, dentro de um processador de fila (`attempt_processing_queue`) que provavelmente roda sem sessão de usuário. Diagnóstico: **nenhuma ação necessária nesta task** — a wrapper mantém exatamente a mesma resolução via `auth.uid()` de antes do refactor (só passou a delegar internamente), então o comportamento externo para esse chamador não muda, nem para melhor nem para pior. Se esse processador já roda sem sessão hoje, ele já estaria latentemente sujeito a `auth.uid()` nulo antes desta mudança — condição pré-existente, fora do escopo desta task, registrada à parte pelo orquestrador como observação diferida.
+
+Nem `submit_offline_answers_guarded` nem `process_attempt_reprocessing_queue` precisaram de alteração.
+
+**Migration aplicada sem incidentes:** o `CREATE OR REPLACE` da wrapper **não** deu `42P13` — assinatura (`p_attempt_id uuid`) e `RETURNS TABLE` idênticos aos de produção, então não foi necessário `DROP` nem reconceder grants manualmente.
+
+**Smokes (via `execute_sql`):**
+
+1. Idempotência sobre attempt já finalizado do Simulado 6 (`1e802d25-05c8-4849-93ef-33580e9a4908`): `antes = 78.00`, `depois = 78.00` — bate, early-return sem recalcular. ✓
+2. `user_id` errado (`gen_random_uuid()`) contra um attempt `submitted` real: bloco `do $$ ... exception when others ...$$` completou com sucesso (sem propagar a exceção `'FALHOU: aceitou user_id errado'`), confirmando que `RAISE EXCEPTION 'Attempt not found for current user'` disparou e foi capturado. ✓
+3. `select grantee, privilege_type from information_schema.role_routine_grants where routine_name = 'finalize_attempt_with_results_for_user'` → apenas `service_role` (EXECUTE) e `postgres` (owner, EXECUTE). Nenhum grant para `public`/`anon`/`authenticated`. ✓ Confirmado também que a wrapper (`finalize_attempt_with_results`) manteve seus grants originais: `authenticated`, `service_role`, `postgres`. ✓
+
+---
