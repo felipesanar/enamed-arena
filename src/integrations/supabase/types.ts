@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -791,6 +791,168 @@ export type Database = {
             columns: ["specialty_id"]
             isOneToOne: false
             referencedRelation: "enamed_specialties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presencial_duplicate_candidates: {
+        Row: {
+          candidate_user_id: string
+          chosen: boolean
+          created_at: string
+          id: string
+          session_id: string
+          submission_id: string | null
+        }
+        Insert: {
+          candidate_user_id: string
+          chosen?: boolean
+          created_at?: string
+          id?: string
+          session_id: string
+          submission_id?: string | null
+        }
+        Update: {
+          candidate_user_id?: string
+          chosen?: boolean
+          created_at?: string
+          id?: string
+          session_id?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presencial_duplicate_candidates_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "presencial_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presencial_duplicate_candidates_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "presencial_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presencial_sessions: {
+        Row: {
+          closes_at: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          opens_at: string
+          simulado_id: string
+        }
+        Insert: {
+          closes_at: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          opens_at: string
+          simulado_id: string
+        }
+        Update: {
+          closes_at?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          opens_at?: string
+          simulado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presencial_sessions_simulado_id_fkey"
+            columns: ["simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presencial_submissions: {
+        Row: {
+          answers: Json
+          created_at: string
+          declared_email: string
+          declared_name: string
+          id: string
+          identification_path: string
+          ip_hash: string | null
+          linked_at: string | null
+          linked_attempt_id: string | null
+          linked_user_id: string | null
+          score_percentage: number | null
+          session_id: string
+          simulado_id: string
+          status: string
+          submitted_at: string | null
+          total_correct: number | null
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          declared_email: string
+          declared_name: string
+          id?: string
+          identification_path: string
+          ip_hash?: string | null
+          linked_at?: string | null
+          linked_attempt_id?: string | null
+          linked_user_id?: string | null
+          score_percentage?: number | null
+          session_id: string
+          simulado_id: string
+          status?: string
+          submitted_at?: string | null
+          total_correct?: number | null
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          declared_email?: string
+          declared_name?: string
+          id?: string
+          identification_path?: string
+          ip_hash?: string | null
+          linked_at?: string | null
+          linked_attempt_id?: string | null
+          linked_user_id?: string | null
+          score_percentage?: number | null
+          session_id?: string
+          simulado_id?: string
+          status?: string
+          submitted_at?: string | null
+          total_correct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presencial_submissions_linked_attempt_id_fkey"
+            columns: ["linked_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presencial_submissions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "presencial_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presencial_submissions_simulado_id_fkey"
+            columns: ["simulado_id"]
+            isOneToOne: false
+            referencedRelation: "simulados"
             referencedColumns: ["id"]
           },
         ]
@@ -1717,6 +1879,58 @@ export type Database = {
           total_responses: number
         }[]
       }
+      admin_presencial_link: {
+        Args: { p_submission_id: string; p_user_id: string }
+        Returns: Json
+      }
+      admin_presencial_queue: {
+        Args: { p_status?: string }
+        Returns: {
+          created_at: string
+          declared_email: string
+          declared_name: string
+          identification_path: string
+          ip_hash: string
+          score_percentage: number
+          session_label: string
+          submission_id: string
+          suggested_email: string
+          suggested_name: string
+          suggested_user_id: string
+          total_correct: number
+        }[]
+      }
+      admin_presencial_reassign: {
+        Args: { p_attempt_id: string; p_to_user_id: string }
+        Returns: Json
+      }
+      admin_presencial_session_upsert: {
+        Args: {
+          p_closes_at: string
+          p_code: string
+          p_id: string
+          p_is_active: boolean
+          p_label: string
+          p_opens_at: string
+          p_simulado_id: string
+        }
+        Returns: string
+      }
+      admin_presencial_sessions_list: {
+        Args: never
+        Returns: {
+          closes_at: string
+          code: string
+          id: string
+          is_active: boolean
+          label: string
+          linked_count: number
+          opens_at: string
+          simulado_id: string
+          simulado_title: string
+          submissions_count: number
+        }[]
+      }
       admin_produto_feature_adoption: {
         Args: { p_days?: number; p_segment?: string }
         Returns: {
@@ -1928,6 +2142,25 @@ export type Database = {
         }
         Returns: number
       }
+      bump_presencial_bucket: {
+        Args: {
+          p_bucket_key: string
+          p_bucket_type: string
+          p_window_ms?: number
+        }
+        Returns: number
+      }
+      claim_presencial_unlinked_submission: {
+        Args: {
+          p_declared_email: string
+          p_declared_name: string
+          p_ip_hash: string
+          p_max_unlinked: number
+          p_session_id: string
+          p_simulado_id: string
+        }
+        Returns: string
+      }
       clear_awaiting_lesson_guarded: {
         Args: { p_entry_id: string }
         Returns: undefined
@@ -1965,12 +2198,26 @@ export type Database = {
         Args: { p_simulado_id: string }
         Returns: Json
       }
+      create_or_convert_presencial_attempt: {
+        Args: { p_simulado_id: string; p_user_id: string }
+        Returns: string
+      }
       enqueue_attempt_reprocessing: {
         Args: { p_attempt_id: string; p_reason?: string }
         Returns: string
       }
       finalize_attempt_with_results: {
         Args: { p_attempt_id: string }
+        Returns: {
+          is_within_window: boolean
+          score_percentage: number
+          total_answered: number
+          total_correct: number
+          total_questions: number
+        }[]
+      }
+      finalize_attempt_with_results_for_user: {
+        Args: { p_attempt_id: string; p_user_id: string }
         Returns: {
           is_within_window: boolean
           score_percentage: number
@@ -2094,6 +2341,10 @@ export type Database = {
         Args: { p_now?: string }
         Returns: boolean
       }
+      link_presencial_submission: {
+        Args: { p_submission_id: string; p_user_id: string }
+        Returns: Json
+      }
       log_analytics_event: {
         Args: {
           p_client_timestamp?: string
@@ -2189,12 +2440,20 @@ export type Database = {
         Args: { p_confidence: string; p_entry_id: string; p_outcome: string }
         Returns: Json
       }
+      score_presencial_answers: {
+        Args: { p_answers: Json; p_simulado_id: string }
+        Returns: Json
+      }
       snooze_error_notebook_entry: {
         Args: { p_days?: number; p_entry_id: string }
         Returns: string
       }
       submit_offline_answers_guarded: {
         Args: { p_answers: Json; p_attempt_id: string }
+        Returns: Json
+      }
+      submit_presencial_answers: {
+        Args: { p_answers: Json; p_attempt_id: string; p_user_id: string }
         Returns: Json
       }
       update_attempt_progress_guarded: {
@@ -2219,6 +2478,7 @@ export type Database = {
         | "submitted"
         | "expired"
         | "offline_pending"
+        | "presencial_pending"
       error_reason:
         | "did_not_know"
         | "did_not_remember"
@@ -2368,6 +2628,7 @@ export const Constants = {
         "submitted",
         "expired",
         "offline_pending",
+        "presencial_pending",
       ],
       error_reason: [
         "did_not_know",
