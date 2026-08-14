@@ -43,14 +43,37 @@ function normalizeIdentify(input: PresencialIdentifyInput): PresencialIdentifyIn
  * com status 200 (`{ error: '...' }`), igual à `create-guest-account` —
  * então checamos `data?.error` mesmo quando o `error` do `invoke` é nulo.
  */
+/**
+ * Extrai a mensagem de erro em pt-BR do corpo da resposta de um
+ * FunctionsHttpError. Devolve `null` quando não há corpo legível — aí o caller
+ * usa uma mensagem genérica, nunca a do erro de transporte.
+ */
+async function lerMensagemDoCorpo(error: unknown): Promise<string | null> {
+  const ctx = (error as { context?: unknown } | null)?.context;
+  if (!ctx || typeof (ctx as Response).clone !== 'function') return null;
+  try {
+    const corpo = await (ctx as Response).clone().json();
+    const msg = (corpo as { error?: unknown } | null)?.error;
+    return typeof msg === 'string' && msg.trim() ? msg : null;
+  } catch {
+    return null;
+  }
+}
+
 async function invokePresencial<T>(action: string, body: object): Promise<T> {
   const { data, error } = await supabase.functions.invoke('presencial', {
     body: { action, ...body },
   });
 
   if (error) {
-    logger.error(`[PresencialApi] Erro ao invocar a action "${action}":`, error);
-    throw error;
+    // `functions.invoke` transforma qualquer status não-2xx num FunctionsHttpError
+    // cuja mensagem é genérica e em inglês ("Edge Function returned a non-2xx
+    // status code"). A mensagem útil, em pt-BR, está no CORPO da resposta, que
+    // fica acessível via `error.context`. Sem ler isso, o aluno vê texto técnico
+    // em inglês numa sala de prova — foi o que aconteceu no primeiro teste real.
+    const doServidor = await lerMensagemDoCorpo(error);
+    logger.error(`[PresencialApi] Erro ao invocar a action "${action}":`, doServidor ?? error);
+    throw new Error(doServidor ?? 'Não foi possível continuar. Chame o fiscal da sala.');
   }
 
   const payload = data as ({ error?: string } & Partial<T>) | null;
