@@ -269,7 +269,12 @@ function HeroCard({
 function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
   const isInProgress = sim.status === "in_progress";
   const alreadyStarted = sim.userState?.started && !sim.userState.finished;
-  const ctaLabel = alreadyStarted ? "Continuar Simulado" : "Iniciar Simulado";
+  const isOfflineAttempt = sim.userState?.attemptType === "offline";
+  const ctaLabel = alreadyStarted
+    ? isOfflineAttempt
+      ? "Enviar gabarito"
+      : "Continuar Simulado"
+    : "Iniciar Simulado";
   const isBlocked = hasActiveAttempt && !alreadyStarted;
   const [showModeModal, setShowModeModal] = useState(false);
 
@@ -362,7 +367,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
          <div className="flex flex-wrap gap-2">
           {alreadyStarted ? (
             <Link
-              to={`/simulados/${sim.slug}/prova`}
+              to={`/simulados/${sim.slug}/${isOfflineAttempt ? "gabarito" : "prova"}`}
               className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
               style={{ background: "#e83862", color: "#fff" }}
             >
