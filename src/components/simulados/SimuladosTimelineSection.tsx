@@ -31,13 +31,18 @@ export type SimuladosTimelineSectionProps = {
 /** Link para iniciar ou retomar (janela aberta, após janela em modo treino, ou prova em andamento). */
 function simuladoTakeExamHref(sim: SimuladoWithStatus): string {
   const resume = sim.userState?.started === true && sim.userState?.finished !== true;
-  if (resume) return `/simulados/${sim.slug}/prova`;
+  if (resume) {
+    return sim.userState?.attemptType === "offline"
+      ? `/simulados/${sim.slug}/gabarito`
+      : `/simulados/${sim.slug}/prova`;
+  }
   return `/simulados/${sim.slug}/start`;
 }
 
 function simuladoTakeExamLinkLabel(sim: SimuladoWithStatus): string {
   const resume = sim.userState?.started === true && sim.userState?.finished !== true;
-  return resume ? "Continuar" : "Fazer simulado";
+  if (!resume) return "Fazer simulado";
+  return sim.userState?.attemptType === "offline" ? "Enviar gabarito" : "Continuar";
 }
 
 /** Variante só para nó + ênfase do rótulo; superfície do card é única (clara). */
