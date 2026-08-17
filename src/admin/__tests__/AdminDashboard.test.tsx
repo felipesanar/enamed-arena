@@ -6,6 +6,10 @@ import { renderWithAccess } from './test-utils'
 vi.mock('@/admin/hooks/useAdminDashboard')
 vi.mock('@/admin/hooks/useAdminAuth')
 vi.mock('@/admin/services/adminApi')
+vi.mock('@/admin/hooks/useGabaritoSuspicion', () => ({
+  useGabaritoGoldenWindowSimulados: vi.fn(() => ({ data: [] })),
+  useGabaritoSuspicionMap: vi.fn(() => ({ data: new Map() })),
+}))
 
 import {
   useAdminDashboardKpis,

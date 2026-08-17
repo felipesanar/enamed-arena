@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
 import { AdminPanel } from '@/admin/components/ui/AdminPanel';
 import { AdminSectionHeader } from '@/admin/components/ui/AdminSectionHeader';
+import { GabaritoAuditDialog } from '@/admin/components/GabaritoAuditDialog';
+import { useGabaritoAudit } from '@/admin/hooks/useGabaritoAudit';
 import { adminApi } from '../services/adminApi';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
@@ -108,6 +110,15 @@ function AdminSimuladoFormContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
   const [realCount, setRealCount] = useState<number | null>(null);
+  const [gabaritoDialogOpen, setGabaritoDialogOpen] = useState(false);
+  const {
+    summary: gabaritoSummary,
+    status: gabaritoAuditStatus,
+    aiFindings: gabaritoAiFindings,
+    aiLoading: gabaritoAiLoading,
+    runGabaritoAudit,
+    runAiSecondOpinion: runGabaritoAiSecondOpinion,
+  } = useGabaritoAudit();
 
   const loadSimulado = () => {
     if (!isEdit) return;
@@ -165,7 +176,11 @@ function AdminSimuladoFormContent() {
   );
   const hasWindow = !!form.execution_window_start && !!form.execution_window_end && positions.ready;
 
-  const persist = async (statusOverride?: 'draft' | 'published') => {
+  // Contagem "de verdade" de questões: em edição, prevalece a que o upload de
+  // questões mantém atualizada; sem isso, cai no valor salvo no formulário.
+  const effectiveQuestionsCount = Number(isEdit && realCount != null ? realCount : form.questions_count);
+
+  const persist = async (statusOverride?: 'draft' | 'published', opts?: { skipGabaritoAudit?: boolean }) => {
     const status = statusOverride ?? form.status;
 
     if (windowError) {
@@ -187,6 +202,34 @@ function AdminSimuladoFormContent() {
 
     setSaving(true);
 
+    // Gate de publicação: só roda em cima de um simulado existente com questões
+    // cadastradas (um simulado novo ainda não tem questões, nada a conferir), e
+    // só quando não veio do "Publicar mesmo assim" (skipGabaritoAudit).
+    const shouldGateOnGabarito =
+      status === 'published' && !opts?.skipGabaritoAudit && isEdit && effectiveQuestionsCount > 0;
+
+    let gabaritoConfirmedClean = false;
+
+    if (shouldGateOnGabarito) {
+      try {
+        const summary = await runGabaritoAudit(id!);
+        if (summary.errors.length > 0 || summary.warnings.length > 0) {
+          setGabaritoDialogOpen(true);
+          setSaving(false);
+          return;
+        }
+        gabaritoConfirmedClean = true;
+      } catch (err: any) {
+        // Um select/RPC que cai não pode travar a publicação — é o risco oposto
+        // ao que estamos mitigando. Avisa e segue publicando sem a checagem.
+        logger.error('[AdminSimuladoForm] Falha ao conferir gabaritos antes de publicar:', err);
+        toast({
+          title: 'Não foi possível conferir os gabaritos',
+          description: 'A publicação vai seguir sem a checagem automática.',
+        });
+      }
+    }
+
     const payload = {
       title: form.title,
       slug: form.slug,
@@ -195,7 +238,7 @@ function AdminSimuladoFormContent() {
       duration_minutes: Number(form.duration_minutes),
       // Em edição, persiste a contagem REAL de questões quando conhecida, evitando
       // re-gravar um valor defasado (o upload de questões já mantém este campo).
-      questions_count: Number(isEdit && realCount != null ? realCount : form.questions_count),
+      questions_count: effectiveQuestionsCount,
       execution_window_start: localInputToUtcISO(form.execution_window_start),
       execution_window_end: localInputToUtcISO(form.execution_window_end),
       results_release_at: localInputToUtcISO(form.results_release_at),
@@ -213,7 +256,9 @@ function AdminSimuladoFormContent() {
       toast({
         title: status === 'published' ? 'Simulado publicado' : 'Rascunho salvo',
         description: status === 'published'
-          ? 'Já fica visível para os alunos na janela de execução.'
+          ? (gabaritoConfirmedClean
+            ? 'Gabaritos conferidos: nenhuma divergência. Já fica visível para os alunos na janela de execução.'
+            : 'Já fica visível para os alunos na janela de execução.')
           : 'Suas alterações foram guardadas. O aluno ainda não vê este simulado.',
       });
       navigate('/admin/simulados');
@@ -228,6 +273,15 @@ function AdminSimuladoFormContent() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void persist();
+  };
+
+  const handleGabaritoBackToFix = () => {
+    setGabaritoDialogOpen(false);
+  };
+
+  const handleGabaritoPublishAnyway = () => {
+    setGabaritoDialogOpen(false);
+    void persist('published', { skipGabaritoAudit: true });
   };
 
   if (loading) {
@@ -284,7 +338,9 @@ function AdminSimuladoFormContent() {
               disabled={saving}
               onClick={() => void persist('published')}
             >
-              {saving ? 'Salvando...' : 'Publicar simulado'}
+              {saving
+                ? (gabaritoAuditStatus === 'loading' ? 'Conferindo gabaritos...' : 'Salvando...')
+                : 'Publicar simulado'}
             </Button>
           </>
         }
@@ -541,6 +597,18 @@ function AdminSimuladoFormContent() {
           Cancelar
         </Button>
       </div>
+
+      <GabaritoAuditDialog
+        open={gabaritoDialogOpen}
+        onOpenChange={setGabaritoDialogOpen}
+        summary={gabaritoSummary}
+        aiFindings={gabaritoAiFindings}
+        aiLoading={gabaritoAiLoading}
+        onRunAiSecondOpinion={() => void runGabaritoAiSecondOpinion()}
+        onBackToFix={handleGabaritoBackToFix}
+        onPublishAnyway={handleGabaritoPublishAnyway}
+        publishing={saving}
+      />
     </form>
   );
 }

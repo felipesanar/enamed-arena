@@ -33,6 +33,7 @@ import { parseXlsxFirstWorksheetRows } from '../utils/xlsxTextParser';
 import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
 import { VerifyFindingsPanel } from '../components/VerifyFindingsPanel';
 import { validateQuestions } from '@/admin/lib/validateQuestions';
+import { checkGabarito } from '@/admin/lib/gabaritoCheck';
 import { ENAMED_BLUEPRINT } from '@/lib/enamedBlueprint';
 
 interface ParsedRow {
@@ -310,6 +311,29 @@ function buildRowIssues(rows: ParsedRow[]): Map<number, RowIssue> {
           ? `"${area.trim()}" não existe. Você quis dizer "${suggestion}"?`
           : `"${area.trim()}" não existe. Use uma das áreas: ${VALID_AREAS.join(', ')}.`,
       };
+    } else {
+      // Cruzamento gabarito × comentário — entra por último porque enunciado
+      // ausente, alternativa vazia etc. são problemas maiores. Ver
+      // docs/superpowers/specs/2026-08-17-blindagem-gabarito-design.md.
+      try {
+        const gabaritoFindings = checkGabarito({
+          questionNumber: Number(row.numero),
+          gabarito,
+          options: options.map(([label, text]) => ({ label, text: text || '' })),
+          comentario: row['Comentário'] || '',
+        });
+        const errorFinding = gabaritoFindings.find((f) => f.severity === 'error');
+        if (errorFinding) {
+          issue = {
+            line,
+            what: errorFinding.what,
+            how: errorFinding.how,
+          };
+        }
+      } catch (err) {
+        // A checagem de gabarito não pode derrubar o parse da planilha inteira.
+        logger.error('[AdminUploadQuestions] Falha ao checar gabarito x comentário:', err);
+      }
     }
 
     if (issue) issues.set(index, issue);
@@ -415,6 +439,7 @@ function AdminUploadQuestionsContent() {
             alternativaC: r['Alternativa C'] || '',
             alternativaD: r['Alternativa D'] || '',
             gabarito: r.Gabarito || '',
+            comentario: r['Comentário'] || '',
           })),
         ),
       );

@@ -14,6 +14,9 @@ vi.mock('@/admin/services/adminApi', () => ({
 vi.mock('@/admin/hooks/useAdminSimuladosAnalytics', () => ({
   useAdminSimuladoEngagementMap: vi.fn(() => ({ data: new Map() })),
 }))
+vi.mock('@/admin/hooks/useGabaritoSuspicion', () => ({
+  useGabaritoSuspicionMap: vi.fn(() => ({ data: new Map() })),
+}))
 vi.mock('@/admin/utils/exportQuestionRanking', () => ({
   exportQuestionRankingXlsx: vi.fn(),
 }))

@@ -4,6 +4,8 @@ import {
   useAdminSimuladoDetailStats,
   useAdminSimuladoQuestionStats,
 } from '@/admin/hooks/useAdminSimuladosAnalytics'
+import { useGabaritoSuspicion } from '@/admin/hooks/useGabaritoSuspicion'
+import { formatSuspectPct } from '@/admin/lib/suspectKey'
 import { AdminStatCard } from '@/admin/components/ui/AdminStatCard'
 import { AdminSectionHeader } from '@/admin/components/ui/AdminSectionHeader'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
@@ -11,7 +13,61 @@ import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState'
 import { AdminQuestionStatsTable } from '@/admin/components/ui/AdminQuestionStatsTable'
 import { Button } from '@/components/ui/button'
 import { formatInt } from '@/admin/lib/format'
-import { BarChart3, ChevronLeft, RotateCw } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { BarChart3, ChevronLeft, RotateCw, AlertTriangle } from 'lucide-react'
+
+/** Sub-seção de "Qualidade por questão": distribuição de respostas com cara
+ * de gabarito errado (concentração alta numa alternativa, acerto baixo). */
+function GabaritoSuspicionSection({ simuladoId }: { simuladoId: string }) {
+  const { suspects, isLoading } = useGabaritoSuspicion(simuladoId)
+
+  if (isLoading) return null
+
+  if (suspects.length === 0) {
+    return (
+      <p className="mt-3 text-[11.5px] text-admin-faint">
+        Nenhuma suspeita de gabarito pela distribuição de respostas.
+      </p>
+    )
+  }
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-admin-line/80 bg-admin-surface">
+      <div className="flex items-center gap-2 border-b border-admin-line/80 bg-admin-destructive/5 px-3.5 py-2.5">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-admin-destructive" aria-hidden />
+        <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-admin-destructive">
+          Suspeita de gabarito
+        </p>
+        <span className="text-[10px] text-admin-faint">
+          {suspects.length === 1 ? '1 questão' : `${suspects.length} questões`}
+        </span>
+      </div>
+      <div className="divide-y divide-admin-line/40">
+        {suspects.map(s => (
+          <div key={s.questionNumber} className="flex items-start gap-3 px-3.5 py-2.5">
+            <span
+              className={cn(
+                'mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                s.severity === 'high'
+                  ? 'border-admin-destructive/30 bg-admin-destructive/10 text-admin-destructive'
+                  : 'border-admin-warning/30 bg-admin-warning/10 text-admin-warning',
+              )}
+            >
+              Q{s.questionNumber}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] text-admin-text">{s.reason}</p>
+              <p className="mt-0.5 text-[10.5px] text-admin-muted">
+                {formatSuspectPct(s.correctRate)} de acerto · {formatSuspectPct(s.topWrongPct)} marcaram{' '}
+                {s.topWrongLabel} · {formatInt(s.totalResponses)} respostas
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const SUBTITLE = 'Participação, conclusão e qualidade por questão.'
 

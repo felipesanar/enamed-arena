@@ -1,4 +1,6 @@
 import type { QuestionVerifyFinding } from '@/admin/services/adminApi';
+import { checkGabarito } from '@/admin/lib/gabaritoCheck';
+import { logger } from '@/lib/logger';
 
 export interface QuestionRow {
   numero: number;
@@ -8,12 +10,13 @@ export interface QuestionRow {
   alternativaC: string;
   alternativaD: string;
   gabarito: string;
+  comentario: string;
 }
 
 const norm = (s: string): string =>
   (s ?? '')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
@@ -22,6 +25,7 @@ export function validateQuestions(rows: QuestionRow[]): QuestionVerifyFinding[] 
   const findings: QuestionVerifyFinding[] = [];
   const numeroCount = new Map<number, number>();
   const enunciadoMap = new Map<string, number[]>();
+  let unverifiableCount = 0;
 
   rows.forEach((row, i) => {
     const qn = Number.isFinite(row.numero) ? row.numero : 0;
@@ -82,6 +86,40 @@ export function validateQuestions(rows: QuestionRow[]): QuestionVerifyFinding[] 
         severity: 'warning', evidence: `Alternativas idênticas: ${dupLetters.join(', ')}.`,
       });
     }
+
+    // Cruzamento gabarito × comentário (ver docs/superpowers/specs/2026-08-17-blindagem-gabarito-design.md).
+    // Erros (severity: 'error') NÃO entram aqui — quem bloqueia a linha é buildRowIssues,
+    // em AdminUploadQuestions.tsx. Aqui só alimentamos o painel informativo com os warnings
+    // e agregamos os "key_unverifiable" (info) numa única linha, para não afogar o painel.
+    try {
+      const gabaritoFindings = checkGabarito({
+        questionNumber: qn,
+        gabarito: row.gabarito,
+        options: opts.map(([label, text]) => ({ label, text })),
+        comentario: row.comentario ?? '',
+      });
+
+      for (const finding of gabaritoFindings) {
+        if (finding.severity === 'error') continue;
+        if (finding.checkType === 'key_unverifiable') {
+          unverifiableCount += 1;
+          continue;
+        }
+        if (finding.severity === 'warning') {
+          findings.push({
+            question_number: qn,
+            source: 'structural',
+            check_type: finding.checkType,
+            severity: 'warning',
+            evidence: finding.evidence ? `${finding.what} — ${finding.evidence}` : finding.what,
+          });
+        }
+      }
+    } catch (err) {
+      // A validação estrutural não pode quebrar o upload inteiro por causa de uma
+      // linha problemática no cruzamento gabarito × comentário.
+      logger.error('[validateQuestions] Falha ao checar gabarito x comentário:', err);
+    }
   });
 
   for (const [num, count] of numeroCount) {
@@ -103,6 +141,16 @@ export function validateQuestions(rows: QuestionRow[]): QuestionVerifyFinding[] 
         });
       }
     }
+  }
+
+  if (unverifiableCount > 0) {
+    findings.push({
+      question_number: 0,
+      source: 'structural',
+      check_type: 'key_unverifiable',
+      severity: 'warning',
+      evidence: `${unverifiableCount} ${unverifiableCount === 1 ? 'questão' : 'questões'} sem marcação "Alternativa X: CORRETA" no comentário — não foi possível conferir o gabarito automaticamente.`,
+    });
   }
 
   return findings;

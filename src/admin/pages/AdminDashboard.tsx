@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom'
 import { AlertCircle, ChevronRight, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
+import { GabaritoSuspicionBanner } from '@/admin/components/GabaritoSuspicionBanner'
 import { useAdminPeriod } from '@/admin/contexts/AdminPeriodContext'
 import { useAdminAuth } from '@/admin/hooks/useAdminAuth'
 import {
@@ -527,6 +528,9 @@ function AdminDashboardContent() {
           </div>
         }
       />
+
+      {/* Suspeita de gabarito na janela de ouro (execução fechada, resultado ainda não liberado) */}
+      <GabaritoSuspicionBanner />
 
       {/* Precisa de atenção */}
       <AttentionBlock items={attentionItems} isLoading={engagement.isLoading} />
