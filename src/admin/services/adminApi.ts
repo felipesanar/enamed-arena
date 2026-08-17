@@ -57,7 +57,11 @@ export type FindingSlot = 'enunciado' | 'enunciado2' | 'comentario';
 export type FindingCheckType =
   | 'missing_image' | 'orphan_image' | 'image_mismatch' | 'illegible_image'
   | 'invalid_gabarito' | 'empty_enunciado' | 'empty_option'
-  | 'duplicate_options' | 'duplicate_question' | 'bad_numbering';
+  | 'duplicate_options' | 'duplicate_question' | 'bad_numbering'
+  // Cruzamento gabarito × comentário (ver docs/superpowers/specs/2026-08-17-blindagem-gabarito-design.md)
+  | 'key_comment_conflict' | 'key_answer_line_conflict' | 'comment_internal_conflict'
+  | 'multiple_correct_marked' | 'option_letter_misalignment' | 'key_unverifiable'
+  | 'key_semantic_mismatch';
 
 export interface QuestionVerifyFinding {
   question_number: number;
@@ -77,6 +81,36 @@ export interface PresencialReassignResult {
   attempt_id: string
   from_user_id: string
   to_user_id: string
+}
+
+/**
+ * Questão lida do banco para a auditoria de gabarito do gate de publicação.
+ * Mesma forma que o módulo puro `gabaritoCheck` consome a partir da planilha.
+ */
+export interface GabaritoAuditQuestion {
+  questionNumber: number;
+  enunciado: string;
+  comentario: string;
+  options: Array<{ label: string; text: string; isCorrect: boolean }>;
+}
+
+/** Entrada da 2ª opinião por IA (sem imagens — só texto). */
+export interface GabaritoVerifyInput {
+  question_number: number;
+  enunciado_text: string;
+  comentario_text: string;
+  alternativas: VerifyOption[];
+  gabarito: string;
+}
+
+/** Achado semântico da IA sobre o gabarito. `proposed_label` é obrigatório. */
+export interface GabaritoAiFinding {
+  question_number: number;
+  source: 'ai';
+  check_type: 'key_semantic_mismatch';
+  proposed_label: string;
+  severity: 'error' | 'warning';
+  evidence: string;
 }
 
 export interface VerifyImage { slot: FindingSlot; mime: string; base64: string; }
@@ -854,6 +888,41 @@ export const adminApi = {
     if (error) throw error;
     if ((data as any)?.error) throw new Error((data as any).error);
     return (data?.findings ?? []) as QuestionVerifyFinding[];
+  },
+
+  // ─── Auditoria de gabarito (gate de publicação) ───
+
+  /**
+   * Lê questões + alternativas do banco no formato que `gabaritoCheck` consome.
+   * Usado pelo gate de publicação, onde a planilha original não está em mãos.
+   */
+  async getQuestionsForGabaritoAudit(simuladoId: string): Promise<GabaritoAuditQuestion[]> {
+    const { data, error } = await supabase
+      .from('questions')
+      .select('question_number, text, explanation, question_options(label, text, is_correct)')
+      .eq('simulado_id', simuladoId)
+      .order('question_number', { ascending: true });
+    if (error) throw error;
+    return ((data ?? []) as any[]).map((q) => ({
+      questionNumber: Number(q.question_number),
+      enunciado: (q.text as string) ?? '',
+      comentario: (q.explanation as string) ?? '',
+      options: ((q.question_options ?? []) as any[])
+        .map((o) => ({
+          label: String(o.label ?? ''),
+          text: (o.text as string) ?? '',
+          isCorrect: !!o.is_correct,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    }));
+  },
+
+  /** 2ª opinião semântica por IA. Edge function separada da de imagem. */
+  async verifyGabarito(questions: GabaritoVerifyInput[]): Promise<GabaritoAiFinding[]> {
+    const { data, error } = await supabase.functions.invoke('admin-verify-gabarito', { body: { questions } });
+    if (error) throw error;
+    if ((data as any)?.error) throw new Error((data as any).error);
+    return (data?.findings ?? []) as GabaritoAiFinding[];
   },
 
   // ─── Auditoria ───

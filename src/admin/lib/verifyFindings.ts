@@ -19,6 +19,13 @@ export function findingLabel(f: QuestionVerifyFinding): string {
     case 'duplicate_options': return 'alternativas idênticas';
     case 'duplicate_question': return 'questão duplicada';
     case 'bad_numbering': return 'numeração inválida';
+    case 'key_comment_conflict': return 'gabarito discorda do comentário';
+    case 'key_answer_line_conflict': return 'gabarito discorda da linha "Resposta:"';
+    case 'comment_internal_conflict': return 'comentário se contradiz';
+    case 'multiple_correct_marked': return 'mais de uma alternativa marcada como correta';
+    case 'option_letter_misalignment': return 'comentário casa melhor com outra alternativa';
+    case 'key_unverifiable': return 'comentário sem marcação verificável';
+    case 'key_semantic_mismatch': return 'comentário conclui em outra alternativa';
     default: return 'problema detectado';
   }
 }
