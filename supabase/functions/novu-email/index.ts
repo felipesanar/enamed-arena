@@ -210,14 +210,70 @@ function magicLinkEmailHtml(firstName: string, magicLinkUrl: string): string {
   return baseLayout(content, `${safeName}, aqui está seu link de acesso à plataforma PRO: ENAMED`);
 }
 
+/**
+ * Alerta INTERNO (ops) de suspeita de gabarito errado. Não vai para aluno.
+ * Todo dado interpolado passa por htmlEscape: os textos vêm do banco, e um
+ * título de simulado com `<` quebraria o HTML do e-mail.
+ */
+function gabaritoAlertEmailHtml(
+  simuladoLabel: string,
+  suspects: GabaritoSuspect[],
+  actionUrl: string,
+): string {
+  const safeLabel = htmlEscape(simuladoLabel);
+  const safeUrl = safeHref(actionUrl);
+  const rows = suspects
+    .map((s) => {
+      const q = htmlEscape(String(s.questionNumber));
+      const letter = htmlEscape(String(s.topWrongLabel));
+      return `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #eeeae6;font-weight:700">Q${q}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eeeae6">${htmlEscape(String(s.correctRate))}% acertaram o gabarito</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eeeae6"><strong>${htmlEscape(String(s.topWrongPct))}% marcaram ${letter}</strong></td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eeeae6">${htmlEscape(String(s.totalResponses))} respostas</td>
+    </tr>`;
+    })
+    .join("");
+
+  const content = `<div class="container">
+  ${emailHeader()}
+  <div class="body">
+    <h3>Suspeita de gabarito errado</h3>
+    <p>No simulado <strong>${safeLabel}</strong>, a distribuição das respostas aponta ${suspects.length === 1 ? "uma questão" : `${suspects.length} questões`} em que o gabarito provavelmente está na alternativa errada.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:0 0 20px">${rows}</table>
+    <div class="cta-wrap">
+      <a href="${safeUrl}" class="cta" target="_blank">Ver a análise do simulado</a>
+    </div>
+    <div class="note">
+      <p>Pouquíssimos acertos <strong>somados</strong> a uma concentração alta numa única alternativa é a assinatura de gabarito errado — questão difícil de verdade espalha os erros. Vale conferir <strong>antes</strong> da liberação dos resultados: depois disso, corrigir exige reprocessar notas e ranking.</p>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size:13px;color:#9a9090">Alerta automático da plataforma. Cada questão é avisada uma única vez.</p>
+  </div>
+  ${emailFooter()}
+</div>`;
+  return baseLayout(content, `Suspeita de gabarito errado em ${safeLabel}`);
+}
+
 // ─── Novu Trigger ───
 
+interface GabaritoSuspect {
+  questionNumber: number;
+  correctRate: number;
+  topWrongLabel: string;
+  topWrongPct: number;
+  totalResponses: number;
+}
+
 interface NovuPayload {
-  type: "welcome" | "recovery" | "magic_link";
+  type: "welcome" | "recovery" | "magic_link" | "ops_gabarito_alert";
   userId: string;
   email: string;
   fullName: string;
   actionUrl: string;
+  // ── Só para ops_gabarito_alert (opcionais: os tipos antigos não os enviam) ──
+  simuladoLabel?: string;
+  suspects?: GabaritoSuspect[];
 }
 
 async function triggerNovu(payload: NovuPayload): Promise<Response> {
@@ -239,6 +295,14 @@ async function triggerNovu(payload: NovuPayload): Promise<Response> {
       subject = "Seu link de acesso — PRO: ENAMED";
       html = magicLinkEmailHtml(firstName, payload.actionUrl);
       break;
+    case "ops_gabarito_alert": {
+      const label = payload.simuladoLabel ?? "simulado";
+      const suspects = payload.suspects ?? [];
+      if (suspects.length === 0) throw new Error("ops_gabarito_alert sem suspects");
+      subject = `Suspeita de gabarito errado — ${label}`;
+      html = gabaritoAlertEmailHtml(label, suspects, payload.actionUrl);
+      break;
+    }
     default:
       throw new Error(`Unknown email type: ${payload.type}`);
   }

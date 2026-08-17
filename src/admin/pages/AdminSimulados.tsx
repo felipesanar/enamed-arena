@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { useAdminSimuladoEngagementMap } from '@/admin/hooks/useAdminSimuladosAnalytics';
+import { useGabaritoSuspicionMap } from '@/admin/hooks/useGabaritoSuspicion';
 import { exportQuestionRankingXlsx } from '@/admin/utils/exportQuestionRanking';
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader';
 import { AdminEmptyState } from '@/admin/components/ui/AdminEmptyState';
@@ -200,6 +201,18 @@ function AdminSimuladosContent() {
   const now = Date.now()
   const availableNow = simulados.filter(s => deriveAvailability(s, now) === 'available').length
 
+  // Candidatos ao sinal de gabarito: só simulados com a janela já encerrada
+  // (antes disso não há respostas suficientes) e, dentre esses, os 3 mais
+  // recentes. O teto existe porque cada candidato custa um RPC de agregação
+  // sobre attempt_question_results — varrer o histórico inteiro a cada abertura
+  // da lista sairia caro sem acrescentar nada.
+  const suspicionCandidateIds = simulados
+    .filter(s => s.status === 'published' && new Date(s.execution_window_end).getTime() < now)
+    .sort((a, b) => new Date(b.execution_window_end).getTime() - new Date(a.execution_window_end).getTime())
+    .slice(0, 3)
+    .map(s => s.id)
+  const { data: suspicionMap } = useGabaritoSuspicionMap(suspicionCandidateIds)
+
   const subtitle = loading
     ? 'Carregando simulados…'
     : loadError
@@ -271,6 +284,7 @@ function AdminSimuladosContent() {
             const isDraftEmpty = availability === 'draft' && s.questions_count === 0
             const windowLabel = formatWindow(s.execution_window_start, s.execution_window_end)
             const hasResults = Boolean(engagementMap?.get(s.id)?.participants)
+            const gabaritoSuspects = suspicionMap?.get(s.id) ?? []
             const seq = String(s.sequence_number).padStart(2, '0')
 
             return (
@@ -299,7 +313,22 @@ function AdminSimuladosContent() {
                 </div>
 
                 <div className="px-3 py-3.5">
-                  <AvailabilityBadge availability={availability} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <AvailabilityBadge availability={availability} />
+                    {gabaritoSuspects.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/admin/simulados/${s.id}/analytics`)}
+                        title={`${gabaritoSuspects.length === 1 ? 'Uma questão' : `${gabaritoSuspects.length} questões`} com distribuição de respostas típica de gabarito errado. Clique para ver a análise.`}
+                        className="inline-flex items-center gap-1 rounded-md border border-admin-destructive/30 bg-admin-destructive/10 px-1.5 py-0.5 text-[10.5px] font-bold text-admin-destructive motion-safe:transition-colors hover:bg-admin-destructive/20"
+                      >
+                        <AlertCircle className="h-3 w-3" aria-hidden />
+                        {gabaritoSuspects.length === 1
+                          ? 'gabarito suspeito'
+                          : `${gabaritoSuspects.length} gabaritos suspeitos`}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="px-3 py-3.5">
