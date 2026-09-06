@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   QrCode, Printer, Plus, Pencil, UserSearch, ArrowLeftRight,
-  Search, ShieldOff,
+  Search, ShieldOff, BookMarked, ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminPageHeader } from '@/admin/components/ui/AdminPageHeader'
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -25,9 +26,13 @@ import {
   useAdminPresencialSessions, useAdminPresencialSessionUpsert,
   useAdminPresencialQueue, useAdminPresencialLink, useAdminPresencialReassign,
   useAdminAccountEmailSearch, useAdminAccountAttempts,
+  useAdminPresencialCadernos, useAdminPresencialCadernoVerify,
 } from '@/admin/hooks/useAdminPresencial'
 import { useAdminSimuladoList } from '@/admin/hooks/useAdminTentativas'
-import type { PresencialSessionRow, PresencialQueueRow, UserListRow, UserAttemptRow } from '@/admin/types'
+import type {
+  PresencialSessionRow, PresencialQueueRow, UserListRow, UserAttemptRow,
+  PresencialCadernoRow, CadernoVerifyResult,
+} from '@/admin/types'
 
 const PRESENCIAL_BASE_URL = 'https://simulados.sanar.com.br/presencial'
 
@@ -39,6 +44,42 @@ const IDENTIFICATION_LABEL: Record<string, string> = {
 }
 
 const inputCls = 'bg-admin-bg border-admin-line-strong text-admin-text placeholder:text-admin-faint'
+
+// ────────────────────────────────────────────────────────────────────────
+// Cadernos do presencial (Vermelho / Azul) — cor é a informação, não decoração.
+// Ver docs/superpowers/specs/2026-09-06-presencial-cadernos.md
+// ────────────────────────────────────────────────────────────────────────
+
+const CADERNO_COLOR_LABEL: Record<string, string> = {
+  vermelho: 'Vermelho',
+  azul: 'Azul',
+}
+
+const CADERNO_COLOR_PILL_CLASS: Record<string, string> = {
+  vermelho: 'bg-red-600/10 text-red-700 border-red-600/30 dark:text-red-400 dark:bg-red-500/15 dark:border-red-500/30',
+  azul: 'bg-blue-600/10 text-blue-700 border-blue-600/30 dark:text-blue-400 dark:bg-blue-500/15 dark:border-blue-500/30',
+}
+
+function cadernoColorLabel(color: string | null | undefined): string {
+  if (!color) return '—'
+  return CADERNO_COLOR_LABEL[color] ?? color
+}
+
+/** Pastilha colorida "Caderno 1 · Vermelho" — a cor por extenso é o que confere na capa. */
+function CadernoPill({ label, color }: { label: string; color: string | null | undefined }) {
+  const cls = (color && CADERNO_COLOR_PILL_CLASS[color]) || 'bg-admin-raised text-admin-muted border-admin-line'
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap',
+        cls,
+      )}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+      {label}
+    </span>
+  )
+}
 
 function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -99,6 +140,7 @@ export default function AdminPresencial() {
       `}</style>
 
       {canSessions && <SessionsSection />}
+      {canSessions && <CadernosSection />}
       {canQueue && <QueueSection />}
     </div>
   )
@@ -116,10 +158,12 @@ type SessionFormState = {
   opens_at: string
   closes_at: string
   is_active: boolean
+  /** '' = o aluno escolhe o caderno (grava null); senão, o id do caderno que trava a sala. */
+  caderno_id: string
 }
 
 const EMPTY_SESSION_FORM: SessionFormState = {
-  id: null, simulado_id: '', code: '', label: '', opens_at: '', closes_at: '', is_active: true,
+  id: null, simulado_id: '', code: '', label: '', opens_at: '', closes_at: '', is_active: true, caderno_id: '',
 }
 
 const SESSION_GRID = '1.6fr 1fr 1fr 1.3fr 90px 130px 170px'
@@ -263,6 +307,12 @@ function SessionFormDialog({
   const [codeError, setCodeError] = useState<string | null>(null)
   const isEdit = !!session
 
+  const { data: cadernos } = useAdminPresencialCadernos(form.simulado_id || null)
+  // Sessões travadas num caderno inativo (raro — ex.: caderno desativado depois
+  // da sala já estar configurada) continuam aparecendo na lista pra não sumir
+  // silenciosamente o valor já salvo.
+  const cadernoOptions = (cadernos ?? []).filter(c => c.is_active || c.id === form.caderno_id)
+
   useEffect(() => {
     if (!open) return
     setCodeError(null)
@@ -275,6 +325,7 @@ function SessionFormDialog({
         opens_at: utcISOToLocalInput(session.opens_at),
         closes_at: utcISOToLocalInput(session.closes_at),
         is_active: session.is_active,
+        caderno_id: session.caderno_id ?? '',
       })
     } else {
       setForm(EMPTY_SESSION_FORM)
@@ -309,6 +360,7 @@ function SessionFormDialog({
         opens_at: localInputToUtcISO(form.opens_at),
         closes_at: localInputToUtcISO(form.closes_at),
         is_active: form.is_active,
+        caderno_id: form.caderno_id || null,
       },
       { onSuccess: () => onOpenChange(false) },
     )
@@ -323,11 +375,13 @@ function SessionFormDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Simulado</Label>
+            <Label htmlFor="session-simulado-select">Simulado</Label>
             <select
+              id="session-simulado-select"
+              aria-label="Simulado"
               required
               value={form.simulado_id}
-              onChange={e => set('simulado_id', e.target.value)}
+              onChange={e => setForm(prev => ({ ...prev, simulado_id: e.target.value, caderno_id: '' }))}
               className="w-full bg-admin-bg border border-admin-line-strong rounded-md px-3 py-2 text-sm text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 focus-visible:border-admin-accent"
             >
               <option value="" disabled>Selecione o simulado</option>
@@ -335,6 +389,29 @@ function SessionFormDialog({
                 <option key={s.id} value={s.id}>#{s.sequence_number} — {s.title}</option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="session-caderno-select">Caderno da sala</Label>
+            <select
+              id="session-caderno-select"
+              aria-label="Caderno da sala"
+              value={form.caderno_id}
+              onChange={e => set('caderno_id', e.target.value)}
+              disabled={!form.simulado_id}
+              className="w-full bg-admin-bg border border-admin-line-strong rounded-md px-3 py-2 text-sm text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 focus-visible:border-admin-accent disabled:opacity-50"
+            >
+              <option value="">— o aluno escolhe —</option>
+              {cadernoOptions.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.label} · {cadernoColorLabel(c.color)}{!c.is_active ? ' (inativo)' : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-admin-muted">
+              Deixe em "o aluno escolhe" quando a sala usa um QR único e cada aluno informa o caderno que recebeu.
+              Escolha um caderno aqui só quando a sala inteira recebeu a mesma cor.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -464,10 +541,220 @@ function SessionPrintDialog({
 }
 
 // ────────────────────────────────────────────────────────────────────────
+// Cadernos do presencial (Vermelho / Azul) — painel read-only.
+//
+// Não tem CRUD de itens aqui: o mapa entra por `scripts/import-caderno-map.ts`
+// (auditável, validado, verificado). O que este painel faz é conferir a
+// integridade de um caderno já importado antes de liberar a prova — por isso
+// prioriza clareza sobre densidade (é o que um humano lê antes de 100 alunos
+// abrirem o caderno errado).
+// ────────────────────────────────────────────────────────────────────────
+
+function CadernosSection() {
+  const { data: simulados } = useAdminSimuladoList()
+  const [simuladoId, setSimuladoId] = useState('')
+  const { data: cadernos, isLoading, isError } = useAdminPresencialCadernos(simuladoId || null)
+
+  return (
+    <section className="space-y-3" data-testid="presencial-cadernos-section">
+      <AdminSectionHeader
+        title="Cadernos (Vermelho / Azul)"
+        actions={
+          <select
+            aria-label="Selecione o simulado para ver os cadernos"
+            value={simuladoId}
+            onChange={e => setSimuladoId(e.target.value)}
+            className="bg-admin-bg border border-admin-line-strong rounded-md px-2.5 py-1.5 text-xs text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 focus-visible:border-admin-accent"
+          >
+            <option value="">Selecione o simulado</option>
+            {(simulados ?? []).map((s: any) => (
+              <option key={s.id} value={s.id}>#{s.sequence_number} — {s.title}</option>
+            ))}
+          </select>
+        }
+      />
+
+      <p className="text-[12px] text-admin-muted -mt-2">
+        Cole o gabarito impresso de cada caderno e verifique antes de liberar a prova. A ativação em si acontece
+        pelo script de importação (com service role), não por aqui.
+      </p>
+
+      {!simuladoId ? (
+        <AdminPanel>
+          <AdminEmptyState
+            icon={BookMarked}
+            eyebrow="Selecione"
+            title="Escolha um simulado para ver os cadernos"
+          />
+        </AdminPanel>
+      ) : isError ? (
+        <AdminPanel>
+          <AdminEmptyState tone="error" icon={BookMarked} eyebrow="Erro" title="Não foi possível carregar os cadernos" />
+        </AdminPanel>
+      ) : isLoading ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          {[0, 1].map(i => (
+            <AdminPanel key={i}>
+              <div className="relative h-24 overflow-hidden rounded bg-admin-raised">
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
+              </div>
+            </AdminPanel>
+          ))}
+        </div>
+      ) : (cadernos ?? []).length === 0 ? (
+        <AdminPanel>
+          <AdminEmptyState
+            icon={BookMarked}
+            eyebrow="Vazio"
+            title="Nenhum caderno cadastrado para este simulado"
+            description="Os cadernos entram pelo script scripts/import-caderno-map.ts, que valida o mapa antes de escrever."
+          />
+        </AdminPanel>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {(cadernos ?? []).map(c => <CadernoCard key={c.id} caderno={c} />)}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function CadernoCard({ caderno }: { caderno: PresencialCadernoRow }) {
+  const [key, setKey] = useState('')
+  const verify = useAdminPresencialCadernoVerify()
+  const [result, setResult] = useState<CadernoVerifyResult | null>(null)
+
+  const handleVerify = () => {
+    const trimmed = key.trim()
+    if (!trimmed) return
+    verify.mutate(
+      { cadernoId: caderno.id, key: trimmed },
+      { onSuccess: data => setResult(data) },
+    )
+  }
+
+  return (
+    <AdminPanel className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <CadernoPill label={`${caderno.label} · ${cadernoColorLabel(caderno.color)}`} color={caderno.color} />
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold',
+                caderno.is_active
+                  ? 'bg-admin-success/10 text-admin-success border-admin-success/30'
+                  : 'bg-admin-raised text-admin-muted border-admin-line',
+              )}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+              {caderno.is_active ? 'Ativo' : 'Inativo'}
+            </span>
+          </div>
+          <p className="text-[11px] font-mono text-admin-faint truncate">{caderno.code}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-lg font-extrabold text-admin-text tabular-nums">{caderno.total_itens}</p>
+          <p className="text-[9.5px] uppercase tracking-wide text-admin-faint">itens</p>
+        </div>
+      </div>
+
+      {/*
+        Check estrutural (as 4 invariantes) — roda a cada carregamento da lista,
+        SEM comparar contra um gabarito impresso (isso só acontece abaixo, quando
+        o admin cola a chave e clica "Verificar"). Por isso é sempre "atual", não
+        um retrato de uma verificação passada.
+      */}
+      <p className="text-[11px] text-admin-muted">
+        Estrutura do mapa:{' '}
+        <span className={cn('font-semibold', caderno.verification_ok ? 'text-admin-success' : 'text-admin-destructive')}>
+          {caderno.verification_ok
+            ? 'íntegra'
+            : `${caderno.verification_problems} pendência${caderno.verification_problems === 1 ? '' : 's'}`}
+        </span>
+      </p>
+      {caderno.derived_key && (
+        <p className="text-[10.5px] text-admin-faint font-mono break-all">
+          Gabarito derivado do mapa: {caderno.derived_key}
+        </p>
+      )}
+
+      <div className="space-y-1.5">
+        <Label htmlFor={`caderno-key-${caderno.id}`}>Gabarito impresso (formato 1:B,2:C,...)</Label>
+        <Textarea
+          id={`caderno-key-${caderno.id}`}
+          value={key}
+          onChange={e => setKey(e.target.value)}
+          placeholder="1:B,2:C,3:A,4:D,..."
+          rows={3}
+          className={cn(inputCls, 'font-mono text-xs resize-y min-h-[64px]')}
+        />
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-admin-line bg-transparent text-admin-text hover:bg-admin-raised"
+            disabled={!key.trim() || verify.isPending}
+            onClick={handleVerify}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+            {verify.isPending ? 'Verificando…' : 'Verificar'}
+          </Button>
+        </div>
+      </div>
+
+      {result && <CadernoVerifyOutcome result={result} />}
+    </AdminPanel>
+  )
+}
+
+/**
+ * Resultado da verificação contra o gabarito impresso colado. `problems` já
+ * vem do backend como frases prontas (ex.: "Posição 2: gabarito impresso diz
+ * C, mas o mapa do caderno produz D.") — é o que um humano lê antes de
+ * liberar a prova de 100 alunos, por isso renderiza uma por linha, sem
+ * reprocessar o texto.
+ */
+function CadernoVerifyOutcome({ result }: { result: CadernoVerifyResult }) {
+  const problems = result.problems ?? []
+  return (
+    <div
+      className={cn(
+        'rounded-lg border px-3 py-2.5 space-y-2',
+        result.ok
+          ? 'border-admin-success/30 bg-admin-success/10'
+          : 'border-admin-destructive/30 bg-admin-destructive/10',
+      )}
+    >
+      <p className={cn('text-xs font-bold', result.ok ? 'text-admin-success' : 'text-admin-destructive')}>
+        {result.ok
+          ? 'Gabarito bate — mapa íntegro.'
+          : `${problems.length} divergência${problems.length === 1 ? '' : 's'} encontrada${problems.length === 1 ? '' : 's'}.`}
+      </p>
+
+      {!result.ok && problems.length > 0 && (
+        <ul className="space-y-1 text-[11px] text-admin-text">
+          {problems.map((p, i) => (
+            <li key={i} className="leading-relaxed">{p}</li>
+          ))}
+        </ul>
+      )}
+
+      {result.derived_key && (
+        <p className="text-[10.5px] text-admin-faint font-mono break-all">
+          Gabarito derivado do mapa: {result.derived_key}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────
 // Fila de identidade
 // ────────────────────────────────────────────────────────────────────────
 
-const QUEUE_GRID = '1.6fr 1.1fr 1fr 90px 110px 1.3fr 210px'
+const QUEUE_GRID = '1.5fr 1fr 1fr 130px 90px 100px 1.2fr 200px'
 
 type ConfirmLink = {
   submissionId: string
@@ -537,20 +824,20 @@ function QueueSection() {
       ) : (
         <AdminPanel flush className="overflow-hidden">
           <div className="overflow-x-auto">
-            <div className="min-w-[1100px]">
+            <div className="min-w-[1200px]">
               <div
                 className="grid text-[9px] font-bold text-admin-faint uppercase tracking-wide border-b border-admin-line"
                 style={{ gridTemplateColumns: QUEUE_GRID }}
               >
-                {['Declarado', 'Identificação', 'Sala / hora', 'Nota', 'IP', 'Conta sugerida', 'Ações'].map((h, i) => (
-                  <div key={h} className={cn('px-4 py-2', i === 6 && 'text-right')}>{h}</div>
+                {['Declarado', 'Identificação', 'Sala / hora', 'Caderno', 'Nota', 'IP', 'Conta sugerida', 'Ações'].map((h, i) => (
+                  <div key={h} className={cn('px-4 py-2', i === 7 && 'text-right')}>{h}</div>
                 ))}
               </div>
 
               {isLoading ? (
                 [0, 1, 2].map(i => (
                   <div key={i} className="grid items-center border-b border-admin-line/40 last:border-0" style={{ gridTemplateColumns: QUEUE_GRID }}>
-                    {[0, 1, 2, 3, 4, 5, 6].map(c => (
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map(c => (
                       <div key={c} className="px-4 py-3">
                         <div className="relative h-3 w-20 overflow-hidden rounded bg-admin-raised">
                           <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-admin-surface/70 to-transparent" />
@@ -583,6 +870,16 @@ function QueueSection() {
                     <div className="px-4 py-3 text-[10.5px] text-admin-muted">
                       <p className="truncate">{row.session_label}</p>
                       <p className="tabular-nums text-admin-faint">{fmtShort(row.created_at)}</p>
+                    </div>
+                    <div className="px-4 py-3">
+                      {row.caderno_label ? (
+                        <CadernoPill
+                          label={`${row.caderno_label} · ${cadernoColorLabel(row.caderno_color)}`}
+                          color={row.caderno_color}
+                        />
+                      ) : (
+                        <span className="text-[11px] text-admin-faint">—</span>
+                      )}
                     </div>
                     <div className="px-4 py-3 text-xs font-semibold text-admin-text tabular-nums">
                       {row.score_percentage != null ? `${Number(row.score_percentage).toFixed(0)}%` : '—'}

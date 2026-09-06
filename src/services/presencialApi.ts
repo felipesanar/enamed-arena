@@ -18,6 +18,7 @@ import type {
   PresencialIdentifyInput,
   PresencialReady,
   PresencialResult,
+  PresencialSessionInfo,
 } from '@/types/presencial';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -34,6 +35,9 @@ function normalizeIdentify(input: PresencialIdentifyInput): PresencialIdentifyIn
     code: input.code.trim().toLowerCase(),
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
+    // `caderno` some (undefined) quando a sala é travada ou o simulado não
+    // tem cadernos — o JSON enviado simplesmente omite a chave.
+    caderno: input.caderno?.trim().toLowerCase(),
   };
 }
 
@@ -88,6 +92,19 @@ async function invokePresencial<T>(action: string, body: object): Promise<T> {
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 export const presencialApi = {
+  /**
+   * Consulta leve (bucket de rate limit próprio, não o de check-in; não cria
+   * nada) usada em dois pontos: a Tela 0 decide se pergunta o caderno e com
+   * quais cores pintar, e a página avisa — antes de o aluno preencher nome e
+   * e-mail — que a sala não está aberta.
+   */
+  async sessionInfo(input: { code: string }): Promise<PresencialSessionInfo> {
+    const code = input.code.trim().toLowerCase();
+    logger.log('[PresencialApi] Consultando informações da sala, code:', code);
+
+    return invokePresencial<PresencialSessionInfo>('session-info', { code });
+  },
+
   /**
    * Primeiro passo do check-in presencial: identifica o aluno pelo código da
    * sala (QR), nome e e-mail. Pode resolver direto (`ready`), pedir

@@ -495,6 +495,13 @@ export interface PresencialSessionRow {
   is_active: boolean
   submissions_count: number
   linked_count: number
+  /**
+   * Cadernos do presencial (Vermelho/Azul) — sala travada num caderno.
+   * `null` = a sala pergunta ao aluno qual caderno ele recebeu.
+   */
+  caderno_id?: string | null
+  caderno_label?: string | null
+  caderno_color?: string | null
 }
 
 /** Espelha admin_presencial_queue(p_status) — Task 7. */
@@ -511,4 +518,47 @@ export interface PresencialQueueRow {
   suggested_user_id: string | null
   suggested_email: string | null
   suggested_name: string | null
+  /** Caderno com o qual esta submissão foi enviada — auditoria (cadernos do presencial). */
+  caderno_code?: string | null
+  caderno_label?: string | null
+  caderno_color?: string | null
+}
+
+// ─── Cadernos do presencial (Vermelho / Azul) ───
+// Ver docs/superpowers/specs/2026-09-06-presencial-cadernos.md — contrato congelado.
+
+/**
+ * Espelha admin_presencial_cadernos_list(p_simulado_id) — Ver
+ * supabase/migrations/20260906150300_presencial_cadernos_admin_rpcs.sql.
+ * `verification_*` vem de rodar verify_caderno_map(id) SEM chave impressa —
+ * ou seja, é só o check estrutural (as 4 invariantes), não divergência
+ * contra o gabarito que foi realmente impresso. Isso só é comparado quando
+ * o admin cola a chave e chama admin_presencial_caderno_verify.
+ */
+export interface PresencialCadernoRow {
+  id: string
+  code: string
+  label: string
+  /** Dirige o token de cor no front — hoje só 'vermelho' | 'azul'. */
+  color: string
+  is_active: boolean
+  total_itens: number
+  /** Check estrutural (sem gabarito impresso): true = as 4 invariantes passam. */
+  verification_ok: boolean
+  verification_problems: number
+  /** Gabarito impresso deduzido do mapa (formato "1:B,2:C,..."). */
+  derived_key: string
+}
+
+/**
+ * Espelha admin_presencial_caderno_verify(p_caderno_id, p_key) / verify_caderno_map.
+ * `problems` é uma lista de strings já formatadas e prontas para exibir
+ * (ex.: "Posição 2: gabarito impresso diz C, mas o mapa do caderno produz D.") —
+ * ver supabase/migrations/20260906150100_verify_caderno_map.sql.
+ */
+export interface CadernoVerifyResult {
+  ok: boolean
+  problems: string[]
+  /** Gabarito impresso deduzido do mapa (formato "1:B,2:C,..."). */
+  derived_key: string
 }

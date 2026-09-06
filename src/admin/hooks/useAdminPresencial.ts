@@ -22,6 +22,7 @@ export function useAdminPresencialSessionUpsert() {
       opens_at: string
       closes_at: string
       is_active: boolean
+      caderno_id?: string | null
     }) => adminApi.presencialSessionUpsert(p),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'presencial-sessions'] })
@@ -92,5 +93,37 @@ export function useAdminAccountAttempts(userId: string | null) {
     queryFn: () => adminApi.getUserAttempts(userId as string, 15),
     enabled: !!userId,
     staleTime: 30 * 1000,
+  })
+}
+
+// ─── Cadernos do presencial (Vermelho / Azul) ───
+// Ver docs/superpowers/specs/2026-09-06-presencial-cadernos.md — contrato congelado.
+
+/** Cadernos de um simulado (nº de itens, ativo/inativo, resumo da última verificação). */
+export function useAdminPresencialCadernos(simuladoId: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'presencial-cadernos', simuladoId],
+    queryFn: () => adminApi.presencialCadernosList(simuladoId as string),
+    enabled: !!simuladoId,
+    staleTime: 30 * 1000,
+  })
+}
+
+/**
+ * Verifica um caderno contra o gabarito impresso colado no painel.
+ * Read-only: não ativa nada (ativação é só pelo script de importação com service role).
+ */
+export function useAdminPresencialCadernoVerify() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ cadernoId, key }: { cadernoId: string; key: string }) =>
+      adminApi.presencialCadernoVerify(cadernoId, key),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'presencial-cadernos'] })
+    },
+    onError: (err: any) => {
+      logger.error('[useAdminPresencialCadernoVerify] Falha ao verificar caderno:', err)
+      toast({ title: 'Erro ao verificar caderno', description: err?.message, variant: 'destructive' })
+    },
   })
 }

@@ -12,13 +12,16 @@
  * vinculada por trás (não é sobre estar fora da janela do simulado).
  */
 import { Progress } from '@/components/ui/progress';
-import type { PresencialResult } from '@/types/presencial';
+import { cadernoColorLabel } from './presencialCadernoColors';
+import type { PresencialCaderno, PresencialResult } from '@/types/presencial';
 
 interface PresencialResultStepProps {
   result: PresencialResult;
+  /** Caderno usado nesta prova (ausente quando o simulado não tem cadernos cadastrados). */
+  caderno?: PresencialCaderno | null;
 }
 
-export function PresencialResultStep({ result }: PresencialResultStepProps) {
+export function PresencialResultStep({ result, caderno }: PresencialResultStepProps) {
   const { total_questions, total_correct, score_percentage, by_area, is_linked } = result;
 
   return (
@@ -32,6 +35,11 @@ export function PresencialResultStep({ result }: PresencialResultStepProps) {
         <p className="text-body text-muted-foreground">
           {score_percentage.toFixed(0)}% de acerto
         </p>
+        {caderno && (
+          <p className="text-body-sm font-medium text-muted-foreground">
+            {caderno.label} · {cadernoColorLabel(caderno.color)}
+          </p>
+        )}
       </div>
 
       {by_area.length > 0 && (

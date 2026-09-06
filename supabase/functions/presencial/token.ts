@@ -20,6 +20,11 @@ export interface PresencialTokenPayload {
   simulado_id: string
   session_id: string
   attempt_id: string | null
+  // Caderno (Vermelho/Azul) resolvido no checkin/claim/start-unlinked — null
+  // quando o simulado não tem caderno cadastrado (retrocompat). Ver contrato
+  // em docs/superpowers/specs/2026-09-06-presencial-cadernos.md. Não é
+  // identificador de usuário: não viola a invariante "sem user_id aqui".
+  caderno_id: string | null
   exp: number
 }
 

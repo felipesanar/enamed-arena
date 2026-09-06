@@ -144,6 +144,10 @@ export type AnalyticsEventName =
   | "feature_gate_seen"
   // Offline flow
   | "offline_attempt_created"
+  // Aplicação presencial: tentativa criada a partir de "Fiz o simulado
+  // presencialmente". Carrega `converted_from_online`, que diz se havia uma
+  // tentativa online abandonada substituída ("presencial ganha").
+  | "presencial_attempt_created"
   | "offline_pdf_generated"
   | "offline_answers_submitted"
   | "offline_answers_submit_failed"

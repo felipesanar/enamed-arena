@@ -56,12 +56,27 @@ export function ProtectedRoute({ children, skipOnboardingCheck = false }: Protec
       }
       return <Navigate to="/landing" replace />;
     }
-    return <Navigate to="/login" replace />;
+    // Preserve the destination across the login round-trip (LoginPage already
+    // honors `?next=`) — sem isso, quem chega a uma rota protegida deslogado
+    // (ex.: QR do presencial → /ranking) volta pra home depois de logar em vez
+    // de cair onde pretendia.
+    const next = `${location.pathname}${location.search}`;
+    const loginTarget = next && next !== '/' ? `/login?next=${encodeURIComponent(next)}` : '/login';
+    return <Navigate to={loginTarget} replace />;
   }
 
-  // Redirect to onboarding if not completed (unless we're already there)
+  // Redirect to onboarding if not completed (unless we're already there).
+  // O destino pretendido viaja junto em `?next=`, e o onboarding devolve o
+  // aluno para lá no fim. Sem isso, quem CRIA CONTA agora (cadastro → sessão →
+  // onboarding) termina na home e nunca chega onde tentou ir — no fluxo do
+  // presencial, isso significa nunca ver o botão de subir o gabarito, porque
+  // conta nova sempre passa por aqui.
   if (!skipOnboardingCheck && !isOnboardingComplete && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
+    const intended = `${location.pathname}${location.search}`;
+    const target = intended && intended !== '/'
+      ? `/onboarding?next=${encodeURIComponent(intended)}`
+      : '/onboarding';
+    return <Navigate to={target} replace />;
   }
 
   return <>{children}</>;

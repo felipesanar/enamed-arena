@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
@@ -98,6 +98,12 @@ export default function OnboardingPage() {
     onboardingNextEditableAt,
   } = useUser();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Destino pretendido antes do desvio para o onboarding (ver ProtectedRoute).
+  // Aceita só caminho relativo de mesma origem: `//host` seria redirect aberto.
+  const rawNext = searchParams.get("next");
+  const safeNextPath =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   const segment = profile?.segment ?? "guest";
 
   const [step, setStep] = usePersistedState("onboarding:step", 0);
@@ -207,7 +213,11 @@ export default function OnboardingPage() {
         institutions_count: institutionsUndecided ? 0 : selectedInstitutions.length,
       });
       clearPersistedStateByPrefix("onboarding:");
-      navigate("/");
+      // Volta para onde o aluno tentou ir antes de ser desviado para cá (o
+      // ProtectedRoute manda o destino em `?next=`). Só aceitamos caminho
+      // relativo de mesma origem — `//host` seria redirect aberto. Sem `next`,
+      // continua indo para a home, como sempre foi.
+      navigate(safeNextPath);
     } catch (e) {
       logger.error("[OnboardingPage] Error saving onboarding:", e);
       const msg = e instanceof Error ? e.message.toLowerCase() : "";

@@ -10,6 +10,7 @@ const payload: PresencialTokenPayload = {
   simulado_id: 'sim-1',
   session_id: 'sess-1',
   attempt_id: 'att-1',
+  caderno_id: 'cad-1',
   exp: NOW + 2 * 60 * 60 * 1000,
 }
 

@@ -38,6 +38,8 @@ import type {
   AuditLogRow,
   PresencialSessionRow,
   PresencialQueueRow,
+  PresencialCadernoRow,
+  CadernoVerifyResult,
 } from '@/admin/types'
 
 export interface SimuladoResultRow {
@@ -965,6 +967,9 @@ export const adminApi = {
       is_active: Boolean(r.is_active),
       submissions_count: Number(r.submissions_count),
       linked_count: Number(r.linked_count),
+      caderno_id: (r.caderno_id as string | null) ?? null,
+      caderno_label: (r.caderno_label as string | null) ?? null,
+      caderno_color: (r.caderno_color as string | null) ?? null,
     }))
   },
 
@@ -976,6 +981,8 @@ export const adminApi = {
     opens_at: string
     closes_at: string
     is_active: boolean
+    /** null = a sala pergunta ao aluno qual caderno ele recebeu. */
+    caderno_id?: string | null
   }): Promise<string> {
     const { data, error } = await (supabase.rpc as any)('admin_presencial_session_upsert', {
       p_id: p.id,
@@ -985,6 +992,7 @@ export const adminApi = {
       p_opens_at: p.opens_at,
       p_closes_at: p.closes_at,
       p_is_active: p.is_active,
+      p_caderno_id: p.caderno_id ?? null,
     })
     if (error) throw error
     return data as string
@@ -1006,6 +1014,9 @@ export const adminApi = {
       suggested_user_id: (r.suggested_user_id as string | null) ?? null,
       suggested_email: (r.suggested_email as string | null) ?? null,
       suggested_name: (r.suggested_name as string | null) ?? null,
+      caderno_code: (r.caderno_code as string | null) ?? null,
+      caderno_label: (r.caderno_label as string | null) ?? null,
+      caderno_color: (r.caderno_color as string | null) ?? null,
     }))
   },
 
@@ -1025,5 +1036,40 @@ export const adminApi = {
     })
     if (error) throw error
     return data as PresencialReassignResult
+  },
+
+  // ─── Cadernos do presencial (Vermelho / Azul) ───
+  // Ver docs/superpowers/specs/2026-09-06-presencial-cadernos.md — contrato congelado.
+
+  async presencialCadernosList(simuladoId: string): Promise<PresencialCadernoRow[]> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_cadernos_list', {
+      p_simulado_id: simuladoId,
+    })
+    if (error) throw error
+    return (data as any[] ?? []).map(r => ({
+      id: r.id as string,
+      code: r.code as string,
+      label: r.label as string,
+      color: r.color as string,
+      is_active: Boolean(r.is_active),
+      total_itens: Number(r.total_itens ?? 0),
+      verification_ok: Boolean(r.verification_ok),
+      verification_problems: Number(r.verification_problems ?? 0),
+      derived_key: (r.derived_key as string) ?? '',
+    }))
+  },
+
+  async presencialCadernoVerify(cadernoId: string, key: string): Promise<CadernoVerifyResult> {
+    const { data, error } = await (supabase.rpc as any)('admin_presencial_caderno_verify', {
+      p_caderno_id: cadernoId,
+      p_key: key,
+    })
+    if (error) throw error
+    const result = (data ?? {}) as any
+    return {
+      ok: Boolean(result.ok),
+      problems: Array.isArray(result.problems) ? result.problems.map((p: unknown) => String(p)) : [],
+      derived_key: (result.derived_key as string) ?? '',
+    }
   },
 };

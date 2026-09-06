@@ -35,10 +35,13 @@ interface DeclaredIdentity {
 
 interface PresencialIdentifyStepProps {
   code: string;
+  /** `code` do caderno já resolvido (Tela 0 ou sala travada). Ausente quando
+   * o simulado não tem cadernos cadastrados — retrocompatibilidade. */
+  caderno?: string;
   onReady: (ready: PresencialReady, declared: DeclaredIdentity) => void;
 }
 
-export function PresencialIdentifyStep({ code, onReady }: PresencialIdentifyStepProps) {
+export function PresencialIdentifyStep({ code, caderno, onReady }: PresencialIdentifyStepProps) {
   const prefersReducedMotion = useReducedMotion();
 
   const [name, setName] = useState('');
@@ -66,7 +69,7 @@ export function PresencialIdentifyStep({ code, onReady }: PresencialIdentifyStep
 
     setSubmitting(true);
     try {
-      const result = await presencialApi.checkin({ code, name, email });
+      const result = await presencialApi.checkin({ code, name, email, caderno });
       if (result.status === 'ready') {
         onReady(result, declared);
         return;
@@ -87,7 +90,7 @@ export function PresencialIdentifyStep({ code, onReady }: PresencialIdentifyStep
   const handleClaim = async (candidateRef: string) => {
     setSubmitting(true);
     try {
-      const result = await presencialApi.claim({ code, name, email, candidateRef });
+      const result = await presencialApi.claim({ code, name, email, candidateRef, caderno });
       onReady(result, declared);
     } catch (err) {
       handleApiError('Erro ao confirmar candidato', err, 'Não foi possível confirmar a conta');
@@ -99,7 +102,7 @@ export function PresencialIdentifyStep({ code, onReady }: PresencialIdentifyStep
   const handleStartUnlinked = async () => {
     setSubmitting(true);
     try {
-      const result = await presencialApi.startUnlinked({ code, name, email });
+      const result = await presencialApi.startUnlinked({ code, name, email, caderno });
       onReady(result, declared);
     } catch (err) {
       handleApiError('Erro ao seguir sem vincular', err, 'Não foi possível continuar');

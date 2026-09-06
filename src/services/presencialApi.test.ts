@@ -11,6 +11,16 @@ import { presencialApi } from './presencialApi';
 describe('presencialApi', () => {
   beforeEach(() => { invoke.mockReset(); });
 
+  it('sessionInfo envia action e code normalizado', async () => {
+    const info = { open: true, label: null, caderno: null, cadernos: [] };
+    invoke.mockResolvedValue({ data: info, error: null });
+    const res = await presencialApi.sessionInfo({ code: 'S7-REC' });
+    expect(invoke).toHaveBeenCalledWith('presencial', {
+      body: { action: 'session-info', code: 's7-rec' },
+    });
+    expect(res).toEqual(info);
+  });
+
   it('checkin envia action e campos normalizados', async () => {
     invoke.mockResolvedValue({ data: { status: 'no_account' }, error: null });
     const res = await presencialApi.checkin({
@@ -20,6 +30,16 @@ describe('presencialApi', () => {
       body: { action: 'checkin', code: 's7-rec', name: 'Fulano', email: 'fulano@gmail.com' },
     });
     expect(res).toEqual({ status: 'no_account' });
+  });
+
+  it('checkin propaga o caderno normalizado quando informado', async () => {
+    invoke.mockResolvedValue({ data: { status: 'no_account' }, error: null });
+    await presencialApi.checkin({
+      code: 's7-rec', name: 'A', email: 'a@b.com', caderno: 'V',
+    });
+    expect(invoke).toHaveBeenCalledWith('presencial', {
+      body: { action: 'checkin', code: 's7-rec', name: 'A', email: 'a@b.com', caderno: 'v' },
+    });
   });
 
   it('propaga a mensagem de erro devolvida no corpo', async () => {

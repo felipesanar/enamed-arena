@@ -19,8 +19,8 @@ import { PresencialIdentifyStep } from './PresencialIdentifyStep'
 
 const READY = { status: 'ready' as const, token: 'tok', questions: [] }
 
-function renderStep(onReady = vi.fn()) {
-  render(<PresencialIdentifyStep code="s7-rec" onReady={onReady} />)
+function renderStep(onReady = vi.fn(), caderno?: string) {
+  render(<PresencialIdentifyStep code="s7-rec" caderno={caderno} onReady={onReady} />)
   return onReady
 }
 
@@ -99,5 +99,29 @@ describe('PresencialIdentifyStep', () => {
     fireEvent.click(screen.getByRole('button', { name: /seguir sem vincular/i }))
     await waitFor(() => { expect(presencialApi.startUnlinked).toHaveBeenCalled() })
     expect(onReady).toHaveBeenCalled()
+  })
+
+  it('propaga o caderno resolvido (Tela 0 ou sala travada) para checkin, claim e startUnlinked', async () => {
+    vi.mocked(presencialApi.checkin).mockResolvedValue(READY)
+    renderStep(vi.fn(), 'v')
+    fill('Fulano de Teste', 'fulano@gmail.com')
+    fireEvent.click(screen.getByRole('button', { name: /continuar/i }))
+    await waitFor(() => {
+      expect(presencialApi.checkin).toHaveBeenCalledWith(
+        expect.objectContaining({ code: 's7-rec', caderno: 'v' }),
+      )
+    })
+  })
+
+  it('não envia caderno quando o simulado não tem cadernos cadastrados', async () => {
+    vi.mocked(presencialApi.checkin).mockResolvedValue(READY)
+    renderStep(vi.fn())
+    fill('Fulano de Teste', 'fulano@gmail.com')
+    fireEvent.click(screen.getByRole('button', { name: /continuar/i }))
+    await waitFor(() => {
+      expect(presencialApi.checkin).toHaveBeenCalledWith({
+        code: 's7-rec', name: 'Fulano de Teste', email: 'fulano@gmail.com', caderno: undefined,
+      })
+    })
   })
 })

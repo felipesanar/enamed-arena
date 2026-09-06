@@ -33,6 +33,14 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { maskEmail } from "./mask.ts";
 import { normalizeName, firstLastKey, pickCandidates } from "./identity.ts";
 import { signToken, verifyToken } from "./token.ts";
+import {
+  CADERNO_UNAVAILABLE_ERROR,
+  buildSkeletonFromCaderno,
+  groupOptionIdsByQuestion,
+  resolveCadernoSelection,
+  type CadernoItemRow,
+  type CadernoRow,
+} from "./caderno.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -44,6 +52,13 @@ const MAX_CHECKIN_PER_IP = 120;          // uma sala inteira cabe folgado
 const MAX_CHECKIN_PER_EMAIL = 5;
 const MAX_NAME_LOOKUP_PER_IP = 20;       // busca por nome é mais sensível (enumeração)
 const MAX_SUBMIT_PER_IP = 120;           // mesma lógica do checkin: uma sala inteira cabe folgado
+
+// `session-info` é lida antes mesmo de o aluno preencher nome/e-mail — pode
+// ser chamada várias vezes por pessoa (ex.: polling na Tela 0 enquanto ele
+// confere a capa do caderno). Bucket PRÓPRIO, teto bem mais folgado que o de
+// checkin, porque não cria nada e não é sensível a enumeração (não aceita
+// nome nem devolve dado de conta).
+const MAX_SESSION_INFO_PER_IP = 600;
 
 // Fix round 2/5: teto de submissões `unlinked` por SESSÃO (não por IP, não
 // por e-mail — decisão do dono do produto). O CAS do round 1 fecha o
@@ -117,7 +132,7 @@ const CLAIM_RETRY_BASE_DELAY_MS = 150;
 const EMAIL_RE = /^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/;
 const PROFILES_PAGE_SIZE = 1000; // PostgREST cap por página (gotcha do projeto)
 
-const VALID_ACTIONS = new Set(["checkin", "claim", "start-unlinked", "submit"]);
+const VALID_ACTIONS = new Set(["checkin", "claim", "start-unlinked", "submit", "session-info"]);
 
 const SEGMENT_LABELS: Record<string, string> = {
   guest: "Visitante",
@@ -212,6 +227,10 @@ interface SessionRow {
   opens_at: string;
   closes_at: string;
   is_active: boolean;
+  // Sala travada num caderno (modelo "um QR por cor"): não nulo aqui trava a
+  // resolução — ver resolveCadernoId. Nulo → modelo "um QR só" (o corpo
+  // decide, ou o simulado nem tem caderno, ver caderno.ts).
+  caderno_id: string | null;
 }
 
 interface ProfileRow {
@@ -227,6 +246,10 @@ class AlreadySubmittedError extends Error {}
 // Fix round 3/5: sinaliza que a RPC atômica recusou por teto de sessão
 // (PRESENCIAL_UNLINKED_CAP_REACHED), sem confundir com outros erros de RPC.
 class UnlinkedCapReachedError extends Error {}
+
+// Erro de negócio do caderno (resolução ou montagem do esqueleto): sempre
+// 400, sempre pt-BR, mensagem já pronta em `message` — ver caderno.ts.
+class CadernoBusinessError extends Error {}
 
 interface ScorePayload {
   total_questions: number;
@@ -245,7 +268,7 @@ async function loadOpenSession(
   const nowIso = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("presencial_sessions")
-    .select("id, simulado_id, code, opens_at, closes_at, is_active")
+    .select("id, simulado_id, code, opens_at, closes_at, is_active, caderno_id")
     .eq("code", code)
     .eq("is_active", true)
     .lte("opens_at", nowIso)
@@ -279,6 +302,144 @@ async function rateLimit(
     return json({ error: message }, 429, cors);
   }
   return null;
+}
+
+// ─── Caderno (Vermelho/Azul) — resolução ─────────────────────────────────
+//
+// A decisão de QUAL caminho seguir (sessão travada / code do corpo / erro /
+// retrocompat sem caderno) é pura — `resolveCadernoSelection` em caderno.ts,
+// testada sem rede. Aqui só ficam as queries que essa decisão precisa.
+
+async function simuladoHasActiveCadernos(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  simuladoId: string,
+): Promise<boolean> {
+  const { count, error } = await supabaseAdmin
+    .from("presencial_cadernos")
+    .select("id", { count: "exact", head: true })
+    .eq("simulado_id", simuladoId)
+    .eq("is_active", true);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+async function fetchActiveCadernoByCode(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  simuladoId: string,
+  code: string,
+): Promise<CadernoRow | null> {
+  const { data, error } = await supabaseAdmin
+    .from("presencial_cadernos")
+    .select("id, simulado_id, code, label, color, is_active")
+    .eq("simulado_id", simuladoId)
+    .eq("code", code)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Resolve o `cadernoId` a usar numa sessão de checkin/claim/start-unlinked,
+// na ordem do contrato (ver caderno.ts). Lança CadernoBusinessError (400,
+// mensagem pt-BR já pronta) quando a escolha é obrigatória e não veio, ou
+// quando o `code` enviado não corresponde a um caderno ativo do simulado.
+// `cadernoId = null` no retorno é sempre o fallback de retrocompatibilidade
+// (simulado sem nenhum caderno cadastrado) — nunca um jeito de pular uma
+// escolha obrigatória.
+async function resolveCadernoId(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  session: SessionRow,
+  bodyCadernoCode: string | null,
+): Promise<string | null> {
+  // Sessão travada dispensa a query de "tem caderno ativo?" — o resultado
+  // seria 'locked' de qualquer jeito (ver ordem do contrato).
+  const hasActiveCadernos = session.caderno_id
+    ? false
+    : await simuladoHasActiveCadernos(supabaseAdmin, session.simulado_id);
+
+  const resolution = resolveCadernoSelection({
+    sessionCadernoId: session.caderno_id,
+    bodyCadernoCode,
+    simuladoHasActiveCadernos: hasActiveCadernos,
+  });
+
+  switch (resolution.kind) {
+    case "locked":
+      return resolution.cadernoId;
+    case "none":
+      return null;
+    case "error":
+      throw new CadernoBusinessError(resolution.message);
+    case "by-code": {
+      const cadernoRow = await fetchActiveCadernoByCode(supabaseAdmin, session.simulado_id, resolution.code);
+      if (!cadernoRow) throw new CadernoBusinessError(CADERNO_UNAVAILABLE_ERROR);
+      return cadernoRow.id;
+    }
+  }
+}
+
+// ─── session-info ─────────────────────────────────────────────────────────
+//
+// Action nova, SEM efeito colateral: não cria sessão, não cria submissão,
+// não consome o bucket de rate limit do check-in (bucket próprio, ver
+// MAX_SESSION_INFO_PER_IP). Serve dois fins: a Tela 0 do aluno saber se
+// pergunta o caderno e com quais cores pintar, e avisar ANTES de ele
+// preencher nome/e-mail que a sala não está aberta.
+//
+// Deliberadamente não distingue "código não existe" de "sala não aberta" na
+// resposta (mesma postura de `loadOpenSession`/checkin: não confirma nem
+// nega a existência de uma sala para quem só tem o `code`) — os dois casos
+// voltam com `open: false` e nada mais.
+async function handleSessionInfo(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  cors: Record<string, string>,
+  code: string,
+): Promise<Response> {
+  const { data: session, error } = await supabaseAdmin
+    .from("presencial_sessions")
+    .select("simulado_id, label, opens_at, closes_at, is_active, caderno_id")
+    .eq("code", code)
+    .maybeSingle();
+  if (error) throw error;
+
+  if (!session) {
+    return json({ open: false, label: null, caderno: null, cadernos: [] }, 200, cors);
+  }
+
+  const nowMs = Date.now();
+  const open = Boolean(session.is_active)
+    && nowMs >= new Date(session.opens_at).getTime()
+    && nowMs <= new Date(session.closes_at).getTime();
+
+  let caderno: { code: string; label: string; color: string } | null = null;
+  let cadernos: { code: string; label: string; color: string }[] = [];
+
+  if (session.caderno_id) {
+    // Sala travada num caderno: o front não pergunta nada, só pinta com a
+    // cor certa. `cadernos` fica vazio (contrato: "[] se a sala é travada").
+    const { data: cadernoRow, error: cErr } = await supabaseAdmin
+      .from("presencial_cadernos")
+      .select("code, label, color")
+      .eq("id", session.caderno_id)
+      .maybeSingle();
+    if (cErr) throw cErr;
+    caderno = cadernoRow ?? null;
+  } else {
+    const { data: activeCadernos, error: acErr } = await supabaseAdmin
+      .from("presencial_cadernos")
+      .select("code, label, color")
+      .eq("simulado_id", session.simulado_id)
+      .eq("is_active", true)
+      .order("code", { ascending: true });
+    if (acErr) throw acErr;
+    cadernos = activeCadernos ?? [];
+  }
+
+  return json({ open, label: session.label ?? null, caderno, cadernos }, 200, cors);
 }
 
 // ─── Identificação por e-mail / nome ─────────────────────────────────────
@@ -396,41 +557,96 @@ async function buildHints(
 }
 
 // ─── Esqueleto de questões — NUNCA text/explanation/image_url* ───────────
-
+//
+// `cadernoId = null` → comportamento ATUAL, IDÊNTICO (ordem natural por
+// question_number, rótulos reais A-D). `cadernoId` preenchido → devolve as
+// questões na ordem IMPRESSA daquele caderno e as alternativas com o rótulo
+// IMPRESSO apontando para os option_id reais (ver caderno.ts). A validação
+// de completude do caderno mora inteira em caderno.ts; aqui só busca as
+// linhas e delega — nunca serve esqueleto parcial (CadernoBusinessError,
+// 400, pego no handler).
 async function buildSkeleton(
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
   simuladoId: string,
+  cadernoId: string | null,
 ) {
-  const { data: questions, error: qErr } = await supabaseAdmin
-    .from("questions")
-    .select("id, question_number")
-    .eq("simulado_id", simuladoId)
-    .order("question_number", { ascending: true });
-  if (qErr) throw qErr;
-  if (!questions || questions.length === 0) return [];
+  if (cadernoId === null) {
+    const { data: questions, error: qErr } = await supabaseAdmin
+      .from("questions")
+      .select("id, question_number")
+      .eq("simulado_id", simuladoId)
+      .order("question_number", { ascending: true });
+    if (qErr) throw qErr;
+    if (!questions || questions.length === 0) return [];
 
-  const questionIds = questions.map((q: { id: string }) => q.id);
-  const { data: options, error: oErr } = await supabaseAdmin
-    .from("question_options")
-    .select("id, question_id, label")
-    .in("question_id", questionIds)
-    .in("label", ["A", "B", "C", "D"])
-    .order("label", { ascending: true });
-  if (oErr) throw oErr;
+    const questionIds = questions.map((q: { id: string }) => q.id);
+    const { data: options, error: oErr } = await supabaseAdmin
+      .from("question_options")
+      .select("id, question_id, label")
+      .in("question_id", questionIds)
+      .in("label", ["A", "B", "C", "D"])
+      .order("label", { ascending: true });
+    if (oErr) throw oErr;
 
-  const byQuestion = new Map<string, { id: string; label: string }[]>();
-  for (const opt of options ?? []) {
-    const arr = byQuestion.get(opt.question_id) ?? [];
-    arr.push({ id: opt.id, label: opt.label });
-    byQuestion.set(opt.question_id, arr);
+    const byQuestion = new Map<string, { id: string; label: string }[]>();
+    for (const opt of options ?? []) {
+      const arr = byQuestion.get(opt.question_id) ?? [];
+      arr.push({ id: opt.id, label: opt.label });
+      byQuestion.set(opt.question_id, arr);
+    }
+
+    return questions.map((q: { id: string; question_number: number }) => ({
+      question_id: q.id,
+      number: q.question_number,
+      options: (byQuestion.get(q.id) ?? []).sort((a, b) => a.label.localeCompare(b.label)),
+    }));
   }
 
-  return questions.map((q: { id: string; question_number: number }) => ({
-    question_id: q.id,
-    number: q.question_number,
-    options: (byQuestion.get(q.id) ?? []).sort((a, b) => a.label.localeCompare(b.label)),
-  }));
+  // ── Caminho do caderno (Vermelho/Azul) ──
+  const { data: cadernoRow, error: cErr } = await supabaseAdmin
+    .from("presencial_cadernos")
+    .select("id, simulado_id, code, label, color, is_active")
+    .eq("id", cadernoId)
+    .maybeSingle();
+  if (cErr) throw cErr;
+
+  const { data: simuladoQuestions, error: qErr2 } = await supabaseAdmin
+    .from("questions")
+    .select("id")
+    .eq("simulado_id", simuladoId);
+  if (qErr2) throw qErr2;
+  const simuladoQuestionIds = (simuladoQuestions ?? []).map((q: { id: string }) => q.id);
+
+  const { data: itemRows, error: iErr } = await supabaseAdmin
+    .from("presencial_caderno_items")
+    .select("position, question_id, option_map")
+    .eq("caderno_id", cadernoId);
+  if (iErr) throw iErr;
+
+  // `.in()` com array vazio tem comportamento inconsistente entre clientes
+  // PostgREST — evita a chamada quando o simulado não tem questão nenhuma
+  // (caso degenerado; a validação de completude recusaria de qualquer jeito).
+  const { data: optionRows, error: oErr2 } = simuladoQuestionIds.length > 0
+    ? await supabaseAdmin
+      .from("question_options")
+      .select("id, question_id")
+      .in("question_id", simuladoQuestionIds)
+    : { data: [], error: null };
+  if (oErr2) throw oErr2;
+
+  const result = buildSkeletonFromCaderno({
+    caderno: (cadernoRow ?? null) as CadernoRow | null,
+    expectedSimuladoId: simuladoId,
+    items: (itemRows ?? []) as CadernoItemRow[],
+    simuladoQuestionIds,
+    optionsByQuestion: groupOptionIdsByQuestion(optionRows ?? []),
+  });
+
+  if (!result.ok) {
+    throw new CadernoBusinessError(result.error);
+  }
+  return result.questions;
 }
 
 // ─── Criação/conversão do attempt + submissão + token ────────────────────
@@ -446,18 +662,23 @@ async function buildReadyResponse(
   session: SessionRow,
   submissionId: string,
   attemptId: string | null,
+  cadernoId: string | null,
 ): Promise<unknown> {
-  const questions = await buildSkeleton(supabaseAdmin, session.simulado_id);
+  const questions = await buildSkeleton(supabaseAdmin, session.simulado_id, cadernoId);
 
   // Token assinado, não cifrado (ver comentário em token.ts): user_id nunca
   // entra aqui. Quem consumir o token depois (Task 10) deriva o user_id no
   // servidor via attempt_id (public.attempts) ou submission_id
   // (public.presencial_submissions.linked_user_id) — nunca do cliente.
+  // `caderno_id` segue o mesmo espírito: não é identificador de usuário, só
+  // o caderno já resolvido — o `submit` o usa só para gravar em
+  // presencial_submissions (a correção não depende do caderno).
   const token = await signToken({
     submission_id: submissionId,
     simulado_id: session.simulado_id,
     session_id: session.id,
     attempt_id: attemptId,
+    caderno_id: cadernoId,
     exp: Date.now() + TOKEN_TTL_MS,
   }, PRESENCIAL_TOKEN_SECRET);
 
@@ -475,6 +696,7 @@ async function createSession(
   ipHash: string,
   name: string,
   email: string,
+  cadernoId: string | null,
 ): Promise<{ submissionId: string; body: unknown }> {
   const { data, error } = await supabaseAdmin.rpc("create_or_convert_presencial_attempt", {
     p_simulado_id: session.simulado_id,
@@ -500,12 +722,13 @@ async function createSession(
       linked_user_id: user.id,
       linked_attempt_id: attemptId,
       status: "linked",
+      caderno_id: cadernoId,
     })
     .select("id")
     .single();
   if (subErr) throw subErr;
 
-  const body = await buildReadyResponse(supabaseAdmin, session, submission.id, attemptId);
+  const body = await buildReadyResponse(supabaseAdmin, session, submission.id, attemptId, cadernoId);
   return { submissionId: submission.id, body };
 }
 
@@ -524,7 +747,16 @@ async function createUnlinkedSession(
   name: string,
   email: string,
   maxUnlinked: number,
+  cadernoId: string | null,
 ): Promise<{ submissionId: string; body: unknown }> {
+  // A RPC (migration 20260812100700) ainda não tem parâmetro para
+  // caderno_id — não é alterada aqui (fora do escopo desta entrega, e o
+  // contrato de schema recebido não pede mudança de assinatura de RPC).
+  // Em vez disso, gravamos caderno_id com um UPDATE de acompanhamento pelo
+  // id que acabou de ser inserido: seguro porque o id é recém-gerado
+  // (gen_random_uuid) nesta mesma chamada — nenhuma concorrência possível
+  // sobre ele ainda — e não interfere no CAS de `submitted_at` (claimSubmission),
+  // que é quem de fato trava contra reenvio.
   const { data: submissionId, error } = await supabaseAdmin.rpc("claim_presencial_unlinked_submission", {
     p_session_id: session.id,
     p_simulado_id: session.simulado_id,
@@ -540,7 +772,15 @@ async function createUnlinkedSession(
     throw error;
   }
 
-  const body = await buildReadyResponse(supabaseAdmin, session, submissionId as string, null);
+  if (cadernoId) {
+    const { error: cadernoErr } = await supabaseAdmin
+      .from("presencial_submissions")
+      .update({ caderno_id: cadernoId })
+      .eq("id", submissionId as string);
+    if (cadernoErr) throw cadernoErr;
+  }
+
+  const body = await buildReadyResponse(supabaseAdmin, session, submissionId as string, null, cadernoId);
   return { submissionId: submissionId as string, body };
 }
 
@@ -670,6 +910,7 @@ async function claimSubmission(
   submissionId: string,
   answers: unknown,
   score: ScorePayload,
+  cadernoId: string | null,
 ): Promise<boolean> {
   const { data, error } = await supabaseAdmin
     .from("presencial_submissions")
@@ -678,6 +919,13 @@ async function claimSubmission(
       total_correct: score.total_correct,
       score_percentage: score.score_percentage,
       submitted_at: new Date().toISOString(),
+      // Já gravado na criação da submissão (createSession /
+      // claim_presencial_unlinked_submission); regravado aqui pelo mesmo
+      // `payload.caderno_id` do token — auditoria de "com qual caderno esse
+      // gabarito foi enviado" fica também no ponto de escrita mais próximo
+      // do envio em si, não só na origem. Não influencia a correção: as
+      // respostas já chegam com question_id/option_id reais.
+      caderno_id: cadernoId,
     })
     .eq("id", submissionId)
     .is("submitted_at", null)
@@ -697,11 +945,12 @@ async function claimSubmissionWithRetry(
   submissionId: string,
   answers: unknown,
   score: ScorePayload,
+  cadernoId: string | null,
 ): Promise<boolean> {
   let lastErr: unknown;
   for (let attempt = 1; attempt <= CLAIM_RETRY_ATTEMPTS; attempt++) {
     try {
-      return await claimSubmission(supabaseAdmin, submissionId, answers, score);
+      return await claimSubmission(supabaseAdmin, submissionId, answers, score, cadernoId);
     } catch (err) {
       lastErr = err;
       if (attempt < CLAIM_RETRY_ATTEMPTS) {
@@ -808,7 +1057,7 @@ async function handleSubmit(
   // aluno E a ÚNICA trava contra reenvio (ver comentário de claimSubmission).
   let claimed: boolean;
   try {
-    claimed = await claimSubmissionWithRetry(supabaseAdmin, payload.submission_id, answers, score);
+    claimed = await claimSubmissionWithRetry(supabaseAdmin, payload.submission_id, answers, score, payload.caderno_id);
   } catch (err) {
     if (!isLinked) {
       // Ramo unlinked: nada irreversível aconteceu antes deste ponto (não há
@@ -887,6 +1136,7 @@ Deno.serve(async (req) => {
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const candidateRefInput = typeof body?.candidate_ref === "string" ? body.candidate_ref : "";
+    const cadernoCode = typeof body?.caderno === "string" ? body.caderno.trim().toLowerCase() : "";
 
     if (!VALID_ACTIONS.has(action)) {
       return json({ error: "Ação inválida" }, 400, cors);
@@ -896,6 +1146,24 @@ Deno.serve(async (req) => {
     // emitido no checkin/claim/start-unlinked. Fluxo totalmente separado.
     if (action === "submit") {
       return await handleSubmit(supabaseAdmin, cors, body, req);
+    }
+
+    // `session-info` só precisa do `code` da sala — não cria nada, não exige
+    // nome/e-mail, e usa bucket de rate limit PRÓPRIO (não consome o de
+    // check-in). Serve a Tela 0 (perguntar o caderno) e avisa se a sala nem
+    // está aberta ANTES de o aluno preencher o formulário.
+    if (action === "session-info") {
+      if (!code) {
+        return json({ error: "Código da sala é obrigatório" }, 400, cors);
+      }
+      const ip = getClientIp(req);
+      const ipHash = await sha256Hex(ip);
+      const infoLimited = await rateLimit(
+        supabaseAdmin, cors, "session_info_ip", ipHash, MAX_SESSION_INFO_PER_IP,
+      );
+      if (infoLimited) return infoLimited;
+
+      return await handleSessionInfo(supabaseAdmin, cors, code);
     }
 
     if (!code) {
@@ -925,6 +1193,21 @@ Deno.serve(async (req) => {
     const emailLimited = await rateLimit(supabaseAdmin, cors, "checkin_email", emailHash, MAX_CHECKIN_PER_EMAIL);
     if (emailLimited) return emailLimited;
 
+    // Resolução do caderno (ordem do contrato, ver resolveCadernoId): sala
+    // travada vence; senão o `caderno` do corpo; senão erro — a menos que o
+    // simulado não tenha caderno cadastrado (retrocompat, cadernoId = null).
+    // Comum às 3 actions abaixo, resolvido ANTES de criar qualquer sessão/
+    // submissão.
+    let cadernoId: string | null;
+    try {
+      cadernoId = await resolveCadernoId(supabaseAdmin, session, cadernoCode || null);
+    } catch (err) {
+      if (err instanceof CadernoBusinessError) {
+        return json({ error: err.message }, 400, cors);
+      }
+      throw err;
+    }
+
     if (action === "start-unlinked") {
       // Fix round 3/5: contagem + inserção atômicas via RPC (ver
       // createUnlinkedSession e a migration 20260812100700) — fecha a
@@ -934,10 +1217,13 @@ Deno.serve(async (req) => {
       // claim sempre resolvem para um usuário real antes de createSession.
       try {
         const { body: resultBody } = await createUnlinkedSession(
-          supabaseAdmin, session, ipHash, name, email, getMaxUnlinkedPerSession(),
+          supabaseAdmin, session, ipHash, name, email, getMaxUnlinkedPerSession(), cadernoId,
         );
         return json(resultBody, 200, cors);
       } catch (err) {
+        if (err instanceof CadernoBusinessError) {
+          return json({ error: err.message }, 400, cors);
+        }
         if (err instanceof UnlinkedCapReachedError) {
           console.warn(
             "[presencial] start-unlinked: teto de submissões não vinculadas atingido para a sessão:",
@@ -961,10 +1247,13 @@ Deno.serve(async (req) => {
       if (emailMatch) {
         try {
           const { body: resultBody } = await createSession(
-            supabaseAdmin, session, "email_direct", emailMatch, ipHash, name, email,
+            supabaseAdmin, session, "email_direct", emailMatch, ipHash, name, email, cadernoId,
           );
           return json(resultBody, 200, cors);
         } catch (err) {
+          if (err instanceof CadernoBusinessError) {
+            return json({ error: err.message }, 400, cors);
+          }
           if (err instanceof AlreadySubmittedError) {
             return json(
               { error: "Esta conta já enviou o gabarito presencial deste simulado." },
@@ -1036,7 +1325,7 @@ Deno.serve(async (req) => {
 
     try {
       const { submissionId, body: resultBody } = await createSession(
-        supabaseAdmin, session, "name_suggestion", matched, ipHash, name, email,
+        supabaseAdmin, session, "name_suggestion", matched, ipHash, name, email, cadernoId,
       );
 
       const { error: updErr } = await supabaseAdmin
@@ -1051,6 +1340,9 @@ Deno.serve(async (req) => {
 
       return json(resultBody, 200, cors);
     } catch (err) {
+      if (err instanceof CadernoBusinessError) {
+        return json({ error: err.message }, 400, cors);
+      }
       if (err instanceof AlreadySubmittedError) {
         return json(
           { error: "Esta conta já enviou o gabarito presencial deste simulado." },
@@ -1061,6 +1353,13 @@ Deno.serve(async (req) => {
       throw err;
     }
   } catch (err) {
+    // Defesa em profundidade: se um CadernoBusinessError escapar de algum
+    // caminho não coberto pelos catches locais (ex.: sessão travada num
+    // caderno que falha a validação de completude dentro de buildSkeleton),
+    // ainda assim vira 400 com mensagem pt-BR — nunca 500 genérico.
+    if (err instanceof CadernoBusinessError) {
+      return json({ error: err.message }, 400, cors);
+    }
     console.error("[presencial] Unexpected error:", err);
     return json({ error: "Erro interno" }, 500, cors);
   }

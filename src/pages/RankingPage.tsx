@@ -17,6 +17,7 @@ import { useRankingEvolution } from '@/hooks/useRankingEvolution';
 import { RankingView } from '@/components/ranking/RankingView';
 import { ProfSanorRanking } from '@/components/ranking/ProfSanorRanking';
 import { FloatingProfSan } from '@/components/FloatingProfSan';
+import { PresencialEntryCard } from '@/components/presencial/PresencialEntryCard';
 
 export default function RankingPage() {
   const {
@@ -75,6 +76,7 @@ export default function RankingPage() {
           subtitlePlacement="inline-end"
           badge="ENAMED 2026"
         />
+        <PresencialEntryCard />
         <EmptyState
           variant="error"
           title="Não foi possível carregar o ranking"
@@ -94,6 +96,7 @@ export default function RankingPage() {
           subtitlePlacement="inline-end"
           badge="ENAMED 2026"
         />
+        <PresencialEntryCard />
         <EmptyState
           icon={Trophy}
           title="Ranking indisponível"
@@ -111,6 +114,7 @@ export default function RankingPage() {
         subtitlePlacement="inline-end"
         badge="ENAMED 2026"
       />
+      <PresencialEntryCard />
       {currentUser && (
         <FloatingProfSan storageKey="profsan:ranking:open">
           <ProfSanorRanking

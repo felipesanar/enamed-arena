@@ -14,6 +14,13 @@ export interface OfflineAttemptCreated {
   started_at: string;
   exam_duration_seconds: number;
   simulado_slug: string;
+  /**
+   * Só vem preenchido por `createPresencialAttempt`: indica que havia uma
+   * tentativa online abandonada e ela foi convertida in-place ("presencial
+   * ganha"). A tela usa isso para avisar o aluno de que a tentativa online
+   * anterior foi substituída — em vez de a substituição acontecer calada.
+   */
+  converted_from_online?: boolean;
 }
 
 export interface OfflineAttemptSubmitResult {
@@ -70,6 +77,52 @@ export const offlineApi = {
     trackEvent('offline_attempt_created', {
       simulado_id: simuladoId,
       attempt_id: result.attempt_id,
+    });
+    return result;
+  },
+
+  /**
+   * Cria a tentativa de quem fez a prova PRESENCIALMENTE, no papel.
+   *
+   * Por que não `createOfflineAttempt`: `create_offline_attempt_guarded`
+   * RECUSA quem tem uma tentativa online `in_progress` ("An online attempt is
+   * already in progress"). Na aplicação presencial do S7 havia 74 attempts
+   * nesse estado — gente que começou a prova online, abandonou, e fez no
+   * papel. Com a RPC antiga essas pessoas ficariam travadas na sala, sem o
+   * fiscal poder destravar. `create_presencial_attempt_guarded` aplica a
+   * regra "presencial ganha": converte a tentativa online abandonada
+   * in-place, com backup das respostas originais.
+   *
+   * Idempotente, igual à irmã: se já existe `offline_pending`, devolve ele.
+   */
+  async createPresencialAttempt(simuladoId: string): Promise<OfflineAttemptCreated> {
+    logger.log('[OfflineApi] Creating presencial attempt for simulado:', simuladoId);
+
+    // Mesma guarda defensiva de createOfflineAttempt: navegador in-app
+    // (Instagram/Facebook) às vezes limpa o localStorage entre navegações e
+    // deixa o cliente deslogado enquanto a UI ainda acha que há sessão. Sem
+    // isso, a RPC veria auth.uid() = NULL e o erro que chega na tela é
+    // incompreensível.
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      logger.error('[OfflineApi] No authenticated user when creating presencial attempt:', authError);
+      throw new Error(
+        'Sua sessão expirou. Abra o link em um navegador (Chrome/Safari) e faça login novamente.',
+      );
+    }
+
+    const { data, error } = await rpc('create_presencial_attempt_guarded', {
+      p_simulado_id: simuladoId,
+    });
+    if (error) {
+      logger.error('[OfflineApi] Error creating presencial attempt:', error);
+      throw error;
+    }
+    const result = data as unknown as OfflineAttemptCreated;
+    trackEvent('presencial_attempt_created', {
+      simulado_id: simuladoId,
+      attempt_id: result.attempt_id,
+      converted_from_online: result.converted_from_online ?? false,
     });
     return result;
   },
