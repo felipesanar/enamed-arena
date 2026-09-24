@@ -68,6 +68,24 @@ describe('extractAnswerLine', () => {
     expect(extractAnswerLine(text)?.label).toBe('C');
   });
 
+  it('casa as formas com separador ou com a palavra alternativa/letra', () => {
+    expect(extractAnswerLine('Resposta: C')?.label).toBe('C');
+    expect(extractAnswerLine('Resposta - B')?.label).toBe('B');
+    expect(extractAnswerLine('Resposta letra D')?.label).toBe('D');
+    expect(extractAnswerLine('Resposta Alternativa B')?.label).toBe('B');
+  });
+
+  it('S7 Q73: não casa "resposta" seguida da preposição "a" no meio de frase', () => {
+    // Incidente real (31/08): "não se deve aguardar resposta a analgésicos"
+    // casava como "Resposta: A" porque o separador era opcional, e a questão
+    // foi bloqueada no import com comment_internal_conflict.
+    expect(
+      extractAnswerLine('em cefaleia súbita não se deve aguardar resposta a analgésicos'),
+    ).toBeNull();
+    expect(extractAnswerLine('houve boa resposta a corticoide')).toBeNull();
+    expect(extractAnswerLine('a resposta b celular está preservada')).toBeNull();
+  });
+
   it('ignora faixas já consumidas por S1', () => {
     const text = 'Resposta correta: C';
     const s1 = extractCorrectMarkings(text);
@@ -196,6 +214,25 @@ describe('checkGabarito', () => {
     expect(misaligned).toBeDefined();
     expect(misaligned?.proposedLabel).toBe('D');
     expect(misaligned?.severity).toBe('warning');
+  });
+
+  it('S7 Q73: "resposta a analgésicos" no corpo não gera conflito interno (falso positivo do separador opcional)', () => {
+    // Incidente real (31/08): gabarito C, corpo marcando C como CORRETA, mas a
+    // frase "não se deve aguardar resposta a analgésicos" era lida como
+    // "Resposta: A" e bloqueava o import com comment_internal_conflict.
+    // A questão teve que ser inserida à mão em produção.
+    const input = makeInput({
+      questionNumber: 73,
+      gabarito: 'C',
+      comentario: `
+        Alternativa A: INCORRETA, pois a tomografia sem contraste é o exame inicial.
+        Alternativa B: INCORRETA, pois em cefaleia súbita intensa não se deve aguardar resposta a analgésicos antes de investigar.
+        Alternativa C: CORRETA, pois o quadro exige investigação imediata para hemorragia subaracnóidea.
+        Alternativa D: INCORRETA, pois a punção lombar só se indica após tomografia negativa.
+      `,
+    });
+
+    expect(checkGabarito(input)).toEqual([]);
   });
 
   it('comentário coerente com o gabarito não gera achados', () => {
