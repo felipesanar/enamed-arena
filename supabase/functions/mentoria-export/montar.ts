@@ -97,9 +97,17 @@ export function montarExportacao(
   const especialidadePorId = new Map(linhas.especialidades.map((e) => [e.id, e]));
   const instituicaoPorId = new Map(linhas.instituicoes.map((i) => [i.id, i]));
   const onboardingPorUser = new Map(linhas.onboarding.map((o) => [o.user_id, o]));
-  const cortePorChave = new Map(
-    linhas.cortes.map((c) => [`${c.institution_id}|${c.specialty_id}`, c]),
-  );
+  // Há uma linha por (instituição, especialidade, cenário de prática): vale a de
+  // MAIOR cutoff_score_general (mesma regra da RPC get_cutoff_scores), e a cota
+  // vem da mesma linha.
+  const cortePorChave = new Map<string, CorteRow>();
+  for (const c of linhas.cortes) {
+    const chave = `${c.institution_id}|${c.specialty_id}`;
+    const atual = cortePorChave.get(chave);
+    const novo = numOuNull(c.cutoff_score_general) ?? -Infinity;
+    const antigo = atual ? numOuNull(atual.cutoff_score_general) ?? -Infinity : -Infinity;
+    if (!atual || novo > antigo) cortePorChave.set(chave, c);
+  }
 
   const opcaoPorId = new Map(linhas.opcoes.map((o) => [o.id, o]));
   const corretaPorQuestao = new Map<string, string>();
@@ -213,9 +221,10 @@ export function montarExportacao(
 
 export type ValidacaoCorpo =
   | { ok: true; emails: string[]; desde: string | null }
-  | { ok: false; status: 400; erro: "emails_invalidos" };
+  | { ok: false; status: 400; erro: "emails_invalidos" | "desde_invalido" };
 
 const INVALIDO: ValidacaoCorpo = { ok: false, status: 400, erro: "emails_invalidos" };
+const DESDE_INVALIDO: ValidacaoCorpo = { ok: false, status: 400, erro: "desde_invalido" };
 
 export function validarCorpo(body: unknown): ValidacaoCorpo {
   if (!body || typeof body !== "object") return INVALIDO;
@@ -229,10 +238,13 @@ export function validarCorpo(body: unknown): ValidacaoCorpo {
     if (!n) return INVALIDO;
     normalizados.push(n);
   }
-  const desdeOk =
-    typeof desde === "string" && desde.trim() && Number.isFinite(Date.parse(desde))
-      ? desde
-      : null;
+  // `desde` ausente/null = tudo; presente porém inválido = erro (um typo não
+  // pode despejar todas as respostas).
+  let desdeOk: string | null = null;
+  if (desde !== undefined && desde !== null) {
+    if (typeof desde !== "string" || !Number.isFinite(Date.parse(desde))) return DESDE_INVALIDO;
+    desdeOk = desde;
+  }
   return { ok: true, emails: [...new Set(normalizados)], desde: desdeOk };
 }
 

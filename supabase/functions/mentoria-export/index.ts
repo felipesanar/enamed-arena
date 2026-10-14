@@ -4,6 +4,8 @@
 // POST { "emails": [...até 2000], "desde": ISO | null }
 // Header: x-mentoria-export-secret (== env MENTORIA_EXPORT_SECRET)
 //
+// Uso: o chamador deve agrupar ~100 e-mails por requisição e passar `desde`
+// nas execuções incrementais (o teto de 2000 é só do contrato, não a meta).
 // - Só devolve alunos cujo e-mail veio na requisição; nunca lista a base.
 // - Sem CORS: chamada servidor-a-servidor.
 // - verify_jwt = false (supabase/config.toml); o gate é o segredo compartilhado.
@@ -43,12 +45,15 @@ async function buscarTudo<T>(
   fabrica: () => any,
 ): Promise<T[]> {
   const todas: T[] = [];
-  for (let de = 0; ; de += PAGINA) {
+  for (let de = 0; ; ) {
     const { data, error } = await fabrica().range(de, de + PAGINA - 1);
     if (error) throw error;
     const linhas = (data ?? []) as T[];
     todas.push(...linhas);
-    if (linhas.length < PAGINA) break;
+    de += linhas.length; // avança pelo que veio, não pelo que foi pedido
+    // Para só em página vazia: se o max_rows do PostgREST for menor que PAGINA,
+    // uma página curta não significa fim e truncaria em silêncio.
+    if (linhas.length === 0) break;
   }
   return todas;
 }
@@ -104,8 +109,11 @@ async function coletar(
       db
         .from("enamed_cutoff_scores")
         .select("institution_id, specialty_id, cutoff_score_general, cutoff_score_quota")
+        .not("institution_id", "is", null)
+        .not("specialty_id", "is", null)
         .order("institution_id")
         .order("specialty_id")
+        .order("id")
     ),
   ]);
 

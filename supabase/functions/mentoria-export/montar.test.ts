@@ -92,6 +92,19 @@ describe("montarExportacao", () => {
     ]);
   });
 
+  it("vários cenários por instituição+especialidade: vale o maior corte geral, com a cota da mesma linha", () => {
+    const l = base();
+    l.cortes = [
+      { institution_id: "i1", specialty_id: "sp1", cutoff_score_general: 70, cutoff_score_quota: 99 },
+      { institution_id: "i1", specialty_id: "sp1", cutoff_score_general: "88.5", cutoff_score_quota: 60 },
+      { institution_id: "i1", specialty_id: "sp1", cutoff_score_general: 80, cutoff_score_quota: 95 },
+    ];
+    const ana = montarExportacao(l, null, GERADO).alunos.find((a) => a.email === "a@x.com")!;
+    expect(ana.alvos).toEqual([
+      { institution_id: "i1", nome: "HC-FMUSP", corte_geral: 88.5, corte_cota: 60 },
+    ]);
+  });
+
   it("selected_label vem de question_options.label", () => {
     const out = montarExportacao(base(), null, GERADO);
     const ana = out.alunos.find((a) => a.email === "a@x.com")!;
@@ -157,12 +170,21 @@ describe("validarCorpo", () => {
     expect(validarCorpo({ emails: ["a@x.com", "  "] }).ok).toBe(false);
   });
 
+  it("desde presente mas inválido -> 400 desde_invalido", () => {
+    for (const desde of ["lixo", "", 123, {}]) {
+      expect(validarCorpo({ emails: ["a@x.com"], desde })).toEqual({
+        ok: false,
+        status: 400,
+        erro: "desde_invalido",
+      });
+    }
+  });
+
   it("normaliza (trim, minúsculo) e deduplica; desde opcional", () => {
     const r = validarCorpo({ emails: [" A@X.com ", "a@x.com", "B@x.com"], desde: "2026-01-01T00:00:00Z" });
     expect(r).toEqual({ ok: true, emails: ["a@x.com", "b@x.com"], desde: "2026-01-01T00:00:00Z" });
     expect(validarCorpo({ emails: ["a@x.com"] })).toEqual({ ok: true, emails: ["a@x.com"], desde: null });
     expect(validarCorpo({ emails: ["a@x.com"], desde: null })).toMatchObject({ desde: null });
-    expect(validarCorpo({ emails: ["a@x.com"], desde: "lixo" })).toMatchObject({ desde: null });
   });
 });
 
