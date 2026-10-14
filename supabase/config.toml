@@ -32,3 +32,8 @@ verify_jwt = false
 # O gate é o código da sala + janela + rate limit dentro do handler.
 [functions.presencial]
 verify_jwt = false
+
+# Exportacao de resultados para o Academy (Pagina do Mentor): chamada servidor-a-servidor,
+# sem JWT de usuario; o gate e o segredo x-mentoria-export-secret dentro do handler.
+[functions.mentoria-export]
+verify_jwt = false
