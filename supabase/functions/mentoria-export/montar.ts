@@ -55,12 +55,15 @@ export interface QuestaoRow {
   explanation_image_url: string | null;
   difficulty: string | null;
 }
+// `text` e `is_correct` vêm ausentes nas linhas de simulados ainda não liberados
+// (a consulta só busca id/question_id/label deles, para resolver selected_label
+// sem trazer o gabarito). A montagem só exporta opções de simulados liberados.
 export interface OpcaoRow {
   id: string;
   question_id: string;
   label: string;
-  text: string | null;
-  is_correct: boolean;
+  text?: string | null;
+  is_correct?: boolean | null;
 }
 export interface TentativaRow {
   id: string;
@@ -181,6 +184,28 @@ export function calcularRanking(linhas: RankingRow[]): {
   return { porTentativa, participantesPorSimulado };
 }
 
+// Regra de liberação (a mesma do Academy):
+//   agora >= greatest(coalesce(results_release_at, execution_window_end), execution_window_end)
+// Sem execution_window_end (ou data inválida) = NÃO liberado. Gabarito e
+// enunciados de simulado ainda em andamento não saem da plataforma.
+export function simuladoLiberado(
+  sim: Pick<SimuladoRow, "execution_window_end" | "results_release_at">,
+  agora: Date,
+): boolean {
+  const agoraMs = agora.getTime();
+  if (!Number.isFinite(agoraMs)) return false;
+  if (!sim.execution_window_end) return false;
+  const fim = Date.parse(sim.execution_window_end);
+  if (!Number.isFinite(fim)) return false;
+  let limite = fim;
+  if (sim.results_release_at) {
+    const lib = Date.parse(sim.results_release_at);
+    if (!Number.isFinite(lib)) return false;
+    limite = Math.max(lib, fim);
+  }
+  return agoraMs >= limite;
+}
+
 function numOuNull(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = typeof v === "number" ? v : Number(v);
@@ -191,6 +216,7 @@ export function montarExportacao(
   linhas: LinhasCruas,
   desde: string | null,
   geradoEm: string,
+  agora: Date,
 ) {
   const desdeMs = desde ? Date.parse(desde) : null;
 
@@ -209,28 +235,49 @@ export function montarExportacao(
     if (!atual || novo > antigo) cortePorChave.set(chave, c);
   }
 
-  const opcaoPorId = new Map(linhas.opcoes.map((o) => [o.id, o]));
+  // Só simulados publicados saem da plataforma; rascunhos (e tudo que pende deles:
+  // questões, opções, tentativas, respostas, ranking) ficam de fora.
+  const simuladosPub = linhas.simulados.filter((s) => s.status === "published");
+  const idsPub = new Set(simuladosPub.map((s) => s.id));
+  const idsLiberados = new Set(
+    simuladosPub.filter((s) => simuladoLiberado(s, agora)).map((s) => s.id),
+  );
+
+  const questoesPub = linhas.questoes.filter((q) => idsPub.has(q.simulado_id));
+  const questoesLiberadas = new Set(
+    questoesPub.filter((q) => idsLiberados.has(q.simulado_id)).map((q) => q.id),
+  );
+  const questoesPubIds = new Set(questoesPub.map((q) => q.id));
+
+  // Rótulo da alternativa marcada: resolvido para qualquer questão publicada
+  // (inclusive não liberada: o rótulo marcado pelo aluno não vaza o gabarito).
+  const opcoesPub = linhas.opcoes.filter((o) => questoesPubIds.has(o.question_id));
+  const opcaoPorId = new Map(opcoesPub.map((o) => [o.id, o]));
+  // Opções e gabarito: só de questões de simulados liberados.
+  const opcoesLiberadas = opcoesPub.filter((o) => questoesLiberadas.has(o.question_id));
   const corretaPorQuestao = new Map<string, string>();
-  for (const o of linhas.opcoes) {
+  for (const o of opcoesLiberadas) {
     if (o.is_correct && !corretaPorQuestao.has(o.question_id)) {
       corretaPorQuestao.set(o.question_id, o.label);
     }
   }
 
-  const ranking = calcularRanking(linhas.ranking ?? []);
+  const ranking = calcularRanking(
+    (linhas.ranking ?? []).filter((r) => idsPub.has(r.simulado_id)),
+  );
 
-  // Todas as opções de todas as questões dos simulados exportados.
-  const opcoes = linhas.opcoes.map((o) => ({
+  const opcoes = opcoesLiberadas.map((o) => ({
     id: o.id,
     question_id: o.question_id,
     label: o.label,
     text: o.text ?? null,
-    is_correct: o.is_correct,
+    is_correct: o.is_correct ?? false,
   }));
 
   const tentativasPorUser = new Map<string, TentativaRow[]>();
   for (const t of linhas.tentativas) {
     if (!t.finished_at) continue; // não finalizada: ignorada
+    if (!idsPub.has(t.simulado_id)) continue; // simulado não publicado: fora
     const lista = tentativasPorUser.get(t.user_id) ?? [];
     lista.push(t);
     tentativasPorUser.set(t.user_id, lista);
@@ -243,7 +290,7 @@ export function montarExportacao(
     resultadosPorTentativa.set(r.attempt_id, lista);
   }
 
-  const simulados = [...linhas.simulados]
+  const simulados = [...simuladosPub]
     .sort((a, b) => a.sequence_number - b.sequence_number)
     .map((s) => ({
       id: s.id,
@@ -256,20 +303,25 @@ export function montarExportacao(
       status: s.status,
     }));
 
-  const questoes = linhas.questoes.map((q) => ({
-    id: q.id,
-    simulado_id: q.simulado_id,
-    question_number: q.question_number,
-    area: q.area,
-    theme: q.theme,
-    text: q.text ?? null,
-    explanation: q.explanation ?? null,
-    image_url: q.image_url ?? null,
-    image_url_2: q.image_url_2 ?? null,
-    explanation_image_url: q.explanation_image_url ?? null,
-    difficulty: q.difficulty ?? null,
-    correta_label: corretaPorQuestao.get(q.id) ?? null,
-  }));
+  // Simulado não liberado: a linha da questão sai (as FKs das respostas seguem
+  // valendo), mas enunciado, explicação, imagens e gabarito ficam null.
+  const questoes = questoesPub.map((q) => {
+    const liberada = questoesLiberadas.has(q.id);
+    return {
+      id: q.id,
+      simulado_id: q.simulado_id,
+      question_number: q.question_number,
+      area: q.area,
+      theme: q.theme,
+      text: liberada ? q.text ?? null : null,
+      explanation: liberada ? q.explanation ?? null : null,
+      image_url: liberada ? q.image_url ?? null : null,
+      image_url_2: liberada ? q.image_url_2 ?? null : null,
+      explanation_image_url: liberada ? q.explanation_image_url ?? null : null,
+      difficulty: q.difficulty ?? null,
+      correta_label: liberada ? corretaPorQuestao.get(q.id) ?? null : null,
+    };
+  });
 
   const vistos = new Set<string>();
   const alunos = [];
@@ -317,6 +369,7 @@ export function montarExportacao(
 
     const respostas = [];
     for (const t of tentativasRaw) {
+      const liberado = idsLiberados.has(t.simulado_id);
       if (desdeMs !== null && !(Date.parse(t.finished_at as string) >= desdeMs)) continue;
       for (const r of resultadosPorTentativa.get(t.id) ?? []) {
         respostas.push({
@@ -325,7 +378,8 @@ export function montarExportacao(
           selected_label: r.selected_option_id
             ? opcaoPorId.get(r.selected_option_id)?.label ?? null
             : null,
-          is_correct: r.is_correct,
+          // is_correct entrega o gabarito: null enquanto o simulado não for liberado.
+          is_correct: liberado ? r.is_correct : null,
           was_answered: r.was_answered,
         });
       }

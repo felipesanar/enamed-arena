@@ -15,12 +15,14 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import {
   compararSegredo,
   montarExportacao,
+  simuladoLiberado,
   validarCorpo,
   type LinhasCruas,
 } from "./montar.ts";
 
 const PAGINA = 1000;
 const LOTE_IN = 200;
+const LOTE_OPCOES = 100;
 
 function json(status: number, corpo: unknown): Response {
   return new Response(JSON.stringify(corpo), {
@@ -62,6 +64,7 @@ async function coletar(
   db: Cliente,
   emails: string[],
   desde: string | null,
+  agora: Date,
 ): Promise<LinhasCruas> {
   const desdeMs = desde ? Date.parse(desde) : null;
 
@@ -81,25 +84,19 @@ async function coletar(
   ).flat();
   const userIds = perfis.map((p) => p.id);
 
-  const [simulados, questoes, opcoes, especialidades, instituicoes, cortes] = await Promise.all([
+  // Só simulados publicados saem da plataforma. Conteúdo (enunciado, gabarito,
+  // opções) só dos LIBERADOS (simuladoLiberado); dos publicados ainda não
+  // liberados a consulta nem traz os campos sensíveis. montarExportacao reaplica
+  // as mesmas regras (defesa em profundidade, coberta por teste).
+  const [simulados, especialidades, instituicoes, cortes] = await Promise.all([
     buscarTudo<LinhasCruas["simulados"][number]>(() =>
       db
         .from("simulados")
         .select(
           "id, title, sequence_number, questions_count, execution_window_start, execution_window_end, results_release_at, status",
         )
+        .eq("status", "published")
         .order("id")
-    ),
-    buscarTudo<LinhasCruas["questoes"][number]>(() =>
-      db
-        .from("questions")
-        .select(
-          "id, simulado_id, question_number, area, theme, text, explanation, image_url, image_url_2, explanation_image_url, difficulty",
-        )
-        .order("id")
-    ),
-    buscarTudo<LinhasCruas["opcoes"][number]>(() =>
-      db.from("question_options").select("id, question_id, label, text, is_correct").order("id")
     ),
     buscarTudo<LinhasCruas["especialidades"][number]>(() =>
       db.from("enamed_specialties").select("id, name").order("id")
@@ -118,6 +115,70 @@ async function coletar(
         .order("id")
     ),
   ]);
+  const idsPub = simulados.map((s) => s.id);
+  const idsLiberados = simulados.filter((s) => simuladoLiberado(s, agora)).map((s) => s.id);
+  const idsNaoLiberados = idsPub.filter((id) => !idsLiberados.includes(id));
+
+  const questoesLiberadas = (
+    await Promise.all(
+      lotes(idsLiberados, LOTE_IN).map((lote) =>
+        buscarTudo<LinhasCruas["questoes"][number]>(() =>
+          db
+            .from("questions")
+            .select(
+              "id, simulado_id, question_number, area, theme, text, explanation, image_url, image_url_2, explanation_image_url, difficulty",
+            )
+            .in("simulado_id", lote)
+            .order("id")
+        )
+      ),
+    )
+  ).flat();
+  // Não liberados: só colunas não sensíveis (sem text/explanation/imagens).
+  const questoesNaoLiberadas = (
+    await Promise.all(
+      lotes(idsNaoLiberados, LOTE_IN).map((lote) =>
+        buscarTudo<LinhasCruas["questoes"][number]>(() =>
+          db
+            .from("questions")
+            .select("id, simulado_id, question_number, area, theme, difficulty")
+            .in("simulado_id", lote)
+            .order("id")
+        )
+      ),
+    )
+  ).flat();
+  const questoes = [...questoesLiberadas, ...questoesNaoLiberadas];
+
+  // Opções completas só das questões liberadas; das não liberadas só
+  // id/question_id/label (resolve selected_label sem trazer texto nem is_correct).
+  const opcoesLiberadas = (
+    await Promise.all(
+      lotes(questoesLiberadas.map((q) => q.id), LOTE_OPCOES).map((lote) =>
+        buscarTudo<LinhasCruas["opcoes"][number]>(() =>
+          db
+            .from("question_options")
+            .select("id, question_id, label, text, is_correct")
+            .in("question_id", lote)
+            .order("id")
+        )
+      ),
+    )
+  ).flat();
+  const opcoesNaoLiberadas = (
+    await Promise.all(
+      lotes(questoesNaoLiberadas.map((q) => q.id), LOTE_OPCOES).map((lote) =>
+        buscarTudo<LinhasCruas["opcoes"][number]>(() =>
+          db
+            .from("question_options")
+            .select("id, question_id, label")
+            .in("question_id", lote)
+            .order("id")
+        )
+      ),
+    )
+  ).flat();
+  const opcoes = [...opcoesLiberadas, ...opcoesNaoLiberadas];
 
   const onboarding = (
     await Promise.all(
@@ -133,7 +194,8 @@ async function coletar(
     )
   ).flat();
 
-  const tentativas = (
+  // Sem simulado publicado não há o que exportar (e `in.()` vazio é ambíguo).
+  const tentativas = idsPub.length === 0 ? [] : (
     await Promise.all(
       lotes(userIds, LOTE_IN).map((lote) =>
         buscarTudo<LinhasCruas["tentativas"][number]>(() =>
@@ -143,6 +205,7 @@ async function coletar(
               "id, simulado_id, user_id, finished_at, score_percentage, total_correct, total_answered, attempt_type, is_within_window",
             )
             .in("user_id", lote)
+            .in("simulado_id", idsPub)
             .not("finished_at", "is", null)
             .order("id")
         )
@@ -152,11 +215,12 @@ async function coletar(
 
   // População completa do ranking (todos os alunos, só colunas leves; ~3,6k
   // linhas). A elegibilidade final é aplicada em calcularRanking (montar.ts).
-  const ranking = await buscarTudo<LinhasCruas["ranking"][number]>(() =>
+  const ranking = idsPub.length === 0 ? [] : await buscarTudo<LinhasCruas["ranking"][number]>(() =>
     db
       .from("attempts")
       .select("id, simulado_id, user_id, status, finished_at, score_percentage, is_within_window")
       .in("status", ["submitted", "expired"])
+      .in("simulado_id", idsPub)
       .not("score_percentage", "is", null)
       .order("id")
   );
@@ -219,8 +283,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
-    const linhas = await coletar(db, validacao.emails, validacao.desde);
-    const saida = montarExportacao(linhas, validacao.desde, new Date().toISOString());
+    const agora = new Date();
+    const linhas = await coletar(db, validacao.emails, validacao.desde, agora);
+    const saida = montarExportacao(linhas, validacao.desde, agora.toISOString(), agora);
     return json(200, saida);
   } catch (_e) {
     // Sem detalhes na resposta nem no log (podem conter e-mails).
