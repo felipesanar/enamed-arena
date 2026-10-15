@@ -1,10 +1,12 @@
 // supabase/functions/mentoria-export/montar.test.ts
 import { describe, it, expect } from "vitest";
 import {
+  calcularRanking,
   compararSegredo,
   montarExportacao,
   validarCorpo,
   type LinhasCruas,
+  type RankingRow,
 } from "./montar";
 
 function base(): LinhasCruas {
@@ -29,32 +31,36 @@ function base(): LinhasCruas {
       {
         id: "s2", title: "Simulado 2", sequence_number: 2, questions_count: 1,
         execution_window_start: "2026-02-01T00:00:00Z", execution_window_end: "2026-02-10T00:00:00Z",
-        status: "published",
+        results_release_at: null, status: "published",
       },
       {
         id: "s1", title: "Simulado 1", sequence_number: 1, questions_count: 1,
         execution_window_start: "2026-01-01T00:00:00Z", execution_window_end: "2026-01-10T00:00:00Z",
-        status: "published",
+        results_release_at: "2026-01-12T00:00:00Z", status: "published",
       },
     ],
     questoes: [
-      { id: "q1", simulado_id: "s1", question_number: 1, area: "Clínica Médica", theme: "Hipertensão" },
+      { id: "q1", simulado_id: "s1", question_number: 1, area: "Clínica Médica", theme: "Hipertensão",
+        text: "Enunciado 1", explanation: "Porque C", image_url: "https://x/img1.png", image_url_2: null,
+        explanation_image_url: null, difficulty: "media",
+      },
     ],
     opcoes: [
-      { id: "o1", question_id: "q1", label: "A", is_correct: false },
-      { id: "o2", question_id: "q1", label: "B", is_correct: false },
-      { id: "o3", question_id: "q1", label: "C", is_correct: true },
+      { id: "o1", question_id: "q1", label: "A", text: "Alfa", is_correct: false },
+      { id: "o2", question_id: "q1", label: "B", text: "Beta", is_correct: false },
+      { id: "o3", question_id: "q1", label: "C", text: null, is_correct: true },
     ],
     tentativas: [
       {
         id: "t1", simulado_id: "s1", user_id: "u1", finished_at: "2026-01-05T10:00:00Z",
-        score_percentage: 61, total_correct: 61, total_answered: 98, attempt_type: "online",
+        score_percentage: 61, total_correct: 61, total_answered: 98, attempt_type: "online", is_within_window: true,
       },
       {
         id: "t2", simulado_id: "s2", user_id: "u1", finished_at: null,
-        score_percentage: null, total_correct: null, total_answered: null, attempt_type: "online",
+        score_percentage: null, total_correct: null, total_answered: null, attempt_type: "online", is_within_window: true,
       },
     ],
+    ranking: [],
     resultados: [
       { attempt_id: "t1", question_id: "q1", selected_option_id: "o2", is_correct: false, was_answered: true },
       { attempt_id: "t2", question_id: "q1", selected_option_id: "o3", is_correct: true, was_answered: true },
@@ -70,7 +76,11 @@ describe("montarExportacao", () => {
     expect(out.gerado_em).toBe(GERADO);
     expect(out.simulados.map((s) => s.sequence_number)).toEqual([1, 2]);
     expect(out.questoes).toEqual([
-      { id: "q1", simulado_id: "s1", question_number: 1, area: "Clínica Médica", theme: "Hipertensão", correta_label: "C" },
+      {
+        id: "q1", simulado_id: "s1", question_number: 1, area: "Clínica Médica", theme: "Hipertensão",
+        text: "Enunciado 1", explanation: "Porque C", image_url: "https://x/img1.png", image_url_2: null,
+        explanation_image_url: null, difficulty: "media", correta_label: "C",
+      },
     ]);
   });
 
@@ -195,5 +205,158 @@ describe("compararSegredo", () => {
     expect(compararSegredo("segredo", "segredo2")).toBe(false);
     expect(compararSegredo("", "segredo")).toBe(false);
     expect(compararSegredo("", "")).toBe(true);
+  });
+});
+
+describe("campos novos do contrato", () => {
+  it("simulados expõem results_release_at", () => {
+    const out = montarExportacao(base(), null, GERADO);
+    expect(out.simulados.map((s) => s.results_release_at)).toEqual(["2026-01-12T00:00:00Z", null]);
+  });
+
+  it("opcoes: todas as opções, com text e is_correct", () => {
+    const out = montarExportacao(base(), null, GERADO);
+    expect(out.opcoes).toEqual([
+      { id: "o1", question_id: "q1", label: "A", text: "Alfa", is_correct: false },
+      { id: "o2", question_id: "q1", label: "B", text: "Beta", is_correct: false },
+      { id: "o3", question_id: "q1", label: "C", text: null, is_correct: true },
+    ]);
+  });
+
+  it("questões: campos ausentes viram null", () => {
+    const l = base();
+    // linha vinda sem as colunas novas (undefined)
+    l.questoes = [{ id: "q9", simulado_id: "s1", question_number: 2, area: null, theme: null } as never];
+    const q = montarExportacao(l, null, GERADO).questoes[0];
+    expect(q).toMatchObject({
+      text: null, explanation: null, image_url: null, image_url_2: null,
+      explanation_image_url: null, difficulty: null,
+    });
+  });
+
+  it("tentativa traz is_within_window e ranking (sem população = participantes 0)", () => {
+    const t = montarExportacao(base(), null, GERADO).alunos[0].tentativas[0];
+    expect(t).toMatchObject({
+      is_within_window: true, posicao: null, participantes: 0, percentil: null,
+    });
+  });
+
+  it("tentativa recebe posicao/participantes/percentil do ranking", () => {
+    const l = base();
+    l.ranking = [
+      r("t1", "s1", "u1", 61, "2026-01-05T10:00:00Z"),
+      r("x1", "s1", "u9", 80, "2026-01-04T10:00:00Z"),
+      r("x2", "s1", "u8", 40, "2026-01-04T11:00:00Z"),
+    ];
+    const t = montarExportacao(l, null, GERADO).alunos[0].tentativas[0];
+    expect(t).toMatchObject({ posicao: 2, participantes: 3, percentil: 50 });
+  });
+
+  it("tentativa fora do ranking (treino) mantém participantes do simulado e posicao/percentil null", () => {
+    const l = base();
+    l.tentativas[0].is_within_window = false;
+    l.ranking = [
+      r("t1", "s1", "u1", 61, "2026-01-05T10:00:00Z", { is_within_window: false }),
+      r("x1", "s1", "u9", 80, "2026-01-04T10:00:00Z"),
+      r("x2", "s1", "u8", 40, "2026-01-04T11:00:00Z"),
+    ];
+    const t = montarExportacao(l, null, GERADO).alunos[0].tentativas[0];
+    expect(t).toMatchObject({
+      is_within_window: false, posicao: null, participantes: 2, percentil: null,
+    });
+  });
+});
+
+function r(
+  id: string, simulado_id: string, user_id: string, nota: number | string | null,
+  finished_at: string | null, extra: Partial<RankingRow> = {},
+): RankingRow {
+  return {
+    id, simulado_id, user_id, status: "submitted", finished_at,
+    score_percentage: nota, is_within_window: true, ...extra,
+  };
+}
+
+describe("calcularRanking", () => {
+  it("ordena por nota desc; posição = row_number; percentil 100 no 1º e 0 no último", () => {
+    const { porTentativa, participantesPorSimulado } = calcularRanking([
+      r("a", "s1", "u1", 50, "2026-01-01T10:00:00Z"),
+      r("b", "s1", "u2", 90, "2026-01-01T10:00:00Z"),
+      r("c", "s1", "u3", 70, "2026-01-01T10:00:00Z"),
+    ]);
+    expect(porTentativa.get("b")).toEqual({ posicao: 1, participantes: 3, percentil: 100 });
+    expect(porTentativa.get("c")).toEqual({ posicao: 2, participantes: 3, percentil: 50 });
+    expect(porTentativa.get("a")).toEqual({ posicao: 3, participantes: 3, percentil: 0 });
+    expect(participantesPorSimulado.get("s1")).toBe(3);
+  });
+
+  it("empate de nota NÃO divide posição: desempata por finished_at (quem terminou antes)", () => {
+    const { porTentativa } = calcularRanking([
+      r("tarde", "s1", "u1", 80, "2026-01-01T12:00:00Z"),
+      r("cedo", "s1", "u2", 80, "2026-01-01T09:00:00Z"),
+    ]);
+    expect(porTentativa.get("cedo")!.posicao).toBe(1);
+    expect(porTentativa.get("tarde")!.posicao).toBe(2);
+  });
+
+  it("fora da janela não entra na população (posicao/percentil null)", () => {
+    const { porTentativa, participantesPorSimulado } = calcularRanking([
+      r("in", "s1", "u1", 60, "2026-01-01T10:00:00Z"),
+      r("treino", "s1", "u2", 99, "2026-01-01T10:00:00Z", { is_within_window: false }),
+      r("nulo", "s1", "u3", 99, "2026-01-01T10:00:00Z", { is_within_window: null }),
+    ]);
+    expect(porTentativa.has("treino")).toBe(false);
+    expect(porTentativa.has("nulo")).toBe(false);
+    expect(porTentativa.get("in")).toEqual({ posicao: 1, participantes: 1, percentil: null });
+    expect(participantesPorSimulado.get("s1")).toBe(1);
+  });
+
+  it("um por aluno: vale a maior nota (online+offline juntos); a outra fica sem posição", () => {
+    const { porTentativa, participantesPorSimulado } = calcularRanking([
+      r("on", "s1", "u1", 60, "2026-01-01T10:00:00Z"),
+      r("off", "s1", "u1", 75, "2026-01-02T10:00:00Z"),
+      r("o2", "s1", "u2", 70, "2026-01-01T10:00:00Z"),
+    ]);
+    expect(participantesPorSimulado.get("s1")).toBe(2);
+    expect(porTentativa.has("on")).toBe(false);
+    expect(porTentativa.get("off")!.posicao).toBe(1);
+    expect(porTentativa.get("o2")!.posicao).toBe(2);
+  });
+
+  it("mesmo aluno com notas iguais: vale a que finalizou primeiro", () => {
+    const { porTentativa } = calcularRanking([
+      r("tarde", "s1", "u1", 60, "2026-01-02T10:00:00Z"),
+      r("cedo", "s1", "u1", 60, "2026-01-01T10:00:00Z"),
+    ]);
+    expect(porTentativa.has("tarde")).toBe(false);
+    expect(porTentativa.get("cedo")!.posicao).toBe(1);
+  });
+
+  it("ignora não finalizadas e sem nota; aceita expired e nota numeric como string", () => {
+    const { porTentativa } = calcularRanking([
+      r("andamento", "s1", "u1", 90, null, { status: "in_progress" }),
+      r("pendente", "s1", "u2", 90, null, { status: "offline_pending" }),
+      r("semnota", "s1", "u3", null, "2026-01-01T10:00:00Z"),
+      r("exp", "s1", "u4", "55.50", "2026-01-01T10:00:00Z", { status: "expired" }),
+    ]);
+    expect([...porTentativa.keys()]).toEqual(["exp"]);
+  });
+
+  it("populações de simulados diferentes são independentes; percentil com 1 casa", () => {
+    const { porTentativa } = calcularRanking([
+      r("a1", "s1", "u1", 90, "2026-01-01T10:00:00Z"),
+      r("a2", "s1", "u2", 80, "2026-01-01T10:00:00Z"),
+      r("a3", "s1", "u3", 70, "2026-01-01T10:00:00Z"),
+      r("a4", "s1", "u4", 60, "2026-01-01T10:00:00Z"),
+      r("b1", "s2", "u1", 50, "2026-02-01T10:00:00Z"),
+    ]);
+    expect(porTentativa.get("a2")).toEqual({ posicao: 2, participantes: 4, percentil: 66.7 });
+    expect(porTentativa.get("b1")).toEqual({ posicao: 1, participantes: 1, percentil: null });
+  });
+
+  it("população vazia", () => {
+    const { porTentativa, participantesPorSimulado } = calcularRanking([]);
+    expect(porTentativa.size).toBe(0);
+    expect(participantesPorSimulado.size).toBe(0);
   });
 });

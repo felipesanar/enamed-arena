@@ -86,18 +86,20 @@ async function coletar(
       db
         .from("simulados")
         .select(
-          "id, title, sequence_number, questions_count, execution_window_start, execution_window_end, status",
+          "id, title, sequence_number, questions_count, execution_window_start, execution_window_end, results_release_at, status",
         )
         .order("id")
     ),
     buscarTudo<LinhasCruas["questoes"][number]>(() =>
       db
         .from("questions")
-        .select("id, simulado_id, question_number, area, theme")
+        .select(
+          "id, simulado_id, question_number, area, theme, text, explanation, image_url, image_url_2, explanation_image_url, difficulty",
+        )
         .order("id")
     ),
     buscarTudo<LinhasCruas["opcoes"][number]>(() =>
-      db.from("question_options").select("id, question_id, label, is_correct").order("id")
+      db.from("question_options").select("id, question_id, label, text, is_correct").order("id")
     ),
     buscarTudo<LinhasCruas["especialidades"][number]>(() =>
       db.from("enamed_specialties").select("id, name").order("id")
@@ -138,7 +140,7 @@ async function coletar(
           db
             .from("attempts")
             .select(
-              "id, simulado_id, user_id, finished_at, score_percentage, total_correct, total_answered, attempt_type",
+              "id, simulado_id, user_id, finished_at, score_percentage, total_correct, total_answered, attempt_type, is_within_window",
             )
             .in("user_id", lote)
             .not("finished_at", "is", null)
@@ -147,6 +149,17 @@ async function coletar(
       ),
     )
   ).flat();
+
+  // População completa do ranking (todos os alunos, só colunas leves; ~3,6k
+  // linhas). A elegibilidade final é aplicada em calcularRanking (montar.ts).
+  const ranking = await buscarTudo<LinhasCruas["ranking"][number]>(() =>
+    db
+      .from("attempts")
+      .select("id, simulado_id, user_id, status, finished_at, score_percentage, is_within_window")
+      .in("status", ["submitted", "expired"])
+      .not("score_percentage", "is", null)
+      .order("id")
+  );
 
   // Respostas só das tentativas finalizadas a partir de `desde`.
   const idsParaRespostas = tentativas
@@ -176,6 +189,7 @@ async function coletar(
     questoes,
     opcoes,
     tentativas,
+    ranking,
     resultados,
   };
 }

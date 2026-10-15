@@ -35,6 +35,7 @@ export interface SimuladoRow {
   questions_count: number;
   execution_window_start: string | null;
   execution_window_end: string | null;
+  results_release_at: string | null;
   status: string;
 }
 export interface QuestaoRow {
@@ -43,11 +44,22 @@ export interface QuestaoRow {
   question_number: number;
   area: string | null;
   theme: string | null;
+  text: string | null;
+  explanation: string | null;
+  // As imagens já são URLs públicas completas do bucket público `question-images`
+  // (verificado em prod: 154/154 valores no formato
+  // https://<proj>.supabase.co/storage/v1/object/public/question-images/...),
+  // portanto seguem direto no payload, sem assinar.
+  image_url: string | null;
+  image_url_2: string | null;
+  explanation_image_url: string | null;
+  difficulty: string | null;
 }
 export interface OpcaoRow {
   id: string;
   question_id: string;
   label: string;
+  text: string | null;
   is_correct: boolean;
 }
 export interface TentativaRow {
@@ -59,6 +71,18 @@ export interface TentativaRow {
   total_correct: number | null;
   total_answered: number | null;
   attempt_type: string | null;
+  is_within_window: boolean | null;
+}
+// Linha leve de TODAS as tentativas finalizadas da base (não só as dos alunos
+// pedidos): o ranking precisa da população completa de cada simulado.
+export interface RankingRow {
+  id: string;
+  simulado_id: string;
+  user_id: string;
+  status: string | null;
+  finished_at: string | null;
+  score_percentage: number | string | null;
+  is_within_window: boolean | null;
 }
 export interface ResultadoRow {
   attempt_id: string;
@@ -78,7 +102,83 @@ export interface LinhasCruas {
   questoes: QuestaoRow[];
   opcoes: OpcaoRow[];
   tentativas: TentativaRow[];
+  // População do ranking: todas as tentativas finalizadas (status submitted/expired).
+  ranking: RankingRow[];
   resultados: ResultadoRow[];
+}
+
+export interface PosicaoRanking {
+  posicao: number | null;
+  participantes: number;
+  percentil: number | null;
+}
+
+// Regra de ranking copiada da plataforma (não inventada). Fonte:
+//  - supabase/migrations/20260624212300_fix_admin_get_ranking_dedupe_best_attempt.sql
+//    (admin_get_ranking_for_simulado: CTE `best` + ROW_NUMBER);
+//  - supabase/migrations/20260624212600_fix_admin_get_user_attempts_rownumber_dedupe.sql
+//    (admin_get_user_attempts: ranking_position só na tentativa vencedora;
+//    as demais tentativas do aluno ficam com posição null);
+//  - get_ranking_for_simulado em 20260611140000_canonical_academic_rpcs.sql
+//    (mesmo filtro e mesma ordenação do ranking que o aluno vê).
+// Regra:
+//  1. Elegível: status in ('submitted','expired'), score_percentage não nulo e
+//     is_within_window = true (tentativa fora da janela é treino, não ranqueia).
+//     Online e offline (presencial) contam juntos.
+//  2. Uma tentativa por aluno e simulado: a de MAIOR nota; empate de nota entre
+//     as tentativas do mesmo aluno, a que finalizou primeiro.
+//  3. Ordem: nota desc, finished_at asc (quem terminou antes fica à frente).
+//     posicao = ROW_NUMBER() sobre essa ordem: empates de nota NÃO dividem
+//     posição, o desempate é o finished_at (id só garante determinismo).
+//  4. participantes = nº de alunos elegíveis no simulado (total_candidatos da RPC).
+// A plataforma não tem percentil; derivado: 100*(participantes-posicao)/(participantes-1),
+// 1 casa decimal (1º = 100, último = 0; null com 1 participante).
+// Não aplica o gate de results_release_at da RPC do aluno: é exportação interna.
+// Tentativas fora da população (treino, perdedoras do dedupe) recebem posicao e
+// percentil null, mas `participantes` do simulado preenchido.
+export function calcularRanking(linhas: RankingRow[]): {
+  porTentativa: Map<string, PosicaoRanking>;
+  participantesPorSimulado: Map<string, number>;
+} {
+  const nota = (r: RankingRow) => Number(r.score_percentage);
+  const ms = (r: RankingRow) => (r.finished_at ? Date.parse(r.finished_at) : Infinity);
+  const porNotaTempo = (a: RankingRow, b: RankingRow) =>
+    nota(b) - nota(a) || ms(a) - ms(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+  const melhorPorAluno = new Map<string, RankingRow>(); // chave simulado|user
+  for (const r of linhas) {
+    if (r.status !== "submitted" && r.status !== "expired") continue;
+    if (r.score_percentage === null || r.score_percentage === undefined) continue;
+    if (!Number.isFinite(nota(r))) continue;
+    if (r.is_within_window !== true) continue;
+    const chave = `${r.simulado_id}|${r.user_id}`;
+    const atual = melhorPorAluno.get(chave);
+    if (!atual || porNotaTempo(r, atual) < 0) melhorPorAluno.set(chave, r);
+  }
+
+  const porSimulado = new Map<string, RankingRow[]>();
+  for (const r of melhorPorAluno.values()) {
+    const lista = porSimulado.get(r.simulado_id) ?? [];
+    lista.push(r);
+    porSimulado.set(r.simulado_id, lista);
+  }
+
+  const porTentativa = new Map<string, PosicaoRanking>();
+  const participantesPorSimulado = new Map<string, number>();
+  for (const [simuladoId, lista] of porSimulado) {
+    lista.sort(porNotaTempo);
+    const n = lista.length;
+    participantesPorSimulado.set(simuladoId, n);
+    lista.forEach((r, i) => {
+      const posicao = i + 1;
+      porTentativa.set(r.id, {
+        posicao,
+        participantes: n,
+        percentil: n > 1 ? Math.round((1000 * (n - posicao)) / (n - 1)) / 10 : null,
+      });
+    });
+  }
+  return { porTentativa, participantesPorSimulado };
 }
 
 function numOuNull(v: number | string | null | undefined): number | null {
@@ -117,6 +217,17 @@ export function montarExportacao(
     }
   }
 
+  const ranking = calcularRanking(linhas.ranking ?? []);
+
+  // Todas as opções de todas as questões dos simulados exportados.
+  const opcoes = linhas.opcoes.map((o) => ({
+    id: o.id,
+    question_id: o.question_id,
+    label: o.label,
+    text: o.text ?? null,
+    is_correct: o.is_correct,
+  }));
+
   const tentativasPorUser = new Map<string, TentativaRow[]>();
   for (const t of linhas.tentativas) {
     if (!t.finished_at) continue; // não finalizada: ignorada
@@ -141,6 +252,7 @@ export function montarExportacao(
       questions_count: s.questions_count,
       execution_window_start: s.execution_window_start,
       execution_window_end: s.execution_window_end,
+      results_release_at: s.results_release_at ?? null,
       status: s.status,
     }));
 
@@ -150,6 +262,12 @@ export function montarExportacao(
     question_number: q.question_number,
     area: q.area,
     theme: q.theme,
+    text: q.text ?? null,
+    explanation: q.explanation ?? null,
+    image_url: q.image_url ?? null,
+    image_url_2: q.image_url_2 ?? null,
+    explanation_image_url: q.explanation_image_url ?? null,
+    difficulty: q.difficulty ?? null,
     correta_label: corretaPorQuestao.get(q.id) ?? null,
   }));
 
@@ -179,15 +297,23 @@ export function montarExportacao(
     }
 
     const tentativasRaw = tentativasPorUser.get(perfil.id) ?? [];
-    const tentativas = tentativasRaw.map((t) => ({
-      id: t.id,
-      simulado_id: t.simulado_id,
-      finished_at: t.finished_at,
-      score_percentage: t.score_percentage,
-      total_correct: t.total_correct,
-      total_answered: t.total_answered,
-      attempt_type: t.attempt_type,
-    }));
+    const tentativas = tentativasRaw.map((t) => {
+      const pos = ranking.porTentativa.get(t.id);
+      return {
+        id: t.id,
+        simulado_id: t.simulado_id,
+        finished_at: t.finished_at,
+        score_percentage: t.score_percentage,
+        total_correct: t.total_correct,
+        total_answered: t.total_answered,
+        attempt_type: t.attempt_type,
+        is_within_window: t.is_within_window ?? null,
+        posicao: pos?.posicao ?? null,
+        participantes:
+          pos?.participantes ?? ranking.participantesPorSimulado.get(t.simulado_id) ?? 0,
+        percentil: pos?.percentil ?? null,
+      };
+    });
 
     const respostas = [];
     for (const t of tentativasRaw) {
@@ -216,7 +342,7 @@ export function montarExportacao(
     });
   }
 
-  return { gerado_em: geradoEm, simulados, questoes, alunos };
+  return { gerado_em: geradoEm, simulados, questoes, opcoes, alunos };
 }
 
 export type ValidacaoCorpo =
