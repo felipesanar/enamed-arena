@@ -46,7 +46,10 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm ci --omit=optional
+      # Sem --omit=optional: vitest/vite dependem do binário nativo opcional do
+      # rollup (@rollup/rollup-linux-x64-gnu); omitir opcionais quebra com
+      # "Cannot find module @rollup/rollup-linux-x64-gnu" (npm/cli#4828).
+      - run: npm ci
       - run: npm run test
 
   edge-pins:
@@ -71,7 +74,8 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm ci --omit=optional
+      # Sem --omit=optional pelo mesmo motivo do job de testes (binário do rollup).
+      - run: npm ci
       # Build with mock env so the bundle resolves import.meta.env at compile time.
       - run: npm run build
         env:
@@ -82,8 +86,8 @@ jobs:
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
-    # Non-blocking by default — fails CI only on HIGH and CRITICAL CVEs.
-    # Use `continue-on-error: true` when you need a one-off bypass.
+    # Falha em HIGH e CRITICAL. Exceções (só para correções que exigem major)
+    # ficam em audit-allowlist.json, uma por advisory, com motivo e prazo.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -91,4 +95,4 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci --omit=optional
-      - run: npm audit --audit-level=high
+      - run: node scripts/check-npm-audit.mjs
