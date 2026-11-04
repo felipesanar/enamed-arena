@@ -36,3 +36,13 @@ verify_jwt = false
 [functions.gabarito-key-alerts]
 # Auth via x-internal-secret in the handler, before privileged data access.
 verify_jwt = false
+
+[functions.calendar-notifications]
+# Additional gateway JWT gate until the invocation contract is approved.
+# The handler's internal-secret gate and disabled dispatch remain required.
+verify_jwt = true
+
+[functions.ops-health-alerts]
+# Additional gateway JWT gate until the invocation contract is approved.
+# The handler's internal-secret gate and disabled dispatch remain required.
+verify_jwt = true

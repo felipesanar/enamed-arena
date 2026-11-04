@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext';
 const mocks = vi.hoisted(() => ({ flag: true, userId: 'staff' as string | null, list: vi.fn(), versions: vi.fn(), analysis: vi.fn(), drafts: vi.fn(), reuse: vi.fn(), editions: vi.fn() }));
-vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => mocks.flag }));
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => mocks.flag,
+  useAppConfigState: () => ({ enabled: mocks.flag, isPending: false }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: mocks.userId ? { id: mocks.userId } : null, loading: false }) }));
 vi.mock('@/services/questionBankApi', () => ({ questionBankApi: { list: mocks.list, listVersions: mocks.versions, getAnalysis: mocks.analysis, getDrafts: mocks.drafts, reuseVersion: mocks.reuse } }));
 vi.mock('@/services/editionAnalysisApi', () => ({ editionAnalysisApi: { getEditions: mocks.editions } }));

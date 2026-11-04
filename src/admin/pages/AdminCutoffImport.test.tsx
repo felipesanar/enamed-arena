@@ -3,7 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext';
 const mocks = vi.hoisted(() => ({ enabled: true, catalog: vi.fn(), existing: vi.fn(), import: vi.fn(), list: vi.fn(), parse: vi.fn() }));
-vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => mocks.enabled }));
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => mocks.enabled,
+  useAppConfigState: () => ({ enabled: mocks.enabled, isPending: false }) }));
 vi.mock('@/admin/services/adminCutoffApi', () => ({ adminCutoffApi: mocks }));
 vi.mock('@/admin/services/adminEditionsApi', () => ({ adminEditionsApi: { list: mocks.list } }));
 vi.mock('@/admin/lib/cutoffImport', async importOriginal => ({ ...await importOriginal<object>(), parseCutoffFile: mocks.parse }));

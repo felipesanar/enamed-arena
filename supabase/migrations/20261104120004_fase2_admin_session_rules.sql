@@ -44,7 +44,10 @@ BEGIN
    END IF;
    CONTINUE;
   END IF;
-  IF md5(d)<>expected AND NOT(n='create_attempt_guarded' AND md5(d)='0ffec1604ccad2e99d486b09f51a1bdb') THEN
+  -- F1's canonical Git LF body hashes to a16b...; its reviewed Windows CRLF
+  -- representation hashes to expected (497d...). Accept only these exact baselines.
+  IF md5(d)<>expected AND NOT(n='create_attempt_guarded' AND md5(d) IN
+    ('0ffec1604ccad2e99d486b09f51a1bdb','a16b6abcc1514130ca9a0a9f689bb818')) THEN
    RAISE EXCEPTION 'Unreviewed creation baseline: % (%)',n,md5(d);
   END IF;
   IF (SELECT count(*) FROM regexp_matches(d,$re$WHERE id\s*=\s*p_simulado_id AND status IN \('published',\s*'test'\);$re$,'g'))<>1 THEN
