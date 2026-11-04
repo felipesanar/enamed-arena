@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 
 export interface UseExamAnswersArgs {
+  disabled?: boolean;
   currentQuestion: Question | undefined;
   currentIndex: number;
   questionsLength: number;
@@ -48,6 +49,7 @@ function emptyAnswer(questionId: string): ExamAnswer {
 }
 
 export function useExamAnswers({
+  disabled = false,
   currentQuestion,
   currentIndex,
   questionsLength,
@@ -56,7 +58,7 @@ export function useExamAnswers({
   setShowNavigator,
 }: UseExamAnswersArgs): UseExamAnswersReturn {
   const handleSelectOption = useCallback((optionId: string) => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     // Single source of truth: updateState → debounced bulk upsert.
     markAnswerDirty(currentQuestion.id);
     updateState(prev => {
@@ -69,10 +71,10 @@ export function useExamAnswers({
         },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty]);
 
   const handleEliminateOption = useCallback((optionId: string) => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
@@ -85,12 +87,13 @@ export function useExamAnswers({
       };
       return { ...prev, answers: { ...prev.answers, [currentQuestion.id]: answer } };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty]);
 
   const handleNavigate = useCallback((index: number) => {
+    if (disabled) return;
     updateState(prev => ({ ...prev, currentQuestionIndex: index }));
     setShowNavigator(false);
-  }, [updateState, setShowNavigator]);
+  }, [disabled, updateState, setShowNavigator]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) handleNavigate(currentIndex - 1);
@@ -101,7 +104,7 @@ export function useExamAnswers({
   }, [currentIndex, questionsLength, handleNavigate]);
 
   const toggleReview = useCallback(() => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
@@ -112,10 +115,10 @@ export function useExamAnswers({
         answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal } },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty]);
 
   const toggleHighConfidence = useCallback(() => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
@@ -124,7 +127,7 @@ export function useExamAnswers({
         answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty]);
 
   /**
    * handleSetConfidence — captura o nível de confiança declarado pelo aluno.
@@ -132,7 +135,7 @@ export function useExamAnswers({
    * Persiste via o mesmo caminho de debounce/upsert já existente (spec 04 §1.4).
    */
   const handleSetConfidence = useCallback((level: ConfidenceLevel) => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
@@ -142,7 +145,7 @@ export function useExamAnswers({
         answers: { ...prev.answers, [currentQuestion.id]: { ...existing, confidence: level } },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty]);
 
   return {
     handleSelectOption,

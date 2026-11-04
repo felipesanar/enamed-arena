@@ -15,6 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { canAccessSimulado } from '@/lib/simulado-helpers';
+import { examSubmissionErrorMessage } from '@/lib/examSubmissionErrors';
 import type { ExamState } from '@/types/exam';
 import type { Question, SimuladoStatus } from '@/types';
 
@@ -26,7 +27,7 @@ interface LifecycleStorage {
     durationMinutes: number,
     windowEnd: string | null | undefined,
   ) => Promise<ExamState>;
-  submitAttempt: (state: ExamState) => Promise<{ is_within_window: boolean; score_percentage: number } | null>;
+  submitAttempt: (state: ExamState, isAutoSubmit?: boolean) => Promise<{ is_within_window: boolean; score_percentage: number } | null>;
   setResultNotification: (enabled: boolean) => Promise<void>;
   attemptId: MutableRefObject<string | null>;
 }
@@ -48,6 +49,7 @@ export interface UseExamLifecycleArgs {
 
 export interface UseExamLifecycleReturn {
   submitting: boolean;
+  interactionLocked: boolean;
   initLoading: boolean;
   isWithinWindow: boolean;
   notifyResultByEmail: boolean;
@@ -74,12 +76,31 @@ export function useExamLifecycle({
   const queryClient = useQueryClient();
 
   const [submitting, setSubmitting] = useState(false);
+  const [timeExpired, setTimeExpired] = useState(false);
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [notifyResultByEmail, setNotifyResultByEmailState] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
   const [isWithinWindow, setIsWithinWindow] = useState(true);
   const hasFinalized = useRef(false);
   const hasAutoSubmitTracked = useRef(false);
+  const timeUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scopeRef = useRef({ active: true });
+  const attemptIdentity = storage.attemptId.current;
+  const stateMatchesSimulado = !!simulado && state?.simuladoId === simulado.id;
+
+  useEffect(() => {
+    const scope = { active: true };
+    scopeRef.current = scope;
+    hasFinalized.current = false;
+    hasAutoSubmitTracked.current = false;
+    setTimeExpired(false);
+    setSubmitting(false);
+    return () => {
+      scope.active = false;
+      if (timeUpTimerRef.current) clearTimeout(timeUpTimerRef.current);
+      timeUpTimerRef.current = null;
+    };
+  }, [simulado?.id, attemptIdentity]);
 
   // ── Gate: redirect if not eligible ──
   useEffect(() => {
@@ -215,7 +236,8 @@ export function useExamLifecycle({
   }, [simulado?.id]);
 
   const finalize = useCallback(async (isAutoSubmit = false) => {
-    if (hasFinalized.current || !state || !simulado) return;
+    const scope = scopeRef.current;
+    if (!scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado) return;
     hasFinalized.current = true;
     setSubmitting(true);
 
@@ -240,7 +262,9 @@ export function useExamLifecycle({
       // same payload (see migration 20260516000000), so we don't need a
       // follow-up SELECT against `attempts` — that eliminated a wasted round
       // trip and a read-after-write race with replicas.
-      const result = await storage.submitAttempt(state);
+      const result = await storage.submitAttempt(state, isAutoSubmit);
+      if (!scope.active) return;
+      if (!result) throw new Error('Finalizacao do simulado nao retornou resultado.');
       setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
 
       const withinRankingWindow = result?.is_within_window ?? true;
@@ -271,18 +295,22 @@ export function useExamLifecycle({
       queryClient.invalidateQueries({ queryKey: ['user-performance'] });
       queryClient.invalidateQueries({ queryKey: ['user-attempts'] });
     } catch (err) {
+      if (!scope.active) return;
       trackEvent('exam_submit_failed', {
         simulado_id: simulado.id,
         attempt_id: storage.attemptId.current ?? '',
         error_message: err instanceof Error ? err.message : 'unknown',
         retry_count: 0,
       });
-      toast({ title: 'Erro ao finalizar', description: 'Tente novamente.', variant: 'destructive' });
       hasFinalized.current = false;
+      toast({
+        title: 'Erro ao finalizar', description: examSubmissionErrorMessage(err), variant: 'destructive',
+        duration: Infinity,
+      });
     } finally {
-      setSubmitting(false);
+      if (scope.active) setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal]);
+  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     setNotificationSaving(true);
@@ -306,17 +334,11 @@ export function useExamLifecycle({
     }
   }, [storage]);
 
-  const timeUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Cleanup the time-up delay timer on unmount to avoid calling finalize after unmount
-  useEffect(() => {
-    return () => {
-      if (timeUpTimerRef.current) clearTimeout(timeUpTimerRef.current);
-    };
-  }, []);
-
   const handleTimeUp = useCallback(() => {
-    toast({ title: 'Tempo esgotado!', description: 'Seu simulado foi finalizado automaticamente.' });
+    const scope = scopeRef.current;
+    if (!scope.active || !stateMatchesSimulado) return;
+    setTimeExpired(true);
+    toast({ title: 'Tempo esgotado!', description: 'Aguarde a confirmação da finalização automática.' });
     if (!hasAutoSubmitTracked.current && state && simulado) {
       hasAutoSubmitTracked.current = true;
       const answeredCount = Object.values(state.answers).filter((a) => !!a.selectedOption).length;
@@ -328,17 +350,19 @@ export function useExamLifecycle({
         reason: 'timer_expired',
       });
     }
-    timeUpTimerRef.current = setTimeout(() => finalize(true), 2000);
-  }, [finalize, state, simulado, storage, questionIds.length]);
+    timeUpTimerRef.current = setTimeout(() => { if (scope.active) void finalize(true); }, 2000);
+  }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado]);
 
   const timeRemaining = useExamTimer({
-    deadline: state?.effectiveDeadline ?? null,
+    attemptKey: `${simulado?.id ?? ''}:${attemptIdentity ?? ''}`,
+    deadline: stateMatchesSimulado ? state?.effectiveDeadline ?? null : null,
     onTimeUp: handleTimeUp,
     paused: state?.status !== 'in_progress',
   });
 
   return {
     submitting,
+    interactionLocked: !stateMatchesSimulado || timeExpired || submitting || (state?.status === 'in_progress' && !!state.effectiveDeadline && new Date(state.effectiveDeadline).getTime() <= Date.now()),
     initLoading,
     isWithinWindow,
     notifyResultByEmail,
