@@ -14,6 +14,8 @@ import { RotateCcw, Heart, NotebookPen, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAdminAuth } from '@/admin/hooks/useAdminAuth';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { notebookEditionLink } from '@/lib/notebookEditionLinks';
 
 interface Tab {
   label: string;
@@ -46,6 +48,8 @@ function useActiveTo(pathname: string): string {
 export function TabBar() {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const editionsEnabled = useAppConfig('editions_ui');
+  const editionId = new URLSearchParams(location.search).get('edition');
   const activeTo = useActiveTo(location.pathname);
   const { isAdmin } = useAdminAuth();
 
@@ -66,7 +70,7 @@ export function TabBar() {
             return (
               <NavLink
                 key={tab.to}
-                to={tab.to}
+                to={notebookEditionLink(tab.to, editionId, editionsEnabled)}
                 end={tab.exact}
                 role="tab"
                 aria-selected={active}
@@ -137,7 +141,7 @@ export function TabBar() {
           return (
             <NavLink
               key={tab.to}
-              to={tab.to}
+              to={notebookEditionLink(tab.to, editionId, editionsEnabled)}
               end={tab.exact}
               role="tab"
               aria-selected={active}

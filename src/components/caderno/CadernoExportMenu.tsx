@@ -9,7 +9,9 @@
  * NÃO montado em CadernoPage — o ponto de uso fica por conta do chamador.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { notebookApi } from '@/services/notebookApi';
+import type { NotebookFilters } from '@/types/notebook-pagination';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -26,7 +28,11 @@ export interface CadernoExportMenuProps {
   /** ID do usuário dono do caderno — usado para buscar os dados de export. */
   userId: string;
   /** Quantidade de entradas no caderno (para desabilitar quando vazio). */
-  entryCount: number;
+  entryCount?: number;
+  disabled?: boolean;
+  editionsEnabled?: boolean;
+  notebookFilters?: NotebookFilters;
+  editionLabel?: string;
   /**
    * Variante visual do botão.
    * @default "outline"
@@ -51,17 +57,29 @@ export function CadernoExportMenu({
   variant = 'outline',
   size = 'sm',
   className,
+  disabled = false,
+  editionsEnabled = false,
+  notebookFilters = {},
+  editionLabel,
 }: CadernoExportMenuProps) {
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const scope = JSON.stringify([userId, editionsEnabled, notebookFilters]);
+  const scopeRef = useRef<string | null>(scope);
+  scopeRef.current = scope;
+  useEffect(() => { scopeRef.current = scope; return () => { scopeRef.current = null; }; }, [scope]);
 
   const isEmpty = entryCount === 0;
 
   async function handleExport() {
-    if (busy || isEmpty) return;
+    if (!userId || busyRef.current || isEmpty || disabled) return;
+    busyRef.current = true;
     setBusy(true);
+    const requestedScope = scope;
 
     try {
-      const entries = await simuladosApi.getErrorNotebookForExport(userId);
+      const entries = editionsEnabled ? await notebookApi.getForExport(notebookFilters, { editionsEnabled: true }) : await simuladosApi.getErrorNotebookForExport(userId);
+      if (scopeRef.current !== requestedScope) return;
 
       if (entries.length === 0) {
         toast({
@@ -71,13 +89,14 @@ export function CadernoExportMenu({
         return;
       }
 
-      exportNotebookPdf(entries);
+      exportNotebookPdf(entries, editionsEnabled ? [editionLabel ?? 'Todas as edições', notebookFilters.reason, notebookFilters.area, notebookFilters.search, notebookFilters.state !== 'all' ? notebookFilters.state : null].filter(Boolean).join(' • ') : undefined);
       trackEvent('caderno_export_pdf', { entry_count: entries.length });
       toast({
         title: 'PDF gerado com sucesso!',
         description: `${entries.length} ${entries.length === 1 ? 'questão exportada' : 'questões exportadas'}.`,
       });
     } catch (err) {
+      if (scopeRef.current !== requestedScope) return;
       logger.error('[CadernoExportMenu] Erro ao exportar:', err);
       toast({
         title: 'Erro ao exportar',
@@ -85,6 +104,7 @@ export function CadernoExportMenu({
         variant: 'destructive',
       });
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
@@ -94,7 +114,7 @@ export function CadernoExportMenu({
       variant={variant}
       size={size}
       className={className}
-      disabled={isEmpty || busy}
+      disabled={disabled || isEmpty || busy}
       onClick={handleExport}
       aria-label="Exportar caderno de erros em PDF"
     >

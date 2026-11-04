@@ -22,7 +22,7 @@ BEGIN
       OR (p_state='mastered' AND (n.mastered_at IS NOT NULL OR n.resolved_at IS NOT NULL))
       OR (p_state='pending' AND n.mastered_at IS NULL AND n.resolved_at IS NULL))
     AND (v_search IS NULL OR EXISTS (
-      SELECT FROM unnest(ARRAY[n.theme,n.question_text,n.learning_text,n.simulado_title]) t(value)
+      SELECT FROM unnest(ARRAY[n.theme,n.question_text,n.learning_text,n.simulado_title,n.area,n.question_number::text]) t(value)
       WHERE strpos(lower(t.value),lower(v_search))>0));
  END;
  $function$
@@ -74,7 +74,10 @@ BEGIN
     LEFT JOIN public.simulados s ON s.id=coalesce(n.simulado_id,q.simulado_id)
     LEFT JOIN public.exam_editions e ON e.id=s.edition_id),'[]'::jsonb),
    'total',(SELECT count(*) FROM scoped),'limit',p_limit,'offset',p_offset,
-   'counts',public.notebook_filtered_counts_json(coalesce((SELECT jsonb_agg(to_jsonb(n)) FROM scoped n),'[]'::jsonb)))
+   'counts',public.notebook_filtered_counts_json(coalesce((SELECT jsonb_agg(jsonb_build_object(
+    'area',n.area,'mastered_at',n.mastered_at,'resolved_at',n.resolved_at,
+    'last_review_outcome',n.last_review_outcome,'srs_due_at',n.srs_due_at,
+    'next_review_at',n.next_review_at,'created_at',n.created_at)) FROM scoped n),'[]'::jsonb)))
   INTO v_result;
   RETURN v_result;
  END;
@@ -88,7 +91,10 @@ BEGIN
  AS $function$
  DECLARE v_rows jsonb;
  BEGIN
-  SELECT coalesce(jsonb_agg(to_jsonb(n)),'[]'::jsonb) INTO v_rows
+  SELECT coalesce(jsonb_agg(jsonb_build_object(
+   'area',n.area,'mastered_at',n.mastered_at,'resolved_at',n.resolved_at,
+   'last_review_outcome',n.last_review_outcome,'srs_due_at',n.srs_due_at,
+   'next_review_at',n.next_review_at,'created_at',n.created_at)),'[]'::jsonb) INTO v_rows
    FROM public.notebook_filtered_scope(p_edition_id,p_reason,p_area,p_search,p_state) n;
   RETURN public.notebook_filtered_counts_json(v_rows);
  END;

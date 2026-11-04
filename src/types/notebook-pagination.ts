@@ -7,6 +7,11 @@ export interface NotebookEdition {
   edition_code: string | null;
   edition_label: string | null;
 }
+export interface NotebookEntryEdition {
+  editionId?: string | null;
+  editionCode?: string | null;
+  editionLabel?: string | null;
+}
 export type NotebookRow = Database['public']['Tables']['error_notebook']['Row'] & NotebookEdition;
 export interface NotebookFilters {
   editionId?: string | null;

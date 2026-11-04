@@ -87,6 +87,9 @@ BEGIN
  ASSERT public.get_error_notebook_filtered_counts(p_search=>'%')->>'total'='1';
  ASSERT public.get_error_notebook_filtered_counts(p_search=>'_')->>'total'='1';
  ASSERT public.get_error_notebook_filtered_counts(p_search=>'  ')->>'total'='1500';
+ ASSERT public.get_error_notebook_filtered_counts(p_search=>'Manual')->>'total'='100','search includes area';
+ ASSERT public.get_error_notebook_filtered_counts(p_search=>'Exam')->>'total'='1400';
+ -- Search includes question_number, without borrowing the question table text.
  FOR n IN 0..14 LOOP
   j:=public.list_error_notebook_filtered_page(p_limit=>100,p_offset=>n*100);
   ASSERT j->>'total'='1500' AND jsonb_array_length(j->'items')=100;
