@@ -7,9 +7,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamStorageReal } from '@/hooks/useExamStorageReal';
 import { useExamTimer } from '@/hooks/useExamTimer';
+import { useServerClock } from '@/hooks/useServerClock';
 import { useFocusControl } from '@/hooks/useFocusControl';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useExamAnswers } from '@/hooks/exam/useExamAnswers';
@@ -85,11 +87,14 @@ export function useExamFlow(): UseExamFlowReturn {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isOnboardingComplete } = useUser();
+  const { user } = useAuth();
 
   const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
   /** Sempre UUID do banco — rotas podem usar `slug`; RPCs e FK exigem UUID. */
-  const storage = useExamStorageReal(simulado?.id ?? '');
+  const clock = useServerClock(`${user?.id ?? ''}:${simulado?.id ?? ''}`);
+  const { ready: clockReady, status: clockStatus, now } = clock;
+  const storage = useExamStorageReal(simulado?.id ?? '', clock);
 
   const [state, setState] = useState<ExamState | null>(null);
   const [showNavigator, setShowNavigator] = useState(false);
@@ -103,6 +108,10 @@ export function useExamFlow(): UseExamFlowReturn {
   const simuladoRef = useRef(simulado);
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { simuladoRef.current = simulado; }, [simulado]);
+  useEffect(() => {
+    setState(null);
+    stateRef.current = null;
+  }, [storage.userId, simulado?.id]);
 
   const focusControl = useExamIntegrity({
     stateRef,
@@ -123,6 +132,7 @@ export function useExamFlow(): UseExamFlowReturn {
     setNotifyResultByEmail,
     timeRemaining,
   } = useExamLifecycle({
+    clock,
     simulado,
     questions,
     questionIds,
@@ -149,12 +159,12 @@ export function useExamFlow(): UseExamFlowReturn {
   const updateState = useCallback((updater: (prev: ExamState) => ExamState) => {
     setState(prev => {
       if (!prev || prev.status !== 'in_progress' || interactionLocked ||
-        (prev.effectiveDeadline && new Date(prev.effectiveDeadline).getTime() <= Date.now())) return prev;
+        !clockReady || (clockStatus === 'synced' && prev.effectiveDeadline && new Date(prev.effectiveDeadline).getTime() <= now())) return prev;
       const updated = updater(prev);
       storage.saveStateDebounced(updated);
       return updated;
     });
-  }, [storage, interactionLocked]);
+  }, [storage, interactionLocked, clockReady, clockStatus, now]);
 
   const {
     handleSelectOption,

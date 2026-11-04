@@ -12,8 +12,9 @@ import type { ExamState } from '@/types/exam';
 
 /** Subconjunto de useExamStorageReal necessário aqui. */
 interface BeaconStorage {
-  flushPendingState: () => void;
+  flushPendingState: (state?: ExamState) => void | Promise<void>;
   attemptId: { current: string | null };
+  getPersistenceSnapshot?: () => { userId: string; attemptId: string; state: ExamState } | null;
 }
 
 export interface UseExamBeaconArgs {
@@ -34,16 +35,26 @@ export function useExamBeacon({
   // Keep the JWT access_token fresh so beforeunload can use it (it fires
   // synchronously — we can't await getSession() at that moment).
   const accessTokenRef = useRef<string | null>(null);
+  const tokenUserRef = useRef<string | null>(null);
   useEffect(() => {
     let active = true;
+    let authChanged = false;
     supabase.auth.getSession().then(({ data }) => {
-      if (active) accessTokenRef.current = data.session?.access_token ?? null;
-    });
+      if (active && !authChanged) {
+        accessTokenRef.current = data.session?.access_token ?? null;
+        tokenUserRef.current = data.session?.user?.id ?? null;
+      }
+    }).catch(() => {});
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (!active) return;
+      authChanged = true;
       accessTokenRef.current = session?.access_token ?? null;
+      tokenUserRef.current = session?.user?.id ?? null;
     });
     return () => {
       active = false;
+      accessTokenRef.current = null;
+      tokenUserRef.current = null;
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -51,15 +62,19 @@ export function useExamBeacon({
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasFinalized.current || stateRef.current?.status !== 'in_progress') return;
-      storage.flushPendingState();
+      const snapshot = storage.getPersistenceSnapshot?.();
+      if (storage.getPersistenceSnapshot && !snapshot) return;
+      // Do not flush an old student's snapshot with the new student's session.
+      if (snapshot && snapshot.userId !== tokenUserRef.current) return;
+      void Promise.resolve(storage.flushPendingState(snapshot?.state)).catch(() => {});
 
       // Fire-and-forget sync as last resort. Uses the user's access_token so
       // RLS policies see auth.uid() correctly (anon key would be rejected
       // or associated with the anon role, losing the write).
-      const aid = storage.attemptId.current;
-      const currentState = stateRef.current;
+      const aid = snapshot?.attemptId;
+      const currentState = snapshot?.state;
       const accessToken = accessTokenRef.current;
-      if (aid && currentState && accessToken) {
+      if (aid && currentState?.status === 'in_progress' && accessToken) {
         try {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
           const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
