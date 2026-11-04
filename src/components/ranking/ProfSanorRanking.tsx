@@ -3,28 +3,23 @@ import ReactMarkdown from 'react-markdown';
 import { Sparkles, Loader2, RefreshCw, Trophy, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
-import { useCutoffContext } from '@/hooks/useCutoffContext';
+import { useAiSummary } from '@/hooks/useAiEditionContext';
+import { computePercentile } from '@/lib/ranking-percentile';
 import { useTypewriter } from '@/hooks/useTypewriter';
-import { readCachedSummary, writeCachedSummary, formatGeneratedAt } from '@/lib/profSanCache';
+import { formatGeneratedAt } from '@/lib/profSanCache';
 import type { RankingParticipant, RankingStats } from '@/services/rankingApi';
 
 interface Props {
   studentName: string;
   simuladoId?: string | null;
+  editionId?: string | null;
   simuladoTitle?: string;
   currentUser?: RankingParticipant;
   stats: RankingStats;
   userSpecialty?: string;
   userInstitutions?: string[];
   compact?: boolean;
-}
-
-function buildCacheKey(simuladoId: string | null | undefined, score: number, position: number): string {
-  if (!simuladoId) return 'sanor:rank:none';
-  return `sanor:rank:v1:${simuladoId}:${score}:${position}`;
 }
 
 const LOADING_PHRASES = [
@@ -34,13 +29,11 @@ const LOADING_PHRASES = [
   'sintetizando…',
 ];
 
-/**
- * Prof. San na tela de Ranking — analisa a posição do aluno
- * focando em chance de aprovação nas instituições-alvo.
- */
+/** Ranking analysis uses the real percentile and only known cutoff provenance. */
 export function ProfSanorRanking({
   studentName,
   simuladoId,
+  editionId,
   simuladoTitle,
   currentUser,
   stats,
@@ -48,32 +41,26 @@ export function ProfSanorRanking({
   userInstitutions,
   compact = false,
 }: Props) {
-  const { cutoffContext, loading: cutoffLoading } = useCutoffContext();
-
-  const cacheKey = buildCacheKey(
-    simuladoId,
-    currentUser?.score ?? 0,
-    currentUser?.position ?? 0,
-  );
-
-  const initialCache = readCachedSummary(cacheKey);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [markdown, setMarkdown] = useState<string | null>(initialCache?.markdown ?? null);
-  const [generatedAt, setGeneratedAt] = useState<number | null>(initialCache?.generatedAt ?? null);
-  const { display: displayMarkdown, write, skip } = useTypewriter(initialCache?.markdown ?? null);
+  const percentile = currentUser && currentUser.position > 0 && stats.totalCandidatos >= currentUser.position
+    ? computePercentile(currentUser.position, stats.totalCandidatos) : null;
+  const { markdown, generatedAt, loading, error, generate, canGenerate, cacheKey } = useAiSummary({
+    kind: 'ranking', simuladoIds: [simuladoId ?? ''], editionIds: [editionId], percentile, enabled: !!currentUser,
+    body: {
+      studentName, simuladoTitle, userScore: currentUser?.score, userPosition: currentUser?.position,
+      totalCandidates: stats.totalCandidatos, averageScore: stats.notaMedia, top10Cutoff: stats.notaCorte,
+      specialty: userSpecialty || null, institutions: userInstitutions ?? [],
+    },
+  });
+  const { display, write, skip } = useTypewriter(markdown);
+  const displayScope = useRef(cacheKey);
+  const displayMarkdown = displayScope.current === cacheKey ? display : markdown;
   const [loadingPhase, setLoadingPhase] = useState(0);
-  const autoTriedRef = useRef(false);
-
   useEffect(() => {
-    const cached = readCachedSummary(cacheKey);
-    setMarkdown(cached?.markdown ?? null);
-    setGeneratedAt(cached?.generatedAt ?? null);
-    write(cached?.markdown ?? null, { animate: false });
-    setError(null);
-    autoTriedRef.current = false;
+    const sameScope = displayScope.current === cacheKey;
+    displayScope.current = cacheKey;
+    write(markdown, { animate: sameScope });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey]);
+  }, [cacheKey, markdown]);
 
   useEffect(() => {
     if (!loading) { setLoadingPhase(0); return; }
@@ -83,52 +70,6 @@ export function ProfSanorRanking({
     }, 1600);
     return () => window.clearInterval(id);
   }, [loading]);
-
-  const generate = async () => {
-    if (!currentUser) return;
-    setLoading(true);
-    setError(null);
-    setMarkdown(null);
-    write(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-ranking-summary', {
-        body: {
-          studentName,
-          simuladoTitle,
-          userScore: currentUser.score,
-          userPosition: currentUser.position,
-          totalCandidates: stats.totalCandidatos,
-          averageScore: stats.notaMedia,
-          top10Cutoff: stats.notaCorte,
-          specialty: userSpecialty || null,
-          institutions: userInstitutions ?? [],
-          cutoffContext,
-        },
-      });
-      if (error) throw error;
-      if (!data?.markdown) throw new Error('Resposta vazia da IA');
-      setMarkdown(data.markdown);
-      setGeneratedAt(Date.now());
-      write(data.markdown);
-      writeCachedSummary(cacheKey, data.markdown);
-    } catch (err) {
-      logger.error('[ProfSanorRanking] AI summary error', err);
-      setError(err instanceof Error ? err.message : 'Tente novamente em instantes.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Auto-gera uma vez por cacheKey
-  useEffect(() => {
-    if (autoTriedRef.current) return;
-    if (cutoffLoading) return;
-    if (!currentUser) return;
-    if (markdown) { autoTriedRef.current = true; return; }
-    autoTriedRef.current = true;
-    generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey, cutoffLoading, currentUser]);
 
   if (!currentUser) return null;
 
@@ -161,7 +102,7 @@ export function ProfSanorRanking({
           {(loading || !markdown) && (
             <Button
               onClick={generate}
-              disabled={loading}
+              disabled={loading || !canGenerate}
               size="sm"
               variant="ghost"
               className="group shrink-0 rounded-xl px-3 md:px-4 py-2 text-primary font-semibold hover:bg-primary/5 active:scale-95 transition-all"
@@ -213,7 +154,7 @@ export function ProfSanorRanking({
               </div>
             )}
 
-            {displayMarkdown && (
+            {markdown && displayMarkdown && (
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -264,7 +205,10 @@ export function ProfSanorRanking({
               </div>
             )}
 
-            {!loading && !markdown && !error && (
+            {!loading && !markdown && !error && !canGenerate && (
+              <p className="text-body-sm text-muted-foreground">Contexto da prova indisponível para análise.</p>
+            )}
+            {!loading && !markdown && !error && canGenerate && (
               <div className="flex gap-4 items-start">
                 <div className="mt-0.5 shrink-0 h-9 w-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
                   <Trophy className="h-4 w-4 text-primary/70" />
