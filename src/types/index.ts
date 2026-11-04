@@ -87,6 +87,9 @@ export interface SimuladoUserState {
   attemptType?: 'online' | 'offline' | 'presencial';
   /** Status bruto da tentativa no banco. */
   attemptStatus?: string;
+  /** Authoritative attempt deadline, used to resume a live training attempt. */
+  effectiveDeadline?: string;
+  isWithinWindow?: boolean;
 }
 
 export interface SimuladoWithStatus extends SimuladoConfig {
