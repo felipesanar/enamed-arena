@@ -34,6 +34,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     title: 'Conteúdo',
     items: [
       { to: '/admin/edicoes', label: 'Edições', icon: FileText, capability: 'content.manage', editionsOnly: true },
+      { to: '/admin/cortes', label: 'Importar cortes', icon: FileText, capability: 'content.manage', editionsOnly: true },
       { to: '/admin/simulados', label: 'Simulados',         icon: FileText, capability: 'content.manage' },
       { to: '/admin/questoes',  label: 'Banco de questões', icon: Database, capability: 'content.manage' },
     ],

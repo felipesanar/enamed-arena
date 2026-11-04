@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { visibleNav } from '@/admin/lib/navigation'
 import { AdminSidebar } from '@/admin/components/AdminSidebar'
 import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext'
-vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => false }))
+const flag = vi.hoisted(() => ({ enabled: false }))
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => flag.enabled }))
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -50,6 +51,17 @@ describe('AdminSidebar', () => {
       </MemoryRouter>,
     )
   }
+
+  it('expõe a importação de cortes somente com a flag de edições ativa', () => {
+    flag.enabled = false;
+    const view = renderSidebar(['editor'], ['content.manage']);
+    expect(screen.queryByRole('link', { name: 'Importar cortes' })).not.toBeInTheDocument();
+    view.unmount();
+    flag.enabled = true;
+    renderSidebar(['editor'], ['content.manage']);
+    expect(screen.getByRole('link', { name: 'Importar cortes' })).toHaveAttribute('href', '/admin/cortes');
+    flag.enabled = false;
+  })
 
   it('renderiza só os grupos permitidos pelas capabilities', () => {
     renderSidebar(['analyst'], ['dashboard.view', 'intel.view', 'previews.view'])

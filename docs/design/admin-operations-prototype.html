@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'none'; connect-src 'none'; img-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Operações administrativas · Protótipo DEMO</title>
+<style>
+@font-face{font-family:JakartaLocal;src:local('Plus Jakarta Sans');font-display:swap}
+:root{--admin-bg:#FAFAF9;--admin-surface:#FFF;--admin-raised:#F4F4F3;--admin-text:#1A1715;--admin-muted:#57534E;--admin-line:#E7E5E3;--admin-control:#817B75;--admin-accent:#AB2350;--admin-on-accent:#FFF;--admin-danger:#C5303A;--admin-success:#0F7A55;color-scheme:light}
+[data-theme=dark]{--admin-bg:#0B0C0E;--admin-surface:#141619;--admin-raised:#1C1F23;--admin-text:#ECEDEE;--admin-muted:#9BA1A9;--admin-line:#292D33;--admin-control:#777F89;--admin-accent:#E14E78;--admin-on-accent:#0B0C0E;--admin-danger:#E8636C;--admin-success:#34D399;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;font:14px/1.55 JakartaLocal,Arial,sans-serif;background:var(--admin-bg);color:var(--admin-text)}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button,input,select,textarea{min-height:44px;border:1px solid var(--admin-control);border-radius:6px;background:var(--admin-surface);padding:9px 12px}button{cursor:pointer;font-weight:650}button:hover:not(:disabled){background:var(--admin-raised)}button:disabled{cursor:not-allowed;color:var(--admin-muted)}button.primary{background:var(--admin-accent);color:var(--admin-on-accent);border-color:var(--admin-accent)}button.primary:disabled{background:var(--admin-raised);color:var(--admin-muted);border-color:var(--admin-control)}:focus-visible{outline:2px solid var(--admin-accent);outline-offset:3px}input,select,textarea{width:100%;min-width:0}textarea{resize:vertical;min-height:100px}label{display:block;font-weight:650;margin-bottom:6px}p{margin:0 0 12px}h1{font-size:24px;line-height:1.25;letter-spacing:-.025em;margin:0 0 10px;font-weight:800}h2{font-size:20px;line-height:1.3;margin:0 0 12px}h3{font-size:15px;margin:0 0 12px}small,.muted{color:var(--admin-muted);font-size:13px}small{display:block;margin-top:6px}a{color:var(--admin-accent)}.admin-root{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh;overflow-wrap:anywhere}.sidebar{background:#0B0C0E;color:#C9C4BF;padding:26px 20px;border-right:1px solid #1F2329}.brand{color:#FFF;font-size:16px;font-weight:800}.sidebar p{margin:0 0 28px}.sidebar span{display:block;padding:12px;border-radius:6px;margin-bottom:6px}.sidebar .active{background:#AB2350;color:#FFF}.sidebar small{color:#C9C4BF}.main{min-width:0;padding:32px 40px}.content{max-width:1080px;margin:auto}.eyebrow{font-size:12px;color:var(--admin-muted);margin-bottom:12px}.demo-note,.callout{background:var(--admin-raised);border:1px solid var(--admin-line);border-radius:8px;padding:16px;margin:16px 0}.demo-note{margin-top:0;font-size:13px}.switcher,.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.switcher{border-bottom:1px solid var(--admin-line);padding:0 0 16px;margin:24px 0}.switcher button[aria-pressed=true]{border-color:var(--admin-accent);color:var(--admin-accent)}.panel{border:1px solid var(--admin-line);background:var(--admin-surface);border-radius:12px;padding:28px;margin-bottom:24px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.wide{grid-column:1/-1}.step{margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--admin-line)}.actions{justify-content:flex-end;margin-top:20px}.error{color:var(--admin-danger)}.success{color:var(--admin-success)}[aria-invalid=true]{border-color:var(--admin-danger)}.status{margin-top:16px;white-space:pre-line}.status:empty{margin:0}.filename{font-variant-numeric:tabular-nums}.table-wrap{min-width:0}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:13px}caption{text-align:left;color:var(--admin-muted);padding:14px 0}th,td{padding:12px 10px;border-bottom:1px solid var(--admin-line);text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--admin-raised);font-weight:650}td small{font-size:12px}details{margin:24px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:650}.demo-controls{padding:20px;background:var(--admin-raised);border:1px dashed var(--admin-control);border-radius:8px}.demo-controls .grid{grid-template-columns:repeat(3,minmax(0,1fr))}dialog{background:var(--admin-surface);color:var(--admin-text);border:1px solid var(--admin-control);border-radius:12px;width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:28px;overflow-y:auto;overflow-wrap:anywhere}dialog::backdrop{background:rgb(0 0 0 / .65)}dialog h2{font-size:22px}#report{margin-top:24px}dl{margin:12px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}dt,dd{margin:0}dd{font-variant-numeric:tabular-nums;font-weight:700}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.switcher button[aria-pressed=true]:hover{background:var(--admin-surface)}
+@media(max-width:1000px){.admin-root{grid-template-columns:1fr}.sidebar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:16px 24px}.sidebar p,.sidebar span{margin:0}.sidebar small{display:none}.sidebar span:not(.active){display:none}.main{padding:24px}}
+@media(max-width:600px){.main{padding:20px 16px}.sidebar{padding:16px}.panel{padding:20px 16px}.grid,.demo-controls .grid{grid-template-columns:minmax(0,1fr)}.actions{align-items:stretch;flex-direction:column}.actions button{width:100%}table,caption,tbody,td{display:block;width:100%}thead{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--admin-line);padding:12px 0;gap:12px}td{padding:0;border:0}td::before{content:attr(data-label);display:block;color:var(--admin-muted);font-size:12px;margin-bottom:4px}td:first-child,td:last-child{grid-column:1/-1}dialog{padding:24px 20px}.demo-controls{padding:16px}.switcher button{flex:1}h1{font-size:23px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body class="admin-root">
+<aside class="sidebar" aria-label="Contexto do painel, ilustrativo">
+  <p class="brand">Arena Admin<small>ENAMED · demonstração</small></p>
+  <span>Conteúdo</span><span class="active">Operações</span><span>Edições</span><small>Shell reduzido para revisão.<br>Não substitui a navegação real.</small>
+</aside>
+<main class="main"><div class="content">
+  <div class="demo-note"><strong>Protótipo offline · DEMO</strong><br>Dados fictícios, apenas em memória. Nenhum arquivo é enviado, nenhum resultado real é alterado. A fonte D6 permanece não confirmada.</div>
+  <header><p class="eyebrow">Conteúdo / Operações administrativas</p><h1>Operações administrativas</h1><p class="muted">Confira a referência antes de importar cortes. Reprocesse apenas provas encerradas.</p></header>
+  <nav class="switcher" aria-label="Operação"><button id="show-import" aria-pressed="true" aria-controls="import-panel">Importar cortes</button><button id="show-results" aria-pressed="false" aria-controls="results-panel">Resultados do simulado</button></nav>
+  <section id="import-panel" aria-labelledby="import-title">
+    <div class="panel">
+      <h2 id="import-title">Importar cortes por referência</h2><p class="muted">O lote é confirmado por inteiro. Conflitos não sobrescrevem cortes existentes nem dados legados de 2026.</p>
+      <div id="import-block" class="callout" role="status" hidden></div>
+      <div id="catalog-message" class="callout" role="status" hidden></div><button id="catalog-retry" type="button" hidden>Tentar novamente</button>
+      <form id="import-form" novalidate aria-busy="false" data-sends="0">
+        <div class="step"><h3>1. Configure a edição e a origem</h3><div class="grid">
+          <div><label for="edition">Edição de destino</label><select id="edition" required aria-describedby="edition-help import-error"><option value="">Selecione a edição</option><option value="demo-edition">2027.1 · Edição DEMO</option></select><small id="edition-help">Catálogo fictício. Sem datas oficiais definidas.</small></div>
+          <div><label for="reference">Referência / processo dos cortes</label><select id="reference" required aria-describedby="reference-help import-error"><option value="">Selecione a referência</option><option value="demo-reference">Processo DEMO · referência fictícia</option></select><small id="reference-help">Sem vínculo com processos reais. Nunca combinar cortes de processos distintos.</small></div>
+          <div class="wide"><label for="source">Fonte declarada dos dados</label><input id="source" required maxlength="500" aria-describedby="source-help import-error" placeholder="Informe o documento e a origem do lote DEMO"><small id="source-help">Esta declaração não confirma fonte oficial nem aprova uso editorial. D6 pendente.</small></div>
+        </div></div>
+        <div class="step"><h3>2. Carregue um lote de demonstração</h3><p class="muted">Upload simulado: escolha CSV ou XLSX pré-carregado. Não há seletor de arquivos pessoais nem leitor de planilhas reais neste protótipo.</p><div class="grid">
+          <div><label for="format">Formato simulado</label><select id="format"><option value="csv">CSV · separado por ponto e vírgula</option><option value="xlsx">XLSX · aba Cortes (simulada)</option></select></div>
+          <div><label for="batch">Exemplo de lote</label><select id="batch"><option value="valid">Duas linhas válidas · DEMO</option><option value="invalid">Instituição ambígua · DEMO</option><option value="empty">Lote vazio · DEMO</option></select></div>
+        </div><div class="actions"><button id="load-batch" type="button">Carregar demonstração</button></div>
+        <p id="file-name" class="filename muted">Nenhum lote carregado.</p>
+        <details><summary>Conferir ou corrigir linhas DEMO</summary><label for="rows">Linhas do lote, sem cabeçalho</label><textarea id="rows" rows="5" spellcheck="false" aria-describedby="rows-help import-error"></textarea><small id="rows-help">Instituição; especialidade; cenário; ampla concorrência; cotas (opcional); vagas (opcional). Use nomes do catálogo DEMO: Hospital Escola DEMO ou Instituto Saúde DEMO; Clínica médica ou Pediatria. Cenário vazio é permitido. Este editor não é um parser de CSV/XLSX de produção.</small></details></div>
+        <p id="import-error" class="error" role="alert"></p><div class="actions"><button id="validate-import" type="submit">Conferir lote</button></div>
+      </form>
+    </div>
+    <section id="preview-panel" class="panel" aria-labelledby="preview-title" hidden>
+      <h2 id="preview-title">3. Revise o lote completo</h2><p id="context-preview" class="callout"></p>
+      <div id="preview" class="table-wrap"></div><p class="muted">Estimativa de referência, não proficiência. Provas e escalas distintas não são diretamente comparáveis; não há calibração TRI neste protótipo.</p>
+      <div class="actions"><button id="retry-import" hidden>Tentar importar novamente</button><button id="confirm-import" class="primary" disabled>Confirmar importação do lote DEMO</button></div>
+    </section>
+    <p id="import-status" class="status" role="status" tabindex="-1"></p>
+  </section>
+  <section id="results-panel" aria-labelledby="results-title" hidden>
+    <div class="panel"><p class="eyebrow">Simulados / Resultados</p><h2 id="results-title" class="exam-name">Simulado de revisão DEMO</h2><p>2027.1 · Edição DEMO</p><p id="exam-description" class="muted">Janela encerrada · gabarito validado no cenário demonstrativo.</p>
+      <div class="callout"><strong>Depois de corrigir o gabarito</strong><p>O reprocessamento usa o gabarito atual. Não corrige alternativas automaticamente e não reabre tentativas. A correção editorial ocorre antes, em fluxo próprio.</p></div>
+      <p id="reprocess-block" class="error" role="status"></p><div class="actions"><button id="open-reprocess">Reprocessar resultados</button></div>
+    </div>
+    <section id="report" class="panel" tabindex="-1" aria-labelledby="report-title" hidden><h2 id="report-title">Relatório agregado · DEMO</h2><p>Simulação concluída. Nenhuma operação real foi executada.</p><dl><dt>Operações simuladas</dt><dd>1</dd><dt>Tentativas processadas</dt><dd>12</dd><dt>Notas alteradas</dt><dd>3</dd><dt>Entradas reconciliadas</dt><dd>4</dd></dl><p class="muted">Contagens fictícias para revisão do retorno. Não exibimos nomes, notas individuais ou identificadores técnicos. Repetir o mesmo gabarito deve preservar os dados (contrato idempotente do servidor).</p></section>
+  </section>
+  <details class="demo-controls"><summary>Controles de revisão · somente DEMO</summary><p class="muted">Mudanças locais sem armazenamento pessoal. Não representam autenticação ou autorização. Recarregar restaura o cenário inicial.</p><div class="grid">
+    <div><label for="theme">Tema</label><select id="theme"><option value="light">Claro</option><option value="dark">Escuro</option></select></div>
+    <div><label for="role">Capabilities simuladas</label><select id="role"><option value="admin">Admin · ambas</option><option value="editor">Editor · content.manage</option><option value="support">Suporte · attempts.manage</option><option value="none">Sem capabilities</option></select></div>
+    <div><label for="feature">Flag editions_ui</label><select id="feature"><option value="on">Ligada · DEMO</option><option value="off">Desligada · DEMO</option></select></div>
+    <div><label for="catalog-state">Estado do catálogo</label><select id="catalog-state"><option value="ready">Disponível</option><option value="loading">Carregando</option><option value="empty">Vazio</option><option value="error">Erro</option></select></div>
+    <div><label for="exam-state">Estado da prova</label><select id="exam-state"><option value="closed">Encerrada · válida</option><option value="open">Janela aberta</option><option value="invalid">Estrutura inválida</option></select></div>
+    <div><label for="fail-next">Falhar no próximo envio</label><select id="fail-next"><option value="none">Não falhar</option><option value="import">Importação</option><option value="reprocess">Reprocessamento</option></select></div>
+    <div><label for="long-names">Textos longos</label><select id="long-names"><option value="off">Padrão</option><option value="on">Nomes extensos</option></select></div>
+  </div></details>
+</div></main>
+<dialog id="dialog" aria-labelledby="dialog-title" aria-describedby="dialog-description">
+  <form id="reprocess-form" novalidate aria-busy="false" data-sends="0"><h2 id="dialog-title">Reprocessar resultados</h2><p><strong class="exam-name">Simulado de revisão DEMO</strong><br>2027.1 · Edição DEMO</p><p id="dialog-description">Recalcula tentativas já finalizadas com o gabarito atual, após o encerramento da janela. Preserva respostas, modalidade, elegibilidade e histórico acadêmico. Não estima TRI.</p>
+    <label for="reason">Motivo do reprocessamento</label><textarea id="reason" required maxlength="1000" aria-describedby="reason-help reason-error"></textarea><small id="reason-help">Descreva a correção editorial para a auditoria. Não inclua dados pessoais de alunos.</small><p id="reason-error" class="error" role="alert"></p>
+    <p id="reprocess-status" class="status" role="status"></p><div class="actions"><button id="cancel-reprocess" type="button">Cancelar</button><button id="confirm-reprocess" type="submit" class="primary">Reprocessar resultados DEMO</button></div>
+  </form>
+</dialog>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let busyImport = false, busyReprocess = false, preflight = false, imported = false, batchLoaded = false;
+  let catalogTimer;
+  const baseRows = 'Hospital Escola DEMO;Clínica médica;Ambulatório;720;680;8\nInstituto Saúde DEMO;Pediatria;Hospitalar;690;;4';
+  const number = value => value.trim() !== '' && Number.isFinite(Number(value.replace(',', '.')));
+  const enabled = () => $('feature').value === 'on';
+  const content = () => ['admin', 'editor'].includes($('role').value);
+  const attempts = () => ['admin', 'support'].includes($('role').value);
+  function importBlock() {
+    if (!enabled()) return 'Recurso indisponível: editions_ui está desligada no cenário DEMO.';
+    if (!content()) return 'Importação bloqueada: requer content.manage.';
+    if ($('catalog-state').value !== 'ready') return 'Aguarde um catálogo disponível para selecionar o destino.';
+    return '';
+  }
+  function reprocessBlock() {
+    if (!enabled()) return 'Recurso indisponível: editions_ui está desligada no cenário DEMO.';
+    if (!content() || !attempts()) return 'Reprocessamento bloqueado: requer content.manage e attempts.manage simultaneamente.';
+    if ($('exam-state').value === 'open') return 'Reprocessamento bloqueado: janela da prova aberta. Aguarde o encerramento.';
+    if ($('exam-state').value === 'invalid') return 'Reprocessamento bloqueado: estrutura da prova inválida. Corrija o conteúdo antes de continuar.';
+    return '';
+  }
+  function sync() {
+    const block = importBlock();
+    $('import-block').hidden = !block; $('import-block').textContent = block;
+    $('confirm-import').disabled = !!block || !preflight || busyImport || imported;
+    $('validate-import').disabled = !!block || busyImport;
+    for (const id of ['edition', 'reference']) $(id).disabled = busyImport || $('catalog-state').value !== 'ready';
+    for (const id of ['source', 'rows', 'format', 'batch', 'load-batch']) $(id).disabled = busyImport;
+    $('retry-import').disabled = busyImport || !!block || !preflight;
+    $('import-form').setAttribute('aria-busy', String(busyImport));
+    $('confirm-import').textContent = busyImport ? 'Importando lote DEMO…' : 'Confirmar importação do lote DEMO';
+    const reason = reprocessBlock(); $('reprocess-block').textContent = reason;
+    $('open-reprocess').disabled = !!reason || busyReprocess;
+    $('confirm-reprocess').disabled = !!reason || busyReprocess;
+    $('cancel-reprocess').disabled = busyReprocess; $('reason').disabled = busyReprocess;
+    $('reprocess-form').setAttribute('aria-busy', String(busyReprocess));
+    $('confirm-reprocess').textContent = busyReprocess ? 'Reprocessando DEMO…' : 'Reprocessar resultados DEMO';
+    // Keep the operation context immutable during the simulated request.
+    for (const id of ['role', 'feature', 'exam-state', 'catalog-state', 'fail-next', 'long-names']) $(id).disabled = busyImport || busyReprocess;
+  }
+  function invalidate() {
+    preflight = false; imported = false;
+    $('preview-panel').hidden = true; $('retry-import').hidden = true;
+    $('import-status').textContent = ''; sync();
+  }
+  function error(id, text) {
+    if (id === 'rows') $('rows').closest('details').open = true;
+    $(id).setAttribute('aria-invalid', 'true'); $('import-error').textContent = text; $(id).focus();
+  }
+  function switchPanel(results) {
+    $('import-panel').hidden = results; $('results-panel').hidden = !results;
+    $('show-import').setAttribute('aria-pressed', String(!results));
+    $('show-results').setAttribute('aria-pressed', String(results));
+  }
+  $('show-import').onclick = () => switchPanel(false);
+  $('show-results').onclick = () => switchPanel(true);
+  $('theme').onchange = () => { document.documentElement.dataset.theme = $('theme').value; };
+  for (const id of ['edition', 'reference', 'source', 'rows', 'format', 'batch']) {
+    $(id).addEventListener('input', invalidate); $(id).addEventListener('change', invalidate);
+  }
+  $('format').addEventListener('change', () => {
+    batchLoaded = false;
+    $('file-name').textContent = 'Formato alterado. Recarregue a demonstração para conferir o novo lote; linhas anteriores preservadas no editor.';
+  });
+  $('load-batch').onclick = () => {
+    if (busyImport || importBlock()) return;
+    invalidate(); batchLoaded = true;
+    $('rows').value = $('batch').value === 'empty' ? '' : $('batch').value === 'invalid' ? baseRows.split('\n')[1] + '\nHospital;Clínica médica;Ambulatório;720;680;8' : baseRows;
+    $('file-name').textContent = 'Lote pré-carregado: cortes-demo.' + $('format').value + ' · ' + ($('format').value === 'xlsx' ? 'aba Cortes simulada · ' : '') + 'nenhum arquivo real enviado';
+    $('import-status').textContent = 'Lote DEMO carregado. Confira os nomes e valores antes de confirmar.';
+  };
+  $('import-form').onsubmit = event => {
+    event.preventDefault(); if (busyImport || importBlock()) return;
+    invalidate(); $('import-error').textContent = '';
+    for (const id of ['edition', 'reference', 'source', 'rows']) $(id).removeAttribute('aria-invalid');
+    if (!$('edition').value) return error('edition', 'Selecione uma edição de destino.');
+    if (!$('reference').value) return error('reference', 'Selecione explicitamente a referência / processo.');
+    if (!$('source').value.trim()) return error('source', 'Informe a fonte declarada dos dados.');
+    if (!batchLoaded || !$('rows').value.trim()) return error('rows', 'Nenhuma linha para conferir. Carregue um lote DEMO não vazio.');
+    const rows = $('rows').value.split(/\r?\n/), seen = new Set(); let invalid = false;
+    const table = document.createElement('table');
+    const caption = table.createCaption(); caption.textContent = 'Prévia DEMO · linhas na ordem do lote. Erros impedem a importação inteira.';
+    const head = table.createTHead().insertRow();
+    for (const text of ['Correspondência', 'Cenário', 'Ampla / cotas', 'Vagas', 'Validação']) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; head.append(th); }
+    const body = table.createTBody();
+    rows.forEach((line, i) => {
+      const cells = line.split(';').map(s => s.trim());
+      const [institution = '', specialty = '', scenario = '', general = '', quota = '', seats = ''] = cells;
+      const problems = [];
+      if (cells.length !== 6) problems.push('use exatamente seis colunas');
+      if (!['Hospital Escola DEMO', 'Instituto Saúde DEMO'].includes(institution)) problems.push('instituição desconhecida ou ambígua; corrija o nome canônico');
+      if (!['Clínica médica', 'Pediatria'].includes(specialty)) problems.push('especialidade sem correspondência canônica');
+      if (!number(general) || quota && !number(quota)) problems.push('corte deve ser um número finito');
+      if (seats && (!number(seats) || !Number.isInteger(Number(seats)) || Number(seats) < 0)) problems.push('vagas devem ser um inteiro não negativo');
+      const key = [institution, specialty, scenario.toLocaleLowerCase('pt-BR')].join('|');
+      if (seen.has(key)) problems.push('chave duplicada no lote; remova a duplicata'); seen.add(key);
+      invalid ||= problems.length > 0;
+      const row = body.insertRow();
+      const values = [`Linha ${i + 1} · ${institution} / ${specialty}`, scenario || 'Não informado', `${general || 'Não informado'} / ${quota || 'Não informado'}`, seats || 'Não informado (envio: 0)', problems.length ? `Linha ${i + 1}: ${problems.join('; ')}` : 'Válida · nomes DEMO correspondentes'];
+      values.forEach((value, column) => { const td = row.insertCell(); td.textContent = value; td.dataset.label = head.cells[column].textContent; if (column === 4 && problems.length) td.className = 'error'; });
+    });
+    $('preview').replaceChildren(table); $('preview-panel').hidden = false;
+    $('context-preview').textContent = `Destino: ${$('edition').selectedOptions[0].textContent}. Referência: ${$('reference').selectedOptions[0].textContent}. Fonte declarada: ${$('source').value.trim()}. Origem: cortes-demo.${$('format').value}. Legado 2026 preservado, sem atribuição automática.`;
+    preflight = !invalid;
+    $('import-status').textContent = invalid ? 'Lote recusado: 0 linhas importadas. Corrija todas as linhas e confira novamente; nenhuma linha será gravada.' : 'Preflight DEMO válido. Confira fonte, destino e lote completo antes da confirmação.';
+    if (invalid) { $('rows').setAttribute('aria-invalid', 'true'); $('import-error').textContent = 'Há erros por linha na prévia. Abra o editor, corrija os nomes ou valores e confira novamente.'; $('import-status').focus(); }
+    sync();
+  };
+  function sendImport() {
+    if (busyImport || !preflight || imported || importBlock()) return;
+    busyImport = true; $('retry-import').hidden = true;
+    $('import-form').dataset.sends = String(Number($('import-form').dataset.sends) + 1);
+    const fail = $('fail-next').value === 'import'; if (fail) $('fail-next').value = 'none';
+    $('import-status').textContent = 'Importando DEMO… simulação local de 450 ms.'; sync();
+    setTimeout(() => {
+      busyImport = false;
+      if (fail) { $('import-status').textContent = 'Falha simulada: 0 linhas importadas. Fonte, destino e lote preservados. Tente importar novamente.'; $('retry-import').hidden = false; }
+      else { imported = true; $('import-status').textContent = `DEMO: ${$('preview').querySelectorAll('tbody tr').length} linhas importadas apenas na simulação. Nenhum registro real foi criado.`; }
+      sync(); (fail ? $('retry-import') : $('import-status')).focus();
+    }, 450);
+  }
+  $('confirm-import').onclick = sendImport; $('retry-import').onclick = sendImport;
+  const dialog = $('dialog'); let successfulClose = false;
+  $('open-reprocess').onclick = () => {
+    if (reprocessBlock() || busyReprocess) return;
+    switchPanel(true); successfulClose = false; $('reprocess-status').textContent = ''; $('reason-error').textContent = '';
+    dialog.showModal(); $('reason').focus();
+  };
+  $('cancel-reprocess').onclick = () => { if (!busyReprocess) dialog.close(); };
+  dialog.addEventListener('cancel', event => { if (busyReprocess) event.preventDefault(); });
+  dialog.addEventListener('close', () => { (successfulClose ? $('report') : $('open-reprocess')).focus(); });
+  dialog.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); if (!busyReprocess) dialog.close(); }
+    if (event.key !== 'Tab') return;
+    const controls = [...dialog.querySelectorAll('textarea,button')].filter(el => !el.disabled);
+    if (!controls.length) { event.preventDefault(); return; }
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+  $('reason').oninput = () => { $('reason').removeAttribute('aria-invalid'); $('reason-error').textContent = ''; };
+  $('reprocess-form').onsubmit = event => {
+    event.preventDefault(); if (!dialog.open || busyReprocess || reprocessBlock()) return;
+    if (!$('reason').value.trim()) { $('reason').setAttribute('aria-invalid', 'true'); $('reason-error').textContent = 'Informe o motivo para registrar a correção na auditoria.'; $('reason').focus(); return; }
+    busyReprocess = true;
+    $('reprocess-form').dataset.sends = String(Number($('reprocess-form').dataset.sends) + 1);
+    const fail = $('fail-next').value === 'reprocess'; if (fail) $('fail-next').value = 'none';
+    $('reprocess-status').textContent = 'Reprocessando DEMO… simulação local de 450 ms.'; sync();
+    setTimeout(() => {
+      busyReprocess = false; sync();
+      if (fail) { $('reprocess-status').textContent = 'Falha simulada. Nenhum resultado real alterado. Motivo preservado; tente novamente.'; $('confirm-reprocess').textContent = 'Tentar reprocessar novamente'; $('reason').focus(); }
+      else { $('report').hidden = false; successfulClose = true; dialog.close(); }
+    }, 450);
+  };
+  for (const id of ['role', 'feature', 'exam-state']) $(id).onchange = () => { invalidate(); sync(); };
+  $('exam-state').addEventListener('change', () => { $('exam-description').textContent = $('exam-state').selectedOptions[0].textContent + ' · cenário DEMO'; });
+  function catalog() {
+    invalidate(); const state = $('catalog-state').value;
+    $('catalog-message').hidden = state === 'ready'; $('catalog-retry').hidden = state === 'ready';
+    $('catalog-retry').disabled = state === 'loading';
+    $('catalog-message').textContent = ({ loading: 'Carregando catálogo DEMO…', empty: 'Nenhuma referência disponível. Configure o catálogo da edição antes de importar. Recuperar carrega apenas exemplos DEMO.', error: 'Falha ao carregar catálogo DEMO. Tente novamente; seus campos serão preservados.', ready: '' })[state];
+    sync();
+    clearTimeout(catalogTimer);
+    if (state === 'loading') catalogTimer = setTimeout(() => { $('catalog-state').value = 'ready'; catalog(); }, 450);
+  }
+  $('catalog-state').onchange = catalog;
+  $('catalog-retry').onclick = () => { $('catalog-state').value = 'loading'; catalog(); };
+  $('long-names').onchange = () => {
+    const long = $('long-names').value === 'on';
+    document.querySelectorAll('.exam-name').forEach(el => { el.textContent = long ? 'Simulado de revisão integrada DEMO — atenção primária, urgência e cuidado longitudinal em instituições de ensino e assistência de nome excepcionalmente extenso' : 'Simulado de revisão DEMO'; });
+    $('edition').options[1].textContent = long ? '2027.1 · Edição DEMO com identificação editorial extensa para revisão de quebras de linha e legibilidade em telas estreitas' : '2027.1 · Edição DEMO';
+    invalidate();
+  };
+  sync();
+})();
+</script>
+</body>
+</html>
