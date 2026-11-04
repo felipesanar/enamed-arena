@@ -2,6 +2,7 @@
 -- LOCAL disposable harness with production definitions + F0, then F1 migration.
 -- No pgTAP/extension installation required. Every test rolls back its fixtures.
 BEGIN;
+\ir local/fixture-publication-setup.sql
 DO $$ BEGIN
   IF current_database() NOT LIKE 'enamed_test_%' THEN
     RAISE EXCEPTION 'Only enamed_test_* databases are allowed';
@@ -49,6 +50,7 @@ INSERT INTO public.onboarding_profiles(user_id, target_institution_ids)
 VALUES (pg_temp.f1_id('student'), ARRAY[pg_temp.f1_id('institution-before')])
 ON CONFLICT (user_id) DO UPDATE SET target_institution_ids = EXCLUDED.target_institution_ids;
 
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,status,
   execution_window_start,execution_window_end,results_release_at)
 SELECT pg_temp.f1_id('sim' || n), 'F1 model', 'f1-model-' || n, 981001,
@@ -59,12 +61,14 @@ INSERT INTO public.simulados(id,title,slug,sequence_number,
   execution_window_start,execution_window_end,results_release_at)
 VALUES (pg_temp.f1_id('legacy-client'),'F1 legacy insert','f1-model-legacy',981002,
   now(),now() + interval '1 hour',now() + interval '2 hours');
+SELECT pg_temp.fixture_publication_end();
 SELECT pg_temp.f1_assert((SELECT e.code = '2026' FROM public.simulados s
  JOIN public.exam_editions e ON e.id = s.edition_id WHERE s.id = pg_temp.f1_id('legacy-client')), 'old inserts without edition retain fixed 2026 default');
 SELECT pg_temp.f1_assert((SELECT count(*) = 2 FROM public.simulados WHERE sequence_number = 981001), 'same sequence in distinct editions');
-SELECT pg_temp.f1_throws($s$INSERT INTO public.simulados(title,slug,sequence_number,edition_id,
+-- A draft probes uniqueness without invoking the unrelated publication contract.
+SELECT pg_temp.f1_throws($s$INSERT INTO public.simulados(title,slug,sequence_number,edition_id,status,
  execution_window_start,execution_window_end,results_release_at)
- SELECT 'duplicate','f1-duplicate',981001,edition_id,execution_window_start,execution_window_end,results_release_at
+  SELECT 'duplicate','f1-duplicate',981001,edition_id,'draft',execution_window_start,execution_window_end,results_release_at
  FROM public.simulados WHERE id = pg_temp.f1_id('sim1')$s$, '23505');
 SELECT pg_temp.f1_throws($s$UPDATE public.simulados SET results_release_at = execution_window_end - interval '1 second'
  WHERE id = pg_temp.f1_id('sim1')$s$, '23514');

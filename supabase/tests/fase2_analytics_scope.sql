@@ -1,8 +1,10 @@
 -- ONLY the disposable localhost analytics clone. No production/service calls.
 \set ON_ERROR_STOP on
 SELECT 1 / ((inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=54737
- AND current_database() LIKE 'enamed_test_analytics_%' AND session_user='postgres')::int);
+ AND (current_database() LIKE 'enamed_test_analytics_%' OR current_database() ~ '^enamed_test_fixtures_integrated_[a-z0-9_]+$')
+ AND session_user='postgres' AND current_user='postgres')::int);
 BEGIN;
+\ir local/fixture-publication-setup.sql
 DO $$ BEGIN
  ASSERT to_regprocedure('public.get_area_score_history(uuid,uuid)') IS NOT NULL,
    'RED: edition-aware analytics signature is missing';
@@ -24,6 +26,7 @@ INSERT INTO public.onboarding_profiles(user_id,specialty_id,target_institution_i
  SELECT id,'f2200000-0000-0000-0000-000000000021',
  ARRAY['f2200000-0000-0000-0000-000000000024','f2200000-0000-0000-0000-000000000023']::uuid[]
  FROM auth.users WHERE id::text LIKE 'f2200000-%';
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,
  execution_window_start,execution_window_end,results_release_at,status)
  SELECT ('f2210000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
@@ -32,7 +35,8 @@ INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,
  ELSE 'f2200000-0000-0000-0000-000000000011'::uuid END,
  now()-interval '10 days',now()-interval '9 days',
  CASE WHEN n=4 THEN now()+interval '1 day' ELSE now()-interval '8 days' END,'published'
- FROM generate_series(1,4) n;
+  FROM generate_series(1,4) n;
+SELECT pg_temp.fixture_publication_end();
 INSERT INTO public.questions(id,simulado_id,question_number,text,area,theme)
  SELECT ('f2220000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
  ('f2210000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,1,

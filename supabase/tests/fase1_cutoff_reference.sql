@@ -3,7 +3,7 @@
 BEGIN;
 DO $$ BEGIN
  IF inet_server_addr() <> '127.0.0.1'::inet OR inet_server_port() <> 54737
- OR current_database() !~ '^enamed_test_cutoff_[a-z0-9_]+$' OR session_user <> 'postgres' THEN
+ OR current_database() !~ '^enamed_test_(cutoff|fixtures_integrated)_[a-z0-9_]+$' OR session_user <> 'postgres' OR current_user <> 'postgres' THEN
  RAISE EXCEPTION 'Unsafe test connection'; END IF;
 END $$;
 CREATE FUNCTION pg_temp.check_true(ok boolean, message text) RETURNS void LANGUAGE plpgsql AS $$

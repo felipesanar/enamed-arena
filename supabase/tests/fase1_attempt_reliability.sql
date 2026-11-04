@@ -1,10 +1,11 @@
 -- Local disposable database only. Transactional fixtures; managed Auth/REST are not exercised.
 \set ON_ERROR_STOP on
 BEGIN;
+\ir local/fixture-publication-setup.sql
 DO $local_only$
 BEGIN
   IF inet_server_addr() IS DISTINCT FROM '127.0.0.1'::inet OR inet_server_port() IS DISTINCT FROM 54737
-    OR session_user <> 'postgres' OR current_database() !~ '^enamed_test_attempt_[a-z0-9_]+$' THEN
+    OR session_user <> 'postgres' OR current_database() !~ '^enamed_test_(attempt|fixtures_integrated)_[a-z0-9_]+$' THEN
     RAISE EXCEPTION 'Attempt fixture requires its exclusive local allowlisted database';
   END IF;
 END;
@@ -19,11 +20,13 @@ AS $$ SELECT md5('f1-reliability:' || label)::uuid $$;
 INSERT INTO auth.users(id, email, raw_user_meta_data)
 SELECT pg_temp.f1_id(u), u || '-f1-reliability@example.invalid', '{}'::jsonb
 FROM unnest(ARRAY['student','other']) u;
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,status,questions_count,duration_minutes,
  execution_window_start,execution_window_end,results_release_at)
 SELECT pg_temp.f1_id('sim' || n), 'Reliability fixture', 'f1-reliability-' || n, 990100+n,
  'published',1,60,now()-interval '2 hours',now()+interval '1 hour',now()+interval '3 hours'
 FROM generate_series(1,6) n;
+SELECT pg_temp.fixture_publication_end();
 UPDATE public.simulados SET execution_window_start=now()+interval '1 hour', execution_window_end=now()+interval '2 hours'
 WHERE id=pg_temp.f1_id('sim1');
 UPDATE public.simulados SET execution_window_end=now()-interval '1 hour' WHERE id=pg_temp.f1_id('sim3');

@@ -1,6 +1,7 @@
 -- Disposable local database only, after migrations; run with ON_ERROR_STOP.
 -- No extensions. All schema changes, users, claims and fixtures roll back.
 BEGIN;
+\ir local/fixture-publication-setup.sql
 
 DO $$
 BEGIN
@@ -34,14 +35,17 @@ ON CONFLICT DO NOTHING;
 -- Exercise fail-closed NULL gates even on installations with NOT NULL dates.
 ALTER TABLE public.simulados ALTER COLUMN results_release_at DROP NOT NULL;
 ALTER TABLE public.simulados ALTER COLUMN execution_window_start DROP NOT NULL;
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados (id, title, slug, sequence_number, status,
   execution_window_start, execution_window_end, results_release_at) VALUES
   ('82000000-0000-0000-0000-000000000001', 'Released', 'fase0-release-1', 9101, 'published', now()-interval '2 days', now()-interval '1 day', now()-interval '1 hour'),
   ('82000000-0000-0000-0000-000000000002', 'Not released', 'fase0-release-2', 9102, 'published', now()-interval '1 day', now()+interval '1 day', now()+interval '2 days'),
   ('82000000-0000-0000-0000-000000000003', 'Upcoming', 'fase0-release-3', 9103, 'published', now()+interval '1 day', now()+interval '2 days', now()+interval '3 days'),
   ('82000000-0000-0000-0000-000000000004', 'Null release', 'fase0-release-4', 9104, 'published', now()-interval '1 day', now()+interval '1 day', NULL),
-  ('82000000-0000-0000-0000-000000000005', 'Null start', 'fase0-release-5', 9105, 'published', NULL, now()+interval '1 day', now()-interval '1 hour'),
+  -- Keep the unrelated F1 end <= release constraint valid while probing NULL start.
+  ('82000000-0000-0000-0000-000000000005', 'Null start', 'fase0-release-5', 9105, 'published', NULL, now()-interval '2 hours', now()-interval '1 hour'),
   ('82000000-0000-0000-0000-000000000006', 'Draft', 'fase0-release-6', 9106, 'draft', now()-interval '2 days', now()-interval '1 day', now()-interval '1 hour');
+SELECT pg_temp.fixture_publication_end();
 INSERT INTO public.questions (id, simulado_id, question_number, text, area, theme, explanation, explanation_image_url)
 SELECT ('83000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid,
   ('82000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid,

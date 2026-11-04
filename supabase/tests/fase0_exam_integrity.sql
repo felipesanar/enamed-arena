@@ -2,6 +2,7 @@
 -- 20260906215529). Run before/after the migration, never against production.
 -- supabase test db supabase/tests/fase0_exam_integrity.sql --local
 BEGIN;
+\ir local/fixture-publication-setup.sql
 \if :{?sql_local}
 \else
 \set sql_local false
@@ -31,6 +32,7 @@ SELECT ok(EXISTS (SELECT 1 FROM public.role_capabilities
                  WHERE role = 'admin' AND capability = 'results.view'),
           'fixture admin has the existing results.view capability');
 
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id, title, slug, sequence_number, status,
   questions_count, duration_minutes, execution_window_start,
   execution_window_end, results_release_at)
@@ -38,6 +40,7 @@ SELECT pg_temp.t2_id('sim' || n), 'T2 fixture ' || n, 'fase0-t2-' || n,
        900000 + n, 'published', 1, 60, now() - interval '1 hour',
        now() + interval '1 hour', now() + interval '2 hours'
 FROM generate_series(1, 11) AS n;
+SELECT pg_temp.fixture_publication_end();
 INSERT INTO public.questions(id, simulado_id, question_number, text, area, theme)
 SELECT pg_temp.t2_id('q' || n), pg_temp.t2_id('sim' || n), 1,
        'T2 question', 'Clinica Medica', 'T2' FROM generate_series(1, 11) AS n;
@@ -231,7 +234,8 @@ SELECT lives_ok($sql$SELECT public.finalize_attempt_with_results_for_user(
   pg_temp.t2_id('a4'), pg_temp.t2_id('student'))$sql$,
   'service finalizer can revisit a closed overdue online attempt without writing answers');
 RESET ROLE;
-UPDATE public.simulados SET results_release_at = now() WHERE id IN
+-- Release boundary remains exactly now; the integrated edition window must end first.
+UPDATE public.simulados SET execution_window_end = now(), results_release_at = now() WHERE id IN
   (pg_temp.t2_id('sim2'), pg_temp.t2_id('sim7'));
 SET LOCAL ROLE authenticated;
 SELECT is((SELECT count(*) FROM public.get_attempt_question_results(pg_temp.t2_id('a2'))),

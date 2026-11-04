@@ -63,9 +63,14 @@ BEGIN
   result := public.admin_import_questions(sim,rows);
   PERFORM pg_temp.assert(NOT (result->>'ok')::boolean, 'resend rejected');
   PERFORM pg_temp.assert((SELECT count(*)=4 FROM public.question_options o JOIN public.questions q ON q.id=o.question_id WHERE q.simulado_id=sim), 'exactly four options');
-  UPDATE public.simulados SET status='published' WHERE id=sim;
+  -- This one-question fixture must satisfy the installed publication contract.
+  -- Keep the guard enabled: publication itself is a real operation under test.
+  UPDATE public.exam_editions SET format=jsonb_set(format,'{questions}','1') WHERE id=edition;
+  UPDATE public.simulados SET questions_count=1,status='published' WHERE id=sim;
   result := public.admin_import_questions(sim,jsonb_set(rows,'{0,question_number}','2'));
-  PERFORM pg_temp.assert(NOT (result->>'ok')::boolean, 'published bulk import rejected');
+  PERFORM pg_temp.assert(NOT (result->>'ok')::boolean
+    AND result->'errors' @> '[{"field":"simulado"}]'::jsonb,
+    'published bulk import rejected by status, not question-number validation');
 END $$;
 
 -- Force an option-insert error after question insertion; function must roll back.
@@ -75,6 +80,8 @@ CREATE TRIGGER fixture_fail_import BEFORE INSERT ON public.question_options FOR 
 DO $$ DECLARE sim uuid; n bigint; BEGIN
   SELECT id INTO sim FROM public.simulados WHERE slug='import-fixture';
   UPDATE public.simulados SET status='draft' WHERE id=sim;
+  UPDATE public.exam_editions SET format=jsonb_set(format,'{questions}','120')
+    WHERE id=(SELECT edition_id FROM public.simulados WHERE id=sim);
   SELECT count(*) INTO n FROM public.questions WHERE simulado_id=sim;
   BEGIN
     PERFORM public.admin_import_questions(sim,'[{"question_number":2,"text":"Fail","area":"PED","options":[{"label":"A","text":"force-rollback","is_correct":true},{"label":"B","text":"b","is_correct":false},{"label":"C","text":"c","is_correct":false},{"label":"D","text":"d","is_correct":false}]}]');
