@@ -1,6 +1,33 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { AdminReportScope } from '@/types/admin-period';
 import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
+import type { RankingRule, SimuladoWindow, WindowPreview, WindowUpdateReport } from '@/admin/types/admin-session';
+
+function validateSimuladoWindowShape(value: unknown): asserts value is SimuladoWindow {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Janela inválida.');
+  const window = value as SimuladoWindow;
+  const dates = [window.execution_window_start, window.execution_window_end, window.results_release_at];
+  if (dates.some(date => typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(date) || !Number.isFinite(Date.parse(date)))) throw new Error('Datas inválidas.');
+}
+
+function validateSimuladoWindow(value: unknown): asserts value is SimuladoWindow {
+  validateSimuladoWindowShape(value);
+  const dates = [value.execution_window_start, value.execution_window_end, value.results_release_at];
+  const [start, end, release] = dates.map(Date.parse);
+  if (!(start < end && end <= release)) throw new Error('Confira a ordem das datas da janela.');
+}
+
+function validateWindowReport(value: unknown, id: string, preview: boolean) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Relatório de janela indisponível.');
+  const report = value as Record<string, unknown>;
+  const counts = preview ? ['attempts_examined', 'eligibility_changed', 'old_eligible', 'new_eligible'] : ['attempts_examined', 'eligibility_changed'];
+  if (report.simulado_id !== id || counts.some(key => typeof report[key] !== 'number' || !Number.isSafeInteger(report[key]) || (report[key] as number) < 0 || (report[key] as number) > (report.attempts_examined as number))) throw new Error('Contagens de janela inválidas.');
+  const token = report[preview ? 'current_window_hash' : 'operation_id'];
+  if (typeof token !== 'string' || !token.trim()) throw new Error('Conferência de janela incompleta.');
+  // Historical rows may predate the NOT VALID chronological constraint.
+  validateSimuladoWindowShape(report.old_window);
+  validateSimuladoWindow(report.new_window);
+}
 import type {
   DashboardKpis,
   TimeseriesRow,
@@ -222,13 +249,43 @@ export const adminApi = {
     duration_minutes: number; questions_count: number; execution_window_start: string;
     execution_window_end: string; results_release_at: string; theme_tags: string[];
     status: 'draft' | 'published' | 'test';
-  }, onDraftSaved: (id: string) => void) {
+  }, onDraftSaved: (id: string) => void, options?: { preserveWindow?: boolean }) {
     if (!values.edition_id) throw new Error('Selecione a edição.');
     const payload = { ...values, status: values.status === 'published' ? 'draft' as const : values.status };
-    const saved = id ? await adminApi.updateSimulado(id, payload) : await adminApi.createSimulado(payload);
+    const updatePayload: Record<string, unknown> = { ...payload };
+    if (id && options?.preserveWindow) {
+      delete updatePayload.execution_window_start;
+      delete updatePayload.execution_window_end;
+      delete updatePayload.results_release_at;
+    }
+    const saved = id ? await adminApi.updateSimulado(id, updatePayload) : await adminApi.createSimulado(payload);
     onDraftSaved(saved.id);
     if (values.status === 'published') await adminEditionsApi.publish(saved.id);
     return saved;
+  },
+
+  async previewSimuladoWindow(id: string, window: SimuladoWindow): Promise<WindowPreview> {
+    validateSimuladoWindow(window);
+    const { data, error } = await supabase.rpc('admin_preview_simulado_window' as never, {
+      p_simulado_id: id, p_execution_window_start: window.execution_window_start,
+      p_execution_window_end: window.execution_window_end, p_results_release_at: window.results_release_at,
+    } as never);
+    if (error) throw error;
+    validateWindowReport(data, id, true);
+    return data as unknown as WindowPreview;
+  },
+
+  async updateSimuladoWindow(id: string, window: SimuladoWindow, hash: string, reason: string): Promise<WindowUpdateReport> {
+    validateSimuladoWindow(window);
+    if (!hash?.trim() || !reason.trim() || reason.trim().length > 2000) throw new Error('Informe um motivo com 1 a 2000 caracteres e confira a janela.');
+    const { data, error } = await supabase.rpc('admin_update_simulado_window' as never, {
+      p_simulado_id: id, p_execution_window_start: window.execution_window_start,
+      p_execution_window_end: window.execution_window_end, p_results_release_at: window.results_release_at,
+      p_expected_window_hash: hash, p_reason: reason.trim(),
+    } as never);
+    if (error) throw error;
+    validateWindowReport(data, id, false);
+    return data as unknown as WindowUpdateReport;
   },
 
   async deleteSimulado(id: string) {
@@ -1008,6 +1065,7 @@ export const adminApi = {
       caderno_id: (r.caderno_id as string | null) ?? null,
       caderno_label: (r.caderno_label as string | null) ?? null,
       caderno_color: (r.caderno_color as string | null) ?? null,
+      ranking_rule: r.ranking_rule === 'legacy_online_window' || r.ranking_rule === 'session_window_v1' ? r.ranking_rule : null,
     }))
   },
 
@@ -1021,6 +1079,7 @@ export const adminApi = {
     is_active: boolean
     /** null = a sala pergunta ao aluno qual caderno ele recebeu. */
     caderno_id?: string | null
+    ranking_rule?: RankingRule | null
   }): Promise<string> {
     const { data, error } = await (supabase.rpc as any)('admin_presencial_session_upsert', {
       p_id: p.id,
@@ -1031,6 +1090,7 @@ export const adminApi = {
       p_closes_at: p.closes_at,
       p_is_active: p.is_active,
       p_caderno_id: p.caderno_id ?? null,
+      ...(p.ranking_rule != null ? { p_ranking_rule: p.ranking_rule } : {}),
     })
     if (error) throw error
     return data as string

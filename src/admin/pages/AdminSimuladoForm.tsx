@@ -1,4 +1,7 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
+import { useAdminCan } from '@/admin/contexts/AdminAccessContext';
+import { AdminWindowUpdateDialog } from '@/admin/components/AdminWindowUpdateDialog';
+import type { SimuladoWindow } from '@/admin/types/admin-session';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check, Clock3, AlertTriangle } from 'lucide-react';
@@ -117,6 +120,24 @@ function AdminSimuladoFormContent() {
   const isEdit = !!id && id !== 'novo';
   const navigate = useNavigate();
   const [form, setForm] = useState(empty);
+  const [savedWindow, setSavedWindow] = useState<SimuladoWindow | null>(null);
+  const canManageAttempts = useAdminCan('attempts.manage');
+  const [attemptsCount, setAttemptsCount] = useState<number | null>(null);
+  const [countPending, setCountPending] = useState(false);
+  const [countRevision, setCountRevision] = useState(0);
+  const windowSimuladoId = savedId ?? (isEdit ? id! : null);
+  const windowSafetyEnabled = editionsEnabled && !!windowSimuladoId && !!form.edition_id;
+  const protectWindow = windowSafetyEnabled && attemptsCount !== 0;
+  useEffect(() => {
+    let active = true;
+    setAttemptsCount(null);
+    if (!windowSafetyEnabled) { setCountPending(false); return; }
+    setCountPending(true);
+    adminApi.getSimuladoAttemptsCount(windowSimuladoId!).then(count => {
+      if (active) setAttemptsCount(Number.isSafeInteger(count) && count >= 0 ? count : null);
+    }).catch(() => { if (active) setAttemptsCount(null); }).finally(() => { if (active) setCountPending(false); });
+    return () => { active = false; };
+  }, [windowSimuladoId, windowSafetyEnabled, countRevision]);
   const loadEditions = () => {
     if (!editionsEnabled) return;
     setEditionsError(false);
@@ -144,6 +165,7 @@ function AdminSimuladoFormContent() {
     setLoadError(null);
     adminApi.getSimulado(id!)
       .then(s => {
+        setSavedWindow({ execution_window_start: s.execution_window_start, execution_window_end: s.execution_window_end, results_release_at: s.results_release_at });
         setForm({
           edition_id: (s as typeof s & { edition_id?: string }).edition_id ?? '',
           title: s.title,
@@ -283,11 +305,14 @@ function AdminSimuladoFormContent() {
     let draftSaved = false;
     try {
       if (editionsEnabled) {
-        await adminApi.saveSimuladoWithEdition(savedId ?? (isEdit ? id! : null), payload, draftId => {
+        const onDraftSaved = (draftId: string) => {
           draftSaved = true;
           setSavedId(draftId);
+          if (!windowSimuladoId) setSavedWindow({ execution_window_start: payload.execution_window_start, execution_window_end: payload.execution_window_end, results_release_at: payload.results_release_at });
           setForm(prev => ({ ...prev, status: 'draft' }));
-        });
+        };
+        if (protectWindow) await adminApi.saveSimuladoWithEdition(windowSimuladoId, payload, onDraftSaved, { preserveWindow: true });
+        else await adminApi.saveSimuladoWithEdition(windowSimuladoId, payload, onDraftSaved);
       } else if (isEdit) {
         await adminApi.updateSimulado(id!, payload);
       } else {
@@ -305,7 +330,11 @@ function AdminSimuladoFormContent() {
       navigate('/admin/simulados');
     } catch (err: any) {
       logger.error('[AdminSimuladoForm] Falha ao salvar:', err);
-      toast({ title: draftSaved && status === 'published' ? 'Rascunho salvo; publicação bloqueada' : 'Erro ao salvar', description: err.message, variant: 'destructive' });
+      const windowGuard = editionsEnabled && err?.code === '42501' && String(err?.message).includes('admin_update_simulado_window');
+      if (windowGuard) setAttemptsCount(null);
+      toast({ title: draftSaved && status === 'published' ? 'Rascunho salvo; publicação bloqueada' : 'Erro ao salvar', description: windowGuard
+        ? 'Surgiram participações nesta prova. Suas alterações continuam no formulário. Refaça a contagem e faça uma nova conferência da janela antes de alterar as datas.'
+        : ['P0003', '42501'].includes(err?.code) || err?.status === 403 ? 'Sem permissão para salvar esta alteração. Peça a revisão de uma pessoa autorizada.' : err.message, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -507,11 +536,22 @@ function AdminSimuladoFormContent() {
               O período em que a prova vale para o ranking. Dentro da janela, a nota conta. Fora dela, o
               aluno ainda pode treinar, mas o resultado não entra na classificação.
             </p>
+            {windowSafetyEnabled && <div className="space-y-3 rounded-lg border border-admin-line bg-admin-raised p-3">
+              <p className="text-sm text-admin-muted">{countPending ? 'Conferindo participações...' : attemptsCount === null ? 'Não foi possível confirmar a contagem de participações. A janela está protegida.' : attemptsCount > 0 ? `${attemptsCount} participações registradas. Altere a janela somente com conferência de impacto.` : 'Nenhuma participação registrada. As datas podem ser editadas neste formulário.'}</p>
+              <Button type="button" variant="outline" disabled={countPending || saving} onClick={() => setCountRevision(value => value + 1)}>Refazer contagem</Button>
+              {canManageAttempts && savedWindow && <div hidden={!protectWindow}><AdminWindowUpdateDialog key={windowSimuladoId} simuladoId={windowSimuladoId!} window={savedWindow} onSuccess={window => {
+                setSavedWindow(window);
+                setForm(prev => ({ ...prev, execution_window_start: isoToBrasiliaInput(window.execution_window_start), execution_window_end: isoToBrasiliaInput(window.execution_window_end), results_release_at: isoToBrasiliaInput(window.results_release_at) }));
+                setCountRevision(value => value + 1);
+              }} /></div>}
+              {protectWindow && !canManageAttempts && <p className="text-sm text-admin-muted">É necessária permissão para gerenciar tentativas para alterar a janela. Os demais dados continuam editáveis.</p>}
+            </div>}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="window-start">Abre em <span className="font-normal text-admin-muted">(horário de Brasília)</span></Label>
                 <Input
                   id="window-start"
+                  disabled={protectWindow || countPending}
                   className={inputMonoCls}
                   type="datetime-local"
                   value={form.execution_window_start}
@@ -523,6 +563,7 @@ function AdminSimuladoFormContent() {
                 <Label htmlFor="window-end">Fecha em <span className="font-normal text-admin-muted">(horário de Brasília)</span></Label>
                 <Input
                   id="window-end"
+                  disabled={protectWindow || countPending}
                   className={inputMonoCls}
                   type="datetime-local"
                   value={form.execution_window_end}
@@ -535,6 +576,7 @@ function AdminSimuladoFormContent() {
               <Label htmlFor="results-release">Libera resultados em <span className="font-normal text-admin-muted">(horário de Brasília)</span></Label>
               <Input
                 id="results-release"
+                disabled={protectWindow || countPending}
                 className={inputMonoCls}
                 type="datetime-local"
                 value={form.results_release_at}

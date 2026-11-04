@@ -14,16 +14,7 @@ export function useAdminPresencialSessions() {
 export function useAdminPresencialSessionUpsert() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (p: {
-      id: string | null
-      simulado_id: string
-      code: string
-      label: string
-      opens_at: string
-      closes_at: string
-      is_active: boolean
-      caderno_id?: string | null
-    }) => adminApi.presencialSessionUpsert(p),
+    mutationFn: (p: Parameters<typeof adminApi.presencialSessionUpsert>[0]) => adminApi.presencialSessionUpsert(p),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'presencial-sessions'] })
     },
