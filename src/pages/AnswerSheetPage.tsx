@@ -71,7 +71,7 @@ export default function AnswerSheetPage() {
 
   // answers: question_id → selected option_id
   const [answerState, setAnswerState] = useState<{ scope: string; values: Record<string, string> }>({ scope, values: {} });
-  const answers = answerState.scope === scope ? answerState.values : {};
+  const answers = useMemo(() => answerState.scope === scope ? answerState.values : {}, [answerState, scope]);
   const setAnswers = useCallback((next: SetStateAction<Record<string, string>>) => {
     setAnswerState(prev => ({ scope, values: typeof next === 'function' ? next(prev.scope === scope ? prev.values : {}) : next }));
   }, [scope]);
@@ -335,7 +335,7 @@ export default function AnswerSheetPage() {
       } else {
         toast({
           title: 'Gabarito enviado',
-          description: 'Resultado disponível, mas fora da janela de ranking. Revise seus erros no Caderno após a correção.',
+          description: 'Gabarito recebido fora da janela de ranking. A correção segue a data de liberação do simulado.',
         });
       }
 

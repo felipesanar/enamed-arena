@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SimuladoDetailPage from "./SimuladoDetailPage";
 
 const dialog = vi.hoisted(() => ({ render: vi.fn() }));
@@ -39,6 +40,8 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/hooks/useSimuladoDetail");
 vi.mock("@/hooks/useSimulados");
 vi.mock("@/contexts/UserContext");
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'detail-test-user' } }) }));
+vi.mock('@/services/offlineApi', () => ({ offlineApi: { getActiveOfflineAttempt: vi.fn(async () => null) } }));
 
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useSimulados } from "@/hooks/useSimulados";
@@ -83,12 +86,17 @@ function setupMocks(overrides: { simulado?: any; simulados?: any[]; onboarding?:
 }
 
 function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: {
+    retry: false, gcTime: 0, refetchOnWindowFocus: false,
+  } } });
   render(
+    <QueryClientProvider client={queryClient}>
     <MemoryRouter initialEntries={["/simulados/sim-8"]}>
       <Routes>
         <Route path="/simulados/:id" element={<SimuladoDetailPage />} />
       </Routes>
     </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
