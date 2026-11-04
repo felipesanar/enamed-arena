@@ -45,9 +45,9 @@ function renderPage() {
 }
 
 function Catalog() {
-  const c = useAdminPeriod()
-  useEffect(() => { c.setReportCatalog({ status: 'ready', editions: [{ id: 'a', label: 'Edição A' }, { id: 'b', label: 'Edição B' }] }) }, [c.setReportCatalog])
-  return <><button onClick={() => c.setReportEditionId('a')}>Escolher A</button><button onClick={() => c.setReportEditionId('b')}>Escolher B</button></>
+  const { setReportCatalog, setReportEditionId } = useAdminPeriod()
+  useEffect(() => { setReportCatalog({ status: 'ready', editions: [{ id: 'a', label: 'Edição A' }, { id: 'b', label: 'Edição B' }] }) }, [setReportCatalog])
+  return <><button onClick={() => setReportEditionId('a')}>Escolher A</button><button onClick={() => setReportEditionId('b')}>Escolher B</button></>
 }
 
 describe('AdminInteligencia', () => {

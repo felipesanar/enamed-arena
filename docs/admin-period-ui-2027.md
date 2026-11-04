@@ -2,15 +2,17 @@
 
 ## Status
 
-Implementacao funcional e QA direcionado concluidos. Revisao independente do
-Codex incorporada: 72 testes em 7 arquivos, mais a verificacao de Topbar,
-aprovados; TypeScript com `tsconfig.app.json` e lint com exit 0. O orquestrador
-inspecionou as capturas React de 375px escuro e 1440px claro e o `results.json`,
-aprovando controles, foco, contraste e series, sem bloqueador funcional.
+Fase B integrada; a regressao de setters batched e a dependencia de lint do mock
+Catalog identificadas no CI 41841235698 (7cddb70) foram corrigidas nesta retomada.
+Apos o ultimo diff de codigo e testes: 99 testes aprovados em 10 arquivos de
+periodo e contagens; lint dos tres arquivos de codigo tocados com exit 0,
+sem erros e com um warning preexistente de Fast Refresh no Context.
+Typecheck final permanece com o Codex.
 
-Por orientacao final do orquestrador, o encerramento altera somente esta
-documentacao e o handoff. Nao foram repetidos checks, ampliada a investigacao
-ou feita nova rodada de polimento.
+A aprovacao visual anterior das capturas React 375px escuro/1440px claro e do
+`results.json` permanece historica. Nao houve nova UI, QA visual ou polimento.
+Os checkpoints anteriores nao comprovavam o estado posterior a inclusao do
+teste batch; a cronologia corrigida esta registrada abaixo.
 
 ## Entrega
 
@@ -55,14 +57,16 @@ Os contratos continuam em `docs/contracts/admin-period-2027.md` e
 
 ## Verificacao Registrada
 
-Ultima bateria direcionada executada pelo implementador antes do encerramento:
+Checkpoint historico do implementador, executado as 10:12 antes da inclusao
+do teste batch:
 
 ```powershell
 node node_modules/vitest/vitest.mjs run src/admin/lib/adminPeriod.test.ts src/admin/contexts/AdminPeriodContext.test.tsx src/admin/services/adminApi.period.test.ts src/admin/hooks/useAdminInteligencia.test.tsx src/admin/components/AdminReportFilters.test.tsx src/admin/components/AdminTopbar.test.tsx src/admin/__tests__/AdminInteligencia.test.tsx src/admin/__tests__/AdminDashboard.test.tsx --maxWorkers=2
 ```
 
-Resultado registrado: 8 arquivos, 73 testes aprovados. Esse resultado corresponde
-aquela execucao, nao a uma nova bateria no encerramento documental.
+Resultado daquele checkpoint: 8 arquivos, 73 testes aprovados. O teste batch
+foi adicionado as 10:17:02 e nao foi executado nessa bateria. Portanto 73/8 nao
+era evidencia do estado final posterior a essa adicao.
 
 ```powershell
 node node_modules/eslint/bin/eslint.js src/admin/lib/adminPeriod.ts src/types/admin-period.ts src/admin/contexts/AdminPeriodContext.tsx src/admin/components/AdminReportFilters.tsx src/admin/components/AdminTopbar.tsx src/admin/hooks/useAdminInteligencia.ts src/admin/pages/AdminInteligencia.tsx
@@ -72,9 +76,10 @@ node ".superpowers/admin-periodQA/react-qa.mjs"
 
 Resultados registrados: lint sem erros, com um aviso
 `react-refresh/only-export-components` no Context; diff sem erros de whitespace;
-QA React exit 0. A revisao independente posterior informou lint exit 0 e
-TypeScript `tsconfig.app.json` exit 0. A linha exata dos comandos independentes
-nao foi fornecida; nao se atribui sua execucao ao implementador.
+QA React exit 0. A revisao independente informou lint exit 0 e TypeScript
+`tsconfig.app.json` exit 0 nos checkpoints descritos abaixo, sem comprovar o
+teste batch posterior. O comando historico de lint acima nao incluiu os testes;
+nao comprova a ausencia do erro de dependencia no mock Catalog.
 
 QA React usa componentes reais, bundle local e Edge offline, com Auth e fontes
 de dados mockados. Evidencias locais:
@@ -95,17 +100,68 @@ Nao foi realizada auditoria WCAG completa, validacao com leitor de tela ou
 matriz Safari/Firefox. Nao houve rede, instalacao de pacotes, acesso a `.env`,
 alteracao em producao, commit ou publicacao nesta entrega.
 
-O encerramento segue a aprovacao funcional do Codex, sem repetir testes ou
-typecheck, sem suite global e sem nova rodada de design.
+Nesta correcao foram repetidos os testes direcionados completos de periodo e
+contagens e o lint dos arquivos de codigo tocados, incluindo ambos os testes.
+Nao houve suite global, typecheck global nem nova rodada de design.
 
-## Verificação independente final do Codex
+## Checkpoints históricos do Codex
 
 Executado neste worktree em04/11/2026:
 
-- `node node_modules/vitest/vitest.mjs run src/admin/lib/adminPeriod.test.ts src/admin/contexts/AdminPeriodContext.test.tsx src/admin/services/adminApi.period.test.ts src/admin/hooks/useAdminInteligencia.test.tsx src/admin/components/AdminReportFilters.test.tsx src/admin/__tests__/AdminInteligencia.test.tsx src/admin/__tests__/AdminDashboard.test.tsx --maxWorkers=2`: exit0,72testes/7arquivos.
-- `node node_modules/vitest/vitest.mjs run src/admin/components/AdminTopbar.test.tsx --maxWorkers=2`: exit0,1teste. Total independente73/8.
+- `node node_modules/vitest/vitest.mjs run src/admin/lib/adminPeriod.test.ts src/admin/contexts/AdminPeriodContext.test.tsx src/admin/services/adminApi.period.test.ts src/admin/hooks/useAdminInteligencia.test.tsx src/admin/components/AdminReportFilters.test.tsx src/admin/__tests__/AdminInteligencia.test.tsx src/admin/__tests__/AdminDashboard.test.tsx --maxWorkers=2`: exit0,72testes/7arquivos às10:09, antes do novo teste batch.
+- `node node_modules/vitest/vitest.mjs run src/admin/components/AdminTopbar.test.tsx --maxWorkers=2`: exit0,1teste, executado isoladamente depois. A soma histórica73/8 não é uma rodada completa posterior à inclusão do teste batch; Context não foi repetido nesse checkpoint.
 - `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json`: exit0, incluindo o teste Topbar já gravado antes da execução.
 - ESLint dos nove arquivos de implementação tocados: exit0,45warnings (principalmente no adminApi existente), nenhum erro.
 - `git diff --check`: exit0.
 
 O Codex inspecionou as duas capturas React reais com mocks em375/escuro e1440/claro e o results.json; aprovados para integração. Não há evidência de Supabase Auth/RLS/RPC E2E ou ação em produção. Integração e checks consolidados da branch permanecem com o orquestrador principal.
+
+## Correção de evidência e regressão de batch
+
+O CI41841235698 reproduziu um defeito real: dois setters de filtros no mesmo batch perdem a edição pelo uso de closure antiga. O teste foi adicionado ao arquivo em10:17:02, depois dos checkpoints72/7 e73/8 que foram citados acima; o teste Topbar isolado posterior não cobriu essa nova asserção. Portanto os checks anteriores não comprovam o estado final após essa adição. O Codex reproduziu1falha/3pass em Context sem alterar a asserção.
+
+Ordem de retomada autorizada: `.superpowers/admin-periodQA/batched-filter-fix.md`.
+Ambos os setters agora usam atualização funcional sobre o estado mais recente.
+A persistência serializa o mesmo estado combinado retornado pela atualização,
+sem segundo estado de filtros, setState recursivo ou efeito de escrita.
+Falha de storage mantém os filtros em memória com aviso. Permanecem a validação
+`rangeScope`, isolamento por identidade, período legado, catálogo e timer BRT.
+
+O teste batch original foi preservado, incluindo sua asserção de edição e um
+único `act`. Acrescentados JSON persistido, ordem inversa dos setters e estado
+combinado com storage indisponível. No mock Catalog, `setReportCatalog` está
+desestruturado e é a dependency do effect; handlers usam setter desestruturado.
+Não houve `eslint-disable`, remoção de effect ou alteração de expectativas da tela.
+
+RED executado nesta retomada após ampliar os testes, antes da implementação:
+
+```powershell
+node node_modules/vitest/vitest.mjs run src/admin/contexts/AdminPeriodContext.test.tsx --maxWorkers=2
+```
+
+Resultado: 3 falhas/2 aprovados em 5 testes. Confirmadas perdas em ambas as ordens
+dos setters e com storage indisponível. Esse RED ampliado não substitui o registro
+anterior do Codex de 1 falha/3 aprovados no arquivo antes da ampliação.
+
+GREEN após o último diff de código e testes:
+
+```powershell
+node node_modules/vitest/vitest.mjs run src/admin/lib/adminPeriod.test.ts src/admin/contexts/AdminPeriodContext.test.tsx src/admin/services/adminApi.period.test.ts src/admin/hooks/useAdminInteligencia.test.tsx src/admin/components/AdminReportFilters.test.tsx src/admin/components/AdminTopbar.test.tsx src/admin/__tests__/AdminInteligencia.test.tsx src/admin/__tests__/AdminDashboard.test.tsx src/admin/services/adminApi.countsCompat.test.ts src/admin/services/adminApi.editions.test.ts --maxWorkers=2
+node node_modules/eslint/bin/eslint.js src/admin/contexts/AdminPeriodContext.tsx src/admin/contexts/AdminPeriodContext.test.tsx src/admin/__tests__/AdminInteligencia.test.tsx
+```
+
+Resultados: 99 testes/10 arquivos aprovados, exit 0; ESLint exit 0, zero erros e
+um warning `react-refresh/only-export-components` no Context. Não houve nova
+alteração de código ou asserções após essas execuções. Este registro substitui
+os checkpoints históricos como evidência dos testes do estado corrigido.
+
+Escopo desta correção: Context, os dois testes e este documento. `adminApi` e o
+patch de contagens preservado em206fc37 não foram alterados. Sem UI, SQL, rede,
+pacotes, `.env`, produção, subagentes ou Git mutante. O typecheck final após esta
+correção e a integração continuam sob responsabilidade do Codex.
+
+## Verificação independente do snapshot corrigido — final
+
+Após o OpenCode encerrar e após o último diff de código/testes, o Codex executou o conjunto completo de período+contagens acima: **99 testes em10 arquivos, exit0**. Também executou `tsc --noEmit -p tsconfig.app.json`: **exit0**, e ESLint dos9 arquivos de implementação e10 arquivos de teste do escopo: **exit0,45warnings, zero erros**, incluindo o mock Catalog anteriormente apontado pelo CI.
+
+Os hashes SHA256 do Context e dos dois testes alterados foram capturados antes e comparados após as verificações: nenhum mudou durante os checks. O teste batch original e a ordem inversa estão verdes com o JSON persistido combinado; a asserção original não foi removida nem dividida. Este é o checkpoint liberado para integração; os números históricos anteriores permanecem apenas como histórico corrigido. Não houve nova alteração de código após este GREEN.

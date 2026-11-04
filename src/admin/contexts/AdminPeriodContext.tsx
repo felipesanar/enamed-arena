@@ -29,10 +29,13 @@ function ReportProvider({ children, userId, period, setPeriod }: {
     catch { return { ...restoreReportFilters(null), warning: 'Armazenamento de sessão indisponível. Os filtros ficarão apenas na memória.' } }
   })
   const [catalog, setReportCatalog] = useState<AdminReportCatalog>({ status: 'loading', editions: [] })
-  const persist = (next: typeof filters) => {
-    try { if (key) sessionStorage.setItem(key, JSON.stringify({ editionId: next.editionId, range: next.range })) }
-    catch { next = { ...next, warning: 'Armazenamento de sessão indisponível. Os filtros ficarão apenas na memória.' } }
-    setFilters(next)
+  const persist = (update: (current: typeof filters) => typeof filters) => {
+    setFilters(current => {
+      let next = update(current)
+      try { if (key) sessionStorage.setItem(key, JSON.stringify({ editionId: next.editionId, range: next.range })) }
+      catch { next = { ...next, warning: 'Armazenamento de sessão indisponível. Os filtros ficarão apenas na memória.' } }
+      return next
+    })
   }
   // A preset has one calendar anchor, updated only at the BRT day boundary.
   useEffect(() => {
@@ -52,8 +55,8 @@ function ReportProvider({ children, userId, period, setPeriod }: {
   return <AdminPeriodContext.Provider value={{
     period, setPeriod, reportUserId: userId,
     reportEditionId: filters.editionId, reportRange: filters.range,
-    setReportEditionId: editionId => persist({ ...filters, editionId, warning: null }),
-    setReportRange: range => { rangeScope(range); persist({ ...filters, range, warning: null }) },
+    setReportEditionId: editionId => persist(current => ({ ...current, editionId, warning: null })),
+    setReportRange: range => { rangeScope(range); persist(current => ({ ...current, range, warning: null })) },
     reportCatalog: catalog, setReportCatalog, reportScope, reportError, reportWarning: filters.warning,
   }}>{children}</AdminPeriodContext.Provider>
 }

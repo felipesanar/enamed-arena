@@ -44,6 +44,17 @@ describe('admin report session', () => {
     })
     expect(result.current.reportEditionId).toBe('edition-a')
     expect(result.current.reportRange).toEqual({ kind: 'all' })
+    expect(JSON.parse(sessionStorage.getItem('admin-report:a:v1')!)).toEqual({ editionId: 'edition-a', range: { kind: 'all' } })
+  })
+  it('preserves independent filters when range is set before edition in one batch', () => {
+    const { result } = renderHook(useAdminPeriod, { wrapper })
+    act(() => {
+      result.current.setReportRange({ kind: 'all' })
+      result.current.setReportEditionId('edition-a')
+    })
+    expect(result.current.reportEditionId).toBe('edition-a')
+    expect(result.current.reportRange).toEqual({ kind: 'all' })
+    expect(JSON.parse(sessionStorage.getItem('admin-report:a:v1')!)).toEqual({ editionId: 'edition-a', range: { kind: 'all' } })
   })
   it('handles malformed and unavailable sessionStorage without crashing', () => {
     sessionStorage.setItem('admin-report:a:v1', '{')
@@ -54,8 +65,13 @@ describe('admin report session', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
     const other = renderHook(useAdminPeriod, { wrapper })
     act(() => other.result.current.setPeriod(30))
-    act(() => other.result.current.setReportEditionId('x'))
+    act(() => {
+      other.result.current.setReportEditionId('x')
+      other.result.current.setReportRange({ kind: 'all' })
+    })
     expect(other.result.current.reportWarning).toMatch(/sessão/i)
     expect(other.result.current.period).toBe(30)
+    expect(other.result.current.reportEditionId).toBe('x')
+    expect(other.result.current.reportRange).toEqual({ kind: 'all' })
   })
 })
