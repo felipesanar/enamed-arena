@@ -2,6 +2,18 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, it } from 'vitest';
 import { ExamTimerAnnouncement } from './ExamTimerAnnouncement';
 afterEach(cleanup);
+it('replaces a corrected expiry message and announces the next real expiry again', () => {
+  const { rerender } = render(<ExamTimerAnnouncement timeRemaining={0} />);
+  const live = screen.getByRole('status');
+  expect(live).toHaveTextContent('Tempo esgotado');
+  rerender(<ExamTimerAnnouncement timeRemaining={10} />);
+  expect(live).toHaveTextContent('10 segundos');
+  expect(live).not.toHaveTextContent('Tempo esgotado');
+  rerender(<ExamTimerAnnouncement timeRemaining={9} />);
+  expect(live).toHaveTextContent('10 segundos');
+  rerender(<ExamTimerAnnouncement timeRemaining={0} />);
+  expect(live).toHaveTextContent('Tempo esgotado');
+});
 it('suppresses untrusted warnings without consuming confirmed thresholds', () => {
   const { rerender } = render(<ExamTimerAnnouncement timeRemaining={10} clockTrusted={false} />);
   expect(screen.getByRole('status')).toBeEmptyDOMElement();

@@ -22,6 +22,10 @@ export function ExamTimerAnnouncement({ timeRemaining, clockTrusted = true }: { 
     }
     const current = Math.max(0, Math.floor(timeRemaining));
     if (!Number.isFinite(current)) return;
+    if (previous.current === 0 && current > 0) {
+      announced.current.clear();
+      previous.current = null;
+    }
     if (previous.current === null) {
       setMessage(remaining(current));
       thresholds.filter(t => t >= current).forEach(t => announced.current.add(t));

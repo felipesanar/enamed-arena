@@ -13,9 +13,11 @@ interface UseExamTimerProps {
   now?: () => number;
   clockReady?: boolean;
   allowTimeUp?: boolean | (() => boolean);
+  /** Explicit cancellation of an unstarted expiry; legacy callers remain once-per-key. */
+  rearmTimeUp?: () => boolean;
 }
 
-export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, now = Date.now, clockReady = true, allowTimeUp = true }: UseExamTimerProps) {
+export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, now = Date.now, clockReady = true, allowTimeUp = true, rearmTimeUp }: UseExamTimerProps) {
   const calcRemaining = useCallback((): number => {
     if (!deadline) return 0;
     const diff = new Date(deadline).getTime() - now();
@@ -31,6 +33,8 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, n
   onTimeUpRef.current = onTimeUp;
   const allowTimeUpRef = useRef(allowTimeUp);
   allowTimeUpRef.current = allowTimeUp;
+  const rearmTimeUpRef = useRef(rearmTimeUp);
+  rearmTimeUpRef.current = rearmTimeUp;
 
   useEffect(() => {
     setRemaining(calcRemaining());
@@ -42,6 +46,7 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, n
     const tick = () => {
       const r = calcRemaining();
       setRemaining(r);
+      if (rearmTimeUpRef.current?.()) firedKeysRef.current.delete(key);
       const allowed = typeof allowTimeUpRef.current === 'function' ? allowTimeUpRef.current() : allowTimeUpRef.current;
       // An estimated zero or lost ownership must not consume the owner's expiry.
       if (r === 0 && allowed && !firedKeysRef.current.has(key)) {
@@ -53,7 +58,7 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, n
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [paused, deadline, calcRemaining, key, clockReady, allowTimeUp]);
+  }, [paused, deadline, calcRemaining, key, clockReady, allowTimeUp, rearmTimeUp]);
 
   return Number.isFinite(remaining) ? remaining : 0;
 }

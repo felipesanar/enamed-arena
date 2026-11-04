@@ -5,6 +5,35 @@ import { useExamTimer } from '@/hooks/useExamTimer';
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
+it('does not consume a guarded expiry while floor displays zero with 500ms still available', () => {
+  const onTimeUp = vi.fn();
+  const deadline = performance.now() + 500;
+  const now = () => performance.now();
+  const { result } = renderHook(() => useExamTimer({ deadline: new Date(deadline).toISOString(), now,
+    onTimeUp, allowTimeUp: () => now() >= deadline }));
+  expect(result.current).toBe(0);
+  expect(onTimeUp).not.toHaveBeenCalled();
+  act(() => vi.advanceTimersByTime(1000));
+  expect(onTimeUp).toHaveBeenCalledTimes(1);
+});
+
+it('rearms the same key only when an explicit pre-submit cancellation requests it', () => {
+  const onTimeUp = vi.fn();
+  let epoch = 1000;
+  let cancelled = false;
+  const now = () => epoch + performance.now();
+  renderHook(() => useExamTimer({ deadline: new Date(1000).toISOString(), now, attemptKey: 'same', onTimeUp,
+    allowTimeUp: () => now() >= 1000,
+    rearmTimeUp: () => { const rearm = cancelled; cancelled = false; return rearm; } }));
+  expect(onTimeUp).toHaveBeenCalledTimes(1);
+  epoch = -1000;
+  cancelled = true;
+  act(() => vi.advanceTimersByTime(1000));
+  expect(onTimeUp).toHaveBeenCalledTimes(1);
+  act(() => vi.advanceTimersByTime(5000));
+  expect(onTimeUp).toHaveBeenCalledTimes(2);
+});
+
 it.each([false, true])('ticks without consuming expiry, then reconciles a late clock (past=%s)', past => {
   const onTimeUp = vi.fn();
   let epoch = 0;
