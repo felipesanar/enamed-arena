@@ -3,19 +3,21 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@3.4.0";
 
 // src/lib/mcp/tools/get-my-profile.ts
-import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { defineTool } from "npm:@lovable.dev/mcp-js@3.4.0";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@2.99.2";
 function supabaseForUser(ctx) {
+  const token = ctx.getToken();
+  if (!ctx.isAuthenticated() || !token) throw new Error("Authenticated MCP caller required.");
   return createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
     {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+      global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false }
     }
   );
@@ -44,8 +46,8 @@ var get_my_profile_default = defineTool({
 });
 
 // src/lib/mcp/tools/list-simulados.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z } from "npm:zod@3.25.76";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z } from "npm:zod@4.6.7";
 var list_simulados_default = defineTool2({
   name: "list_simulados",
   title: "List simulados",
@@ -69,7 +71,7 @@ var list_simulados_default = defineTool2({
 });
 
 // src/lib/mcp/tools/get-my-performance.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@3.4.0";
 var get_my_performance_default = defineTool3({
   name: "get_my_performance",
   title: "Get my performance summary",
@@ -89,8 +91,8 @@ var get_my_performance_default = defineTool3({
 });
 
 // src/lib/mcp/tools/list-my-attempts.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z2 } from "npm:zod@3.25.76";
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z2 } from "npm:zod@4.6.7";
 var list_my_attempts_default = defineTool4({
   name: "list_my_attempts",
   title: "List my attempts",
@@ -114,8 +116,8 @@ var list_my_attempts_default = defineTool4({
 });
 
 // src/lib/mcp/tools/list-error-notebook.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z3 } from "npm:zod@3.25.76";
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z3 } from "npm:zod@4.6.7";
 var list_error_notebook_default = defineTool5({
   name: "list_error_notebook",
   title: "List error notebook entries",
@@ -127,8 +129,13 @@ var list_error_notebook_default = defineTool5({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ area, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
+    const client = supabaseForUser(ctx);
+    const { data: profile, error: profileError } = await client.from("profiles").select("segment").eq("id", ctx.getUserId()).maybeSingle();
+    if (profileError || profile?.segment !== "pro") {
+      return { content: [{ type: "text", text: "PRO access required for the error notebook." }], isError: true };
+    }
     const capped = Math.min(Math.max(limit ?? 20, 1), 100);
-    let query = supabaseForUser(ctx).from("error_notebook").select("id, area, theme, reason, question_number, simulado_title, was_correct, created_at, next_review_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(capped);
+    let query = client.from("error_notebook").select("id, area, theme, reason, question_number, simulado_title, was_correct, created_at, next_review_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(capped);
     if (area) query = query.eq("area", area);
     const { data, error } = await query;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
@@ -148,11 +155,13 @@ var mcp_default = defineMcp({
   instructions: "Read-only tools for the Simulados SanarFlix (ENAMED) platform. Each caller is a signed-in user; every tool returns only that user's data under their permissions. Use `list_simulados` to browse mock exams, `get_my_performance` for score summaries, `list_my_attempts` for attempt history, `get_my_profile` for account details, and `list_error_notebook` for the PRO error notebook.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
-    acceptedAudiences: "authenticated"
+    acceptedAudiences: "authenticated",
+    // Supabase tokens must carry aud=authenticated; do not substitute resource.
+    acceptResourceClaim: false
   }),
   tools: [get_my_profile_default, list_simulados_default, get_my_performance_default, list_my_attempts_default, list_error_notebook_default]
 });
 
 // lovable-mcp-supabase-entry.ts
-import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.20.0/stacks/supabase";
+import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";
 Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
