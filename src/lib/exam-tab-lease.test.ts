@@ -4,7 +4,7 @@ import { createExamTabLease, LEASE_TTL_MS } from './exam-tab-lease';
 describe('lease election without BroadcastChannel', () => {
   beforeEach(() => localStorage.clear());
   it('elects the same winner regardless of startup order and supports explicit takeover', () => {
-    let now = 100;
+    const now = 100;
     const b = createExamTabLease('u', 'attempt', 'b', localStorage, () => now);
     const a = createExamTabLease('u', 'attempt', 'a', localStorage, () => now);
     b.heartbeat(); a.heartbeat();

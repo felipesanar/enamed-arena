@@ -595,7 +595,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock, canW
     if (isOperationActive(operation)) saveLocalState(submitted);
     logger.log('[ExamStorageReal] Attempt submitted');
     return finalizeResult;
-  }, [user, captureOperation, syncToDb, flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState, isOperationActive, now, clockTrusted, requireRuntime]);
+  }, [user, captureOperation, syncToDb, flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState, isOperationActive, now, clockTrusted, requireRuntime, assertOwner]);
 
   // ── Integrity events ──
   const registerIntegrityExit = useCallback((state: ExamState, field: 'tabExitCount' | 'fullscreenExitCount') => {
@@ -627,7 +627,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock, canW
     const operation = captureOperation();
     if (!operation) return;
     await simuladosApi.setAttemptResultNotification(operation.attemptId, enabled);
-  }, [captureOperation]);
+  }, [captureOperation, assertOwner]);
 
   return {
     isSaving,
