@@ -2,6 +2,12 @@ import type { QueryClient } from '@tanstack/react-query';
 
 const analysisPrefixes = ['my-percentile-history', 'edition-ranking', 'question-bank-item-analysis'];
 
+/** Content capture/reuse changes bank observations; do not fetch privileged data here. */
+export function invalidateQuestionBankQueries(client: QueryClient) {
+  void client.invalidateQueries({ refetchType: 'none', predicate: ({ queryKey: key }) =>
+    ['question-bank','question-bank-versions','question-bank-item-analysis'].includes(String(key[0])) });
+}
+
 /** Finalization marks caches stale; navigation never waits for remote reads. */
 export function invalidateExamQueries(client: QueryClient, userId: string | undefined, simuladoId: string, routeRef?: string) {
   if (!userId) return;

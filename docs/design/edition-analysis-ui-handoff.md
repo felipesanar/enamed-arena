@@ -40,3 +40,11 @@ Todas as cenas têm dados, carregando, erro com retry e vazio. Ranking acrescent
 Design-combo: contexto e direção pelo brief existente; protótipo com dados demo; adaptação aos tokens; movimento limitado ao feedback dos controles; crítica de hierarquia, acessibilidade e textos extremos; handoff com contratos reais. Impeccable utilizado no modo fallback, sem binário. Novas animações não se justificam neste fluxo de consulta. Nenhum serviço de design externo foi utilizado.
 
 React somente após a revisão interna do protótipo pelo orquestrador. APIs manuais em `editionAnalysisApi` e `questionBankApi`, componentes percentil/ranking/histórico de cortes e página admin do banco; integrações mínimas em ComparativoPage, RankingPage, CutoffScoreModal, App e navigation. SQL, motor e APIs legadas ficam fora do escopo. Validação final exige componentes reais e mocks de RPC, além da inspeção visual; protótipo não prova a integração React.
+
+## Verificação da implementação aprovada
+
+O orquestrador revisou o protótipo e os seis testes Node antes do React. A implementação passou em 126 testes de 20 arquivos do escopo, TypeScript restrito a 38 arquivos sem diagnósticos e ESLint sem erros (três avisos anteriores em AdminSimulados). Na análise de item, a cópia final usa “Na janela” e “Treino ou fora da janela”: estar na janela não implica todas as condições de elegibilidade para ranking.
+
+A inspeção final de componentes React reais foi delimitada a três vistas: histórico a 375px claro, reuso a 375px escuro e ranking/política a 1440px. Relatório privado: larguras de documento 369/369/1434px, sem overflow nos respectivos viewports; dialog de reuso com 337px de largura e 810px de altura (90dvh). Nenhum erro de página ou request externo. Escape devolveu o foco ao botão “Ver versões”. As três capturas foram inspecionadas. O harness usa serviços simulados, sem dados reais, autenticação ou operação em produção.
+
+Nas páginas existentes, as abas de escopo aparecem antes do conteúdo ativo para preservar o cabeçalho e o badge dinâmico legados. A navegação anterior e os providers de referência/contexto foram mantidos. O diff de App contém somente o lazy import e a rota administrativa nova; a integração com a frente de calendário permanece sob coordenação do orquestrador.

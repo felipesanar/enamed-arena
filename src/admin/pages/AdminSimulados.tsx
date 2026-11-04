@@ -29,6 +29,8 @@ import { useAppConfig } from '@/hooks/useAppConfig';
 import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
 import { CloneSimuladoDialog } from '@/admin/components/editions/CloneSimuladoDialog';
 import type { ExamEdition } from '@/types/edition';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateQuestionBankQueries } from '@/lib/exam-query-cache';
 
 interface SimuladoListItem {
   edition_id?: string;
@@ -154,6 +156,7 @@ function LoadingTable() {
 // ─── Conteúdo ──────────────────────────────────────────────────────────────
 
 function AdminSimuladosContent() {
+  const queryClient = useQueryClient();
   const editionsEnabled = useAppConfig('editions_ui');
   const [editions, setEditions] = useState<ExamEdition[]>([]);
   const [editionFilter, setEditionFilter] = useState('');
@@ -481,6 +484,7 @@ function AdminSimuladosContent() {
       )}
 
       {editionsEnabled && cloneTarget && <CloneSimuladoDialog source={cloneTarget} editions={editions} onClose={() => setCloneTarget(null)} onCloned={id => {
+        invalidateQuestionBankQueries(queryClient);
         setCloneTarget(null); toast({ title: 'Rascunho clonado' }); navigate(`/admin/simulados/${id}`);
       }} />}
       <AdminConfirmDialog

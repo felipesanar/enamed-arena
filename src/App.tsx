@@ -79,6 +79,7 @@ const AdminUsuarioDetail = lazy(() => import('./admin/pages/AdminUsuarioDetail')
 const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAnalytics'))
 const AdminSimuladoResultados = lazy(() => import('./admin/pages/AdminSimuladoResultados'))
 const AdminQuestionManager = lazy(() => import('./admin/pages/AdminQuestionManager'))
+const AdminQuestionBank = lazy(() => import('./admin/pages/AdminQuestionBank'))
 const AdminTentativas  = lazy(() => import('./admin/pages/AdminTentativas'))
 const AdminPreviews = lazy(() => import('./admin/pages/AdminPreviews'))
 const AdminDesempenhoPreview = lazy(() => import('./admin/pages/AdminDesempenhoPreviewPage'))
@@ -162,6 +163,7 @@ const App = () => (
                   <Route path="simulados/:id/questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUploadQuestions /></Suspense>} />
                   <Route path="simulados/:id/questoes/editar" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
                   <Route path="questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
+                  <Route path="banco-questoes" element={<EditionsUiGate><Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionBank /></Suspense></EditionsUiGate>} />
                   <Route path="questoes/:simuladoId" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
                   <Route path="usuarios"   element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarios /></Suspense>} />
                   <Route path="usuarios/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarioDetail /></Suspense>} />

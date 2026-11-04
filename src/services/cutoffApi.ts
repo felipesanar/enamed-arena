@@ -4,6 +4,7 @@ import type { CutoffContext } from '@/hooks/useCutoffContext';
 import { editionsApi } from '@/services/editionsApi';
 
 export interface ReferencedCutoffScore extends CutoffScoreRow {
+  specialty_id?: string | null;
   reference_edition_id: string | null;
   reference_label: string | null;
   source: string | null;
@@ -25,7 +26,7 @@ export const cutoffApi = {
     const pageSize = 1000;
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase.from('enamed_cutoff_scores')
-        .select('institution_id,institution_name,practice_scenario,specialty_name,cutoff_score_general,cutoff_score_quota,reference_edition_id,source')
+        .select('institution_id,institution_name,practice_scenario,specialty_id,specialty_name,cutoff_score_general,cutoff_score_quota,reference_edition_id,source')
         .eq('reference_edition_id', editionId)
         .order('institution_name').order('specialty_name').order('practice_scenario')
         .range(from, from + pageSize - 1);

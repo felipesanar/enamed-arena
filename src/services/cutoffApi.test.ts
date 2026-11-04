@@ -38,5 +38,6 @@ describe('edition cutoff API', () => {
     query.select.mockReturnValue(query); query.eq.mockReturnValue(query); query.order.mockReturnValue(query); from.mockReturnValue(query);
     expect(await cutoffApi.getAllScores('ed')).toEqual([{ reference_edition_id: 'ed', reference_label: 'Processo X', source: 'Edital X' }]);
     expect(query.eq).toHaveBeenCalledWith('reference_edition_id', 'ed');
+    expect(query.select).toHaveBeenCalledWith(expect.stringContaining('specialty_id'));
   });
 });

@@ -1,8 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
-import { invalidateAdminExamQueries, invalidateExamQueries } from './exam-query-cache';
+import { invalidateAdminExamQueries, invalidateExamQueries, invalidateQuestionBankQueries } from './exam-query-cache';
 
 describe('exam query invalidation', () => {
+  it('authorship only marks bank queries stale, preserving unrelated admin scopes', () => {
+    const client = new QueryClient(); const fetch = vi.fn();
+    const keys = [['question-bank','staff','',0],['question-bank-versions','staff','bank'],['question-bank-item-analysis','staff','bank',null]];
+    keys.forEach(key => client.setQueryData(key,{})); client.setQueryData(['admin','users'],{});
+    const observer = new QueryObserver(client,{queryKey:keys[0],queryFn:fetch,staleTime:Infinity}); const stop=observer.subscribe(()=>{});
+    invalidateQuestionBankQueries(client);
+    keys.forEach(key=>expect(client.getQueryState(key)?.isInvalidated).toBe(true));
+    expect(client.getQueryState(['admin','users'])?.isInvalidated).toBe(false); expect(fetch).not.toHaveBeenCalled(); stop(); client.clear();
+  });
   it('marks only relevant user scopes stale and never starts remote fetches', () => {
     const client = new QueryClient();
     const relevant = [['user-performance', 'u1', 'e'], ['ranking', 'u1', 'e', 's'],

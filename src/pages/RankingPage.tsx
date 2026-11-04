@@ -21,8 +21,21 @@ import { PresencialEntryCard } from '@/components/presencial/PresencialEntryCard
 import { useSimulados } from '@/hooks/useSimulados';
 import { editionBadge } from '@/lib/edition-groups';
 import { CutoffScopeContext, useCutoffContext } from '@/hooks/useCutoffContext';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EditionRankingSection } from '@/components/ranking/EditionRankingSection';
 
 export default function RankingPage() {
+  const editionsEnabled = useAppConfig('editions_ui');
+  if (!editionsEnabled) return <SimuladoRankingPage />;
+  return <Tabs defaultValue="simulado" className="min-w-0">
+    <TabsList className="mb-5 h-auto min-h-11"><TabsTrigger value="simulado" className="min-h-11">Simulado</TabsTrigger><TabsTrigger value="edition" className="min-h-11">Edição</TabsTrigger></TabsList>
+    <TabsContent value="simulado"><SimuladoRankingPage /></TabsContent>
+    <TabsContent value="edition"><PageHeader title="Ranking" subtitle="Consulte a classificação da edição e sua regra de participação." /><EditionRankingSection /></TabsContent>
+  </Tabs>;
+}
+
+function SimuladoRankingPage() {
   const {
     loading,
     error,

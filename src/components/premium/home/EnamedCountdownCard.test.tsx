@@ -1,8 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render as renderUi, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { EnamedCountdownCard } from './EnamedCountdownCard';
 import CadernoRetaFinalPage from '@/pages/CadernoRetaFinalPage';
+
+const clients: QueryClient[] = [];
+// These date/countdown regressions exercise the legacy plan under an explicit
+// disabled feature. Edition labels and date changes remain real test inputs.
+function render(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  client.setQueryData(['app-config', 'user', 'editions_ui'], false);
+  clients.push(client);
+  return renderUi(ui, { wrapper: ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> });
+}
 
 const state = vi.hoisted(() => ({
   nextEdition: null as null | { label: string; exam_date: string | null },
@@ -20,7 +32,7 @@ vi.mock('@/components/caderno/retafinal/RetaFinalHero', () => ({
 }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks(); state.isPending = false; state.isError = false; });
+afterEach(() => { cleanup(); clients.forEach(client => client.clear()); clients.length = 0; vi.useRealTimers(); vi.clearAllMocks(); state.isPending = false; state.isError = false; });
 const show = () => render(<MemoryRouter><EnamedCountdownCard /></MemoryRouter>);
 describe('EnamedCountdownCard', () => {
   it('some durante carregamento, erro ou sem data', () => {
