@@ -9,7 +9,6 @@ import { SimuladoResultNav } from "@/components/simulado/SimuladoResultNav";
 import { AttemptModalityBadge } from "@/components/AttemptModalityBadge";
 import { useUser } from "@/contexts/UserContext";
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
-import { useSimulados } from "@/hooks/useSimulados";
 import {
   formatDate,
   canAccessSimulado,
@@ -27,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from '@/lib/analytics';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OfflineModeSimpleDialog } from "@/components/simulados/OfflineModeSimpleDialog";
+import { editionBadge } from '@/lib/edition-groups';
+import { formatSimuladoLabel } from '@/lib/editions';
 
 /** Padding que o DashboardLayout aplicava ao `main`; necessário na rota arena (`main` com `p-0`). */
 function SimuladoDetailPaddedShell({ children, className }: { children: ReactNode; className?: string }) {
@@ -120,8 +121,6 @@ export default function SimuladoDetailPage() {
   const [checkedItems, setCheckedItems] = useState<Set<ChecklistKey>>(new Set());
   const [showModeModal, setShowModeModal] = useState(false);
 
-  // Detect veteran: user who has completed at least one exam
-  const { simulados: allSimulados } = useSimulados();
   // Always require the confirmation checklist before starting a simulado,
   // regardless of whether the user has finished previous ones.
   const isVeteran = false;
@@ -265,7 +264,7 @@ export default function SimuladoDetailPage() {
                   style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.28)" }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full animate-blink" style={{ background: "hsl(345,65%,62%)" }} />
-                  Simulado #{simulado.sequenceNumber} · ENAMED 2026
+                  {formatSimuladoLabel(simulado)} · {editionBadge(simulado)}
                 </div>
 
                 {/* Headline */}
@@ -616,6 +615,9 @@ export default function SimuladoDetailPage() {
             <h2 className="text-heading-2 text-foreground mb-2">
               {isOfflineAttempt ? "Prova offline em andamento" : "Simulado em andamento"}
             </h2>
+            {simulado.userState?.isWithinWindow === false && (
+              <span className="inline-flex mb-3 rounded-full bg-info/10 px-3 py-1 text-caption font-semibold text-info">Treino</span>
+            )}
             <p className="text-body text-muted-foreground mb-6 max-w-md mx-auto">
               {isOfflineAttempt
                 ? "Você iniciou este simulado no modo offline. Transcreva suas respostas no gabarito digital."

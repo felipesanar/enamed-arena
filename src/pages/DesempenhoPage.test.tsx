@@ -23,6 +23,7 @@ const mockSimulados = [
   {
     id: "sim-1",
     title: "Simulado #1 — Fundamentos",
+    editionCode: '2027.1',
     status: "completed",
     executionWindowStart: "2026-03-01T00:00:00Z",
     executionWindowEnd: "2026-03-01T23:59:00Z",
@@ -107,6 +108,11 @@ function renderPage() {
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 describe("DesempenhoPage", () => {
+  it('badges the selected exam edition rather than a fixed year', () => {
+    renderPage();
+    expect(screen.getByText('ENAMED 2027.1')).toBeInTheDocument();
+    expect(screen.queryByText('ENAMED 2026')).not.toBeInTheDocument();
+  });
   beforeEach(() => { vi.clearAllMocks(); });
 
   it("renders the hero score", () => {

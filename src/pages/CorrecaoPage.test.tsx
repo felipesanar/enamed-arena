@@ -6,6 +6,13 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import CorrecaoPage from './CorrecaoPage'
 import * as UserContext from '@/contexts/UserContext'
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail'
+import { usePdfDownload } from '@/hooks/usePdfDownload'
+
+vi.mock('@/hooks/usePdfDownload', () => ({
+  usePdfDownload: vi.fn(() => ({ downloading: false, stage: null, progress: null,
+    downloadGabarito: vi.fn(), downloadProvaRevisada: vi.fn() })),
+  getStageLabel: () => '',
+}))
 
 // ── Framer Motion mock ──────────────────────────────────────────────────────
 vi.mock('framer-motion', () => ({
@@ -33,6 +40,8 @@ const mockSimulado = {
   id: 'sim-1',
   title: 'ENAMED 2025.1',
   sequenceNumber: 1,
+  editionCode: '2027.2',
+  editionLabel: 'ENAMED 2027.2',
   status: 'completed',
 }
 
@@ -141,6 +150,23 @@ describe('CorrecaoPage — smoke', () => {
     renderPage()
     expect(useSimuladoDetail).toHaveBeenCalledWith('sim-1', true)
     expect(screen.getAllByText(/questão 1/i).length).toBeGreaterThan(0)
+  })
+
+  it('passes the selected simulado metadata to the real PDF caller without changing the correction gate', () => {
+    renderPage()
+    expect(useSimuladoDetail).toHaveBeenCalledWith('sim-1', true)
+    expect(usePdfDownload).toHaveBeenCalledWith(expect.objectContaining({
+      simulado: mockSimulado,
+      simuladoId: mockSimulado.id,
+    }))
+  })
+
+  it('passes undefined metadata while the selected simulado is absent', () => {
+    vi.mocked(useSimuladoDetail).mockReturnValueOnce({
+      simulado: null, questions: [], loading: false, error: null, refetch: vi.fn(),
+    })
+    renderPage()
+    expect(usePdfDownload).toHaveBeenCalledWith(expect.objectContaining({ simulado: undefined }))
   })
 })
 

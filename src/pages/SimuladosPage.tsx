@@ -18,6 +18,11 @@ import { useOfflineAttempt } from "@/hooks/useOfflineAttempt";
 import { SimuladosTimelineSection } from "@/components/simulados/SimuladosTimelineSection";
 import { OfflineModeSimpleDialog } from "@/components/simulados/OfflineModeSimpleDialog";
 import { trackEvent } from "@/lib/analytics";
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useUserEdition } from '@/hooks/useUserEdition';
+import { editionBadge } from '@/lib/edition-groups';
+import { formatSimuladoLabel } from '@/lib/editions';
+import type { ExamEdition } from '@/types/edition';
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
@@ -35,6 +40,16 @@ function LoadingSkeleton() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function SimuladosPage() {
+  const editionsUi = useAppConfig('editions_ui');
+  return editionsUi ? <EditionSimuladosPage /> : <SimuladosContent />;
+}
+
+function EditionSimuladosPage() {
+  const { userEdition } = useUserEdition();
+  return <SimuladosContent editionsUi currentEdition={userEdition} />;
+}
+
+function SimuladosContent({ editionsUi = false, currentEdition }: { editionsUi?: boolean; currentEdition?: ExamEdition | null }) {
   const prefersReducedMotion = useReducedMotion();
   const { simulados, loading, error, refetch } = useSimulados();
   const navigate = useNavigate();
@@ -83,13 +98,14 @@ export default function SimuladosPage() {
   }, [loading, simulados, activeAttempt]);
 
   const heroSimulado = useMemo(() => {
-    const active = simulados.find(s => s.status === "available" || s.status === "in_progress");
+    const candidates = editionsUi ? simulados.filter(sim => !!currentEdition && sim.editionId === currentEdition.id) : simulados;
+    const active = candidates.find(s => s.status === "available" || s.status === "in_progress");
     if (active) return active;
-    const upcomingSorted = simulados
+    const upcomingSorted = candidates
       .filter(s => s.status === "upcoming")
       .sort((a, b) => Date.parse(a.executionWindowStart) - Date.parse(b.executionWindowStart));
     return upcomingSorted[0] ?? null;
-  }, [simulados]);
+  }, [simulados, editionsUi, currentEdition]);
 
   const timelineItems = useMemo(() => {
     const active = simulados
@@ -112,7 +128,7 @@ export default function SimuladosPage() {
   if (loading) {
     return (
       <>
-        <PageHeader title="Simulados" badge="ENAMED 2026" />
+        <PageHeader title="Simulados" badge={currentEdition?.label || 'ENAMED'} />
         <LoadingSkeleton />
       </>
     );
@@ -121,7 +137,7 @@ export default function SimuladosPage() {
   if (error) {
     return (
       <>
-        <PageHeader title="Simulados" badge="ENAMED 2026" />
+        <PageHeader title="Simulados" badge={currentEdition?.label || 'ENAMED'} />
         <EmptyState
           variant="error"
           title="Não foi possível carregar os simulados"
@@ -138,9 +154,9 @@ export default function SimuladosPage() {
     <PageTransition>
       <PageHeader
         title="Simulados"
-        subtitle="100 questões inéditas no modelo ENAMED, elaboradas pelos professores do SanarFlix PRO."
+        subtitle={editionsUi ? 'Simulados de preparação elaborados pelos professores do SanarFlix PRO.' : '100 questões inéditas no modelo ENAMED, elaboradas pelos professores do SanarFlix PRO.'}
         subtitlePlacement="inline-end"
-        badge="ENAMED 2026"
+        badge={currentEdition?.label || editionBadge(heroSimulado)}
       />
 
       <motion.div
@@ -207,9 +223,11 @@ export default function SimuladosPage() {
         )
       )}
 
-      {timelineItems.length > 0 && (
+      {(timelineItems.length > 0 || editionsUi) && (
         <SimuladosTimelineSection
           items={timelineItems}
+          editionsUi={editionsUi}
+          currentEditionId={currentEdition?.id}
           reduced={!!prefersReducedMotion}
           onStartSimulado={(sim) => setTimelineModeSim(sim)}
         />
@@ -268,7 +286,7 @@ function HeroCard({
 
 function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; hasActiveAttempt: boolean }) {
   const isInProgress = sim.status === "in_progress";
-  const alreadyStarted = sim.userState?.started && !sim.userState.finished;
+  const alreadyStarted = isInProgress;
   const isOfflineAttempt = sim.userState?.attemptType === "offline";
   const ctaLabel = alreadyStarted
     ? isOfflineAttempt
@@ -316,7 +334,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
               style={{ background: "#e83862" }}
             />
             <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              {isInProgress ? "Em andamento" : "Janela aberta"}
+              {isInProgress && sim.userState?.isWithinWindow === false ? 'Treino · Em andamento' : isInProgress ? "Em andamento" : "Janela aberta"}
             </span>
           </div>
           <span
@@ -327,7 +345,7 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
               color: "rgba(255,255,255,.7)",
             }}
           >
-            #{sim.sequenceNumber}
+            {formatSimuladoLabel(sim)}
           </span>
         </div>
 
@@ -360,7 +378,9 @@ function HeroCardActive({ sim, hasActiveAttempt }: { sim: SimuladoWithStatus; ha
           }}
         >
           <Clock className="w-3.5 h-3.5 shrink-0 text-[#e83862]" />
-          {formatDeadlineTicker(sim.executionWindowEnd)} — realize agora para entrar no ranking
+          {sim.userState?.isWithinWindow === false
+            ? 'Treino: esta realização não entra no ranking nacional.'
+            : `${formatDeadlineTicker(sim.executionWindowEnd)} — realize agora para entrar no ranking`}
         </div>
 
         {/* CTAs */}
@@ -478,7 +498,7 @@ function HeroCardUpcoming({ sim }: { sim: SimuladoWithStatus }) {
               color: "rgba(255,255,255,.4)",
             }}
           >
-            #{sim.sequenceNumber}
+            {formatSimuladoLabel(sim)}
           </span>
         </div>
 

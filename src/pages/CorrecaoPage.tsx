@@ -112,6 +112,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   }, [examState, questionsWithCorrection]);
 
   const pdf = usePdfDownload({
+    simulado: simulado ?? undefined,
     simuladoId: id ?? '',
     simuladoTitle: simulado?.title ?? '',
     studentName: profile?.name ?? 'Aluno',

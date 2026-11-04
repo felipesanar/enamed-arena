@@ -24,6 +24,33 @@ const baseConfig: SimuladoConfig = {
 };
 
 describe('deriveSimuladoStatus', () => {
+  const training: SimuladoUserState = {
+    simuladoId: 's1', started: true, finished: false, isWithinWindow: false,
+    effectiveDeadline: '2025-06-03T15:00:00Z',
+  };
+
+  it('resumes training after the window only before its valid deadline', () => {
+    expect(deriveSimuladoStatus(baseConfig, training, new Date('2025-06-03T14:59:59Z'))).toBe('in_progress');
+    expect(getSimuladoCTA('in_progress').label).toBe('Continuar Simulado');
+    expect(deriveSimuladoStatus(baseConfig, training, new Date(training.effectiveDeadline!))).toBe('available_late');
+  });
+
+  it.each([undefined, 'invalid', '2025-06-03T12:00:00Z'])('does not resume training with deadline %s', (effectiveDeadline) => {
+    expect(deriveSimuladoStatus(baseConfig, { ...training, effectiveDeadline }, new Date('2025-06-03T14:00:00Z'))).toBe('available_late');
+  });
+
+  it('never extends an official attempt past the window', () => {
+    expect(deriveSimuladoStatus(baseConfig, { ...training, isWithinWindow: true }, new Date('2025-06-03T14:00:00Z'))).toBe('available_late');
+  });
+
+  it('does not show an explicitly expired attempt as in progress inside the window', () => {
+    expect(deriveSimuladoStatus(baseConfig, { ...training, effectiveDeadline: '2025-06-01T09:59:59Z' }, new Date('2025-06-01T10:00:00Z'))).toBe('available');
+  });
+
+  it('preserves the strict official window boundaries', () => {
+    expect(deriveSimuladoStatus(baseConfig, undefined, new Date(baseConfig.executionWindowStart))).toBe('upcoming');
+    expect(deriveSimuladoStatus(baseConfig, undefined, new Date(baseConfig.executionWindowEnd))).toBe('upcoming');
+  });
   it('returns upcoming when now is before window start', () => {
     const now = new Date('2025-05-31T12:00:00Z');
     expect(deriveSimuladoStatus(baseConfig, undefined, now)).toBe('upcoming');

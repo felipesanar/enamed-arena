@@ -47,6 +47,7 @@ export function drawPremiumHeader(
   title: string,
   subtitle?: string,
   y = PAGE.marginTop,
+  badge = 'ENAMED',
 ): number {
   const w = PAGE.contentWidth;
   const x = PAGE.marginX;
@@ -77,7 +78,6 @@ export function drawPremiumHeader(
   }
 
   // Badge
-  const badge = 'ENAMED 2026';
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(7);
   const badgeW = doc.getTextWidth(badge) + 6;
@@ -147,7 +147,7 @@ export function addFooterToAllPages(doc: jsPDF): void {
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.gray400);
 
-    doc.text(`ENAMED Arena — ${now}`, PAGE.marginX, PAGE.height - 10);
+    doc.text(`Simulados SanarFlix — ${now}`, PAGE.marginX, PAGE.height - 10);
     doc.text(
       `Pagina ${i} de ${totalPages}`,
       PAGE.width - PAGE.marginX,
