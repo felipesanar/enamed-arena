@@ -16,6 +16,7 @@ import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { canAccessSimulado } from '@/lib/simulado-helpers';
 import { examSubmissionErrorMessage } from '@/lib/examSubmissionErrors';
+import { invalidateExamQueries } from '@/lib/exam-query-cache';
 import type { ExamState } from '@/types/exam';
 import type { Question, SimuladoStatus } from '@/types';
 import type { ServerClock } from '@/hooks/useServerClock';
@@ -302,10 +303,7 @@ export function useExamLifecycle({
 
       // Invalidate caches so the user sees fresh data on next screen
       // (CorrecaoPage, SimuladoDetailPage, SimuladosPage list, performance summary).
-      queryClient.invalidateQueries({ queryKey: ['simulado', simulado.id] });
-      queryClient.invalidateQueries({ queryKey: ['simulados'] });
-      queryClient.invalidateQueries({ queryKey: ['user-performance'] });
-      queryClient.invalidateQueries({ queryKey: ['user-attempts'] });
+      invalidateExamQueries(queryClient, storage.userId, simulado.id, id);
     } catch (err) {
       if (!scope.active) return;
       trackEvent('exam_submit_failed', {
@@ -322,7 +320,7 @@ export function useExamLifecycle({
     } finally {
       if (scope.active) setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, clockTrusted]);
+  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, clockTrusted, id]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     const scope = scopeRef.current;

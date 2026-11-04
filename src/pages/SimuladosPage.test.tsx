@@ -11,6 +11,7 @@ vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => data.flag }));
 vi.mock('@/hooks/useUserEdition', () => ({ useUserEdition: () => { data.editionHook(); return { userEdition: data.edition }; } }));
 vi.mock('@/hooks/useSimulados', () => ({ useSimulados: () => ({ simulados: data.sims, loading: false, editionsUi: data.flag }) }));
 vi.mock('@/hooks/useOfflineAttempt', () => ({ useOfflineAttempt: () => ({ activeAttempt: null }) }));
+vi.mock('@/components/editions/EditionTargetPrompt', () => ({ EditionTargetPrompt: () => <section aria-label="Prompt de edição" /> }));
 vi.mock('@/components/simulados/ComoFuncionaTutorial', () => ({ COMO_FUNCIONA_MODAL_OPEN_EVENT: 'tutorial', ComoFuncionaSimuladosTrigger: () => null }));
 vi.mock('@/contexts/UserContext', () => ({ useUser: () => ({ isOnboardingComplete: true }) }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
@@ -25,6 +26,14 @@ describe('SimuladosPage edition isolation', () => {
     executionWindowStart: '2027-01-01T12:00:00Z', executionWindowEnd: '2027-01-02T12:00:00Z', resultsReleaseAt: '2027-01-03T12:00:00Z',
     themeTags: [] };
   function open() { return render(<MemoryRouter><SimuladosPage /></MemoryRouter>); }
+  it('keeps historical exams while the current edition calendar is empty', () => {
+    data.flag = true; data.edition = { id: 'e-new', label: 'ENAMED 2027.1' };
+    data.sims = [{ ...current, editionId: 'old', title: 'Antiga', status: 'completed' }];
+    const { container } = open();
+    expect(screen.getByText('Calendário em breve')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver treinos' })).toHaveAttribute('href', '/simulados?filter=treino');
+    expect(container.querySelector('details')).toBeInTheDocument();
+  });
   it('uses only the student edition for the hero and collapses older editions', () => {
     data.flag = true; data.edition = { id: 'e-new', label: 'ENAMED 2027.1' };
     data.sims = [{ ...current, id: 'old', slug: 'old', title: 'Histórica', editionId: 'e-old', editionCode: '2026' }, current];
@@ -33,6 +42,16 @@ describe('SimuladosPage edition isolation', () => {
     expect(screen.getAllByText('2027.1 · Simulado 1')).toHaveLength(2);
     expect(container.querySelector('details')).not.toHaveAttribute('open');
     expect(container.querySelector('summary')).toHaveTextContent('ENAMED 2026 · Treino');
+    expect(screen.getAllByRole('region', { name: 'Prompt de edição' })).toHaveLength(1);
+  });
+  it('highlights the earliest closing open window, not input order', () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2027-01-01T15:00:00Z'));
+    data.flag = true; data.edition = { id: 'e-new', label: 'ENAMED 2027.1' };
+    data.sims = [{ ...current, id: 'later', title: 'Fecha depois', executionWindowEnd: '2027-01-03T12:00:00Z' }, current];
+    open();
+    expect(screen.getByRole('heading', { name: 'Atual' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Fecha depois' })).not.toBeInTheDocument();
+    vi.useRealTimers();
   });
   it('shows a neutral empty main state and keeps history when no edition resolves', () => {
     data.flag = true; data.edition = null; data.sims = [current];

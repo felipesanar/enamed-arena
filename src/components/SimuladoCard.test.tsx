@@ -30,6 +30,19 @@ function renderCard(overrides: Partial<SimuladoWithStatus> = {}) {
 }
 
 describe('SimuladoCard', () => {
+  it.each(['in_progress', 'available_late', 'available'] as const)('arquivado inacabado nao oferece iniciar/retomar (%s)', status => {
+    renderCard({ dbStatus: 'archived', status, userState: {
+      simuladoId: 'sim-1', started: true, finished: false, isWithinWindow: false,
+    } });
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simulado arquivado' })).toBeDisabled();
+  });
+  it('resultado arquivado finalizado continua acessivel ao dono', () => {
+    renderCard({ dbStatus: 'archived', status: 'completed', userState: {
+      simuladoId: 'sim-1', started: true, finished: true, score: 70,
+    } });
+    expect(screen.getByRole('link', { name: 'Ver Resultado' })).toHaveAttribute('href', '/simulados/sim-1');
+  });
   it('labels the actual edition and resumable training', () => {
     renderCard({ editionCode: '2027.1', status: 'in_progress', userState: {
       simuladoId: 'sim-1', started: true, finished: false, isWithinWindow: false,

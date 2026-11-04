@@ -1,11 +1,27 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+const db = vi.hoisted(() => ({ from: vi.fn() }));
+vi.mock('@/integrations/supabase/client', () => ({ supabase: db }));
 import {
   applyRankingFilters,
   getAllowedRankingSegmentFilters,
   normalizeRankingFilterValue,
   RANKING_COMPARISON_DEFAULT,
+  fetchSimuladosWithResults,
   type RankingParticipant,
 } from '@/services/rankingApi';
+
+it('ranking metadata is opt-in and comes from the actual joined edition', async () => {
+  const builder = { select: vi.fn((_columns: string) => builder), eq: vi.fn(() => builder), lte: vi.fn(() => builder),
+    order: vi.fn().mockResolvedValue({ data: [{ id: 's', title: 'S', sequence_number: 2,
+      results_release_at: '2027-05-01', edition_id: 'e', exam_editions: { code: '2027.1', label: 'Alvo' } }], error: null }) };
+  db.from.mockReturnValue(builder);
+  const legacy = await fetchSimuladosWithResults();
+  expect(builder.select).toHaveBeenLastCalledWith('id, title, sequence_number, results_release_at, status');
+  expect(legacy[0]).toEqual({ id: 's', title: 'S', sequence_number: 2 });
+  const scoped = await fetchSimuladosWithResults(true);
+  expect(builder.select.mock.lastCall?.[0]).toContain('exam_editions');
+  expect(scoped[0]).toMatchObject({ editionId: 'e', editionCode: '2027.1', editionLabel: 'Alvo', resultsReleaseAt: '2027-05-01' });
+});
 
 function p(
   overrides: Partial<RankingParticipant> & Pick<RankingParticipant, 'userId' | 'segment' | 'score'>,

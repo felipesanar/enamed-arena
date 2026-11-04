@@ -5,6 +5,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import type { UserSegment } from '@/types';
+import type { RankingSimuladoOption } from '@/types/ranking';
 
 // ─── Types ───
 
@@ -102,12 +103,14 @@ export async function fetchAdminSimuladosForRankingPreview(): Promise<
 
 // ─── Fetch simulados that have submitted attempts (for selector) ───
 
-export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; title: string; sequence_number: number }>> {
+export async function fetchSimuladosWithResults(includeEditionMetadata = false): Promise<RankingSimuladoOption[]> {
   logger.log('[rankingApi] Fetching simulados with released results');
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('simulados')
-    .select('id, title, sequence_number, results_release_at, status')
+    .select(includeEditionMetadata
+      ? 'id, title, sequence_number, results_release_at, status, edition_id, exam_editions(code, label)'
+      : 'id, title, sequence_number, results_release_at, status')
     .eq('status', 'published')
     .lte('results_release_at', nowIso)
     .order('sequence_number', { ascending: true });
@@ -117,10 +120,14 @@ export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; t
     throw error;
   }
 
-  return (data || []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    sequence_number: row.sequence_number,
+  // The opt-in relationship is not yet present in generated Supabase types.
+  return (data as unknown as Array<{ id: string; title: string; sequence_number: number;
+    results_release_at: string; edition_id?: string | null;
+    exam_editions?: { code: string; label: string } | null }> || []).map((row) => ({
+    id: row.id, title: row.title, sequence_number: row.sequence_number,
+    ...(includeEditionMetadata ? { editionId: row.edition_id ?? null,
+      editionCode: row.exam_editions?.code ?? null, editionLabel: row.exam_editions?.label ?? null,
+      resultsReleaseAt: row.results_release_at } : {}),
   }));
 }
 

@@ -13,10 +13,13 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useUserEdition } from '@/hooks/useUserEdition';
+import type { RankingQueryOptions, RankingSimuladoOption } from '@/types/ranking';
 import { usePersistedState, clearPersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
-import { logger } from '@/lib/logger';
 import {
   fetchRankingForSimulado,
   fetchSimuladosWithResults,
@@ -39,7 +42,7 @@ interface UseRankingReturn {
   error: string | null;
 
   // Simulado selection
-  simuladosWithResults: Array<{ id: string; title: string; sequence_number: number }>;
+  simuladosWithResults: RankingSimuladoOption[];
   selectedSimuladoId: string | null;
   setSelectedSimuladoId: (id: string) => void;
 
@@ -65,17 +68,47 @@ interface UseRankingReturn {
   refetch: () => void;
 }
 
-export function useRanking(): UseRankingReturn {
-  const { user } = useAuth();
+export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn {
+  const { user, loading: authLoading } = useAuth();
   const { onboarding } = useUser();
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [simuladosWithResults, setSimuladosWithResults] = useState<
-    Array<{ id: string; title: string; sequence_number: number }>
-  >([]);
-  const [selectedSimuladoId, setSelectedSimuladoId] = usePersistedState<string | null>('ranking:simuladoId', null);
-  const [rawRanking, setRawRanking] = useState<RankingRow[]>([]);
+  const editionsUi = useAppConfig('editions_ui');
+  const { userEdition } = useUserEdition(editionsUi);
+  const editionId = options.editionId !== undefined ? options.editionId : userEdition?.id;
+  const userId = user?.id;
+  const enabled = !!userId && !authLoading && (!editionsUi || !!editionId);
+  const scope = editionsUi ? editionId ?? null : 'legacy';
+  const storageKey = `enamed_ui_ranking:simuladoId:${userId}:${scope}`;
+  const [explicitChoice, setExplicitChoice] = useState<{ key: string; id: string } | null>(null);
+  const list = useQuery({
+    queryKey: ['ranking-simulados', userId, scope], enabled, staleTime: 5 * 60 * 1000,
+    queryFn: () => editionsUi ? fetchSimuladosWithResults(true) : fetchSimuladosWithResults(),
+  });
+  const simuladosWithResults = useMemo(() => enabled ? list.data ?? [] : [], [enabled, list.data]);
+  let saved: unknown = null;
+  if (options.selection !== 'latest-in-edition' && enabled) {
+    try { saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null'); } catch { /* Invalid storage is not a selection. */ }
+    if (explicitChoice?.key === storageKey) saved = explicitChoice.id;
+  }
+  const preferred = simuladosWithResults.find(sim => sim.id === saved);
+  const candidates = editionsUi ? simuladosWithResults.filter(sim => sim.editionId === editionId)
+    .sort((a, b) => (Date.parse(b.resultsReleaseAt ?? '') || 0) - (Date.parse(a.resultsReleaseAt ?? '') || 0)
+      || b.sequence_number - a.sequence_number || a.id.localeCompare(b.id)) : simuladosWithResults;
+  const selectedSimuladoId = preferred?.id ?? candidates[0]?.id ?? null;
+  const setSelectedSimuladoId = useCallback((id: string) => {
+    if (!enabled || options.selection === 'latest-in-edition' || !simuladosWithResults.some(sim => sim.id === id)) return;
+    setExplicitChoice({ key: storageKey, id });
+    try { sessionStorage.setItem(storageKey, JSON.stringify(id)); } catch { /* Storage is optional. */ }
+  }, [enabled, options.selection, simuladosWithResults, storageKey]);
+  const ranking = useQuery({
+    queryKey: ['ranking', userId, scope, selectedSimuladoId],
+    enabled: enabled && !!selectedSimuladoId, staleTime: 5 * 60 * 1000,
+    queryFn: () => fetchRankingForSimulado(selectedSimuladoId!),
+  });
+  const rawRanking: RankingRow[] = useMemo(() => enabled && selectedSimuladoId ? ranking.data ?? [] : [],
+    [enabled, selectedSimuladoId, ranking.data]);
+  const loading = enabled && (list.isLoading || (!!selectedSimuladoId && ranking.isLoading));
+  const queryError = enabled ? list.error ?? ranking.error : null;
+  const error = queryError ? queryError instanceof Error ? queryError.message : 'Não foi possível carregar o ranking.' : null;
   const [rankingComparison, setRankingComparison] = usePersistedState<RankingComparisonSelection>(
     'ranking:comparisonFlags',
     RANKING_COMPARISON_DEFAULT,
@@ -111,73 +144,6 @@ export function useRanking(): UseRankingReturn {
     [onboarding?.targetInstitutionIds],
   );
 
-  // Fetch available simulados — dep é user.id, não o objeto user (que troca de
-  // referência em token refresh do Supabase). Sem isso, voltar pra aba do navegador
-  // forçava refetch e flash de loading desnecessário.
-  const userId = user?.id;
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function load() {
-      logger.log('[useRanking] Loading simulados with results');
-      try {
-        const sims = await fetchSimuladosWithResults();
-        if (cancelled) return;
-
-        setError(null);
-        setSimuladosWithResults(sims);
-        if (sims.length > 0 && !selectedSimuladoId) {
-          setSelectedSimuladoId(sims[0].id);
-        } else if (sims.length === 0) {
-          setLoading(false);
-        }
-      } catch (err) {
-        logger.error('[useRanking] Error loading simulados:', err);
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Não foi possível carregar os simulados do ranking.');
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
-  // Fetch ranking when simulado changes
-  useEffect(() => {
-    if (!selectedSimuladoId) return;
-    
-    let cancelled = false;
-    
-    async function loadRanking() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await fetchRankingForSimulado(selectedSimuladoId!);
-        if (cancelled) return;
-        setRawRanking(data);
-      } catch (err) {
-        logger.error('[useRanking] Error loading ranking:', err);
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Não foi possível carregar o ranking.');
-          setRawRanking([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    
-    loadRanking();
-    return () => { cancelled = true; };
-  }, [selectedSimuladoId]);
-
   // Transform raw data
   const allParticipants = useMemo(
     () => transformRankingData(rawRanking, user?.id || null),
@@ -208,22 +174,13 @@ export function useRanking(): UseRankingReturn {
     [filteredParticipants],
   );
 
+  const { refetch: refetchList } = list;
+  const { refetch: refetchRanking } = ranking;
   const refetch = useCallback(() => {
-    if (selectedSimuladoId) {
-      setRawRanking([]);
-      setLoading(true);
-      setError(null);
-      fetchRankingForSimulado(selectedSimuladoId)
-        .then((data) => {
-          setRawRanking(data);
-        })
-        .catch((err) => {
-          logger.error('[useRanking] Refetch error:', err);
-          setError(err instanceof Error ? err.message : 'Não foi possível carregar o ranking.');
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [selectedSimuladoId]);
+    if (!enabled) return;
+    void refetchList();
+    if (selectedSimuladoId) void refetchRanking();
+  }, [enabled, selectedSimuladoId, refetchList, refetchRanking]);
 
   return {
     loading,
@@ -234,7 +191,7 @@ export function useRanking(): UseRankingReturn {
     allParticipants,
     filteredParticipants,
     currentUser,
-    stats,
+    stats: options.selection === 'latest-in-edition' ? { ...stats, totalCandidatos: filteredParticipants.length } : stats,
     rankingComparison,
     setRankingComparison,
     segmentFilter,

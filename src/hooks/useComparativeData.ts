@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useUserEdition } from '@/hooks/useUserEdition';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAuth } from '@/admin/hooks/useAdminAuth';
 import { useSimulados } from '@/hooks/useSimulados';
 import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
 import {
   simuladosApi,
-  type UserAreaScoreRow,
   type UserAttemptBehaviorRow,
 } from '@/services/simuladosApi';
 import {
@@ -13,7 +15,6 @@ import {
   type SimuladoComparativeEntry,
   type ComparativeInsight,
 } from '@/lib/resultHelpers';
-import { logger } from '@/lib/logger';
 
 export interface ComparativeEntryRich extends SimuladoComparativeEntry {
   durationSeconds: number | null;
@@ -39,6 +40,8 @@ export interface UseComparativeDataResult {
   loading: boolean;
   /** Todos os simulados publicados na plataforma (independente de o aluno ter feito) */
   allSlots: SimuladoSlot[];
+  error: string | null;
+  refetch: () => Promise<void>;
 }
 
 /**
@@ -49,51 +52,42 @@ export interface UseComparativeDataResult {
  *  - insights derivados
  */
 export function useComparativeData(): UseComparativeDataResult {
-  const { simulados, loading: loadingSimulados } = useSimulados();
-  const { user } = useAuth();
+  const { simulados: allSimulados, loading: loadingSimulados } = useSimulados();
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin } = useAdminAuth();
-
-  const [areaRows, setAreaRows] = useState<UserAreaScoreRow[]>([]);
-  const [behaviorRows, setBehaviorRows] = useState<UserAttemptBehaviorRow[]>([]);
-  const [loadingExtras, setLoadingExtras] = useState(true);
-
-  // Dep é `user?.id` (não `user`) — quando o Supabase emite token refresh / initial
-  // session ao voltar o foco da aba, ele cria um NOVO objeto user com o mesmo id.
-  // Usar `[user]` faria este efeito re-rodar e colocaria a página em loading,
-  // o que desmontava o conteúdo e re-disparava o auto-trigger do Prof. Sanor.
+  const editionsUi = useAppConfig('editions_ui');
+  const { userEdition } = useUserEdition(editionsUi);
+  const editionId = editionsUi ? userEdition?.id : undefined;
   const userId = user?.id;
-  useEffect(() => {
-    let cancelled = false;
-    if (!userId) {
-      setAreaRows([]);
-      setBehaviorRows([]);
-      setLoadingExtras(false);
-      return;
-    }
-    setLoadingExtras(true);
-    Promise.all([
-      simuladosApi.getUserAreaScoresBySimulado(userId),
-      simuladosApi.getUserAttemptBehaviorStats(userId),
-    ])
-      .then(([areas, behavior]) => {
-        if (cancelled) return;
-        setAreaRows(areas);
-        setBehaviorRows(behavior);
-      })
-      .catch(err => {
-        logger.error('[useComparativeData] Failed to load:', err);
-        if (!cancelled) {
-          setAreaRows([]);
-          setBehaviorRows([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingExtras(false);
-      });
-    return () => {
-      cancelled = true;
+  const enabled = !!userId && !authLoading && (!editionsUi || !!editionId);
+  const simulados = useMemo(() => enabled
+    ? allSimulados.filter(sim => !editionsUi || sim.editionId === editionId) : [],
+  [enabled, allSimulados, editionsUi, editionId]);
+  const eligibleIds = simulados.filter(sim => canViewResultsOrAdminPreview(sim.status, {
+    adminPreview: isAdmin, attemptFinished: !!sim.userState?.finished,
+  })).map(sim => sim.id).sort();
+  const query = useQuery({
+    queryKey: ['comparative', userId, editionsUi ? editionId ?? null : 'legacy', isAdmin, eligibleIds],
+    enabled, staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const [areas, behavior] = await Promise.all([
+        // This RPC has no edition argument: scope its rows before computing insights.
+        simuladosApi.getUserAreaScoresBySimulado(userId!),
+        editionId ? simuladosApi.getUserAttemptBehaviorStats(userId!, editionId)
+          : simuladosApi.getUserAttemptBehaviorStats(userId!),
+      ]);
+      return { areas, behavior };
+    },
+  });
+  const { areaRows, behaviorRows } = useMemo(() => {
+    const allowedIds = new Set(simulados.map(sim => sim.id));
+    return {
+      areaRows: enabled ? (query.data?.areas ?? []).filter(row => allowedIds.has(row.simulado_id)) : [],
+      behaviorRows: enabled ? (query.data?.behavior ?? []).filter(row => allowedIds.has(row.simulado_id)) : [],
     };
-  }, [userId]);
+  }, [enabled, simulados, query.data]);
+  const { refetch: refetchQuery } = query;
+  const refetch = useCallback(async () => { if (enabled) await refetchQuery(); }, [enabled, refetchQuery]);
 
   const areaBySimulado = useMemo(() => {
     const map = new Map<string, Record<string, number>>();
@@ -117,9 +111,9 @@ export function useComparativeData(): UseComparativeDataResult {
         canViewResultsOrAdminPreview(s.status, {
           adminPreview: isAdmin,
           attemptFinished: !!s.userState?.finished,
-        }) && s.userState?.score != null,
+        }) && s.userState?.score != null && (!editionsUi || s.userState.isWithinWindow === true),
       ),
-    [simulados, isAdmin],
+    [simulados, isAdmin, editionsUi],
   );
 
   const entries: ComparativeEntryRich[] = useMemo(() => {
@@ -166,8 +160,10 @@ export function useComparativeData(): UseComparativeDataResult {
   return {
     entries,
     insights,
-    loading: loadingSimulados || loadingExtras,
+    loading: loadingSimulados || (enabled && query.isLoading),
     allSlots,
+    error: enabled && query.error ? (query.error instanceof Error ? query.error.message : 'Erro ao carregar comparativo') : null,
+    refetch,
   };
 }
 

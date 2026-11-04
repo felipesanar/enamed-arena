@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { editionsApi } from '@/services/editionsApi';
 import { getNextEdition } from '@/lib/editions';
 
-export function useExamEditions() {
+export function useExamEditions(enabled = true) {
   // Re-evaluate calendar boundaries even when the screen stays open overnight.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -13,7 +13,8 @@ export function useExamEditions() {
   const query = useQuery({
     queryKey: ['exam-editions'],
     queryFn: editionsApi.getExamEditions,
+    enabled,
     staleTime: 60 * 60 * 1000,
   });
-  return { ...query, now, nextEdition: query.isSuccess ? getNextEdition(query.data, now) : null };
+  return { ...query, now, nextEdition: enabled && query.isSuccess ? getNextEdition(query.data, now) : null };
 }

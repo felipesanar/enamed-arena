@@ -13,6 +13,30 @@ vi.mock("@/integrations/supabase/client", () => {
 import { supabase } from "@/integrations/supabase/client";
 import { simuladosApi } from "./simuladosApi";
 
+describe('edition performance RPC arguments', () => {
+  beforeEach(() => { vi.clearAllMocks(); vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as never); });
+  it('preserves legacy arguments', async () => {
+    await simuladosApi.getUserPerformanceSummary('u');
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_performance_summary', { p_user_id: 'u' });
+    await simuladosApi.getUserPerformanceHistory('u', 12);
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_performance_history', { p_user_id: 'u', p_limit: 12 });
+    await simuladosApi.getUserAttemptBehaviorStats('u');
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_attempt_behavior_stats', { p_user_id: 'u' });
+  });
+  it('passes real scoped arguments without an arbitrary history limit', async () => {
+    await simuladosApi.getUserPerformanceSummary('u', 'edition');
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_performance_summary', {
+      p_user_id: 'u', p_edition_id: 'edition', p_include_training: false,
+    });
+    await simuladosApi.getUserPerformanceHistory('u', null, 'edition');
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_performance_history', {
+      p_user_id: 'u', p_limit: null, p_edition_id: 'edition', p_include_training: false,
+    });
+    await simuladosApi.getUserAttemptBehaviorStats('u', 'edition');
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_attempt_behavior_stats', { p_user_id: 'u', p_edition_id: 'edition' });
+  });
+});
+
 // Chainable query builder mock for the `attempts` table: select/eq/in/order/limit/maybeSingle
 // all return `this` (except the terminal ones), mirroring how `supabase.from(...)` is awaited
 // directly in simuladosApi (e.g. `await supabase.from('attempts').select('*').eq(...)`).

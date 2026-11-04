@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 import { isUuidString } from '@/lib/simulado-id';
 import { logger } from '@/lib/logger';
 import type { SimuladoConfig, Question } from '@/types';
@@ -621,9 +622,10 @@ export const simuladosApi = {
     return (data || []) as AttemptQuestionResultRow[];
   },
 
-  async getUserPerformanceSummary(userId: string): Promise<UserPerformanceSummaryRow | null> {
+  async getUserPerformanceSummary(userId: string, editionId?: string): Promise<UserPerformanceSummaryRow | null> {
     const { data, error } = await supabase.rpc('get_user_performance_summary', {
       p_user_id: userId,
+      ...(editionId ? { p_edition_id: editionId, p_include_training: false } : {}),
     });
     if (error) {
       logger.error('[SimuladosApi] Error fetching user performance summary:', error);
@@ -632,10 +634,17 @@ export const simuladosApi = {
     return (data?.[0] ?? null) as UserPerformanceSummaryRow | null;
   },
 
-  async getUserPerformanceHistory(userId: string, limit = 20): Promise<UserPerformanceHistoryRow[]> {
-    const { data, error } = await supabase.rpc('get_user_performance_history', {
+  async getUserPerformanceHistory(userId: string, limit: number | null = 20, editionId?: string): Promise<UserPerformanceHistoryRow[]> {
+    // This RPC accepts a null limit (unbounded) and edition scope since F1-7;
+    // the generated signature still describes its earlier number-only limit.
+    const historyRpc = supabase.rpc.bind(supabase) as unknown as (
+      name: 'get_user_performance_history',
+      args: { p_user_id: string; p_limit: number | null; p_edition_id?: string; p_include_training?: boolean },
+    ) => PromiseLike<PostgrestSingleResponse<UserPerformanceHistoryRow[]>>;
+    const { data, error } = await historyRpc('get_user_performance_history', {
       p_user_id: userId,
       p_limit: limit,
+      ...(editionId ? { p_edition_id: editionId, p_include_training: false } : {}),
     });
     if (error) {
       logger.error('[SimuladosApi] Error fetching user performance history:', error);
@@ -655,9 +664,10 @@ export const simuladosApi = {
     return (data || []) as UserAreaScoreRow[];
   },
 
-  async getUserAttemptBehaviorStats(userId: string): Promise<UserAttemptBehaviorRow[]> {
+  async getUserAttemptBehaviorStats(userId: string, editionId?: string): Promise<UserAttemptBehaviorRow[]> {
     const { data, error } = await supabase.rpc('get_user_attempt_behavior_stats', {
       p_user_id: userId,
+      ...(editionId ? { p_edition_id: editionId } : {}),
     });
     if (error) {
       logger.error('[SimuladosApi] Error fetching attempt behavior stats:', error);

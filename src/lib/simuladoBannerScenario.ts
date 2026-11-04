@@ -1,4 +1,6 @@
 import type { SimuladoWithStatus } from "@/types";
+import type { ExamEdition } from '@/types/edition';
+import { selectHomeSimulado } from '@/lib/home-hero-state';
 
 export type BannerScenario =
   | { type: "before_window"; start: string; end: string }
@@ -7,8 +9,23 @@ export type BannerScenario =
   | { type: "after_done"; simuladoId: string; title: string }
   | { type: "no_upcoming" };
 
-export function deriveScenario(simulados: SimuladoWithStatus[]): BannerScenario {
-  const now = Date.now();
+export function deriveScenario(simulados: SimuladoWithStatus[], edition?: ExamEdition | null, date = new Date()): BannerScenario {
+  const now = date.getTime();
+  if (edition !== undefined) {
+    const current = selectHomeSimulado(simulados, edition, date);
+    if (!current) return { type: 'no_upcoming' };
+    if (current.userState?.finished) {
+      const release = Date.parse(current.resultsReleaseAt);
+      return Number.isFinite(release) && release <= now
+        ? { type: 'after_done', simuladoId: current.id, title: current.title }
+        : { type: 'open_done_waiting', resultsAt: current.resultsReleaseAt };
+    }
+    const start = Date.parse(current.executionWindowStart);
+    const end = Date.parse(current.executionWindowEnd);
+    if (start <= now && now <= end) return { type: 'open_not_done', simuladoId: current.id, title: current.title };
+    if (start > now) return { type: 'before_window', start: current.executionWindowStart, end: current.executionWindowEnd };
+    return { type: 'no_upcoming' };
+  }
 
   const openWindow = simulados.find((s) => {
     const start = Date.parse(s.executionWindowStart);
@@ -156,5 +173,6 @@ function formatDateShort(dateIso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
+    timeZone: 'America/Sao_Paulo',
   }).format(d);
 }

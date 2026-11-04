@@ -1,4 +1,7 @@
 import type { SimuladoWithStatus } from "@/types";
+import type { ExamEdition } from '@/types/edition';
+import { selectCurrentSimulado } from '@/lib/editions';
+import { deriveSimuladoStatus } from '@/lib/simulado-helpers';
 
 export type HomeHeroScenario =
   | "onboarding_pending"
@@ -31,14 +34,39 @@ interface DeriveHomeHeroStateInput {
   mediaAtual: number;
   lastScore: number | null;
   recentScores: number[];
+  /** Undefined keeps legacy behavior; null is an unresolved edition, never global. */
+  edition?: ExamEdition | null;
+  now?: Date;
+  resultsReadyDays?: number;
+}
+
+export function isRecentReleasedResult(simulado: SimuladoWithStatus, now: Date, days = 14): boolean {
+  const release = Date.parse(simulado.resultsReleaseAt);
+  if (!Number.isFinite(release) || !Number.isFinite(now.getTime()) || release > now.getTime()) return false;
+  const dayNumber = (date: Date) => {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+    const value = (type: string) => Number(parts.find(part => part.type === type)?.value);
+    return Date.UTC(value('year'), value('month') - 1, value('day')) / 86_400_000;
+  };
+  const limit = Number.isFinite(days) && days > 0 ? days : 14;
+  return dayNumber(now) - dayNumber(new Date(release)) < limit;
+}
+
+export function selectHomeSimulado(simulados: SimuladoWithStatus[], edition: ExamEdition | null, now: Date, days = 14) {
+  const selected = selectCurrentSimulado(simulados.filter(sim => !sim.userState?.finished
+    || !Number.isFinite(Date.parse(sim.resultsReleaseAt)) || Date.parse(sim.resultsReleaseAt) > now.getTime()
+    || isRecentReleasedResult(sim, now, days)), edition, now);
+  return selected ? { ...selected, status: deriveSimuladoStatus(selected, selected.userState, now) } : null;
 }
 
 function formatDateShort(dateIso: string): string {
+  if (!Number.isFinite(Date.parse(dateIso))) return 'data a confirmar';
   const parsed = Date.parse(dateIso);
   if (!Number.isFinite(parsed)) return "data em breve";
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
+    timeZone: 'America/Sao_Paulo',
   }).format(new Date(parsed));
 }
 
@@ -81,6 +109,9 @@ export function deriveHomeHeroState({
   mediaAtual,
   lastScore,
   recentScores,
+  edition,
+  now = new Date(),
+  resultsReadyDays = 14,
 }: DeriveHomeHeroStateInput): HomeHeroState {
   const displayName = getDisplayName(userName);
   const safeMedia = Math.max(0, Math.min(100, Math.round(mediaAtual)));
@@ -97,6 +128,17 @@ export function deriveHomeHeroState({
         "Complete seu perfil para personalizar ranking, desempenho e recomendações do seu ciclo.",
       ctaLabel: "Completar perfil",
       ctaTo: "/onboarding",
+    };
+  }
+
+  if (edition !== undefined) {
+    const current = selectHomeSimulado(simulados, edition, now, resultsReadyDays);
+    simulados = current ? [current] : [];
+    if (!current) return {
+      scenario: 'first_simulado', tone: 'calm', eyebrow: 'Próxima edição',
+      headline: `Sua preparação continua, ${displayName}`,
+      description: 'Calendário em breve. Enquanto isso, pratique com os simulados de edições anteriores.',
+      ctaLabel: 'Ver treinos', ctaTo: '/simulados?filter=treino',
     };
   }
 
@@ -218,7 +260,7 @@ export function deriveHomeHeroState({
     };
   }
 
-  if (!hasHistory) {
+  if (!hasHistory && !simulados.some(sim => sim.status === 'upcoming')) {
     return {
       scenario: "first_simulado",
       tone: "default",
