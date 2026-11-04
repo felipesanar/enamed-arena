@@ -3,59 +3,47 @@ import ReactMarkdown from 'react-markdown';
 import { Sparkles, Loader2, RefreshCw, BarChart3, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
 import { ProfSanorAvatar } from './ProfSanorAvatar';
-import { useCutoffContext } from '@/hooks/useCutoffContext';
+import { useAiSummary } from '@/hooks/useAiEditionContext';
 import { useTypewriter } from '@/hooks/useTypewriter';
-import { readCachedSummary, writeCachedSummary, formatGeneratedAt } from '@/lib/profSanCache';
+import { formatGeneratedAt } from '@/lib/profSanCache';
 import type { ComparativeEntryRich } from '@/hooks/useComparativeData';
 
 interface Props {
   studentName: string;
-  entries: ComparativeEntryRich[]; // sorted asc by sequenceNumber
+  entries: (ComparativeEntryRich & { editionId?: string | null })[]; // sorted asc by sequenceNumber
   /** Total de simulados publicados na plataforma — usado pra contextualizar 'fez X de Y' */
   totalSimuladosPlatform?: number;
   /** Especialidade pretendida vinda do onboarding (opcional) */
   intendedSpecialty?: string | null;
 }
 
-/**
- * Chave de cache do markdown da análise IA. Indexa por (id do primeiro simulado,
- * id do último, contagem). Se o conjunto de simulados mudar, gera nova análise.
- * Se for igual, reaproveita — assim trocar de aba do navegador (que pode forçar
- * remount em situações extremas) NÃO faz nova chamada à IA.
- */
-function buildCacheKey(entries: ComparativeEntryRich[]): string {
-  if (entries.length === 0) return 'empty';
-  const first = entries[0].simuladoId;
-  const last = entries[entries.length - 1].simuladoId;
-  return `sanor:v1:${entries.length}:${first}:${last}`;
-}
-
 export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, intendedSpecialty }: Props) {
-  const { cutoffContext, loading: cutoffLoading } = useCutoffContext();
-  const cacheKey = buildCacheKey(entries);
-  // Inicializa o estado lendo do sessionStorage — se já houver análise cacheada
-  // pra esse mesmo conjunto de simulados, nem chega a chamar a IA.
-  const initialCache = readCachedSummary(cacheKey);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [markdown, setMarkdown] = useState<string | null>(initialCache?.markdown ?? null);
-  const [generatedAt, setGeneratedAt] = useState<number | null>(initialCache?.generatedAt ?? null);
-  const { display: displayMarkdown, write, skip } = useTypewriter(initialCache?.markdown ?? null);
+  const { markdown, generatedAt, loading, error, generate, canGenerate, cacheKey } = useAiSummary({
+    kind: 'comparative', simuladoIds: entries.map(e => e.simuladoId), editionIds: entries.map(e => e.editionId),
+    body: {
+      studentName, totalSimuladosPlatform, intendedSpecialty,
+      simulados: entries.map(e => ({
+        simuladoId: e.simuladoId, editionId: e.editionId,
+        title: e.title, sequenceNumber: e.sequenceNumber, percentageScore: e.percentageScore,
+        totalCorrect: e.totalCorrect, totalQuestions: e.totalQuestions, durationSeconds: e.durationSeconds,
+        tabExits: e.tabExits, fullscreenExits: e.fullscreenExits, markedForReview: e.markedForReview,
+        highConfidenceTotal: e.highConfidenceTotal, highConfidenceCorrect: e.highConfidenceCorrect,
+        completedAt: e.completedAt || null,
+        byArea: Object.entries(e.areaScores).map(([area, score]) => ({ area, score })),
+      })),
+    },
+  });
+  const { display, write, skip } = useTypewriter(markdown);
+  const displayScope = useRef(cacheKey);
+  const displayMarkdown = displayScope.current === cacheKey ? display : markdown;
   const [loadingPhase, setLoadingPhase] = useState(0);
-  const autoTriedRef = useRef(false);
-
-  // Se o conjunto de simulados mudar sem remount, sincroniza com o cache.
   useEffect(() => {
-    const cached = readCachedSummary(cacheKey);
-    setMarkdown(cached?.markdown ?? null);
-    setGeneratedAt(cached?.generatedAt ?? null);
-    write(cached?.markdown ?? null, { animate: false });
-    setError(null);
+    const sameScope = displayScope.current === cacheKey;
+    displayScope.current = cacheKey;
+    write(markdown, { animate: sameScope });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey]);
+  }, [cacheKey, markdown]);
 
   // ─── Frases rotativas durante o loading ───
   const LOADING_PHRASES = [
@@ -77,64 +65,6 @@ export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, 
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
-
-  const generate = async () => {
-    setLoading(true);
-    setError(null);
-    setMarkdown(null);
-    write(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-comparative-summary', {
-        body: {
-          studentName,
-          totalSimuladosPlatform,
-          intendedSpecialty,
-          cutoffContext,
-          simulados: entries.map(e => ({
-            title: e.title,
-            sequenceNumber: e.sequenceNumber,
-            percentageScore: e.percentageScore,
-            totalCorrect: e.totalCorrect,
-            totalQuestions: e.totalQuestions,
-            durationSeconds: e.durationSeconds,
-            tabExits: e.tabExits,
-            fullscreenExits: e.fullscreenExits,
-            markedForReview: e.markedForReview,
-            highConfidenceTotal: e.highConfidenceTotal,
-            highConfidenceCorrect: e.highConfidenceCorrect,
-            completedAt: e.completedAt || null,
-            byArea: Object.entries(e.areaScores).map(([area, score]) => ({ area, score })),
-          })),
-        },
-      });
-      if (error) throw error;
-      if (!data?.markdown) throw new Error('Resposta vazia da IA');
-      setMarkdown(data.markdown);
-      setGeneratedAt(Date.now());
-      write(data.markdown);
-      writeCachedSummary(cacheKey, data.markdown);
-    } catch (err) {
-      logger.error('[ComparativoHero] AI summary error', err);
-      setError(err instanceof Error ? err.message : 'Tente novamente em instantes.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Auto-gera UMA VEZ por conjunto de simulados (cacheKey).
-  // Aguarda o cutoffContext carregar pra IA usar a meta real na primeira chamada.
-  // Pulamos se já temos markdown (cacheado do sessionStorage ou recém-gerado).
-  useEffect(() => {
-    if (autoTriedRef.current) return;
-    if (cutoffLoading) return; // aguarda cutoff antes do primeiro disparo
-    if (markdown) {
-      autoTriedRef.current = true;
-      return;
-    }
-    autoTriedRef.current = true;
-    generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <motion.div
@@ -166,7 +96,7 @@ export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, 
           {(loading || !markdown) && (
             <Button
               onClick={generate}
-              disabled={loading}
+              disabled={loading || !canGenerate}
               size="sm"
               variant="ghost"
               className="group shrink-0 rounded-xl px-3 md:px-4 py-2 text-primary font-semibold hover:bg-primary/5 active:scale-95 transition-all"
@@ -220,7 +150,7 @@ export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, 
               </div>
             )}
 
-            {displayMarkdown && (
+            {markdown && displayMarkdown && (
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -267,7 +197,10 @@ export function ComparativoHero({ studentName, entries, totalSimuladosPlatform, 
               </div>
             )}
 
-            {!loading && !markdown && !error && (
+            {!loading && !markdown && !error && !canGenerate && (
+              <p className="text-body-sm text-muted-foreground">Análise indisponível: a série precisa pertencer a uma única edição com contexto conhecido.</p>
+            )}
+            {!loading && !markdown && !error && canGenerate && (
               <div className="flex gap-4 items-start">
                 <div className="mt-0.5 shrink-0 h-9 w-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
                   <BarChart3 className="h-4 w-4 text-primary/70" />

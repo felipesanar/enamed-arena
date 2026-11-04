@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { fetchAllCutoffScores } from '@/services/rankingApi';
 import { cn } from '@/lib/utils';
-import { editionBadge } from '@/lib/edition-groups';
+import { useCutoffEditionFlag, useCutoffScope } from '@/hooks/useCutoffContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { cutoffApi, type ReferencedCutoffScore } from '@/services/cutoffApi';
 import type { SimuladoConfig } from '@/types';
 
 interface CutoffScoreModalProps {
@@ -14,7 +16,7 @@ interface CutoffScoreModalProps {
   userSpecialty?: string;
   /** Canonical institution names from onboarding, in profile order */
   userInstitutions?: string[];
-  currentUserScore?: number; // user's score % for pass/fail badge (same unit as cutoff_score_general)
+  currentUserScore?: number; // Accepted by existing callers; not compared across unverified scales.
 }
 
 function scoreTint(score: number): 'high' | 'mid' | 'low' {
@@ -30,20 +32,31 @@ export function CutoffScoreModal({
   onClose,
   userSpecialty,
   userInstitutions,
-  currentUserScore,
-  simulado,
 }: CutoffScoreModalProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [search, setSearch] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>(userSpecialty ?? 'all');
   const [showFilters, setShowFilters] = useState(false);
+  const flag = useCutoffEditionFlag();
+  const editionsUi = flag.editionsUi;
+  const { referenceEditionId } = useCutoffScope();
+  const { user } = useAuth();
+  const queryEnabled = open && flag.ready && (!editionsUi || !!referenceEditionId);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['all-cutoff-scores'],
-    queryFn: fetchAllCutoffScores,
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['all-cutoff-scores', user?.id ?? null, editionsUi ? referenceEditionId ?? null : 'legacy'],
+    queryFn: () => editionsUi ? cutoffApi.getAllScores(referenceEditionId!) : fetchAllCutoffScores(),
     staleTime: Infinity,
-    enabled: open,
+    enabled: queryEnabled,
   });
+  const rows = (queryEnabled ? data : []) as ReferencedCutoffScore[];
+  const labels = [...new Set(rows.map(row => row.reference_label).filter(Boolean))];
+  const sources = [...new Set(rows.map(row => row.source).filter(Boolean))];
+  const knownReference = rows.length > 0 && rows.every(row => row.reference_edition_id && row.reference_label?.trim() && row.source?.trim());
+  const referenceLabel = knownReference && labels.length === 1 ? labels[0] : 'Referência indisponível';
+  const sourceLabel = knownReference && sources.length === 1 ? `Fonte: ${sources[0]}` : knownReference ? 'Fontes diversas (por linha)' : 'Fonte indisponível';
+  // The current cutoff contract supplies provenance, not a comparable score scale.
+  const loading = queryEnabled && isLoading;
 
   // Reset / initialize filters on open/close — auto-selects user's specialty on open
   useEffect(() => {
@@ -160,8 +173,9 @@ export function CutoffScoreModal({
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-[9px] uppercase tracking-[2.5px] font-bold mb-1 text-muted-foreground/70">
-                    {editionBadge(simulado)}
+                    {referenceLabel}
                   </p>
+                  <p className="text-caption text-muted-foreground">{sourceLabel}</p>
                   <h2 className="text-[17px] font-extrabold tracking-tight text-foreground">
                     Notas de Corte
                   </h2>
@@ -325,13 +339,13 @@ export function CutoffScoreModal({
 
             {/* ── Scrollable body ────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto">
-              {isLoading && (
+              {loading && (
                 <div className="flex items-center justify-center py-16">
                   <div className="h-6 w-6 rounded-full border-2 animate-spin border-border border-t-foreground/40" />
                 </div>
               )}
 
-              {!isLoading && filteredRows.length === 0 && !hasUserRows && (
+              {!loading && filteredRows.length === 0 && !hasUserRows && (
                 <div className="flex flex-col items-center justify-center py-16 gap-2">
                   <Search className="h-8 w-8 text-muted-foreground/40" />
                   <p className="text-[13px] text-muted-foreground">
@@ -352,7 +366,7 @@ export function CutoffScoreModal({
                 </div>
               )}
 
-              {!isLoading && (filteredRows.length > 0 || hasUserRows) && (
+              {!loading && (filteredRows.length > 0 || hasUserRows) && (
                 <div>
                   {/* ── Pinned user rows ─────────────────────────────────── */}
                   {hasUserRows && (
@@ -365,10 +379,6 @@ export function CutoffScoreModal({
                       </div>
 
                       {userRows.map(r => {
-                        const passes =
-                          currentUserScore != null
-                            ? currentUserScore >= r.cutoff_score_general
-                            : null;
                         return (
                           <div
                             key={`${r.institution_name}-${r.specialty_name}-${r.practice_scenario}`}
@@ -377,6 +387,7 @@ export function CutoffScoreModal({
                           >
                             <span className="text-[11px] pr-2 leading-snug text-foreground">
                               {r.institution_name}
+                              <span className="block text-micro-label text-muted-foreground">{r.reference_label || 'Referência indisponível'} · {r.source || 'Fonte indisponível'}</span>
                             </span>
                             <span>
                               <span className="inline-block text-[7.5px] font-bold uppercase tracking-[0.4px] px-[7px] py-[2px] rounded-full bg-primary text-white">
@@ -387,17 +398,6 @@ export function CutoffScoreModal({
                             </span>
                             <span className="flex items-center justify-end gap-1 text-[12px] font-bold tabular-nums text-primary">
                               {r.cutoff_score_general}
-                              {passes != null && (
-                                <span
-                                  aria-label={passes ? 'acima do corte' : 'abaixo do corte'}
-                                  className={cn(
-                                    'text-[10px] font-bold',
-                                    passes ? 'text-success' : 'text-destructive',
-                                  )}
-                                >
-                                  {passes ? '✓' : '✗'}
-                                </span>
-                              )}
                             </span>
                             <span className="text-[10.5px] text-right tabular-nums text-muted-foreground">
                               {r.cutoff_score_quota != null
@@ -431,6 +431,7 @@ export function CutoffScoreModal({
                       >
                         <span className="text-[11px] pr-2 leading-snug text-foreground/70">
                           {row.institution_name}
+                          <span className="block text-micro-label text-muted-foreground">{row.reference_label || 'Referência indisponível'} · {row.source || 'Fonte indisponível'}</span>
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           {row.specialty_name}
@@ -458,7 +459,7 @@ export function CutoffScoreModal({
             {/* ── Footer ────────────────────────────────────────────────── */}
             <div className="shrink-0 px-5 py-3 text-center bg-muted/30 border-t border-border">
               <p className="text-[9.5px] text-muted-foreground/70">
-                Dados referentes ao último processo seletivo ENAMED disponível.
+                Referência e fonte conforme os dados disponíveis. Escalas podem diferir da nota do simulado; não indicam chance de aprovação.
               </p>
             </div>
 

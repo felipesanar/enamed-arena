@@ -20,6 +20,7 @@ import { FloatingProfSan } from '@/components/FloatingProfSan';
 import { PresencialEntryCard } from '@/components/presencial/PresencialEntryCard';
 import { useSimulados } from '@/hooks/useSimulados';
 import { editionBadge } from '@/lib/edition-groups';
+import { CutoffScopeContext, useCutoffContext } from '@/hooks/useCutoffContext';
 
 export default function RankingPage() {
   const {
@@ -48,6 +49,7 @@ export default function RankingPage() {
     return { ...option, ...(metadata ? { editionId: metadata.editionId, editionCode: metadata.editionCode, editionLabel: metadata.editionLabel } : {}) };
   });
   const selectedSimulado = options.find(option => option.id === selectedSimuladoId);
+  const { cutoffContext } = useCutoffContext({ editionsUi, referenceEditionId: selectedSimulado?.editionId, enabled: editionsUi });
 
   const { profile } = useUser();
   const { user } = useAuth();
@@ -129,14 +131,16 @@ export default function RankingPage() {
             compact
             studentName={profile?.name ?? 'Aluno'}
             simuladoId={selectedSimuladoId}
+            editionId={selectedSimulado?.editionId}
             simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
-            currentUser={currentUser}
+            currentUser={allParticipants.find(participant => participant.isCurrentUser)}
             stats={stats}
             userSpecialty={userSpecialty}
             userInstitutions={userInstitutions}
           />
         </FloatingProfSan>
       )}
+      <CutoffScopeContext.Provider value={{ editionsUi, referenceEditionId: selectedSimulado?.editionId ?? null, cutoffContext }}>
       <RankingView
         loading={loading}
         simuladosWithResults={options}
@@ -160,6 +164,7 @@ export default function RankingPage() {
         heroStanding={heroStanding}
         heroEvolution={heroEvolution}
       />
+      </CutoffScopeContext.Provider>
     </PageTransition>
   );
 }

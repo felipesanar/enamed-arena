@@ -165,6 +165,7 @@ export default function DesempenhoPage() {
         <ProfSanorPerformance
           studentName={profile?.name ?? 'Aluno'}
           simuladoId={selectedSimuladoId ?? undefined}
+          editionId={selectedSimulado?.editionId}
           simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
           breakdown={breakdown}
         />

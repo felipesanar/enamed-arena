@@ -3,30 +3,18 @@ import ReactMarkdown from 'react-markdown';
 import { Sparkles, Loader2, RefreshCw, BarChart3, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
-import { useCutoffContext } from '@/hooks/useCutoffContext';
+import { useAiSummary } from '@/hooks/useAiEditionContext';
 import { useTypewriter } from '@/hooks/useTypewriter';
-import { readCachedSummary, writeCachedSummary, formatGeneratedAt } from '@/lib/profSanCache';
+import { formatGeneratedAt } from '@/lib/profSanCache';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 
 interface Props {
   studentName: string;
   simuladoId?: string;
+  editionId?: string | null;
   simuladoTitle?: string;
   breakdown: PerformanceBreakdown;
-}
-
-/**
- * Chave de cache da análise IA do simulado — indexa por id do simulado
- * + assinatura compacta dos dados (score+totais). Se o conteúdo subjacente
- * mudar (reprocessing), a key invalida e a IA gera de novo.
- */
-function buildCacheKey(simuladoId: string | undefined, breakdown: PerformanceBreakdown): string {
-  if (!simuladoId) return 'sanor:perf:none';
-  const sig = `${breakdown.overall.percentageScore}-${breakdown.overall.totalCorrect}-${breakdown.overall.totalQuestions}`;
-  return `sanor:perf:v1:${simuladoId}:${sig}`;
 }
 
 const LOADING_PHRASES = [
@@ -41,28 +29,25 @@ const LOADING_PHRASES = [
  * Avatar + bolha de chat + typewriter, igual ao componente do Comparativo,
  * mas conectado ao endpoint `gemini-performance-summary` que olha 1 simulado.
  */
-export function ProfSanorPerformance({ studentName, simuladoId, simuladoTitle, breakdown }: Props) {
-  const { cutoffContext, loading: cutoffLoading } = useCutoffContext();
-  const cacheKey = buildCacheKey(simuladoId, breakdown);
-  const initialCache = readCachedSummary(cacheKey);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [markdown, setMarkdown] = useState<string | null>(initialCache?.markdown ?? null);
-  const [generatedAt, setGeneratedAt] = useState<number | null>(initialCache?.generatedAt ?? null);
-  const { display: displayMarkdown, write, skip } = useTypewriter(initialCache?.markdown ?? null);
+export function ProfSanorPerformance({ studentName, simuladoId, editionId, simuladoTitle, breakdown }: Props) {
+  const { markdown, generatedAt, loading, error, generate, canGenerate, cacheKey } = useAiSummary({
+    kind: 'performance', simuladoIds: [simuladoId ?? ''], editionIds: [editionId],
+    body: {
+      studentName, simuladoTitle, overall: breakdown.overall,
+      byArea: breakdown.byArea.map(a => ({ area: a.area, total: a.questions, correct: a.correct, score: a.score })),
+      bySubspecialty: breakdown.bySubspecialty.map(s => ({ specialty: s.specialty, subTopic: s.subspecialty, total: s.questions, correct: s.correct, score: s.score })),
+    },
+  });
+  const { display, write, skip } = useTypewriter(markdown);
+  const displayScope = useRef(cacheKey);
+  const displayMarkdown = displayScope.current === cacheKey ? display : markdown;
   const [loadingPhase, setLoadingPhase] = useState(0);
-  const autoTriedRef = useRef(false);
-
-  // Se o cacheKey mudar (trocou de simulado), reseta tudo.
   useEffect(() => {
-    const cached = readCachedSummary(cacheKey);
-    setMarkdown(cached?.markdown ?? null);
-    setGeneratedAt(cached?.generatedAt ?? null);
-    write(cached?.markdown ?? null, { animate: false });
-    setError(null);
-    autoTriedRef.current = false;
+    const sameScope = displayScope.current === cacheKey;
+    displayScope.current = cacheKey;
+    write(markdown, { animate: sameScope });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey]);
+  }, [cacheKey, markdown]);
 
   // Frases rotativas de loading
   useEffect(() => {
@@ -73,56 +58,6 @@ export function ProfSanorPerformance({ studentName, simuladoId, simuladoTitle, b
     }, 1600);
     return () => window.clearInterval(id);
   }, [loading]);
-
-  const generate = async () => {
-    setLoading(true);
-    setError(null);
-    setMarkdown(null);
-    write(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-performance-summary', {
-        body: {
-          studentName,
-          simuladoTitle,
-          cutoffContext,
-          overall: {
-            totalQuestions: breakdown.overall.totalQuestions,
-            totalCorrect: breakdown.overall.totalCorrect,
-            totalAnswered: breakdown.overall.totalAnswered,
-            percentageScore: breakdown.overall.percentageScore,
-          },
-          byArea: breakdown.byArea.map((a) => ({
-            area: a.area, total: a.questions, correct: a.correct, score: a.score,
-          })),
-          bySubspecialty: breakdown.bySubspecialty.map((s) => ({
-            specialty: s.specialty, subTopic: s.subspecialty, total: s.questions, correct: s.correct, score: s.score,
-          })),
-        },
-      });
-      if (error) throw error;
-      if (!data?.markdown) throw new Error('Resposta vazia da IA');
-      setMarkdown(data.markdown);
-      setGeneratedAt(Date.now());
-      write(data.markdown);
-      writeCachedSummary(cacheKey, data.markdown);
-    } catch (err) {
-      logger.error('[ProfSanorPerformance] AI summary error', err);
-      setError(err instanceof Error ? err.message : 'Tente novamente em instantes.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Auto-gera UMA vez por cacheKey (não dispara em troca de aba).
-  // Aguarda cutoff carregar pra primeira geração usar a meta real.
-  useEffect(() => {
-    if (autoTriedRef.current) return;
-    if (cutoffLoading) return;
-    if (markdown) { autoTriedRef.current = true; return; }
-    autoTriedRef.current = true;
-    generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey, cutoffLoading]);
 
   return (
     <motion.div
@@ -154,7 +89,7 @@ export function ProfSanorPerformance({ studentName, simuladoId, simuladoTitle, b
           {(loading || !markdown) && (
             <Button
               onClick={generate}
-              disabled={loading}
+              disabled={loading || !canGenerate}
               size="sm"
               variant="ghost"
               className="group shrink-0 rounded-xl px-3 md:px-4 py-2 text-primary font-semibold hover:bg-primary/5 active:scale-95 transition-all"
@@ -209,7 +144,7 @@ export function ProfSanorPerformance({ studentName, simuladoId, simuladoTitle, b
               </div>
             )}
 
-            {displayMarkdown && (
+            {markdown && displayMarkdown && (
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -261,7 +196,10 @@ export function ProfSanorPerformance({ studentName, simuladoId, simuladoTitle, b
               </div>
             )}
 
-            {!loading && !markdown && !error && (
+            {!loading && !markdown && !error && !canGenerate && (
+              <p className="text-body-sm text-muted-foreground">Contexto da prova indisponível para análise.</p>
+            )}
+            {!loading && !markdown && !error && canGenerate && (
               <div className="flex gap-4 items-start">
                 <div className="mt-0.5 shrink-0 h-9 w-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
                   <BarChart3 className="h-4 w-4 text-primary/70" />
