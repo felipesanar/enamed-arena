@@ -8,6 +8,7 @@ import { useAdminAccess } from '@/admin/contexts/AdminAccessContext';
 import { adminReprocessApi, reprocessErrorMessage } from '@/admin/services/adminReprocessApi';
 import { toast } from '@/hooks/use-toast';
 import type { ReprocessReport } from '@/types/admin-operations';
+import { invalidateAdminExamQueries } from '@/lib/exam-query-cache';
 
 function Content({ simuladoId }: { simuladoId: string }) {
   const [open, setOpen] = useState(false);
@@ -36,11 +37,7 @@ function Content({ simuladoId }: { simuladoId: string }) {
       const result = await adminReprocessApi.reprocess(simuladoId, reason);
       setReport(result); setOpen(false);
       // Mark related caches stale without triggering an indiscriminate active refetch.
-      void client.invalidateQueries({ predicate: query => {
-        const key = query.queryKey;
-        if (key[0] === 'admin') return ['simulado-detail-stats', 'simulado-question-stats', 'score-distribution', 'performance-by-area', 'simulado-results-aggregate', 'simulado-results-roster', 'attempts', 'attempt-kpis', 'user-attempts', 'attempt-questions', 'intel', 'reprocess-context'].includes(String(key[1]));
-        return ['simulado', 'simulados', 'user-performance', 'user-attempts', 'ranking-simulados', 'ranking', 'comparative', 'exam-result', 'exam-result-access', 'ranking-evolution-history', 'ranking-evolution-prev', 'notebook-page', 'notebook-counts', 'notebook-due-count', 'caderno-pattern-insights', 'caderno-area-score-history', 'caderno-confidence-calibration'].includes(String(key[0]));
-      }, refetchType: 'none' });
+      invalidateAdminExamQueries(client);
       void client.refetchQueries({ type: 'active', predicate: query => {
         const key = query.queryKey;
         if (key[0] !== 'admin') return false;
