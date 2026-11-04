@@ -2,7 +2,15 @@
 -- 20260906215529). Run before/after the migration, never against production.
 -- supabase test db supabase/tests/fase0_exam_integrity.sql --local
 BEGIN;
+\if :{?sql_local}
+\else
+\set sql_local false
+\endif
+\if :sql_local
+\ir local/assertions.sql
+\else
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+\endif
 SET LOCAL search_path = public, extensions;
 SELECT no_plan();
 
