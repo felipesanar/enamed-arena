@@ -7,12 +7,17 @@ Usuários fazem provas em janelas de execução, veem resultados, ranking por á
 
 ## Stack
 
-- **Build:** Vite 5.4 + TypeScript 5.8
+- **Build:** Vite 7.3.7 + TypeScript 5.8
 - **UI:** React 18.3, React Router 6, shadcn/ui (Radix), Tailwind CSS 3.4, Framer Motion 12
 - **Estado:** TanStack React Query 5 (staleTime 5min), Context API
 - **Backend:** Supabase (Auth + Postgres com RLS + SECURITY DEFINER RPCs)
-- **Testes:** Vitest 3 (jsdom), Testing Library, Playwright
+- **Testes:** Vitest 5.1.0 (jsdom), Testing Library, Playwright
 - **Email:** Novu (via Edge Functions)
+- **Node:** 24.16.0, conforme `.nvmrc` (fonte de verdade) e `package.json`; manter o runtime do Netlify alinhado.
+
+## Hosting
+
+O projeto tem origem Lovable e contém configurações Netlify (`netlify.toml`) e Vercel (`vercel.json`). Esses arquivos não comprovam qual hosting está ativo nem publicação automática. Preservar ambas as configurações válidas; confirmar o destino e obter autorização antes de qualquer deploy.
 
 ## Comandos
 
@@ -50,7 +55,7 @@ src/
 - **Serviços:** camelCase, módulos com objeto exportado (ex: `simuladosApi.methodName`)
 - **Tipos:** centralizados em `src/types/` — adicionar lá, não reinventar inline
 - **Alias:** `@/` → `src/` (usar sempre, nunca paths relativos longos)
-- **TypeScript:** `noImplicitAny: false`, `strictNullChecks: false` (projeto é relaxado)
+- **TypeScript:** `noImplicitAny: true`, `strictNullChecks: true` em `tsconfig.app.json` (com `strict: false`)
 - **Imports:** sem barril files; imports diretos
 
 ## Segmentos de Usuário

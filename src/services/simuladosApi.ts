@@ -208,7 +208,7 @@ const ALLOWED_IMAGE_HOST_PATTERNS: ReadonlyArray<RegExp> = [
   /^([a-z0-9-]+\.)*supabase\.co$/i,        // storage public URLs
   /^([a-z0-9-]+\.)*supabase\.in$/i,
   /^([a-z0-9-]+\.)*sanar\.com\.br$/i,
-  /^([a-z0-9-]+\.)*sanaflix\.com$/i,
+  /^([a-z0-9-]+\.)*sanarflix\.com\.br$/i,
   /^([a-z0-9-]+\.)*lovable\.app$/i,
   /^([a-z0-9-]+\.)*lovableproject\.com$/i,
 ];

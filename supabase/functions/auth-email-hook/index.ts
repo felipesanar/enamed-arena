@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { LOGO_URL, DEFAULT_AUTH_REDIRECT } from "../_shared/appIdentity.ts";
 
 const NOVU_TRIGGER_URL = "https://kong.app-prod.sanar.cloud/novu/fallback/v1/events/trigger";
 
@@ -92,8 +93,6 @@ async function verifyStandardWebhook(
 }
 
 // ─── Premium HTML Layout ───
-
-const LOGO_URL = "https://enamed-arena.lovable.app/logo.svg";
 
 function baseLayout(content: string, preheader: string): string {
   return `<!DOCTYPE html>
@@ -265,7 +264,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const tokenHash = emailData.token_hash || "";
-    const redirectTo = emailData.redirect_to || "https://enamed-arena.lovable.app";
+    const redirectTo = emailData.redirect_to || DEFAULT_AUTH_REDIRECT;
 
     let actionUrl = "";
     if (tokenHash) {

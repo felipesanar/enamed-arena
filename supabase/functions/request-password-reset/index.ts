@@ -13,7 +13,7 @@ const DEFAULT_RESET_URL =
   ?? "https://simulados.sanar.com.br/reset-password";
 
 // Optional comma-separated allowlist for redirect hostnames.
-// Example: PASSWORD_RESET_ALLOWED_HOSTS="simulados.sanar.com.br,app.sanaflix.com"
+// Example: PASSWORD_RESET_ALLOWED_HOSTS="simulados.sanar.com.br,app.sanarflix.com.br"
 const EXTRA_HOSTS = (Deno.env.get("PASSWORD_RESET_ALLOWED_HOSTS") ?? "")
   .split(",")
   .map((h) => h.trim().toLowerCase())
