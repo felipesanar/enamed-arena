@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Edições · Protótipo local ENAMED Arena</title>
+<style>
+@font-face{font-family:JakartaLocal;src:local("Plus Jakarta Sans");font-display:swap}
+:root{--bg:#FAFAF9;--surface:#FFFFFF;--raised:#F4F4F3;--text:#1A1715;--muted:#57534E;--line:#E7E5E3;--accent:#AB2350;--soft:#FBEAEF;--on-accent:#FFFFFF;--success:#0F7A55;--warning:#B45309;--error:#C5303A;--wine:hsl(345 65% 30%)}
+[data-theme="dark"]{--bg:#0B0C0E;--surface:#141619;--raised:#1C1F23;--text:#ECEDEE;--muted:#9BA1A9;--line:#292D33;--accent:#E14E78;--soft:hsl(342 35% 18%);--on-accent:#0B0C0E;--success:#34D399;--warning:hsl(38 92% 60%);--error:hsl(356 70% 64%);--wine:#E14E78;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 JakartaLocal,"Plus Jakarta Sans",Arial,sans-serif}button,input,select,textarea{font:inherit;color:inherit}button,select,summary{cursor:pointer}button,input,select,textarea{min-height:44px;border:1px solid var(--muted);border-radius:6px;background:var(--surface);padding:9px 12px;max-width:100%}button{font-weight:600}button:hover{background:var(--raised)}button.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}button.primary:hover{filter:brightness(.94)}button.text{border-color:transparent;background:transparent;color:var(--accent)}button:disabled{cursor:not-allowed;opacity:.65}:focus-visible{outline:2px solid var(--accent);outline-offset:3px}input,select,textarea{width:100%;min-width:0}input[type=checkbox]{width:20px;min-height:20px;accent-color:var(--accent);flex-shrink:0}h1,h2,h3,p{margin:0}h1{font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-.025em}h2{font-size:20px;line-height:1.35}h3,legend{font-size:15px;font-weight:700}p{margin-top:6px}small,.muted{color:var(--muted)}small{font-size:12px}h1,h2,h3,p,td,th,label,summary,option,button{overflow-wrap:anywhere}a{color:var(--accent)}[hidden]{display:none!important}.skip{position:absolute;top:-100px;left:12px;background:var(--surface);padding:12px;z-index:20}.skip:focus{top:8px}
+.demo{padding:12px 24px;border-bottom:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.demo-title{font-size:12px}.demo-controls{display:flex;gap:12px;flex-wrap:wrap}.demo-controls label{font-size:12px;display:grid;gap:3px}.demo select{font-size:12px;min-height:36px;padding:5px 28px 5px 8px}.shell{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:calc(100vh - 96px)}.rail{border-right:1px solid var(--line);background:var(--surface);padding:28px 20px}.brand{font-weight:800;letter-spacing:-.025em;font-size:18px}.rail p{font-size:12px;margin-bottom:36px}.rail nav{display:grid;gap:4px}.nav-label{padding:10px 12px;color:var(--muted);font-size:13px}.nav-label.current{color:var(--accent);background:var(--soft);border-radius:6px;font-weight:700}.rail small{display:block;margin-top:32px}main{width:100%;max-width:1160px;margin:0 auto;padding:36px 40px 64px;min-width:0}.eyebrow{font-size:12px;color:var(--muted);margin-bottom:12px}.page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:24px}.page-header p{font-size:13px;color:var(--muted)}.page-header button{flex-shrink:0}.notice{border-left:3px solid var(--accent);padding:12px 16px;background:var(--soft);margin:20px 0;font-size:13px}.table-wrap{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;min-height:276px}table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left}caption{text-align:left;padding:14px 18px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}th{padding:10px 18px;font-size:12px;color:var(--muted);background:var(--bg);font-weight:600}td{padding:18px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle}td small{display:block;margin-top:3px}.code{font-variant-numeric:tabular-nums;font-weight:700}.status{font-size:12px;font-weight:600;color:var(--warning)}.status.closed{color:var(--muted)}.status.active{color:var(--success)}.cell-label{display:none}.empty{padding:48px 24px;text-align:center}.empty p{margin:8px auto 20px;max-width:400px}.skeleton{height:58px;margin:16px;background:var(--raised);border-radius:6px}.loading-note{padding:0 18px;color:var(--muted)}.error{border:1px solid var(--error);border-radius:6px;padding:14px 16px;margin:16px 0;background:var(--surface)}.error p{margin-bottom:10px}.error strong,.field-error{color:var(--error)}.field-error{font-size:12px;display:block;margin-top:5px}.editor{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;animation:open 150ms ease-out}.editor-header{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:24px}.editor-header p{font-size:13px;color:var(--muted)}fieldset{margin:0;padding:24px 0;border:0;border-top:1px solid var(--line);min-width:0}legend{padding:0 12px 0 0}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:8px}.field{display:grid;gap:6px;align-content:start;min-width:0}.field label{font-size:13px;font-weight:600}.field small{line-height:1.5}.full{grid-column:1/-1}.check{display:flex;gap:10px;align-items:center;min-height:44px}.check label{font-size:13px}.actions{display:flex;justify-content:flex-end;gap:12px;border-top:1px solid var(--line);padding-top:20px;flex-wrap:wrap}.clone-section{padding-top:24px;margin-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:20px}.clone-section p{font-size:13px;color:var(--muted);max-width:540px}.clone-section button{flex-shrink:0}.toast{position:fixed;right:24px;bottom:24px;max-width:min(420px,calc(100% - 32px));background:var(--surface);border:1px solid var(--success);border-radius:8px;padding:16px 20px;z-index:30;animation:open 150ms ease-out}.toast:empty{display:none}.toast strong{color:var(--success)}dialog{width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:28px;border:1px solid var(--line);border-radius:12px;color:var(--text);background:var(--surface)}dialog::backdrop{background:rgb(0 0 0/.5)}dialog p{color:var(--muted);margin:8px 0 20px}dialog .field{margin:16px 0}dialog .actions{margin-top:24px}.student-header{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:28px}.student-header .field{width:280px}.exam{padding:28px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.exam h2{margin:8px 0}.exam button{margin-top:20px}.edition-code{font-size:12px;font-weight:700;color:var(--wine)}details{margin-top:28px;border-bottom:1px solid var(--line)}summary{padding:16px 0;min-height:48px;font-weight:700}details .history-row{padding:16px 0 24px;display:flex;justify-content:space-between;gap:20px}.history-row p{color:var(--muted);font-size:13px}.footnote{margin-top:24px;font-size:12px;color:var(--muted)}@keyframes open{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:1000px){.shell{grid-template-columns:168px minmax(0,1fr)}main{padding:28px 24px}.rail{padding:28px 16px}th,td{padding:14px 12px}.fields{gap:16px}.editor{padding:24px}.clone-section{align-items:start;flex-direction:column}}
+@media(max-width:800px){.shell{display:block}.rail{padding:16px 24px;border-right:0;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:20px}.rail p,.rail small{display:none}.rail nav{display:block}.nav-label{display:inline-block}.nav-label:not(.current){display:none}main{padding:28px 24px}.demo{padding:12px 24px}.student-header{align-items:start;flex-direction:column}.student-header .field{width:100%}.page-header{align-items:start}}
+@media(max-width:600px){.demo{padding:12px 16px}.demo-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:10px}.demo-controls label:last-child{grid-column:1/-1}.demo select{width:100%}.rail{padding:14px 16px;justify-content:space-between}.brand{font-size:16px}main{padding:24px 16px 48px}.page-header{flex-wrap:wrap;gap:16px}.page-header button{width:100%}h1{font-size:24px}.table-wrap{min-height:0}table,tbody{display:block}colgroup{display:none}thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:16px;gap:14px;border-top:1px solid var(--line)}td{display:block;border:0;padding:0;min-width:0}td:nth-child(2){grid-column:1/-1}td:last-child{grid-column:1/-1}td button{width:100%;border-color:var(--line)!important}.cell-label{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-bottom:4px}.editor{padding:20px 16px}.editor-header{flex-wrap:wrap}.fields{grid-template-columns:minmax(0,1fr)}.full{grid-column:auto}.actions{flex-direction:column-reverse}.actions button{width:100%}.clone-section button{width:100%}.empty{padding:32px 20px}.history-row{flex-direction:column}.notice{padding:12px}.exam{padding:24px 0}dialog{padding:24px 20px}.toast{right:16px;bottom:16px}}
+/* AdminSidebar stays dark independently of the page theme. */
+.rail{background:#0B0C0E;color:#C9C4BF;border-color:#1F2329}
+.rail .brand{font-size:13.5px;color:#FFFFFF}
+.rail p,.rail small,.rail .nav-label{color:#C9C4BF}
+.rail .nav-label.current{background:#AB2350;color:#FFFFFF;border-radius:8px;font-weight:500}
+.notice{border:1px solid var(--line);background:var(--raised)}
+@media(min-width:801px){.shell{grid-template-columns:240px minmax(0,1fr)}}
+/* A block table needs a block caption, not a shrink-to-fit table-caption box. */
+@media(max-width:600px){#edition-table>caption{display:block;width:100%;overflow-wrap:anywhere}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Pular para o conteúdo</a>
+<aside class="demo" aria-label="Controles de demonstração">
+  <div class="demo-title"><strong>Protótipo local · Dados de demonstração</strong><br><span class="muted">Sem acesso real, envio ou persistência. Recarregar restaura os exemplos.</span></div>
+  <div class="demo-controls">
+    <label for="demo-view">Experiência<select id="demo-view"><option value="admin">Admin</option><option value="student">Área do aluno</option></select></label>
+    <label for="demo-state">Estado demo<select id="demo-state"><option value="normal">Normal</option><option value="empty">Vazio</option><option value="loading">Carregando</option><option value="error">Erro</option><option value="saved">Salvo</option><option value="long">Texto longo</option></select></label>
+    <label for="demo-theme">Tema<select id="demo-theme"><option value="light">Claro</option><option value="dark">Escuro</option></select></label>
+  </div>
+</aside>
+<div class="shell">
+  <aside class="rail" aria-label="Contexto da navegação, ilustrativo"><div class="brand">Arena Admin</div><p class="muted">ENAMED · Conteúdo</p><nav aria-label="Localização ilustrativa"><span class="nav-label">Simulados</span><span class="nav-label current" id="nav-current">Edições</span><span class="nav-label">Questões</span></nav><small>Estrutura ilustrativa.<br>Não representa permissão de acesso.</small></aside>
+  <main id="main" tabindex="-1">
+    <section id="admin" aria-labelledby="admin-title">
+      <div class="eyebrow">Conteúdo / Edições</div>
+      <header class="page-header"><div><h1 id="admin-title">Edições</h1><p>Organize o calendário e o formato de cada edição.</p></div><button class="primary" id="new-edition">Nova edição</button></header>
+      <div class="notice">2027.1 e 2027.2 estão em preparação. Datas oficiais ainda não divulgadas pelo Inep. Calendário de simulado não é calendário oficial.</div>
+      <div id="load-error" class="error" role="alert" hidden><strong id="error-title">Não foi possível carregar as edições (demonstração).</strong><p id="error-detail">Tente novamente. Nenhum dado foi enviado.</p><button id="retry">Tentar novamente</button></div>
+      <div id="listing" class="table-wrap" aria-busy="false">
+        <div id="loading-state" hidden role="status"><p class="loading-note">Carregando edições · demonstração</p><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+        <div id="empty-state" class="empty" hidden><h2>Nenhuma edição cadastrada</h2><p>Prepare a próxima edição sem alterar o histórico. Use “Nova edição” para começar.</p></div>
+        <table id="edition-table"><caption>Edições de demonstração · calendário oficial separado dos simulados</caption><colgroup><col style="width:13%"><col style="width:29%"><col style="width:17%"><col style="width:27%"><col style="width:14%"></colgroup><thead><tr><th scope="col">Código</th><th scope="col">Edição</th><th scope="col">Status</th><th scope="col">Data da prova</th><th scope="col">Ação</th></tr></thead><tbody id="rows"></tbody></table>
+      </div>
+      <section id="editor" class="editor" aria-labelledby="editor-title" hidden>
+        <div class="editor-header"><div><h2 id="editor-title" tabindex="-1">Editar edição</h2><p>Alterações apenas nesta demonstração.</p></div><button class="text" id="back">Voltar à lista</button></div>
+        <form id="edition-form" novalidate>
+          <fieldset><legend>Identificação</legend><div class="fields">
+            <div class="field"><label for="code">Código da edição</label><input id="code" required maxlength="100" aria-describedby="code-error" autocomplete="off"><span class="field-error" id="code-error"></span></div>
+            <div class="field"><label for="label">Rótulo da edição</label><input id="label" required maxlength="300" aria-describedby="label-error"><span class="field-error" id="label-error"></span></div>
+            <div class="field"><label for="status">Status</label><select id="status"><option>Planejada</option><option>Ativa</option><option>Encerrada</option></select></div>
+          </div></fieldset>
+          <fieldset><legend>Calendário oficial</legend><div class="fields">
+            <div class="field"><label for="exam-date">Data da prova (opcional)</label><input id="exam-date" type="date" aria-describedby="date-hint"><small id="date-hint">Aguardando divulgação do Inep. Deixe em branco se não houver data.</small></div>
+            <div class="field"><label for="result-date">Resultado oficial (opcional)</label><input id="result-date" type="date" aria-describedby="result-hint"><small id="result-hint">Sem data divulgada, mantenha vazio. Não é a liberação do resultado do simulado.</small></div>
+            <div class="check full"><input id="confirmed" type="checkbox" disabled aria-describedby="confirmed-hint"><label for="confirmed">Data da prova confirmada pelo Inep</label></div><small class="full" id="confirmed-hint">A confirmação só fica disponível com uma data válida. Uma estimativa não é oficial.</small>
+          </div></fieldset>
+          <fieldset><legend>Formato do exame</legend><div class="fields">
+            <div class="field"><label for="questions">Quantidade de questões</label><input id="questions" type="number" min="1" max="1000" required aria-describedby="questions-error"><span id="questions-error" class="field-error"></span></div>
+            <div class="field"><label for="alternatives">Alternativas por questão</label><input id="alternatives" type="number" min="2" max="10" required aria-describedby="alternatives-error"><span id="alternatives-error" class="field-error"></span></div>
+            <div class="field"><label for="duration">Duração (minutos)</label><input id="duration" type="number" min="1" max="1440" required aria-describedby="duration-error"><span id="duration-error" class="field-error"></span></div>
+            <div class="field"><label for="scoring">Pontuação do exame oficial</label><select id="scoring" aria-describedby="scoring-hint"><option value="undefined">Não definida</option><option value="tri">TRI (exame oficial)</option><option value="classical">Clássica</option></select><small id="scoring-hint">TRI oficial não significa nota calibrada do simulado.</small></div>
+          </div></fieldset>
+          <fieldset><legend>Matriz e referências</legend><div class="fields">
+            <div class="field full"><label for="blueprint">Matriz / blueprint (opcional)</label><textarea id="blueprint" rows="3" maxlength="2000" aria-describedby="blueprint-hint"></textarea><small id="blueprint-hint">Registre a matriz aprovada pela equipe. Exemplo demonstrativo, sem validação editorial.</small></div>
+            <div class="field full"><label for="reference">Referência do corte (opcional)</label><textarea id="reference" rows="2" maxlength="2000" aria-describedby="reference-hint"></textarea><small id="reference-hint">Nenhuma fonte de corte disponível neste protótipo. Não preencher com referência presumida.</small></div>
+          </div></fieldset>
+          <div class="actions"><button type="button" id="cancel">Cancelar</button><button type="submit" class="primary">Salvar edição</button></div>
+        </form>
+        <div class="clone-section" id="clone-section"><div><h3>Preparar um simulado para outra edição</h3><p>Crie uma cópia como rascunho. Origem, questões e tentativas existentes permanecem intactas.</p></div><button id="open-clone">Clonar como rascunho</button></div>
+        <p id="draft-feedback" role="status" class="footnote"></p>
+      </section>
+      <p class="footnote">Demonstração de interface, não publicação. Permissões, validação e integridade dependem do servidor na implementação real.</p>
+    </section>
+    <section id="student" hidden aria-labelledby="student-title">
+      <div class="eyebrow">Meus simulados</div><header class="student-header"><div><h1 id="student-title">Sua próxima edição</h1><p class="muted">Escolha seu alvo e mantenha o histórico por perto.</p></div><div class="field"><label for="target">Edição-alvo (opcional)</label><select id="target"><option value="">Sem escolha</option><option value="2027.1" selected>ENAMED 2027.1</option><option value="2027.2">ENAMED 2027.2</option><option value="unknown">Ainda não sei</option></select></div></header>
+      <p id="target-feedback" role="status" class="muted">Alvo de demonstração: ENAMED 2027.1. Sua escolha não é enviada.</p>
+      <div class="notice">Data oficial ainda não divulgada pelo Inep. Você pode continuar treinando.</div>
+      <div id="student-state" role="status" class="error" hidden></div>
+      <button id="student-retry" hidden>Tentar novamente</button>
+      <article class="exam" id="student-exam"><span class="edition-code" id="student-code">EDIÇÃO 2027.1</span><h2 id="student-exam-title">Simulado de preparação</h2><p class="muted">Exemplo de treino · Formato demonstrativo, não oficial</p><p>Treino fora da janela não entra no ranking elegível. Não há prova publicada neste protótipo.</p><button class="primary" id="demo-train">Experimentar treino demo</button></article>
+      <details id="history"><summary>Histórico de edições · 2026</summary><div class="history-row"><div><h3>ENAMED 2026</h3><p>Histórico de demonstração preservado. Sem nota ou ranking real.</p></div><button id="demo-history">Consultar histórico demo</button></div></details>
+      <p class="footnote">Área do aluno ilustrativa. O seletor não concede acesso, altera permissões ou produz resultado calibrado.</p>
+    </section>
+  </main>
+</div>
+<dialog id="clone-dialog" aria-labelledby="clone-title" aria-describedby="clone-description">
+  <h2 id="clone-title">Clonar como rascunho</h2><p id="clone-description">Confirme a origem e a edição de destino. Esta ação cria apenas um identificador de demonstração em memória, sem publicar conteúdo.</p>
+  <form id="clone-form"><div class="field"><label for="clone-source">Simulado de origem</label><select id="clone-source"><option value="sample-2026">Preparação 2026 · exemplo fictício</option></select></div><div class="field"><label for="clone-destination">Edição de destino</label><select id="clone-destination" required></select><small>O novo rascunho começa sem janela de execução. Nenhuma data oficial é copiada.</small></div><div class="notice">Origem e tentativas não serão alteradas. IDs reais novos e cópia atômica são responsabilidade do backend.</div><div class="actions"><button type="button" id="clone-cancel">Cancelar</button><button class="primary" type="submit">Confirmar rascunho demo</button></div></form>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const initial = [
+    { code:'2027.1', label:'ENAMED 2027.1', status:'Planejada' },
+    { code:'2027.2', label:'ENAMED 2027.2', status:'Planejada' },
+    { code:'2026', label:'ENAMED 2026', status:'Encerrada' }
+  ];
+  let editions = initial.map(item => ({ ...item, date:'', result:'', confirmed:false, questions:'100', alternatives:'4', duration:'300', scoring:'undefined', blueprint:'', reference:'' }));
+  let editing = null, returnCode = null, sequence = 0, trigger = null;
+  const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const bindings = { code:'code',label:'label',status:'status',date:'exam-date',result:'result-date',questions:'questions',alternatives:'alternatives',duration:'duration',scoring:'scoring',blueprint:'blueprint',reference:'reference' };
+  function feedback(message) { $('toast').textContent = message + ' · Demonstração local, nada enviado.'; }
+  function renderRows() {
+    $('rows').innerHTML = editions.map((item,index) => {
+      const label = $('demo-state').value === 'long' && index === 0 ? 'Edição de preparação para residência médica com rótulo editorial muito extenso — NomeSemEspacos'.repeat(3) : item.label;
+      return `<tr><td class="code"><span class="cell-label">Código</span>${esc(item.code)}</td><td><span class="cell-label">Edição</span>${esc(label)}</td><td><span class="cell-label">Status</span><span class="status ${item.status === 'Encerrada' ? 'closed' : item.status === 'Ativa' ? 'active' : ''}">${esc(item.status)}</span></td><td><span class="cell-label">Data da prova</span>${item.date ? esc(item.date.split('-').reverse().join('/')) : 'A confirmar'}<small>${item.date ? item.confirmed ? 'Confirmada · dado demo' : 'Não confirmada' : item.code.startsWith('2027') ? 'Inep ainda não divulgou' : 'Data não informada no exemplo'}</small></td><td><button class="text" data-edit="${esc(item.code)}" aria-label="Editar ${esc(label)}">Editar</button></td></tr>`;
+    }).join('');
+  }
+  function syncConfirmation() {
+    $('confirmed').disabled = !$('exam-date').value || !$('exam-date').validity.valid;
+    if ($('confirmed').disabled) $('confirmed').checked = false;
+  }
+  function clearErrors() {
+    ['code','label','questions','alternatives','duration'].forEach(id => { $(id).removeAttribute('aria-invalid'); $(id+'-error').textContent = ''; });
+  }
+  function openEditor(code, origin) {
+    editing = code; returnCode = code; trigger = origin;
+    const item = editions.find(entry => entry.code === code) || {code:'',label:'',status:'Planejada',date:'',result:'',questions:'100',alternatives:'4',duration:'300',scoring:'undefined',blueprint:'',reference:''};
+    Object.entries(bindings).forEach(([key,id]) => { $(id).value = item[key]; });
+    $('confirmed').checked = !!item.confirmed; syncConfirmation(); clearErrors();
+    $('editor-title').textContent = code ? 'Editar edição' : 'Nova edição';
+    $('editor').hidden = false; $('listing').hidden = true; $('new-edition').hidden = true;
+    $('clone-section').hidden = !code; $('draft-feedback').textContent = '';
+    $('editor-title').focus();
+  }
+  function closeEditor() {
+    $('editor').hidden = true; $('new-edition').hidden = false; editing = null;
+    applyState();
+    const rowButton = [...document.querySelectorAll('[data-edit]')].find(button => button.dataset.edit === returnCode);
+    (rowButton || trigger || $('new-edition')).focus();
+  }
+  function applyState() {
+    const state = $('demo-state').value;
+    const inEditor = !$('editor').hidden;
+    $('listing').hidden = inEditor;
+    $('listing').setAttribute('aria-busy', String(state === 'loading'));
+    $('loading-state').hidden = state !== 'loading';
+    $('empty-state').hidden = state !== 'empty';
+    $('edition-table').hidden = ['empty','loading','error'].includes(state);
+    $('load-error').hidden = state !== 'error';
+    $('error-title').textContent = inEditor ? 'Não foi possível salvar a edição (demonstração).' : 'Não foi possível carregar as edições (demonstração).';
+    $('error-detail').textContent = inEditor ? 'Os campos foram preservados. Tente novamente e salve quando estiver pronto.' : 'Tente novamente. Nenhum dado foi enviado.';
+    if (state === 'saved') feedback('Edição salva apenas nesta sessão');
+    else $('toast').textContent = '';
+    renderRows(); renderStudent();
+  }
+  function renderStudent() {
+    const state = $('demo-state').value, target = $('target');
+    const chosen = target.options[target.selectedIndex].text;
+    $('target-feedback').textContent = `Alvo de demonstração: ${chosen}. Sua escolha não é enviada.`;
+    $('student-code').textContent = target.value.startsWith('2027') ? 'EDIÇÃO '+target.value : 'TREINOS · SEM EDIÇÃO-ALVO';
+    $('student-exam-title').textContent = state === 'long' ? 'Preparação com nome editorial muito longo NomeSemEspacos'.repeat(4) : 'Simulado de preparação';
+    $('student-state').hidden = !['empty','loading','error'].includes(state);
+    $('student-state').textContent = state === 'loading' ? 'Carregando simulados · demonstração' : state === 'empty' ? 'Nenhum simulado nesta edição. Você pode consultar seu histórico.' : 'Não foi possível carregar os simulados (demonstração). Sua escolha foi preservada.';
+    $('student-retry').hidden = state !== 'error';
+    $('student-exam').hidden = ['empty','loading','error'].includes(state);
+  }
+  $('rows').addEventListener('click', event => { const button = event.target.closest('[data-edit]'); if(button) openEditor(button.dataset.edit, button); });
+  $('new-edition').onclick = event => openEditor(null, event.currentTarget);
+  $('back').onclick = closeEditor; $('cancel').onclick = closeEditor;
+  $('exam-date').addEventListener('input', syncConfirmation);
+  $('edition-form').onsubmit = event => {
+    event.preventDefault(); clearErrors();
+    if ($('demo-state').value === 'error') { applyState(); $('retry').focus(); return; }
+    let firstError;
+    function invalid(id,message) { $(id).setAttribute('aria-invalid','true'); $(id+'-error').textContent = message; firstError ||= $(id); }
+    const code = $('code').value.trim(), label = $('label').value.trim();
+    if (!code) invalid('code','Informe um código.');
+    else if (editions.some(item => item.code === code && item.code !== editing)) invalid('code','Este código já existe. Use outro código.');
+    if (!label) invalid('label','Informe o rótulo da edição.');
+    ['questions','alternatives','duration'].forEach(id => { const input = $(id); if (!input.value || !input.validity.valid || !Number.isInteger(Number(input.value))) invalid(id,`Use um inteiro entre ${input.min} e ${input.max}.`); });
+    if (firstError) { firstError.focus(); return; }
+    const item = Object.fromEntries(Object.entries(bindings).map(([key,id]) => [key,$(id).value.trim()]));
+    item.code = code; item.label = label; item.confirmed = !!item.date && $('confirmed').checked;
+    const index = editions.findIndex(entry => entry.code === editing);
+    if(index < 0) editions.push(item); else editions[index] = item;
+    returnCode = code; $('demo-state').value = 'normal'; closeEditor(); feedback('Edição salva');
+  };
+  $('retry').onclick = () => { $('demo-state').value = 'normal'; applyState(); (!$('editor').hidden ? $('label') : $('new-edition')).focus(); };
+  $('demo-state').onchange = applyState;
+  $('demo-view').onchange = () => { const student = $('demo-view').value === 'student'; $('admin').hidden = student; $('student').hidden = !student; $('nav-current').textContent = student ? 'Meus simulados' : 'Edições'; renderStudent(); };
+  $('demo-theme').onchange = () => { document.documentElement.dataset.theme = $('demo-theme').value; };
+  $('target').onchange = renderStudent;
+  $('student-retry').onclick = () => { $('demo-state').value = 'normal'; applyState(); $('target').focus(); };
+  $('demo-train').onclick = () => feedback('Treino ilustrativo. Nenhuma tentativa foi iniciada');
+  $('demo-history').onclick = () => feedback('Histórico ilustrativo de 2026. Nenhum resultado real disponível');
+  $('open-clone').onclick = () => {
+    $('clone-destination').innerHTML = editions.map(item => `<option value="${esc(item.code)}">${esc(item.label)}</option>`).join('');
+    $('clone-destination').value = editing;
+    $('clone-dialog').showModal(); $('clone-source').focus();
+  };
+  $('clone-cancel').onclick = () => $('clone-dialog').close();
+  $('clone-dialog').addEventListener('close', () => $('open-clone').focus());
+  $('clone-form').onsubmit = event => {
+    event.preventDefault();
+    const destination = $('clone-destination').value;
+    if (!editions.some(item => item.code === destination)) return;
+    const message = `Rascunho demo-${++sequence} criado para ${destination}. Origem sample-2026 preservada; sem janela de execução.`;
+    $('draft-feedback').textContent = message; $('clone-dialog').close(); feedback(message);
+  };
+  applyState();
+})();
+</script>
+</body>
+</html>
