@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { ADMIN_NAV } from '@/admin/lib/navigation'
 import { AdminAlertsBell } from '@/admin/components/AdminAlertsBell'
+import { AdminReportFilters } from '@/admin/components/AdminReportFilters'
 
 /**
  * Trilha de navegação a partir da rota atual, usando os grupos novos
@@ -49,7 +50,7 @@ function AdminThemeToggle() {
       aria-label={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}
       title={isDark ? 'Tema claro' : 'Tema escuro'}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="w-8 h-8 rounded-lg flex items-center justify-center text-admin-muted hover:bg-admin-raised hover:text-admin-text motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/50"
+      className="w-11 h-11 rounded-lg flex items-center justify-center text-admin-muted hover:bg-admin-raised hover:text-admin-text motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent"
     >
       {isDark ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
     </button>
@@ -61,7 +62,7 @@ export function AdminTopbar() {
   const { group, label } = getBreadcrumb(pathname)
 
   return (
-    <header className="h-[54px] border-b border-admin-line bg-admin-surface flex items-center justify-between px-6 shrink-0">
+    <><header className="h-[54px] border-b border-admin-line bg-admin-surface flex items-center justify-between gap-2 px-4 sm:px-6 shrink-0">
       <nav aria-label="Trilha de navegação" className="flex items-center gap-1.5 min-w-0">
         {group && (
           <>
@@ -71,10 +72,10 @@ export function AdminTopbar() {
         )}
         <span className="text-[12.5px] font-semibold text-admin-text truncate">{label}</span>
       </nav>
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5 [&_button]:min-h-11 [&_button]:min-w-11">
         <AdminAlertsBell />
         <AdminThemeToggle />
       </div>
-    </header>
+    </header><AdminReportFilters /></>
   )
 }

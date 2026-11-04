@@ -1,4 +1,6 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
+import { useAppConfig } from '@/hooks/useAppConfig'
+import { useAdminPeriod } from '@/admin/contexts/AdminPeriodContext'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -101,22 +103,63 @@ function round1(n: number) {
   return Math.round(n * 10) / 10
 }
 
+function editionSimLabel(row: ScoreEvolutionRow) {
+  return `${row.edition_code || row.edition_label || 'Edição não informada'} · Simulado ${row.sequence_number}`
+}
+
+function EditionEvolution({ rows }: { rows: ScoreEvolutionRow[] }) {
+  const groups = new Map<string, ScoreEvolutionRow[]>()
+  for (const row of rows) {
+    // Missing edition metadata cannot establish comparability, even between two rows.
+    const key = row.edition_id ?? `unknown:${row.simulado_id}`
+    groups.set(key, [...(groups.get(key) ?? []), row])
+  }
+  return <div className="space-y-4">
+    <p className="text-sm text-admin-muted">Percentuais brutos comparados somente dentro de cada edição. Não representam uma escala oficial comum de proficiência.</p>
+    {[...groups].map(([id, group]) => {
+      const sorted = group.slice().sort((a, b) => a.sequence_number - b.sequence_number || a.simulado_id.localeCompare(b.simulado_id))
+      const best = sorted.reduce((a, b) => a.avg_score >= b.avg_score ? a : b)
+      const worst = sorted.reduce((a, b) => a.avg_score <= b.avg_score ? a : b)
+      const label = sorted[0].edition_label || sorted[0].edition_code || 'Edição não informada'
+      return <section key={id} aria-label={`Evolução: ${label}`} className="space-y-3">
+        <h2 className="text-sm font-semibold text-admin-text">{label}</h2>
+        {!sorted[0].edition_id && <p className="text-sm text-admin-muted">Metadados de edição ausentes. Este simulado é exibido isoladamente, sem atribuição por posição ou ano.</p>}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <AdminStatCard label="Média da edição" value={`${round1(sorted.reduce((n, r) => n + r.avg_score, 0) / sorted.length)}%`} />
+          <AdminStatCard label="Melhor simulado da edição" value={`${round1(best.avg_score)}%`} deltaLabel={editionSimLabel(best)} />
+          <AdminStatCard label="Pior simulado da edição" value={`${round1(worst.avg_score)}%`} deltaLabel={editionSimLabel(worst)} />
+        </div>
+        <AdminPanel><AdminTrendChart title={`Média × Mediana · ${label}`} type="line"
+          data={sorted.map(r => ({ ...r, reportLabel: editionSimLabel(r), reportKey: `${id}:${r.simulado_id}` }))} xKey="sequence_number"
+          lines={[{ key: 'avg_score', color: adminChartSeriesColors.primary, label: 'Média' }, { key: 'median_score', color: adminChartSeriesColors.info, label: 'Mediana' }]} height={200} embedded /></AdminPanel>
+        <ul aria-label={`Simulados de ${label}`} className="text-xs text-admin-muted">{sorted.map(r => <li key={`${id}:${r.simulado_id}`}>{editionSimLabel(r)}</li>)}</ul>
+      </section>
+    })}
+  </div>
+}
+
 function AdminInteligenciaContent() {
   const navigate = useNavigate()
+  const editionsEnabled = useAppConfig('editions_ui')
+  const { reportScope, reportError, reportEditionId, period, setPeriod } = useAdminPeriod()
+  const scope = editionsEnabled ? reportScope : undefined
+  const ready = !editionsEnabled || !!scope
+  const comparable = !editionsEnabled || reportEditionId !== null
 
   const [days, setDays] = useState(30)
   const [segment, setSegment] = useState('all')
-  const [simuladoId, setSimuladoId] = useState<string | null>(null)
+  const [simuladoSelection, setSimuladoSelection] = useState<{ id: string | null; edition: string | null }>({ id: null, edition: reportEditionId })
+  const simuladoId = editionsEnabled && simuladoSelection.edition !== reportEditionId ? null : simuladoSelection.id
   const [expandedArea, setExpandedArea] = useState<string | null>(null)
 
   // ── Data
-  const insightsQ = useAdminIntelInsights()
-  const areasQ = useAdminPerformanceByArea(simuladoId, segment)
-  const evolutionQ = useAdminScoreEvolution()
-  const distQ = useAdminScoreDistribution(simuladoId)
-  const cohortsQ = useAdminCohortRetention(6)
-  const engagementQ = useAdminEngagementMetrics(days)
-  const segmentsQ = useAdminSegmentBreakdown()
+  const insightsQ = useAdminIntelInsights(scope, ready)
+  const areasQ = useAdminPerformanceByArea(simuladoId, segment, scope, ready && comparable)
+  const evolutionQ = useAdminScoreEvolution(scope, ready)
+  const distQ = useAdminScoreDistribution(simuladoId, scope, ready && comparable)
+  const cohortsQ = useAdminCohortRetention(6, scope, ready)
+  const engagementQ = useAdminEngagementMetrics(editionsEnabled ? period : days)
+  const segmentsQ = useAdminSegmentBreakdown(scope, ready)
 
   const insights = (insightsQ.data ?? []) as IntelInsight[]
   // areas/evolution alimentam deps de useMemo/useEffect — memoizados para identidade estável.
@@ -133,13 +176,26 @@ function AdminInteligenciaContent() {
       evolution
         .slice()
         .sort((a, b) => a.sequence_number - b.sequence_number)
-        .map(r => ({ id: r.simulado_id, label: `#${r.sequence_number} ${r.title}` })),
-    [evolution],
+        .map(r => ({ id: r.simulado_id, key: `${r.edition_id ?? 'unknown'}:${r.simulado_id}`, label: editionsEnabled ? editionSimLabel(r) : `#${r.sequence_number} ${r.title}` })),
+    [evolution, editionsEnabled],
   )
 
   // Área inspecionada para temas: default = pior área (areas vem ordenado por correct_rate asc).
   const worstArea = areas.length > 0 ? areas[0].area : null
-  const activeArea = expandedArea ?? worstArea
+  const activeArea = editionsEnabled && simuladoSelection.edition !== reportEditionId ? worstArea : expandedArea ?? worstArea
+
+  useEffect(() => {
+    if (editionsEnabled) {
+      setSimuladoSelection(current => current.edition !== reportEditionId ? { id: null, edition: reportEditionId } : current)
+      setExpandedArea(null)
+    }
+  }, [reportEditionId, editionsEnabled])
+  useEffect(() => {
+    if (editionsEnabled && evolutionQ.isSuccess && simuladoId && !evolution.some(r => r.simulado_id === simuladoId)) {
+      setSimuladoSelection({ id: null, edition: reportEditionId })
+      setExpandedArea(null)
+    }
+  }, [editionsEnabled, evolutionQ.isSuccess, evolution, simuladoId, reportEditionId])
 
   // Se a lista de áreas mudar e a área selecionada sumir, reseta a seleção manual.
   useEffect(() => {
@@ -148,21 +204,23 @@ function AdminInteligenciaContent() {
     }
   }, [areas, expandedArea])
 
-  const themesQ = useAdminPerformanceByTheme(simuladoId, activeArea, !!activeArea)
+  const themesQ = useAdminPerformanceByTheme(simuladoId, activeArea, !!activeArea && ready && comparable, scope)
   const themes = (themesQ.data ?? []) as ThemePerformanceRow[]
 
   // ── Evolução: KPIs derivados
   const avgGeral =
-    evolution.length > 0
+    !editionsEnabled && evolution.length > 0
       ? round1(evolution.reduce((acc, r) => acc + r.avg_score, 0) / evolution.length)
       : 0
   const totalParticipants = evolution.reduce((acc, r) => acc + r.participants, 0)
-  const bestSim = evolution.length
+  const bestSim = !editionsEnabled && evolution.length
     ? evolution.reduce((best, r) => (r.avg_score > best.avg_score ? r : best))
     : null
-  const worstSim = evolution.length
+  const worstSim = !editionsEnabled && evolution.length
     ? evolution.reduce((w, r) => (r.avg_score < w.avg_score ? r : w))
     : null
+
+  if (!ready) return <AdminPanel><p role="status" className="text-sm text-admin-text">{reportError ?? 'Valide os filtros para carregar os relatórios.'}</p></AdminPanel>
 
   return (
     <div className="space-y-8 max-w-[1400px]">
@@ -173,7 +231,7 @@ function AdminInteligenciaContent() {
           helper="O resumo de tudo num lugar só: desempenho, engajamento e coortes com dados reais da plataforma."
         />
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <div className={TOGGLE_GROUP}>
+          {!editionsEnabled && <div className={TOGGLE_GROUP}>
             {PERIODS.map(p => (
               <button
                 key={p.value}
@@ -184,8 +242,8 @@ function AdminInteligenciaContent() {
                 className={toggleBtn(days === p.value)}
               >{p.label}</button>
             ))}
-          </div>
-          <div className="w-px h-5 bg-admin-line" />
+          </div>}
+          {!editionsEnabled && <div className="w-px h-5 bg-admin-line" />}
           <div className={TOGGLE_GROUP}>
             {SEGMENTS.map(s => (
               <button
@@ -204,21 +262,21 @@ function AdminInteligenciaContent() {
       {/* Resumo de topo: três números que respondem à pergunta de cara. */}
       <section aria-label="Resumo da operação">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AdminStatCard
+          {!editionsEnabled && <AdminStatCard
             isLoading={engagementQ.isLoading}
             label="Provas iniciadas no período"
             value={metrics ? formatInt(metrics.started) : '—'}
-          />
+          />}
           <AdminStatCard
             isLoading={evolutionQ.isLoading}
             label="Provas avaliadas"
             value={evolution.length > 0 ? formatInt(totalParticipants) : '—'}
           />
-          <AdminStatCard
+          {!editionsEnabled && <AdminStatCard
             isLoading={evolutionQ.isLoading}
             label="Nota média"
             value={evolution.length > 0 ? `${avgGeral}%` : '—'}
-          />
+          />}
         </div>
       </section>
 
@@ -259,22 +317,23 @@ function AdminInteligenciaContent() {
 
       {/* 2 ── Desempenho por área */}
       <section id="areas">
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <p className="text-micro-label text-admin-muted uppercase">Desempenho por área</p>
           <select
             aria-label="Filtrar por simulado"
             className={NATIVE_SELECT}
             value={simuladoId ?? ''}
-            onChange={e => setSimuladoId(e.target.value || null)}
+            disabled={!comparable}
+            onChange={e => { setSimuladoSelection({ id: e.target.value || null, edition: reportEditionId }); setExpandedArea(null) }}
           >
             <option value="">Todos os simulados</option>
             {simuladoOptions.map(o => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+              <option key={o.key} value={o.id}>{o.label}</option>
             ))}
           </select>
         </div>
 
-        {areasQ.isError ? (
+        {!comparable ? <AdminPanel><p className="text-sm text-admin-muted">Escolha uma edição para comparar percentuais de acerto por área. Resultados brutos de edições diferentes não estimam proficiência comum.</p></AdminPanel> : areasQ.isError ? (
           <AdminPanel><ErrorNote message={(areasQ.error as Error)?.message} /></AdminPanel>
         ) : !areasQ.isLoading && areas.length === 0 ? (
           <AdminPanel><AdminEmptyState title="Sem dados de desempenho" /></AdminPanel>
@@ -344,6 +403,8 @@ function AdminInteligenciaContent() {
           <AdminPanel><ErrorNote message={(evolutionQ.error as Error)?.message} /></AdminPanel>
         ) : !evolutionQ.isLoading && evolution.length === 0 ? (
           <AdminPanel><AdminEmptyState title="Sem simulados avaliados" /></AdminPanel>
+        ) : editionsEnabled ? (
+          <EditionEvolution rows={evolution} />
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -387,7 +448,7 @@ function AdminInteligenciaContent() {
       {/* 4 ── Distribuição de notas */}
       <section id="distribuicao">
         <p className={SECTION_LABEL}>Distribuição de notas</p>
-        {distQ.isError ? (
+        {!comparable ? <AdminPanel><p className="text-sm text-admin-muted">Escolha uma edição para ver a distribuição de percentuais brutos. Esta distribuição não estima proficiência nem uma escala oficial comum.</p></AdminPanel> : distQ.isError ? (
           <AdminPanel><ErrorNote message={(distQ.error as Error)?.message} /></AdminPanel>
         ) : !distQ.isLoading && dist.length === 0 ? (
           <AdminPanel><AdminEmptyState title="Sem distribuição no período" /></AdminPanel>
@@ -422,6 +483,14 @@ function AdminInteligenciaContent() {
       {/* 6 ── Engajamento & integridade */}
       <section id="engajamento">
         <p className={SECTION_LABEL}>Engajamento &amp; integridade</p>
+        {editionsEnabled && <div className="mb-4 space-y-2">
+          <p className="text-sm text-admin-muted">Visão legada: engajamento não está disponível por edição ou intervalo livre. Os controles globais não se aplicam a esta seção.</p>
+          <label htmlFor="engagement-legacy-period" className="block text-xs font-semibold text-admin-text">Período legado do engajamento</label>
+          <select id="engagement-legacy-period" className={`${NATIVE_SELECT} min-h-11 max-w-full`} value={period} onChange={e => setPeriod(Number(e.target.value) as 7 | 30 | 90)}>
+            {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          <p className="text-sm text-admin-text">Provas iniciadas no período legado: {metrics ? formatInt(metrics.started) : '—'}</p>
+        </div>}
         {engagementQ.isError ? (
           <AdminPanel><ErrorNote message={(engagementQ.error as Error)?.message} /></AdminPanel>
         ) : !engagementQ.isLoading && !metrics ? (
@@ -469,7 +538,7 @@ function AdminInteligenciaContent() {
               { key: 'segment', label: 'Segmento', render: r => SEGMENT_META[r.segment]?.label ?? r.segment },
               { key: 'users', label: 'Usuários', render: r => formatInt(r.users) },
               { key: 'participation_rate', label: 'Participação', render: r => `${r.participation_rate}%` },
-              { key: 'avg_score', label: 'Média', render: r => `${r.avg_score}%` },
+              { key: 'avg_score', label: 'Média', render: r => comparable ? `${r.avg_score}%` : 'Selecione uma edição' },
               { key: 'avg_attempts', label: 'Tentativas/usuário', render: r => r.avg_attempts },
             ]}
           />

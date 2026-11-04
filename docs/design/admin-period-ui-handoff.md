@@ -221,3 +221,54 @@ ignorado pelo Git do projeto, sem forçar inclusão ou mudar o índice. Há um l
 Critério de avanço: Codex revisar HTML, medidas e capturas; validar alcance e
 semântica de presets, fallback de fonte e plano de sessão/callers. Somente após
 essa revisão abrir fase B. Nenhum commit ou publicação foi realizado.
+
+## Revisão do Codex e avanço para fase B
+
+O Codex revisou 375 claro/default e 1440 escuro/custom-applied; a direção foi aprovada. Os 19 testes Node passaram independentemente, e o relatório registrou 38 capturas com foco, teclado, overflow e contraste. A fase A está commitada neste worktree. A pendência de revisão indicada acima está resolvida; implementar agora a fase B funcional.
+
+O escopo e o contrato completos estão no arquivo durável do orquestrador `../fase1-edicoes-f2-admin-ops-ui/.superpowers/admin-ops/period-phase-b-DRAFT.md`, autorizado para leitura. Esta ordem está registrada aqui para sobreviver à perda de mensagens de retomada do runner. Não voltar a produzir só a fase A.
+
+Escopo React: AdminPeriodContext, AdminTopbar, novo AdminReportFilters, adminApi somente os sete métodos contratados, useAdminInteligencia, AdminInteligencia, ScoreEvolutionRow metadata, src/types/admin-period.ts, helpers de range e testes correspondentes. Também permitidos AdminDashboard.test.tsx e __tests__/test-utils.tsx apenas para wrappers/mocks de integração. Excluídos App/sidebar/resultado/cutoff/reprocess/SQL/pacotes/arquivos de outros jobs.
+
+Preservar legacy flag false; novos filtros por edição e intervalo [start,end) nas sete RPCs; sessionStorage e query keys isolados por usuário. Nunca conectar médias brutas de edições distintas nem calcular melhor/pior global entre elas. Engagement e dashboard não suportados devem ficar identificados como visão legada, sem promessa de filtro inexistente. Entregar funcional, testes do escopo, QA enxuto 375 escuro/1440 claro e relatório, sem nova rodada de protótipos ou polimento indefinido.
+
+## Encerramento da fase B
+
+A fase B React foi implementada e revisada pelo Codex. Os trechos anteriores
+marcados como plano futuro ou entrega somente da fase A são o registro histórico
+daquela etapa, não o status atual. O registro consolidado da implementação,
+comandos, resultados e limites está em `docs/admin-period-ui-2027.md`.
+
+Entregues filtros de edição e período nas sete RPCs contratadas, persistência e
+query keys isoladas por usuário, estados seguros de catálogo e datas BRT
+inclusivas convertidas para `[start,end)`. Flag falsa mantém o caminho legado;
+engajamento permanece identificado como visão legada independente. Séries de
+edições distintas não são conectadas nem resumidas como uma escala comum.
+
+Verificações registradas pelo implementador:
+
+```powershell
+node node_modules/vitest/vitest.mjs run src/admin/lib/adminPeriod.test.ts src/admin/contexts/AdminPeriodContext.test.tsx src/admin/services/adminApi.period.test.ts src/admin/hooks/useAdminInteligencia.test.tsx src/admin/components/AdminReportFilters.test.tsx src/admin/components/AdminTopbar.test.tsx src/admin/__tests__/AdminInteligencia.test.tsx src/admin/__tests__/AdminDashboard.test.tsx --maxWorkers=2
+node node_modules/eslint/bin/eslint.js src/admin/lib/adminPeriod.ts src/types/admin-period.ts src/admin/contexts/AdminPeriodContext.tsx src/admin/components/AdminReportFilters.tsx src/admin/components/AdminTopbar.tsx src/admin/hooks/useAdminInteligencia.ts src/admin/pages/AdminInteligencia.tsx
+git diff --check
+node ".superpowers/admin-periodQA/react-qa.mjs"
+```
+
+Resultados dessas execuções: 73 testes em 8 arquivos aprovados; lint sem erros
+com um warning de export do Context; diff sem erros; QA React exit 0.
+Não representam uma repetição de checks no encerramento documental.
+
+Revisão independente informada pelo orquestrador: 72 testes em 7 arquivos mais
+Topbar aprovados, TypeScript com `tsconfig.app.json` exit 0 e lint exit 0.
+As linhas exatas dos comandos independentes não foram fornecidas. O Codex
+inspecionou `react/375-dark-selectors.png`, `react/1440-light-selectors.png` e
+`results.json`, aprovando controles, foco, contraste e séries. Não há bloqueador
+funcional segundo essa revisão. A ordem final foi incorporada: encerrar apenas
+com documentação, sem nova investigação, testes ou polimento.
+
+As evidências React estão em `.superpowers/admin-periodQA/`, ignorado pelo Git.
+O harness usa componentes reais e Edge offline, mas Auth e dados mockados:
+não comprova Auth real, catálogo autorizado/drafts, RLS, Supabase, PostgREST,
+RPCs reais nem persistência entre usuários reais. Não equivale a auditoria WCAG
+completa ou cobertura Safari/Firefox. A matriz de 38 capturas da fase A não foi
+repetida. Sem alterações SQL, produção, pacotes, commit ou publicação.

@@ -398,6 +398,9 @@ export interface ScoreBucket {
 }
 
 export interface ScoreEvolutionRow {
+  edition_id?: string | null
+  edition_code?: string | null
+  edition_label?: string | null
   simulado_id: string
   sequence_number: number
   title: string
