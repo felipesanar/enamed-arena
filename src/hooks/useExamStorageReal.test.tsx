@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { useRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExamState } from '@/types/exam';
 import { readExamCache, writeExamCache } from '@/lib/exam-cache';
@@ -6,11 +7,17 @@ const { auth, api } = vi.hoisted(() => ({ auth: { user: { id: 'user' } }, api: {
   submitAttempt: vi.fn(), getAttempt: vi.fn(), getAnswers: vi.fn(),
     updateAttempt: vi.fn(), bulkUpsertAnswers: vi.fn(), enqueueAttemptReprocessing: vi.fn(), createAttempt: vi.fn(),
 } }));
+const focus = vi.hoisted(() => ({ callbacks: null as null | { onTabExit: () => void; onFullscreenExit: () => void } }));
+vi.mock('@/hooks/useFocusControl', () => ({ useFocusControl: (callbacks: typeof focus.callbacks) => {
+  focus.callbacks = callbacks;
+  return {};
+} }));
 vi.mock('@/services/simuladosApi', () => ({ simuladosApi: api }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 vi.mock('@/services/serverClockApi', () => ({ serverClockApi: { getServerTime: vi.fn() } }));
 import { useExamStorageReal } from '@/hooks/useExamStorageReal';
+import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
 import { useServerClock } from '@/hooks/useServerClock';
 import { serverClockApi } from '@/services/serverClockApi';
 
@@ -28,6 +35,47 @@ describe('finalization storage', () => {
     api.getAnswers.mockResolvedValue([]);
     api.updateAttempt.mockResolvedValue(undefined);
     api.bulkUpsertAnswers.mockResolvedValue(undefined);
+  });
+  it('captures burst counters once and never rebinds an old integrity callback', async () => {
+    const { result, rerender } = renderHook(({ sim }) => useExamStorageReal(sim), { initialProps: { sim: 'sim' } });
+    result.current.attemptId.current = 'attempt';
+    const active = { ...state, effectiveDeadline: new Date(Date.now() + 60000).toISOString() };
+    let last: ExamState | null = null;
+    await act(async () => {
+      for (let i = 0; i < 5; i++) last = result.current.registerTabExit(active);
+      last = result.current.registerFullscreenExit(last!);
+    });
+    expect(last).toMatchObject({ tabExitCount: 5, fullscreenExitCount: 1 });
+    expect(result.current.loadLocalState()).toMatchObject({ tabExitCount: 5, fullscreenExitCount: 1 });
+    expect(api.updateAttempt).toHaveBeenLastCalledWith('attempt', expect.objectContaining({ tab_exit_count: 5, fullscreen_exit_count: 1 }));
+    const old = result.current.registerTabExit;
+    rerender({ sim: 'other' });
+    result.current.attemptId.current = 'other-attempt';
+    expect(() => old(active)).toThrow();
+    expect(api.updateAttempt.mock.calls.every(([id]) => id === 'attempt')).toBe(true);
+  });
+  it('keeps React state and storage identical during batched mixed exit bursts', async () => {
+    const active = { ...state, effectiveDeadline: new Date(Date.now()+60000).toISOString() };
+    const { result } = renderHook(() => {
+      const storage = useExamStorageReal('sim');
+      const [current, setState] = useState<ExamState | null>(active);
+      const stateRef = useRef(current);
+      stateRef.current = current;
+      const simuladoRef = useRef({ id: 'sim' });
+      useExamIntegrity({ storage, stateRef, simuladoRef, setState });
+      return { storage, state: current };
+    });
+    result.current.storage.attemptId.current = 'attempt';
+    await act(async () => {
+      for (let i=0; i<8; i++) focus.callbacks!.onTabExit();
+      for (let i=0; i<3; i++) focus.callbacks!.onFullscreenExit();
+    });
+    expect(result.current.state).toMatchObject({ tabExitCount: 8, fullscreenExitCount: 3 });
+    expect(result.current.storage.loadLocalState()).toMatchObject({ tabExitCount: 8, fullscreenExitCount: 3 });
+    expect(api.updateAttempt).toHaveBeenLastCalledWith('attempt', expect.objectContaining({ tab_exit_count: 8, fullscreen_exit_count: 3 }));
+    // A stale render/save must not lower the cache high-water marks either.
+    await act(async () => result.current.storage.saveStateSync(active));
+    expect(result.current.storage.loadLocalState()).toMatchObject({ tabExitCount: 8, fullscreenExitCount: 3 });
   });
   it.each([true, false])('resumes an expired tab without rewriting answers (auto=%s)', async (auto) => {
     const { result } = renderHook(() => useExamStorageReal('sim'));

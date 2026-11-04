@@ -142,7 +142,12 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     if (state.simuladoId !== simuladoId) throw new Error('Estado de outro simulado.');
     const operation = captureOperation(state);
     if (!operation) return;
-    const snapshot = snapshotState({ ...state, lastSavedAt: clockTrusted
+    const latest = latestRef.current;
+    const previous = latest?.operation.attemptId === operation.attemptId && latest.operation.scope === operation.scope ? latest.state : null;
+    const snapshot = snapshotState({ ...state,
+      tabExitCount: Math.max(state.tabExitCount, previous?.tabExitCount ?? 0),
+      fullscreenExitCount: Math.max(state.fullscreenExitCount, previous?.fullscreenExitCount ?? 0),
+      lastSavedAt: clockTrusted
       ? new Date(now()).toISOString() : state.lastSavedAt }, simuladoId);
     latestRef.current = { state: snapshot, operation };
     const bucket = dirtyQuestionIdsRef.current;
@@ -529,19 +534,21 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
   }, [user, captureOperation, syncToDb, flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState, isOperationActive, now, clockTrusted]);
 
   // ── Integrity events ──
-  const registerTabExit = useCallback(() => {
-    const state = loadLocalState();
-    if (!state) return;
-    const updated = { ...state, tabExitCount: state.tabExitCount + 1 };
+  const registerIntegrityExit = useCallback((state: ExamState, field: 'tabExitCount' | 'fullscreenExitCount') => {
+    const operation = captureOperation(state);
+    if (!operation || state.status !== 'in_progress') return null;
+    const latest = latestRef.current;
+    const previous = latest?.operation.attemptId === operation.attemptId && latest.operation.scope === operation.scope ? latest.state : null;
+    const updated = { ...state,
+      tabExitCount: Math.max(state.tabExitCount, previous?.tabExitCount ?? 0),
+      fullscreenExitCount: Math.max(state.fullscreenExitCount, previous?.fullscreenExitCount ?? 0),
+    };
+    updated[field] += 1;
     saveStateSync(updated);
-  }, [loadLocalState, saveStateSync]);
-
-  const registerFullscreenExit = useCallback(() => {
-    const state = loadLocalState();
-    if (!state) return;
-    const updated = { ...state, fullscreenExitCount: state.fullscreenExitCount + 1 };
-    saveStateSync(updated);
-  }, [loadLocalState, saveStateSync]);
+    return updated;
+  }, [captureOperation, saveStateSync]);
+  const registerTabExit = useCallback((state: ExamState) => registerIntegrityExit(state, 'tabExitCount'), [registerIntegrityExit]);
+  const registerFullscreenExit = useCallback((state: ExamState) => registerIntegrityExit(state, 'fullscreenExitCount'), [registerIntegrityExit]);
 
   const clearState = useCallback(() => {
     if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);

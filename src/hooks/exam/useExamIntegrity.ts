@@ -4,8 +4,8 @@
  *
  * Extraído de useExamFlow (Fase 3 / REFACTOR_ROADMAP). Os handlers leem de refs
  * mantidas frescas pelo useExamFlow (stateRef/simuladoRef) — assim o
- * useFocusControl não re-registra listeners do window a cada resposta. NÃO muda
- * comportamento.
+ * useFocusControl recebe a tentativa atual. O storage captura cada incremento;
+ * o estado React recebe a mesma contagem, sem duplicar a persistência.
  */
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { useFocusControl } from '@/hooks/useFocusControl';
@@ -15,9 +15,10 @@ import type { ExamState } from '@/types/exam';
 
 /** Subconjunto de useExamStorageReal usado aqui. */
 interface IntegrityStorage {
-  registerTabExit: () => void;
-  registerFullscreenExit: () => void;
+  registerTabExit: (state: ExamState) => ExamState | null;
+  registerFullscreenExit: (state: ExamState) => ExamState | null;
   attemptId: { current: string | null };
+  userId?: string;
 }
 
 export interface UseExamIntegrityArgs {
@@ -25,12 +26,13 @@ export interface UseExamIntegrityArgs {
   simuladoRef: MutableRefObject<{ id: string } | null>;
   storage: IntegrityStorage;
   setState: Dispatch<SetStateAction<ExamState | null>>;
+  now?: () => number;
 }
 
 /** Segundos restantes até o deadline efetivo (0 se não houver). */
-function timeRemainingSeconds(state: ExamState | null): number {
+function timeRemainingSeconds(state: ExamState | null, now: () => number): number {
   if (!state?.effectiveDeadline) return 0;
-  return Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000));
+  return Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - now()) / 1000));
 }
 
 export function useExamIntegrity({
@@ -38,44 +40,42 @@ export function useExamIntegrity({
   simuladoRef,
   storage,
   setState,
+  now = Date.now,
 }: UseExamIntegrityArgs): ReturnType<typeof useFocusControl> {
-  const onTabExit = useCallback(() => {
-    storage.registerTabExit();
+  const registerExit = useCallback((kind: 'tab_exit' | 'fullscreen_exit') => {
     const s = stateRef.current;
     const sim = simuladoRef.current;
-    if (s && sim) {
-      trackEvent('exam_integrity_event', {
-        simulado_id: sim.id,
-        attempt_id: storage.attemptId.current ?? '',
-        event_type: 'tab_exit',
-        count_so_far: (s.tabExitCount ?? 0) + 1,
-        time_remaining_seconds: timeRemainingSeconds(s),
-      });
-    }
-  }, [storage, stateRef, simuladoRef]);
+    const attemptId = storage.attemptId.current;
+    const userId = storage.userId;
+    if (!s || !sim || s.simuladoId !== sim.id || s.status !== 'in_progress' || !attemptId) return;
+    const updated = kind === 'tab_exit' ? storage.registerTabExit(s) : storage.registerFullscreenExit(s);
+    if (!updated) return;
+    // Persist once outside React's replayable updater; merge captured high-water marks.
+    setState(prev => !prev || prev.status !== 'in_progress' || prev.simuladoId !== sim.id ||
+      storage.attemptId.current !== attemptId || storage.userId !== userId ? prev : ({
+        ...prev,
+        tabExitCount: Math.max(prev.tabExitCount, updated.tabExitCount),
+        fullscreenExitCount: Math.max(prev.fullscreenExitCount, updated.fullscreenExitCount),
+      }));
+    trackEvent('exam_integrity_event', {
+      simulado_id: sim.id, attempt_id: attemptId, event_type: kind,
+      count_so_far: kind === 'tab_exit' ? updated.tabExitCount : updated.fullscreenExitCount,
+      time_remaining_seconds: timeRemainingSeconds(s, now),
+    });
+  }, [storage, stateRef, simuladoRef, setState, now]);
+
+  const onTabExit = useCallback(() => registerExit('tab_exit'), [registerExit]);
 
   const onTabReturn = useCallback(() => {}, []);
 
   const onFullscreenExit = useCallback(() => {
-    storage.registerFullscreenExit();
-    setState(prev => prev ? { ...prev, fullscreenExitCount: prev.fullscreenExitCount + 1 } : prev);
-    const s = stateRef.current;
-    const sim = simuladoRef.current;
-    if (s && sim) {
-      trackEvent('exam_integrity_event', {
-        simulado_id: sim.id,
-        attempt_id: storage.attemptId.current ?? '',
-        event_type: 'fullscreen_exit',
-        count_so_far: (s.fullscreenExitCount ?? 0) + 1,
-        time_remaining_seconds: timeRemainingSeconds(s),
-      });
-    }
+    registerExit('fullscreen_exit');
     toast({
       title: 'Você saiu da tela cheia',
       description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
       variant: 'destructive',
     });
-  }, [storage, stateRef, simuladoRef, setState]);
+  }, [registerExit]);
 
   return useFocusControl({ onTabExit, onTabReturn, onFullscreenExit });
 }
