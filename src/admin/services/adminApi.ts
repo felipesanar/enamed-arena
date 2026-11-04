@@ -912,17 +912,12 @@ export const adminApi = {
    * Usado pelo gate de publicação, onde a planilha original não está em mãos.
    */
   async getQuestionsForGabaritoAudit(simuladoId: string): Promise<GabaritoAuditQuestion[]> {
-    const { data, error } = await supabase
-      .from('questions')
-      .select('question_number, text, explanation, question_options(label, text, is_correct)')
-      .eq('simulado_id', simuladoId)
-      .order('question_number', { ascending: true });
-    if (error) throw error;
-    return ((data ?? []) as any[]).map((q) => ({
+    const data = await adminApi.getSimuladoQuestions(simuladoId);
+    return data.map((q) => ({
       questionNumber: Number(q.question_number),
       enunciado: (q.text as string) ?? '',
       comentario: (q.explanation as string) ?? '',
-      options: ((q.question_options ?? []) as any[])
+      options: (q.options ?? [])
         .map((o) => ({
           label: String(o.label ?? ''),
           text: (o.text as string) ?? '',

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import CorrecaoPage from './CorrecaoPage'
 import * as UserContext from '@/contexts/UserContext'
+import { useSimuladoDetail } from '@/hooks/useSimuladoDetail'
 
 // ── Framer Motion mock ──────────────────────────────────────────────────────
 vi.mock('framer-motion', () => ({
@@ -23,6 +24,9 @@ vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'light', setTh
 
 // ── Analytics mock ──────────────────────────────────────────────────────────
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }))
+vi.mock('@/services/simuladosApi', () => ({
+  simuladosApi: { listFavorites: vi.fn(async () => []), listNotes: vi.fn(async () => []) },
+}))
 
 // ── Hook mocks ──────────────────────────────────────────────────────────────
 const mockSimulado = {
@@ -76,7 +80,7 @@ const mockAttemptQuestionResults = {
 }
 
 vi.mock('@/hooks/useSimuladoDetail', () => ({
-  useSimuladoDetail: () => ({ simulado: mockSimulado, questions: mockQuestions, loading: false }),
+  useSimuladoDetail: vi.fn(() => ({ simulado: mockSimulado, questions: mockQuestions, loading: false })),
 }))
 
 vi.mock('@/hooks/useExamResult', () => ({
@@ -135,6 +139,7 @@ describe('CorrecaoPage — smoke', () => {
 
   it('renderiza sem crash', () => {
     renderPage()
+    expect(useSimuladoDetail).toHaveBeenCalledWith('sim-1', true)
     expect(screen.getAllByText(/questão 1/i).length).toBeGreaterThan(0)
   })
 })

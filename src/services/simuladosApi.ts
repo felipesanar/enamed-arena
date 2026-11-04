@@ -75,8 +75,13 @@ export interface QuestionRow {
   difficulty: string | null;
   image_url: string | null;
   image_url_2: string | null;
-  explanation_image_url: string | null;
+}
+
+interface QuestionExplanationRow {
+  question_id: string;
   explanation: string | null;
+  explanation_image_url: string | null;
+  correct_option_id: string | null;
 }
 
 export interface QuestionOptionRow {
@@ -237,12 +242,10 @@ function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
   };
 }
 
-function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], includeCorrectAnswers = false): Question {
+function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], correction?: QuestionExplanationRow): Question {
   const qOptions = optionRows
     .filter(o => o.question_id === qRow.id)
     .sort((a, b) => a.label.localeCompare(b.label));
-
-  const correctOption = includeCorrectAnswers ? qOptions.find(o => o.is_correct) : undefined;
 
   return {
     id: qRow.id,
@@ -253,10 +256,12 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
     difficulty: qRow.difficulty ?? null,
     imageUrl: safeImageUrl(qRow.image_url),
     imageUrl2: safeImageUrl(qRow.image_url_2),
-    explanationImageUrl: safeImageUrl(qRow.explanation_image_url),
     options: qOptions.map(o => ({ id: o.id, label: o.label, text: o.text })),
-    correctOptionId: correctOption?.id ?? '',
-    explanation: qRow.explanation || undefined,
+    correctOptionId: correction?.correct_option_id ?? '',
+    ...(correction ? {
+      explanation: correction.explanation || undefined,
+      explanationImageUrl: safeImageUrl(correction.explanation_image_url),
+    } : {}),
   };
 }
 
@@ -349,17 +354,10 @@ export const simuladosApi = {
   },
 
   async getQuestions(simuladoId: string, includeCorrectAnswers = false): Promise<Question[]> {
-    // PostgREST embed: one round-trip instead of two (questions then options).
-    // Note: is_correct is only requested when includeCorrectAnswers is true —
-    // RLS on question_options still gates access; this just avoids sending
-    // the flag over the wire when not needed.
-    const optionsSelect = includeCorrectAnswers
-      ? 'id, question_id, label, text, is_correct'
-      : 'id, question_id, label, text';
-
+    // Restricted columns are never read through REST, including for admins.
     const { data, error } = await supabase
       .from('questions')
-      .select(`*, question_options(${optionsSelect})`)
+      .select('id, simulado_id, question_number, text, area, theme, difficulty, image_url, image_url_2, question_options(id, question_id, label, text)')
       .eq('simulado_id', simuladoId)
       .order('question_number', { ascending: true })
       .limit(300);
@@ -372,9 +370,19 @@ export const simuladosApi = {
     const rows = (data || []) as Array<QuestionRow & { question_options: QuestionOptionRow[] }>;
     if (rows.length === 0) return [];
 
-    return rows.map((row) => {
+    const corrections = new Map<string, QuestionExplanationRow>();
+    if (includeCorrectAnswers) {
+      const { data: released, error: releaseError } = await rpc('get_question_explanations', { p_simulado_id: simuladoId });
+      if (releaseError) throw releaseError;
+      for (const correction of (released ?? []) as unknown as QuestionExplanationRow[]) {
+        corrections.set(correction.question_id, correction);
+      }
+    }
+
+    // Review consumers must not mistake an unreleased answer key for wrong answers.
+    return rows.filter(row => !includeCorrectAnswers || corrections.has(row.id)).map((row) => {
       const { question_options, ...qRow } = row;
-      return rowsToQuestion(qRow, question_options ?? [], includeCorrectAnswers);
+      return rowsToQuestion(qRow, question_options ?? [], corrections.get(row.id));
     });
   },
 
