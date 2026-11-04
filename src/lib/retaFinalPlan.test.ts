@@ -5,7 +5,7 @@
  *   1. Priorização: entradas vencidas aparecem antes das agendadas.
  *   2. Exclusão: dominadas (mastered_at preenchido) não entram no plano.
  *   3. Distribuição: capacidade diária respeitada.
- *   4. Prova no passado: daysUntil <= 0 → examPassed=true, plan vazio.
+ *   4. Prova no passado: daysUntil < 0 → examPassed=true, plan vazio.
  *   5. Sem entradas: plan com slots vazios, stats zerados.
  */
 
@@ -47,6 +47,21 @@ function daysAhead(n: number): string {
 // ── Testes ───────────────────────────────────────────────────────────────────
 
 describe('buildRetaFinalPlan', () => {
+
+  it('sem data nao inventa dias nem considera a prova passada', () => {
+    const result = buildRetaFinalPlan({ entries: [makeEntry({ id: 'pending' })], enamedDate: null, today: TODAY });
+    expect(result.daysUntil).toBeNull();
+    expect(result.stats.daysUntil).toBeNull();
+    expect(result.examPassed).toBe(false);
+    expect(result.plan).toEqual([]);
+    expect(result.stats.totalActive).toBe(1);
+  });
+
+  it('usa dias de calendario SP com string do banco', () => {
+    const result = buildRetaFinalPlan({ entries: [], enamedDate: '2026-11-29', today: new Date('2026-11-29T02:00:00Z') });
+    expect(result.daysUntil).toBe(1);
+    expect(result.plan[0].date.toISOString()).toBe('2026-11-28T03:00:00.000Z');
+  });
 
   it('1 — prioriza entradas vencidas (srs_due_at <= hoje) sobre agendadas', () => {
     const overdue = makeEntry({ id: 'overdue', srs_due_at: daysAgo(3) });
@@ -104,6 +119,7 @@ describe('buildRetaFinalPlan', () => {
     }
     // Total coberto = min(entries.length, dias × capacidade)
     const totalCovered = result.plan.reduce((s, d) => s + d.entries.length, 0);
+    if (result.daysUntil === null) throw new Error('Uma data conhecida deve produzir dias numericos');
     expect(totalCovered).toBe(Math.min(30, result.daysUntil * 5));
     expect(result.stats.covered).toBe(Math.min(30, result.daysUntil * 5));
   });
@@ -124,14 +140,14 @@ describe('buildRetaFinalPlan', () => {
     expect(result.todayEntries).toHaveLength(0);
   });
 
-  it('4b — prova no mesmo dia: examPassed=true (dia 0 = sem tempo)', () => {
+  it('4b — prova no mesmo dia: nao considera encerrada', () => {
     const result = buildRetaFinalPlan({
       entries: [makeEntry({ id: 'e1' })],
       enamedDate: TODAY, // hoje = dia da prova
       today: TODAY,
     });
 
-    expect(result.examPassed).toBe(true);
+    expect(result.examPassed).toBe(false);
     expect(result.plan).toHaveLength(0);
   });
 

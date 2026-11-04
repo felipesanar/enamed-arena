@@ -13,13 +13,13 @@
  *
  * Estados:
  *   - Loading        → skeleton
- *   - Prova passou   → mensagem motivacional (CadernoEmptyState)
+ *   - Sem data / dia da prova → estado neutro ou "É hoje" (CadernoEmptyState)
  *   - Sem entradas   → CTA para adicionar questões (CadernoEmptyState)
  *   - Em dia         → hero + hoje + próximos dias
  *   - Sem pendências hoje → CadernoEmptyState celebratório
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -54,7 +54,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { SEGMENT_ACCESS } from '@/types';
 import { simuladosApi } from '@/services/simuladosApi';
-import { ENAMED_DATE } from '@/components/caderno/PageHero';
+import { useExamEditions } from '@/hooks/useExamEditions';
+import { getDaysUntil } from '@/lib/editions';
 import { buildRetaFinalPlan, type RetaFinalEntry, type RetaFinalPlan } from '@/lib/retaFinalPlan';
 
 /** Quantidade máxima de dias futuros exibidos além de hoje. */
@@ -90,15 +91,19 @@ function PrimaryCta({
   );
 }
 
-// ─── Estado: prova já passou ─────────────────────────────────────────────────
+// ─── Estado: data a confirmar ou dia da prova ─────────────────────────────────
 
-function ExamPassedState() {
+function EditionDateState({ label, isToday = false, isError = false }: { label?: string; isToday?: boolean; isError?: boolean }) {
   return (
     <CadernoEmptyState
       className="caderno-root mx-auto max-w-xl"
       icon={<CalendarCheck2 className="h-8 w-8 text-[var(--c-wine-500)]" aria-hidden />}
-      title="O ENAMED já aconteceu!"
-      description="A Reta Final volta no próximo ciclo. Continue revisando seu caderno para manter o ritmo."
+      title={isToday ? `${label}: É hoje` : 'Data a confirmar'}
+      description={isToday
+        ? 'Boa prova! Continue revisando seu caderno no seu ritmo.'
+        : isError ? 'Não foi possível consultar a data oficial. Tente novamente em instantes.'
+        : label ? `Data oficial do ${label} ainda não divulgada pelo Inep`
+        : 'As datas das próximas edições ainda não estão disponíveis. Continue revisando seu caderno.'}
       action={<PrimaryCta to="/caderno" icon={BookOpen}>Ir para o Caderno</PrimaryCta>}
     />
   );
@@ -120,14 +125,14 @@ function EmptyNotebookState() {
 
 // ─── Estado: em dia (sem pendências hoje) ────────────────────────────────────
 
-function UpToDateState({ daysUntil }: { daysUntil: number }) {
+function UpToDateState({ daysUntil, label }: { daysUntil: number; label: string }) {
   return (
     <CadernoEmptyState
       className="caderno-root"
       variant="celebratory"
       icon={<Trophy className="h-8 w-8 text-[var(--c-wine-500)]" aria-hidden />}
       title="Você está em dia!"
-      description={`Nenhuma revisão pendente para hoje. Continue assim! Faltam ${daysUntil} ${daysUntil === 1 ? 'dia' : 'dias'} para o ENAMED.`}
+      description={`Nenhuma revisão pendente para hoje. Continue assim! ${daysUntil === 1 ? 'Falta 1 dia' : `Faltam ${daysUntil} dias`} para o ${label}.`}
     />
   );
 }
@@ -200,55 +205,66 @@ function UpcomingDays({
 // ─── Conteúdo principal ──────────────────────────────────────────────────────
 
 function RetaFinalContent({ userId }: { userId: string }) {
+  const { nextEdition, isPending: editionsLoading, isError: editionsError } = useExamEditions();
+  const examDate = nextEdition?.exam_date ?? null;
+  const daysUntil = getDaysUntil(examDate, new Date());
   const { profile } = useUser();
   const isMobile = useIsMobile();
   const [plan, setPlan] = useState<RetaFinalPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const tracked = useRef(false);
 
-  const fetchAndBuild = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      const rawEntries = await simuladosApi.getErrorNotebook(userId);
-
-      const entries: RetaFinalEntry[] = rawEntries.map((row: any) => ({
-        id: row.id,
-        area: row.area ?? null,
-        theme: row.theme ?? null,
-        reason: row.reason ?? null,
-        srs_due_at: (row.srs_due_at as string | null) ?? null,
-        srs_reps: (row.srs_reps as number | null) ?? null,
-        srs_lapses: (row.srs_lapses as number | null) ?? null,
-        mastered_at: (row.mastered_at as string | null) ?? null,
-      }));
-
-      const built = buildRetaFinalPlan({
-        entries,
-        enamedDate: ENAMED_DATE,
-        today: new Date(),
-      });
-
-      setPlan(built);
-    } catch (err) {
-      logger.error('[CadernoRetaFinalPage] Erro ao carregar entradas:', err);
-      toast({
-        title: 'Não foi possível carregar a Reta Final',
-        description: 'Verifique sua conexão e tente novamente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
   useEffect(() => {
+    if (!userId || daysUntil === null || daysUntil <= 0) {
+      setPlan(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setPlan(null);
+    const fetchAndBuild = async () => {
+      try {
+        const rawEntries = await simuladosApi.getErrorNotebook(userId);
+
+        const entries: RetaFinalEntry[] = rawEntries.map((row: any) => ({
+          id: row.id,
+          area: row.area ?? null,
+          theme: row.theme ?? null,
+          reason: row.reason ?? null,
+          srs_due_at: (row.srs_due_at as string | null) ?? null,
+          srs_reps: (row.srs_reps as number | null) ?? null,
+          srs_lapses: (row.srs_lapses as number | null) ?? null,
+          mastered_at: (row.mastered_at as string | null) ?? null,
+        }));
+
+        const built = buildRetaFinalPlan({
+          entries,
+          enamedDate: examDate,
+          today: new Date(),
+        });
+
+        if (!cancelled) setPlan(built);
+      } catch (err) {
+        if (cancelled) return;
+        logger.error('[CadernoRetaFinalPage] Erro ao carregar entradas:', err);
+        toast({
+          title: 'Não foi possível carregar a Reta Final',
+          description: 'Verifique sua conexão e tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
     fetchAndBuild();
-  }, [fetchAndBuild]);
+    return () => { cancelled = true; };
+  }, [userId, examDate, daysUntil]);
 
   // Analytics — preservado intacto
   useEffect(() => {
-    if (loading || !plan || tracked.current) return;
+    if (loading || !plan || plan.daysUntil === null || tracked.current) return;
     tracked.current = true;
     trackEvent('caderno_reta_final_viewed', {
       days_until: plan.daysUntil,
@@ -260,14 +276,20 @@ function RetaFinalContent({ userId }: { userId: string }) {
     });
   }, [loading, plan, profile?.segment]);
 
+  if (editionsLoading) return <CadernoSkeleton />;
+  if (!nextEdition || daysUntil === null || daysUntil <= 0) {
+    return <EditionDateState label={nextEdition?.label} isToday={daysUntil === 0} isError={editionsError} />;
+  }
   if (loading) return <CadernoSkeleton />;
   if (!plan) return null;
+  const planDaysUntil = plan.daysUntil;
+  if (planDaysUntil === null) return <EditionDateState label={nextEdition.label} />;
 
   // ── Estado: prova passou ──
   if (plan.examPassed) {
     return (
       <StaggerContainer className="space-y-5">
-        <StaggerItem><ExamPassedState /></StaggerItem>
+        <StaggerItem><EditionDateState label={nextEdition?.label} /></StaggerItem>
       </StaggerContainer>
     );
   }
@@ -293,7 +315,7 @@ function RetaFinalContent({ userId }: { userId: string }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       >
-        <RetaFinalHero daysUntil={plan.daysUntil} stats={plan.stats} />
+        <RetaFinalHero daysUntil={planDaysUntil} stats={{ ...plan.stats, daysUntil: planDaysUntil }} />
       </motion.div>
 
       {/* ── Aviso de descobertas ── */}
@@ -349,7 +371,7 @@ function RetaFinalContent({ userId }: { userId: string }) {
               previewLimit={5}
             />
           ) : (
-            <UpToDateState daysUntil={plan.daysUntil} />
+            <UpToDateState daysUntil={planDaysUntil} label={nextEdition.label} />
           )}
         </motion.div>
       )}

@@ -20,7 +20,8 @@ type ModeKey = 'revisao' | 'treino' | 'reta';
 
 export interface CadernoModeCardsProps {
   devidasHoje: number;
-  daysLeft: number;
+  daysLeft: number | null;
+  editionLabel?: string;
   isEnamedNear: boolean;
   hasPending: boolean;
   revisaoTo: string;
@@ -33,6 +34,7 @@ export interface CadernoModeCardsProps {
 export function CadernoModeCards({
   devidasHoje,
   daysLeft,
+  editionLabel = 'ENAMED',
   isEnamedNear,
   hasPending,
   revisaoTo,
@@ -82,7 +84,9 @@ export function CadernoModeCards({
       icon: Swords,
       title: 'Reta Final ENAMED',
       desc: 'Um plano para cada dia, priorizando as áreas que mais caem conforme a prova chega.',
-      hint: daysLeft > 0 ? `faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}` : 'Reta Final',
+      hint: daysLeft === null
+        ? `Data oficial do ${editionLabel} ainda não divulgada pelo Inep`
+        : daysLeft === 0 ? 'É hoje' : daysLeft > 0 ? `faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}` : 'Data a confirmar',
       hintUrgent: isEnamedNear,
       // amber
       iconWrap: 'bg-amber-500/14 text-amber-600 dark:text-amber-300',
