@@ -4,7 +4,7 @@
 
 > **Aviso sobre a base de código.** O `main` local está **80 commits atrás** de `origin/main` (e 2 à frente, só docs). A auditoria usou um snapshot de `origin/main`. Os caminhos citados (`arquivo:linha`) se referem a esse snapshot. Migrations são citadas pelo nome do arquivo no repo. Quando o fato veio de produção, está marcado **[PROD]**.
 
-> **Status em 04/11/2026:** S-01 resolvido (função removida de produção e do repo, PR #29). CI do `main` voltou a ficar verde (PR #30: install do CI, lint, pins das Edge Functions e gate de audit com exceções por advisory). Todos os demais itens seguem abertos.
+> **Diagnóstico original em 04/11/2026:** S-01 resolvido em produção e no repo (PR #29); CI restabelecido no PR #30. A implementação posterior dos handoffs está registrada em [Execução ENAMED 2027](implementation-status-2027.md), com entregas, verificações e pendências por frente. Os achados abaixo preservam o diagnóstico original: código integrado não significa correção já aplicada em produção. O rollout, o baseline completo e os contratos externos continuam sujeitos às condições registradas nesse relatório de execução.
 
 **Legenda:** **[F]** fato verificado no código · **[PROD]** fato verificado no banco/infra de produção · **[I]** inferência · **[D]** decisão de produto pendente · **[R]** recomendação.
 
