@@ -20,6 +20,7 @@ import { EnamedCountdownCard } from "./EnamedCountdownCard";
 import { CadernoInsightTeaserCard } from "./CadernoInsightTeaserCard";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditionTargetPrompt } from "@/components/editions/EditionTargetPrompt";
 
 const STAGGER_CHILDREN = 0.055;
 const STAGGER_DELAY = 0.02;
@@ -297,7 +298,7 @@ export function HomePagePremium() {
       </motion.div>
 
       {/* Layer 1: Hero premium — full width */}
-      <motion.div variants={itemVariants}>
+      <motion.div variants={itemVariants} data-edition-target-home>
         <HomeHeroSection heroState={heroState} />
         {pendingSimulado && (recentScores.length > 0 || stats.simuladosRealizados > 0) && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-muted bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
@@ -309,6 +310,8 @@ export function HomePagePremium() {
           </div>
         )}
       </motion.div>
+
+      <EditionTargetPrompt />
 
       {/* Layer 2: KPI grid (left) + "Seu caminho até aqui" (right) */}
       <motion.div variants={itemVariants}>

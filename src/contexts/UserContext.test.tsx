@@ -37,6 +37,153 @@ beforeEach(() => {
   mocks.getExamEditions.mockResolvedValue([{ id: 'e1', code: '2028.2' }]);
 });
 
+describe('UserContext onboarding completion telemetry', () => {
+  const input = { specialtyId: 's1', targetInstitutionIds: ['i1', 'i2'] };
+  const saved = { id: 'onb', user_id: 'u1', status: 'completed', specialty_id: 's1',
+    specialty: 'Clínica Médica', target_institution_ids: ['i1', 'i2'] };
+
+  async function start(enabled = true, completed = false) {
+    mocks.enabled = enabled;
+    mocks.from.mockImplementation((table: string) => ({ select: () => ({ eq: (_key: string, id: string) => ({
+      maybeSingle: async () => ({ error: null, data: table === 'profiles'
+        ? { id, full_name: id, segment: 'pro' }
+        : { id: 'onb', user_id: id, status: completed ? 'completed' : 'pending', specialty_id: null } }),
+    }) }) }));
+    const hook = renderHook(useUser, { wrapper });
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    mocks.rpc.mockImplementation(async (name: string) => ({
+      data: name === 'save_onboarding_guarded' ? saved : [{ can_edit: true }], error: null,
+    }));
+    return hook;
+  }
+
+  it('emits exactly once after first successful completion with legacy fields and the explicit catalog code', async () => {
+    const { result } = await start();
+    let finish!: (value: unknown) => void;
+    mocks.rpc.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    let saving!: Promise<void>;
+    act(() => { saving = result.current.saveOnboarding(input); });
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+    expect(mocks.getExamEditions).not.toHaveBeenCalled();
+    await act(async () => { finish({ data: saved, error: null }); await saving; });
+    expect(mocks.trackEvent).toHaveBeenCalledExactlyOnceWith('onboarding_completed', {
+      segment: 'pro', specialty: 'Clínica Médica', institutions_count: 2, edition_code: '2028.2',
+    });
+    await act(() => result.current.saveOnboarding(input));
+    expect(mocks.trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])('emits null for undecided without catalog or inferred fallback, flag=%s', async enabled => {
+    mocks.getTarget.mockResolvedValue({ targetEditionId: null, expectedGraduationTerm: '2027.1' });
+    const { result } = await start(enabled);
+    mocks.rpc.mockResolvedValueOnce({ data: { ...saved, specialty_id: null, specialty: '', target_institution_ids: [] }, error: null });
+    await act(() => result.current.saveOnboarding({ specialtyId: null, targetInstitutionIds: [] }));
+    expect(mocks.trackEvent).toHaveBeenCalledExactlyOnceWith('onboarding_completed', {
+      segment: 'pro', specialty: 'Ainda não sei', institutions_count: 0, edition_code: null,
+    });
+    expect(mocks.getExamEditions).not.toHaveBeenCalled();
+    expect(mocks.setTargetEdition).not.toHaveBeenCalled();
+    if (!enabled) expect(mocks.getTarget).not.toHaveBeenCalled();
+  });
+
+  it('never emits on a failed save and permits the successful retry', async () => {
+    const { result } = await start();
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: new Error('save failed') });
+    await act(async () => { await expect(result.current.saveOnboarding(input)).rejects.toThrow('save failed'); });
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+    expect(mocks.getExamEditions).not.toHaveBeenCalled();
+    await act(() => result.current.saveOnboarding(input));
+    expect(mocks.trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('never emits completion for a later academic profile edit', async () => {
+    const { result } = await start(true, true);
+    await act(() => result.current.saveOnboarding(input));
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+    expect(mocks.getExamEditions).not.toHaveBeenCalled();
+  });
+
+  it('claims the first completion only once across concurrent saves from the same render', async () => {
+    const { result } = await start();
+    const save = result.current.saveOnboarding;
+    await act(async () => { await Promise.all([save(input), save(input)]); });
+    expect(mocks.trackEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.getExamEditions).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['academic', 'target'])('rejects a %s callback retained from another account before issuing an RPC', async kind => {
+    const { result, rerender } = await start();
+    const academicSave = result.current.saveOnboarding;
+    const targetSave = result.current.saveTargetEdition;
+    const oldSave = kind === 'academic' ? () => academicSave(input) : () => targetSave('e1', null);
+    mocks.auth = { user: { id: 'u2' }, loading: false };
+    rerender();
+    await waitFor(() => expect(result.current.profile?.id).toBe('u2'));
+    mocks.rpc.mockClear();
+    await act(async () => { await expect(oldSave()).rejects.toThrow('Not authenticated'); });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.setTargetEdition).not.toHaveBeenCalled();
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+  });
+
+  it('ignores a saved row belonging to another account', async () => {
+    const { result } = await start(false);
+    mocks.rpc.mockResolvedValueOnce({ data: { ...saved, user_id: 'u2' }, error: null });
+    await act(() => result.current.saveOnboarding(input));
+    expect(result.current.onboarding?.userId).toBe('u1');
+    expect(result.current.isOnboardingComplete).toBe(false);
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+  });
+
+  it.each(['catalog', 'missing', 'analytics', 'async analytics'])('keeps a confirmed completion successful when %s fails', async failure => {
+    const { result } = await start();
+    if (failure === 'catalog') mocks.getExamEditions.mockRejectedValueOnce(new Error('offline'));
+    if (failure === 'missing') mocks.getExamEditions.mockResolvedValueOnce([]);
+    if (failure === 'analytics') mocks.trackEvent.mockImplementationOnce(() => { throw new Error('track failed'); });
+    if (failure === 'async analytics') mocks.trackEvent.mockRejectedValueOnce(new Error('track failed'));
+    // Profile refresh reflects the committed row even when telemetry is unavailable.
+    mocks.from.mockImplementation((table: string) => ({ select: () => ({ eq: (_key: string, id: string) => ({
+      maybeSingle: async () => ({ error: null, data: table === 'profiles' ? { id, segment: 'pro' } : saved }),
+    }) }) }));
+    await act(async () => { await expect(result.current.saveOnboarding(input)).resolves.toBeUndefined(); });
+    expect(result.current.isOnboardingComplete).toBe(true);
+    if (failure === 'catalog' || failure === 'missing') expect(mocks.trackEvent).not.toHaveBeenCalled();
+    else expect(mocks.trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['account', 'logout', 'loading', 'flag'])('ignores a delayed save after %s changes', async transition => {
+    const { result, rerender } = await start();
+    let finish!: (value: unknown) => void;
+    mocks.rpc.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    let saving!: Promise<void>;
+    act(() => { saving = result.current.saveOnboarding(input); });
+    if (transition === 'account') mocks.auth = { user: { id: 'u2' }, loading: false };
+    if (transition === 'logout') mocks.auth = { user: null, loading: false };
+    if (transition === 'loading') mocks.auth.loading = true;
+    if (transition === 'flag') mocks.enabled = false;
+    rerender();
+    await act(async () => { finish({ data: saved, error: null }); await saving; });
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+    expect(mocks.getExamEditions).not.toHaveBeenCalled();
+    expect(result.current.onboarding?.status).not.toBe('completed');
+    if (transition === 'account') expect(result.current.onboarding?.userId).toBe('u2');
+  });
+
+  it.each(['account', 'flag'])('discards catalog telemetry after %s changes', async transition => {
+    const { result, rerender } = await start();
+    let finish!: (value: unknown) => void;
+    mocks.getExamEditions.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    let saving!: Promise<void>;
+    act(() => { saving = result.current.saveOnboarding(input); });
+    await waitFor(() => expect(mocks.getExamEditions).toHaveBeenCalledTimes(1));
+    if (transition === 'account') mocks.auth = { user: { id: 'u2' }, loading: false };
+    else mocks.enabled = false;
+    rerender();
+    await act(async () => { finish([{ id: 'e1', code: '2028.2' }]); await saving; });
+    expect(mocks.trackEvent).not.toHaveBeenCalled();
+  });
+});
+
 describe('UserContext edition target', () => {
   it('does not read or write target fields with flag off', async () => {
     const { result } = renderHook(useUser, { wrapper });
