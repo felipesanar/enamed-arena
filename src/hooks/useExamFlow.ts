@@ -104,7 +104,9 @@ export function useExamFlow(): UseExamFlowReturn {
   const runtimeRef = useRef<ExamRuntimePersistence>({ mode: 'pending', onMismatch: () => {} });
   const getRuntime = useCallback(() => runtimeRef.current, []);
   const storage = useExamStorageReal(simulado?.id ?? '', clock, canWrite, getRuntime);
+  const { loadState: loadStorageState } = storage;
   const capabilities = useExamRuntimeCapabilities(user?.id, storage.attemptId.current);
+  const { retry: retryCapabilities } = capabilities;
   const [preparedRevision, setPreparedRevision] = useState('');
   const [failedRevision, setFailedRevision] = useState('');
 
@@ -115,10 +117,10 @@ export function useExamFlow(): UseExamFlowReturn {
   reloadScopeRef.current = `${user?.id ?? ''}:${simulado?.id ?? ''}:${storage.attemptId.current ?? ''}`;
   const reloadForOwnership = useCallback(async (signal: AbortSignal) => {
     const scope = reloadScopeRef.current;
-    const result = await storage.loadState(true, signal);
+    const result = await loadStorageState(true, signal);
     if (signal.aborted || scope !== reloadScopeRef.current || !result.state || result.fromCache) throw new Error('Remote reload required');
     setState(result.state);
-  }, [storage.loadState]);
+  }, [loadStorageState]);
   const tabLease = useExamTabLease(user?.id, storage.attemptId.current, reloadForOwnership);
   const knownRuntime = capabilities.mode === 'legacy' || capabilities.mode === 'v1';
   const preparationBlocked = !knownRuntime || preparedRevision !== capabilities.revision ||
@@ -127,21 +129,21 @@ export function useExamFlow(): UseExamFlowReturn {
     runtimeRef.current.mode = 'pending';
     ownershipRef.current = () => false;
     setPreparedRevision(''); setFailedRevision('');
-    capabilities.retry();
-  }, [capabilities.retry]);
+    retryCapabilities();
+  }, [retryCapabilities]);
   runtimeRef.current = { mode: preparationBlocked ? 'pending' : capabilities.mode, onMismatch: retryPreparation };
   ownershipRef.current = () => !preparationBlocked && tabLease.canWrite();
   useEffect(() => {
     if (!knownRuntime || tabLease.status !== 'owned') return;
     const controller = new AbortController();
     const revision = capabilities.revision;
-    void storage.loadState(true, controller.signal).then(result => {
+    void loadStorageState(true, controller.signal).then(result => {
       if (controller.signal.aborted) return;
       if (!result.state || result.fromCache) throw new Error('Remote reconciliation required');
       setState(result.state); setPreparedRevision(revision); setFailedRevision('');
     }).catch(() => { if (!controller.signal.aborted) setFailedRevision(revision); });
     return () => controller.abort();
-  }, [knownRuntime, capabilities.revision, tabLease.status, storage.loadState]);
+  }, [knownRuntime, capabilities.revision, tabLease.status, loadStorageState]);
 
   // Stable callback pattern: the focus/fullscreen handlers read from refs
   // that we keep fresh every render. This prevents useFocusControl from

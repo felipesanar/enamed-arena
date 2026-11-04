@@ -98,6 +98,14 @@ describe('notebookApi filtered pagination', () => {
     respond(page([row(1, { ai_review_md: 'cached answer', ai_option_rationales: { A: 'SECRET' } })], 1, 0, 100));
     expect((await notebookApi.getForExport({}, enabled))[0]).toMatchObject({ options: [], correct_label: null, explanation: null, ai_review_md: null });
   });
+  it('keeps unavailable correction neutral and does not reuse a cached analysis', async () => {
+    respond(page([row(1, { ai_review_md: 'cached correction' })], 1, 0, 100));
+    vi.mocked(simuladosApi.getQuestions).mockResolvedValue([{ id: 'q1', number: 2, text: 'Core question',
+      options: [{ id: 'a', label: 'A', text: 'Option A' }], correctOptionId: '', explanationUnavailable: true }] as never);
+    const [entry] = await notebookApi.getForExport({}, enabled);
+    expect(entry).toMatchObject({ correct_label: null, correction_unavailable: true, ai_review_md: null, explanation: null });
+    expect(entry.options[0].isCorrect).toBeNull();
+  });
   it('fails export safely when enrichment fails', async () => {
     respond(page([row(1)], 1, 0, 100));
     vi.mocked(simuladosApi.getQuestions).mockRejectedValue(new Error('release denied'));

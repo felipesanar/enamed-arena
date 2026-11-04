@@ -1,8 +1,11 @@
 -- Run only on the dedicated disposable clone; all fixtures roll back.
 \set ON_ERROR_STOP on
 SELECT 1 / ((inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=54737
- AND current_database() LIKE 'enamed_test_notebook_%' AND session_user='postgres')::int);
+ AND (current_database() LIKE 'enamed_test_notebook_%'
+   OR current_database() ~ '^enamed_test_fixtures_integrated_[a-z0-9_]+$')
+ AND session_user='postgres' AND current_user='postgres')::int);
 BEGIN;
+\ir local/fixture-publication-setup.sql
 DO $$ BEGIN
  ASSERT to_regprocedure('public.list_error_notebook_page(uuid,integer,integer)') IS NOT NULL,
    'RED: notebook page RPC missing';
@@ -16,6 +19,7 @@ UPDATE public.profiles SET segment='pro' WHERE id::text LIKE 'f2700000-%';
 INSERT INTO public.exam_editions(id,code,year,term,label,status) VALUES
  ('f2700000-0000-0000-0000-000000000011','2197.1',2197,1,'Notebook A','closed'),
  ('f2700000-0000-0000-0000-000000000012','2197.2',2197,2,'Notebook B','active');
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,
  execution_window_start,execution_window_end,results_release_at,status)
  SELECT ('f2710000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
@@ -25,6 +29,7 @@ INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,
  now()-interval '10 days',now()-interval '9 days',
  CASE WHEN n=3 THEN now()+interval '1 day' ELSE now()-interval '8 days' END,
  (CASE WHEN n=4 THEN 'draft' ELSE 'published' END)::public.simulado_status FROM generate_series(1,5) n;
+SELECT pg_temp.fixture_publication_end();
 INSERT INTO public.questions(id,simulado_id,question_number,text,area,theme)
  SELECT ('f2720000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
  ('f2710000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,1,
@@ -215,8 +220,10 @@ DO $$ BEGIN
  ASSERT public.has_capability('content.manage') IS FALSE;
  ASSERT EXISTS(SELECT FROM public.simulados WHERE id='f2710000-0000-0000-0000-000000000001'),
    'actual F1 archived owner visibility';
- ASSERT NOT EXISTS(SELECT FROM public.questions WHERE id='f2720000-0000-0000-0000-000000000001'),
-   'F1 did not broaden F0 question browsing for archived exams';
+  ASSERT EXISTS(SELECT FROM public.questions WHERE id='f2720000-0000-0000-0000-000000000001'),
+    'D6 released archived questions remain readable by a finalized owner';
+  ASSERT EXISTS(SELECT FROM public.get_question_explanations('f2710000-0000-0000-0000-000000000001')),
+    'D6 released archived correction remains readable by a finalized owner';
  ASSERT public.list_error_notebook_page()=(SELECT page FROM notebook_published_snapshot),
    'RED: archiving must preserve cumulative notebook page';
  ASSERT public.get_error_notebook_counts()=(SELECT counts FROM notebook_published_snapshot),
@@ -229,12 +236,35 @@ DO $$ BEGIN
  ASSERT public.list_error_notebook_page('f2700000-0000-0000-0000-000000000011')->>'total'='700';
 END $$;
 RESET ROLE;
+-- D6 does not grant other accounts or unfinished owners historical access.
+SAVEPOINT archived_non_owner;
+SELECT set_config('request.jwt.claims','{"sub":"f2700000-0000-0000-0000-000000000002","role":"authenticated","segment":"pro"}',true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+  ASSERT NOT EXISTS(SELECT FROM public.questions WHERE id='f2720000-0000-0000-0000-000000000001');
+  ASSERT NOT EXISTS(SELECT FROM public.get_question_explanations('f2710000-0000-0000-0000-000000000001'));
+END $$;
+RESET ROLE;
+ROLLBACK TO SAVEPOINT archived_non_owner;
+SAVEPOINT archived_unfinished;
+UPDATE public.attempts SET status='in_progress',finished_at=NULL
+  WHERE simulado_id='f2710000-0000-0000-0000-000000000001';
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+  ASSERT NOT EXISTS(SELECT FROM public.questions WHERE id='f2720000-0000-0000-0000-000000000001');
+  ASSERT NOT EXISTS(SELECT FROM public.get_question_explanations('f2710000-0000-0000-0000-000000000001'));
+  ASSERT public.get_error_notebook_counts()->>'total'='800';
+END $$;
+RESET ROLE;
+ROLLBACK TO SAVEPOINT archived_unfinished;
 UPDATE public.simulados SET results_release_at=now()+interval '1 day'
  WHERE id='f2710000-0000-0000-0000-000000000001';
 SET LOCAL ROLE authenticated;
 DO $$ BEGIN
  ASSERT public.list_error_notebook_page()->>'total'='800','archived still needs release';
- ASSERT public.get_error_notebook_counts()->>'total'='800';
+  ASSERT public.get_error_notebook_counts()->>'total'='800';
+  ASSERT NOT EXISTS(SELECT FROM public.questions WHERE id='f2720000-0000-0000-0000-000000000001');
+  ASSERT NOT EXISTS(SELECT FROM public.get_question_explanations('f2710000-0000-0000-0000-000000000001'));
 END $$;
 RESET ROLE;
 ROLLBACK TO SAVEPOINT archived_history;

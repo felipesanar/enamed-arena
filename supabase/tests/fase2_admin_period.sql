@@ -2,7 +2,7 @@
 -- Only the explicitly named disposable clone may run this fixture.
 DO $$ BEGIN
   ASSERT inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=54737;
-  ASSERT current_database() LIKE 'enamed_test_admin_period_%' AND session_user='postgres';
+  ASSERT (current_database() LIKE 'enamed_test_admin_period_%' OR current_database() ~ '^enamed_test_fixtures_integrated_[a-z0-9_]+$') AND session_user='postgres' AND current_user='postgres';
 END $$;
 
 -- Optional fresh-clone test: psql -v fault=1 -f this-file.
@@ -75,7 +75,7 @@ ROLLBACK;
 BEGIN;
 DO $$ BEGIN
   ASSERT inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=54737;
-  ASSERT current_database() LIKE 'enamed_test_admin_period_%' AND session_user='postgres';
+  ASSERT (current_database() LIKE 'enamed_test_admin_period_%' OR current_database() ~ '^enamed_test_fixtures_integrated_[a-z0-9_]+$') AND session_user='postgres' AND current_user='postgres';
   ASSERT to_regprocedure('public.admin_score_evolution(uuid,timestamptz,timestamptz)') IS NOT NULL,
     'RED: expanded admin period signature missing';
 END $$;

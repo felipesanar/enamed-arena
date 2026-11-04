@@ -1,7 +1,8 @@
 \set ON_ERROR_STOP on
 BEGIN;
+\ir local/fixture-publication-setup.sql
 DO $$ BEGIN
- IF current_database() !~ '^enamed_test_reprocess_[a-z0-9_]+$'
+ IF current_database() !~ '^enamed_test_(reprocess|fixtures_integrated)_[a-z0-9_]+$'
  OR inet_server_addr() IS DISTINCT FROM '127.0.0.1'::inet
  OR inet_server_port() IS DISTINCT FROM 54737 OR session_user <> 'postgres'
  THEN RAISE EXCEPTION 'Unsafe local target'; END IF;
@@ -17,7 +18,7 @@ INSERT INTO public.user_roles(user_id,role) VALUES
  ('f2500000-0000-0000-0000-000000000003','admin'),
  ('f2500000-0000-0000-0000-000000000004','content_editor'),
  ('f2500000-0000-0000-0000-000000000005','support');
-SELECT set_config('request.jwt.claim.sub','f2500000-0000-0000-0000-000000000003',true);
+-- JWT identity is installed only after synthetic publication setup is restored.
 INSERT INTO public.enamed_specialties(id,name,slug) VALUES
  ('f2570000-0000-0000-0000-000000000001','Reprocess specialty','f25-specialty');
 INSERT INTO public.enamed_institutions(id,name,uf,slug) VALUES
@@ -28,11 +29,13 @@ FROM auth.users WHERE id IN('f2500000-0000-0000-0000-000000000001','f2500000-000
 ON CONFLICT(user_id) DO UPDATE SET specialty_id=EXCLUDED.specialty_id,target_institution_ids=EXCLUDED.target_institution_ids;
 INSERT INTO public.exam_editions(id,code,year,term,label,status) VALUES
  ('f2510000-0000-0000-0000-000000000001','2198.1',2198,1,'Reprocess fixture','active');
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,questions_count,
  execution_window_start,execution_window_end,results_release_at,status)
 SELECT ('f2520000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,'Reprocess '||n,'f25-reprocess-'||n,n,
- 'f2510000-0000-0000-0000-000000000001',2,now()-interval '3 days',now()-interval '2 days',now()-interval '1 day','test'
+ 'f2510000-0000-0000-0000-000000000001',2,now()-interval '3 days',now()-interval '2 days',now()-interval '1 day','published'
 FROM generate_series(1,2) n;
+SELECT pg_temp.fixture_publication_end();
 INSERT INTO public.questions(id,simulado_id,question_number,text,area,theme)
 SELECT ('f2530000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
  ('f2520000-0000-0000-0000-'||lpad(((n+1)/2)::text,12,'0'))::uuid,(n-1)%2+1,'Fixture','PED','Fixture'

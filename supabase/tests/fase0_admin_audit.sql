@@ -57,9 +57,10 @@ BEGIN
       PERFORM pg_temp.audit_assert(auth.uid() IS NULL, 'maintenance auth.uid is null');
     END IF;
     SELECT count(*) INTO baseline FROM public.admin_audit_log;
-    INSERT INTO public.simulados(id, title, slug, sequence_number,
+    -- Audit CRUD does not publish content; an empty synthetic exam is a draft.
+    INSERT INTO public.simulados(id, title, slug, sequence_number, status,
       execution_window_start, execution_window_end, results_release_at)
-    VALUES (pg_temp.audit_id('sim'), safe_text, 'fase0-admin-audit', 987654,
+    VALUES (pg_temp.audit_id('sim'), safe_text, 'fase0-admin-audit', 987654, 'draft',
       now(), now() + interval '1 hour', now() + interval '2 hours') RETURNING id INTO result_id;
     PERFORM pg_temp.audit_assert(result_id = pg_temp.audit_id('sim'), 'simulado INSERT returns NEW');
     INSERT INTO public.questions(id, simulado_id, question_number, text, area, theme, image_url)

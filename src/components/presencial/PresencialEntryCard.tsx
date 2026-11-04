@@ -12,7 +12,7 @@
  * PDF nem mostra as etapas do modo offline de casa — quem chega aqui já fez
  * a prova no papel, na sala.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileEdit, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { persistOfflineAttempt } from '@/hooks/useOfflineAttempt';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import type { SimuladoStatus } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Janela aberta e o aluno ainda não enviou: 'available' (não iniciou) e
 // 'in_progress' (iniciou — inclusive uma tentativa online abandonada — mas
@@ -30,8 +31,14 @@ const ELIGIBLE_STATUSES = new Set<SimuladoStatus>(['available', 'in_progress']);
 
 export function PresencialEntryCard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const owner = useRef(user?.id);
+  owner.current = user?.id;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const { simulados, loading } = useSimulados();
   const [submitting, setSubmitting] = useState(false);
+  useEffect(() => { setSubmitting(false); }, [user?.id]);
 
   const eligible = useMemo(
     () => simulados.find((s) => ELIGIBLE_STATUSES.has(s.status)) ?? null,
@@ -39,7 +46,8 @@ export function PresencialEntryCard() {
   );
 
   const handleClick = useCallback(async () => {
-    if (!eligible || submitting) return;
+    if (!eligible || submitting || !user?.id) return;
+    const userId = user.id;
     setSubmitting(true);
     try {
       // `createPresencialAttempt`, e não `createOfflineAttempt`: a RPC offline
@@ -48,9 +56,10 @@ export function PresencialEntryCard() {
       // abandonou, e fez a prova no papel. Com a RPC antiga ele ficaria travado
       // na sala. Ver `create_presencial_attempt_guarded` ("presencial ganha").
       const attempt = await offlineApi.createPresencialAttempt(eligible.id);
+      if (!mounted.current || owner.current !== userId) return;
       const slug = attempt.simulado_slug || eligible.slug;
 
-      persistOfflineAttempt({
+      persistOfflineAttempt(userId, {
         id: attempt.attempt_id,
         simulado_id: eligible.id,
         simulado_slug: slug,
@@ -69,6 +78,7 @@ export function PresencialEntryCard() {
 
       navigate(`/simulados/${slug}/gabarito`);
     } catch (err) {
+      if (!mounted.current || owner.current !== userId) return;
       logger.error('[PresencialEntryCard] Erro ao criar tentativa presencial:', err);
       toast({
         title: 'Erro ao abrir o gabarito',
@@ -77,7 +87,7 @@ export function PresencialEntryCard() {
       });
       setSubmitting(false);
     }
-  }, [eligible, submitting, navigate]);
+  }, [eligible, submitting, navigate, user?.id]);
 
   if (loading || !eligible) return null;
 

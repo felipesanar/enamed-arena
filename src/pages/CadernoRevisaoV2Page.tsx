@@ -298,6 +298,17 @@ function DesktopTopBar({
 
 // ─── Main content ─────────────────────────────────────────────────────────────
 
+function CorrectionUnavailableNotice({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="status" className="rounded-[var(--c-radius-card)] border border-[var(--c-border)] bg-[var(--c-surface)] p-6 text-center">
+      <AlertCircle className="mx-auto h-8 w-8 text-warning" aria-hidden />
+      <p className="mt-3 text-body font-semibold text-[var(--c-ink)]">Correção indisponível</p>
+      <p className="mt-1 text-caption text-[var(--c-muted)]">Tente novamente para carregar o gabarito. Sua revisão não foi registrada.</p>
+      <Button variant="outline" onClick={onRetry} className="mt-4">Tentar novamente</Button>
+    </div>
+  );
+}
+
 function RecallContent({ userId, studentName }: { userId: string; studentName: string }) {
   const prefersReducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
@@ -312,6 +323,8 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
     loadingList,
     listError,
     loadingReview,
+    correctionUnavailable,
+    retryCorrection,
     generatingAi,
     reviewData,
     phase,
@@ -524,6 +537,10 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
             </div>
           )}
 
+          {!loadingReview && correctionUnavailable && (
+            <CorrectionUnavailableNotice onRetry={retryCorrection} />
+          )}
+
           {/* Leech intervention */}
           {!loadingReview && isCurrentEntryLeech && (
             <LeechInterventionBanner
@@ -545,7 +562,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
 
           {/* Cards */}
           <AnimatePresence mode="wait">
-            {!loadingReview && question && !isCurrentEntryBlocked && (
+            {!loadingReview && question && !correctionUnavailable && !isCurrentEntryBlocked && (
               <motion.div
                 key={currentEntry.id}
                 initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
@@ -617,7 +634,10 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
 
           {/* Phase CTA (center) */}
           <div className="flex flex-1 items-center justify-center gap-2">
-            {phase === 'answering' && !selectedOptionId && (
+            {correctionUnavailable && (
+              <span className="text-[11px] text-[var(--c-muted)]">Correção indisponível</span>
+            )}
+            {!correctionUnavailable && phase === 'answering' && !selectedOptionId && (
               <span className="text-[11px] text-[var(--c-muted)]">Selecione uma alternativa</span>
             )}
             {phase === 'answering' && selectedOptionId && (
@@ -709,6 +729,10 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
             </div>
           )}
 
+          {!loadingReview && correctionUnavailable && (
+            <CorrectionUnavailableNotice onRetry={retryCorrection} />
+          )}
+
           {/* Leech intervention */}
           {!loadingReview && isCurrentEntryLeech && (
             <LeechInterventionBanner
@@ -730,7 +754,7 @@ function RecallContent({ userId, studentName }: { userId: string; studentName: s
 
           {/* Main cards */}
           <AnimatePresence mode="wait">
-            {!loadingReview && question && !isCurrentEntryBlocked && (
+            {!loadingReview && question && !correctionUnavailable && !isCurrentEntryBlocked && (
               <motion.div
                 key={currentEntry.id}
                 initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}

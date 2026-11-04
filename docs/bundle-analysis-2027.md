@@ -1,23 +1,17 @@
-# Bundle: F3-7
+# Bundle e cache — F3-7
 
-## Status
+Medição em 04/11/2026, com Node 24.16 e as mesmas dependências isoladas de Vite 7.3.7. O build usa a configuração do projeto com um coletor Rollup de chunks/módulos, gzip por chunk, envDir=false e valores públicos fictícios. Não lê .env, não instala visualizer e não regenera o MCP. Esta é uma análise do output real do Rollup, sem o plugin rollup-plugin-visualizer.
 
-**Medicao pendente do orquestrador.** Este job executou somente testes e lint do escopo, sem build global ou visualizer. Nao ha tamanhos, percentuais de reducao ou comparacao antes/depois medidos a reportar.
+| Ponto medido | Chunks JS | JS total | Soma gzip dos chunks | Chunk Home | Home gzip |
+|---|---:|---:|---:|---:|---:|
+| Base antes da Home, a70c1c0 | 145 | 4.832.573 B | 1.436.861 B | 50.020 B | 13.639 B |
+| Controle isolado da Home/RQ, d016dc4 | 146 | 4.839.931 B | 1.440.272 B | 43.964 B | 11.786 B |
+| Conjunto integrado, 7079906 | 151 | 4.926.450 B | 1.472.039 B | 43.964 B | 11.783 B |
 
-## Mudancas observaveis no codigo
+O chunk próprio da Home diminuiu 6.056 bytes (12,1%) e 1.853 bytes gzip (13,6%) no controle. O total JS desse controle aumentou 7.358 bytes (0,15%), com a lógica compartilhada dos hooks. O conjunto posterior inclui outras funcionalidades e não isola o efeito da Home. A soma dos chunks não é o download inicial de uma rota, pois há imports dinâmicos e cache do navegador.
 
-- Os quatro hooks reutilizam React Query, dependencia ja usada pelo projeto; nenhuma dependencia foi instalada/adicionada.
-- A Home deixa de carregar `useSimuladoDetail`, `useExamResult` e `computePerformanceBreakdown` diretamente para descobrir a pior area; usa `useComparativeData`.
-- Essa troca altera o grafo de imports, mas nao prova reducao de bundle. Modulos compartilhados podem permanecer em outros caminhos/chunks.
-- O cache reduz consultas repetidas dentro do staleTime, o que e um efeito de rede/runtime distinto de tamanho de bundle.
+O maior chunk continua vendor-pdf-xlsx: 1.425.339 bytes, 427.268 gzip, igual nos três builds. O gráfico de linhas tem cerca de 393.837 bytes; html2canvas tem 201.041 bytes. O limite de 600 kB continua gerando aviso para a biblioteca de exportação. A Home ainda referencia chunks compartilhados que incluem exportação; a redução do arquivo próprio não prova a remoção de toda biblioteca pesada do caminho de carregamento. O coletor não mediu latência de rede, transferência HTTP, memória ou LCP.
 
-## Proxima verificacao
+Os quatro hooks usam React Query com staleTime de cinco minutos, chaves por identidade/escopo e invalidação após finalização. Testes funcionais verificam reuso do cache e transições; esse efeito sobre consultas é distinto do tamanho do bundle. A Home deixou de carregar diretamente useSimuladoDetail/useExamResult para descobrir a pior área.
 
-1. Usar o procedimento de build/visualizer existente do projeto no ambiente integrado, sem instalar dependencias apenas para este job.
-2. Medir base e implementacao com as mesmas dependencias/configuracao e registrar tamanhos raw/gzip por chunk, imports principais e eventual impacto nas rotas Home/Ranking/Resultado/Comparativo.
-3. Verificar se a entrada da Home ainda inclui modulos exclusivos do motor de prova e separar efeito de code splitting de efeito de cache.
-4. Executar build e typecheck globais no orquestrador; anexar o resultado real antes de considerar a parte de medicao de F3-7 encerrada.
-
-Validacao funcional local registrada em `docs/home-queries-2027.md`: 93 testes aprovados em 14 arquivos; lint de implementacao sem erros, com 36 avisos. Isso nao substitui a medicao de bundle nem uma verificacao visual em desktop/mobile.
-
-Revisao Codex posterior: regressao ampliada para **131 testes em 16 arquivos**, todos aprovados; um typecheck global `tsc --noEmit -p tsconfig.app.json` passou sem diagnosticos. Medicao de bundle, build e verificacao visual continuam pendentes. O guard da pagina real de detalhe tambem permanece como integracao explicitada no documento funcional, pois o caminho de landing autorizado nao existe neste checkout.
+Os JSONs completos, imports e módulos por chunk e os logs ficam nos artefatos locais ignorados .superpowers/editions/bundle-before-home.json, bundle-home-control.json e bundle-integrated-7079906.json. O controle foi um checkout detached próprio, sem alterar o checkout principal. Nenhuma redução global foi presumida. Builds posteriores precisam de nova medição se alterarem o grafo.

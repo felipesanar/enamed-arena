@@ -5,7 +5,12 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent as analyticsTrackEvent } from '@/lib/analytics';
+
+// Observability is best-effort; never report a committed write as failed.
+const trackEvent: typeof analyticsTrackEvent = (name, payload) => {
+  try { analyticsTrackEvent(name, payload); } catch { /* No personal data in telemetry errors. */ }
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,13 +137,14 @@ export const offlineApi = {
    * The Edge Function runs generation in background (waitUntil) and returns
    * { status: "processing" } until ready. We poll until the URL is available.
    */
-  async getSignedPdfUrl(simuladoId: string, force = false): Promise<string> {
+  async getSignedPdfUrl(simuladoId: string, force = false, signal?: AbortSignal): Promise<string> {
     logger.log('[OfflineApi] Requesting signed PDF URL for simulado:', simuladoId);
 
     const MAX_ATTEMPTS = 30; // ~90s total
     const POLL_INTERVAL_MS = 3000;
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      signal?.throwIfAborted();
       const { data, error } = await supabase.functions.invoke('generate-exam-pdf', {
         body: { simulado_id: simuladoId, force: force && attempt === 0 },
       });
@@ -147,6 +153,7 @@ export const offlineApi = {
         throw error;
       }
       const result = data as { status?: string; url?: string };
+      signal?.throwIfAborted();
       if (result?.status === 'ready' && result.url) {
         trackEvent('offline_pdf_generated', {
           simulado_id: simuladoId,
@@ -156,7 +163,12 @@ export const offlineApi = {
         return result.url;
       }
       // status === 'processing' → wait and retry
-      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      if (result?.status !== 'processing') throw new Error('PDF indisponível. Aguarde a liberação da prova e tente novamente.');
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); };
+        const timer = setTimeout(() => { signal?.removeEventListener('abort', abort); resolve(); }, POLL_INTERVAL_MS);
+        signal?.addEventListener('abort', abort, { once: true });
+      });
     }
 
     throw new Error('A geração do PDF está demorando mais do que o esperado. Tente novamente em alguns instantes.');
@@ -172,16 +184,20 @@ export const offlineApi = {
     simuladoId?: string,
   ): Promise<OfflineAttemptSubmitResult> {
     logger.log('[OfflineApi] Submitting offline answers for attempt:', attemptId);
-    const { data, error } = await rpc('submit_offline_answers_guarded', {
-      p_attempt_id: attemptId,
-      p_answers: answers,
-    });
-    if (error) {
+    let data: unknown;
+    try {
+      const response = await rpc('submit_offline_answers_guarded', {
+        p_attempt_id: attemptId,
+        p_answers: answers,
+      });
+      if (response.error) throw response.error;
+      data = response.data;
+    } catch (error) {
       logger.error('[OfflineApi] Error submitting offline answers:', error);
       trackEvent('offline_answers_submit_failed', {
         attempt_id: attemptId,
         simulado_id: simuladoId ?? null,
-        error_message: (error as { message?: string }).message ?? 'unknown',
+        status: 'error',
       });
       throw error;
     }
@@ -226,9 +242,7 @@ export const offlineApi = {
 
     if (error) {
       logger.error('[OfflineApi] Error fetching active offline attempt:', error);
-      // Return null instead of throwing to maintain offline resilience
-      // React Query will still retry, but we won't break the UI
-      return null;
+      throw error;
     }
 
     if (!data) return null;
@@ -243,5 +257,13 @@ export const offlineApi = {
       effective_deadline: row.effective_deadline as string,
       status:             row.status as string,
     };
+  },
+
+  /** Reconcile an uncertain submission before any retry. RLS plus explicit owner scope. */
+  async getOfflineAttemptStatus(userId: string, attemptId: string, simuladoId: string): Promise<string | null> {
+    const { data, error } = await supabase.from('attempts').select('status')
+      .eq('user_id', userId).eq('id', attemptId).eq('simulado_id', simuladoId).maybeSingle();
+    if (error) throw error;
+    return data?.status ?? null;
   },
 };
