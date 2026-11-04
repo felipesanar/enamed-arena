@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEMO · Escopo administrativo por edição e período</title>
+<style>
+:root{color-scheme:light;--admin-bg:60 9% 98%;--admin-surface:0 0% 100%;--admin-raised:60 6% 96%;--admin-line:30 6% 90%;--admin-line-strong:30 5% 84%;--admin-text:28 11% 9%;--admin-muted:30 6% 32%;--admin-accent:342 67% 41%;--admin-accent-soft:342 60% 95%;--admin-accent-contrast:0 0% 100%;--admin-destructive:356 61% 48%}
+.dark{color-scheme:dark;--admin-bg:216 12% 5%;--admin-surface:216 11% 9%;--admin-raised:214 11% 12%;--admin-line:216 11% 18%;--admin-line-strong:216 10% 26%;--admin-text:210 8% 93%;--admin-muted:214 8% 64%;--admin-accent:342 71% 60%;--admin-accent-soft:342 35% 18%;--admin-accent-contrast:216 12% 5%;--admin-destructive:356 70% 64%}
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;background:hsl(var(--admin-bg));color:hsl(var(--admin-text));font:14px/1.55 "Plus Jakarta Sans",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit} button,select,input{min-height:44px;border:1px solid hsl(var(--admin-line-strong));border-radius:6px;background:hsl(var(--admin-surface));padding:9px 12px;max-width:100%;min-width:0} button,select{cursor:pointer}button:hover{background:hsl(var(--admin-raised))}button:disabled,select:disabled{cursor:default;opacity:.7}
+:focus-visible,input:focus{outline:2px solid hsl(var(--admin-accent));outline-offset:3px} [aria-invalid=true]{border-color:hsl(var(--admin-destructive))}
+p,h1,h2,h3{margin:0}p+p{margin-top:8px}h1{font-size:26px;line-height:1.25;letter-spacing:-.025em;font-weight:800}h2{font-size:17px;line-height:1.4}h3{font-size:14px}label{display:block;font-size:12px;font-weight:650;margin-bottom:6px}small,.muted{color:hsl(var(--admin-muted))}small{font-size:12px}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.shell{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:100vh}.sidebar{background:hsl(var(--admin-surface));border-right:1px solid hsl(var(--admin-line));padding:26px 20px}.brand{font-size:20px;font-weight:800;letter-spacing:-.7px}.brand span{color:hsl(var(--admin-accent))}.nav-group{margin-top:40px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:hsl(var(--admin-muted))}.nav-item{display:block;margin-top:12px;padding:10px 12px;border-radius:6px}.nav-item.current{background:hsl(var(--admin-accent-soft));color:hsl(var(--admin-accent));font-weight:700}.sidebar small{display:block;margin-top:32px}
+.workspace{min-width:0}.topbar{height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 28px;border-bottom:1px solid hsl(var(--admin-line));background:hsl(var(--admin-surface))}.breadcrumb{min-width:0;display:flex;align-items:center;gap:8px;font-size:12px}.breadcrumb strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tools{display:flex;gap:6px;flex-shrink:0}.icon{width:44px;padding:10px;border-color:transparent;display:grid;place-items:center}.filter-band{padding:20px 28px;background:hsl(var(--admin-surface));border-bottom:1px solid hsl(var(--admin-line))}.filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(180px,240px);gap:16px;max-width:840px}.field{min-width:0}.field select,.field input{width:100%}.helper{margin-top:10px;font-size:12px;color:hsl(var(--admin-muted));max-width:840px;overflow-wrap:anywhere}.edition-name{display:block;margin-top:6px;font-size:12px;color:hsl(var(--admin-muted));overflow-wrap:anywhere}.status-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px}.error{color:hsl(var(--admin-destructive));font-size:13px}.custom{padding-top:18px;margin-top:18px;border-top:1px solid hsl(var(--admin-line));max-width:840px}.custom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.primary{background:hsl(var(--admin-accent));border-color:hsl(var(--admin-accent));color:hsl(var(--admin-accent-contrast));font-weight:650}.primary:hover{background:hsl(var(--admin-accent));filter:brightness(.95)}.custom .helper{margin-bottom:12px}.error:not(:empty){margin-top:10px}.legacy{display:flex;gap:8px;flex-wrap:wrap}.legacy [aria-pressed=true]{background:hsl(var(--admin-accent-soft));border-color:hsl(var(--admin-accent));color:hsl(var(--admin-accent));font-weight:700}
+main{padding:28px;max-width:1256px;margin:0 auto;min-width:0}.demo{display:inline-block;font-size:11px;letter-spacing:.08em;font-weight:750;background:hsl(var(--admin-accent-soft));color:hsl(var(--admin-accent));padding:4px 8px;border-radius:4px}.intro{margin:20px 0 24px}.intro>p{margin-top:8px;color:hsl(var(--admin-muted));max-width:680px}.panel{border:1px solid hsl(var(--admin-line));border-radius:8px;background:hsl(var(--admin-surface));padding:22px;margin-top:18px;min-width:0;overflow-wrap:anywhere}.panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}.panel-head .field{width:180px;flex-shrink:0}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:hsl(var(--admin-accent));margin-bottom:8px}.applied{font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:8px}.series{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}.series article{background:hsl(var(--admin-bg));border:1px solid hsl(var(--admin-line));padding:16px;border-radius:6px}.series p{font-size:12px;color:hsl(var(--admin-muted));margin-top:8px}.marker{width:8px;height:8px;display:inline-block;background:hsl(var(--admin-accent));margin-right:8px;border-radius:50%}.series article:nth-child(2) .marker{border-radius:0;background:hsl(var(--admin-muted))}.scope{font-size:13px;color:hsl(var(--admin-muted));margin-top:12px;max-width:850px}.qa{margin-top:28px;border-top:1px solid hsl(var(--admin-line));padding-top:16px;color:hsl(var(--admin-muted));font-size:12px}.qa summary{cursor:pointer;min-height:44px;padding:10px 0;color:hsl(var(--admin-text))}.qa-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:12px 0}.qa select{width:100%}.code{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;padding:12px;background:hsl(var(--admin-bg));border:1px solid hsl(var(--admin-line));font-variant-numeric:tabular-nums}.skip{position:absolute;top:-100px;left:16px;z-index:2;background:hsl(var(--admin-surface));padding:10px}.skip:focus{top:8px}.alert-demo{margin:10px 28px;padding:12px;border:1px solid hsl(var(--admin-line));background:hsl(var(--admin-surface))}
+.series article:only-child{grid-column:1/-1}button,select,input,summary{touch-action:manipulation}h1,h2,h3{text-wrap:pretty}#edit-custom{margin-top:12px}
+.dark .demo,.dark .nav-item.current,.dark .legacy [aria-pressed=true]{color:hsl(var(--admin-text))}
+@media(max-width:1000px){.shell{grid-template-columns:156px minmax(0,1fr)}.sidebar{padding:24px 12px}.filter-band,.topbar{padding-left:20px;padding-right:20px}main{padding:24px 20px}.filters{grid-template-columns:minmax(0,1fr) minmax(0,180px)}}
+@media(max-width:640px){.shell{display:block}.sidebar{display:none}.topbar{padding:0 16px}.filter-band{padding:18px 16px}.filters,.custom-grid,.series,.qa-grid{grid-template-columns:minmax(0,1fr)}main{padding:24px 16px}.panel{padding:18px}.panel-head{flex-direction:column}.panel-head .field{width:100%}h1{font-size:23px}.breadcrumb{gap:6px}.actions button{flex:1}.intro{margin-top:18px}.applied{font-size:16px}.alert-demo{margin:10px 16px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Ir para conteúdo</a>
+<div class="shell">
+<aside class="sidebar" aria-label="Contexto visual do admin, sem navegação nesta demo">
+  <div class="brand">arena<span>.</span> <small>Administração</small></div>
+  <p class="nav-group">Análise</p><span class="nav-item current">Visão geral</span><span class="nav-item muted">Jornada</span><span class="nav-item muted">Aquisição</span><span class="nav-item muted">Produto</span>
+  <small>Protótipo offline<br>Fase A · revisão</small>
+</aside>
+<div class="workspace">
+  <header class="topbar">
+    <nav class="breadcrumb" aria-label="Trilha de navegação"><span class="muted">Análise</span><span aria-hidden="true">›</span><strong>Visão geral</strong></nav>
+    <div class="tools">
+      <button class="icon" id="alerts" aria-label="Alertas de demonstração" aria-expanded="false" aria-controls="alerts-demo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button>
+      <button class="icon" id="theme" aria-label="Ativar tema escuro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/></svg></button>
+    </div>
+  </header>
+  <div id="alerts-demo" class="alert-demo" hidden>DEMO: alertas não conectados. Nenhuma consulta foi realizada.</div>
+  <section class="filter-band" aria-label="Escopo administrativo proposto">
+    <div id="new-filters">
+      <div class="filters">
+        <div class="field"><label for="edition">Edição</label><select id="edition" aria-describedby="catalog-status edition-name"></select></div>
+        <div class="field"><label for="period">Período</label><select id="period"><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="custom">Intervalo livre</option></select></div>
+      </div>
+      <span id="edition-name" class="edition-name"></span>
+      <div class="status-row"><span id="catalog-status" role="status"></span><button id="retry" hidden>Tentar novamente</button></div>
+      <p class="helper">Escopo proposto para os relatórios contratados da Visão geral. Demais páginas mantêm seus filtros atuais.</p>
+      <button type="button" id="edit-custom" aria-controls="custom-form" hidden>Editar intervalo</button>
+      <form id="custom-form" class="custom" novalidate hidden>
+        <p class="helper" id="date-help">De uma data até a outra, incluindo os dois dias. Horário de Brasília (BRT, UTC−03:00).</p>
+        <div class="custom-grid">
+          <div class="field"><label for="start">De</label><input id="start" name="start" type="date" min="1900-01-01" max="9998-12-31" autocomplete="off" required aria-describedby="date-help date-error"></div>
+          <div class="field"><label for="end">Até</label><input id="end" name="end" type="date" min="1900-01-01" max="9998-12-31" autocomplete="off" required aria-describedby="date-help date-error"></div>
+        </div>
+        <p id="date-error" class="error" role="alert"></p>
+        <div class="actions"><button type="submit" class="primary">Aplicar intervalo</button><button type="button" id="cancel-custom">Cancelar</button></div>
+        <p class="helper">Alterar as datas não aplica o intervalo. A seleção anterior permanece até confirmar.</p>
+      </form>
+    </div>
+    <div id="legacy" hidden><div><label>Período legado</label><div class="legacy" role="group" aria-label="Período legado"><button id="legacy-7" data-days="7">7 dias</button><button id="legacy-30" data-days="30">30 dias</button><button id="legacy-90" data-days="90">90 dias</button></div></div></div>
+  </section>
+  <main id="main" tabindex="-1">
+    <span class="demo">DEMO · NÃO CONECTADO</span>
+    <div class="intro"><p class="eyebrow">Visão geral</p><h1>Como está a operação como um todo?</h1><p id="demo-note">DEMO para revisar edição e período. Edições e datas abaixo são exemplos sintéticos, não calendário oficial. Não há datas de 2027 confirmadas.</p></div>
+    <section class="panel" aria-labelledby="selection-title">
+      <div class="panel-head"><div><p class="eyebrow">Seleção aplicada na demo</p><h2 id="selection-title">Todas as edições</h2><p class="applied" id="applied" role="status" aria-live="polite"></p></div>
+        <div class="field"><label for="segment">Segmento local · demo</label><select id="segment"><option value="all">Todos</option><option value="guest">Visitante</option><option value="standard">Aluno SanarFlix</option><option value="pro">Aluno PRO</option></select></div>
+      </div>
+      <p class="scope">Edição, período e segmento são independentes. Este segmento demonstra preservação de estado; nenhum dado é consultado.</p>
+      <p class="scope" id="storage-note"></p>
+    </section>
+    <section class="panel" aria-labelledby="evolution-title"><h2 id="evolution-title">Evolução por edição</h2><p class="scope" id="series-note">Marcadores informativos, sem notas. Séries de edições distintas não são conectadas: percentuais brutos não são uma escala comparável entre edições.</p><div class="series" id="series"></div><p class="scope" id="series-status" role="status"></p></section>
+    <section class="panel" aria-labelledby="scope-title"><h2 id="scope-title">Onde este escopo será aplicado?</h2><p class="scope" id="scope-note">Proposta para Visão geral: evolução, segmentos, coortes, insights, distribuição de notas, desempenho por área e temas. Não se aplica aos indicadores de engajamento, às três RPCs do dashboard ainda não expandidas ou aos demais relatórios. Detalhes de um simulado manterão seu próprio escopo por ID. Este protótipo não filtra relatórios reais.</p><p class="scope">“Todas as edições” representa edição nula: visão cumulativa das edições permitidas, ainda limitada pelo período quando informado. Comparações ambíguas de queda entre edições não serão apresentadas.</p></section>
+    <details class="qa"><summary>Laboratório de revisão · somente DEMO</summary>
+      <p>Estado inicial por parâmetros locais: ?theme=dark&amp;catalog=long ou ?flag=off. Sem rede, Auth ou Supabase.</p>
+      <div class="qa-grid"><div><label for="catalog-demo">Catálogo de demonstração</label><select id="catalog-demo"><option value="ready">Disponível</option><option value="loading">Carregando</option><option value="error">Erro</option><option value="empty">Vazio</option><option value="long">Nomes longos</option></select></div><div><label for="flag-demo">Flag editions_ui · simulada</label><select id="flag-demo"><option value="on">Ativada · novos controles</option><option value="off">Desativada · legado</option></select></div></div>
+      <p>Prévia dos argumentos FUTUROS das sete RPCs. IDs demo não são UUIDs reais. Nenhuma chamada é executada.</p><pre class="code" id="args"></pre>
+    </details>
+  </main>
+</div>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const key = 'admin-period:demo-operator:v1';
+  const editions = [
+    { id: 'demo-a', code: 'DEMO A', label: 'Edição de demonstração A' },
+    { id: 'demo-b', code: 'DEMO B', label: 'Edição de demonstração B' },
+  ];
+  const longName = 'Edição de demonstração com nome muito longo para revisão de legibilidade em telas pequenas e continuidade entre ciclos acadêmicos — não é uma edição oficial';
+  let flag = params.get('flag') !== 'off';
+  let catalog = ['loading','error','empty','long'].includes(params.get('catalog')) ? params.get('catalog') : 'ready';
+  let storageAvailable = true;
+  let restoredInvalid = false;
+  function validDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '') || value < '1900-01-01' || value > '9998-12-31') return false;
+    const date = new Date(value + 'T03:00:00.000Z');
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
+  }
+  function customRange(from, to) {
+    const end = new Date(to + 'T03:00:00.000Z');
+    end.setUTCDate(end.getUTCDate() + 1);
+    return { start: new Date(from + 'T03:00:00.000Z').toISOString(), end: end.toISOString() };
+  }
+  function presetRange(days, now = new Date()) {
+    const today = new Date(now.getTime() - 3 * 3600000).toISOString().slice(0,10);
+    const from = new Date(today + 'T03:00:00.000Z');
+    from.setUTCDate(from.getUTCDate() - days + 1);
+    return customRange(from.toISOString().slice(0,10), today);
+  }
+  const defaults = () => ({ edition: null, mode: '7', days: 7, from: '', to: '', range: presetRange(7) });
+  let state = defaults();
+  try {
+    let saved;
+    try { saved = JSON.parse(sessionStorage.getItem(key)); }
+    catch (error) { if (error instanceof SyntaxError) restoredInvalid = true; else throw error; }
+    const valid = saved && (saved.edition === null || editions.some(e => e.id === saved.edition)) && [7,30,90].includes(saved.days) &&
+      (['7','30','90'].includes(saved.mode) || (saved.mode === 'custom' && validDate(saved.from) && validDate(saved.to) && saved.from <= saved.to));
+    if (valid) {
+      const days = saved.mode === 'custom' ? saved.days : Number(saved.mode);
+      state = { edition: saved.edition, mode: saved.mode, days, from: saved.from || '', to: saved.to || '', range: saved.mode === 'custom' ? customRange(saved.from,saved.to) : presetRange(days) };
+    } else if (saved) restoredInvalid = true;
+  } catch { storageAvailable = false; }
+  // The demo key is deliberately not an auth implementation; phase B must scope it to the authenticated user.
+  function persist() {
+    try { sessionStorage.setItem(key, JSON.stringify(state)); } catch { storageAvailable = false; }
+    $('storage-note').textContent = storageAvailable ? 'Escolha válida mantida nesta sessão DEMO. Na integração, a chave será isolada por usuário autenticado.' : 'Armazenamento indisponível: a escolha não será mantida ao recarregar. Você pode continuar nesta tela.';
+    if (restoredInvalid) $('storage-note').textContent = 'Escolha anterior inválida ou edição indisponível: seleção restaurada para Todas as edições e 7 dias. ' + $('storage-note').textContent;
+  }
+  const label = e => catalog === 'long' && e.id === 'demo-b' ? longName : e.label;
+  function args() {
+    return flag && ['ready','long'].includes(catalog) ? { p_edition_id: state.edition, p_start_at: state.range.start, p_end_at: state.range.end } : null;
+  }
+  function render() {
+    $('new-filters').hidden = !flag; $('legacy').hidden = flag;
+    $('flag-demo').value = flag ? 'on' : 'off';
+    $('period').value = $('custom-form').hidden ? state.mode : 'custom';
+    $('edit-custom').hidden = state.mode !== 'custom' || !$('custom-form').hidden;
+    const chosen = editions.find(e => e.id === state.edition);
+    $('edition-name').textContent = chosen ? label(chosen) : 'Todas as edições permitidas · sem edição específica';
+    $('selection-title').textContent = !flag ? 'Modo legado · sem filtro de edição' : chosen ? chosen.code + ' · ' + label(chosen) : 'Todas as edições';
+    const pretty = s => new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(s + 'T00:00:00Z'));
+    $('applied').textContent = flag && state.mode === 'custom' ? 'De ' + pretty(state.from) + ' até ' + pretty(state.to) + ' · BRT' : 'Últimos ' + state.days + ' dias' + (flag ? ' · incluindo hoje, BRT' : ' · legado');
+    document.querySelectorAll('[data-days]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.days) === state.days)));
+    $('series').replaceChildren();
+    const ready = ['ready','long'].includes(catalog);
+    if (flag && ready) for (const e of editions.filter(e => !chosen || e.id === chosen.id)) {
+      const article = document.createElement('article');
+      const title = document.createElement('h3');
+      const marker = document.createElement('span'); marker.className = 'marker'; marker.setAttribute('aria-hidden','true');
+      title.append(marker, e.code + ' · ' + label(e));
+      const note = document.createElement('p'); note.textContent = 'Série própria desta edição · sequência reinicia aqui. Sem valores na demonstração.';
+      article.append(title,note); $('series').append(article);
+    }
+    $('series-status').textContent = !flag ? 'Modo legado preservado. Nenhum argumento novo é enviado; visualização de séries fora desta demonstração.' : ready ? 'Somente identificação de séries. Nenhuma nota, corte ou comparação entre edições foi calculada.' : 'Prévia indisponível enquanto o catálogo não estiver carregado. A seleção anterior foi preservada, sem aplicar um fallback silencioso.';
+    $('args').textContent = args() ? JSON.stringify(args(),null,2) : 'Sem novos argumentos: modo legado ou catálogo indisponível.';
+    persist();
+  }
+  function setupCatalog() {
+    $('catalog-demo').value = catalog;
+    const ready = ['ready','long'].includes(catalog);
+    $('edition').replaceChildren();
+    if (ready) {
+      const all = document.createElement('option'); all.value = ''; all.textContent = 'Todas as edições'; $('edition').append(all);
+      for (const e of editions) { const option = document.createElement('option'); option.value = e.id; option.textContent = e.code + ' · ' + label(e); $('edition').append(option); }
+      $('edition').value = state.edition || '';
+    } else {
+      const option = document.createElement('option'); option.textContent = catalog === 'loading' ? 'Carregando edições…' : catalog === 'empty' ? 'Nenhuma edição disponível' : 'Catálogo indisponível'; $('edition').append(option);
+    }
+    $('edition').disabled = !ready;
+    $('edition').setAttribute('aria-busy', String(catalog === 'loading'));
+    $('catalog-status').textContent = ready ? '' : catalog === 'loading' ? 'Carregando o catálogo DEMO. Aguarde.' : catalog === 'empty' ? 'Não há edições no catálogo DEMO. Atualize para tentar novamente.' : 'Não foi possível carregar as edições DEMO. Sua seleção não foi alterada.';
+    $('catalog-status').className = catalog === 'error' ? 'error' : 'muted';
+    $('retry').hidden = ready || catalog === 'loading'; render();
+  }
+  function clearError() { $('date-error').textContent = ''; ['start','end'].forEach(id => $(id).removeAttribute('aria-invalid')); }
+  function openCustom() {
+    clearError(); $('custom-form').hidden = false; $('edit-custom').hidden = true;
+    $('period').value = 'custom'; $('start').value = state.from; $('end').value = state.to; $('start').focus();
+  }
+  $('edit-custom').addEventListener('click', openCustom);
+  $('edition').addEventListener('change', () => { state.edition = $('edition').value || null; render(); });
+  $('period').addEventListener('change', () => {
+    clearError();
+    if ($('period').value === 'custom') {
+      openCustom(); return;
+    }
+    const days = Number($('period').value);
+    if (![7,30,90].includes(days)) return;
+    state.mode = String(days); state.days = days; state.range = presetRange(days); $('custom-form').hidden = true; render();
+  });
+  $('custom-form').addEventListener('submit', event => {
+    event.preventDefault(); clearError();
+    const from = $('start').value, to = $('end').value;
+    let invalid = !validDate(from) ? 'start' : !validDate(to) || to < from ? 'end' : null;
+    if (invalid) {
+      $('date-error').textContent = validDate(from) && validDate(to) ? 'A data Até deve ser igual ou posterior à data De.' : 'Informe as duas datas válidas, entre 1900 e 9998.';
+      $(invalid).setAttribute('aria-invalid','true'); $(invalid).focus(); return;
+    }
+    state.mode = 'custom'; state.from = from; state.to = to; state.range = customRange(from,to);
+    $('custom-form').hidden = true; render(); $('period').focus();
+  });
+  $('cancel-custom').addEventListener('click', () => { clearError(); $('custom-form').hidden = true; render(); $('period').focus(); });
+  document.querySelectorAll('[data-days]').forEach(b => b.addEventListener('click', () => { state.days = Number(b.dataset.days); state.mode = String(state.days); state.range = presetRange(state.days); render(); }));
+  $('retry').addEventListener('click', () => { catalog = 'ready'; setupCatalog(); $('edition').focus(); });
+  $('catalog-demo').addEventListener('change', () => { catalog = $('catalog-demo').value; setupCatalog(); });
+  $('flag-demo').addEventListener('change', () => { flag = $('flag-demo').value === 'on'; $('custom-form').hidden = true; render(); });
+  function setTheme(dark) { document.documentElement.classList.toggle('dark', dark); $('theme').setAttribute('aria-label', dark ? 'Ativar tema claro' : 'Ativar tema escuro'); }
+  $('theme').addEventListener('click', () => setTheme(!document.documentElement.classList.contains('dark')));
+  $('alerts').addEventListener('click', () => { $('alerts-demo').hidden = !$('alerts-demo').hidden; $('alerts').setAttribute('aria-expanded',String(!$('alerts-demo').hidden)); });
+  setTheme(params.get('theme') === 'dark'); setupCatalog();
+  window.periodDemo = { getState: () => JSON.parse(JSON.stringify(state)), rpcArgs: args, presetRange };
+})();
+</script>
+</body>
+</html>
