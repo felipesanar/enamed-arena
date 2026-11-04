@@ -9,6 +9,158 @@ vi.mock('@/hooks/use-toast', () => ({ toast }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 import { useExamLifecycle } from '@/hooks/exam/useExamLifecycle';
 
+describe('trusted clock correction during time-up grace', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllMocks(); });
+  afterEach(() => vi.useRealTimers());
+  function setup(remainingMs = 0) {
+    const epoch = Date.now();
+    let offset = 0;
+    let owned = true;
+    const now = () => epoch + performance.now() + offset;
+    const initial: ExamState = { simuladoId: 'sim', status: 'in_progress', currentQuestionIndex: 0, answers: {},
+      tabExitCount: 0, fullscreenExitCount: 0, startedAt: new Date(epoch).toISOString(),
+      effectiveDeadline: new Date(epoch + remainingMs).toISOString(), lastSavedAt: '' };
+    const storage = { loadState: vi.fn(() => new Promise<never>(() => {})), initializeState: vi.fn(),
+      submitAttempt: vi.fn().mockResolvedValue({ score_percentage: 0, is_within_window: true }),
+      setResultNotification: vi.fn(), attemptId: { current: 'attempt' } };
+    const client = new QueryClient();
+    const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const hook = renderHook(({ state }) => useExamLifecycle({
+      simulado: { id: 'sim', status: 'in_progress', estimatedDurationMinutes: 1, executionWindowEnd: null },
+      state, setState: vi.fn(), storage, questions: [{ id: 'q' }] as any, questionIds: ['q'], id: 'sim',
+      navigate: vi.fn(), loadingSimulado: false, isOnboardingComplete: true, setShowSubmitModal: vi.fn(),
+      clock: { now, status: 'synced', ready: true }, canWrite: () => owned,
+    }), { wrapper, initialProps: { state: initial } });
+    return { ...hook, storage, initial, correct: (value: number) => { offset = value; },
+      own: (value: boolean) => { owned = value; } };
+  }
+
+  it('cancels the old grace, unlocks and rearms only at the corrected real deadline', async () => {
+    const h = setup();
+    expect(h.result.current.interactionLocked).toBe(true);
+    act(() => vi.advanceTimersByTime(500));
+    h.correct(-5500);
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(h.result.current.timeRemaining).toBe(4);
+    expect(h.result.current.interactionLocked).toBe(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(h.storage.submitAttempt).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(h.result.current.interactionLocked).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledExactlyOnceWith(h.initial, true);
+  });
+
+  it('uses milliseconds for an initial deadline only 500ms away and for direct automatic submission', async () => {
+    const h = setup(500);
+    expect(h.result.current.timeRemaining).toBe(0);
+    expect(h.result.current.interactionLocked).toBe(false);
+    await act(async () => { await h.result.current.finalize(true); });
+    expect(h.storage.submitAttempt).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(h.result.current.interactionLocked).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it('rechecks a sub-second correction at the timeout even when displayed remaining stays zero', async () => {
+    const h = setup();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1900); });
+    h.correct(-2400);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(h.result.current.timeRemaining).toBe(0);
+    expect(h.storage.submitAttempt).not.toHaveBeenCalled();
+    expect(h.result.current.interactionLocked).toBe(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses live ownership and the latest answer snapshot when grace is rearmed', async () => {
+    const h = setup();
+    const updated = { ...h.initial, answers: { q: { selectedOption: 'opt', eliminatedAlternatives: [] } } };
+    h.rerender({ state: updated });
+    h.own(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(h.storage.submitAttempt).not.toHaveBeenCalled();
+    h.own(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledExactlyOnceWith(updated, true);
+  });
+
+  it('does not submit an attempt whose live state changed during grace', async () => {
+    const h = setup();
+    h.rerender({ state: { ...h.initial, status: 'submitted' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    expect(h.storage.submitAttempt).not.toHaveBeenCalled();
+  });
+
+  it('does not cancel or rearm a submission that already started', async () => {
+    const h = setup();
+    let resolve!: (value: { score_percentage: number; is_within_window: boolean }) => void;
+    h.storage.submitAttempt.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(h.result.current.submitting).toBe(true);
+    h.correct(-10000);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(h.result.current.timeRemaining).toBe(7);
+    expect(h.result.current.interactionLocked).toBe(true);
+    await act(async () => { resolve({ score_percentage: 0, is_within_window: true }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { code: 'P0001', message: 'UNANSWERED_QUESTIONS' },
+    { code: '22023', message: 'Invalid argument' },
+    { code: '42501', message: 'Permission denied' },
+  ])('allows one automatic submission after a known manual rejection ($code)', async error => {
+    const h = setup(5000);
+    h.storage.submitAttempt.mockRejectedValueOnce(error);
+    await act(async () => { await h.result.current.finalize(false); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledExactlyOnceWith(h.initial, false);
+    expect(h.initial.status).toBe('in_progress');
+    expect(h.result.current.hasFinalized.current).toBe(false);
+    expect(h.result.current.submitting).toBe(false);
+    expect(h.result.current.interactionLocked).toBe(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(4999); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(10001); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledTimes(2);
+    expect(h.storage.submitAttempt).toHaveBeenNthCalledWith(2, h.initial, true);
+  });
+
+  it.each([new Error('Failed to fetch'), { code: 'XX000', message: 'Internal error' }, null])(
+    'does not auto-repeat a manual submission with an uncertain outcome (%j)', async error => {
+      const h = setup(5000);
+      if (error) h.storage.submitAttempt.mockRejectedValueOnce(error);
+      else h.storage.submitAttempt.mockResolvedValueOnce(null);
+      await act(async () => { await h.result.current.finalize(false); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+      expect(h.storage.submitAttempt).toHaveBeenCalledExactlyOnceWith(h.initial, false);
+    },
+  );
+
+  it('does not erase an earlier uncertain manual outcome after a known rejection on explicit retry', async () => {
+    const h = setup(5000);
+    h.storage.submitAttempt.mockRejectedValueOnce(new Error('Failed to fetch'));
+    await act(async () => { await h.result.current.finalize(false); });
+    h.storage.submitAttempt.mockRejectedValueOnce({ code: 'P0001', message: 'UNANSWERED_QUESTIONS' });
+    await act(async () => { await h.result.current.finalize(false); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledTimes(2);
+    expect(h.storage.submitAttempt.mock.calls.every(([, auto]) => auto === false)).toBe(true);
+  });
+
+  it('does not rearm an automatic submission even after a known rejection', async () => {
+    const h = setup();
+    h.storage.submitAttempt.mockRejectedValueOnce({ code: 'P0001', message: 'UNANSWERED_QUESTIONS' });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    h.correct(-10000);
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledExactlyOnceWith(h.initial, true);
+  });
+});
+
 it.each([false, true])('reconciles fallback zero only after trusted time and ownership (past=%s)', async past => {
   vi.useFakeTimers(); vi.clearAllMocks();
   const initial: ExamState = { simuladoId: 'sim', status: 'in_progress', currentQuestionIndex: 0, answers: {},
