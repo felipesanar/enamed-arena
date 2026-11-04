@@ -82,7 +82,7 @@ export function HomePagePremium() {
       : null;
   const editionsUi = useAppConfig('editions_ui');
   const { userEdition, now: editionNow } = useUserEdition(editionsUi);
-  const { simulados: allSimulados, loading: simuladosLoading } = useSimulados();
+  const { simulados: allSimulados, loading: simuladosLoading, error: simuladosError, refetch: refetchSimulados } = useSimulados();
   const simulados = useMemo(() => editionsUi
     ? allSimulados.filter(sim => !!userEdition && sim.editionId === userEdition.id) : allSimulados,
   [allSimulados, editionsUi, userEdition]);
@@ -313,12 +313,17 @@ export function HomePagePremium() {
       className="space-y-4 md:space-y-6"
     >
       {/* Layer 0: Notification banner — always on top */}
-      <motion.div variants={itemVariants}>
+      {!simuladosError && <motion.div variants={itemVariants}>
         <NextSimuladoBanner simulados={simulados} edition={editionsUi ? userEdition ?? null : undefined} />
-      </motion.div>
+      </motion.div>}
 
       {/* Layer 1: Hero premium — full width */}
-      <motion.div variants={itemVariants} data-edition-target-home>
+      {simuladosError ? (
+        <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm">
+          <p>Não foi possível carregar seus simulados.</p>
+          <button type="button" onClick={() => refetchSimulados()} className="mt-2 font-semibold text-primary underline">Tentar novamente os simulados</button>
+        </div>
+      ) : <motion.div variants={itemVariants} data-edition-target-home>
         <HomeHeroSection heroState={heroState} />
         {pendingSimulado && (recentScores.length > 0 || stats.simuladosRealizados > 0) && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-muted bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
@@ -329,7 +334,7 @@ export function HomePagePremium() {
             </span>
           </div>
         )}
-      </motion.div>
+      </motion.div>}
 
       <EditionTargetPrompt />
       {perfError && (
@@ -357,6 +362,7 @@ export function HomePagePremium() {
               pendingErrors={pendingErrors}
               cadernoTo={caderno.base}
               segment={segment}
+              catalogUnavailable={!!simuladosError}
             />
           </div>
           <div className="lg:col-span-7 lg:min-h-0 min-w-0">
@@ -742,6 +748,7 @@ function KpiGridSection({
   pendingErrors,
   cadernoTo,
   segment,
+  catalogUnavailable = false,
 }: {
   lastScore: number | null;
   worstArea: string | null;
@@ -750,6 +757,7 @@ function KpiGridSection({
   pendingErrors: number | null;
   cadernoTo: string;
   segment: string;
+  catalogUnavailable?: boolean;
 }) {
   const isPro = segment === "pro";
 
@@ -758,7 +766,7 @@ function KpiGridSection({
     lastScore !== null ? `nota ${lastScore}%` : "sem nota ainda",
   ].join(", ");
 
-  const windowAria = nextWindowDate
+  const windowAria = catalogUnavailable ? "Simulados, agenda indisponível" : nextWindowDate
     ? `Próximo simulado, janela em ${nextWindowDate}`
     : "Simulados, nenhuma data futura listada";
 
@@ -801,9 +809,11 @@ function KpiGridSection({
     {
       key: "window",
       title: "Próximo simulado",
-      value: nextWindowDate ?? "—",
+      value: catalogUnavailable ? "—" : nextWindowDate ?? "—",
       hint:
-        nextSimuladoTitle !== null
+        catalogUnavailable
+          ? "A agenda está indisponível. Tente carregar os simulados novamente."
+          : nextSimuladoTitle !== null
           ? nextSimuladoTitle
           : nextWindowDate !== null
             ? "Início da janela de execução."
