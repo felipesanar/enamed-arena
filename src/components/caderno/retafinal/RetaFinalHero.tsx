@@ -19,6 +19,8 @@ interface RetaFinalHeroProps {
   daysUntil: number;
   stats: RetaFinalStats;
   className?: string;
+  editionLabel?: string;
+  formatLabel?: string;
 }
 
 function pluralize(n: number, s: string, p: string) {
@@ -36,7 +38,7 @@ interface StatChipProps {
 
 function StatChip({ icon, label, value, valueClass }: StatChipProps) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-1 rounded-[var(--c-radius-control)] border border-white/[0.08] bg-white/[0.05] px-4 py-3 text-center">
+    <div className="flex min-w-0 flex-col items-center gap-1 rounded-[var(--c-radius-control)] border border-white/[0.08] bg-white/[0.05] px-1.5 py-3 text-center md:px-4">
       <div className="text-white/35">{icon}</div>
       <span
         className={cn(
@@ -46,7 +48,7 @@ function StatChip({ icon, label, value, valueClass }: StatChipProps) {
       >
         {value}
       </span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/35">
+      <span className="whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.02em] text-white/80 md:text-[10px] md:tracking-[0.08em]">
         {label}
       </span>
     </div>
@@ -55,7 +57,7 @@ function StatChip({ icon, label, value, valueClass }: StatChipProps) {
 
 // ─── Versão desktop ──────────────────────────────────────────────────────────
 
-function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
+function HeroDesktop({ daysUntil, stats, className, editionLabel = 'ENAMED', formatLabel }: RetaFinalHeroProps) {
   const shouldReduce = useReducedMotion();
   const total = stats.totalActive + stats.mastered;
   const progressPct = total === 0 ? 0 : Math.round((stats.mastered / total) * 100);
@@ -68,7 +70,7 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
         'border border-white/[0.07]',
         className,
       )}
-      aria-label="Painel da Reta Final ENAMED"
+      aria-label={`Painel da Reta Final ${editionLabel}`}
     >
       {/* Atmospheric blobs */}
       <div
@@ -88,7 +90,7 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
         {/* Top row: countdown + progress ring */}
         <div className="flex items-start justify-between gap-6">
           {/* Left: eyebrow + countdown */}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
             <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--c-wine-400)_30%,transparent)] bg-[color-mix(in_srgb,var(--c-wine-500)_20%,transparent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-wine-300)]">
               <Target className="h-3 w-3" aria-hidden />
               Reta Final ENAMED
@@ -101,7 +103,7 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
             >
               {daysUntil > 0 ? (
                 <div className="space-y-1">
-                  <p className="text-[13px] font-semibold text-white/40 uppercase tracking-[0.08em]">
+                  <p className="text-[13px] font-semibold text-white/80 uppercase tracking-[0.08em]">
                     Faltam
                   </p>
                   <div className="flex items-baseline gap-3">
@@ -110,19 +112,20 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
                     </span>
                     <span className="text-[22px] font-bold leading-tight text-white/60">
                       {pluralize(daysUntil, 'dia', 'dias')}<br />
-                      <span className="text-[14px] font-semibold text-white/40">para o ENAMED</span>
+                      <span className="text-[14px] font-semibold text-white/80">para o {editionLabel}</span>
                     </span>
                   </div>
-                  <p className="text-[12px] text-white/40 mt-1">
+                  <p className="text-[12px] text-white/80 mt-1">
                     Seu plano de revisão está pronto. Foco total agora.
                   </p>
+                  {formatLabel && <p className="text-sm text-white/80">{formatLabel}</p>}
                 </div>
               ) : (
                 <div>
                   <p className="text-[36px] font-extrabold leading-tight text-white">
                     Boa sorte na prova!
                   </p>
-                  <p className="mt-1 text-[13px] text-white/40">
+                  <p className="mt-1 text-[13px] text-white/80">
                     Você chegou até aqui. Confie no seu preparo.
                   </p>
                 </div>
@@ -142,12 +145,12 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
                 <span className="text-[24px] font-extrabold leading-none tabular-nums text-white">
                   {progressPct}%
                 </span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-white/40 mt-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-white/80 mt-0.5">
                   dominado
                 </span>
               </div>
             </ProgressRing>
-            <p className="text-[11px] text-white/35 tabular-nums text-center">
+            <p className="text-[11px] text-white/80 tabular-nums text-center">
               {stats.mastered}/{total} questões
             </p>
           </div>
@@ -156,7 +159,7 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
         {/* Progress bar (covered / active) */}
         <div className="mt-6 space-y-1.5">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[11px] text-white/40">
+            <span className="text-[11px] text-white/80">
               Cobertura do plano
             </span>
             <span className="text-[11px] font-semibold tabular-nums text-white/55">
@@ -200,7 +203,7 @@ function HeroDesktop({ daysUntil, stats, className }: RetaFinalHeroProps) {
 
 // ─── Versão mobile ───────────────────────────────────────────────────────────
 
-function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
+function HeroMobile({ daysUntil, stats, className, editionLabel = 'ENAMED', formatLabel }: RetaFinalHeroProps) {
   const shouldReduce = useReducedMotion();
   const total = stats.totalActive + stats.mastered;
   const progressPct = total === 0 ? 0 : Math.round((stats.mastered / total) * 100);
@@ -214,7 +217,7 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
         'border border-white/[0.07]',
         className,
       )}
-      aria-label="Painel da Reta Final ENAMED"
+      aria-label={`Painel da Reta Final ${editionLabel}`}
     >
       {/* Atmospheric blobs */}
       <div
@@ -240,10 +243,10 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div>
+          <div className="min-w-0 [overflow-wrap:anywhere]">
             {daysUntil > 0 ? (
               <>
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/80">
                   Faltam
                 </p>
                 <div className="flex items-baseline gap-2">
@@ -254,7 +257,8 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
                     {pluralize(daysUntil, 'dia', 'dias')}
                   </span>
                 </div>
-                <p className="text-[11px] text-white/35">para o ENAMED</p>
+                <p className="text-[11px] text-white/80">para o {editionLabel}</p>
+                {formatLabel && <p className="text-sm text-white/80">{formatLabel}</p>}
               </>
             ) : (
               <p className="text-[22px] font-extrabold text-white leading-tight">
@@ -280,7 +284,7 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
 
         {/* Coverage bar */}
         <div className="mt-4 space-y-1">
-          <div className="flex justify-between text-[10px] text-white/35">
+          <div className="flex justify-between text-[10px] text-white/80">
             <span>Cobertura do plano</span>
             <span className="tabular-nums">{stats.covered}/{stats.totalActive} questões</span>
           </div>
@@ -319,9 +323,9 @@ function HeroMobile({ daysUntil, stats, className }: RetaFinalHeroProps) {
 
 // ─── Export adaptativo ───────────────────────────────────────────────────────
 
-export function RetaFinalHero({ daysUntil, stats, className }: RetaFinalHeroProps) {
+export function RetaFinalHero(props: RetaFinalHeroProps) {
   const isMobile = useIsMobile();
   return isMobile
-    ? <HeroMobile daysUntil={daysUntil} stats={stats} className={className} />
-    : <HeroDesktop daysUntil={daysUntil} stats={stats} className={className} />;
+    ? <HeroMobile {...props} />
+    : <HeroDesktop {...props} />;
 }

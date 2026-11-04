@@ -17,10 +17,10 @@
 // -----------------------------------------------------------------------------
 // STATUS — nasce em NO-OP até o time configurar o env
 // -----------------------------------------------------------------------------
-// Mesmo padrão do `caderno-reminders`: sem os secrets, esta função apenas LOGA
-// o que faria e retorna 200, sem disparar e-mail e SEM gravar em
-// gabarito_key_alerts (gravar sem ter avisado "consumiria" o alerta em
-// silêncio — o pior dos mundos).
+// Sem NOVU_RELAY_SECRET, falha fechado (503), sem consultar dados.
+// Somente POST com x-internal-secret correto pode processar alertas.
+// Sem destinatários, mantém NO-OP autenticado: loga o que faria e retorna
+// 200, sem disparar e-mail nem gravar em gabarito_key_alerts.
 //
 // AVISO HONESTO: o scaffold equivalente do `caderno-reminders` foi mergeado em
 // 2026-06 e NUNCA foi configurado. Se ninguém ligar o env, este alerta também
@@ -41,6 +41,7 @@
 // =============================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { authorizeRequest } from "./auth.ts";
 
 // ─── Limiares do sinal ───────────────────────────────────────────────────────
 // ATENÇÃO: precisam bater com `src/admin/lib/suspectKey.ts` (mesma regra, outro
@@ -92,9 +93,12 @@ function selectSuspects(rows: KeyStatRow[]): Suspect[] {
 
 Deno.serve(async (req) => {
   try {
+    const relaySecret = Deno.env.get("NOVU_RELAY_SECRET") ?? "";
+    const rejection = authorizeRequest(req, relaySecret);
+    if (rejection) return rejection;
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const relaySecret = Deno.env.get("NOVU_RELAY_SECRET") ?? "";
     const recipientsRaw = Deno.env.get("GABARITO_ALERT_EMAILS") ?? "";
     const adminBaseUrl = Deno.env.get("ADMIN_BASE_URL") ?? DEFAULT_ADMIN_BASE_URL;
 
@@ -103,12 +107,11 @@ Deno.serve(async (req) => {
       .map((e) => e.trim())
       .filter(Boolean);
 
-    // Sem env não há como avisar ninguém. Segue em modo observação: loga o que
-    // faria e NÃO grava em gabarito_key_alerts.
-    const dryRun = !relaySecret || recipients.length === 0;
+    // Só chegamos aqui após autenticação. Sem destinatários, não marca alertas.
+    const dryRun = recipients.length === 0;
     if (dryRun) {
       console.warn(
-        "[gabarito-key-alerts] NO-OP: falta NOVU_RELAY_SECRET e/ou GABARITO_ALERT_EMAILS. " +
+        "[gabarito-key-alerts] NO-OP autenticado: falta GABARITO_ALERT_EMAILS. " +
           "Vou apenas logar as suspeitas encontradas, sem enviar e sem marcar como alertadas.",
       );
     }

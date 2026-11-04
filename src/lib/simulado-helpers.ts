@@ -1,6 +1,7 @@
 import type { SimuladoConfig, SimuladoStatus, SimuladoWithStatus, SimuladoUserState } from '@/types';
 import { format, formatDistanceToNow, isAfter, isBefore, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatSimuladoLabel } from '@/lib/simulado-label';
 
 /**
  * Derive the temporal status of a simulado from its config and current time.
@@ -33,11 +34,16 @@ export function deriveSimuladoStatus(
   // publicado fica acessível a qualquer momento; a única regra é a entrada
   // ou não no ranking nacional.
   if (isAfter(now, windowEnd)) {
+    if (userState?.started && userState.isWithinWindow === false
+      && userState.effectiveDeadline && isAfter(parseISO(userState.effectiveDeadline), now)) {
+      return 'in_progress';
+    }
     return 'available_late';
   }
 
   // User started but hasn't finished (within window)
-  if (userState?.started && !userState.finished && isAfter(now, windowStart) && isBefore(now, windowEnd)) {
+  if (userState?.started && !userState.finished && isAfter(now, windowStart) && isBefore(now, windowEnd)
+    && (!userState.effectiveDeadline || isAfter(parseISO(userState.effectiveDeadline), now))) {
     return 'in_progress';
   }
 
@@ -192,7 +198,7 @@ export function buildGoogleCalendarUrl(simulado: SimuladoWithStatus): string {
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: `Simulado #${simulado.sequenceNumber} — ${simulado.title}`,
+    text: `${formatSimuladoLabel(simulado)} — ${simulado.title}`,
     dates: `${toGCalDate(simulado.executionWindowStart)}/${toGCalDate(simulado.executionWindowEnd)}`,
     details: `${simulado.description}\n\n${simulado.questionsCount} questões · ${simulado.estimatedDuration}\n\nAcesse: ${window.location.origin}/simulados/${simulado.id}`,
   });

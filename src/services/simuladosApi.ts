@@ -3,6 +3,8 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { isMissingRpcSignature } from '@/lib/backend-rpc-availability';
+import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 import { isUuidString } from '@/lib/simulado-id';
 import { logger } from '@/lib/logger';
 import type { SimuladoConfig, Question } from '@/types';
@@ -63,6 +65,9 @@ export interface SimuladoRow {
   results_release_at: string;
   theme_tags: string[];
   status: string;
+  edition_id?: string | null;
+  source_simulado_id?: string | null;
+  exam_editions?: unknown;
 }
 
 export interface QuestionRow {
@@ -75,8 +80,13 @@ export interface QuestionRow {
   difficulty: string | null;
   image_url: string | null;
   image_url_2: string | null;
-  explanation_image_url: string | null;
+}
+
+interface QuestionExplanationRow {
+  question_id: string;
   explanation: string | null;
+  explanation_image_url: string | null;
+  correct_option_id: string | null;
 }
 
 export interface QuestionOptionRow {
@@ -198,7 +208,7 @@ const ALLOWED_IMAGE_HOST_PATTERNS: ReadonlyArray<RegExp> = [
   /^([a-z0-9-]+\.)*supabase\.co$/i,        // storage public URLs
   /^([a-z0-9-]+\.)*supabase\.in$/i,
   /^([a-z0-9-]+\.)*sanar\.com\.br$/i,
-  /^([a-z0-9-]+\.)*sanaflix\.com$/i,
+  /^([a-z0-9-]+\.)*sanarflix\.com\.br$/i,
   /^([a-z0-9-]+\.)*lovable\.app$/i,
   /^([a-z0-9-]+\.)*lovableproject\.com$/i,
 ];
@@ -219,8 +229,11 @@ function safeImageUrl(value: string | null | undefined): string | null {
   return isAllowedImageUrl(value) ? (value as string) : null;
 }
 
-function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
-    return {
+function rowToSimuladoConfig(row: SimuladoRow, includeEdition = false): SimuladoConfig {
+  const relation = row.exam_editions;
+  const edition = relation && typeof relation === 'object' && !Array.isArray(relation)
+    ? relation as Record<string, unknown> : null;
+  return {
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -234,15 +247,19 @@ function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
     resultsReleaseAt: row.results_release_at,
     themeTags: row.theme_tags || [],
     dbStatus: row.status as SimuladoConfig['dbStatus'],
+    ...(includeEdition ? {
+      editionId: typeof row.edition_id === 'string' ? row.edition_id : undefined,
+      sourceSimuladoId: typeof row.source_simulado_id === 'string' ? row.source_simulado_id : undefined,
+      editionCode: typeof edition?.code === 'string' ? edition.code : undefined,
+      editionLabel: typeof edition?.label === 'string' ? edition.label : undefined,
+    } : {}),
   };
 }
 
-function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], includeCorrectAnswers = false): Question {
+function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], correction?: QuestionExplanationRow): Question {
   const qOptions = optionRows
     .filter(o => o.question_id === qRow.id)
     .sort((a, b) => a.label.localeCompare(b.label));
-
-  const correctOption = includeCorrectAnswers ? qOptions.find(o => o.is_correct) : undefined;
 
   return {
     id: qRow.id,
@@ -253,10 +270,12 @@ function rowsToQuestion(qRow: QuestionRow, optionRows: QuestionOptionRow[], incl
     difficulty: qRow.difficulty ?? null,
     imageUrl: safeImageUrl(qRow.image_url),
     imageUrl2: safeImageUrl(qRow.image_url_2),
-    explanationImageUrl: safeImageUrl(qRow.explanation_image_url),
     options: qOptions.map(o => ({ id: o.id, label: o.label, text: o.text })),
-    correctOptionId: correctOption?.id ?? '',
-    explanation: qRow.explanation || undefined,
+    correctOptionId: correction?.correct_option_id ?? '',
+    ...(correction ? {
+      explanation: correction.explanation || undefined,
+      explanationImageUrl: safeImageUrl(correction.explanation_image_url),
+    } : {}),
   };
 }
 
@@ -314,12 +333,12 @@ function applyAttemptTypeFilter(query: any, filter: AttemptTypeFilter) {
 // ─── API ───
 
 export const simuladosApi = {
-  async listSimulados(): Promise<SimuladoConfig[]> {
+  async listSimulados(includeEdition = false): Promise<SimuladoConfig[]> {
     logger.log('[SimuladosApi] Fetching simulados');
     const { data, error } = await supabase
       .from('simulados')
-      .select('*')
-      .in('status', ['published', 'test'])
+      .select(includeEdition ? '*, exam_editions!simulados_edition_id_fkey(code, label)' : '*')
+      .in('status', includeEdition ? ['published', 'test', 'archived'] : ['published', 'test'])
       .order('sequence_number', { ascending: false });
 
     if (error) {
@@ -327,15 +346,15 @@ export const simuladosApi = {
       throw error;
     }
 
-    return (data || []).map(rowToSimuladoConfig);
+    return ((data || []) as unknown as SimuladoRow[]).map(row => rowToSimuladoConfig(row, includeEdition));
   },
 
   /** Aceita UUID (`id`) ou `slug` na URL (ex.: `/simulados/simulado-2-.../start`). */
-  async getSimulado(idOrSlug: string): Promise<SimuladoConfig | null> {
+  async getSimulado(idOrSlug: string, includeEdition = false): Promise<SimuladoConfig | null> {
     const ref = idOrSlug.trim();
     if (!ref) return null;
 
-    const base = supabase.from('simulados').select('*');
+    const base = supabase.from('simulados').select(includeEdition ? '*, exam_editions!simulados_edition_id_fkey(code, label)' : '*');
     const { data, error } = isUuidString(ref)
       ? await base.eq('id', ref).maybeSingle()
       : await base.eq('slug', ref).maybeSingle();
@@ -345,21 +364,14 @@ export const simuladosApi = {
       throw error;
     }
 
-    return data ? rowToSimuladoConfig(data as SimuladoRow) : null;
+    return data ? rowToSimuladoConfig(data as unknown as SimuladoRow, includeEdition) : null;
   },
 
   async getQuestions(simuladoId: string, includeCorrectAnswers = false): Promise<Question[]> {
-    // PostgREST embed: one round-trip instead of two (questions then options).
-    // Note: is_correct is only requested when includeCorrectAnswers is true —
-    // RLS on question_options still gates access; this just avoids sending
-    // the flag over the wire when not needed.
-    const optionsSelect = includeCorrectAnswers
-      ? 'id, question_id, label, text, is_correct'
-      : 'id, question_id, label, text';
-
+    // Restricted columns are never read through REST, including for admins.
     const { data, error } = await supabase
       .from('questions')
-      .select(`*, question_options(${optionsSelect})`)
+      .select('id, simulado_id, question_number, text, area, theme, difficulty, image_url, image_url_2, question_options(id, question_id, label, text)')
       .eq('simulado_id', simuladoId)
       .order('question_number', { ascending: true })
       .limit(300);
@@ -372,9 +384,24 @@ export const simuladosApi = {
     const rows = (data || []) as Array<QuestionRow & { question_options: QuestionOptionRow[] }>;
     if (rows.length === 0) return [];
 
-    return rows.map((row) => {
+    const corrections = new Map<string, QuestionExplanationRow>();
+    let explanationUnavailable = false;
+    if (includeCorrectAnswers) {
+      const { data: released, error: releaseError, status } = await rpc('get_question_explanations', { p_simulado_id: simuladoId });
+      if (releaseError) {
+        if (!isMissingRpcSignature(releaseError, 'get_question_explanations', ['p_simulado_id'], status)) throw releaseError;
+        explanationUnavailable = true;
+      }
+      for (const correction of (released ?? []) as unknown as QuestionExplanationRow[]) {
+        corrections.set(correction.question_id, correction);
+      }
+    }
+
+    // Review consumers must not mistake an unreleased answer key for wrong answers.
+    return rows.filter(row => !includeCorrectAnswers || explanationUnavailable || corrections.has(row.id)).map((row) => {
       const { question_options, ...qRow } = row;
-      return rowsToQuestion(qRow, question_options ?? [], includeCorrectAnswers);
+      const question = rowsToQuestion(qRow, question_options ?? [], corrections.get(row.id));
+      return explanationUnavailable ? { ...question, explanationUnavailable: true } : question;
     });
   },
 
@@ -548,11 +575,18 @@ export const simuladosApi = {
     return (data || []) as AnswerRow[];
   },
 
-  async submitAttempt(attemptId: string): Promise<FinalizedAttemptResult> {
+  async submitAttempt(attemptId: string, isAutoSubmit = false): Promise<FinalizedAttemptResult> {
     logger.log('[SimuladosApi] Submitting attempt with guarded server-side processing');
-    const { data, error } = await supabase.rpc('finalize_attempt_with_results', {
+    const initialResponse = await supabase.rpc('finalize_attempt_with_results', {
       p_attempt_id: attemptId,
-    });
+      p_auto_submit: isAutoSubmit,
+    } as { p_attempt_id: string }); // Generated RPC types predate the default argument.
+    let { data, error } = initialResponse;
+
+    if (!isAutoSubmit && isMissingRpcSignature(error, 'finalize_attempt_with_results', ['p_attempt_id', 'p_auto_submit'], initialResponse.status)) {
+      // PGRST202 did not dispatch the call. Never retry an uncertain mutation.
+      ({ data, error } = await supabase.rpc('finalize_attempt_with_results', { p_attempt_id: attemptId }));
+    }
 
     if (error) {
       logger.error('[SimuladosApi] Error finalizing attempt:', error);
@@ -600,9 +634,10 @@ export const simuladosApi = {
     return (data || []) as AttemptQuestionResultRow[];
   },
 
-  async getUserPerformanceSummary(userId: string): Promise<UserPerformanceSummaryRow | null> {
+  async getUserPerformanceSummary(userId: string, editionId?: string): Promise<UserPerformanceSummaryRow | null> {
     const { data, error } = await supabase.rpc('get_user_performance_summary', {
       p_user_id: userId,
+      ...(editionId ? { p_edition_id: editionId, p_include_training: false } : {}),
     });
     if (error) {
       logger.error('[SimuladosApi] Error fetching user performance summary:', error);
@@ -611,10 +646,17 @@ export const simuladosApi = {
     return (data?.[0] ?? null) as UserPerformanceSummaryRow | null;
   },
 
-  async getUserPerformanceHistory(userId: string, limit = 20): Promise<UserPerformanceHistoryRow[]> {
-    const { data, error } = await supabase.rpc('get_user_performance_history', {
+  async getUserPerformanceHistory(userId: string, limit: number | null = 20, editionId?: string): Promise<UserPerformanceHistoryRow[]> {
+    // This RPC accepts a null limit (unbounded) and edition scope since F1-7;
+    // the generated signature still describes its earlier number-only limit.
+    const historyRpc = supabase.rpc.bind(supabase) as unknown as (
+      name: 'get_user_performance_history',
+      args: { p_user_id: string; p_limit: number | null; p_edition_id?: string; p_include_training?: boolean },
+    ) => PromiseLike<PostgrestSingleResponse<UserPerformanceHistoryRow[]>>;
+    const { data, error } = await historyRpc('get_user_performance_history', {
       p_user_id: userId,
       p_limit: limit,
+      ...(editionId ? { p_edition_id: editionId, p_include_training: false } : {}),
     });
     if (error) {
       logger.error('[SimuladosApi] Error fetching user performance history:', error);
@@ -634,9 +676,10 @@ export const simuladosApi = {
     return (data || []) as UserAreaScoreRow[];
   },
 
-  async getUserAttemptBehaviorStats(userId: string): Promise<UserAttemptBehaviorRow[]> {
+  async getUserAttemptBehaviorStats(userId: string, editionId?: string): Promise<UserAttemptBehaviorRow[]> {
     const { data, error } = await supabase.rpc('get_user_attempt_behavior_stats', {
       p_user_id: userId,
+      ...(editionId ? { p_edition_id: editionId } : {}),
     });
     if (error) {
       logger.error('[SimuladosApi] Error fetching attempt behavior stats:', error);
@@ -1048,10 +1091,11 @@ export const simuladosApi = {
    *
    * Calls `get_area_score_history(p_user_id uuid) → jsonb`.
    */
-  async getAreaScoreHistory(userId: string): Promise<unknown> {
+  async getAreaScoreHistory(userId: string, editionId?: string): Promise<unknown> {
     logger.log('[SimuladosApi] Fetching area score history for user', userId);
     const { data, error } = await rpc('get_area_score_history', {
       p_user_id: userId,
+      ...(editionId?.trim() ? { p_edition_id: editionId.trim() } : {}),
     });
 
     if (error) {

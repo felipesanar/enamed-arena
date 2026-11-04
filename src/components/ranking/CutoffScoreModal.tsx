@@ -4,14 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { fetchAllCutoffScores } from '@/services/rankingApi';
 import { cn } from '@/lib/utils';
+import { useCutoffEditionFlag, useCutoffScope } from '@/hooks/useCutoffContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { cutoffApi, type ReferencedCutoffScore } from '@/services/cutoffApi';
+import type { SimuladoConfig } from '@/types';
+import { CutoffHistorySection } from '@/components/ranking/CutoffHistorySection';
 
 interface CutoffScoreModalProps {
+  simulado?: Pick<SimuladoConfig, 'editionCode' | 'editionLabel'>;
   open: boolean;
   onClose: () => void;
   userSpecialty?: string;
   /** Canonical institution names from onboarding, in profile order */
   userInstitutions?: string[];
-  currentUserScore?: number; // user's score % for pass/fail badge (same unit as cutoff_score_general)
+  currentUserScore?: number; // Accepted by existing callers; not compared across unverified scales.
 }
 
 function scoreTint(score: number): 'high' | 'mid' | 'low' {
@@ -21,27 +27,55 @@ function scoreTint(score: number): 'high' | 'mid' | 'low' {
 }
 
 const GRID_COLS = '1fr 88px 64px 52px';
+const EMPTY_ROWS: ReferencedCutoffScore[] = [];
 
 export function CutoffScoreModal({
   open,
   onClose,
   userSpecialty,
   userInstitutions,
-  currentUserScore,
 }: CutoffScoreModalProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<'reference' | 'history'>('reference');
+  const [historyRow, setHistoryRow] = useState('');
   const [search, setSearch] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>(userSpecialty ?? 'all');
   const [showFilters, setShowFilters] = useState(false);
+  const flag = useCutoffEditionFlag();
+  const editionsUi = flag.editionsUi;
+  const { referenceEditionId } = useCutoffScope();
+  const { user } = useAuth();
+  const queryEnabled = open && flag.ready && (!editionsUi || !!referenceEditionId);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['all-cutoff-scores'],
-    queryFn: fetchAllCutoffScores,
+  const { data, isLoading } = useQuery({
+    queryKey: ['all-cutoff-scores', user?.id ?? null, editionsUi ? referenceEditionId ?? null : 'legacy'],
+    queryFn: () => editionsUi ? cutoffApi.getAllScores(referenceEditionId!) : fetchAllCutoffScores(),
     staleTime: Infinity,
-    enabled: open,
+    enabled: queryEnabled,
   });
+  const rows = (queryEnabled ? data ?? EMPTY_ROWS : EMPTY_ROWS) as ReferencedCutoffScore[];
+  const showHistory = editionsUi && view === 'history';
+  const rowKey = (row: ReferencedCutoffScore) => JSON.stringify([row.institution_id, row.specialty_id, row.practice_scenario]);
+  const historyOptions = [...new Map(rows.filter(row => !!row.institution_id && !!row.specialty_id).map(row => [rowKey(row),row])).values()];
+  const selectedHistoryRow = historyOptions.find(row => rowKey(row) === historyRow);
+  const historyReference = selectedHistoryRow ? { institutionId: selectedHistoryRow.institution_id,
+    specialtyId: selectedHistoryRow.specialty_id!, practiceScenario: selectedHistoryRow.practice_scenario } : null;
+  const labels = [...new Set(rows.map(row => row.reference_label).filter(Boolean))];
+  const sources = [...new Set(rows.map(row => row.source).filter(Boolean))];
+  const knownReference = rows.length > 0 && rows.every(row => row.reference_edition_id && row.reference_label?.trim() && row.source?.trim());
+  const referenceLabel = knownReference && labels.length === 1 ? labels[0] : 'Referência indisponível';
+  const sourceLabel = knownReference && sources.length === 1 ? `Fonte: ${sources[0]}` : knownReference ? 'Fontes diversas (por linha)' : 'Fonte indisponível';
+  // The current cutoff contract supplies provenance, not a comparable score scale.
+  const loading = queryEnabled && isLoading;
 
   // Reset / initialize filters on open/close — auto-selects user's specialty on open
+  useEffect(() => {
+    if (!open || !editionsUi) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    return () => { if (trigger?.isConnected) trigger.focus(); };
+  }, [open, editionsUi]);
+
   useEffect(() => {
     if (open) {
       setSpecialtyFilter(userSpecialty ?? 'all');
@@ -50,6 +84,8 @@ export function CutoffScoreModal({
       setSearch('');
       setSpecialtyFilter('all');
       setShowFilters(false);
+      setView('reference');
+      setHistoryRow('');
     }
   }, [open, userSpecialty]);
 
@@ -58,10 +94,17 @@ export function CutoffScoreModal({
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (editionsUi && e.key === 'Tab') {
+        const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),select:not([disabled]),a[href],[tabindex="0"]') ?? [])
+          .filter(element => element.getClientRects().length > 0);
+        const first = focusable[0], last = focusable[focusable.length-1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open, onClose, editionsUi]);
 
   // Extract unique specialties for filter pills
   const specialties = useMemo(() => {
@@ -127,10 +170,11 @@ export function CutoffScoreModal({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className={cn('fixed inset-0 z-50 flex justify-end', editionsUi && 'items-center px-4 md:px-0')}>
 
           {/* ── Backdrop ──────────────────────────────────────────────── */}
           <motion.div
+            ref={dialogRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -148,7 +192,7 @@ export function CutoffScoreModal({
             role="dialog"
             aria-modal="true"
             aria-label="Notas de Corte ENAMED"
-            className="relative w-full max-w-lg h-full flex flex-col overflow-hidden bg-card border-l border-border"
+            className={cn('relative w-full max-w-lg flex flex-col overflow-hidden bg-card border-l border-border', editionsUi ? 'h-[90dvh] max-h-[90dvh] rounded-l-xl' : 'h-full')}
           >
 
             {/* ── Header ──────────────────────────────────────────────── */}
@@ -156,8 +200,9 @@ export function CutoffScoreModal({
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-[9px] uppercase tracking-[2.5px] font-bold mb-1 text-muted-foreground/70">
-                    ENAMED 2026
+                    {referenceLabel}
                   </p>
+                  <p className="text-caption text-muted-foreground">{sourceLabel}</p>
                   <h2 className="text-[17px] font-extrabold tracking-tight text-foreground">
                     Notas de Corte
                   </h2>
@@ -167,12 +212,19 @@ export function CutoffScoreModal({
                   type="button"
                   onClick={onClose}
                   aria-label="Fechar"
-                  className="h-8 w-8 rounded-[9px] flex items-center justify-center transition-all duration-200 bg-muted border border-border text-muted-foreground hover:text-foreground"
+                  className="h-11 w-11 shrink-0 rounded-[9px] flex items-center justify-center transition-all duration-200 bg-muted border border-border text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
+              {editionsUi && <div role="tablist" aria-label="Referência de corte" className="mb-4 flex gap-4 border-b border-border" onKeyDown={event => {
+                if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+                event.preventDefault();
+                const next = event.key === 'Home' ? 'reference' : event.key === 'End' ? 'history' : view === 'history' ? 'reference' : 'history';
+                setView(next); dialogRef.current?.querySelector<HTMLButtonElement>(`#cutoff-${next}-tab`)?.focus();
+              }}>{(['reference','history'] as const).map(tab => <button id={`cutoff-${tab}-tab`} key={tab} role="tab" type="button" aria-selected={view === tab} aria-controls={`cutoff-${tab}-panel`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)} className={cn('min-h-11 py-2 text-caption font-medium', view === tab ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground')}>{tab === 'reference' ? 'Referência selecionada' : 'Histórico da referência'}</button>)}</div>}
+              {!showHistory && <>
               {/* ── Search ────────────────────────────────────────────── */}
               <div className="relative mb-[9px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
@@ -296,8 +348,13 @@ export function CutoffScoreModal({
                   </motion.div>
                 )}
               </AnimatePresence>
+              </>}
             </div>
 
+            {showHistory ? <div id="cutoff-history-panel" role="tabpanel" aria-labelledby="cutoff-history-tab" className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+              <label htmlFor="cutoff-history-row" className="mb-2 block text-caption font-semibold">Instituição e especialidade do histórico</label><select id="cutoff-history-row" value={historyRow} onChange={event => setHistoryRow(event.target.value)} className="min-h-11 w-full rounded-lg border border-input bg-background px-3 text-caption"><option value="">Selecione uma referência identificada</option>{historyOptions.map(row => <option key={rowKey(row)} value={rowKey(row)}>{row.institution_name} / {row.specialty_name}{row.practice_scenario ? ` / ${row.practice_scenario}` : ''}</option>)}</select>
+              <CutoffHistorySection reference={historyReference} />
+            </div> : <div id="cutoff-reference-panel" role={editionsUi ? 'tabpanel' : undefined} aria-labelledby={editionsUi ? 'cutoff-reference-tab' : undefined} className="flex min-h-0 flex-1 flex-col">
             {/* ── Divider ───────────────────────────────────────────────── */}
             <div className="shrink-0 h-px bg-border" />
 
@@ -321,13 +378,13 @@ export function CutoffScoreModal({
 
             {/* ── Scrollable body ────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto">
-              {isLoading && (
+              {loading && (
                 <div className="flex items-center justify-center py-16">
                   <div className="h-6 w-6 rounded-full border-2 animate-spin border-border border-t-foreground/40" />
                 </div>
               )}
 
-              {!isLoading && filteredRows.length === 0 && !hasUserRows && (
+              {!loading && filteredRows.length === 0 && !hasUserRows && (
                 <div className="flex flex-col items-center justify-center py-16 gap-2">
                   <Search className="h-8 w-8 text-muted-foreground/40" />
                   <p className="text-[13px] text-muted-foreground">
@@ -348,7 +405,7 @@ export function CutoffScoreModal({
                 </div>
               )}
 
-              {!isLoading && (filteredRows.length > 0 || hasUserRows) && (
+              {!loading && (filteredRows.length > 0 || hasUserRows) && (
                 <div>
                   {/* ── Pinned user rows ─────────────────────────────────── */}
                   {hasUserRows && (
@@ -361,10 +418,6 @@ export function CutoffScoreModal({
                       </div>
 
                       {userRows.map(r => {
-                        const passes =
-                          currentUserScore != null
-                            ? currentUserScore >= r.cutoff_score_general
-                            : null;
                         return (
                           <div
                             key={`${r.institution_name}-${r.specialty_name}-${r.practice_scenario}`}
@@ -373,6 +426,7 @@ export function CutoffScoreModal({
                           >
                             <span className="text-[11px] pr-2 leading-snug text-foreground">
                               {r.institution_name}
+                              <span className="block text-micro-label text-muted-foreground">{r.reference_label || 'Referência indisponível'} · {r.source || 'Fonte indisponível'}</span>
                             </span>
                             <span>
                               <span className="inline-block text-[7.5px] font-bold uppercase tracking-[0.4px] px-[7px] py-[2px] rounded-full bg-primary text-white">
@@ -383,17 +437,6 @@ export function CutoffScoreModal({
                             </span>
                             <span className="flex items-center justify-end gap-1 text-[12px] font-bold tabular-nums text-primary">
                               {r.cutoff_score_general}
-                              {passes != null && (
-                                <span
-                                  aria-label={passes ? 'acima do corte' : 'abaixo do corte'}
-                                  className={cn(
-                                    'text-[10px] font-bold',
-                                    passes ? 'text-success' : 'text-destructive',
-                                  )}
-                                >
-                                  {passes ? '✓' : '✗'}
-                                </span>
-                              )}
                             </span>
                             <span className="text-[10.5px] text-right tabular-nums text-muted-foreground">
                               {r.cutoff_score_quota != null
@@ -427,6 +470,7 @@ export function CutoffScoreModal({
                       >
                         <span className="text-[11px] pr-2 leading-snug text-foreground/70">
                           {row.institution_name}
+                          <span className="block text-micro-label text-muted-foreground">{row.reference_label || 'Referência indisponível'} · {row.source || 'Fonte indisponível'}</span>
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           {row.specialty_name}
@@ -454,9 +498,10 @@ export function CutoffScoreModal({
             {/* ── Footer ────────────────────────────────────────────────── */}
             <div className="shrink-0 px-5 py-3 text-center bg-muted/30 border-t border-border">
               <p className="text-[9.5px] text-muted-foreground/70">
-                Dados referentes ao último processo seletivo ENAMED disponível.
+                Referência e fonte conforme os dados disponíveis. Escalas podem diferir da nota do simulado; não indicam chance de aprovação.
               </p>
             </div>
+            </div>}
 
           </motion.div>
         </div>

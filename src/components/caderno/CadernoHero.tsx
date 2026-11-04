@@ -18,7 +18,8 @@ export interface CadernoHeroProps {
   devidasHoje: number;
   specialties: number;
   streak: number;
-  daysLeft: number;
+  daysLeft: number | null;
+  editionLabel?: string;
   isEnamedNear: boolean;
   prefersReducedMotion: boolean;
 }
@@ -134,6 +135,7 @@ export function CadernoHero({
   specialties,
   streak,
   daysLeft,
+  editionLabel = 'ENAMED',
   isEnamedNear,
   prefersReducedMotion,
 }: CadernoHeroProps) {
@@ -171,7 +173,7 @@ export function CadernoHero({
                 {streak} {streak === 1 ? 'dia' : 'dias'}
               </span>
             )}
-            {daysLeft > 0 && (
+            {daysLeft !== null && daysLeft >= 0 && (
               <span
                 className={cn(
                   'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold',
@@ -181,7 +183,7 @@ export function CadernoHero({
                 )}
               >
                 <Clock className="h-3 w-3" aria-hidden />
-                ENAMED em {daysLeft}d
+                {daysLeft === 0 ? `${editionLabel}: É hoje` : `${editionLabel} em ${daysLeft}d`}
               </span>
             )}
           </motion.div>

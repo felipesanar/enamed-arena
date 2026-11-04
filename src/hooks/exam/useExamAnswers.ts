@@ -14,8 +14,12 @@ import type { Question } from '@/types';
 import type { ExamState, ExamAnswer, ConfidenceLevel } from '@/types/exam';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { nextAnswerVersion } from '@/lib/exam-answer-version';
 
 export interface UseExamAnswersArgs {
+  disabled?: boolean;
+  now?: () => number;
+  versioned?: boolean;
   currentQuestion: Question | undefined;
   currentIndex: number;
   questionsLength: number;
@@ -25,7 +29,7 @@ export interface UseExamAnswersArgs {
 }
 
 export interface UseExamAnswersReturn {
-  handleSelectOption: (optionId: string) => void;
+  handleSelectOption: (optionId: string | null) => void;
   handleEliminateOption: (optionId: string) => void;
   handleNavigate: (index: number) => void;
   handlePrev: () => void;
@@ -48,6 +52,9 @@ function emptyAnswer(questionId: string): ExamAnswer {
 }
 
 export function useExamAnswers({
+  disabled = false,
+  now = Date.now,
+  versioned = true,
   currentQuestion,
   currentIndex,
   questionsLength,
@@ -55,42 +62,48 @@ export function useExamAnswers({
   markAnswerDirty,
   setShowNavigator,
 }: UseExamAnswersArgs): UseExamAnswersReturn {
-  const handleSelectOption = useCallback((optionId: string) => {
-    if (!currentQuestion) return;
+  const handleSelectOption = useCallback((optionId: string | null) => {
+    if (disabled || !currentQuestion) return;
     // Single source of truth: updateState → debounced bulk upsert.
     markAnswerDirty(currentQuestion.id);
+    const editedAt = now();
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
+      if (existing.selectedOption === optionId) return prev;
+      const version = versioned ? nextAnswerVersion(existing.clientUpdatedAt, editedAt) : null;
       return {
         ...prev,
         answers: {
           ...prev.answers,
-          [currentQuestion.id]: { ...existing, selectedOption: optionId },
+          [currentQuestion.id]: { ...existing, selectedOption: optionId, answeredAt: optionId ? version ?? new Date(editedAt).toISOString() : null, clientUpdatedAt: version },
         },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty, now, versioned]);
 
   const handleEliminateOption = useCallback((optionId: string) => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
+    const editedAt = now();
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
       const isEliminated = existing.eliminatedAlternatives.includes(optionId);
       const answer: ExamAnswer = {
         ...existing,
+        clientUpdatedAt: versioned ? nextAnswerVersion(existing.clientUpdatedAt, editedAt) : null,
         eliminatedAlternatives: isEliminated
           ? existing.eliminatedAlternatives.filter(i => i !== optionId)
           : [...existing.eliminatedAlternatives, optionId],
       };
       return { ...prev, answers: { ...prev.answers, [currentQuestion.id]: answer } };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty, now, versioned]);
 
   const handleNavigate = useCallback((index: number) => {
+    if (disabled) return;
     updateState(prev => ({ ...prev, currentQuestionIndex: index }));
     setShowNavigator(false);
-  }, [updateState, setShowNavigator]);
+  }, [disabled, updateState, setShowNavigator]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) handleNavigate(currentIndex - 1);
@@ -101,30 +114,32 @@ export function useExamAnswers({
   }, [currentIndex, questionsLength, handleNavigate]);
 
   const toggleReview = useCallback(() => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
+    const editedAt = now();
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
       const newVal = !existing.markedForReview;
       toast({ title: newVal ? 'Questão marcada para revisão' : 'Marcação removida' });
       return {
         ...prev,
-        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal } },
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, markedForReview: newVal, clientUpdatedAt: versioned ? nextAnswerVersion(existing.clientUpdatedAt, editedAt) : null } },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty, now, versioned]);
 
   const toggleHighConfidence = useCallback(() => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
+    const editedAt = now();
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
       return {
         ...prev,
-        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence } },
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, highConfidence: !existing.highConfidence, clientUpdatedAt: versioned ? nextAnswerVersion(existing.clientUpdatedAt, editedAt) : null } },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty, now, versioned]);
 
   /**
    * handleSetConfidence — captura o nível de confiança declarado pelo aluno.
@@ -132,17 +147,19 @@ export function useExamAnswers({
    * Persiste via o mesmo caminho de debounce/upsert já existente (spec 04 §1.4).
    */
   const handleSetConfidence = useCallback((level: ConfidenceLevel) => {
-    if (!currentQuestion) return;
+    if (disabled || !currentQuestion) return;
     markAnswerDirty(currentQuestion.id);
+    const editedAt = now();
     updateState(prev => {
       const existing = prev.answers[currentQuestion.id] ?? emptyAnswer(currentQuestion.id);
+      if (existing.confidence === level) return prev;
       logger.log(`[useExamFlow] Confidence set: ${level} for question ${currentQuestion.id}`);
       return {
         ...prev,
-        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, confidence: level } },
+        answers: { ...prev.answers, [currentQuestion.id]: { ...existing, confidence: level, clientUpdatedAt: versioned ? nextAnswerVersion(existing.clientUpdatedAt, editedAt) : null } },
       };
     });
-  }, [currentQuestion, updateState, markAnswerDirty]);
+  }, [disabled, currentQuestion, updateState, markAnswerDirty, now, versioned]);
 
   return {
     handleSelectOption,

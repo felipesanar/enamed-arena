@@ -398,6 +398,9 @@ export interface ScoreBucket {
 }
 
 export interface ScoreEvolutionRow {
+  edition_id?: string | null
+  edition_code?: string | null
+  edition_label?: string | null
   simulado_id: string
   sequence_number: number
   title: string
@@ -485,6 +488,7 @@ export type AuditLogRow = {
 
 /** Espelha admin_presencial_sessions_list() — Task 7. */
 export interface PresencialSessionRow {
+  ranking_rule?: import('@/admin/types/admin-session').RankingRule | null
   id: string
   simulado_id: string
   simulado_title: string

@@ -10,6 +10,10 @@ export type AlternativeLetter = 'A' | 'B' | 'C' | 'D' | 'E';
 export type ConfidenceLevel = 'baixa' | 'media' | 'alta';
 
 export interface ExamAnswer {
+  /** Mutation version, never refreshed by persistence or navigation. */
+  clientUpdatedAt?: string | null;
+  /** Selection time, independent of review/confidence mutation versions. */
+  answeredAt?: string | null;
   questionId: string;
   selectedOption: string | null; // option id
   markedForReview: boolean;

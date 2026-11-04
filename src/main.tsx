@@ -7,6 +7,13 @@ import type { QueueItem } from "@/lib/analyticsQueue";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { mountDevTools, pushToDevBuffer } from "@/lib/analyticsDevTools";
+import { installPreloadRecovery } from '@/lib/preloadRecovery';
+import { installErrorMonitoring, clearErrorMonitoringSession } from '@/lib/errorMonitoring';
+import { PreloadRecoveryNotice } from '@/components/PreloadRecoveryNotice';
+
+const disposeRecovery = installPreloadRecovery();
+const disposeMonitoring = installErrorMonitoring();
+if (import.meta.hot) import.meta.hot.dispose(() => { disposeRecovery(); disposeMonitoring(); });
 
 // Force light mode globally — dark theme temporarily disabled.
 document.documentElement.classList.remove("dark");
@@ -101,6 +108,7 @@ setSuperProperties({
 // ---------------------------------------------------------------------------
 let _prevUserId: string | null = null;
 supabase.auth.onAuthStateChange((_evt, session) => {
+  if (_evt === 'SIGNED_OUT') clearErrorMonitoringSession();
   const uid = session?.user?.id ?? null;
   if (uid && !_prevUserId) {
     // Primeira vez que vemos um user_id nesta sessão → relinkagem
@@ -184,4 +192,4 @@ registerAnalyticsHandler((event) => {
   });
 });
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(<><PreloadRecoveryNotice /><App /></>);

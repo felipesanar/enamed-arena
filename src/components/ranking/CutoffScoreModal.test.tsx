@@ -1,8 +1,17 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CutoffScoreModal } from './CutoffScoreModal';
+import { CutoffScopeContext } from '@/hooks/useCutoffContext';
+import { fetchAllCutoffScores } from '@/services/rankingApi';
+import { cutoffApi } from '@/services/cutoffApi';
+
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u' } }) }));
+const config = vi.hoisted(() => ({ enabled: false, historyReference: null as unknown }));
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => config.enabled }));
+vi.mock('@/services/cutoffApi', () => ({ cutoffApi: { getAllScores: vi.fn().mockResolvedValue([]) } }));
+vi.mock('@/components/ranking/CutoffHistorySection', () => ({ CutoffHistorySection: ({ reference }: { reference: unknown }) => { config.historyReference = reference; return <p>Histórico de referência selecionado</p>; } }));
 
 vi.mock('@/services/rankingApi', () => {
   const rows = [
@@ -43,8 +52,13 @@ vi.mock('@/services/rankingApi', () => {
 });
 
 function wrapper({ children }: { children?: React.ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = queryClient();
   return React.createElement(QueryClientProvider, { client }, children);
+}
+function queryClient() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(['app-config', 'u', 'editions_ui'], config.enabled);
+  return client;
 }
 
 function renderModal(props: Partial<React.ComponentProps<typeof CutoffScoreModal>> = {}) {
@@ -58,6 +72,49 @@ function renderModal(props: Partial<React.ComponentProps<typeof CutoffScoreModal
 }
 
 describe('CutoffScoreModal', () => {
+  it('passes only canonical IDs of the selected row to reference history', async () => {
+    config.enabled = true;
+    vi.mocked(cutoffApi.getAllScores).mockResolvedValueOnce([{ institution_id: 'inst', specialty_id: 'spec', institution_name: 'Instituição', specialty_name: 'Clínica', practice_scenario: '', cutoff_score_general: 60, cutoff_score_quota: null, reference_edition_id: 'ed', reference_label: 'Processo', source: 'Fonte' }]);
+    render(<QueryClientProvider client={queryClient()}><CutoffScopeContext.Provider value={{ editionsUi: true, referenceEditionId: 'ed' }}><CutoffScoreModal open onClose={vi.fn()} /></CutoffScopeContext.Provider></QueryClientProvider>);
+    await screen.findByText('Instituição');
+    fireEvent.click(screen.getByRole('tab', { name: 'Histórico da referência' }));
+    fireEvent.change(screen.getByLabelText('Instituição e especialidade do histórico'), { target: { value: JSON.stringify(['inst','spec','']) } });
+    expect(config.historyReference).toEqual({ institutionId: 'inst', specialtyId: 'spec', practiceScenario: '' });
+  });
+  it('does not infer a missing specialty ID from labels or current targets', async () => {
+    config.enabled = true;
+    vi.mocked(cutoffApi.getAllScores).mockResolvedValueOnce([{ institution_id: 'inst', institution_name: 'Instituição', specialty_name: 'Clínica', practice_scenario: '', cutoff_score_general: 60, cutoff_score_quota: null, reference_edition_id: 'ed', reference_label: 'Processo', source: 'Fonte' }]);
+    render(<QueryClientProvider client={queryClient()}><CutoffScopeContext.Provider value={{ editionsUi: true, referenceEditionId: 'ed' }}><CutoffScoreModal open onClose={vi.fn()} userSpecialty="Clínica" userInstitutions={['Instituição']} /></CutoffScopeContext.Provider></QueryClientProvider>);
+    await screen.findByText('Instituição');
+    fireEvent.click(screen.getByRole('tab', { name: 'Histórico da referência' }));
+    expect(screen.getByLabelText('Instituição e especialidade do histórico').querySelectorAll('option')).toHaveLength(1);
+    expect(config.historyReference).toBeNull();
+  });
+  beforeEach(() => { config.enabled = false; vi.mocked(cutoffApi.getAllScores).mockClear(); });
+  it('uses supplied exam metadata and falls back to neutral ENAMED', () => {
+    const { unmount } = renderModal({ simulado: { editionCode: '2027.1' } });
+    expect(screen.queryByText('ENAMED 2027.1')).not.toBeInTheDocument();
+    expect(screen.getByText(/Referência indisponível/)).toBeInTheDocument();
+    unmount();
+    renderModal();
+    expect(screen.getByText(/Fonte indisponível/)).toBeInTheDocument();
+  });
+  it('does not fetch legacy cutoffs under an unresolved edition scope', () => {
+    config.enabled = true;
+    vi.mocked(fetchAllCutoffScores).mockClear();
+    render(<QueryClientProvider client={queryClient()}><CutoffScopeContext.Provider value={{ editionsUi: true, referenceEditionId: null }}><CutoffScoreModal open onClose={vi.fn()} simulado={{ editionCode: '2027.1' }} /></CutoffScopeContext.Provider></QueryClientProvider>);
+    expect(fetchAllCutoffScores).not.toHaveBeenCalled();
+    expect(cutoffApi.getAllScores).not.toHaveBeenCalled();
+    expect(screen.getByText(/Referência indisponível/)).toBeInTheDocument();
+  });
+  it('shows only the returned reference/source, not the exam badge or approval for an unknown scale', async () => {
+    config.enabled = true;
+    vi.mocked(cutoffApi.getAllScores).mockResolvedValueOnce([{ institution_id: 'x', institution_name: 'Instituição X', specialty_name: 'Clínica', practice_scenario: '', cutoff_score_general: 60, cutoff_score_quota: null, reference_edition_id: 'ed', reference_label: 'Processo real', source: 'Edital real' }]);
+    render(<QueryClientProvider client={queryClient()}><CutoffScopeContext.Provider value={{ editionsUi: true, referenceEditionId: 'ed' }}><CutoffScoreModal open onClose={vi.fn()} currentUserScore={80} userSpecialty="Clínica" userInstitutions={['Instituição X']} /></CutoffScopeContext.Provider></QueryClientProvider>);
+    await waitFor(() => expect(screen.getAllByText(/Processo real/).length).toBeGreaterThan(0));
+    expect(screen.getAllByText(/Edital real/).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('acima do corte')).toBeNull();
+  });
   it('does not render when open=false', () => {
     renderModal({ open: false });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -113,40 +170,43 @@ describe('CutoffScoreModal', () => {
     expect(screen.queryByText('Suas instituições')).toBeNull();
   });
 
-  it('shows pass badge per pinned row when currentUserScore >= cutoff', async () => {
+  it('does not claim approval above a legacy cutoff with unknown provenance', async () => {
     renderModal({
       userSpecialty: 'Clínica Médica',
       userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
       currentUserScore: 92,
     });
     await waitFor(() =>
-      expect(screen.getAllByLabelText('acima do corte')).toHaveLength(2),
+      expect(screen.getByText('Suas instituições')).toBeTruthy(),
     );
     expect(screen.queryByLabelText('abaixo do corte')).toBeNull();
+    expect(screen.queryByLabelText('acima do corte')).toBeNull();
   });
 
-  it('shows fail badge per pinned row when currentUserScore < cutoff', async () => {
+  it('does not claim rejection below a legacy cutoff with unknown provenance', async () => {
     renderModal({
       userSpecialty: 'Clínica Médica',
       userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
       currentUserScore: 60,
     });
     await waitFor(() =>
-      expect(screen.getAllByLabelText('abaixo do corte')).toHaveLength(2),
+      expect(screen.getByText('Suas instituições')).toBeTruthy(),
     );
     expect(screen.queryByLabelText('acima do corte')).toBeNull();
+    expect(screen.queryByLabelText('abaixo do corte')).toBeNull();
   });
 
-  it('shows mixed badges when score is between the two cutoffs', async () => {
+  it('does not infer mixed approval from legacy cuts', async () => {
     renderModal({
       userSpecialty: 'Clínica Médica',
       userInstitutions: ['Hospital das Clínicas FMUSP', 'UNIFESP'],
       currentUserScore: 85, // >= 84 (UNIFESP), < 91 (FMUSP)
     });
     await waitFor(() =>
-      expect(screen.getAllByLabelText('acima do corte')).toHaveLength(1),
+      expect(screen.getByText('Suas instituições')).toBeTruthy(),
     );
-    expect(screen.getAllByLabelText('abaixo do corte')).toHaveLength(1);
+    expect(screen.queryByLabelText('abaixo do corte')).toBeNull();
+    expect(screen.queryByLabelText('acima do corte')).toBeNull();
   });
 
   it('shows no pass/fail badges when currentUserScore is not provided', async () => {

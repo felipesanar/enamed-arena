@@ -7,15 +7,20 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail';
 import { useExamStorageReal } from '@/hooks/useExamStorageReal';
 import { useExamTimer } from '@/hooks/useExamTimer';
+import { useServerClock } from '@/hooks/useServerClock';
 import { useFocusControl } from '@/hooks/useFocusControl';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useExamAnswers } from '@/hooks/exam/useExamAnswers';
 import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
 import { useExamBeacon } from '@/hooks/exam/useExamBeacon';
 import { useExamLifecycle } from '@/hooks/exam/useExamLifecycle';
+import { useExamTabLease } from '@/hooks/useExamTabLease';
+import { useExamRuntimeCapabilities } from '@/hooks/useExamRuntimeCapabilities';
+import type { ExamRuntimePersistence } from '@/types/exam-runtime';
 import { computeExamSummary, type ExamState, type ExamAnswer, type ConfidenceLevel } from '@/types/exam';
 import type { Question } from '@/types';
 
@@ -36,11 +41,13 @@ export interface UseExamFlowReturn {
   showSubmitModal: boolean;
   setShowSubmitModal: (v: boolean | ((prev: boolean) => boolean)) => void;
   submitting: boolean;
+  interactionLocked: boolean;
   notificationSaving: boolean;
 
   // Side effects (focus, timer, finalize)
   focusControl: ReturnType<typeof useFocusControl>;
   timeRemaining: ReturnType<typeof useExamTimer>;
+  clockTrusted?: boolean;
   finalize: (isAutoSubmit?: boolean) => Promise<void>;
   setNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 
@@ -69,6 +76,8 @@ export interface UseExamFlowReturn {
   /** Após finalizar: true se a tentativa entrou na janela oficial (ranking). */
   isWithinWindow: boolean;
   saving: boolean;
+  tabLease: ReturnType<typeof useExamTabLease>;
+  preparation: { status: 'ready' | 'preparing' | 'error'; retry: () => void };
 }
 
 const emptySummary = {
@@ -84,15 +93,59 @@ export function useExamFlow(): UseExamFlowReturn {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isOnboardingComplete } = useUser();
+  const { user } = useAuth();
 
   const { simulado, questions, loading: loadingSimulado } = useSimuladoDetail(id);
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
   /** Sempre UUID do banco — rotas podem usar `slug`; RPCs e FK exigem UUID. */
-  const storage = useExamStorageReal(simulado?.id ?? '');
+  const clock = useServerClock(`${user?.id ?? ''}:${simulado?.id ?? ''}`);
+  const { status: clockStatus, now, resync } = clock;
+  const ownershipRef = useRef<() => boolean>(() => false);
+  const canWrite = useCallback(() => ownershipRef.current(), []);
+  const runtimeRef = useRef<ExamRuntimePersistence>({ mode: 'pending', onMismatch: () => {} });
+  const getRuntime = useCallback(() => runtimeRef.current, []);
+  const storage = useExamStorageReal(simulado?.id ?? '', clock, canWrite, getRuntime);
+  const { loadState: loadStorageState } = storage;
+  const capabilities = useExamRuntimeCapabilities(user?.id, storage.attemptId.current);
+  const { retry: retryCapabilities } = capabilities;
+  const [preparedRevision, setPreparedRevision] = useState('');
+  const [failedRevision, setFailedRevision] = useState('');
 
   const [state, setState] = useState<ExamState | null>(null);
   const [showNavigator, setShowNavigator] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const reloadScopeRef = useRef('');
+  reloadScopeRef.current = `${user?.id ?? ''}:${simulado?.id ?? ''}:${storage.attemptId.current ?? ''}`;
+  const reloadForOwnership = useCallback(async (signal: AbortSignal) => {
+    const scope = reloadScopeRef.current;
+    const result = await loadStorageState(true, signal);
+    if (signal.aborted || scope !== reloadScopeRef.current || !result.state || result.fromCache) throw new Error('Remote reload required');
+    setState(result.state);
+  }, [loadStorageState]);
+  const tabLease = useExamTabLease(user?.id, storage.attemptId.current, reloadForOwnership);
+  const knownRuntime = capabilities.mode === 'legacy' || capabilities.mode === 'v1';
+  const preparationBlocked = !knownRuntime || clockStatus === 'pending' || preparedRevision !== capabilities.revision ||
+    (capabilities.mode === 'v1' && clockStatus !== 'synced');
+  const retryPreparation = useCallback(() => {
+    runtimeRef.current.mode = 'pending';
+    ownershipRef.current = () => false;
+    setPreparedRevision(''); setFailedRevision('');
+    retryCapabilities();
+    resync?.();
+  }, [retryCapabilities, resync]);
+  runtimeRef.current = { mode: preparationBlocked ? 'pending' : capabilities.mode, onMismatch: retryPreparation };
+  ownershipRef.current = () => !preparationBlocked && tabLease.canWrite();
+  useEffect(() => {
+    if (!knownRuntime || tabLease.status !== 'owned') return;
+    const controller = new AbortController();
+    const revision = capabilities.revision;
+    void loadStorageState(true, controller.signal).then(result => {
+      if (controller.signal.aborted) return;
+      if (!result.state || result.fromCache) throw new Error('Remote reconciliation required');
+      setState(result.state); setPreparedRevision(revision); setFailedRevision('');
+    }).catch(() => { if (!controller.signal.aborted) setFailedRevision(revision); });
+    return () => controller.abort();
+  }, [knownRuntime, capabilities.revision, tabLease.status, loadStorageState]);
 
   // Stable callback pattern: the focus/fullscreen handlers read from refs
   // that we keep fresh every render. This prevents useFocusControl from
@@ -102,16 +155,26 @@ export function useExamFlow(): UseExamFlowReturn {
   const simuladoRef = useRef(simulado);
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { simuladoRef.current = simulado; }, [simulado]);
+  useEffect(() => {
+    setState(null);
+    stateRef.current = null;
+  }, [storage.userId, simulado?.id]);
 
+  const escapeAllowedRef = useRef(false);
+  const isEscapeAllowed = useCallback(() => escapeAllowedRef.current && canWrite(), [canWrite]);
   const focusControl = useExamIntegrity({
+    isEscapeAllowed,
+    canWrite,
     stateRef,
     simuladoRef,
     storage,
     setState,
+    now,
   });
 
   const {
     submitting,
+    interactionLocked,
     initLoading,
     isWithinWindow,
     notifyResultByEmail,
@@ -121,6 +184,9 @@ export function useExamFlow(): UseExamFlowReturn {
     setNotifyResultByEmail,
     timeRemaining,
   } = useExamLifecycle({
+    ownershipBlocked: tabLease.blocked || preparationBlocked,
+    canWrite,
+    clock,
     simulado,
     questions,
     questionIds,
@@ -133,8 +199,11 @@ export function useExamFlow(): UseExamFlowReturn {
     setState,
     setShowSubmitModal,
   });
+  escapeAllowedRef.current = state?.status === 'in_progress' && !interactionLocked;
 
   useExamBeacon({
+    getRuntime,
+    canWrite,
     storage,
     stateRef,
     hasFinalized,
@@ -146,12 +215,14 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const updateState = useCallback((updater: (prev: ExamState) => ExamState) => {
     setState(prev => {
-      if (!prev || prev.status !== 'in_progress') return prev;
+      if (!canWrite() || !prev || prev.status !== 'in_progress' || interactionLocked ||
+        preparationBlocked || (capabilities.mode === 'v1' && clockStatus !== 'synced') ||
+        (clockStatus === 'synced' && prev.effectiveDeadline && new Date(prev.effectiveDeadline).getTime() <= now())) return prev;
       const updated = updater(prev);
       storage.saveStateDebounced(updated);
       return updated;
     });
-  }, [storage]);
+  }, [storage, interactionLocked, clockStatus, now, canWrite, preparationBlocked, capabilities.mode]);
 
   const {
     handleSelectOption,
@@ -163,6 +234,9 @@ export function useExamFlow(): UseExamFlowReturn {
     toggleHighConfidence,
     handleSetConfidence,
   } = useExamAnswers({
+    now,
+    versioned: capabilities.mode === 'v1',
+    disabled: interactionLocked || preparationBlocked || state?.status !== 'in_progress',
     currentQuestion,
     currentIndex,
     questionsLength: questions.length,
@@ -198,7 +272,7 @@ export function useExamFlow(): UseExamFlowReturn {
   }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption, currentAnswer?.selectedOption, handleSetConfidence]);
 
   useKeyboardShortcuts(shortcuts, {
-    enabled: state?.status === 'in_progress' && !showSubmitModal && !submitting,
+    enabled: state?.status === 'in_progress' && !showSubmitModal && !interactionLocked,
   });
 
   const loading = loadingSimulado || initLoading || !simulado || !state;
@@ -206,6 +280,10 @@ export function useExamFlow(): UseExamFlowReturn {
   const summary = state && questionIds.length > 0 ? computeExamSummary(state, questionIds) : null;
 
   return {
+    tabLease,
+    preparation: { status: capabilities.mode === 'error' || failedRevision === capabilities.revision ||
+      (capabilities.mode === 'v1' && clockStatus === 'fallback') ? 'error' :
+      preparationBlocked ? 'preparing' : 'ready', retry: retryPreparation },
     simulado,
     questions,
     questionIds,
@@ -217,9 +295,11 @@ export function useExamFlow(): UseExamFlowReturn {
     showSubmitModal,
     setShowSubmitModal,
     submitting,
+    interactionLocked,
     notificationSaving,
     focusControl,
     timeRemaining,
+    clockTrusted: clockStatus === 'synced',
     finalize,
     setNotifyResultByEmail,
     updateState,

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Posse da aba · Demonstração</title>
+<style>
+/* Tokens de DESIGN.md; prototipo local, sem fontes ou recursos externos. */
+:root{--primary:345 65% 30%;--background:0 0% 98.5%;--foreground:220 20% 10%;--border:220 13% 90%}
+body{margin:0;background:hsl(var(--background));color:hsl(var(--foreground));font-family:'Plus Jakarta Sans',sans-serif}
+main{max-width:72rem;margin:auto;padding:1rem}.notice{border:1px solid hsl(var(--border));border-radius:.5rem;padding:1rem;margin-block:1rem}
+h2{font-size:1rem;margin:0 0 .5rem}p{line-height:1.5}button{min-height:44px;padding:.5rem 1rem;border:0;border-radius:.375rem;background:hsl(var(--primary));color:white;font:inherit}button:focus-visible{outline:3px solid hsl(var(--primary));outline-offset:3px}
+</style><main><h1>Prova · Demonstração</h1>
+<section class="notice" role="status"><h2>Esta prova está aberta em outra aba</h2><p>Continue nesta aba para sincronizar suas respostas antes de responder. O prazo da prova não muda.</p><button type="button">Continuar nesta aba</button></section>
+<section class="notice" role="status" aria-busy="true"><h2>Sincronizando suas respostas</h2><p>Aguarde antes de continuar a prova.</p><button disabled>Sincronizando...</button></section>
+<section class="notice" role="status"><h2>Não foi possível sincronizar</h2><p>Verifique sua conexão e tente continuar nesta aba novamente. Suas respostas permanecem bloqueadas por segurança.</p><button type="button">Continuar nesta aba</button></section>
+</main></html>

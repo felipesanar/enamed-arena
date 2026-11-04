@@ -1,7 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DesempenhoPage from "./DesempenhoPage";
+
+vi.mock('@/services/cutoffApi', () => ({ cutoffApi: { getUserContext: vi.fn().mockResolvedValue(null) } }));
+vi.mock('@/integrations/supabase/client', () => ({ supabase: {
+  functions: { invoke: vi.fn().mockResolvedValue({ data: { markdown: 'Análise de teste' }, error: null }) },
+} }));
 
 // ── Framer Motion mock ──────────────────────────────────────────────────────
 vi.mock("framer-motion", () => ({
@@ -23,6 +29,7 @@ const mockSimulados = [
   {
     id: "sim-1",
     title: "Simulado #1 — Fundamentos",
+    editionCode: '2027.1',
     status: "completed",
     executionWindowStart: "2026-03-01T00:00:00Z",
     executionWindowEnd: "2026-03-01T23:59:00Z",
@@ -97,16 +104,26 @@ vi.mock("@/lib/simulado-helpers", () => ({
 }));
 
 // ── Helper ──────────────────────────────────────────────────────────────────
+const clients: QueryClient[] = [];
+afterEach(() => { clients.forEach(client => client.clear()); clients.length = 0; });
 function renderPage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  client.setQueryData(['app-config', 'user-1', 'editions_ui'], false);
+  clients.push(client);
   return render(
-    <MemoryRouter initialEntries={["/desempenho"]}>
+    <QueryClientProvider client={client}><MemoryRouter initialEntries={["/desempenho"]}>
       <DesempenhoPage />
-    </MemoryRouter>
+    </MemoryRouter></QueryClientProvider>
   );
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 describe("DesempenhoPage", () => {
+  it('badges the selected exam edition rather than a fixed year', () => {
+    renderPage();
+    expect(screen.getByText('ENAMED 2027.1')).toBeInTheDocument();
+    expect(screen.queryByText('ENAMED 2026')).not.toBeInTheDocument();
+  });
   beforeEach(() => { vi.clearAllMocks(); });
 
   it("renders the hero score", () => {

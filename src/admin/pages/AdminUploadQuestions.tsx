@@ -32,11 +32,18 @@ import { extractImagesFromXlsx, type ExtractedImage } from '../utils/xlsxImageEx
 import { parseXlsxFirstWorksheetRows } from '../utils/xlsxTextParser';
 import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
 import { VerifyFindingsPanel } from '../components/VerifyFindingsPanel';
-import { validateQuestions } from '@/admin/lib/validateQuestions';
+import { validateQuestions, validateImportRows, parseImportCsv } from '@/admin/lib/validateQuestions';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useEditionBlueprint } from '@/hooks/useEditionBlueprint';
+import { adminQuestionImportApi } from '@/admin/services/adminQuestionImportApi';
+import type { QuestionImportRow, QuestionImportError } from '@/types/question-import';
 import { checkGabarito } from '@/admin/lib/gabaritoCheck';
 import { ENAMED_BLUEPRINT } from '@/lib/enamedBlueprint';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateQuestionBankQueries } from '@/lib/exam-query-cache';
 
 interface ParsedRow {
+  [key: string]: string | number;
   numero: number;
   'Grande Área': string;
   Especialidade: string;
@@ -154,6 +161,10 @@ function canonicalizeRows(rawRows: Record<string, string>[]): ParsedRow[] {
         }
       }
       out[canonical] = value;
+    }
+    for (const [key, value] of byNormalizedKey) {
+      const match = /^alternativa ?([a-z])$/.exec(key);
+      if (match) out[`Alternativa ${match[1].toUpperCase()}`] = value;
     }
     return out as unknown as ParsedRow;
   });
@@ -343,9 +354,12 @@ function buildRowIssues(rows: ParsedRow[]): Map<number, RowIssue> {
 }
 
 function AdminUploadQuestionsContent() {
+  const queryClient = useQueryClient();
   const { id: simuladoId } = useParams<{ id: string }>();
+  const editionsEnabled = useAppConfig('editions_ui');
+  const matrix = useEditionBlueprint(simuladoId, editionsEnabled);
   const navigate = useNavigate();
-  const [simulado, setSimulado] = useState<any>(null);
+  const [simulado, setSimulado] = useState<Awaited<ReturnType<typeof adminApi.getSimulado>> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [existingCount, setExistingCount] = useState(0);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -366,6 +380,23 @@ function AdminUploadQuestionsContent() {
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const [importErrors, setImportErrors] = useState<QuestionImportError[]>([]);
+  useEffect(() => { if (importErrors.length) errorRef.current?.focus(); }, [importErrors]);
+  const labels = useMemo(() => Array.from({ length: editionsEnabled && matrix.data ? matrix.data.format.options : 4 }, (_, i) => String.fromCharCode(65 + i)), [editionsEnabled, matrix.data]);
+  const importRows = useMemo((): QuestionImportRow[] => parsedRows.map(row => {
+    const normalized = normalizeRow(row);
+    const rowLabels = [...new Set([...labels, ...Object.keys(row)
+      .filter(key => /^Alternativa [A-Z]$/.test(key) && String(row[key] ?? '').trim())
+      .map(key => key.slice(-1))])].sort();
+    return {
+      question_number: normalized.numero, text: normalized.texto, area: normalized.area,
+      theme: normalized.tema, difficulty: normalized.dificuldade, explanation: normalized.explicacao,
+      image_url: normalized.image_url, image_url_2: normalized.image_url_2,
+      explanation_image_url: normalizeStoragePublicUrl(row['Imagem do Comentário']),
+      options: rowLabels.map(label => ({ label, text: String(row[`Alternativa ${label}`] || ''), is_correct: String(row.Gabarito || '').trim().toUpperCase() === label })),
+    };
+  }), [parsedRows, labels]);
 
   useEffect(() => {
     if (!simuladoId) return;
@@ -379,7 +410,19 @@ function AdminUploadQuestionsContent() {
     });
   }, [simuladoId]);
 
-  const rowIssues = useMemo(() => buildRowIssues(parsedRows), [parsedRows]);
+  const rowIssues = useMemo(() => {
+    if (!editionsEnabled) return buildRowIssues(parsedRows);
+    const issues = new Map<number, RowIssue>();
+    if (!matrix.data) return issues;
+    for (const error of validateImportRows(importRows, matrix.data.blueprint.areas, matrix.data.format)) {
+      issues.set(error.row - 1, { line: error.row + 1, what: error.message, how: `Confira o campo ${error.field} na matriz desta edição.` });
+    }
+    parsedRows.forEach((row, i) => {
+      const finding = checkGabarito({ questionNumber: Number(row.numero), gabarito: row.Gabarito, options: importRows[i].options, comentario: row['Comentário'] || '' }).find(f => f.severity === 'error');
+      if (finding && !issues.has(i)) issues.set(i, { line: i + 2, what: finding.what, how: finding.how });
+    });
+    return issues;
+  }, [editionsEnabled, matrix.data, importRows, parsedRows]);
   const errorCount = rowIssues.size;
   const readyCount = parsedRows.length - errorCount;
   const issueList = useMemo(
@@ -388,6 +431,7 @@ function AdminUploadQuestionsContent() {
   );
 
   const resetParsedState = useCallback(() => {
+    setImportErrors([]);
     setParsedRows([]);
     setFileName('');
     setFileError(null);
@@ -402,9 +446,10 @@ function AdminUploadQuestionsContent() {
 
   const ingestFile = useCallback(async (file: File) => {
     setFileError(null);
+    setImportErrors([]);
     const lower = file.name.toLowerCase();
-    if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
-      setFileError('Formato não aceito. Envie um arquivo .xlsx.');
+    if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls') && !lower.endsWith('.csv')) {
+      setFileError('Formato não aceito. Envie um arquivo .xlsx ou .csv.');
       return;
     }
     // Sem limite de tamanho: o parsing é client-side e as imagens vão direto pro
@@ -419,7 +464,8 @@ function AdminUploadQuestionsContent() {
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      const rawRows = await parseXlsxFirstWorksheetRows(arrayBuffer);
+      const csv = lower.endsWith('.csv');
+      const rawRows = csv ? parseImportCsv(new TextDecoder().decode(arrayBuffer)) : await parseXlsxFirstWorksheetRows(arrayBuffer);
       const rows = canonicalizeRows(rawRows);
 
       if (rows.length === 0) {
@@ -429,7 +475,7 @@ function AdminUploadQuestionsContent() {
       }
 
       setParsedRows(rows);
-      setStructuralFindings(
+      if (!editionsEnabled) setStructuralFindings(
         validateQuestions(
           rows.map((r) => ({
             numero: Number(r.numero),
@@ -445,7 +491,7 @@ function AdminUploadQuestionsContent() {
       );
 
       const { enunciadoImages: eImgs, enunciado2Images: e2Imgs, comentarioImages: cImgs } =
-        await extractImagesFromXlsx(arrayBuffer);
+        csv ? { enunciadoImages: new Map<number, ExtractedImage>(), enunciado2Images: new Map<number, ExtractedImage>(), comentarioImages: new Map<number, ExtractedImage>() } : await extractImagesFromXlsx(arrayBuffer);
       setEnunciadoImages(eImgs);
       setEnunciado2Images(e2Imgs);
       setComentarioImages(cImgs);
@@ -454,14 +500,14 @@ function AdminUploadQuestionsContent() {
       if (totalImgs > 0) {
         toast({ title: `${totalImgs} ${totalImgs === 1 ? 'imagem extraída' : 'imagens extraídas'} da planilha` });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('[AdminUploadQuestions] Falha ao ler planilha:', err);
       setParsedRows([]);
       setFileError('Não foi possível ler a planilha. Confira o arquivo e tente de novo.');
     } finally {
       setParsing(false);
     }
-  }, []);
+  }, [editionsEnabled]);
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -482,7 +528,8 @@ function AdminUploadQuestionsContent() {
   );
 
   const downloadTemplate = useCallback(() => {
-    const headers = COLUMNS_HINT.split(', ');
+    const headers = COLUMNS_HINT.split(', ').filter(h => !h.startsWith('Alternativa '));
+    headers.splice(7, 0, ...labels.map(label => `Alternativa ${label}`));
     const example = [
       '1',
       'Pediatria',
@@ -498,6 +545,7 @@ function AdminUploadQuestionsContent() {
       'A',
       'Icterícia nas primeiras 24h é sempre patológica.',
     ];
+    if (labels.length > 4) example.splice(11, 0, ...labels.slice(4).map(() => 'Outra alternativa'));
     const csv = [headers.join(';'), example.join(';')].join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -508,7 +556,7 @@ function AdminUploadQuestionsContent() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, []);
+  }, [labels]);
 
   const runVerify = async () => {
     setVerifying(true);
@@ -550,9 +598,9 @@ function AdminUploadQuestionsContent() {
 
       setFindings(results);
       setVerifyRan(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('[AdminUploadQuestions] Falha ao verificar com IA:', err);
-      toast({ title: 'Erro ao verificar', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro ao verificar', description: err instanceof Error ? err.message : 'Falha na verificação.', variant: 'destructive' });
     } finally {
       setVerifying(false);
       setTimeout(() => setUploadProgress(null), 1500);
@@ -560,7 +608,8 @@ function AdminUploadQuestionsContent() {
   };
 
   const handleUpload = async () => {
-    if (!simuladoId || parsedRows.length === 0) return;
+    if (!simuladoId || parsedRows.length === 0 || rowIssues.size > 0 || (editionsEnabled && matrix.status !== 'ready')) return;
+    setImportErrors([]);
     setUploading(true);
     setUploadProgress({ step: 'Preparando envio...', percent: 2 });
 
@@ -568,10 +617,9 @@ function AdminUploadQuestionsContent() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão expirada. Entre de novo e repita o envio.');
 
-      // Importa só as linhas sem erro.
+      // One request contains the complete batch; never silently skip invalid rows.
       const readyEntries = parsedRows
-        .map((row, index) => ({ row, index }))
-        .filter(({ index }) => !rowIssues.has(index));
+        .map((row, index) => ({ row, index }));
 
       const normalized = readyEntries.map(({ row }) => normalizeRow(row));
 
@@ -586,104 +634,75 @@ function AdminUploadQuestionsContent() {
         if (cImg) imageJobs.push({ qNum, kind: 'comentario', img: cImg });
       });
 
+      // Read-only server preflight before direct uploads: keep large XLSX images
+      // out of the Edge request body. The final RPC revalidates under lock.
+      const legacyQuestions = normalized.map((q, i) => ({ ...q,
+        ...Object.fromEntries(importRows[i].options.map(option => [`alternativa_${option.label.toLowerCase()}`, option.text])),
+        explanation_image_url: importRows[i].explanation_image_url,
+      }));
+      const preflight = await supabase.functions.invoke('admin-upload-questions', {
+        body: { simulado_id: simuladoId, ...(editionsEnabled ? { rows: importRows } : { questions: legacyQuestions }), validate_only: true },
+      });
+      if (preflight.error) throw preflight.error;
+      if (preflight.data?.ok === false) { setImportErrors(preflight.data.errors); return; }
+      if (preflight.data?.ok !== true) throw new Error('Não foi possível validar o lote.');
+      const batch = crypto.randomUUID();
+      const newPaths: string[] = [];
       const imageUrls: Record<number, { enunciado_url?: string; enunciado2_url?: string; comentario_url?: string }> = {};
-
-      const mimeToExt = (mime: string) => {
-        if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
-        if (mime.includes('png')) return 'png';
-        if (mime.includes('gif')) return 'gif';
-        if (mime.includes('webp')) return 'webp';
-        return 'png';
-      };
-
-      const base64ToBytes = (b64: string) => {
-        const bin = atob(b64);
-        const arr = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-        return arr;
-      };
-
-      let done = 0;
-      const total = imageJobs.length;
-      const concurrency = 4;
       let cursor = 0;
-
-      async function worker() {
+      const workers = await Promise.allSettled(Array.from({ length: Math.min(4, imageJobs.length) }, async () => {
         while (cursor < imageJobs.length) {
-          const my = cursor++;
-          const job = imageJobs[my];
-          if (!job) return;
-          const ext = mimeToExt(job.img.mimeType);
-          const path = `${simuladoId}/${job.qNum}_${job.kind}.${ext}`;
-          const bytes = base64ToBytes(job.img.base64);
-          const blob = new Blob([bytes], { type: job.img.mimeType });
-          const { error } = await supabase.storage
-            .from('question-images')
-            .upload(path, blob, { contentType: job.img.mimeType, upsert: true });
-          if (error) throw new Error(`Falha ao enviar imagem da questão ${job.qNum} (${job.kind}): ${error.message}`);
-          const { data: pub } = supabase.storage.from('question-images').getPublicUrl(path);
-          if (!imageUrls[job.qNum]) imageUrls[job.qNum] = {};
-          if (job.kind === 'enunciado') imageUrls[job.qNum].enunciado_url = pub.publicUrl;
-          else if (job.kind === 'enunciado2') imageUrls[job.qNum].enunciado2_url = pub.publicUrl;
-          else imageUrls[job.qNum].comentario_url = pub.publicUrl;
-          done++;
-          if (total > 0) {
-            setUploadProgress({
-              step: `Enviando imagens (${done} de ${total})...`,
-              percent: 5 + Math.round((done / total) * 60),
-            });
-          }
+          const job = imageJobs[cursor++];
+          const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' } as Record<string, string>)[job.img.mimeType];
+          if (!ext) throw new Error('Formato de imagem não aceito.');
+          const path = `${simuladoId}/imports/${session.user.id}/${batch}/${job.qNum}_${job.kind}.${ext}`;
+          const bytes = Uint8Array.from(atob(job.img.base64), c => c.charCodeAt(0));
+          const storage = supabase.storage.from('question-images');
+          const { error } = await storage.upload(path, new Blob([bytes], { type: job.img.mimeType }), { contentType: job.img.mimeType, upsert: false });
+          if (error) throw error;
+          newPaths.push(path);
+          imageUrls[job.qNum] ??= {};
+          imageUrls[job.qNum][`${job.kind}_url`] = storage.getPublicUrl(path).data.publicUrl;
         }
+      }));
+      const uploadFailure = workers.find(worker => worker.status === 'rejected');
+      if (uploadFailure?.status === 'rejected') {
+        if (newPaths.length) await supabase.storage.from('question-images').remove(newPaths);
+        throw uploadFailure.reason;
       }
-      await Promise.all(Array.from({ length: Math.min(concurrency, imageJobs.length || 1) }, worker));
 
       setUploadProgress({ step: 'Salvando questões...', percent: 75 });
 
-      // Envia em LOTES (client→edge) para suportar simulados grandes sem estourar o
-      // corpo da requisição nem o tempo da edge function. As imagens já foram pro
-      // Storage; cada lote carrega só as URLs das suas questões.
-      const QUESTION_UPLOAD_CHUNK = 100;
-      const groups = chunk(normalized, QUESTION_UPLOAD_CHUNK);
-      let totalInserted = 0;
-
-      for (let gi = 0; gi < groups.length; gi++) {
-        const group = groups[gi];
-        const subsetUrls: typeof imageUrls = {};
-        for (const q of group) {
-          const u = imageUrls[q.numero];
-          if (u) subsetUrls[q.numero] = u;
-        }
-
-        const { data: result, error: invokeError } = await supabase.functions.invoke('admin-upload-questions', {
-          body: {
-            simulado_id: simuladoId,
-            questions: group,
-            image_urls: subsetUrls,
-          },
+      let result;
+      if (editionsEnabled) {
+        result = await adminQuestionImportApi.importQuestions(simuladoId, importRows.map(row => ({ ...row,
+          image_url: imageUrls[row.question_number]?.enunciado_url || row.image_url,
+          image_url_2: imageUrls[row.question_number]?.enunciado2_url || row.image_url_2,
+          explanation_image_url: imageUrls[row.question_number]?.comentario_url || row.explanation_image_url,
+        })));
+      } else {
+        const response = await supabase.functions.invoke('admin-upload-questions', {
+          body: { simulado_id: simuladoId, questions: legacyQuestions, image_urls: imageUrls },
         });
-
-        if (invokeError) {
-          const prefix = totalInserted > 0 ? `${totalInserted} questões já foram salvas. ` : '';
-          throw new Error(`${prefix}${invokeError.message || 'Falha ao salvar as questões.'}`);
-        }
-        if (!result || typeof result.inserted !== 'number') {
-          throw new Error('Resposta inesperada do servidor ao salvar.');
-        }
-
-        totalInserted += result.inserted;
-        setUploadProgress({
-          step: `Salvando questões (${totalInserted} de ${normalized.length})...`,
-          percent: 75 + Math.round(((gi + 1) / groups.length) * 23),
-        });
+        if (response.error) throw response.error;
+        result = response.data;
       }
+      if (result?.ok === false) {
+        setImportErrors(result.errors);
+        if (newPaths.length) await supabase.storage.from('question-images').remove(newPaths);
+        return;
+      }
+      const totalInserted = result?.imported ?? result?.inserted;
+      if (!Number.isInteger(totalInserted)) throw new Error('Resposta inesperada do servidor ao salvar.');
 
       setUploadProgress({ step: 'Pronto!', percent: 100 });
+      invalidateQuestionBankQueries(queryClient);
       toast({ title: `${totalInserted} ${totalInserted === 1 ? 'questão importada' : 'questões importadas'}` });
       resetParsedState();
       setExistingCount((prev) => prev + totalInserted);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('[AdminUploadQuestions] Falha no envio:', err);
-      toast({ title: 'Erro no envio', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro no envio', description: err instanceof Error ? err.message : 'Confira o lote antes de repetir o envio.', variant: 'destructive' });
     } finally {
       setUploading(false);
       setTimeout(() => setUploadProgress(null), 2000);
@@ -695,12 +714,13 @@ function AdminUploadQuestionsContent() {
     setClearing(true);
     try {
       await adminApi.deleteQuestionsForSimulado(simuladoId);
+      invalidateQuestionBankQueries(queryClient);
       setExistingCount(0);
       toast({ title: 'Questões removidas' });
       setConfirmClearOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('[AdminUploadQuestions] Falha ao remover questões:', err);
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Falha ao remover questões.', variant: 'destructive' });
     } finally {
       setClearing(false);
     }
@@ -761,7 +781,7 @@ function AdminUploadQuestionsContent() {
   const hasFile = parsedRows.length > 0;
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="min-w-0 max-w-5xl space-y-6 break-words">
       <AdminPageHeader
         title="Subir questões"
         subtitle={`#${simulado.sequence_number} · ${simulado.title}`}
@@ -775,6 +795,26 @@ function AdminUploadQuestionsContent() {
           </Button>
         }
       />
+
+      {editionsEnabled && (
+        <AdminPanel className="space-y-2 p-4">
+          {matrix.status === 'loading' && <p role="status" className="text-sm text-admin-muted">Carregando matriz da edição...</p>}
+          {(matrix.status === 'error' || matrix.status === 'unknown') && <div role="alert" className="space-y-2 text-sm text-admin-text">
+            <p>Não foi possível carregar a matriz. A importação fica indisponível até conferir a edição.</p>
+            <Button variant="outline" onClick={() => matrix.refetch()}>Tentar novamente</Button>
+          </div>}
+          {matrix.status === 'ready' && matrix.data && <>
+            <h2 className="text-sm font-semibold text-admin-text">{matrix.data.editionCode} · {matrix.data.blueprint.label}</h2>
+            <p className="text-sm text-admin-muted">Até {matrix.data.format.questions} questões · {matrix.data.format.options} alternativas por questão</p>
+            {matrix.data.blueprint.weights_provisional && <p className="text-sm text-admin-muted">Pesos provisórios. Distribuição oficial ainda não confirmada por Conteúdo.</p>}
+            <ul className="space-y-1 text-sm text-admin-text">{matrix.data.blueprint.areas.map(area => <li key={area.id}>{area.label}: {(area.weight * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%</li>)}</ul>
+          </>}
+        </AdminPanel>
+      )}
+      {importErrors.length > 0 && <div ref={errorRef} tabIndex={-1} role="alert" aria-label="Erros da importação" className="space-y-2 rounded-lg border border-admin-destructive p-4 text-sm text-admin-text focus:outline focus:outline-2 focus:outline-admin-accent">
+        <p className="font-semibold">Nenhuma questão deste lote foi gravada. Corrija e repita o envio.</p>
+        <ul>{importErrors.map((error, i) => <li key={i}>Linha {error.row + 1}{error.question_number ? ` · Questão ${error.question_number}` : ''} · {error.field}: {error.message}</li>)}</ul>
+      </div>}
 
       {/* Linha de contexto: questões já cadastradas */}
       <AdminPanel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -808,20 +848,25 @@ function AdminUploadQuestionsContent() {
           </div>
           <div className="space-y-3.5 bg-admin-bg p-5">
             <label
+              tabIndex={0}
+              role="button"
+              aria-label="Escolher planilha de questões"
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
               className={cn(
-                'flex cursor-pointer flex-col items-center rounded-xl border-[1.5px] border-dashed px-5 py-8 text-center transition-colors',
+                'flex cursor-pointer flex-col items-center rounded-xl border-[1.5px] border-dashed px-5 py-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-admin-accent',
                 dragging
                   ? 'border-admin-accent bg-admin-accent/5'
                   : 'border-admin-line bg-admin-surface hover:border-admin-line-strong hover:bg-admin-raised/40',
               )}
             >
-              <input
+                <input
+                  aria-label="Planilha de questões"
                 ref={fileInputRef}
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.csv"
                 className="hidden"
                 onChange={handleFileInput}
               />
@@ -835,7 +880,7 @@ function AdminUploadQuestionsContent() {
               <p className="text-[13.5px] font-semibold text-admin-text">
                 {parsing ? 'Lendo a planilha...' : fileName ? fileName : 'Arraste a planilha aqui'}
               </p>
-              <p className="mt-1 text-xs text-admin-muted">Formato .xlsx · sem limite de tamanho</p>
+               <p className="mt-1 text-xs text-admin-muted">Formato .xlsx · sem limite de tamanho · CSV com URLs também aceito</p>
               {!parsing && (
                 <span className="mt-3.5 inline-flex items-center rounded-md border border-admin-line bg-admin-surface px-3.5 py-2 text-[12.5px] font-semibold text-admin-text">
                   {fileName ? 'Escolher outro arquivo' : 'Escolher arquivo'}
@@ -864,7 +909,7 @@ function AdminUploadQuestionsContent() {
             </button>
 
             <p className="text-[11px] leading-relaxed text-admin-faint">
-              Colunas esperadas: <span className="font-mono text-[10.5px] text-admin-muted">{COLUMNS_HINT}</span>
+              Colunas esperadas: <span className="font-mono text-[10.5px] text-admin-muted">{editionsEnabled ? COLUMNS_HINT.replace(/Alternativa A, Alternativa B, Alternativa C, Alternativa D/, labels.map(label => `Alternativa ${label}`).join(', ')) : COLUMNS_HINT}</span>
             </p>
           </div>
         </AdminPanel>
@@ -963,7 +1008,7 @@ function AdminUploadQuestionsContent() {
                   <Button
                     className="bg-admin-accent text-admin-accent-contrast hover:bg-admin-accent/90"
                     onClick={handleUpload}
-                    disabled={uploading || parsing || readyCount === 0}
+                    disabled={uploading || parsing || readyCount === 0 || errorCount > 0 || (editionsEnabled && matrix.status !== 'ready')}
                   >
                     {uploading ? (
                       <>
@@ -1050,6 +1095,9 @@ function AdminUploadQuestionsContent() {
                   return (
                     <TableRow
                       key={i}
+                      tabIndex={0}
+                      aria-label={`Visualizar questão ${q.numero}`}
+                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setPreviewIndex(i); } }}
                       onClick={() => setPreviewIndex(i)}
                       className="cursor-pointer hover:bg-admin-raised/40"
                     >

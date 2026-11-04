@@ -1,12 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const ALLOWED_ORIGINS = [
-  "https://sanaflix.com",
-  "https://app.sanaflix.com",
-  "https://simulados.sanar.com.br",
-  "https://enamed-arena.lovable.app",
-  "https://id-preview--389ede2e-db02-48e3-8d83-80bfead9e2f1.lovable.app",
-];
+import { isAllowedOrigin, corsHeaders } from "../_shared/appIdentity.ts";
 
 const MAX_ATTEMPTS = 20;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -17,31 +10,6 @@ async function sha256Hex(value: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return false;
-  try {
-    const url = new URL(origin);
-    const hostname = url.hostname;
-    if (hostname === "sanaflix.com" || hostname.endsWith(".sanaflix.com") || hostname === "sanar.com.br" || hostname.endsWith(".sanar.com.br")) return true;
-    if (ALLOWED_ORIGINS.includes(origin)) return true;
-    if (hostname.endsWith(".lovable.app")) return true;
-    if (hostname.endsWith(".lovableproject.com")) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowedOrigin = origin && isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Content-Type": "application/json",
-  };
 }
 
 Deno.serve(async (req) => {

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'none'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Janela e sessão · Protótipo DEMO</title>
+<style>
+@font-face{font-family:JakartaLocal;src:local('Plus Jakarta Sans');font-display:swap}
+:root{--admin-bg:#FAFAF9;--admin-panel:#FFF;--admin-raised:#F4F4F3;--admin-text:#1A1715;--admin-muted:#57534E;--admin-faint:#9C968F;--admin-line:#E7E5E3;--admin-control:#817B75;--admin-accent:#AB2350;--admin-on-accent:#FFF;color-scheme:light}
+[data-theme=dark]{--admin-bg:#0B0C0E;--admin-panel:#141619;--admin-raised:#1C1F23;--admin-text:#ECEDEE;--admin-muted:#9BA1A9;--admin-faint:#6B7178;--admin-line:#292D33;--admin-control:#777F89;--admin-accent:#E14E78;--admin-on-accent:#0B0C0E;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--admin-bg);color:var(--admin-text);font:14px/1.5 JakartaLocal,Arial,sans-serif;overflow-wrap:anywhere}main{max-width:960px;margin:auto;padding:32px 24px 64px}h1{font-size:24px;letter-spacing:-.025em;margin:0 0 8px;font-weight:800}h2{font-size:20px;line-height:1.3;margin:0 0 8px}h3{font-size:14px;margin:0 0 12px}p{margin:0 0 12px}.muted,small{color:var(--admin-muted)}small{font-size:12px;display:block;margin-top:6px}.eyebrow{font-size:12px;color:var(--admin-muted);margin-bottom:12px}.panel{background:var(--admin-panel);border:1px solid var(--admin-line);border-radius:8px;padding:24px;margin-top:24px}.notice{background:var(--admin-raised);border:1px solid var(--admin-line);border-radius:6px;padding:12px 14px;margin:16px 0}.demo-note{font-size:12px;color:var(--admin-muted);margin-bottom:24px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.wide{grid-column:1/-1}label{display:block;font-weight:600;font-size:13px;margin-bottom:6px}button,input,textarea,select{font:inherit;color:inherit;min-height:44px;border:1px solid var(--admin-control);border-radius:6px;padding:9px 12px;background:var(--admin-bg)}input,textarea,select{width:100%;min-width:0}input[type=datetime-local]{font-variant-numeric:tabular-nums}textarea{resize:vertical;min-height:80px}button{cursor:pointer;font-weight:650;background:var(--admin-panel)}button:hover:not(:disabled){background:var(--admin-raised)}button:disabled{cursor:not-allowed;color:var(--admin-muted)}button.primary{background:var(--admin-accent);border-color:var(--admin-accent);color:var(--admin-on-accent)}button.primary:disabled{background:var(--admin-raised);color:var(--admin-muted);border-color:var(--admin-line)}:focus-visible{outline:2px solid var(--admin-accent);outline-offset:3px}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}nav{display:flex;gap:8px;margin-top:20px}nav [aria-pressed=true]{border-color:var(--admin-accent);color:var(--admin-accent)}.section-line{border-top:1px solid var(--admin-line);margin-top:20px;padding-top:20px}.check{display:flex;gap:10px;align-items:center}.check input{width:18px;min-height:18px;margin:0;accent-color:var(--admin-accent)}.check label{margin:0}dialog{padding:24px;width:calc(100% - 32px);max-width:600px;max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--admin-line);border-radius:8px;background:var(--admin-panel);color:var(--admin-text)}dialog::backdrop{background:rgb(0 0 0 / .65)}dialog .grid{gap:12px}dialog textarea{min-height:72px}table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:12px;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:10px 6px;border-bottom:1px solid var(--admin-line);vertical-align:top}th:first-child{width:25%}thead th{color:var(--admin-muted);font-weight:500}tbody th{font-weight:600}.counts{font-size:13px;font-variant-numeric:tabular-nums;margin-top:12px}.dialog-footer{position:sticky;bottom:-24px;background:var(--admin-panel);padding:12px 0 0}.review{margin-top:32px;border-top:1px solid var(--admin-line);padding-top:16px}.review summary{cursor:pointer;font-size:12px;color:var(--admin-muted);min-height:44px}.review .grid{margin-top:16px}.review label{font-size:12px}.status:empty{display:none}.status{margin-top:12px}#session-panel{max-width:560px;margin-left:auto;margin-right:auto}.close-row{display:flex;justify-content:space-between;gap:12px;align-items:start}.close-row button{min-width:44px;padding:6px}
+@media(max-width:600px){main{padding:24px 16px 40px}.panel{padding:20px 16px}.grid{grid-template-columns:minmax(0,1fr)}dialog{padding:20px 16px}dialog .grid{gap:10px}.actions{flex-direction:column-reverse}.actions button{width:100%}.dialog-footer{bottom:-20px;padding-bottom:2px}th,td{padding:8px 4px}th:first-child{width:30%}.demo-note{margin-bottom:16px}nav button{flex:1}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main>
+  <p class="demo-note">Protótipo offline · DEMO · Dados fictícios, somente em memória. Nenhuma gravação real.</p>
+  <header><p class="eyebrow">Conteúdo / Edição administrativa</p><h1>Janela e sessão</h1><p class="muted">Dois trechos dos formulários existentes, sem alterar o restante do painel.</p></header>
+  <nav aria-label="Trecho em revisão"><button id="show-window" aria-pressed="true" aria-controls="simulado-panel">Simulado</button><button id="show-session" aria-pressed="false" aria-controls="session-panel">Sessão presencial</button></nav>
+  <section id="simulado-panel" class="panel" aria-labelledby="simulado-title">
+    <h2 id="simulado-title">Editar simulado</h2><p class="muted">Simulado 2 · Edição DEMO</p>
+    <div class="grid"><div class="wide"><label for="metadata-title">Título</label><input id="metadata-title" value="Simulado 2 · Preparação DEMO"></div><div class="wide"><label for="metadata-description">Descrição</label><textarea id="metadata-description">Revisão geral das grandes áreas.</textarea></div></div>
+    <div class="section-line"><h3>Janela de execução</h3><label for="generic-start">Abertura (Brasília)</label><input id="generic-start" type="datetime-local" value="2027-03-14T08:00" disabled aria-describedby="window-access"><p id="saved-window" class="muted">14/03/2027, 08:00 a 14/03/2027, 18:00 · Resultado em 15/03/2027, 09:00</p>
+      <p id="window-access" class="muted"></p><button id="open-window" aria-haspopup="dialog">Conferir alteração de janela</button>
+      <div id="window-result" class="notice" role="status" tabindex="-1" hidden></div>
+    </div>
+    <p class="muted section-line">Título e descrição permanecem no formulário. A alteração de janela é uma operação separada.</p>
+  </section>
+  <section id="session-panel" class="panel" aria-labelledby="session-title" hidden>
+    <h2 id="session-title">Editar sessão</h2><p class="muted">Sala de aplicação · DEMO</p>
+    <form id="session-form">
+      <div class="grid">
+        <div class="wide"><label for="session-simulado">Simulado</label><select id="session-simulado"><option value="demo">#2 · Preparação DEMO</option></select></div>
+        <div class="wide"><label for="session-caderno">Caderno da sala</label><select id="session-caderno"><option value="">O aluno escolhe</option><option value="blue" selected>Caderno 1 · Azul</option><option value="red">Caderno 2 · Vermelho</option></select><small>Escolha um caderno aqui só quando a sala inteira recebeu a mesma cor.</small></div>
+        <div><label for="session-code">Código (na URL)</label><input id="session-code" required pattern="[a-z0-9-]{3,32}" value="sala-a"></div><div><label for="session-label">Nome da sala</label><input id="session-label" required value="Sala A · Bloco 2"></div>
+        <div><label for="session-opens">Abre em (Brasília)</label><input id="session-opens" required type="datetime-local" value="2027-03-14T08:00"></div><div><label for="session-closes">Fecha em (Brasília)</label><input id="session-closes" required type="datetime-local" value="2027-03-14T13:00"></div>
+        <div id="ranking-section" class="wide"><label for="ranking-rule">Regra para o ranking</label><select id="ranking-rule" aria-describedby="ranking-help ranking-unavailable"><option value="" hidden>Indisponível · mantida pelo servidor</option><option value="session_window_v1">Janela da sessão</option><option value="legacy_online_window">Janela online</option></select><small id="ranking-help">A regra vale para novas participações. As anteriores mantêm a regra registrada.</small><small id="ranking-unavailable" hidden>Regra indisponível nesta leitura; mantida pelo servidor. Você pode editar os demais campos.</small></div>
+        <div class="wide check"><input id="session-active" type="checkbox" checked><label for="session-active">Sessão ativa</label></div>
+      </div>
+      <p id="session-status" class="status" role="status"></p><div class="actions"><button type="button" id="cancel-session">Cancelar</button><button class="primary" id="save-session" type="submit">Salvar sessão</button></div>
+    </form>
+  </section>
+  <details class="review"><summary>Controles de revisão · somente DEMO</summary><div class="grid">
+    <div><label for="demo-theme">Tema</label><select id="demo-theme"><option value="light">Claro</option><option value="dark">Escuro</option></select></div>
+    <div><label for="demo-permission">Permissão para alterar participações</label><select id="demo-permission"><option value="yes">Permitida</option><option value="no">Sem permissão</option></select></div>
+    <div><label for="demo-count">Leitura de participações</label><select id="demo-count"><option value="known">12 participações · DEMO</option><option value="unknown">Contagem indisponível</option></select></div>
+    <div><label for="demo-outcome">Próxima resposta simulada</label><select id="demo-outcome"><option value="success">Sucesso confirmado</option><option value="stale">Janela alterada por outra pessoa</option><option value="busy">Outra gravação em andamento</option><option value="uncertain">Resultado incerto</option><option value="counts">Contagens da conferência indisponíveis</option></select></div>
+    <div><label for="demo-session">Leitura da sessão</label><select id="demo-session"><option value="session">Existente · Janela da sessão</option><option value="legacy">Existente · Janela online</option><option value="new">Nova sessão</option><option value="missing">Servidor sem informação da regra</option><option value="unknown">Regra não reconhecida</option></select></div>
+    <div><label for="demo-flag">Recurso de edições</label><select id="demo-flag"><option value="on">Ligado</option><option value="off">Desligado</option></select></div>
+  </div></details>
+</main>
+<dialog id="window-dialog" aria-labelledby="window-title" aria-describedby="window-description" data-state="draft">
+  <div class="close-row"><h2 id="window-title">Alterar janela</h2><button id="close-window" type="button" aria-label="Fechar diálogo">×</button></div>
+  <p id="window-description" class="muted">Simulado 2 · DEMO. Confira as três datas em horário de Brasília antes de confirmar.</p>
+  <div class="grid">
+    <div><label for="window-start">Abertura (Brasília)</label><input id="window-start" type="datetime-local" required></div>
+    <div><label for="window-end">Encerramento (Brasília)</label><input id="window-end" type="datetime-local" required></div>
+    <div class="wide"><label for="window-release">Resultado (Brasília)</label><input id="window-release" type="datetime-local" required></div>
+  </div>
+  <div id="window-summary" class="section-line" hidden><h3>Resumo da alteração · Brasília</h3><table aria-label="Datas antes e depois"><thead><tr><th scope="col">Data</th><th scope="col">Antes</th><th scope="col">Depois</th></tr></thead><tbody><tr><th scope="row">Abertura</th><td id="before-start"></td><td id="after-start"></td></tr><tr><th scope="row">Encerramento</th><td id="before-end"></td><td id="after-end"></td></tr><tr><th scope="row">Resultado</th><td id="before-release"></td><td id="after-release"></td></tr></tbody></table></div>
+  <p id="window-counts" class="counts"></p>
+  <p class="notice">Prazos pessoais existentes e notas não mudam. A elegibilidade para o ranking será atualizada conforme a conferência.</p>
+  <label for="window-reason">Motivo (obrigatório)</label><textarea id="window-reason" required maxlength="2000" aria-describedby="reason-help window-status"></textarea><small id="reason-help">Até 2000 caracteres. Não inclua dados pessoais de alunos.</small>
+  <p id="window-status" class="status" role="status" aria-live="polite"></p>
+  <div class="actions"><button id="retry-window" hidden>Repetir conferência</button><button id="refresh-window" hidden>Atualizar situação</button></div>
+  <div class="actions dialog-footer"><button id="cancel-window">Cancelar</button><button id="preview-window" class="primary">Conferir alteração</button><button id="confirm-window" disabled hidden>Confirmar alteração</button></div>
+</dialog>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const dialog = $('window-dialog');
+const parts = ['start', 'end', 'release'];
+let saved = ['2027-03-14T08:00', '2027-03-14T18:00', '2027-03-15T09:00'];
+let reviewed = null;
+let demoChanged = 0;
+let uncertain = false;
+let pending = false;
+const values = () => parts.map(part => $('window-' + part).value);
+const fmt = value => { const [date, time] = value.split('T'); const [year, month, day] = date.split('-'); return day + '/' + month + '/' + year + ', ' + time; };
+function state(name, message) {
+  dialog.dataset.state = name;
+  $('window-status').textContent = message;
+  const ready = name === 'ready';
+  $('window-summary').hidden = !ready;
+  $('confirm-window').hidden = !ready && name !== 'saving';
+  $('confirm-window').classList.toggle('primary', ready || name === 'saving');
+  $('confirm-window').disabled = !ready || !$('window-reason').value.trim() || pending;
+  $('preview-window').hidden = ready || name === 'saving';
+  $('preview-window').disabled = pending || uncertain;
+  $('preview-window').textContent = name === 'checking' ? 'Conferindo…' : 'Conferir alteração';
+  $('retry-window').hidden = name !== 'busy';
+  $('refresh-window').hidden = name !== 'uncertain';
+  for (const id of ['cancel-window', 'close-window', 'window-reason', 'refresh-window', 'retry-window']) $(id).disabled = pending;
+  for (const part of parts) $('window-' + part).disabled = pending || uncertain;
+  dialog.setAttribute('aria-busy', String(pending));
+}
+function access() {
+  const known = $('demo-count').value === 'known';
+  const allowed = $('demo-permission').value === 'yes';
+  $('open-window').disabled = !known || !allowed;
+  $('window-access').textContent = !known ? 'Contagem de participações indisponível. Atualize a leitura antes de alterar a janela.' : !allowed ? 'Há participações existentes. Solicite a alteração de janela a um administrador autorizado.' : '12 participações existentes · confira o efeito antes de alterar a janela.';
+  if (dialog.open && (!known || !allowed) && !pending) { reviewed = null; state('unavailable', 'Acesso ou contagem indisponível. Feche e revise a situação.'); }
+}
+function invalidate() {
+  if (pending || uncertain) return;
+  reviewed = null; $('window-counts').textContent = '';
+  state('draft', 'Datas editadas. Confira novamente antes de confirmar.');
+}
+function preview() {
+  if (pending || uncertain || $('open-window').disabled) return;
+  const dates = values();
+  if (dates.some(date => !date) || !(dates[0] < dates[1] && dates[1] <= dates[2])) {
+    state('draft', 'Abertura deve ser anterior ao Encerramento, que não pode ser posterior ao Resultado.');
+    $('window-start').focus(); return;
+  }
+  pending = true; reviewed = null; state('checking', 'Conferindo participações e efeito da alteração…');
+  setTimeout(() => {
+    pending = false;
+    if ($('demo-outcome').value === 'counts') {
+      $('window-counts').textContent = 'Contagens indisponíveis. Nenhuma alteração habilitada.';
+      state('unavailable', 'Não foi possível conferir o efeito. Tente conferir novamente.'); return;
+    }
+    reviewed = dates.slice();
+    parts.forEach((part, index) => { $('before-' + part).textContent = fmt(saved[index]); $('after-' + part).textContent = fmt(dates[index]); });
+    // Synthetic response only: an unchanged window cannot imply changed eligibility.
+    demoChanged = dates.some((date, index) => date !== saved[index]) ? 3 : 0;
+    $('window-counts').textContent = '12 participações examinadas · ' + demoChanged + ' com elegibilidade alterada (DEMO).';
+    state('ready', 'Resumo pronto. Revise o efeito e informe o motivo para confirmar.');
+    $('window-summary').setAttribute('tabindex', '-1'); $('window-summary').focus();
+  }, 60);
+}
+function confirm() {
+  if (pending || uncertain || dialog.dataset.state !== 'ready' || !reviewed || $('open-window').disabled || !$('window-reason').value.trim() || values().some((date, index) => date !== reviewed[index])) return;
+  const outcome = $('demo-outcome').value;
+  pending = true; state('saving', 'Confirmando alteração… Aguarde a resposta.');
+  setTimeout(() => {
+    pending = false; reviewed = null;
+    if (outcome === 'stale') {
+      saved[1] = '2027-03-14T18:30';
+      state('stale', 'A janela foi alterada por outra pessoa. É necessário conferir novamente.'); $('preview-window').focus(); return;
+    }
+    if (outcome === 'busy') { state('busy', 'Outra gravação está em andamento. Nada foi alterado nesta operação. Repita a conferência explicitamente.'); $('retry-window').focus(); return; }
+    if (outcome === 'uncertain') { uncertain = true; state('uncertain', 'Não foi possível confirmar o resultado. Não envie novamente. Atualize a situação e confira a janela antes de decidir.'); $('refresh-window').focus(); return; }
+    saved = values().slice();
+    $('saved-window').textContent = fmt(saved[0]) + ' a ' + fmt(saved[1]) + ' · Resultado em ' + fmt(saved[2]);
+    $('generic-start').value = saved[0];
+    $('window-result').textContent = 'DEMO · Alteração de janela concluída. 12 participações examinadas; ' + demoChanged + ' com elegibilidade alterada. Título e descrição não foram salvos nem substituídos.';
+    $('window-result').hidden = false;
+    state('success', 'Alteração confirmada na demonstração.'); dialog.close(); $('window-result').focus();
+  }, 60);
+}
+$('open-window').onclick = () => {
+  parts.forEach((part, index) => $('window-' + part).value = saved[index]);
+  if (!uncertain) { reviewed = null; $('window-counts').textContent = ''; state('draft', 'Primeiro confira as datas e o efeito da alteração.'); }
+  dialog.showModal(); $('window-start').focus(); if (uncertain) $('refresh-window').focus();
+};
+function closeDialog() { if (!pending) { dialog.close(); $('open-window').focus(); } }
+$('cancel-window').onclick = closeDialog; $('close-window').onclick = closeDialog;
+dialog.addEventListener('cancel', event => { event.preventDefault(); closeDialog(); });
+// Match the existing Radix focus loop; native dialog can tab into browser chrome.
+dialog.addEventListener('keydown', event => {
+  if (event.key !== 'Tab') return;
+  const controls = Array.from(dialog.querySelectorAll('button,input,textarea,select')).filter(element => !element.disabled && element.getClientRects().length);
+  const first = controls[0], last = controls[controls.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
+$('preview-window').onclick = preview; $('retry-window').onclick = preview; $('confirm-window').onclick = confirm;
+parts.forEach(part => $('window-' + part).addEventListener('input', invalidate));
+$('window-reason').oninput = () => { $('confirm-window').disabled = pending || dialog.dataset.state !== 'ready' || !$('window-reason').value.trim(); };
+$('refresh-window').onclick = () => {
+  if (pending) return;
+  pending = true; state('uncertain', 'Atualizando a situação… Nenhum reenvio será feito.');
+  setTimeout(() => {
+    pending = false; uncertain = false; reviewed = null;
+    // Fixture: read-back establishes the current window; never replays the write.
+    parts.forEach((part, index) => $('window-' + part).value = saved[index]);
+    $('window-counts').textContent = ''; state('draft', 'Situação atualizada na DEMO. Confira novamente antes de qualquer alteração.'); $('preview-window').focus();
+  }, 60);
+};
+function ranking() {
+  const scene = $('demo-session').value;
+  const flag = $('demo-flag').value === 'on';
+  const rule = scene === 'new' || scene === 'session' ? 'session_window_v1' : scene === 'legacy' ? 'legacy_online_window' : '';
+  $('ranking-section').hidden = !flag; $('ranking-rule').disabled = !rule || !flag;
+  $('ranking-rule').value = rule;
+  $('ranking-unavailable').hidden = !!rule;
+  $('session-title').textContent = scene === 'new' ? 'Nova sessão' : 'Editar sessão';
+}
+$('session-form').onsubmit = event => {
+  event.preventDefault();
+  if ($('session-closes').value <= $('session-opens').value) { $('session-status').textContent = 'O fechamento precisa ser depois da abertura.'; $('session-closes').focus(); return; }
+  const payload = { simulado_id: $('session-simulado').value, code: $('session-code').value, label: $('session-label').value, opens_at: $('session-opens').value, closes_at: $('session-closes').value, caderno_id: $('session-caderno').value || null, is_active: $('session-active').checked };
+  if (!$('ranking-rule').disabled && !$('ranking-section').hidden) payload.ranking_rule = $('ranking-rule').value;
+  window.sessionPayload = payload;
+  $('session-status').textContent = 'DEMO · Sessão "' + payload.label + '" salva somente em memória.';
+};
+$('cancel-session').onclick = () => { $('session-status').textContent = 'DEMO · Edição cancelada, sem gravação real.'; };
+for (const [button, panel] of [['show-window', 'simulado-panel'], ['show-session', 'session-panel']]) $(button).onclick = () => {
+  $('simulado-panel').hidden = panel !== 'simulado-panel'; $('session-panel').hidden = panel !== 'session-panel';
+  $('show-window').setAttribute('aria-pressed', String(button === 'show-window')); $('show-session').setAttribute('aria-pressed', String(button === 'show-session'));
+};
+$('demo-theme').onchange = () => document.documentElement.dataset.theme = $('demo-theme').value;
+$('demo-permission').onchange = access; $('demo-count').onchange = access;
+$('demo-session').onchange = ranking; $('demo-flag').onchange = ranking;
+access(); ranking(); state('draft', '');
+</script>
+</body>
+</html>

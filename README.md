@@ -4,11 +4,12 @@ Plataforma de simulados para residência médica. Usuários realizam provas cron
 
 ## Stack
 
-- **Build:** Vite 5, TypeScript
+- **Build:** Vite 7.3.7, TypeScript 5.8
 - **UI:** React 18, React Router 6, shadcn/ui (Radix), Tailwind CSS, Framer Motion
 - **Estado:** TanStack React Query, Context (Auth, User)
 - **Backend:** Supabase (Auth + Postgres)
-- **Testes:** Vitest, Testing Library, Playwright (Lovable)
+- **Testes:** Vitest 5.1.0, Testing Library, Playwright (Lovable)
+- **Node:** 24.16.0; `.nvmrc` é a fonte de verdade, alinhada ao `package.json` e ao runtime de `netlify.toml`.
 
 ## Variáveis de ambiente
 
@@ -51,7 +52,7 @@ npm run test
 
 - **`src/App.tsx`** — Rotas e providers (Query, Auth, User, Router).
 - **`src/contexts/`** — AuthContext (login/sessão), UserContext (perfil e onboarding).
-- **`src/pages/`** — Páginas por rota (Index, Simulados, Prova, Resultado, Ranking, etc.).
+- **`src/pages/`** — Páginas por rota (Simulados, Prova, Resultado, Ranking, etc.). A home roteada está em `src/components/premium/home/HomePagePremium.tsx`; o antigo `Index.tsx` não era roteado e foi removido.
 - **`src/hooks/`** — useSimulados, useSimuladoDetail, useExamFlow (prova), useExamStorageReal, useRanking.
 - **`src/services/`** — simuladosApi, rankingApi (Supabase).
 - **`src/lib/`** — simulado-helpers, resultHelpers, errorNotebookReasons, utils.
@@ -71,7 +72,7 @@ Quem define o valor de `segment` (manual no Supabase ou integração com outro s
 
 ## Deploy
 
-O projeto foi criado no [Lovable](https://lovable.dev); lá você pode usar Share → Publish. Para deploy manual (Vercel, Netlify, etc.), configure as variáveis de ambiente e use o build estático (`npm run build` → pasta `dist`).
+O projeto foi criado no [Lovable](https://lovable.dev). O repositório contém configurações para Netlify (`netlify.toml`) e Vercel (`vercel.json`), com build estático (`npm run build` → pasta `dist`). A presença desses arquivos e a origem Lovable não comprovam o hosting ativo nem publicação automática. Ambas as configurações foram preservadas; confirmar o destino real e a configuração Auth exige QA autorizada antes de qualquer rollout. Nenhum deploy ou push faz parte da higiene descrita em `docs/hygiene-2027.md`.
 
 ## Licença e créditos
 

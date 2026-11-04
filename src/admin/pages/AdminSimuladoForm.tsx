@@ -1,5 +1,8 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
-import { useEffect, useMemo, useState } from 'react';
+import { useAdminCan } from '@/admin/contexts/AdminAccessContext';
+import { AdminWindowUpdateDialog } from '@/admin/components/AdminWindowUpdateDialog';
+import type { SimuladoWindow } from '@/admin/types/admin-session';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check, Clock3, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,14 +17,20 @@ import { adminApi } from '../services/adminApi';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { validateWindows, windowWarnings } from '@/admin/lib/validateWindows';
-import { localInputToUtcISO, utcISOToLocalInput, formatWindowSummary } from '@/admin/lib/timezone';
+import { localInputToUtcISO, formatWindowSummary } from '@/admin/lib/timezone';
 import { slugify } from '@/admin/lib/slugify';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
+import { brasiliaInputToISO, isoToBrasiliaInput } from '@/admin/lib/brasiliaDateTime';
+import type { ExamEdition } from '@/types/edition';
+import '@/admin/components/editions/editions.css';
 
 /** Classes admin para inputs (tema control-room sem editar o componente shadcn) */
 const inputCls = 'bg-admin-bg border-admin-line-strong text-admin-text placeholder:text-admin-faint';
 const inputMonoCls = `${inputCls} font-mono`;
 
 const empty = {
+  edition_id: '',
   title: '',
   slug: '',
   sequence_number: 1,
@@ -101,10 +110,40 @@ function FormSkeleton() {
 }
 
 function AdminSimuladoFormContent() {
+  const editionsEnabled = useAppConfig('editions_ui');
+  const [editions, setEditions] = useState<ExamEdition[]>([]);
+  const [editionsError, setEditionsError] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const { id } = useParams();
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => setSavedId(null), [id]);
   const isEdit = !!id && id !== 'novo';
   const navigate = useNavigate();
   const [form, setForm] = useState(empty);
+  const [savedWindow, setSavedWindow] = useState<SimuladoWindow | null>(null);
+  const canManageAttempts = useAdminCan('attempts.manage');
+  const [attemptsCount, setAttemptsCount] = useState<number | null>(null);
+  const [countPending, setCountPending] = useState(false);
+  const [countRevision, setCountRevision] = useState(0);
+  const windowSimuladoId = savedId ?? (isEdit ? id! : null);
+  const windowSafetyEnabled = editionsEnabled && !!windowSimuladoId && !!form.edition_id;
+  const protectWindow = windowSafetyEnabled && attemptsCount !== 0;
+  useEffect(() => {
+    let active = true;
+    setAttemptsCount(null);
+    if (!windowSafetyEnabled) { setCountPending(false); return; }
+    setCountPending(true);
+    adminApi.getSimuladoAttemptsCount(windowSimuladoId!).then(count => {
+      if (active) setAttemptsCount(Number.isSafeInteger(count) && count >= 0 ? count : null);
+    }).catch(() => { if (active) setAttemptsCount(null); }).finally(() => { if (active) setCountPending(false); });
+    return () => { active = false; };
+  }, [windowSimuladoId, windowSafetyEnabled, countRevision]);
+  const loadEditions = () => {
+    if (!editionsEnabled) return;
+    setEditionsError(false);
+    adminEditionsApi.list().then(setEditions).catch(() => setEditionsError(true));
+  };
+  useEffect(loadEditions, [editionsEnabled]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -126,16 +165,18 @@ function AdminSimuladoFormContent() {
     setLoadError(null);
     adminApi.getSimulado(id!)
       .then(s => {
+        setSavedWindow({ execution_window_start: s.execution_window_start, execution_window_end: s.execution_window_end, results_release_at: s.results_release_at });
         setForm({
+          edition_id: (s as typeof s & { edition_id?: string }).edition_id ?? '',
           title: s.title,
           slug: s.slug,
           sequence_number: s.sequence_number,
           description: s.description,
           duration_minutes: s.duration_minutes,
           questions_count: s.questions_count,
-          execution_window_start: utcISOToLocalInput(s.execution_window_start),
-          execution_window_end: utcISOToLocalInput(s.execution_window_end),
-          results_release_at: utcISOToLocalInput(s.results_release_at),
+          execution_window_start: isoToBrasiliaInput(s.execution_window_start),
+          execution_window_end: isoToBrasiliaInput(s.execution_window_end),
+          results_release_at: isoToBrasiliaInput(s.results_release_at),
           theme_tags: s.theme_tags.join(', '),
           status: s.status as 'draft' | 'published' | 'test',
         });
@@ -181,10 +222,24 @@ function AdminSimuladoFormContent() {
   const effectiveQuestionsCount = Number(isEdit && realCount != null ? realCount : form.questions_count);
 
   const persist = async (statusOverride?: 'draft' | 'published', opts?: { skipGabaritoAudit?: boolean }) => {
+    if (saving) return;
+    if (editionsEnabled && (!form.edition_id || editionsError)) {
+      toast({ title: 'Selecione uma edição válida antes de salvar.', variant: 'destructive' });
+      document.getElementById('simulado-edition')?.focus();
+      return;
+    }
     const status = statusOverride ?? form.status;
 
     if (windowError) {
       toast({ title: windowError, variant: 'destructive' });
+      document.getElementById('window-start')?.focus();
+      return;
+    }
+    if (formRef.current && !formRef.current.reportValidity()) return;
+    try {
+      [form.execution_window_start, form.execution_window_end, form.results_release_at].forEach(brasiliaInputToISO);
+    } catch {
+      toast({ title: 'Confira as datas e horários de Brasília.', variant: 'destructive' });
       return;
     }
 
@@ -231,6 +286,7 @@ function AdminSimuladoFormContent() {
     }
 
     const payload = {
+      ...(editionsEnabled ? { edition_id: form.edition_id } : {}),
       title: form.title,
       slug: form.slug,
       sequence_number: Number(form.sequence_number),
@@ -239,15 +295,25 @@ function AdminSimuladoFormContent() {
       // Em edição, persiste a contagem REAL de questões quando conhecida, evitando
       // re-gravar um valor defasado (o upload de questões já mantém este campo).
       questions_count: effectiveQuestionsCount,
-      execution_window_start: localInputToUtcISO(form.execution_window_start),
-      execution_window_end: localInputToUtcISO(form.execution_window_end),
-      results_release_at: localInputToUtcISO(form.results_release_at),
+      execution_window_start: brasiliaInputToISO(form.execution_window_start),
+      execution_window_end: brasiliaInputToISO(form.execution_window_end),
+      results_release_at: brasiliaInputToISO(form.results_release_at),
       theme_tags: (form.theme_tags as string).split(',').map(t => t.trim()).filter(Boolean),
       status,
     };
 
+    let draftSaved = false;
     try {
-      if (isEdit) {
+      if (editionsEnabled) {
+        const onDraftSaved = (draftId: string) => {
+          draftSaved = true;
+          setSavedId(draftId);
+          if (!windowSimuladoId) setSavedWindow({ execution_window_start: payload.execution_window_start, execution_window_end: payload.execution_window_end, results_release_at: payload.results_release_at });
+          setForm(prev => ({ ...prev, status: 'draft' }));
+        };
+        if (protectWindow) await adminApi.saveSimuladoWithEdition(windowSimuladoId, payload, onDraftSaved, { preserveWindow: true });
+        else await adminApi.saveSimuladoWithEdition(windowSimuladoId, payload, onDraftSaved);
+      } else if (isEdit) {
         await adminApi.updateSimulado(id!, payload);
       } else {
         await adminApi.createSimulado(payload);
@@ -264,7 +330,11 @@ function AdminSimuladoFormContent() {
       navigate('/admin/simulados');
     } catch (err: any) {
       logger.error('[AdminSimuladoForm] Falha ao salvar:', err);
-      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
+      const windowGuard = editionsEnabled && err?.code === '42501' && String(err?.message).includes('admin_update_simulado_window');
+      if (windowGuard) setAttemptsCount(null);
+      toast({ title: draftSaved && status === 'published' ? 'Rascunho salvo; publicação bloqueada' : 'Erro ao salvar', description: windowGuard
+        ? 'Surgiram participações nesta prova. Suas alterações continuam no formulário. Refaça a contagem e faça uma nova conferência da janela antes de alterar as datas.'
+        : ['P0003', '42501'].includes(err?.code) || err?.status === 403 ? 'Sem permissão para salvar esta alteração. Peça a revisão de uma pessoa autorizada.' : err.message, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -318,7 +388,7 @@ function AdminSimuladoFormContent() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-5xl">
+    <form ref={formRef} onSubmit={handleSubmit} className={editionsEnabled ? 'editions-experience max-w-5xl' : 'max-w-5xl'}>
       <AdminPageHeader
         title={isEdit ? 'Editar simulado' : 'Novo simulado'}
         subtitle="Dados da prova, janela de execução e o que o aluno vê"
@@ -352,6 +422,18 @@ function AdminSimuladoFormContent() {
           {/* Dados da prova */}
           <div className="space-y-4">
             <AdminSectionHeader title="Dados da prova" />
+            {editionsEnabled && <div className="space-y-2">
+              <Label htmlFor="simulado-edition">Edição</Label>
+              <select id="simulado-edition" required value={form.edition_id} className={`${inputCls} min-h-11 w-full min-w-0 rounded-md border px-3`} onChange={e => {
+                const editionId = e.target.value; set('edition_id', editionId);
+                if (!isEdit && !savedId && editionId) adminEditionsApi.nextSequence(editionId).then(sequence => {
+                  const edition = editions.find(item => item.id === editionId);
+                  if (!edition) return;
+                  setForm(prev => prev.edition_id !== editionId ? prev : { ...prev, sequence_number: sequence, slug: `enamed-${edition.year}${edition.term ? `-${edition.term}` : ''}-simulado-${sequence}` });
+                }).catch(() => toast({ title: 'Não foi possível sugerir a sequência. Confira o número antes de salvar.', variant: 'destructive' }));
+              }}><option value="">Selecione a edição</option>{editions.map(edition => <option key={edition.id} value={edition.id}>{edition.code} · {edition.label}</option>)}</select>
+              {editionsError && <div role="alert"><p>Não foi possível carregar as edições.</p><Button type="button" variant="outline" onClick={loadEditions}>Tentar novamente</Button></div>}
+            </div>}
             <div className="space-y-2">
               <Label htmlFor="simulado-title">Título</Label>
               <Input
@@ -366,8 +448,9 @@ function AdminSimuladoFormContent() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Identificador (slug)</Label>
+                <Label htmlFor="simulado-slug">Identificador (slug)</Label>
                 <Input
+                  id="simulado-slug"
                   className={inputMonoCls}
                   value={form.slug}
                   onChange={e => handleSlugChange(e.target.value)}
@@ -376,8 +459,11 @@ function AdminSimuladoFormContent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Número da prova</Label>
+                <Label htmlFor="simulado-sequence">Número da prova</Label>
                 <Input
+                  id="simulado-sequence"
+                  min="1"
+                  step="1"
                   className={inputMonoCls}
                   type="number"
                   value={form.sequence_number}
@@ -389,8 +475,11 @@ function AdminSimuladoFormContent() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tempo de prova (minutos)</Label>
+                <Label htmlFor="simulado-duration">Tempo de prova (minutos)</Label>
                 <Input
+                  id="simulado-duration"
+                  min="1"
+                  step="1"
                   className={inputMonoCls}
                   type="number"
                   value={form.duration_minutes}
@@ -400,8 +489,9 @@ function AdminSimuladoFormContent() {
               </div>
               {isEdit && (
                 <div className="space-y-2">
-                  <Label>Número de questões</Label>
+                  <Label htmlFor="simulado-count">Número de questões</Label>
                   <Input
+                    id="simulado-count"
                     className={inputMonoCls}
                     type="number"
                     value={realCount ?? form.questions_count}
@@ -418,8 +508,9 @@ function AdminSimuladoFormContent() {
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição</Label>
+              <Label htmlFor="simulado-description">Descrição</Label>
               <Input
+                id="simulado-description"
                 className={inputCls}
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
@@ -427,8 +518,9 @@ function AdminSimuladoFormContent() {
             </div>
 
             <div className="space-y-2">
-              <Label>Tags de tema (separadas por vírgula)</Label>
+              <Label htmlFor="simulado-tags">Tags de tema (separadas por vírgula)</Label>
               <Input
+                id="simulado-tags"
                 className={inputCls}
                 value={form.theme_tags}
                 onChange={e => set('theme_tags', e.target.value)}
@@ -444,11 +536,22 @@ function AdminSimuladoFormContent() {
               O período em que a prova vale para o ranking. Dentro da janela, a nota conta. Fora dela, o
               aluno ainda pode treinar, mas o resultado não entra na classificação.
             </p>
+            {windowSafetyEnabled && <div className="space-y-3 rounded-lg border border-admin-line bg-admin-raised p-3">
+              <p className="text-sm text-admin-muted">{countPending ? 'Conferindo participações...' : attemptsCount === null ? 'Não foi possível confirmar a contagem de participações. A janela está protegida.' : attemptsCount > 0 ? `${attemptsCount} participações registradas. Altere a janela somente com conferência de impacto.` : 'Nenhuma participação registrada. As datas podem ser editadas neste formulário.'}</p>
+              <Button type="button" variant="outline" disabled={countPending || saving} onClick={() => setCountRevision(value => value + 1)}>Refazer contagem</Button>
+              {canManageAttempts && savedWindow && <div hidden={!protectWindow}><AdminWindowUpdateDialog key={windowSimuladoId} simuladoId={windowSimuladoId!} window={savedWindow} onSuccess={window => {
+                setSavedWindow(window);
+                setForm(prev => ({ ...prev, execution_window_start: isoToBrasiliaInput(window.execution_window_start), execution_window_end: isoToBrasiliaInput(window.execution_window_end), results_release_at: isoToBrasiliaInput(window.results_release_at) }));
+                setCountRevision(value => value + 1);
+              }} /></div>}
+              {protectWindow && !canManageAttempts && <p className="text-sm text-admin-muted">É necessária permissão para gerenciar tentativas para alterar a janela. Os demais dados continuam editáveis.</p>}
+            </div>}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="window-start">Abre em <span className="font-normal text-admin-muted">(Brasília)</span></Label>
+                <Label htmlFor="window-start">Abre em <span className="font-normal text-admin-muted">(horário de Brasília)</span></Label>
                 <Input
                   id="window-start"
+                  disabled={protectWindow || countPending}
                   className={inputMonoCls}
                   type="datetime-local"
                   value={form.execution_window_start}
@@ -457,9 +560,10 @@ function AdminSimuladoFormContent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="window-end">Fecha em <span className="font-normal text-admin-muted">(Brasília)</span></Label>
+                <Label htmlFor="window-end">Fecha em <span className="font-normal text-admin-muted">(horário de Brasília)</span></Label>
                 <Input
                   id="window-end"
+                  disabled={protectWindow || countPending}
                   className={inputMonoCls}
                   type="datetime-local"
                   value={form.execution_window_end}
@@ -469,9 +573,10 @@ function AdminSimuladoFormContent() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="results-release">Libera resultados em <span className="font-normal text-admin-muted">(Brasília)</span></Label>
+              <Label htmlFor="results-release">Libera resultados em <span className="font-normal text-admin-muted">(horário de Brasília)</span></Label>
               <Input
                 id="results-release"
+                disabled={protectWindow || countPending}
                 className={inputMonoCls}
                 type="datetime-local"
                 value={form.results_release_at}

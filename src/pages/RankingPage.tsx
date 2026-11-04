@@ -18,8 +18,24 @@ import { RankingView } from '@/components/ranking/RankingView';
 import { ProfSanorRanking } from '@/components/ranking/ProfSanorRanking';
 import { FloatingProfSan } from '@/components/FloatingProfSan';
 import { PresencialEntryCard } from '@/components/presencial/PresencialEntryCard';
+import { useSimulados } from '@/hooks/useSimulados';
+import { editionBadge } from '@/lib/edition-groups';
+import { CutoffScopeContext, useCutoffContext } from '@/hooks/useCutoffContext';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EditionRankingSection } from '@/components/ranking/EditionRankingSection';
 
 export default function RankingPage() {
+  const editionsEnabled = useAppConfig('editions_ui');
+  if (!editionsEnabled) return <SimuladoRankingPage />;
+  return <Tabs defaultValue="simulado" className="min-w-0">
+    <TabsList className="mb-5 h-auto min-h-11"><TabsTrigger value="simulado" className="min-h-11">Simulado</TabsTrigger><TabsTrigger value="edition" className="min-h-11">Edição</TabsTrigger></TabsList>
+    <TabsContent value="simulado"><SimuladoRankingPage /></TabsContent>
+    <TabsContent value="edition"><PageHeader title="Ranking" subtitle="Consulte a classificação da edição e sua regra de participação." /><EditionRankingSection /></TabsContent>
+  </Tabs>;
+}
+
+function SimuladoRankingPage() {
   const {
     loading,
     error,
@@ -38,8 +54,16 @@ export default function RankingPage() {
     userInstitutions,
     userSpecialtyId,
     userInstitutionIds,
+    comparisonContext,
     refetch,
   } = useRanking();
+  const { simulados, editionsUi } = useSimulados();
+  const options = simuladosWithResults.map(option => {
+    const metadata = editionsUi ? simulados.find(sim => sim.id === option.id) : undefined;
+    return { ...option, ...(metadata ? { editionId: metadata.editionId, editionCode: metadata.editionCode, editionLabel: metadata.editionLabel } : {}) };
+  });
+  const selectedSimulado = options.find(option => option.id === selectedSimuladoId);
+  const { cutoffContext } = useCutoffContext({ editionsUi, referenceEditionId: selectedSimulado?.editionId, enabled: editionsUi });
 
   const { profile } = useUser();
   const { user } = useAuth();
@@ -74,7 +98,7 @@ export default function RankingPage() {
           title="Ranking"
           subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <PresencialEntryCard />
         <EmptyState
@@ -94,7 +118,7 @@ export default function RankingPage() {
           title="Ranking"
           subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <PresencialEntryCard />
         <EmptyState
@@ -112,7 +136,7 @@ export default function RankingPage() {
         title="Ranking"
         subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
         subtitlePlacement="inline-end"
-        badge="ENAMED 2026"
+        badge={editionBadge(selectedSimulado)}
       />
       <PresencialEntryCard />
       {currentUser && (
@@ -121,17 +145,20 @@ export default function RankingPage() {
             compact
             studentName={profile?.name ?? 'Aluno'}
             simuladoId={selectedSimuladoId}
+            editionId={selectedSimulado?.editionId}
             simuladoTitle={simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title}
-            currentUser={currentUser}
+            currentUser={allParticipants.find(participant => participant.isCurrentUser)}
             stats={stats}
             userSpecialty={userSpecialty}
             userInstitutions={userInstitutions}
           />
         </FloatingProfSan>
       )}
+      <CutoffScopeContext.Provider value={{ editionsUi, referenceEditionId: selectedSimulado?.editionId ?? null, cutoffContext }}>
       <RankingView
         loading={loading}
-        simuladosWithResults={simuladosWithResults}
+        simuladosWithResults={options}
+        editionsUi={editionsUi}
         selectedSimuladoId={selectedSimuladoId}
         setSelectedSimuladoId={setSelectedSimuladoId}
         filteredParticipants={filteredParticipants}
@@ -145,12 +172,14 @@ export default function RankingPage() {
         userInstitutions={userInstitutions}
         userSpecialtyId={userSpecialtyId}
         userInstitutionIds={userInstitutionIds}
+        comparisonContext={comparisonContext}
         allowedSegments={allowedSegments}
         trackSource="page"
         participantDisplay="public"
         heroStanding={heroStanding}
         heroEvolution={heroEvolution}
       />
+      </CutoffScopeContext.Provider>
     </PageTransition>
   );
 }

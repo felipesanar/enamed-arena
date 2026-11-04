@@ -7,7 +7,7 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "24.16.0" # Source of truth: .nvmrc
 
 # SPA fallback so deep links don't 404
 [[redirects]]

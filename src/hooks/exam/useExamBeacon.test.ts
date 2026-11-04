@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import { useExamBeacon } from './useExamBeacon';
 import type { ExamState } from '@/types/exam';
 
@@ -60,7 +60,7 @@ function setup({
   const hasFinalizedRef = { current: hasFinalized };
 
   const hook = renderHook(() =>
-    useExamBeacon({ storage, stateRef, hasFinalized: hasFinalizedRef }),
+    useExamBeacon({ storage, stateRef, hasFinalized: hasFinalizedRef, getRuntime: () => ({ mode: 'v1' }) }),
   );
 
   return { flushPendingState, stateRef, hasFinalizedRef, storage, hook };
@@ -68,9 +68,9 @@ function setup({
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 describe('useExamBeacon', () => {
-  let addEventSpy: ReturnType<typeof vi.spyOn>;
-  let removeEventSpy: ReturnType<typeof vi.spyOn>;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let addEventSpy: MockInstance<typeof window.addEventListener>;
+  let removeEventSpy: MockInstance<typeof window.removeEventListener>;
+  let fetchSpy: MockInstance<typeof fetch>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -96,7 +96,7 @@ describe('useExamBeacon', () => {
     expect(removeEventSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
   });
 
-  it('chama flushPendingState quando in_progress e não finalizado', () => {
+  it('keeps unload best effort without clearing dirty through flushPendingState', () => {
     const { flushPendingState } = setup({ state: makeState({ status: 'in_progress' }) });
 
     // Captura o handler registrado e dispara manualmente
@@ -109,7 +109,7 @@ describe('useExamBeacon', () => {
     Object.defineProperty(event, 'returnValue', { writable: true, value: '' });
     handler!(event);
 
-    expect(flushPendingState).toHaveBeenCalledTimes(1);
+    expect(flushPendingState).not.toHaveBeenCalled();
   });
 
   it('não age quando hasFinalized é true', () => {
@@ -168,5 +168,67 @@ describe('useExamBeacon', () => {
     expect(unsubscribe).not.toBeNull();
     hook.unmount();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a stale getSession overwrite a newer auth token', async () => {
+    let resolve!: (value: any) => void;
+    vi.mocked(supabase.auth.getSession).mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const { hook } = setup();
+    const callback = vi.mocked(supabase.auth.onAuthStateChange).mock.calls.at(-1)![0];
+    act(() => { callback('TOKEN_REFRESHED', { access_token: 'new', user: { id: 'new-user' } } as any); });
+    await act(async () => { resolve({ data: { session: { access_token: 'old', user: { id: 'old-user' } } } }); });
+    expect(hook.result.current.current).toBe('new');
+  });
+
+  it.each(['pending', 'error', 'legacy'] as const)('keeps unload unacknowledged and respects runtime %s', async mode => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.invalid');
+    vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'public-key');
+    const state = makeState();
+    const storage = { flushPendingState: vi.fn(), attemptId: { current: 'attempt' },
+      getPersistenceSnapshot: () => ({ userId: 'u', attemptId: 'attempt', state }) };
+    const h = renderHook(() => useExamBeacon({ storage, stateRef: { current: state },
+      hasFinalized: { current: false }, getRuntime: () => ({ mode }) }));
+    const callback = vi.mocked(supabase.auth.onAuthStateChange).mock.calls.at(-1)![0];
+    act(() => { callback('SIGNED_IN', { access_token: 'token', user: { id: 'u' } } as any); });
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(storage.flushPendingState).not.toHaveBeenCalled();
+    if (mode === 'legacy') {
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(fetchSpy.mock.calls[0][1]!.body as string)[0]).not.toHaveProperty('client_updated_at');
+    } else expect(fetchSpy).not.toHaveBeenCalled();
+    h.unmount(); vi.unstubAllEnvs();
+  });
+  it('only sends a validated storage snapshot belonging to the current token user', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.invalid');
+    vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'public-key');
+    const state = makeState();
+    state.answers.q1.clientUpdatedAt = '2026-11-04T00:00:00.000Z';
+    const snapshot = { userId: 'u', attemptId: 'captured-attempt', state };
+    const storage = { flushPendingState: vi.fn(), attemptId: { current: 'wrong-ref' }, getPersistenceSnapshot: vi.fn(() => snapshot) };
+    let owner = true;
+    const hook = renderHook(() => useExamBeacon({ storage, stateRef: { current: makeState() }, hasFinalized: { current: false }, canWrite: () => owner,
+      getRuntime: () => ({ mode: 'v1', onMismatch: vi.fn() }) }));
+    const callback = vi.mocked(supabase.auth.onAuthStateChange).mock.calls.at(-1)![0];
+    act(() => { callback('SIGNED_IN', { access_token: 'current-token', user: { id: 'u' } } as any); });
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const init = fetchSpy.mock.calls[0][1]!;
+    expect(init.headers).toMatchObject({ Authorization: 'Bearer current-token' });
+    expect(JSON.parse(init.body as string)[0].attempt_id).toBe('captured-attempt');
+    expect(JSON.parse(init.body as string)[0].client_updated_at).toBe(state.answers.q1.clientUpdatedAt);
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(fetchSpy.mock.calls[1][1]?.body).toBe(init.body);
+    owner = false;
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    owner = true;
+    act(() => { callback('SIGNED_IN', { access_token: 'other-token', user: { id: 'other' } } as any); });
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    storage.getPersistenceSnapshot.mockReturnValueOnce(null as any);
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    hook.unmount();
+    vi.unstubAllEnvs();
   });
 });

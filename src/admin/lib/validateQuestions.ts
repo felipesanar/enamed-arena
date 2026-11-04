@@ -1,6 +1,55 @@
 import type { QuestionVerifyFinding } from '@/admin/services/adminApi';
 import { checkGabarito } from '@/admin/lib/gabaritoCheck';
 import { logger } from '@/lib/logger';
+import type { ExamArea } from '@/types/edition';
+import type { QuestionImportRow, QuestionImportError } from '@/types/question-import';
+import { resolveBlueprintArea } from '@/lib/enamedBlueprint';
+
+/** CSV exported by the template, including quoted separators and line breaks. */
+export function parseImportCsv(input: string): Record<string, string>[] {
+  const text = input.replace(/^\uFEFF/, '');
+  const delimiter = text.split(/\r?\n/, 1)[0].includes(';') ? ';' : ',';
+  const records: string[][] = [];
+  let row: string[] = [], cell = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
+      else quoted = !quoted;
+    } else if (!quoted && (char === delimiter || char === '\n' || char === '\r')) {
+      row.push(cell); cell = '';
+      if (char !== delimiter) {
+        records.push(row); row = [];
+        if (char === '\r' && text[i + 1] === '\n') i++;
+      }
+    } else cell += char;
+  }
+  if (quoted) throw new Error('CSV com aspas não fechadas.');
+  if (cell || row.length) { row.push(cell); records.push(row); }
+  const headers = records.shift()?.map(h => h.trim()) ?? [];
+  if (!headers.length || headers.some(h => !h) || new Set(headers).size !== headers.length) throw new Error('Cabeçalhos CSV vazios ou repetidos.');
+  return records.filter(r => r.some(c => c.trim())).map(r => {
+    if (r.length !== headers.length) throw new Error('CSV com número de colunas inconsistente.');
+    return Object.fromEntries(headers.map((header, i) => [header, r[i]]));
+  });
+}
+
+/** Advisory client validation; the RPC revalidates the entire batch under lock. */
+export function validateImportRows(rows: QuestionImportRow[], areas: readonly ExamArea[], format: { questions: number; options: number }): QuestionImportError[] {
+  const errors: QuestionImportError[] = [];
+  const seen = new Set<number>();
+  rows.forEach((row, index) => {
+    const add = (field: string, message: string) => errors.push({ row: index + 1, question_number: row.question_number, field, message });
+    if (!Number.isSafeInteger(row.question_number) || row.question_number < 1 || row.question_number > format.questions || seen.has(row.question_number)) add('question_number', 'Número inválido, repetido ou fora do formato da edição.');
+    seen.add(row.question_number);
+    if (!row.text?.trim()) add('text', 'Preencha o enunciado.');
+    const area = resolveBlueprintArea(row.area, areas);
+    if (!area || (row.area_id && row.area_id !== area.id)) add('area', 'Área desconhecida ou ambígua nesta matriz.');
+    if (row.options.length !== format.options || row.options.some((o, i) => o.label !== String.fromCharCode(65 + i) || !o.text?.trim() || typeof o.is_correct !== 'boolean') || row.options.filter(o => o.is_correct).length !== 1) add('options', `Use ${format.options} alternativas preenchidas, em ordem, com exatamente uma correta.`);
+  });
+  if (rows.length > format.questions) errors.push({ row: 1, field: 'rows', message: 'Lote excede o limite da edição.' });
+  return errors;
+}
 
 export interface QuestionRow {
   numero: number;

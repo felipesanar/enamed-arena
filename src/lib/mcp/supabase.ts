@@ -11,11 +11,13 @@ import type { ToolContext } from "@lovable.dev/mcp-js";
  * module load, so the manifest-extract eval and cold start don't need secrets.
  */
 export function supabaseForUser(ctx: ToolContext): SupabaseClient {
+  const token = ctx.getToken();
+  if (!ctx.isAuthenticated() || !token) throw new Error("Authenticated MCP caller required.");
   return createClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY!,
     {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+      global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     },
   );

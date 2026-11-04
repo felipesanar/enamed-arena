@@ -3,19 +3,21 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@3.4.0";
 
 // src/lib/mcp/tools/get-my-profile.ts
-import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { defineTool } from "npm:@lovable.dev/mcp-js@3.4.0";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@2.99.2";
 function supabaseForUser(ctx) {
+  const token = ctx.getToken();
+  if (!ctx.isAuthenticated() || !token) throw new Error("Authenticated MCP caller required.");
   return createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
     {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+      global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false }
     }
   );
@@ -44,8 +46,8 @@ var get_my_profile_default = defineTool({
 });
 
 // src/lib/mcp/tools/list-simulados.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z } from "npm:zod@3.25.76";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z } from "npm:zod@4.6.7";
 var list_simulados_default = defineTool2({
   name: "list_simulados",
   title: "List simulados",
@@ -69,34 +71,97 @@ var list_simulados_default = defineTool2({
 });
 
 // src/lib/mcp/tools/get-my-performance.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z3 } from "npm:zod@4.6.7";
+
+// src/lib/mcp/edition-scope.ts
+import { z as z2 } from "npm:zod@4.6.7";
+var catalogSchema = z2.array(z2.object({
+  id: z2.uuid(),
+  code: z2.string(),
+  label: z2.string(),
+  year: z2.number().int(),
+  term: z2.number().nullable(),
+  status: z2.enum(["planned", "preparing", "active", "closed", "archived"]),
+  exam_date: z2.string().nullable()
+}));
+async function resolvePerformanceEdition(client, userId, explicit, now = /* @__PURE__ */ new Date()) {
+  if (explicit !== void 0 && !z2.uuid().safeParse(explicit).success) throw new Error("Invalid edition");
+  const { data, error } = await client.from("exam_editions").select("id, code, label, year, term, status, exam_date");
+  if (error) throw new Error("Catalog unavailable");
+  const catalog = catalogSchema.parse(data ?? []).sort((a, b) => a.year - b.year || (a.term ?? 0) - (b.term ?? 0) || a.code.localeCompare(b.code) || a.id.localeCompare(b.id));
+  if (explicit !== void 0) {
+    const edition = catalog.find((e) => e.id === explicit);
+    if (!edition) throw new Error("Unknown edition");
+    return edition;
+  }
+  if (!catalog.length) return null;
+  const { data: profile, error: profileError } = await client.from("onboarding_profiles").select("target_edition_id, expected_graduation_term").eq("user_id", userId).maybeSingle();
+  if (profileError) throw new Error("Target unavailable");
+  const target = catalog.find((e) => e.id === profile?.target_edition_id);
+  if (target) return target;
+  const graduation = catalog.find((e) => e.code === profile?.expected_graduation_term);
+  if (graduation) return graduation;
+  const eligible = catalog.filter((e) => !["closed", "archived"].includes(e.status));
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(now);
+  const part = (key) => parts.find((p) => p.type === key).value;
+  const today = `${part("year")}-${part("month")}-${part("day")}`;
+  const dated = eligible.filter((e) => e.exam_date && /^\d{4}-\d{2}-\d{2}$/.test(e.exam_date) && Number.isFinite(Date.parse(e.exam_date)) && e.exam_date >= today).sort((a, b) => a.exam_date.localeCompare(b.exam_date) || catalog.indexOf(a) - catalog.indexOf(b));
+  return dated[0] ?? eligible.find((e) => e.exam_date === null && ["preparing", "active"].includes(e.status)) ?? eligible.find((e) => e.exam_date === null && e.status === "planned") ?? null;
+}
+
+// src/lib/mcp/tools/get-my-performance.ts
 var get_my_performance_default = defineTool3({
   name: "get_my_performance",
   title: "Get my performance summary",
-  description: "Return the signed-in user's overall performance summary: total attempts and average, best and last scores.",
+  description: "Return released, non-training performance for one catalog edition of the signed-in OAuth user. Never a global aggregate.",
+  inputSchema: {
+    edition_id: z3.uuid().optional().describe("Catalog edition UUID. Defaults to the user's target, graduation term, then current catalog edition.")
+  },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async (_args, ctx) => {
+  handler: async ({ edition_id }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
-    const { data, error } = await supabaseForUser(ctx).from("user_performance_summary").select("total_attempts, avg_score, best_score, last_score, last_finished_at").eq("user_id", ctx.getUserId()).maybeSingle();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    if (!data)
-      return { content: [{ type: "text", text: "No performance data yet. Complete a simulado first." }] };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data) }],
-      structuredContent: { performance: data }
-    };
+    try {
+      const client = supabaseForUser(ctx);
+      const userId = ctx.getUserId();
+      if (!userId) return notAuthenticated;
+      const edition = await resolvePerformanceEdition(client, userId, edition_id);
+      if (!edition) return {
+        content: [{ type: "text", text: "No edition is available for this performance scope yet." }],
+        structuredContent: { scope: null, performance: [] }
+      };
+      const scope = { edition_id: edition.id, edition_label: edition.label, include_training: false };
+      const { data, error } = await client.rpc("get_user_performance_summary", {
+        p_user_id: userId,
+        p_edition_id: edition.id,
+        p_include_training: false
+      });
+      if (error) throw new Error("Performance unavailable");
+      const performance = data ?? [];
+      return {
+        content: [{ type: "text", text: JSON.stringify({ scope, performance }) }],
+        structuredContent: { scope, performance }
+      };
+    } catch {
+      return { content: [{ type: "text", text: "Performance scope unavailable. Check the edition and try again." }], isError: true };
+    }
   }
 });
 
 // src/lib/mcp/tools/list-my-attempts.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z2 } from "npm:zod@3.25.76";
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z4 } from "npm:zod@4.6.7";
 var list_my_attempts_default = defineTool4({
   name: "list_my_attempts",
   title: "List my attempts",
   description: "List the signed-in user's simulado attempts, most recent first, with status, score and answer counts.",
   inputSchema: {
-    limit: z2.number().int().optional().describe("Maximum number of attempts to return. Defaults to 20.")
+    limit: z4.number().int().optional().describe("Maximum number of attempts to return. Defaults to 20.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
@@ -114,21 +179,26 @@ var list_my_attempts_default = defineTool4({
 });
 
 // src/lib/mcp/tools/list-error-notebook.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z3 } from "npm:zod@3.25.76";
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z5 } from "npm:zod@4.6.7";
 var list_error_notebook_default = defineTool5({
   name: "list_error_notebook",
   title: "List error notebook entries",
   description: "List the signed-in user's error notebook (caderno de erros) entries \u2014 questions they got wrong \u2014 newest first. Optionally filter by area. This is a PRO feature; non-PRO users see no entries.",
   inputSchema: {
-    area: z3.string().optional().describe("Filter entries by medical area (e.g. 'Cl\xEDnica M\xE9dica')."),
-    limit: z3.number().int().optional().describe("Maximum number of entries to return. Defaults to 20.")
+    area: z5.string().optional().describe("Filter entries by medical area (e.g. 'Cl\xEDnica M\xE9dica')."),
+    limit: z5.number().int().optional().describe("Maximum number of entries to return. Defaults to 20.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ area, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
+    const client = supabaseForUser(ctx);
+    const { data: profile, error: profileError } = await client.from("profiles").select("segment").eq("id", ctx.getUserId()).maybeSingle();
+    if (profileError || profile?.segment !== "pro") {
+      return { content: [{ type: "text", text: "PRO access required for the error notebook." }], isError: true };
+    }
     const capped = Math.min(Math.max(limit ?? 20, 1), 100);
-    let query = supabaseForUser(ctx).from("error_notebook").select("id, area, theme, reason, question_number, simulado_title, was_correct, created_at, next_review_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(capped);
+    let query = client.from("error_notebook").select("id, area, theme, reason, question_number, simulado_title, was_correct, created_at, next_review_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(capped);
     if (area) query = query.eq("area", area);
     const { data, error } = await query;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
@@ -148,11 +218,13 @@ var mcp_default = defineMcp({
   instructions: "Read-only tools for the Simulados SanarFlix (ENAMED) platform. Each caller is a signed-in user; every tool returns only that user's data under their permissions. Use `list_simulados` to browse mock exams, `get_my_performance` for score summaries, `list_my_attempts` for attempt history, `get_my_profile` for account details, and `list_error_notebook` for the PRO error notebook.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
-    acceptedAudiences: "authenticated"
+    acceptedAudiences: "authenticated",
+    // Supabase tokens must carry aud=authenticated; do not substitute resource.
+    acceptResourceClaim: false
   }),
   tools: [get_my_profile_default, list_simulados_default, get_my_performance_default, list_my_attempts_default, list_error_notebook_default]
 });
 
 // lovable-mcp-supabase-entry.ts
-import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.20.0/stacks/supabase";
+import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";
 Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));

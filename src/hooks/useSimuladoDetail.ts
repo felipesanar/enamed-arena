@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger';
 import type { Question, SimuladoWithStatus, SimuladoUserState } from '@/types';
 import { enrichSimulado } from '@/lib/simulado-helpers';
 import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface UseSimuladoDetailReturn {
   simulado: SimuladoWithStatus | null;
@@ -18,8 +19,8 @@ interface UseSimuladoDetailReturn {
   refetch: () => void;
 }
 
-async function fetchSimuladoDetail(routeRef: string, userId: string | undefined, includeCorrectAnswers = false) {
-  const config = await simuladosApi.getSimulado(routeRef);
+async function fetchSimuladoDetail(routeRef: string, userId: string | undefined, includeCorrectAnswers: boolean, editionsUi: boolean) {
+  const config = await simuladosApi.getSimulado(routeRef, editionsUi);
   if (!config) {
     return { simulado: null, questions: [] as Question[] };
   }
@@ -46,6 +47,8 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined,
           ((attempt as any).attempt_type as 'online' | 'offline' | 'presencial' | undefined) ??
           (attempt.status === 'offline_pending' ? 'offline' : 'online'),
         attemptStatus: attempt.status,
+        effectiveDeadline: attempt.effective_deadline,
+        isWithinWindow: attempt.is_within_window,
       }
     : undefined;
 
@@ -54,18 +57,19 @@ async function fetchSimuladoDetail(routeRef: string, userId: string | undefined,
 }
 
 export function useSimuladoDetail(simuladoId: string | undefined, includeCorrectAnswers = false): UseSimuladoDetailReturn {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const editionsUi = useAppConfig('editions_ui');
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['simulado', simuladoId, user?.id, includeCorrectAnswers],
-    queryFn: () => fetchSimuladoDetail(simuladoId!, user?.id, includeCorrectAnswers),
-    enabled: !!simuladoId,
+    queryKey: ['simulado', simuladoId, user?.id, includeCorrectAnswers, editionsUi],
+    queryFn: () => fetchSimuladoDetail(simuladoId!, user?.id, includeCorrectAnswers, editionsUi),
+    enabled: !!simuladoId && !!user && !authLoading,
     staleTime: 5 * 60 * 1000,
   });
 
   return {
-    simulado: data?.simulado ?? null,
-    questions: data?.questions ?? [],
+    simulado: user && !authLoading ? data?.simulado ?? null : null,
+    questions: user && !authLoading ? data?.questions ?? [] : [],
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Erro ao carregar simulado') : null,
     refetch,

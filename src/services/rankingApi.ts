@@ -5,6 +5,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import type { UserSegment } from '@/types';
+import type { RankingSimuladoOption } from '@/types/ranking';
 
 // ─── Types ───
 
@@ -30,6 +31,8 @@ export interface RankingParticipant {
   score: number;
   specialty: string;
   institution: string;
+  /** All authorized labels; institution remains the primary display label. */
+  institutions?: string[];
   segment: 'guest' | 'standard' | 'pro';
   isCurrentUser: boolean;
 }
@@ -102,13 +105,16 @@ export async function fetchAdminSimuladosForRankingPreview(): Promise<
 
 // ─── Fetch simulados that have submitted attempts (for selector) ───
 
-export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; title: string; sequence_number: number }>> {
+export async function fetchSimuladosWithResults(includeEditionMetadata = false, userId?: string): Promise<RankingSimuladoOption[]> {
   logger.log('[rankingApi] Fetching simulados with released results');
   const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
+  const query = supabase
     .from('simulados')
-    .select('id, title, sequence_number, results_release_at, status')
-    .eq('status', 'published')
+    .select(includeEditionMetadata
+      ? 'id, title, sequence_number, results_release_at, status, edition_id, exam_editions(code, label)'
+      : 'id, title, sequence_number, results_release_at, status');
+  const { data, error } = await (includeEditionMetadata && userId
+    ? query.in('status', ['published', 'archived']) : query.eq('status', 'published'))
     .lte('results_release_at', nowIso)
     .order('sequence_number', { ascending: true });
 
@@ -117,10 +123,32 @@ export async function fetchSimuladosWithResults(): Promise<Array<{ id: string; t
     throw error;
   }
 
-  return (data || []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    sequence_number: row.sequence_number,
+  // The opt-in relationship is not yet present in generated Supabase types.
+  const rows = (data ?? []) as unknown as Array<{ id: string; title: string; sequence_number: number;
+    status?: string;
+    results_release_at: string; edition_id?: string | null;
+    exam_editions?: { code: string; label: string } | null }>;
+  const archivedIds = rows.filter(row => row.status === 'archived').map(row => row.id);
+  const ownFinalized = new Set<string>();
+  if (includeEditionMetadata && userId && archivedIds.length) {
+    const { data: attempts, error: attemptsError } = await supabase.from('attempts')
+      .select('simulado_id,user_id,status,finished_at')
+      .eq('user_id', userId).in('simulado_id', archivedIds)
+      .in('status', ['submitted', 'expired']).not('finished_at', 'is', null);
+    if (attemptsError) throw attemptsError;
+    for (const attempt of attempts ?? []) {
+      if (attempt.user_id === userId && ['submitted', 'expired'].includes(attempt.status) && attempt.finished_at) {
+        ownFinalized.add(attempt.simulado_id);
+      }
+    }
+  }
+  return rows.filter(row => row.status !== 'archived' || (includeEditionMetadata && userId
+    && ownFinalized.has(row.id) && Date.parse(row.results_release_at) <= Date.parse(nowIso)))
+    .map((row) => ({
+    id: row.id, title: row.title, sequence_number: row.sequence_number,
+    ...(includeEditionMetadata ? { editionId: row.edition_id ?? null,
+      editionCode: row.exam_editions?.code ?? null, editionLabel: row.exam_editions?.label ?? null,
+      resultsReleaseAt: row.results_release_at } : {}),
   }));
 }
 
@@ -137,6 +165,7 @@ export function transformRankingData(
     score: Math.round(Number(row.nota_final) || 0),
     specialty: row.especialidade || '—',
     institution: row.instituicoes_alvo?.[0] || '—',
+    institutions: row.instituicoes_alvo ?? [],
     segment: row.segment,
     isCurrentUser: row.user_id === currentUserId,
   }));
@@ -230,13 +259,13 @@ export function applyRankingFilters(
   }
 
   if (comparison.byInstitution) {
-    const userPrimaryInstitution = userInstitutions.find(Boolean) || '';
-    const targetNorm = normalizeRankingFilterValue(userPrimaryInstitution);
-    if (targetNorm.length > 0) {
+    const targets = userInstitutions.filter(value => normalizeRankingFilterValue(value));
+    if (targets.length > 0) {
       filtered = filtered.filter(
         (p) =>
           p.isCurrentUser ||
-          rankingFilterValuesMatch(p.institution, userPrimaryInstitution),
+          (p.institutions ?? [p.institution]).some(institution =>
+            targets.some(target => rankingFilterValuesMatch(institution, target))),
       );
     }
   }

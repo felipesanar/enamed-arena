@@ -9,10 +9,11 @@ import { useNotebookDueCount } from "@/hooks/useNotebookDueCount";
 import { useSimulados } from "@/hooks/useSimulados";
 import { useUserPerformance } from "@/hooks/useUserPerformance";
 import { useRanking } from "@/hooks/useRanking";
-import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
-import { useExamResult } from "@/hooks/useExamResult";
-import { computePerformanceBreakdown } from "@/lib/resultHelpers";
-import { deriveHomeHeroState } from "@/lib/home-hero-state";
+import { useComparativeData } from '@/hooks/useComparativeData';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useUserEdition } from '@/hooks/useUserEdition';
+import { computePercentile } from '@/lib/ranking-percentile';
+import { deriveHomeHeroState, selectHomeSimulado } from "@/lib/home-hero-state";
 import { canViewResults, formatDateShort as formatDateShortWithYear } from "@/lib/simulado-helpers";
 import { HomeHeroSection } from "./HomeHeroSection";
 import { NextSimuladoBanner } from "./NextSimuladoBanner";
@@ -20,6 +21,7 @@ import { EnamedCountdownCard } from "./EnamedCountdownCard";
 import { CadernoInsightTeaserCard } from "./CadernoInsightTeaserCard";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditionTargetPrompt } from "@/components/editions/EditionTargetPrompt";
 
 const STAGGER_CHILDREN = 0.055;
 const STAGGER_DELAY = 0.02;
@@ -42,6 +44,7 @@ function formatDateShort(dateIso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
+    timeZone: 'America/Sao_Paulo',
   }).format(d);
 }
 
@@ -77,8 +80,16 @@ export function HomePagePremium() {
     cadernoDueEnabled && !notebookDueLoading && typeof notebookDueCount === "number"
       ? notebookDueCount
       : null;
-  const { simulados, loading: simuladosLoading } = useSimulados();
-  const { summary, history, loading: perfLoading } = useUserPerformance();
+  const editionsUi = useAppConfig('editions_ui');
+  const { userEdition, now: editionNow } = useUserEdition(editionsUi);
+  const { simulados: allSimulados, loading: simuladosLoading, error: simuladosError, refetch: refetchSimulados } = useSimulados();
+  const simulados = useMemo(() => editionsUi
+    ? allSimulados.filter(sim => !!userEdition && sim.editionId === userEdition.id) : allSimulados,
+  [allSimulados, editionsUi, userEdition]);
+  const { summary: rawSummary, history: rawHistory, loading: perfLoading, error: perfError, refetch: refetchPerformance } = useUserPerformance();
+  const scopeReady = !editionsUi || !!userEdition;
+  const summary = scopeReady && !perfError ? rawSummary : null;
+  const history = useMemo(() => scopeReady && !perfError ? rawHistory : [], [scopeReady, perfError, rawHistory]);
   const {
     currentUser,
     stats: rankingStats,
@@ -86,20 +97,18 @@ export function HomePagePremium() {
     simuladosWithResults,
     userSpecialty,
     userInstitutions,
-  } = useRanking();
+    error: rankingError,
+    refetch: refetchRanking,
+  } = useRanking({ selection: 'latest-in-edition', editionId: editionsUi ? userEdition?.id ?? null : undefined });
 
   // Compute worstArea from last simulado
-  const lastSimuladoId = summary?.last_simulado_id ?? null;
-  const { questions: lastQuestions } = useSimuladoDetail(lastSimuladoId ?? undefined);
-  const { examState: lastExamState } = useExamResult(lastSimuladoId ?? undefined);
+  const { entries } = useComparativeData();
 
   const worstArea = useMemo(() => {
-    if (!lastExamState || !lastQuestions.length) return null;
-    if (lastExamState.status !== 'submitted' && lastExamState.status !== 'expired') return null;
-    const breakdown = computePerformanceBreakdown(lastExamState, lastQuestions);
-    const byArea = breakdown.byArea;
-    return byArea.length > 0 ? byArea[byArea.length - 1].area : null;
-  }, [lastExamState, lastQuestions]);
+    const last = entries.find(entry => entry.simuladoId === summary?.last_simulado_id);
+    if (!last) return null;
+    return Object.entries(last.areaScores).sort((a, b) => a[1] - b[1])[0]?.[0] ?? null;
+  }, [entries, summary?.last_simulado_id]);
 
   useEffect(() => {
     return () => {
@@ -114,6 +123,7 @@ export function HomePagePremium() {
   const isLoading = simuladosLoading || perfLoading || rankingLoading;
 
   const stats = useMemo(() => {
+    if (editionsUi || perfError) return { simuladosRealizados: summary?.total_attempts ?? 0, mediaAtual: Math.round(summary?.avg_score ?? 0) };
     const completed = simulados.filter((s) => canViewResults(s.status));
     const fallbackCount = completed.length;
     const fallbackAvg =
@@ -127,9 +137,9 @@ export function HomePagePremium() {
         : 0;
 
     const count = summary?.total_attempts ?? fallbackCount;
-    const avg = summary?.avg_score ? Math.round(summary.avg_score) : fallbackAvg;
+    const avg = summary?.avg_score != null ? Math.round(summary.avg_score) : fallbackAvg;
     return { simuladosRealizados: count, mediaAtual: avg };
-  }, [simulados, summary?.avg_score, summary?.total_attempts]);
+  }, [simulados, editionsUi, perfError, summary?.avg_score, summary?.total_attempts]);
 
   // Detect most-recent closed_waiting simulado where the student has finished.
   // Used to show a pending banner when they have prior released results.
@@ -145,6 +155,10 @@ export function HomePagePremium() {
   );
 
   const nextSimulado = useMemo(() => {
+    if (editionsUi) {
+      const current = selectHomeSimulado(simulados, userEdition, editionNow ?? new Date());
+      return current && ['upcoming', 'available', 'in_progress'].includes(current.status) ? current : null;
+    }
     const now = Date.now();
     return (
       simulados
@@ -162,7 +176,7 @@ export function HomePagePremium() {
             Date.parse(b.executionWindowStart)
         )[0] ?? null
     );
-  }, [simulados]);
+  }, [simulados, editionsUi, userEdition, editionNow]);
 
   const nextWindowDate = nextSimulado
     ? `${formatDateShort(nextSimulado.executionWindowStart)}`
@@ -206,6 +220,8 @@ export function HomePagePremium() {
         mediaAtual: stats.mediaAtual,
         lastScore,
         recentScores,
+        edition: editionsUi ? userEdition ?? null : undefined,
+        now: editionNow,
       }),
     [
       isOnboardingComplete,
@@ -215,11 +231,16 @@ export function HomePagePremium() {
       stats.mediaAtual,
       stats.simuladosRealizados,
       userName,
+      editionsUi,
+      userEdition,
+      editionNow,
     ],
   );
 
-  const rankPosition = currentUser?.position ?? null;
-  const rankTotal = rankingStats?.totalCandidatos ?? null;
+  const validRank = scopeReady && currentUser !== undefined && Number.isInteger(currentUser.position) && currentUser.position > 0
+    && Number.isInteger(rankingStats?.totalCandidatos) && rankingStats.totalCandidatos >= currentUser.position;
+  const rankPosition = validRank ? currentUser.position : null;
+  const rankTotal = validRank ? rankingStats.totalCandidatos : null;
 
   const rankingCompetitionLine = useMemo(
     () => buildRankingCompetitionLine(userSpecialty, userInstitutions),
@@ -292,12 +313,17 @@ export function HomePagePremium() {
       className="space-y-4 md:space-y-6"
     >
       {/* Layer 0: Notification banner — always on top */}
-      <motion.div variants={itemVariants}>
-        <NextSimuladoBanner simulados={simulados} />
-      </motion.div>
+      {!simuladosError && <motion.div variants={itemVariants}>
+        <NextSimuladoBanner simulados={simulados} edition={editionsUi ? userEdition ?? null : undefined} />
+      </motion.div>}
 
       {/* Layer 1: Hero premium — full width */}
-      <motion.div variants={itemVariants}>
+      {simuladosError ? (
+        <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm">
+          <p>Não foi possível carregar seus simulados.</p>
+          <button type="button" onClick={() => refetchSimulados()} className="mt-2 font-semibold text-primary underline">Tentar novamente os simulados</button>
+        </div>
+      ) : <motion.div variants={itemVariants} data-edition-target-home>
         <HomeHeroSection heroState={heroState} />
         {pendingSimulado && (recentScores.length > 0 || stats.simuladosRealizados > 0) && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-muted bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
@@ -308,7 +334,21 @@ export function HomePagePremium() {
             </span>
           </div>
         )}
-      </motion.div>
+      </motion.div>}
+
+      <EditionTargetPrompt />
+      {perfError && (
+        <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm">
+          <p>Não foi possível carregar seu desempenho.</p>
+          <button type="button" onClick={() => refetchPerformance()} className="mt-2 font-semibold text-primary underline">Tentar novamente</button>
+        </div>
+      )}
+      {rankingError && (
+        <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm">
+          <p>Não foi possível carregar seu ranking.</p>
+          <button type="button" onClick={() => refetchRanking()} className="mt-2 font-semibold text-primary underline">Tentar novamente o ranking</button>
+        </div>
+      )}
 
       {/* Layer 2: KPI grid (left) + "Seu caminho até aqui" (right) */}
       <motion.div variants={itemVariants}>
@@ -322,17 +362,19 @@ export function HomePagePremium() {
               pendingErrors={pendingErrors}
               cadernoTo={caderno.base}
               segment={segment}
+              catalogUnavailable={!!simuladosError}
             />
           </div>
           <div className="lg:col-span-7 lg:min-h-0 min-w-0">
             <HeroPerformanceCard
               lastScore={lastScore}
+              averageScore={summary?.avg_score ?? null}
               scoreDelta={scoreDelta}
               rankPosition={rankPosition}
               rankTotal={rankTotal}
               recentScores={recentScores}
               rankingCompetitionLine={rankingCompetitionLine}
-              hasRankingConfig={simuladosWithResults.length > 0}
+              hasRankingConfig={editionsUi ? simuladosWithResults.some(sim => sim.editionId === userEdition?.id) : simuladosWithResults.length > 0}
             />
           </div>
         </div>
@@ -361,6 +403,7 @@ export function HomePagePremium() {
 
 function HeroPerformanceCard({
   lastScore,
+  averageScore,
   scoreDelta,
   rankPosition,
   rankTotal,
@@ -369,6 +412,7 @@ function HeroPerformanceCard({
   hasRankingConfig,
 }: {
   lastScore: number | null;
+  averageScore: number | null;
   scoreDelta: number | null;
   rankPosition: number | null;
   rankTotal: number | null;
@@ -417,24 +461,15 @@ function HeroPerformanceCard({
   const focusIdx =
     historyMode === "multi" ? recentScores.length - 1 : 0;
 
-  const progressPct = hasScore
-    ? Math.max(14, Math.min(96, safeScore))
-    : 18;
+  const percentile = rankPosition !== null && rankTotal !== null ? computePercentile(rankPosition, rankTotal) : null;
+  const progressPct = percentile !== null ? 100 - percentile : 0;
 
   const rankLabel =
     rankPosition !== null && rankTotal !== null
       ? `#${rankPosition} de ${rankTotal}`
       : null;
 
-  const tierLabel = (() => {
-    if (!hasScore) return "Faça 1 simulado para iniciar";
-    const top = Math.max(1, 100 - safeScore);
-    return `Top ${top}%`;
-  })();
-
-  const nextTier = hasScore
-    ? `Próximo nível: Top ${Math.max(1, 100 - Math.min(100, safeScore + 10))}%`
-    : "Seu primeiro marco te espera";
+  const tierLabel = percentile !== null ? `Top ${percentile}%` : 'Sem colocação';
 
   const variationState = (() => {
     const pearl = {
@@ -449,27 +484,11 @@ function HeroPerformanceCard({
           "Você ainda não aparece no ranking desta prova. Conclua um simulado dentro da janela para gerar comparação.",
       };
     }
-    if (scoreDelta === null || scoreDelta === 0) {
-      return {
+    return {
         value: "—",
         tone: pearl.main,
         helper:
           "Ainda não há histórico suficiente para medir mudança de posição entre rankings. Continue realizando os próximos simulados.",
-      };
-    }
-    if (scoreDelta > 0) {
-      return {
-        value: "↑",
-        tone: pearl.main,
-        helper:
-          "Seu desempenho recente indica evolução. Você está subindo no comparativo do ranking atual.",
-      };
-    }
-    return {
-      value: "↓",
-      tone: pearl.main,
-      helper:
-        "Seu desempenho recente caiu em relação às tentativas anteriores. Revise os erros para recuperar posições.",
     };
   })();
 
@@ -488,7 +507,7 @@ function HeroPerformanceCard({
                   Seu caminho até aqui
                 </p>
                 <p className="mt-1.5 text-[12px] font-medium text-white/75">
-                  {hasScore ? `Sua média: ${safeScore}%` : "Início da sua trajetória"}
+                  {averageScore !== null ? `Sua média: ${Math.round(averageScore)}%` : "Início da sua trajetória"}
                 </p>
               </div>
 
@@ -690,7 +709,7 @@ function HeroPerformanceCard({
                     {rankLabel ?? "Sem colocação"}
                   </span>
                   <span className="truncate text-white/75">
-                    {rankPosition !== null ? tierLabel : nextTier}
+                    {tierLabel}
                   </span>
                 </div>
               </div>
@@ -729,6 +748,7 @@ function KpiGridSection({
   pendingErrors,
   cadernoTo,
   segment,
+  catalogUnavailable = false,
 }: {
   lastScore: number | null;
   worstArea: string | null;
@@ -737,6 +757,7 @@ function KpiGridSection({
   pendingErrors: number | null;
   cadernoTo: string;
   segment: string;
+  catalogUnavailable?: boolean;
 }) {
   const isPro = segment === "pro";
 
@@ -745,7 +766,7 @@ function KpiGridSection({
     lastScore !== null ? `nota ${lastScore}%` : "sem nota ainda",
   ].join(", ");
 
-  const windowAria = nextWindowDate
+  const windowAria = catalogUnavailable ? "Simulados, agenda indisponível" : nextWindowDate
     ? `Próximo simulado, janela em ${nextWindowDate}`
     : "Simulados, nenhuma data futura listada";
 
@@ -788,9 +809,11 @@ function KpiGridSection({
     {
       key: "window",
       title: "Próximo simulado",
-      value: nextWindowDate ?? "—",
+      value: catalogUnavailable ? "—" : nextWindowDate ?? "—",
       hint:
-        nextSimuladoTitle !== null
+        catalogUnavailable
+          ? "A agenda está indisponível. Tente carregar os simulados novamente."
+          : nextSimuladoTitle !== null
           ? nextSimuladoTitle
           : nextWindowDate !== null
             ? "Início da janela de execução."

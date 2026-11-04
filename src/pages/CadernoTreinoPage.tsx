@@ -20,6 +20,11 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useNotebookEditionFilter } from '@/hooks/useNotebookEditionFilter';
+import { notebookApi } from '@/services/notebookApi';
+import { notebookEditionLink } from '@/lib/notebookEditionLinks';
 import { motion } from 'framer-motion';
 import {
   Dumbbell,
@@ -51,8 +56,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { simuladosApi } from '@/services/simuladosApi';
-import { logger } from '@/lib/logger';
-import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 import {
@@ -108,7 +111,7 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
 
 // ─── Estado sem dados suficientes ─────────────────────────────────────────────
 
-function InsufficientData() {
+function InsufficientData({ backTo = '/caderno' }: { backTo?: string }) {
   return (
     <CadernoEmptyState
       icon={<Dumbbell className="h-8 w-8 text-[var(--c-wine-500)]" />}
@@ -131,7 +134,7 @@ function InsufficientData() {
             Ver simulados disponíveis
           </Link>
           <Link
-            to="/caderno"
+            to={backTo}
             className={cn(
               'inline-flex items-center gap-2 rounded-[var(--c-radius-control)] border border-[var(--c-border)] px-5 py-2.5',
               'text-[13px] font-semibold text-[var(--c-muted)] no-underline',
@@ -289,38 +292,39 @@ function RankingExplainer() {
 function CadernoTreinoContent({ userId }: { userId: string }) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const editionsEnabled = useAppConfig('editions_ui');
+  const edition = useNotebookEditionFilter(editionsEnabled);
+  const scope = JSON.stringify([userId, editionsEnabled, edition.editionId]);
+  const backTo = notebookEditionLink('/caderno', edition.editionId, editionsEnabled);
 
-  const [entries, setEntries] = useState<WeakAreaEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [selectedArea, setSelectedArea] = useState<RankedWeakArea | null>(null);
+  const [selection, setSelection] = useState<{ scope: string; area: RankedWeakArea } | null>(null);
+  const selectedArea = selection?.scope === scope ? selection.area : null;
   const [timed, setTimed] = useState(false);
 
   const tracked = useRef(false);
 
   // ── Carrega entradas ──────────────────────────────────────────────────────
 
-  const fetchEntries = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setLoadError(false);
-    try {
-      const data = await simuladosApi.getErrorNotebook(userId);
-      setEntries(data.map(rowToWeakAreaEntry));
-    } catch (err) {
-      logger.error('[CadernoTreinoPage] Error loading entries:', err);
-      setLoadError(true);
-      toast({
-        title: 'Não foi possível carregar o Caderno',
-        description: 'Verifique sua conexão e tente novamente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => { fetchEntries(); }, [fetchEntries]);
+  const dataset = useQuery({
+    queryKey: ['notebook-page', 'training-dataset', userId, editionsEnabled, edition.editionId],
+    queryFn: async () => {
+      const data = editionsEnabled
+        ? await notebookApi.getAllRows({ editionId: edition.editionId }, { editionsEnabled: true })
+        : await simuladosApi.getErrorNotebook(userId);
+      if (editionsEnabled && data.some(row => row.user_id !== userId)) throw new Error('Notebook owner mismatch');
+      return data.map(rowToWeakAreaEntry);
+    },
+    enabled: !!userId && (!editionsEnabled || edition.ready), retry: false,
+  });
+  const blocked = editionsEnabled && (edition.invalid || edition.catalog.isError);
+  const loading = !blocked && dataset.isPending;
+  const loadError = blocked || dataset.isError;
+  const entries = useMemo<WeakAreaEntry[]>(() => dataset.data ?? [], [dataset.data]);
+  const fetchEntries = () => {
+    if (editionsEnabled && !edition.ready) void edition.catalog.refetch();
+    else void dataset.refetch();
+  };
+  useEffect(() => { setSelection(null); }, [scope]);
 
   // analytics: registra visualização após carregar
   useEffect(() => {
@@ -349,7 +353,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
   }, []);
 
   const handleSelectArea = useCallback((area: RankedWeakArea) => {
-    setSelectedArea(area);
+    setSelection({ scope, area });
     if (isMobile) return; // mobile: launcher fica abaixo no flow normal
     // Desktop: scroll suave até o launcher
     setTimeout(() => {
@@ -358,7 +362,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
         block: 'nearest',
       });
     }, 120);
-  }, [isMobile]);
+  }, [isMobile, scope]);
 
   // ── Estados de loading / erro / vazio ─────────────────────────────────────
 
@@ -381,7 +385,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
   if (!sufficient) {
     return (
       <div className="caderno-root">
-        <InsufficientData />
+        <InsufficientData backTo={backTo} />
       </div>
     );
   }
@@ -398,7 +402,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
         <PageHeaderPremium
           title="Treine seus pontos fracos"
           subtitle="Suas áreas mais fracas, ordenadas pelo seu histórico de erros."
-          onBack={() => navigate('/caderno')}
+          onBack={() => navigate(backTo)}
           stats={[
             { label: 'Pendentes', value: pendingCount, color: '#f97316' },
             { label: 'Áreas fracas', value: weakAreas.length, color: 'var(--c-wine-500,#B0294A)' },
@@ -410,7 +414,7 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
         <TreinoHero
           title="Treine seus pontos fracos"
           subtitle="Suas áreas mais fracas, ordenadas pelo seu histórico de erros."
-          onBack={() => navigate('/caderno')}
+          onBack={() => navigate(backTo)}
           stats={[
             { label: 'Pendentes', value: pendingCount, color: '#f97316', icon: Clock },
             { label: 'Áreas fracas', value: weakAreas.length, color: 'var(--c-wine-500,#B0294A)', icon: TrendingDown },
@@ -466,6 +470,8 @@ function CadernoTreinoContent({ userId }: { userId: string }) {
                 timed={timed}
                 onTimedChange={setTimed}
                 onLaunch={handleLaunch}
+                editionId={edition.editionId}
+                editionsEnabled={editionsEnabled}
               />
             </div>
           ) : (
@@ -516,7 +522,7 @@ export default function CadernoTreinoPage() {
           ]}
         />
       ) : (
-        <CadernoTreinoContent userId={user?.id ?? ''} />
+        <CadernoTreinoContent key={user?.id} userId={user?.id ?? ''} />
       )}
     </PageTransition>
   );

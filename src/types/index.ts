@@ -21,6 +21,8 @@ export interface OnboardingProfile {
   targetInstitutionIds: string[];
   status: OnboardingStatus;
   completedAt?: string;
+  targetEditionId?: string | null;
+  expectedGraduationTerm?: string | null;
 }
 
 /** Seleção de especialidade na UI — id null = "Ainda não sei". */
@@ -56,6 +58,12 @@ export interface SimuladoConfig {
   slug: string;
   title: string;
   sequenceNumber: number;
+  /** Nullable/optional until the database expand migration has been applied. */
+  editionId?: string | null;
+  editionCode?: string | null;
+  editionLabel?: string | null;
+  editionExamDate?: string | null;
+  sourceSimuladoId?: string | null;
   description: string;
   questionsCount: number;
   estimatedDuration: string; // e.g. "5h"
@@ -79,6 +87,9 @@ export interface SimuladoUserState {
   attemptType?: 'online' | 'offline' | 'presencial';
   /** Status bruto da tentativa no banco. */
   attemptStatus?: string;
+  /** Authoritative attempt deadline, used to resume a live training attempt. */
+  effectiveDeadline?: string;
+  isWithinWindow?: boolean;
 }
 
 export interface SimuladoWithStatus extends SimuladoConfig {
@@ -108,6 +119,8 @@ export interface Question {
   options: QuestionOption[];
   correctOptionId: string;
   explanation?: string;
+  /** The guarded comments RPC is absent; restricted REST columns remain forbidden. */
+  explanationUnavailable?: boolean;
 }
 
 export interface QuestionAnswer {

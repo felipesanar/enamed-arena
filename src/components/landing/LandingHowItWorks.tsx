@@ -1,6 +1,11 @@
 import { useId, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/contexts/AuthContext';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { simuladosApi } from '@/services/simuladosApi';
+import { editionsApi } from '@/services/editionsApi';
+import { formatSimuladoLabel, getNextEdition } from '@/lib/editions';
 import type { LucideIcon } from "lucide-react";
 import {
   UserPlus,
@@ -90,28 +95,46 @@ function formatDateBR(iso: string) {
 }
 
 function useRealSimulados() {
-  const [items, setItems] = useState<JourneyScheduleItem[]>([]);
+  const { user, loading } = useAuth();
+  const userId = !loading ? user?.id : undefined;
+  const editionsUi = useAppConfig('editions_ui');
+  const [catalog, setCatalog] = useState<{ userId: string; editionsUi: boolean; items: JourneyScheduleItem[] } | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("simulados")
-      .select("id, title, sequence_number, execution_window_start, execution_window_end")
-      .in("status", ["published", "archived"])
-      .order("execution_window_start", { ascending: false })
-      .then(({ data }) => {
-        if (!data?.length) return;
-        setItems(
-          data.map((s) => ({
-            id: s.id,
-            simulado: `Simulado #${s.sequence_number} · ${s.title}`,
-            startDate: formatDateBR(s.execution_window_start),
-            endDate: formatDateBR(s.execution_window_end),
-          }))
-        );
-      });
-  }, []);
+    if (!userId) return;
+    let cancelled = false;
+    async function load(accountId: string) {
+      try {
+        let items: JourneyScheduleItem[];
+        if (editionsUi) {
+          const sims = await simuladosApi.listSimulados(true);
+          if (cancelled) return;
+          const editions = await editionsApi.getExamEditions();
+          const edition = editions.find(item => item.status === 'active') ?? getNextEdition(editions, new Date());
+          items = sims.filter(sim => edition && sim.editionId === edition.id).map(sim => ({
+            id: sim.id, simulado: `${formatSimuladoLabel(sim)} · ${sim.title}`,
+            startDate: formatDateBR(sim.executionWindowStart), endDate: formatDateBR(sim.executionWindowEnd),
+          }));
+        } else {
+          const { data, error } = await supabase.from('simulados')
+            .select('id, title, sequence_number, execution_window_start, execution_window_end')
+            .in('status', ['published', 'archived']).order('execution_window_start', { ascending: false });
+          if (error) throw error;
+          items = (data ?? []).map(sim => ({
+            id: sim.id, simulado: `${formatSimuladoLabel({ sequenceNumber: sim.sequence_number })} · ${sim.title}`,
+            startDate: formatDateBR(sim.execution_window_start), endDate: formatDateBR(sim.execution_window_end),
+          }));
+        }
+        if (!cancelled) setCatalog({ userId: accountId, editionsUi, items });
+      } catch {
+        if (!cancelled) setCatalog({ userId: accountId, editionsUi, items: [] });
+      }
+    }
+    void load(userId);
+    return () => { cancelled = true; };
+  }, [userId, editionsUi]);
 
-  return items;
+  return userId && catalog?.userId === userId && catalog.editionsUi === editionsUi ? catalog.items : [];
 }
 
 function LandingJourneyTimelineIllustration({
@@ -127,11 +150,12 @@ function LandingJourneyTimelineIllustration({
     <div role="region" aria-labelledby={headingId} className="mb-0">
       <div className="mb-1 flex items-center gap-3">
         <h3 id={headingId} className="whitespace-nowrap text-sm font-semibold tracking-tight text-white">
-          Histórico e próximos
+          Calendário de simulados
         </h3>
         <div className="h-px flex-1 rounded-full bg-white/30" />
       </div>
-      <p className="mb-4 text-xs text-white">Ordenado do mais recente para o mais antigo.</p>
+      <p className="mb-4 text-xs text-white">Datas disponíveis para organizar seu preparo.</p>
+      {items.length === 0 && <p className="text-sm text-white">Calendário indisponível no momento. Consulte os simulados na área do aluno.</p>}
 
       <div className="relative pl-2">
         <div

@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
-import type { Question } from '@/types';
+import type { Question, SimuladoConfig } from '@/types';
 import type { ExamState } from '@/types/exam';
 import type { ProgressStage } from '@/lib/pdf/provaRevisadaPdf';
 
@@ -28,6 +28,7 @@ const STAGE_LABELS: Record<ProgressStage, string> = {
 };
 
 export function usePdfDownload(opts: {
+  simulado?: Pick<SimuladoConfig, 'editionCode' | 'editionLabel'>;
   simuladoId: string;
   simuladoTitle: string;
   studentName: string;
@@ -45,6 +46,7 @@ export function usePdfDownload(opts: {
     try {
       const { generateGabaritoPdf } = await import('@/lib/pdf/gabaritoPdf');
       const blob = generateGabaritoPdf({
+        simulado: opts.simulado,
         simuladoTitle: opts.simuladoTitle,
         studentName: opts.studentName,
         questions: opts.questions,
@@ -68,6 +70,7 @@ export function usePdfDownload(opts: {
     try {
       const { generateProvaRevisadaPdf } = await import('@/lib/pdf/provaRevisadaPdf');
       const blob = await generateProvaRevisadaPdf({
+        simulado: opts.simulado,
         simuladoTitle: opts.simuladoTitle,
         studentName: opts.studentName,
         questions: opts.questions,

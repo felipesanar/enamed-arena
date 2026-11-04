@@ -9,7 +9,7 @@ interface PlanBillboardProps {
 }
 
 const PRO_BENEFITS: { label: string; hint?: string }[] = [
-  { label: "Simulados cronometrados oficiais ENAMED" },
+  { label: "Simulados cronometrados para preparação ao ENAMED" },
   { label: "Ranking nacional e por instituição" },
   { label: "Comparativo entre simulados" },
   { label: "Caderno de Erros personalizado", hint: "Exclusivo PRO" },

@@ -1,10 +1,12 @@
 import { ArrowRight, Lock, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { SimuladoWithStatus } from "@/types";
+import type { ExamEdition } from '@/types/edition';
 import { deriveScenario } from "@/lib/simuladoBannerScenario";
 
 interface NextSimuladoBannerProps {
   simulados: SimuladoWithStatus[];
+  edition?: ExamEdition | null;
 }
 
 function formatDateShort(dateIso: string): string {
@@ -13,24 +15,25 @@ function formatDateShort(dateIso: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
+    timeZone: 'America/Sao_Paulo',
   }).format(d);
 }
 
-export function NextSimuladoBanner({ simulados }: NextSimuladoBannerProps) {
-  const scenario = deriveScenario(simulados);
+export function NextSimuladoBanner({ simulados, edition }: NextSimuladoBannerProps) {
+  const scenario = deriveScenario(simulados, edition);
 
   if (scenario.type === "no_upcoming") {
     return (
       <BannerShell tone="calm">
         <BannerText
-          title="Nenhum simulado disponível no momento"
-          subtitle="Fique atento ao calendário para a próxima janela."
+          title={edition !== undefined ? 'Calendário em breve' : 'Nenhum simulado disponível no momento'}
+          subtitle={edition !== undefined ? 'Enquanto isso, pratique com simulados de edições anteriores.' : 'Fique atento ao calendário para a próxima janela.'}
         />
         <Link
-          to="/simulados"
+          to={edition !== undefined ? '/simulados?filter=treino' : '/simulados'}
           className="inline-flex shrink-0 items-center gap-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground max-md:w-full max-md:justify-center max-md:rounded-full max-md:border max-md:border-primary/15 max-md:bg-card/60 max-md:py-2 max-md:text-[11px] no-underline"
         >
-          Ver calendário
+          {edition !== undefined ? 'Ver treinos' : 'Ver calendário'}
           <ArrowRight className="h-3 w-3" aria-hidden />
         </Link>
       </BannerShell>

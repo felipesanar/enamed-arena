@@ -1,0 +1,13 @@
+# Home, seleção e cache por edição
+
+F1-7 usa os helpers canônicos `resolveUserEdition`/`selectCurrentSimulado` e `computePercentile`. Flagfalse preserva consultas legadas; flagtrue com edição não resolvida tem estado neutro e não consulta agregados de todas as edições. Metadados de lista/detalhe/PDF vêm do simulado real, não da preferência atual.
+
+Desempenho chama as RPCs F1-7 já implementadas, com p_edition_id explícito e p_include_training=false. Nenhum teto silencioso12/20 na história nova. Médias e contagens da home não incluem treino nem resultados de outra edição. Zero é valor válido; não trocar média0 por fallback. Falhas ficam visíveis, sem apresentar dados de outra edição como se fossem o KPI atual.
+
+Ranking: DTO em src/types/ranking.ts; fetchSimuladosWithResults recebe opt-in opcional para metadados (defaultfalse). A seleção inicial da nova UI é o último liberado da edição do aluno, ordenado por resultsReleaseAt/seq/id, sem cair noS1 ou em edição antiga quando não há prova atual. Preferência persistida é validada contra a lista, isolada por usuário/edição e preservada se escolha explícita ainda válida. Histórico permanece selecionável. `useRanking({selection:'latest-in-edition',editionId})` permite à home usar o último resultado do alvo sem sobrescrever a seleção da página de ranking. Sem participante/total válido, a home não exibe Top fictício; nunca usa100-nota.
+
+Hero, banner e destaque da lista usam o mesmo selectCurrentSimulado no contexto novo. Results_ready expira14dias após liberação; próximo agendado de2027 supera concluído antigo de2026. Duas janelas abertas escolhem a que fecha antes; tentativa em andamento tem prioridade. Datas exibidas em America/Sao_Paulo. Calendário vazio tem edição real/estado desconhecido e acesso ao histórico, sem deadline oficial inventado.
+
+F3-7: useRanking, useUserPerformance, useExamResult e useComparativeData passam a ReactQuery com staleTime5min. Chaves incluem usuário, recurso, edição e filtros pertinentes; consultas desabilitadas/logout não devolvem dados de outra conta. Sem keepPreviousData entre escopos. Rerender/tokenrefresh não refaz consultas em5min; mudança de alvo/conta/filtro é outro escopo. Resultado ainda indisponível não fica preso no cache além da liberação; finalização invalida os caches pertinentes do usuário sem consultar dados alheios. Refetch público dos hooks mantém API.
+
+Comparativo padrão usa só edição resolvida, slots/insights/séries filtrados antes de calcular. Histórico entre edições usa percentil em etapa própria, não mistura percentual bruto. Migrar cache não altera finalizador, guard de nota ou permissão de preview administrativo.

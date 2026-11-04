@@ -41,7 +41,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
   const isCadernoV2 = useCadernoV2Flag();
 
-  const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
+  const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id, true);
   const { examState, attempt, attemptQuestionResults, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(id);
   const loadError = errorSim ?? errorExam;
   const retryLoad = () => {
@@ -67,7 +67,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     () =>
       questions.map((question) => ({
         ...question,
-        correctOptionId: attemptQuestionResults[question.id]?.correct_option_id ?? '',
+        correctOptionId: attemptQuestionResults[question.id]?.correct_option_id ?? question.correctOptionId,
       })),
     [questions, attemptQuestionResults],
   );
@@ -101,17 +101,23 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
 
   const loading = loadingSim || loadingExam;
 
+  // A missing comments RPC also leaves the core answer key unknown. Without
+  // the existing server snapshot, do not render that unknown key as incorrect.
+  const correctionUnavailable = questionsWithCorrection.some(question => question.explanationUnavailable
+    && !question.options.some(option => option.id === question.correctOptionId));
+
   const score = useMemo(() => {
-    if (!examState || !questionsWithCorrection.length) return null;
+    if (!examState || !questionsWithCorrection.length || correctionUnavailable) return null;
     return computeSimuladoScore(examState, questionsWithCorrection);
-  }, [examState, questionsWithCorrection]);
+  }, [examState, questionsWithCorrection, correctionUnavailable]);
 
   const breakdown = useMemo(() => {
-    if (!examState || !questionsWithCorrection.length) return null;
+    if (!examState || !questionsWithCorrection.length || correctionUnavailable) return null;
     return computePerformanceBreakdown(examState, questionsWithCorrection);
-  }, [examState, questionsWithCorrection]);
+  }, [examState, questionsWithCorrection, correctionUnavailable]);
 
   const pdf = usePdfDownload({
+    simulado: simulado ?? undefined,
     simuladoId: id ?? '',
     simuladoTitle: simulado?.title ?? '',
     studentName: profile?.name ?? 'Aluno',
@@ -205,6 +211,23 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
       );
     }
     return <Navigate to={`/simulados/${id}`} replace />;
+  }
+
+  if (correctionUnavailable) {
+    const recordedScore = attempt?.score_percentage != null ? Number(attempt.score_percentage) : null;
+    return (
+      <>
+        <EmptyState
+          title="Correção indisponível"
+          description="Os comentários estão indisponíveis nesta versão do servidor e não há dados suficientes para exibir a correção com segurança."
+          backHref={id ? `/simulados/${id}` : '/simulados'}
+          backLabel="Voltar ao simulado"
+        />
+        {recordedScore !== null && Number.isFinite(recordedScore) && (
+          <p className="text-center text-body">Nota registrada: {Math.round(recordedScore)}%</p>
+        )}
+      </>
+    );
   }
 
   if (!examState || !score || (examState.status !== 'submitted' && examState.status !== 'expired')) {
@@ -448,6 +471,14 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
                 </div>
               </PremiumCard>
 
+              {question.explanationUnavailable && (
+                <PremiumCard className="p-5 md:p-6 mb-4">
+                  <div role="status">
+                    <h2 className="text-body font-semibold">Comentários indisponíveis</h2>
+                    <p className="text-body-sm text-muted-foreground">O serviço de comentários ainda não está disponível nesta versão do servidor. A correção e a nota registradas não foram alteradas.</p>
+                  </div>
+                </PremiumCard>
+              )}
               {(question.explanation || question.explanationImageUrl) && (
                 <PremiumCard className="p-5 md:p-6 mb-4 border-primary/10 bg-primary/[0.02]">
                   <div className="flex items-center justify-between mb-3 gap-3">

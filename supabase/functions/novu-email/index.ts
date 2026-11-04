@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { ALLOWED_ACTION_HOSTS, LOGO_URL } from "../_shared/appIdentity.ts";
 
 const NOVU_TRIGGER_URL = "https://kong.app-prod.sanar.cloud/novu/fallback/v1/events/trigger";
 
@@ -27,14 +28,6 @@ const corsHeaders = {
 // The action URL is inserted into the email body — it MUST point to a domain
 // we control. Otherwise a caller (or attacker who got the secret) could send
 // emails branded as Sanar that link to phishing destinations.
-const ALLOWED_ACTION_HOSTS: ReadonlyArray<RegExp> = [
-  /^simulados\.sanar\.com\.br$/i,
-  /^([a-z0-9-]+\.)*sanar\.com\.br$/i,
-  /^([a-z0-9-]+\.)*sanaflix\.com$/i,
-  /^enamed-arena\.lovable\.app$/i,
-  /^id-preview--[a-z0-9-]+\.lovable\.app$/i,
-  /^([a-z0-9-]+\.)*supabase\.co$/i, // for direct verify links
-];
 
 function isAllowedActionUrl(value: string): boolean {
   try {
@@ -83,7 +76,6 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
 
 // ─── Premium HTML Layout ───
 
-const LOGO_URL = "https://enamed-arena.lovable.app/logo.svg";
 
 function baseLayout(content: string, preheader: string): string {
   return `<!DOCTYPE html>

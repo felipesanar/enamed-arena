@@ -8,7 +8,34 @@
  *   - Opera sobre dados já existentes: getErrorNotebook() + campos SRS.
  */
 
-import { getAreaWeight } from '@/lib/enamedBlueprint';
+import { getAreaWeight, resolveBlueprintArea } from '@/lib/enamedBlueprint';
+import { getDaysUntil, getNextEdition } from '@/lib/editions';
+import { validateExamFormat } from '@/lib/edition-format';
+import type { ExamArea, ExamBlueprint, ExamEdition } from '@/types/edition';
+import type { EditionStudyContext, StudyAreaWeight } from '@/types/edition-calendar';
+
+const validWeights = (areas: readonly StudyAreaWeight[]) => areas.length > 0
+  && areas.every(a => typeof a.code === 'string' && !!a.code.trim() && typeof a.label === 'string'
+    && Array.isArray(a.aliases) && a.aliases.every(alias => typeof alias === 'string')
+    && Number.isFinite(a.weight) && a.weight > 0 && a.weight <= 1)
+  && Math.abs(areas.reduce((sum, a) => sum + a.weight, 0) - 1) < 0.000001;
+
+/** Selected IDs never fall back to another year, including when missing from the catalog. */
+export function resolveEditionStudyContext(
+  editions: readonly ExamEdition[], selectedId: string | null, now: Date,
+  matrix?: { blueprint: ExamBlueprint; areas: readonly ExamArea[] },
+): EditionStudyContext {
+  const edition = selectedId !== null ? editions.find(e => e.id === selectedId) ?? null : getNextEdition(editions, now);
+  const format = validateExamFormat(edition?.format);
+  const areas = matrix?.areas ?? [];
+  const validMatrix = !!edition?.blueprint_id && matrix?.blueprint.id === edition.blueprint_id
+    && typeof matrix.blueprint.weights_provisional === 'boolean'
+    && areas.every(a => a.blueprint_id === edition.blueprint_id) && validWeights(areas);
+  const date = edition?.exam_date_confirmed && getDaysUntil(edition.exam_date, now) !== null ? edition.exam_date : null;
+  return { edition, date, daysUntil: getDaysUntil(date, now), format: format.valid ? format.value : null,
+    matrixStatus: !validMatrix ? 'unavailable' : matrix.blueprint.weights_provisional ? 'provisional' : 'available',
+    areaWeights: validMatrix ? areas.map(({ code, label, aliases, weight }) => ({ code, label, aliases: [...aliases], weight })) : [] };
+}
 
 // ─── Tipos de entrada ───────────────────────────────────────────────────────
 
@@ -30,8 +57,8 @@ export interface RetaFinalEntry {
 
 export interface BuildRetaFinalPlanInput {
   entries: RetaFinalEntry[];
-  /** Data da prova (ENAMED). */
-  enamedDate: Date;
+  /** Data oficial YYYY-MM-DD, Date legado, ou null se nao divulgada. */
+  enamedDate: Date | string | null;
   /** Data de hoje. */
   today: Date;
   /**
@@ -39,6 +66,8 @@ export interface BuildRetaFinalPlanInput {
    * @default 15
    */
   dailyCapacity?: number;
+  /** Omitted = legacy behavior. Empty/invalid = neutral weighting, never 2026 fallback. */
+  areaWeights?: readonly StudyAreaWeight[];
 }
 
 // ─── Tipos de saída ──────────────────────────────────────────────────────────
@@ -50,7 +79,7 @@ export interface DayPlan {
   entries: RetaFinalEntry[];
 }
 
-export interface RetaFinalStats {
+export interface RetaFinalStats<DaysUntil extends number | null = number> {
   /** Total de entradas ativas (não dominadas). */
   totalActive: number;
   /** Entradas vencidas (srs_due_at <= hoje). */
@@ -61,32 +90,31 @@ export interface RetaFinalStats {
   covered: number;
   /** Entradas que não caberão antes do ENAMED. */
   uncovered: number;
-  /** Dias restantes até o ENAMED (pode ser negativo se já passou). */
-  daysUntil: number;
+  /** Dias restantes em SP; null quando a data oficial nao foi divulgada. */
+  daysUntil: DaysUntil;
 }
 
 export interface RetaFinalPlan {
-  /** Dias corridos até o ENAMED (negativo = prova já passou). */
-  daysUntil: number;
+  /** Dias em SP (null = sem data, negativo = prova ja passou). */
+  daysUntil: number | null;
   /** Se true, prova já ocorreu — plano retorna vazio (não lança erro). */
   examPassed: boolean;
-  /** Plano dia a dia. Vazio se prova já passou ou se não há entradas ativas. */
+  /** Plano dia a dia. Vazio sem data ou quando nao restam dias antes da prova. */
   plan: DayPlan[];
   /** Entradas do dia de hoje (atalho conveniente). */
   todayEntries: RetaFinalEntry[];
-  stats: RetaFinalStats;
+  stats: RetaFinalStats<number | null>;
 }
 
 // ─── Helpers internos ────────────────────────────────────────────────────────
 
-/** Zera hora/minuto/segundo de uma data, retornando nova instância. */
-function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
+const spCalendar = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+});
 
-/** Diferença em dias inteiros (ceil) entre duas datas. */
-function diffDays(a: Date, b: Date): number {
-  return Math.ceil((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
+/** Inicio do dia de SP, independente do fuso do navegador. */
+function startOfDay(d: Date): Date {
+  return new Date(`${spCalendar.format(d)}T00:00:00-03:00`);
 }
 
 /**
@@ -104,6 +132,7 @@ function calcScore(
   entry: RetaFinalEntry,
   todayMs: number,
   areaFreqMap: Map<string, number>,
+  areaWeights?: readonly StudyAreaWeight[],
 ): number {
   let score = 0;
 
@@ -122,7 +151,8 @@ function calcScore(
   score += lapses * 0.8;
 
   // 3. Peso ENAMED da área
-  const areaWeight = getAreaWeight(entry.area);
+  const areaWeight = areaWeights === undefined ? getAreaWeight(entry.area)
+    : validWeights(areaWeights) ? resolveBlueprintArea(entry.area ?? '', areaWeights as ExamArea[])?.weight ?? 0 : 0;
   score += areaWeight * 4;
 
   // 4. Frequência de erro na área
@@ -156,20 +186,23 @@ export function buildRetaFinalPlan({
   enamedDate,
   today,
   dailyCapacity = 15,
+  areaWeights,
 }: BuildRetaFinalPlanInput): RetaFinalPlan {
   const todayStart = startOfDay(today);
-  const enamedStart = startOfDay(enamedDate);
-  const daysUntil = diffDays(enamedStart, todayStart);
+  const examDate = enamedDate instanceof Date
+    ? spCalendar.format(enamedDate)
+    : enamedDate;
+  const daysUntil = getDaysUntil(examDate, today);
 
-  // Prova já passou
-  if (daysUntil <= 0) {
+  // Sem data ou sem dias de preparacao; dia zero nao e prova encerrada.
+  if (daysUntil === null || daysUntil <= 0) {
     const mastered = entries.filter((e) => {
       const m = (e as any).mastered_at ?? (e as any).masteredAt;
       return !!m;
     }).length;
     return {
       daysUntil,
-      examPassed: true,
+      examPassed: daysUntil !== null && daysUntil < 0,
       plan: [],
       todayEntries: [],
       stats: {
@@ -214,7 +247,7 @@ export function buildRetaFinalPlan({
   // 4. Ordenar por score (maior primeiro)
   const scored = active.map((e) => ({
     entry: e,
-    score: calcScore(e, todayMs, areaFreqMap),
+    score: calcScore(e, todayMs, areaFreqMap, areaWeights),
   }));
   scored.sort((a, b) => b.score - a.score);
   const sorted = scored.map((s) => s.entry);

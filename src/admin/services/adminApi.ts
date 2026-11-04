@@ -1,4 +1,33 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { AdminReportScope } from '@/types/admin-period';
+import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
+import type { RankingRule, SimuladoWindow, WindowPreview, WindowUpdateReport } from '@/admin/types/admin-session';
+
+function validateSimuladoWindowShape(value: unknown): asserts value is SimuladoWindow {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Janela inválida.');
+  const window = value as SimuladoWindow;
+  const dates = [window.execution_window_start, window.execution_window_end, window.results_release_at];
+  if (dates.some(date => typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(date) || !Number.isFinite(Date.parse(date)))) throw new Error('Datas inválidas.');
+}
+
+function validateSimuladoWindow(value: unknown): asserts value is SimuladoWindow {
+  validateSimuladoWindowShape(value);
+  const dates = [value.execution_window_start, value.execution_window_end, value.results_release_at];
+  const [start, end, release] = dates.map(Date.parse);
+  if (!(start < end && end <= release)) throw new Error('Confira a ordem das datas da janela.');
+}
+
+function validateWindowReport(value: unknown, id: string, preview: boolean) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Relatório de janela indisponível.');
+  const report = value as Record<string, unknown>;
+  const counts = preview ? ['attempts_examined', 'eligibility_changed', 'old_eligible', 'new_eligible'] : ['attempts_examined', 'eligibility_changed'];
+  if (report.simulado_id !== id || counts.some(key => typeof report[key] !== 'number' || !Number.isSafeInteger(report[key]) || (report[key] as number) < 0 || (report[key] as number) > (report.attempts_examined as number))) throw new Error('Contagens de janela inválidas.');
+  const token = report[preview ? 'current_window_hash' : 'operation_id'];
+  if (typeof token !== 'string' || !token.trim()) throw new Error('Conferência de janela incompleta.');
+  // Historical rows may predate the NOT VALID chronological constraint.
+  validateSimuladoWindowShape(report.old_window);
+  validateSimuladoWindow(report.new_window);
+}
 import type {
   DashboardKpis,
   TimeseriesRow,
@@ -165,7 +194,21 @@ export const adminApi = {
       .select('*')
       .order('sequence_number', { ascending: true });
     if (error) throw error;
-    return data;
+    // Authoritative counts cannot depend on the caller's attempts SELECT policy.
+    const counts = await supabase.rpc('admin_simulado_attempt_counts' as never, {} as never);
+    if (counts.error) {
+      const { code, message, details } = counts.error;
+      const missingTarget = code === 'PGRST202'
+        ? [message, details].some(text => typeof text === 'string'
+          && /\bfunction (?:public\.)?admin_simulado_attempt_counts(?=\s|\(|$)/.test(text))
+        : code === '42883'
+          && /^function (?:public\.)?admin_simulado_attempt_counts\([^)]*\) does not exist$/.test(message);
+      // Read-only rollout compatibility: unknown counts must never authorize deletion.
+      if (missingTarget) return data.map(s => ({ ...s, attempts_count: null }));
+      throw counts.error;
+    }
+    const rows = counts.data as unknown as Array<{ simulado_id: string; attempts_count: number }> | null;
+    return data.map(s => ({ ...s, attempts_count: rows?.find(c => c.simulado_id === s.id)?.attempts_count ?? null }));
   },
 
   async getSimulado(id: string) {
@@ -186,6 +229,7 @@ export const adminApi = {
     results_release_at: string;
     theme_tags: string[];
     status: 'draft' | 'published' | 'test';
+    edition_id?: string;
   }) {
     const { data, error } = await supabase.from('simulados').insert(values).select().single();
     if (error) throw error;
@@ -198,9 +242,69 @@ export const adminApi = {
     return data;
   },
 
-  async deleteSimulado(id: string) {
-    const { error } = await supabase.from('simulados').delete().eq('id', id);
+  /** Keep a failed publication as a draft and return its ID before validation so
+   * the editor can retry without creating a duplicate. Never used by legacy UI. */
+  async saveSimuladoWithEdition(id: string | null, values: {
+    edition_id?: string; title: string; slug: string; sequence_number: number; description: string;
+    duration_minutes: number; questions_count: number; execution_window_start: string;
+    execution_window_end: string; results_release_at: string; theme_tags: string[];
+    status: 'draft' | 'published' | 'test';
+  }, onDraftSaved: (id: string) => void, options?: { preserveWindow?: boolean }) {
+    if (!values.edition_id) throw new Error('Selecione a edição.');
+    const payload = { ...values, status: values.status === 'published' ? 'draft' as const : values.status };
+    const updatePayload: Record<string, unknown> = { ...payload };
+    if (id && options?.preserveWindow) {
+      delete updatePayload.execution_window_start;
+      delete updatePayload.execution_window_end;
+      delete updatePayload.results_release_at;
+    }
+    const saved = id ? await adminApi.updateSimulado(id, updatePayload) : await adminApi.createSimulado(payload);
+    onDraftSaved(saved.id);
+    if (values.status === 'published') await adminEditionsApi.publish(saved.id);
+    return saved;
+  },
+
+  async previewSimuladoWindow(id: string, window: SimuladoWindow): Promise<WindowPreview> {
+    validateSimuladoWindow(window);
+    const { data, error } = await supabase.rpc('admin_preview_simulado_window' as never, {
+      p_simulado_id: id, p_execution_window_start: window.execution_window_start,
+      p_execution_window_end: window.execution_window_end, p_results_release_at: window.results_release_at,
+    } as never);
     if (error) throw error;
+    validateWindowReport(data, id, true);
+    return data as unknown as WindowPreview;
+  },
+
+  async updateSimuladoWindow(id: string, window: SimuladoWindow, hash: string, reason: string): Promise<WindowUpdateReport> {
+    validateSimuladoWindow(window);
+    if (!hash?.trim() || !reason.trim() || reason.trim().length > 2000) throw new Error('Informe um motivo com 1 a 2000 caracteres e confira a janela.');
+    const { data, error } = await supabase.rpc('admin_update_simulado_window' as never, {
+      p_simulado_id: id, p_execution_window_start: window.execution_window_start,
+      p_execution_window_end: window.execution_window_end, p_results_release_at: window.results_release_at,
+      p_expected_window_hash: hash, p_reason: reason.trim(),
+    } as never);
+    if (error) throw error;
+    validateWindowReport(data, id, false);
+    return data as unknown as WindowUpdateReport;
+  },
+
+  async deleteSimulado(id: string) {
+    const count = await adminApi.getSimuladoAttemptsCount(id);
+    if (count > 0) throw new Error('Não é possível excluir: o simulado possui tentativas. Preserve o histórico.');
+    const { error } = await supabase.from('simulados').delete().eq('id', id);
+    if (error?.code === '23503') throw new Error('Não é possível excluir: existem registros vinculados. Preserve o histórico de tentativas.');
+    if (error) throw error;
+  },
+
+  async getSimuladoAttemptsCount(id: string): Promise<number> {
+    const { data, error } = await supabase.rpc('admin_simulado_attempt_counts' as never, { p_simulado_id: id } as never);
+    if (error) throw error;
+    const rows = data as unknown as Array<{ simulado_id: string; attempts_count: number }> | null;
+    const count = rows?.find(row => row.simulado_id === id)?.attempts_count;
+    if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) {
+      throw new Error('Não foi possível confirmar a ausência de tentativas. Exclusão bloqueada.');
+    }
+    return count;
   },
 
   // ─── Questions ───
@@ -214,17 +318,12 @@ export const adminApi = {
   },
 
   async deleteQuestionsForSimulado(simuladoId: string) {
-    // Delete options first, then questions
-    const { data: questions } = await supabase
-      .from('questions')
-      .select('id')
-      .eq('simulado_id', simuladoId);
-
-    if (questions && questions.length > 0) {
-      const qIds = questions.map(q => q.id);
-      await supabase.from('question_options').delete().in('question_id', qIds);
-      await supabase.from('questions').delete().eq('simulado_id', simuladoId);
-    }
+    const count = await adminApi.getSimuladoAttemptsCount(simuladoId);
+    if (count > 0) throw new Error('Não é possível excluir questões: o simulado possui tentativas. Preserve o histórico.');
+    // The FK cascades options in the same statement; a blocked question rolls back everything.
+    const { error } = await supabase.from('questions').delete().eq('simulado_id', simuladoId);
+    if (error?.code === '23503') throw new Error('Não é possível excluir questões: existem registros vinculados. Preserve o histórico de tentativas.');
+    if (error) throw error;
   },
 
   // ─── Analytics Dashboard ───
@@ -784,32 +883,33 @@ export const adminApi = {
   },
 
   // ─── Inteligência ───
-  async getCohortRetention(months = 6): Promise<CohortRetentionRow[]> {
-    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months })
+  async getCohortRetention(months = 6, scope?: AdminReportScope): Promise<CohortRetentionRow[]> {
+    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as CohortRetentionRow[]
   },
 
-  async getPerformanceByArea(simuladoId: string | null = null, segment = 'all'): Promise<AreaPerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId as string, p_segment: segment })
+  async getPerformanceByArea(simuladoId: string | null = null, segment = 'all', scope?: AdminReportScope): Promise<AreaPerformanceRow[]> {
+    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId as string, p_segment: segment, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as AreaPerformanceRow[]
   },
 
-  async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12): Promise<ThemePerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId as string, p_area: area as string, p_limit: limit })
+  async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12, scope?: AdminReportScope): Promise<ThemePerformanceRow[]> {
+    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId as string, p_area: area as string, p_limit: limit, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as ThemePerformanceRow[]
   },
 
-  async getScoreDistribution(simuladoId: string | null = null): Promise<ScoreBucket[]> {
-    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId as string })
+  async getScoreDistribution(simuladoId: string | null = null, scope?: AdminReportScope): Promise<ScoreBucket[]> {
+    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId as string, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as ScoreBucket[]
   },
 
-  async getScoreEvolution(): Promise<ScoreEvolutionRow[]> {
-    const { data, error } = await supabase.rpc('admin_score_evolution')
+  async getScoreEvolution(scope?: AdminReportScope): Promise<ScoreEvolutionRow[]> {
+    // Generated Args still says never; the opt-in contract adds these nullable arguments.
+    const { data, error } = await (scope === undefined ? supabase.rpc('admin_score_evolution') : supabase.rpc('admin_score_evolution', { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt } as never))
     if (error) throw error
     return (data ?? []) as ScoreEvolutionRow[]
   },
@@ -820,14 +920,14 @@ export const adminApi = {
     return ((Array.isArray(data) ? data[0] : data) ?? null) as EngagementMetrics | null
   },
 
-  async getSegmentBreakdown(): Promise<SegmentBreakdownRow[]> {
-    const { data, error } = await supabase.rpc('admin_segment_breakdown')
+  async getSegmentBreakdown(scope?: AdminReportScope): Promise<SegmentBreakdownRow[]> {
+    const { data, error } = await (scope === undefined ? supabase.rpc('admin_segment_breakdown') : supabase.rpc('admin_segment_breakdown', { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt } as never))
     if (error) throw error
     return (data ?? []) as SegmentBreakdownRow[]
   },
 
-  async getIntelInsights(): Promise<IntelInsight[]> {
-    const { data, error } = await supabase.rpc('admin_intel_insights')
+  async getIntelInsights(scope?: AdminReportScope): Promise<IntelInsight[]> {
+    const { data, error } = await (scope === undefined ? supabase.rpc('admin_intel_insights') : supabase.rpc('admin_intel_insights', { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt } as never))
     if (error) throw error
     return (data ?? []) as IntelInsight[]
   },
@@ -899,17 +999,12 @@ export const adminApi = {
    * Usado pelo gate de publicação, onde a planilha original não está em mãos.
    */
   async getQuestionsForGabaritoAudit(simuladoId: string): Promise<GabaritoAuditQuestion[]> {
-    const { data, error } = await supabase
-      .from('questions')
-      .select('question_number, text, explanation, question_options(label, text, is_correct)')
-      .eq('simulado_id', simuladoId)
-      .order('question_number', { ascending: true });
-    if (error) throw error;
-    return ((data ?? []) as any[]).map((q) => ({
+    const data = await adminApi.getSimuladoQuestions(simuladoId);
+    return data.map((q) => ({
       questionNumber: Number(q.question_number),
       enunciado: (q.text as string) ?? '',
       comentario: (q.explanation as string) ?? '',
-      options: ((q.question_options ?? []) as any[])
+      options: (q.options ?? [])
         .map((o) => ({
           label: String(o.label ?? ''),
           text: (o.text as string) ?? '',
@@ -970,6 +1065,7 @@ export const adminApi = {
       caderno_id: (r.caderno_id as string | null) ?? null,
       caderno_label: (r.caderno_label as string | null) ?? null,
       caderno_color: (r.caderno_color as string | null) ?? null,
+      ranking_rule: r.ranking_rule === 'legacy_online_window' || r.ranking_rule === 'session_window_v1' ? r.ranking_rule : null,
     }))
   },
 
@@ -983,6 +1079,7 @@ export const adminApi = {
     is_active: boolean
     /** null = a sala pergunta ao aluno qual caderno ele recebeu. */
     caderno_id?: string | null
+    ranking_rule?: RankingRule | null
   }): Promise<string> {
     const { data, error } = await (supabase.rpc as any)('admin_presencial_session_upsert', {
       p_id: p.id,
@@ -993,6 +1090,7 @@ export const adminApi = {
       p_closes_at: p.closes_at,
       p_is_active: p.is_active,
       p_caderno_id: p.caderno_id ?? null,
+      ...(p.ranking_rule != null ? { p_ranking_rule: p.ranking_rule } : {}),
     })
     if (error) throw error
     return data as string

@@ -5,17 +5,61 @@
  *   1. Priorização: entradas vencidas aparecem antes das agendadas.
  *   2. Exclusão: dominadas (mastered_at preenchido) não entram no plano.
  *   3. Distribuição: capacidade diária respeitada.
- *   4. Prova no passado: daysUntil <= 0 → examPassed=true, plan vazio.
+ *   4. Prova no passado: daysUntil < 0 → examPassed=true, plan vazio.
  *   5. Sem entradas: plan com slots vazios, stats zerados.
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildRetaFinalPlan, type RetaFinalEntry } from './retaFinalPlan';
+import { buildRetaFinalPlan, resolveEditionStudyContext, type RetaFinalEntry } from './retaFinalPlan';
+import type { ExamEdition } from '@/types/edition';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const TODAY = new Date('2026-06-06T00:00:00-03:00');
 const ENAMED = new Date('2026-11-28T00:00:00-03:00');
+
+describe('edition study context', () => {
+  const edition: ExamEdition = { id: 'target', code: '2027.2', blueprint_id: 'bp', exam_date: null, exam_date_confirmed: false,
+    year: 2027, term: 2, label: 'ENAMED 2027.2', status: 'preparing', official_results_at: null, created_at: '', updated_at: '',
+    format: { questions: 100, options: 4, duration_minutes: 300, scoring: 'tri' } };
+  it('selected target wins even without date; a missing selected ID never silently uses next edition', () => {
+    expect(resolveEditionStudyContext([edition], 'target', TODAY).edition).toBe(edition);
+    expect(resolveEditionStudyContext([edition], 'missing', TODAY).edition).toBeNull();
+    const context = resolveEditionStudyContext([edition], 'target', TODAY);
+    expect(context.date).toBeNull();
+    expect(context.format?.questions).toBe(100);
+    expect(context.matrixStatus).toBe('unavailable');
+    expect(context.areaWeights).toEqual([]);
+  });
+  it('validates format and matches blueprint IDs; marks provisional weights', () => {
+    const blueprint = { id: 'bp', code: 'demo', label: 'Demo', weights_provisional: true };
+    const areas = [{ id: 'a', blueprint_id: 'bp', code: 'a', label: 'A', aliases: ['Alias'], weight: 1, sort_order: 1 }];
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint, areas }).matrixStatus).toBe('provisional');
+    expect(resolveEditionStudyContext([{ ...edition, format: {} }], 'target', TODAY).format).toBeNull();
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint: { ...blueprint, id: 'wrong' }, areas }).matrixStatus).toBe('unavailable');
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint, areas: [{ ...areas[0], weight: NaN }] }).areaWeights).toEqual([]);
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint, areas: [{ ...areas[0], blueprint_id: 'wrong' }] }).areaWeights).toEqual([]);
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint: { ...blueprint, weights_provisional: false }, areas }).matrixStatus).toBe('available');
+  });
+  it('resolves confirmed dates with SP boundaries; unknown and unconfirmed dates stay null', () => {
+    const dated = { ...edition, exam_date: '2027-08-01', exam_date_confirmed: true };
+    const now = new Date('2027-08-01T02:30:00Z');
+    expect(resolveEditionStudyContext([dated], 'target', now).daysUntil).toBe(1);
+    expect(resolveEditionStudyContext([dated], 'target', new Date('2027-08-01T03:00:00Z')).daysUntil).toBe(0);
+    expect(resolveEditionStudyContext([dated], 'target', new Date('2027-08-02T03:00:00Z')).daysUntil).toBe(-1);
+    expect(resolveEditionStudyContext([{ ...dated, exam_date_confirmed: false }], 'target', now).date).toBeNull();
+    expect(resolveEditionStudyContext([{ ...dated, exam_date: '2027-02-30' }], 'target', now).date).toBeNull();
+    expect(resolveEditionStudyContext([dated], null, now).edition).toBe(dated);
+  });
+  it('uses additive weights with exact aliases, neutral invalid weights, and unchanged omitted defaults', () => {
+    const entries = [makeEntry({ id: 'clinic', area: 'Clínica Médica' }), makeEntry({ id: 'alias', area: 'ALIAS' })];
+    const input = { entries, enamedDate: ENAMED, today: TODAY };
+    expect(buildRetaFinalPlan(input)).toEqual(buildRetaFinalPlan({ ...input, areaWeights: undefined }));
+    expect(buildRetaFinalPlan({ ...input, areaWeights: [{ code: 'x', label: 'X', aliases: ['alias'], weight: 1 }] }).todayEntries[0].id).toBe('alias');
+    expect(buildRetaFinalPlan({ ...input, areaWeights: [] }).todayEntries.map(e => e.id)).toEqual(['clinic', 'alias']);
+    expect(buildRetaFinalPlan({ ...input, areaWeights: [{ code: 'x', label: 'X', aliases: ['alias'], weight: Infinity }] }).todayEntries[0].id).toBe('clinic');
+  });
+});
 
 function makeEntry(overrides: Partial<RetaFinalEntry> & { id: string }): RetaFinalEntry {
   return {
@@ -47,6 +91,21 @@ function daysAhead(n: number): string {
 // ── Testes ───────────────────────────────────────────────────────────────────
 
 describe('buildRetaFinalPlan', () => {
+
+  it('sem data nao inventa dias nem considera a prova passada', () => {
+    const result = buildRetaFinalPlan({ entries: [makeEntry({ id: 'pending' })], enamedDate: null, today: TODAY });
+    expect(result.daysUntil).toBeNull();
+    expect(result.stats.daysUntil).toBeNull();
+    expect(result.examPassed).toBe(false);
+    expect(result.plan).toEqual([]);
+    expect(result.stats.totalActive).toBe(1);
+  });
+
+  it('usa dias de calendario SP com string do banco', () => {
+    const result = buildRetaFinalPlan({ entries: [], enamedDate: '2026-11-29', today: new Date('2026-11-29T02:00:00Z') });
+    expect(result.daysUntil).toBe(1);
+    expect(result.plan[0].date.toISOString()).toBe('2026-11-28T03:00:00.000Z');
+  });
 
   it('1 — prioriza entradas vencidas (srs_due_at <= hoje) sobre agendadas', () => {
     const overdue = makeEntry({ id: 'overdue', srs_due_at: daysAgo(3) });
@@ -104,6 +163,7 @@ describe('buildRetaFinalPlan', () => {
     }
     // Total coberto = min(entries.length, dias × capacidade)
     const totalCovered = result.plan.reduce((s, d) => s + d.entries.length, 0);
+    if (result.daysUntil === null) throw new Error('Uma data conhecida deve produzir dias numericos');
     expect(totalCovered).toBe(Math.min(30, result.daysUntil * 5));
     expect(result.stats.covered).toBe(Math.min(30, result.daysUntil * 5));
   });
@@ -124,14 +184,14 @@ describe('buildRetaFinalPlan', () => {
     expect(result.todayEntries).toHaveLength(0);
   });
 
-  it('4b — prova no mesmo dia: examPassed=true (dia 0 = sem tempo)', () => {
+  it('4b — prova no mesmo dia: nao considera encerrada', () => {
     const result = buildRetaFinalPlan({
       entries: [makeEntry({ id: 'e1' })],
       enamedDate: TODAY, // hoje = dia da prova
       today: TODAY,
     });
 
-    expect(result.examPassed).toBe(true);
+    expect(result.examPassed).toBe(false);
     expect(result.plan).toHaveLength(0);
   });
 

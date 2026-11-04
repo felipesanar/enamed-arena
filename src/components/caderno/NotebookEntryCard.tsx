@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getReasonMeta, type DbReason } from '@/lib/errorNotebookReasons';
+import type { NotebookEntryEdition } from '@/types/notebook-pagination';
 import { isLeechEntry } from '@/lib/cadernoStatus';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { CadernoCard, CauseBadge } from '@/components/caderno/ui';
@@ -42,7 +43,7 @@ import { toast } from '@/hooks/use-toast';
 
 /* ── Types ── */
 
-export interface NotebookEntry {
+export interface NotebookEntry extends NotebookEntryEdition {
   id: string;
   questionId: string | null;
   simuladoId: string | null;
@@ -61,6 +62,8 @@ export interface NotebookEntry {
   srsDueAt?: string | null;
   srsInterval?: number | null;
   masteredAt?: string | null;
+  lastReviewOutcome?: string | null;
+  srsLapses?: number | null;
   // Enunciado preview — populated when available from join
   questionText?: string | null;
 }
@@ -69,6 +72,7 @@ export interface NotebookEntryCardProps {
   entry: NotebookEntry;
   variant?: 'queue' | 'compact';
   onReview?: (id: string) => void;
+  reviewHref?: string;
   onRemove?: (id: string) => void;
   onToggleMastered?: (id: string, mastered: boolean) => void;
   onSnooze?: (id: string, days: number) => void;
@@ -199,6 +203,7 @@ export function NotebookEntryCard({
   entry,
   variant = 'queue',
   onReview,
+  reviewHref,
   onRemove,
   onToggleMastered,
   onSnooze,
@@ -303,7 +308,7 @@ export function NotebookEntryCard({
 
         <div className="flex min-w-0 flex-1 flex-col gap-0 p-3.5">
           {/* Row 1: title + badges */}
-          <div className="flex min-w-0 items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-col items-start justify-between gap-2 sm:flex-row">
             <div className="min-w-0 flex-1">
               <span
                 className={cn(
@@ -318,6 +323,9 @@ export function NotebookEntryCard({
               </span>
             </div>
 
+            {entry.editionId !== undefined && <span className="min-w-0 max-w-full whitespace-normal break-words [overflow-wrap:anywhere] rounded-xl border border-[var(--c-border)] px-2 py-1 text-xs text-[var(--c-muted)] sm:max-w-[40%]">
+              {entry.editionLabel || entry.editionCode || (!entry.questionId && !entry.simuladoId ? 'Adicionado manualmente' : 'Edição não informada')}
+            </span>}
             <div className="flex shrink-0 items-start gap-1.5 self-start">
               {/* Leech badge */}
               {isLeech && (
@@ -400,7 +408,7 @@ export function NotebookEntryCard({
           <Tooltip delayDuration={250}>
             <TooltipTrigger asChild>
               <Link
-                to={`/caderno/revisao?entry=${entry.id}`}
+                to={reviewHref ?? `/caderno/revisao?entry=${encodeURIComponent(entry.id)}`}
                 onClick={() => onReview?.(entry.id)}
                 aria-label={`Revisar questão ${entry.questionNumber ?? ''}`}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--c-radius-control)] text-[var(--c-muted)] transition-colors duration-[var(--c-duration-fast)] hover:bg-[var(--c-wine-50)] hover:text-[var(--c-wine-600)] dark:hover:bg-[color-mix(in_srgb,var(--c-wine-900)_30%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--c-wine-500)_50%,transparent)]"

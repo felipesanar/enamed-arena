@@ -1,14 +1,33 @@
 import { cn } from '@/lib/utils';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { groupSimuladosByEdition } from '@/lib/edition-groups';
+import { formatSimuladoLabel } from '@/lib/editions';
+import type { SimuladoConfig } from '@/types';
 
 export function SimuladoTabs({
   simulados,
   selectedId,
   onSelect,
 }: {
-  simulados: Array<{ id: string; title: string }>;
+  simulados: Array<{ id: string; title: string } & Partial<Pick<SimuladoConfig, 'sequenceNumber' | 'editionId' | 'editionCode' | 'editionLabel'>>>;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const editionsUi = useAppConfig('editions_ui');
+  if (editionsUi) return (
+    <label className="block text-caption text-muted-foreground">
+      Escolher simulado
+      <select value={selectedId ?? ''} onChange={event => onSelect(event.target.value)}
+        className="mt-1 block w-full min-h-11 rounded-xl border border-border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {!selectedId && <option value="" disabled>Escolha um simulado</option>}
+        {groupSimuladosByEdition(simulados).map(group => <optgroup key={group.key} label={group.label}>
+          {group.items.map(sim => <option key={sim.id} value={sim.id}>
+            {sim.sequenceNumber != null ? formatSimuladoLabel({ ...sim, sequenceNumber: sim.sequenceNumber }) : sim.title}
+          </option>)}
+        </optgroup>)}
+      </select>
+    </label>
+  );
   return (
     <div
       role="tablist"

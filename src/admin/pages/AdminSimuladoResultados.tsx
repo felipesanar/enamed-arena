@@ -1,4 +1,5 @@
 import { AdminCapabilityGate } from '@/admin/components/AdminCapabilityGate'
+import { ReprocessSimuladoDialog } from '@/admin/components/ReprocessSimuladoDialog'
 import { useParams, Link } from 'react-router-dom'
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
@@ -439,6 +440,7 @@ function AdminSimuladoResultadosContent() {
         subtitle={stats ? `#${stats.sequence_number} — ${stats.title}` : 'Carregando…'}
         actions={<BackToSimuladosLink />}
       />
+      {id && stats && <ReprocessSimuladoDialog simuladoId={id} />}
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <section>

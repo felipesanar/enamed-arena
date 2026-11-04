@@ -24,10 +24,13 @@ import { CauseBadge } from '@/components/caderno/ui/CauseBadge';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { BottomActionBar } from '@/components/caderno/ui/BottomActionBar';
 import type { RankedWeakArea } from '@/lib/weakAreas';
+import { notebookEditionLink } from '@/lib/notebookEditionLinks';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 
 export interface TreinoLauncherProps {
+  editionId?: string | null;
+  editionsEnabled?: boolean;
   area: RankedWeakArea;
   /** timed — controlled externally (CadernoTreinoPage manages the toggle state) */
   timed: boolean;
@@ -123,12 +126,12 @@ function QtyChip({ value: _value, label, selected, onClick }: QtyChipProps) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export function TreinoLauncher({ area, timed, onTimedChange, onLaunch }: TreinoLauncherProps) {
+export function TreinoLauncher({ area, timed, onTimedChange, onLaunch, editionId = null, editionsEnabled = false }: TreinoLauncherProps) {
   const isMobile = useIsMobile();
   const [selectedQty, setSelectedQty] = useState<number>(() => Math.min(10, area.pending));
 
   const label = area.theme ? `${area.area} › ${area.theme}` : area.area;
-  const revisaoUrl = buildRevisaoUrl(area, timed, selectedQty);
+  const revisaoUrl = notebookEditionLink(buildRevisaoUrl(area, timed, selectedQty), editionId, editionsEnabled);
 
   const mastered = Math.max(0, area.total - area.pending);
   const masteryPct = area.total > 0 ? Math.round((mastered / area.total) * 100) : 0;

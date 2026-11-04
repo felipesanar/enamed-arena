@@ -1,5 +1,7 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { reportError } from '@/lib/errorMonitoring';
+import { logger } from '@/lib/logger';
 import { trackEvent } from '@/lib/analytics';
 
 interface Props {
@@ -9,29 +11,24 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  error: Error | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    // Only log in dev — production should use a monitoring service
-    if (import.meta.env.DEV) {
-      console.error('[ErrorBoundary]', error, info.componentStack);
-    }
-    trackEvent('error_boundary_triggered', {
-      error_message: error.message,
-      component_stack: (info.componentStack ?? '').slice(0, 500),
-      route: window.location.pathname,
-    });
+  componentDidCatch(error: Error) {
+    logger.error('[ErrorBoundary] Render failure');
+    reportError('boundary', error);
+    try {
+      trackEvent('error_boundary_triggered', { source: 'boundary', code: 'render_failure' });
+    } catch { /* Analytics must not break the recovery UI. */ }
   }
 
   handleReload = () => {
@@ -57,11 +54,6 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-body-sm text-muted-foreground">
                 Ocorreu um erro inesperado. Tente recarregar a página.
               </p>
-              {import.meta.env.DEV && this.state.error && (
-                <pre className="mt-4 p-3 rounded-xl bg-muted text-left text-caption text-muted-foreground overflow-auto max-h-32">
-                  {this.state.error.message}
-                </pre>
-              )}
             </div>
             <div className="flex flex-col gap-3">
               <button
@@ -73,7 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 onClick={this.handleGoHome}
-                className="text-body-sm text-primary font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg py-2 px-3"
+                className="min-h-11 text-body-sm text-primary font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg py-2 px-3"
               >
                 Voltar ao início
               </button>

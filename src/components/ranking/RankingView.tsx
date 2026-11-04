@@ -37,6 +37,9 @@ import { RankingFilterBar } from './RankingFilterBar';
 import { RankingTable } from './RankingTable';
 import { computePercentile } from '@/lib/ranking-percentile';
 import type { RankingEvolution } from '@/hooks/useRankingEvolution';
+import type { SimuladoConfig } from '@/types';
+import type { RankingComparisonContext } from '@/types/ranking';
+import { formatSimuladoLabel } from '@/lib/editions';
 
 // ─── Table row types ──────────────────────────────────────────────────────────
 
@@ -96,7 +99,8 @@ export type RankingTrackSource = 'page' | 'admin_preview';
 
 export interface RankingViewProps {
   loading: boolean;
-  simuladosWithResults: Array<{ id: string; title: string; sequence_number: number }>;
+  simuladosWithResults: Array<{ id: string; title: string; sequence_number: number } & Pick<SimuladoConfig, 'editionId' | 'editionCode' | 'editionLabel'>>;
+  editionsUi?: boolean;
   selectedSimuladoId: string | null;
   setSelectedSimuladoId: (id: string) => void;
   filteredParticipants: RankingParticipant[];
@@ -110,11 +114,13 @@ export interface RankingViewProps {
   userInstitutions: string[];
   userSpecialtyId: string | null;
   userInstitutionIds: string[];
+  /** Separate from current onboarding targets used for cutoff requests. */
+  comparisonContext?: RankingComparisonContext;
   allowedSegments: SegmentFilter[];
   trackSource: RankingTrackSource;
   /** public: masks others as Candidato #n; admin: shows profile name when available */
   participantDisplay: 'public' | 'admin';
-  /** Oculta o painel "Você passaria?" (ex.: preview admin). Default: true */
+  /** Controls the informational cutoff reference panel. Default: true. */
   showApprovalPanel?: boolean;
   toolbar?: React.ReactNode;
   /** Standing GLOBAL para o hero (de allParticipants). Ausente → fallback p/ currentUser+filtered. */
@@ -141,6 +147,7 @@ export function RankingView({
   userInstitutions,
   userSpecialtyId,
   userInstitutionIds,
+  comparisonContext,
   allowedSegments,
   trackSource,
   participantDisplay,
@@ -148,7 +155,10 @@ export function RankingView({
   toolbar,
   heroStanding,
   heroEvolution,
+  editionsUi = false,
 }: RankingViewProps) {
+  const comparisonSpecialty = comparisonContext?.specialty ?? userSpecialty;
+  const comparisonInstitutions = comparisonContext?.institutions ?? userInstitutions;
   const mountedAtRef = useRef<number>(Date.now());
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
   const [cutoffModalOpen, setCutoffModalOpen] = useState(false);
@@ -196,7 +206,7 @@ export function RankingView({
   const handleSelectAllComparison = () => applyComparisonUpdate(RANKING_COMPARISON_DEFAULT);
 
   const handleToggleSpecialtyComparison = () => {
-    if (!userSpecialty) return;
+    if (!comparisonSpecialty) return;
     const next = { ...rankingComparison, bySpecialty: !rankingComparison.bySpecialty };
     // When turning specialty off, also clear institution (institution pill becomes hidden)
     if (!next.bySpecialty) next.byInstitution = false;
@@ -204,7 +214,7 @@ export function RankingView({
   };
 
   const handleToggleInstitutionComparison = () => {
-    if (userInstitutions.length === 0) return;
+    if (comparisonInstitutions.length === 0) return;
     applyComparisonUpdate({ ...rankingComparison, byInstitution: !rankingComparison.byInstitution });
   };
 
@@ -267,7 +277,10 @@ export function RankingView({
         }
       : null);
 
-  const selectedSimuladoTitle = simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title;
+  const selectedSimulado = simuladosWithResults.find((s) => s.id === selectedSimuladoId);
+  const selectedSimuladoTitle = selectedSimulado && editionsUi
+    ? formatSimuladoLabel({ ...selectedSimulado, sequenceNumber: selectedSimulado.sequence_number })
+    : selectedSimulado?.title;
 
   const hasActiveFilters =
     rankingComparison.bySpecialty ||
@@ -297,6 +310,7 @@ export function RankingView({
         <div className="space-y-5">
           {/* ── Simulado selector chips ──────────────────────────────────── */}
           <RankingSimuladoSelector
+            editionsUi={editionsUi}
             simuladosWithResults={simuladosWithResults}
             selectedSimuladoId={selectedSimuladoId}
             setSelectedSimuladoId={setSelectedSimuladoId}
@@ -304,13 +318,14 @@ export function RankingView({
 
           {/* ── Hero ("Você primeiro") ───────────────────────────────────── */}
           <RankingHero
+            simulado={selectedSimulado}
             simuladoTitle={selectedSimuladoTitle}
             standing={heroStandingResolved}
             notaMedia={stats.notaMedia}
             evolution={heroEvolution ?? null}
           />
 
-          {/* ── Nota de corte ("Você passaria?") — junto ao hero, subordinada ── */}
+          {/* Informational references keep current target IDs and selected-edition scope. */}
           {showApprovalPanel && (
             <RankingCutoffSection
               state={approvalState}
@@ -332,14 +347,15 @@ export function RankingView({
             />
           )}
 
-          {(filteredParticipants.length > 0 || hasActiveFilters) && (
+          {(filteredParticipants.length > 0 || hasActiveFilters || comparisonContext?.notice) && (
             <>
               {/* ── Filter bar ──────────────────────────────────────────── */}
               <RankingFilterBar
                 rankingComparison={rankingComparison}
                 segmentFilter={segmentFilter}
-                userSpecialty={userSpecialty}
-                userInstitutions={userInstitutions}
+                userSpecialty={comparisonSpecialty}
+                userInstitutions={comparisonInstitutions}
+                notice={comparisonContext?.notice}
                 visibleSegmentOptions={visibleSegmentOptions}
                 onSelectAllComparison={handleSelectAllComparison}
                 onToggleSpecialtyComparison={handleToggleSpecialtyComparison}
@@ -362,6 +378,7 @@ export function RankingView({
 
       {/* ── CutoffScoreModal ─────────────────────────────────────────────── */}
       <CutoffScoreModal
+        simulado={selectedSimulado}
         open={cutoffModalOpen}
         onClose={() => setCutoffModalOpen(false)}
         userSpecialty={userSpecialty}

@@ -1,7 +1,28 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
+import { cutoffApi } from '@/services/cutoffApi';
+import { useAppConfig } from '@/hooks/useAppConfig';
+
+export interface CutoffScope {
+  editionsUi?: boolean;
+  referenceEditionId?: string | null;
+  enabled?: boolean;
+  cutoffContext?: CutoffContext | null;
+}
+
+/** Page-owned scope lets existing ranking composition opt in without changing its queries/UI. */
+export const CutoffScopeContext = createContext<CutoffScope>({});
+export const useCutoffScope = () => useContext(CutoffScopeContext);
+
+/** A pending/failed flag is not a confirmed legacy mode. */
+export function useCutoffEditionFlag() {
+  const { user, loading } = useAuth();
+  const editionsUi = useAppConfig('editions_ui');
+  const state = useQueryClient().getQueryState(['app-config', user?.id ?? null, 'editions_ui']);
+  return { editionsUi, ready: !!user && !loading && state?.status === 'success',
+    loading: !!user && (loading || !state || state.status === 'pending') };
+}
 
 export interface CutoffMatch {
   user_institution: string;
@@ -10,6 +31,9 @@ export interface CutoffMatch {
   specialty: string;
   cutoff_general: number | null;
   cutoff_quota: number | null;
+  reference_edition_id?: string | null;
+  reference_label?: string | null;
+  source?: string | null;
 }
 
 export interface CutoffStats {
@@ -29,6 +53,10 @@ export interface CutoffContext {
   matches: CutoffMatch[];
   unmatched_institutions: string[];
   stats: CutoffStats;
+  reference_edition_id?: string | null;
+  reference_label?: string | null;
+  reference_reason?: string;
+  mode?: 'legacy' | 'reference' | 'empty';
 }
 
 /**
@@ -37,39 +65,19 @@ export interface CutoffContext {
  * enamed_cutoff_scores. Quando não há match, a IA do Prof. Sanor se
  * comporta diferente (sugere completar o onboarding em vez de inventar meta).
  */
-export function useCutoffContext() {
+export function useCutoffContext(options?: CutoffScope) {
   const { user } = useAuth();
-  const userId = user?.id;
-  const [data, setData] = useState<CutoffContext | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!userId) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    // RPC nova: get_user_cutoff_context retorna jsonb.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.rpc as any)('get_user_cutoff_context', { p_user_id: userId })
-      .then(({ data: row, error }: { data: unknown; error: { message: string } | null }) => {
-        if (cancelled) return;
-        if (error) {
-          logger.error('[useCutoffContext] error:', error);
-          setData(null);
-          return;
-        }
-        setData(row as CutoffContext);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  return { cutoffContext: data, loading };
+  const inherited = useCutoffScope();
+  const flag = useCutoffEditionFlag();
+  const { referenceEditionId, enabled: requested = true } = options ?? inherited;
+  const editionsUi = flag.editionsUi;
+  const enabled = requested && flag.ready && !!user && (!editionsUi || !!referenceEditionId);
+  const query = useQuery({
+    queryKey: ['user-cutoff-context', user?.id ?? null, editionsUi ? referenceEditionId ?? null : 'legacy'],
+    queryFn: () => cutoffApi.getUserContext(user!.id, editionsUi ? referenceEditionId! : undefined),
+    enabled, retry: false, staleTime: 5 * 60 * 1000,
+  });
+  const matchesReference = !editionsUi || query.data?.reference_edition_id === referenceEditionId;
+  return { cutoffContext: enabled && query.isSuccess && matchesReference ? query.data : null,
+    loading: requested && (flag.loading || (enabled && query.isPending)) };
 }

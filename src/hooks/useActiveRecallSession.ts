@@ -12,12 +12,18 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { NOTEBOOK_QUERY_PREFIXES } from '@/hooks/useNotebookPage';
 import { simuladosApi } from '@/services/simuladosApi';
+import { notebookApi } from '@/services/notebookApi';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useNotebookEditionFilter } from '@/hooks/useNotebookEditionFilter';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { getReasonMeta } from '@/lib/errorNotebookReasons';
+import { hasKnownAnswerKey } from '@/lib/questionCorrection';
 import { isLeechEntry, isAwaitingLesson, isReviewBlocked } from '@/lib/cadernoStatus';
 import type { Confidence, ReviewOutcome, SrsState } from '@/types/caderno';
 import type { Question } from '@/types';
@@ -90,6 +96,8 @@ export interface UseActiveRecallSessionReturn {
   loadingList: boolean;
   listError: boolean;
   loadingReview: boolean;
+  correctionUnavailable: boolean;
+  retryCorrection: () => void;
   generatingAi: boolean;
 
   // Review data for current entry
@@ -241,12 +249,22 @@ export function useActiveRecallSession(
   studentName: string,
 ): UseActiveRecallSessionReturn {
   const [searchParams] = useSearchParams();
+  const editionsEnabled = useAppConfig('editions_ui');
+  const edition = useNotebookEditionFilter(editionsEnabled);
+  const queryClient = useQueryClient();
+  const invalidateNotebook = useCallback(() => {
+    if (editionsEnabled) for (const prefix of NOTEBOOK_QUERY_PREFIXES) void queryClient.invalidateQueries({ queryKey: [prefix] });
+  }, [queryClient, editionsEnabled]);
   const mode = (searchParams.get('mode') as 'due' | 'all' | 'drill') ?? 'due';
   const singleEntryId = searchParams.get('entry');
   const drillArea = searchParams.get('area');
   const drillTheme = searchParams.get('theme');
   const isTimed = searchParams.get('timed') === '1';
   const drillCount = searchParams.get('count') ? parseInt(searchParams.get('count')!, 10) : null;
+  const queueScope = JSON.stringify([userId, editionsEnabled, edition.editionId, edition.ready, mode, singleEntryId, drillArea, drillTheme, drillCount]);
+  const scopeRef = useRef(queueScope);
+  scopeRef.current = queueScope;
+  const loadedScope = useRef<string | null>(null);
 
   // Queue
   const [entries, setEntries] = useState<RecallEntry[]>([]);
@@ -259,6 +277,8 @@ export function useActiveRecallSession(
   // Per-entry review data
   const [reviewData, setReviewData] = useState<EntryReviewData | null>(null);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [reviewReload, setReviewReload] = useState(0);
+  const retryCorrection = useCallback(() => setReviewReload(value => value + 1), []);
   const [generatingAi, setGeneratingAi] = useState(false);
 
   // FSM state
@@ -301,11 +321,26 @@ export function useActiveRecallSession(
   // ── Load queue ──────────────────────────────────────────────────────────────
 
   const fetchPending = useCallback(async () => {
-    if (!userId) return;
+    const requestedScope = queueScope;
+    if (!userId || (editionsEnabled && !edition.ready)) {
+      setEntries([]);
+      setListError(editionsEnabled && (edition.invalid || edition.catalog.isError));
+      setLoadingList(editionsEnabled && !edition.invalid && !edition.catalog.isError);
+      return;
+    }
     setLoadingList(true);
     setListError(false);
+    setEntries([]);
+    setCurrentIndex(0);
     try {
-      const rows = await simuladosApi.getErrorNotebook(userId);
+      const rows = editionsEnabled ? await notebookApi.getAllRows({ editionId: edition.editionId }, { editionsEnabled: true }) : await simuladosApi.getErrorNotebook(userId);
+      if (scopeRef.current !== requestedScope) return;
+      if (editionsEnabled && rows.some(row => row.user_id !== userId)) throw new Error('Notebook owner mismatch');
+      if (loadedScope.current !== requestedScope) {
+        initialTotalSet.current = false;
+        setFinished(false);
+      }
+      loadedScope.current = requestedScope;
       let queue = buildQueue(rows, mode, singleEntryId, drillArea, drillTheme);
       if (mode === 'drill' && drillCount !== null && drillCount > 0) {
         queue = queue.slice(0, drillCount);
@@ -324,12 +359,13 @@ export function useActiveRecallSession(
         });
       }
     } catch (err) {
+      if (scopeRef.current !== requestedScope) return;
       logger.error('[useActiveRecallSession] load list error:', err);
       setListError(true);
     } finally {
-      setLoadingList(false);
+      if (scopeRef.current === requestedScope) setLoadingList(false);
     }
-  }, [userId, mode, singleEntryId, drillArea, drillTheme, drillCount]);
+  }, [userId, mode, singleEntryId, drillArea, drillTheme, drillCount, queueScope, editionsEnabled, edition.ready, edition.editionId, edition.invalid, edition.catalog.isError]);
 
   useEffect(() => {
     fetchPending();
@@ -337,7 +373,7 @@ export function useActiveRecallSession(
 
   // ── Current entry ───────────────────────────────────────────────────────────
 
-  const currentEntry = entries[currentIndex] ?? null;
+  const currentEntry = loadedScope.current === queueScope ? entries[currentIndex] ?? null : null;
 
   // ── Load review data when entry changes ─────────────────────────────────────
 
@@ -387,7 +423,7 @@ export function useActiveRecallSession(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on id only
-  }, [currentEntry?.id, userId]);
+  }, [currentEntry?.id, userId, reviewReload]);
 
   // ── Auto-generate AI on first reveal if not cached ──────────────────────────
   // We only trigger generation after the reveal phase starts so the student
@@ -396,6 +432,7 @@ export function useActiveRecallSession(
   const generateAiReview = useCallback(
     async (force = false) => {
       if (!currentEntry || !reviewData?.question) return;
+      if (!hasKnownAnswerKey(reviewData.question)) return;
       if (generatingAiRef.current) return;
       if (!force && generatedFor.current.has(currentEntry.id)) return;
       if (!force && reviewData.aiReviewMd) return;
@@ -479,6 +516,7 @@ export function useActiveRecallSession(
 
   const selectOption = useCallback((optionId: string) => {
     if (phase !== 'answering') return;
+    if (!hasKnownAnswerKey(reviewData?.question)) return;
     setSelectedOptionId(optionId);
     // Advance to confidence phase immediately after selection
     setPhase('confidence');
@@ -495,12 +533,14 @@ export function useActiveRecallSession(
   /** Mobile CTA: advance to confidence phase when an option is already selected. */
   const goToConfidence = useCallback(() => {
     if (phase !== 'answering' || !selectedOptionId) return;
+    if (!hasKnownAnswerKey(reviewData?.question)) return;
     setPhase('confidence');
-  }, [phase, selectedOptionId]);
+  }, [phase, selectedOptionId, reviewData]);
 
   const setConfidence = useCallback(
     (c: Confidence) => {
       if (phase !== 'confidence') return;
+      if (!hasKnownAnswerKey(reviewData?.question)) return;
       setConfidenceState(c);
       setPhase('revealed');
 
@@ -559,6 +599,7 @@ export function useActiveRecallSession(
       if (!currentEntry || !selectedOptionId || confidence === null) return;
 
       const q = reviewData?.question;
+      if (!hasKnownAnswerKey(q)) return;
       const wasCorrect = q ? q.correctOptionId === selectedOptionId : false;
 
       // Validate: 'facil' not allowed when wrong
@@ -670,10 +711,11 @@ export function useActiveRecallSession(
           });
         }
       } finally {
+        invalidateNotebook();
         setSchedulingNextReview(false);
       }
     },
-    [phase, currentEntry, selectedOptionId, confidence, reviewData, advanceQueue, fetchPending],
+    [phase, currentEntry, selectedOptionId, confidence, reviewData, advanceQueue, fetchPending, invalidateNotebook],
   );
 
   const skipCurrent = useCallback(() => {
@@ -715,6 +757,7 @@ export function useActiveRecallSession(
     setTimeout(async () => {
       try {
         await simuladosApi.deleteErrorNotebookEntry(target.id, userId);
+        invalidateNotebook();
       } catch (err) {
         logger.error('[useActiveRecallSession] delete error:', err);
         // Re-insert only the removed entry at its original position into the
@@ -732,7 +775,7 @@ export function useActiveRecallSession(
         });
       }
     }, 5000);
-  }, [currentEntry, currentIndex, userId]);
+  }, [currentEntry, currentIndex, userId, invalidateNotebook]);
 
   const handleSnooze = useCallback(
     async (days = 3) => {
@@ -753,6 +796,7 @@ export function useActiveRecallSession(
 
       try {
         await simuladosApi.snoozeErrorNotebookEntry(target.id, days);
+        invalidateNotebook();
         const label = days === 1 ? 'amanhã' : `em ${days} dias`;
         toast({ title: `Vai voltar ${label}`, description: 'A questão sai da fila ativa até lá.' });
       } catch (err) {
@@ -764,13 +808,14 @@ export function useActiveRecallSession(
         });
       }
     },
-    [currentEntry],
+    [currentEntry, invalidateNotebook],
   );
 
   // ── Chat ─────────────────────────────────────────────────────────────────────
 
   const sendChatMessage = useCallback(async () => {
     if (!currentEntry || !reviewData?.question) return;
+    if (!hasKnownAnswerKey(reviewData.question)) return;
     const trimmed = chatInput.trim();
     if (!trimmed || chatLoading) return;
     if ((reviewData.chatCount ?? 0) >= CHAT_LIMIT_PER_ENTRY) return;
@@ -935,6 +980,7 @@ export function useActiveRecallSession(
 
       try {
         await simuladosApi.clearAwaitingLesson(entryId);
+        invalidateNotebook();
         logger.log('[useActiveRecallSession] Lesson unlock confirmed (server) for entry', entryId);
         trackEvent('caderno_lesson_unlocked', { entry_id: entryId });
         toast({
@@ -961,7 +1007,7 @@ export function useActiveRecallSession(
         });
       }
     },
-    [fetchPending],
+    [fetchPending, invalidateNotebook],
   );
 
   const closeLessonUnlockDialog = useCallback(() => {
@@ -973,12 +1019,14 @@ export function useActiveRecallSession(
   }, [currentEntry?.id]);
 
   return {
-    entries,
+    entries: loadedScope.current === queueScope ? entries : [],
     currentIndex,
     currentEntry,
     loadingList,
     listError,
     loadingReview,
+    correctionUnavailable: !!reviewData?.question && !hasKnownAnswerKey(reviewData.question),
+    retryCorrection,
     generatingAi,
     reviewData,
     phase,

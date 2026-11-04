@@ -1,0 +1,13 @@
+# Operações administrativas — extensão do painel
+
+Modo Operate. Reutilizar PRODUCT.md, DESIGN.md e admin tokens/shell/listas/formulários já existentes. Usuário autorizou implementação completa e pediu nenhuma pergunta; direção segue a composição revisada do admin de edições. Não recriar dashboard/design system nem instalar bibliotecas.
+
+Dois fluxos com dados demonstrativos no protótipo: importar cortes por referência e reprocessar resultados após corrigir o gabarito. Referências são docs/contracts/cutoff-reference-2027.md e reprocessing-notebook-2027.md. Nenhuma data/fonte de2027, nota ou contagem operacional real é presumida.
+
+Importação: selecionar edição/referência explicitamente, informar processo/fonte dos dados, enviar CSV/XLSX, conferir correspondência de instituição/especialidade/cenário e erros por linha, confirmar lote completo. Entradas humanas por nomes canônicos, não exigir UUID na interface; mapeamentos ambíguos devem ser corrigidos. Mostrar fonte e destino antes do envio. Uma linha inválida bloqueia tudo. Falha preserva arquivo e valores, retry não duplica lote. Não sobrescrever dados legados ou escolher maior corte entre processos. Dados reais só serão atribuídos após definição D6; o protótipo é fictício e não dá aprovação editorial.
+
+Reprocessamento: ação contextual na página do simulado, rótulo Reprocessar resultados. Abre diálogo com prova/edição, motivo obrigatório e efeito concreto: recalcula resultados já finalizados usando gabarito atual, preserva respostas e histórico acadêmico. Sem checkbox pré-marcado genérico. Botão final com nome explícito; manter diálogo/campos em falha e impedir duplo envio. Retorno agrega operações/notas alteradas/entradas reconciliadas sem nomes ou notas individuais. Ausência de capability, prova aberta e estrutura inválida têm bloqueio explicado. Alteração do gabarito é etapa anterior própria; esta ação não corrige alternativas automaticamente.
+
+Estados: vazio/carregando/erro/retry/import inválido/preflight válido/enviando/sucesso, bloqueado/reprocessando/resultado. Teclado: labels, foco em erro, diálogoRadix/nativo no protótipo, Escape/retorno ao disparador, foco seguro após sucesso, ação primária44px. 1440/768/375, claro/escuro, nomes longos, fontePlusJakarta/fallbackoffline, contraste e sem overflow. Sem motion decorativo; reduced-motion preservado. Não mostrar implementação SQL, UUIDs ou secrets como instrução ao administrador.
+
+Novas rotas futuras atrás de editions_ui e content.manage; reprocessar exige content.manage+attempts.manage, respeitando backend. Protótipo isolado sem autenticação/produção/network; revisão do Codex antecede React. Preview novo em127.0.0.1:54743, não encerrar outros previews.

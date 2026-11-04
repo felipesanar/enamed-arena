@@ -10,6 +10,7 @@ export interface AdminCommand {
   group: 'Navegação' | 'Ações'
   /** null = disponível para qualquer usuário com acesso ao admin */
   capability: string | null
+  editionsOnly?: boolean
   keywords: string[]
   /** rota para navegar OU id de ação tratada pelo consumidor */
   route?: string
@@ -23,6 +24,7 @@ const NAV_COMMANDS: AdminCommand[] = ADMIN_NAV.flatMap(group =>
     icon: item.icon,
     group: 'Navegação' as const,
     capability: item.capability,
+    editionsOnly: item.editionsOnly,
     keywords: [item.label.toLowerCase(), group.title.toLowerCase()],
     route: item.to,
   })),
@@ -68,8 +70,8 @@ const ACTION_COMMANDS: AdminCommand[] = [
 ]
 
 /** Comandos disponíveis para um conjunto de capabilities. */
-export function getAvailableCommands(capabilities: Set<string>): AdminCommand[] {
+export function getAvailableCommands(capabilities: Set<string>, editionsEnabled = false): AdminCommand[] {
   return [...NAV_COMMANDS, ...ACTION_COMMANDS].filter(
-    c => c.capability === null || capabilities.has(c.capability),
+    c => (c.capability === null || capabilities.has(c.capability)) && (!c.editionsOnly || editionsEnabled),
   )
 }

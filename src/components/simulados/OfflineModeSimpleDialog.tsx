@@ -2,7 +2,7 @@
  * Modal escolha online/offline — offline: etapa de explicação antes de criar tentativa e baixar PDF (sem cronômetro no app).
  * Ranking depende do envio do gabarito dentro da janela de execução (validado no servidor).
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Monitor,
@@ -29,8 +29,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { SimuladoWithStatus } from "@/types";
 import { offlineApi } from "@/services/offlineApi";
-import { persistOfflineAttempt } from "@/hooks/useOfflineAttempt";
+import { persistOfflineAttempt, useOfflineAttempt } from "@/hooks/useOfflineAttempt";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
+import { trackEvent } from '@/lib/analytics';
 
 export interface OfflineModeSimpleDialogProps {
   open: boolean;
@@ -42,39 +44,67 @@ type FlowStep = "choose" | "offline_intro";
 
 export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineModeSimpleDialogProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { activeAttempt, isConfirmed } = useOfflineAttempt(sim.id);
+  const scope = `${user?.id ?? ''}:${sim.id}:${open}`;
+  const currentScope = useRef(scope);
+  currentScope.current = scope;
+  const controller = useRef<AbortController | null>(null);
+  const [created, setCreated] = useState<{ scope: string; id: string } | null>(null);
+  const pendingId = created?.scope === scope ? created.id : isConfirmed ? activeAttempt?.id : null;
+  const [pdfError, setPdfError] = useState(false);
+  const [storageError, setStorageError] = useState(false);
+  const retryButton = useRef<HTMLButtonElement>(null);
   const [flowStep, setFlowStep] = useState<FlowStep>("choose");
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [offlineStep, setOfflineStep] = useState("");
 
   useEffect(() => {
     if (open) setFlowStep("choose");
-  }, [open]);
+    setOfflineLoading(false);
+    setPdfError(false);
+    setStorageError(false);
+    return () => { controller.current?.abort(); };
+  }, [scope, open]);
+  useEffect(() => { if (pdfError) retryButton.current?.focus(); }, [pdfError]);
 
   const handleOfflineMode = useCallback(async () => {
+    if (!user?.id || offlineLoading || !open) return;
+    const ownerId = user.id;
+    const abort = new AbortController();
+    controller.current?.abort();
+    controller.current = abort;
+    const isCurrent = () => currentScope.current === scope && !abort.signal.aborted;
     setOfflineLoading(true);
+    setPdfError(false);
     setOfflineStep("Criando tentativa offline...");
     try {
-      const attempt = await offlineApi.createOfflineAttempt(sim.id);
+      if (!pendingId) {
+        const attempt = await offlineApi.createOfflineAttempt(sim.id);
+        if (!isCurrent()) return;
+        const saved = persistOfflineAttempt(ownerId, {
+          id: attempt.attempt_id, simulado_id: sim.id, simulado_slug: attempt.simulado_slug,
+          started_at: attempt.started_at, exam_duration_seconds: attempt.exam_duration_seconds,
+        });
+        setStorageError(saved === false);
+        setCreated({ scope, id: attempt.attempt_id });
+      }
       setOfflineStep("Gerando e baixando PDF...");
-      const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id, true);
-      const response = await fetch(pdfUrl);
+      const pdfUrl = await offlineApi.getSignedPdfUrl(sim.id, false, abort.signal);
+      if (!isCurrent()) return;
+      const response = await fetch(pdfUrl, { signal: abort.signal });
+      if (!response.ok) throw new Error('Download indisponível. Tente novamente.');
       const blob = await response.blob();
+      if (!isCurrent()) return;
+      if (!blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type))) throw new Error('PDF inválido. Tente novamente.');
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${sim.slug ?? sim.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-
-      persistOfflineAttempt({
-        id: attempt.attempt_id,
-        simulado_id: sim.id,
-        simulado_slug: attempt.simulado_slug,
-        started_at: attempt.started_at,
-        exam_duration_seconds: attempt.exam_duration_seconds,
-      });
+      try {
+        a.href = blobUrl;
+        a.download = `${sim.slug ?? sim.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+      } finally { a.remove(); URL.revokeObjectURL(blobUrl); }
 
       onOpenChange(false);
       toast({
@@ -83,16 +113,17 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
           "Quando terminar no papel, envie o gabarito aqui. Para valer no ranking, o envio precisa ser até o fim da janela de execução do simulado.",
       });
     } catch (err) {
+      if (!isCurrent()) return;
+      setPdfError(true);
       toast({
         title: "Erro ao iniciar modo offline",
         description: (err as Error)?.message ?? "Tente novamente.",
         variant: "destructive",
       });
     } finally {
-      setOfflineLoading(false);
-      setOfflineStep("");
+      if (isCurrent()) { setOfflineLoading(false); setOfflineStep(""); }
     }
-  }, [sim, onOpenChange]);
+  }, [sim, onOpenChange, user?.id, offlineLoading, open, scope, pendingId]);
 
   const windowStartLabel = format(parseISO(sim.executionWindowStart), "dd/MM 'às' HH:mm", {
     locale: ptBR,
@@ -105,7 +136,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
     {
       icon: Download,
       title: "Baixa o PDF",
-      text: "A prova sai em PDF pra você imprimir ou ver no tablet.",
+      text: "Após a liberação da prova, baixe o PDF para imprimir ou ver no tablet.",
     },
     {
       icon: PenLine,
@@ -123,7 +154,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "w-full rounded-2xl border border-border gap-0 p-6 md:p-8",
+          "w-full max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-border gap-0 p-6 md:p-8",
           flowStep === "offline_intro" ? "max-w-xl" : "max-w-lg"
         )}
       >
@@ -167,7 +198,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
                 </div>
                 <p className="text-body font-semibold text-foreground">Experiência offline</p>
                 <p className="text-body-sm text-muted-foreground leading-snug">
-                  PDF pra imprimir (disponível sempre, mesmo fora da janela). Depois você envia o gabarito aqui. Prazo pro ranking: até o{" "}
+                  Após a liberação da prova, baixe o PDF para imprimir. Depois você envia o gabarito aqui. Prazo pro ranking: até o{" "}
                   <span className="font-medium text-foreground/90">fim da janela de execução</span> — sem
                   relógio da prova no app.
                 </p>
@@ -239,7 +270,16 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
               </div>
             </div>
 
+            {pdfError && <p role="alert" className="mb-3 text-body-sm text-foreground">{pendingId
+              ? 'Não foi possível baixar o PDF. Sua tentativa permanece pendente; tente novamente ou retome o gabarito.'
+              : 'Não foi possível preparar a tentativa e baixar o PDF. Confirme sua conexão e tente novamente.'}</p>}
+            {storageError && <p role="status" className="mb-3 text-body-sm text-foreground">O navegador não permitiu salvar a cópia local. A tentativa foi criada no servidor; confirme a conexão ao retomar.</p>}
+            {pendingId && <Button type="button" variant="outline" className="mb-3 min-h-11 w-full" disabled={offlineLoading} onClick={() => {
+              try { trackEvent('offline_recovery_clicked', { attempt_id: pendingId, simulado_id: sim.id, route: 'pdf_dialog' }); } catch { /* Best effort. */ }
+              onOpenChange(false); navigate(`/simulados/${sim.slug}/gabarito`);
+            }}>Retomar gabarito</Button>}
             <Button
+              ref={retryButton}
               type="button"
               size="lg"
               className="w-full rounded-xl h-12 text-body font-semibold !text-white"
@@ -252,7 +292,7 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
                   {offlineStep || "Preparando..."}
                 </>
               ) : (
-                "Continuar e baixar PDF"
+                pdfError ? "Tentar baixar PDF novamente" : "Continuar e baixar PDF"
               )}
             </Button>
 
@@ -270,12 +310,11 @@ export function OfflineModeSimpleDialog({ open, onOpenChange, sim }: OfflineMode
             style={{
               background: "hsl(var(--warning) / 0.08)",
               border: "1px solid hsl(var(--warning) / 0.2)",
-              color: "hsl(var(--warning))",
+              color: "hsl(var(--foreground))",
             }}
           >
             <AlertCircle className="h-4 w-4 shrink-0" />
-            A janela de execução já encerrou. Sua tentativa será registrada como{" "}
-            <strong className="mx-0.5">treino</strong> e não entrará no ranking.
+            A janela de execução já encerrou. O servidor confirma no envio se a tentativa é treino e se pode entrar no ranking.
           </div>
         )}
       </DialogContent>

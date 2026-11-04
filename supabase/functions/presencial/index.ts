@@ -698,9 +698,10 @@ async function createSession(
   email: string,
   cadernoId: string | null,
 ): Promise<{ submissionId: string; body: unknown }> {
-  const { data, error } = await supabaseAdmin.rpc("create_or_convert_presencial_attempt", {
+  const { data, error } = await supabaseAdmin.rpc("create_or_convert_presencial_attempt_for_session", {
     p_simulado_id: session.simulado_id,
     p_user_id: user.id,
+    p_session_id: session.id,
   });
   if (error) {
     if (error.message?.includes("PRESENCIAL_ALREADY_SUBMITTED")) {

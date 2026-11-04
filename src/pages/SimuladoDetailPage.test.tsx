@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SimuladoDetailPage from "./SimuladoDetailPage";
+
+const dialog = vi.hoisted(() => ({ render: vi.fn() }));
+vi.mock('@/components/simulados/OfflineModeSimpleDialog', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/components/simulados/OfflineModeSimpleDialog')>();
+  return { ...actual, OfflineModeSimpleDialog: (props: Parameters<typeof actual.OfflineModeSimpleDialog>[0]) => {
+    dialog.render(props);
+    return <actual.OfflineModeSimpleDialog {...props} />;
+  } };
+});
 
 // ── Framer Motion ────────────────────────────────────────────────────────────
 vi.mock("framer-motion", () => ({
@@ -30,6 +40,8 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/hooks/useSimuladoDetail");
 vi.mock("@/hooks/useSimulados");
 vi.mock("@/contexts/UserContext");
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'detail-test-user' } }) }));
+vi.mock('@/services/offlineApi', () => ({ offlineApi: { getActiveOfflineAttempt: vi.fn(async () => null) } }));
 
 import { useSimuladoDetail } from "@/hooks/useSimuladoDetail";
 import { useSimulados } from "@/hooks/useSimulados";
@@ -74,16 +86,58 @@ function setupMocks(overrides: { simulado?: any; simulados?: any[]; onboarding?:
 }
 
 function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: {
+    retry: false, gcTime: 0, refetchOnWindowFocus: false,
+  } } });
   render(
+    <QueryClientProvider client={queryClient}>
     <MemoryRouter initialEntries={["/simulados/sim-8"]}>
       <Routes>
         <Route path="/simulados/:id" element={<SimuladoDetailPage />} />
       </Routes>
     </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
+describe('SimuladoDetailPage archived direct access', () => {
+  beforeEach(() => { mockNavigate.mockReset(); dialog.render.mockClear(); setupMocks(); });
+  it.each([
+    { status: 'available', started: false, attemptType: 'online', attemptStatus: 'in_progress' },
+    { status: 'available_late', started: false, attemptType: 'offline', attemptStatus: 'offline_pending' },
+    { status: 'in_progress', started: true, attemptType: 'online', attemptStatus: 'in_progress' },
+    { status: 'in_progress', started: true, attemptType: 'offline', attemptStatus: 'in_progress' },
+    { status: 'in_progress', started: true, attemptType: 'offline', attemptStatus: 'offline_pending' },
+    { status: 'available_late', started: true, attemptType: 'online', attemptStatus: 'expired' },
+  ])('blocks unfinished archived $status/$attemptType/$attemptStatus', state => {
+    setupMocks({ simulado: { ...baseSimulado, dbStatus: 'archived', status: state.status,
+      userState: { ...baseSimulado.userState, ...state, finished: false } } });
+    renderPage();
+    expect(screen.getByText('Prova arquivada')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver histórico' })).toHaveAttribute('href', '/simulados');
+    expect(screen.queryByRole('button', { name: /iniciar|continuar|gabarito/i })).not.toBeInTheDocument();
+    expect(dialog.render).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+  it('preserves released archived owner results and history navigation', () => {
+    setupMocks({ simulado: { ...baseSimulado, dbStatus: 'archived', status: 'completed',
+      userState: { ...baseSimulado.userState, started: true, finished: true, score: 20 } } });
+    renderPage();
+    expect(screen.queryByText('Prova arquivada')).not.toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /correção/i })).toHaveAttribute('href', '/simulados/sim-8/correcao');
+  });
+  it('preserves published online resume and dialog integration', () => {
+    setupMocks({ simulado: { ...baseSimulado, dbStatus: 'published', status: 'in_progress',
+      userState: { ...baseSimulado.userState, started: true, finished: false } } });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar Simulado' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/simulados/sim-8/prova');
+    expect(dialog.render).toHaveBeenCalled();
+  });
+});
+
 describe("SimuladoDetailPage — Dark Arena card", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
@@ -97,6 +151,35 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
     expect(screen.getByText("Conexão estável")).toBeInTheDocument();
     expect(screen.getByText("Ambiente adequado")).toBeInTheDocument();
     expect(screen.getByText("Prova em tela cheia")).toBeInTheDocument();
+  });
+
+  it('uses the edition of the selected exam, with a neutral fallback', () => {
+    setupMocks({ simulado: { ...baseSimulado, editionCode: '2027.1' } });
+    renderPage();
+    expect(screen.getByText('2027.1 · Simulado 8 · ENAMED 2027.1')).toBeInTheDocument();
+    expect(screen.queryByText(/ENAMED 2026/)).not.toBeInTheDocument();
+  });
+
+  it('shows training and continue for an in-progress non-ranking attempt', () => {
+    setupMocks({ simulado: { ...baseSimulado, status: 'in_progress', userState: {
+      simuladoId: 'sim-8', started: true, finished: false, isWithinWindow: false,
+    } } });
+    renderPage();
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar Simulado' })).toBeInTheDocument();
+  });
+
+  it('keeps the direct detail authoritative when the catalog has stale attempt data', () => {
+    setupMocks({
+      simulado: { ...baseSimulado, status: 'in_progress', editionCode: '2027.2', userState: {
+        simuladoId: 'sim-8', started: true, finished: false, isWithinWindow: false,
+        effectiveDeadline: '2099-01-01T00:00:00Z',
+      } },
+      simulados: [{ ...baseSimulado, userState: { ...baseSimulado.userState, effectiveDeadline: '2020-01-01T00:00:00Z' } }],
+    });
+    renderPage();
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar Simulado' })).toBeInTheDocument();
   });
 
   it("shows helper copy while the checklist is incomplete", () => {

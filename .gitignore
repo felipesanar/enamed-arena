@@ -1,5 +1,6 @@
 # Superpowers brainstorm sessions
 .superpowers/
+/.claude/worktrees/
 
 # Logs
 logs

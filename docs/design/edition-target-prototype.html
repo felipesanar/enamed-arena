@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <title>Sua edição | ENAMED Arena · Protótipo</title>
+  <style>
+    /* Tokens from src/index.css. No remote font: documented system fallback. */
+    :root { --background:0 0% 98.5%; --foreground:220 20% 10%; --card:0 0% 100%; --primary:345 65% 30%; --primary-foreground:0 0% 100%; --muted:220 10% 93%; --muted-foreground:220 10% 46%; --border:220 12% 90%; --accent:345 50% 95%; --accent-foreground:345 65% 25%; --ring:345 65% 30%; --sidebar-background:345 55% 15%; --sidebar-foreground:345 10% 75%; color-scheme:light; }
+    [data-theme="dark"] { --background:224 16% 5.5%; --foreground:220 14% 93%; --card:224 13% 9%; --primary:345 56% 50%; --muted:224 10% 15%; --muted-foreground:220 9% 66%; --border:224 11% 18%; --accent:224 12% 17%; --accent-foreground:220 14% 90%; --ring:345 56% 50%; color-scheme:dark; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:hsl(var(--background)); color:hsl(var(--foreground)); font:14px/1.6 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input,select { font:inherit; color:inherit; }
+    button,input,select { min-height:44px; }
+    button { cursor:pointer; border:1px solid hsl(var(--border)); border-radius:10px; background:hsl(var(--card)); padding:10px 16px; font-weight:650; line-height:1.4; }
+    button:hover:not(:disabled) { background:hsl(var(--muted)); }
+    button:disabled { cursor:not-allowed; }
+    button.primary { color:hsl(var(--primary-foreground)); background:hsl(var(--primary)); border-color:transparent; }
+    button.primary:hover:not(:disabled) { filter:brightness(.94); background:hsl(var(--primary)); }
+    button:disabled.primary { opacity:.7; }
+    button.quiet { border-color:transparent; background:transparent; }
+    :focus-visible { outline:2px solid hsl(var(--ring)); outline-offset:3px; }
+    h1,h2,h3,p { margin:0; }
+    h1 { font-size:28px; letter-spacing:-.035em; line-height:1.25; }
+    h2 { font-size:20px; letter-spacing:-.02em; line-height:1.4; }
+    h3 { font-size:16px; }
+    p + p { margin-top:8px; }
+    .muted,small { color:hsl(var(--muted-foreground)); }
+    small { font-size:12px; display:block; line-height:1.6; }
+    .eyebrow { font-size:11px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; }
+    .brand { font-size:20px; font-weight:800; letter-spacing:-.04em; }
+    .brand span { font-size:11px; letter-spacing:.08em; margin-left:8px; font-weight:650; }
+    .demo { padding:12px 24px; border-bottom:1px solid hsl(var(--border)); background:hsl(var(--card)); }
+    .demo summary { cursor:pointer; min-height:32px; font-size:12px; font-weight:700; }
+    .demo summary span { font-weight:400; margin-left:12px; }
+    .demo-fields { display:flex; flex-wrap:wrap; align-items:end; gap:12px; padding:8px 0 2px; }
+    .demo-fields label { display:grid; gap:4px; font-size:11px; font-weight:650; min-width:110px; flex:1; }
+    select,input[type="text"] { background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:8px; padding:8px 10px; width:100%; min-width:0; }
+    .demo select { font-size:12px; }
+    [hidden] { display:none !important; }
+    main { min-height:calc(100vh - 72px); }
+    .onboarding { --background:220 22% 7%; --foreground:220 16% 95%; --card:220 16% 12%; --border:220 12% 25%; --muted:220 16% 16%; --muted-foreground:220 10% 72%; --primary:345 65% 30%; --accent:345 40% 20%; --accent-foreground:220 16% 95%; --ring:345 70% 65%; color-scheme:dark; color:hsl(var(--foreground)); background:linear-gradient(145deg,#160610 0%,#0a0508 55%,#120208 100%); padding:28px 20px 48px; }
+    .onboarding > .brand { text-align:center; color:hsl(var(--foreground)); margin-bottom:20px; }
+    .steps { list-style:none; padding:0; margin:0 auto 24px; display:flex; max-width:700px; gap:12px; }
+    .steps li { flex:1; min-width:0; text-align:center; color:hsl(var(--muted-foreground)); font-size:11px; }
+    .steps b { display:block; border:1px solid hsl(var(--border)); border-radius:50%; width:28px; height:28px; line-height:26px; margin:0 auto 6px; }
+    .steps [aria-current] { color:hsl(var(--foreground)); }
+    .steps [aria-current] b { background:hsl(var(--accent)); border-color:hsl(var(--ring)); }
+    .onboarding-panel { border:1px solid hsl(var(--border)); border-radius:28px; max-width:900px; margin:auto; display:grid; grid-template-columns:280px minmax(0,1fr); background:hsl(var(--card) / .65); overflow:hidden; }
+    .onboarding-aside { padding:32px 28px; border-right:1px solid hsl(var(--border)); }
+    .onboarding-aside h1 { font-size:25px; margin:14px 0; }
+    .onboarding-aside .rule { width:28px; height:2px; background:hsl(var(--ring)); margin:20px 0; }
+    .onboarding-aside .tip { border:1px solid hsl(var(--border)); border-radius:9px; margin-top:20px; padding:12px; font-size:12px; }
+    .picker-pane { padding:28px; min-width:0; }
+    .picker-pane > h1 { font-size:20px; margin-bottom:4px; }
+    .picker-pane > p { margin-bottom:24px; }
+    form { min-width:0; }
+    fieldset { border:0; padding:0; margin:0 0 24px; min-width:0; }
+    legend { font-weight:700; margin-bottom:6px; }
+    .graduation { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .field-label { display:block; font-weight:600; font-size:12px; margin-bottom:6px; }
+    .suggestion { background:hsl(var(--muted)); border-radius:10px; padding:12px; margin:16px 0 20px; font-size:12px; min-height:64px; }
+    .catalog { min-height:174px; margin:12px 0; }
+    .catalog-message { padding:18px; border:1px dashed hsl(var(--border)); border-radius:10px; min-height:174px; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:8px; }
+    .choice { border:1px solid hsl(var(--border)); border-radius:10px; display:flex; align-items:flex-start; padding:14px; gap:12px; margin-bottom:10px; cursor:pointer; min-height:68px; overflow-wrap:anywhere; }
+    .choice:has(input:checked) { border-color:hsl(var(--ring)); background:hsl(var(--accent)); }
+    .choice input { width:18px; height:18px; min-height:18px; accent-color:hsl(var(--primary)); flex:none; margin:4px 0; }
+    .choice > span { min-width:0; flex:1; }
+    .choice strong { display:block; font-size:14px; }
+    .choice .selection { display:none; font-size:11px; font-weight:700; color:hsl(var(--foreground)); margin-top:5px; }
+    .choice input:checked + span .selection { display:block; }
+    .form-footer { display:flex; flex-wrap:wrap; align-items:center; gap:12px; border-top:1px solid hsl(var(--border)); padding-top:20px; }
+    .form-footer .primary { flex:1; }
+    .form-footer > small { flex-basis:100%; }
+    .error { padding:12px; border:1px solid currentColor; border-radius:8px; margin-bottom:16px; font-size:13px; font-weight:600; }
+    .status { margin-top:12px; min-height:24px; font-weight:600; }
+    .confirmation { border:1px solid hsl(var(--border)); padding:16px; border-radius:10px; margin-top:16px; }
+    .confirmation h3 { margin-bottom:8px; }
+    .confirmation dl { margin:0; }
+    .confirmation dt { font-size:12px; color:hsl(var(--muted-foreground)); }
+    .confirmation dd { margin:0 0 8px; overflow-wrap:anywhere; }
+    .app-shell { display:grid; grid-template-columns:224px minmax(0,1fr); min-height:calc(100vh - 72px); }
+    .app-nav { background:hsl(var(--sidebar-background)); color:hsl(var(--sidebar-foreground)); padding:28px 20px; }
+    .app-nav .brand { color:white; font-size:18px; margin-bottom:44px; }
+    .app-nav ul { list-style:none; padding:0; margin:0; }
+    .app-nav li { padding:12px; margin-bottom:8px; border-radius:9px; }
+    .app-nav [aria-current] { background:hsl(345 40% 20%); color:white; font-weight:700; }
+    .app-content { min-width:0; }
+    .topbar { padding:20px 32px; background:hsl(var(--card)); border-bottom:1px solid hsl(var(--border)); display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; font-size:12px; }
+    .page { padding:36px; max-width:1200px; margin:auto; }
+    .page > header { margin-bottom:28px; }
+    .page header p { margin-top:8px; }
+    .prompt { display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:20px 24px; border:1px solid hsl(var(--border)); border-radius:14px; background:hsl(var(--card)); margin-bottom:24px; }
+    .prompt > div:first-child { flex:1; min-width:180px; }
+    .prompt h2 { font-size:16px; margin-bottom:4px; }
+    .prompt p { font-size:13px; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .context-card { border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:16px; padding:28px; margin-bottom:24px; }
+    .context-card h2 { margin-bottom:8px; }
+    .context-card .eyebrow { margin-bottom:12px; }
+    .settings-grid { display:grid; grid-template-columns:200px minmax(0,1fr); gap:32px; }
+    .settings-nav { font-size:13px; display:grid; align-content:start; gap:12px; }
+    .settings-nav p { padding:10px 12px; margin:0; }
+    .settings-nav [aria-current] { background:hsl(var(--muted)); border-radius:8px; font-weight:700; }
+    .settings-card { padding:24px; border-radius:16px; border:1px solid hsl(var(--border)); background:hsl(var(--card)); }
+    .settings-card > p { margin:8px 0 24px; }
+    .academic { margin-top:24px; }
+    .academic button { margin-top:12px; }
+    .notice { font-size:12px; border:1px solid hsl(var(--border)); padding:12px; border-radius:9px; }
+    .flag-notice { margin:24px auto; max-width:900px; padding:20px; }
+    dialog { width:min(580px,calc(100% - 32px)); max-height:calc(100dvh - 32px); padding:28px; border:1px solid hsl(var(--border)); border-radius:20px; background:hsl(var(--card)); color:hsl(var(--foreground)); overflow-y:auto; overscroll-behavior:contain; }
+    dialog::backdrop { background:rgb(0 0 0 / .62); }
+    dialog[open] { animation:appear 140ms ease-out; }
+    dialog h2 { margin-bottom:8px; }
+    dialog > p { margin-bottom:24px; }
+    @keyframes appear { from { opacity:0; } to { opacity:1; } }
+    @media (max-width:1023px) {
+      .onboarding-panel { max-width:620px; grid-template-columns:minmax(0,1fr); }
+      .onboarding-aside { display:none; }
+      .app-shell { grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr; }
+      .app-nav { padding:16px 24px; }
+      .app-nav .brand { margin:0; }
+      .app-nav ul { display:none; }
+      .settings-grid { grid-template-columns:minmax(0,1fr); gap:20px; }
+      .settings-nav { display:flex; flex-wrap:wrap; gap:4px; }
+    }
+    @media (max-width:480px) {
+      .demo { padding:12px 16px; }
+      .demo summary span { display:block; margin-left:0; }
+      .demo-fields label { min-width:135px; }
+      .onboarding { padding:24px 12px 32px; }
+      .onboarding-panel { border-radius:20px; }
+      .picker-pane,dialog { padding:20px; }
+      .steps { gap:4px; margin-bottom:18px; }
+      .steps li { font-size:10px; }
+      .page { padding:24px 16px; }
+      .topbar { padding:16px; }
+      .context-card,.settings-card { padding:20px; }
+      .prompt { padding:20px; }
+      .prompt .actions { width:100%; }
+      h1 { font-size:25px; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+  </style>
+</head>
+<body>
+  <details class="demo" open>
+    <summary>DEMO · Edição-alvo <span>Dados fictícios, sem conexão ou datas oficiais</span></summary>
+    <div class="demo-fields">
+      <label for="demo-scene">Situação<select id="demo-scene"><option value="onboarding">Cadastro novo</option><option value="home">Home · aluno antigo</option><option value="settings">Configurações</option></select></label>
+      <label for="demo-theme">Tema<select id="demo-theme"><option value="light">Claro</option><option value="dark">Escuro</option></select></label>
+      <label for="demo-catalog">Catálogo<select id="demo-catalog"><option value="ready">Disponível</option><option value="loading">Carregando</option><option value="empty">Vazio</option><option value="error">Falha</option></select></label>
+      <label for="demo-result">Ao enviar<select id="demo-result"><option value="success">Salvar após 450 ms</option><option value="error">Falhar após 450 ms</option></select></label>
+      <label for="demo-long">Conteúdo<select id="demo-long"><option value="off">Padrão</option><option value="on">Texto longo</option></select></label>
+      <label for="demo-account">Conta fictícia<select id="demo-account"><option value="a">Pessoa A</option><option value="b">Pessoa B (limpar)</option></select></label>
+      <label for="demo-flag">editions_ui<select id="demo-flag"><option value="on">Ligada (DEMO)</option><option value="off">Desligada</option></select></label>
+    </div>
+  </details>
+  <main id="stage"></main>
+  <script>
+    (() => {
+      const $ = id => document.getElementById(id);
+      const query = new URLSearchParams(location.search);
+      const options = { scene:'onboarding', theme:'light', catalog:'ready', result:'success', long:'off', account:'a', flag:'on' };
+      Object.keys(options).forEach(key => {
+        const control = $('demo-' + key);
+        if (Array.from(control.options).some(option => option.value === query.get(key))) options[key] = query.get(key);
+        control.value = options[key];
+      });
+      const blank = () => ({ choice:undefined, year:'', term:'' });
+      let draft = blank();
+      let saved = null;
+      let revision = 0;
+      let pending = false;
+      let dismissed = false;
+      let returnFocus = null;
+      const catalog = () => [
+        { id:'demo-2027-1', code:'2027.1', name:'ENAMED 2027.1' },
+        { id:'demo-2027-2', code:'2027.2', name:options.long === 'on'
+          ? 'ENAMED 2027.2 · Edição de demonstração para estudantes com conclusão prevista no segundo semestre, com um nome editorial propositalmente extenso para verificar a leitura e a quebra de linhas em telas pequenas · IdentificadorSemEspaçosParaTestarQuebraDeLinhaSemRolagemHorizontal2027'
+          : 'ENAMED 2027.2' },
+      ];
+      const escape = text => String(text).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
+      function reset() {
+        revision++;
+        pending = false;
+        draft = saved ? { ...saved } : blank();
+      }
+      function showError(message, field) {
+        $('form-error').textContent = message;
+        $('form-error').hidden = false;
+        const target = $(field || 'form-error');
+        if (field) target.setAttribute('aria-invalid', 'true');
+        target.focus();
+      }
+      function clearFeedback() {
+        $('form-error').hidden = true;
+        $('form-error').textContent = '';
+        $('save-status').textContent = '';
+        $('confirmation').hidden = true;
+        document.querySelectorAll('[aria-invalid]').forEach(element => element.removeAttribute('aria-invalid'));
+      }
+      function updateSuggestion() {
+        const code = draft.year && draft.term ? draft.year + '.' + draft.term : null;
+        const match = options.catalog === 'ready' && catalog().find(edition => edition.code === code);
+        $('suggestion').textContent = match
+          ? 'Sugestão: ' + match.code + ', pela conclusão informada e pelo catálogo fictício. Confirme sua escolha abaixo. Isso não confirma calendário ou edital.'
+          : code ? 'Sem sugestão para essa conclusão no catálogo disponível. Você pode escolher uma edição ou Ainda não sei.'
+          : 'Se quiser, informe sua conclusão para consultar uma sugestão. Nenhuma edição será escolhida automaticamente.';
+      }
+      function choice(id, value, title, description) {
+        return '<label class="choice" for="' + id + '"><input type="radio" name="edition" id="' + id + '" value="' + value + '" aria-describedby="choice-error form-error"><span><strong>' + escape(title) + '</strong><small>' + escape(description) + '</small><span class="selection">Selecionada</span></span></label>';
+      }
+      function renderCatalog() {
+        const ready = options.catalog === 'ready';
+        const text = { loading:'Carregando edições…', empty:'Nenhuma edição disponível no catálogo.', error:'Não foi possível carregar as edições.' };
+        $('catalog-options').innerHTML = ready
+          ? catalog().map((edition, index) => choice('edition-choice-' + (index + 1), edition.id, edition.name, 'Demonstração · Aguardando divulgação do Inep')).join('')
+          : '<div class="catalog-message"><p>' + text[options.catalog] + '</p><small>Você ainda pode escolher Ainda não sei.</small>' + (options.catalog !== 'loading' ? '<button id="retry-catalog" type="button">Tentar novamente</button>' : '<small>Use o controle DEMO para concluir o carregamento.</small>') + '</div>';
+        $('catalog-options').setAttribute('aria-busy', String(options.catalog === 'loading'));
+        $('catalog-state').textContent = ready ? '2 edições fictícias disponíveis.' : text[options.catalog];
+        document.querySelectorAll('input[name="edition"]').forEach(input => {
+          input.checked = input.value === draft.choice;
+          input.disabled = pending;
+          input.onchange = () => { draft.choice = input.value; clearFeedback(); };
+        });
+        if ($('retry-catalog')) $('retry-catalog').onclick = () => {
+          const ticket = revision;
+          options.catalog = 'loading';
+          $('demo-catalog').value = 'loading';
+          renderCatalog();
+          updateSuggestion();
+          setTimeout(() => {
+            if (ticket !== revision) return;
+            options.catalog = 'ready';
+            $('demo-catalog').value = 'ready';
+            renderCatalog();
+            updateSuggestion();
+            $('edition-choice-1').focus();
+          }, 450);
+        };
+        updateSuggestion();
+      }
+      function mountPicker(host) {
+        host.innerHTML = '<form id="target-form" aria-busy="false" novalidate>' +
+          '<fieldset id="graduation-fields"><legend>Quando você conclui o curso? <small>Opcional</small></legend><small id="graduation-help">Preencha ano e semestre, ou deixe os dois em branco.</small>' +
+          '<div class="graduation"><label><span class="field-label">Ano de conclusão</span><select id="graduation-year" aria-describedby="graduation-help form-error"><option value="">Não informar</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option></select></label>' +
+          '<label><span class="field-label">Semestre de conclusão</span><select id="graduation-term" aria-describedby="graduation-help form-error"><option value="">Não informar</option><option value="1">1º semestre</option><option value="2">2º semestre</option></select></label></div></fieldset>' +
+          '<p id="suggestion" class="suggestion" role="status"></p>' +
+          '<fieldset id="edition-fields" aria-describedby="choice-error"><legend>Qual edição é o seu alvo?</legend><small id="choice-error">Escolha uma edição ou marque Ainda não sei.</small><small id="catalog-state" role="status"></small><div class="catalog" id="catalog-options"></div>' +
+          choice('edition-undecided', 'undecided', 'Ainda não sei', 'Você pode alterar depois nas configurações.') + '</fieldset>' +
+          '<p id="form-error" class="error" role="alert" tabindex="-1" hidden></p>' +
+          '<div class="form-footer"><button id="save-target" type="submit" class="primary">' + (options.scene === 'onboarding' ? 'Salvar e continuar' : 'Salvar edição') + '</button>' +
+          (options.scene === 'home' ? '<button id="cancel-target" type="button">Cancelar</button>' : '') +
+          '<small>Dados fictícios · Nenhuma data oficial de 2027 confirmada.</small></div></form>' +
+          '<p id="save-status" class="status" role="status" aria-live="polite"></p><section id="confirmation" class="confirmation" hidden></section>';
+        ['year','term'].forEach(key => {
+          $('graduation-' + key).value = draft[key];
+          $('graduation-' + key).onchange = event => {
+            draft[key] = event.target.value;
+            clearFeedback();
+            updateSuggestion();
+          };
+        });
+        renderCatalog();
+        if ($('cancel-target')) $('cancel-target').onclick = () => $('target-dialog').close();
+        $('target-form').onsubmit = submit;
+      }
+      function submit(event) {
+        event.preventDefault();
+        if (pending) return;
+        clearFeedback();
+        if (Boolean(draft.year) !== Boolean(draft.term)) {
+          showError('Informe o ano e o semestre de conclusão, ou deixe ambos em branco.', draft.year ? 'graduation-term' : 'graduation-year');
+          return;
+        }
+        if (draft.choice === undefined) {
+          showError('Escolha uma edição ou marque Ainda não sei para continuar.', options.catalog === 'ready' ? 'edition-choice-1' : 'edition-undecided');
+          return;
+        }
+        if (draft.choice !== 'undecided' && (options.catalog !== 'ready' || !catalog().some(item => item.id === draft.choice))) {
+          showError('A seleção não pôde ser conferida. Tente carregar o catálogo novamente ou escolha Ainda não sei.', 'edition-undecided');
+          return;
+        }
+        pending = true;
+        const ticket = revision;
+        const outcome = options.result;
+        const submitted = { ...draft };
+        $('target-form').setAttribute('aria-busy', 'true');
+        document.querySelectorAll('#target-form input,#target-form select,#target-form button').forEach(element => { element.disabled = true; });
+        $('save-target').textContent = 'Salvando…';
+        $('save-status').textContent = 'Salvando sua escolha…';
+        setTimeout(() => {
+          if (ticket !== revision) return;
+          pending = false;
+          if (!$('target-form')) return;
+          $('target-form').setAttribute('aria-busy', 'false');
+          document.querySelectorAll('#target-form input,#target-form select,#target-form button').forEach(element => { element.disabled = false; });
+          $('save-target').textContent = options.scene === 'onboarding' ? 'Salvar e continuar' : 'Salvar edição';
+          $('save-status').textContent = '';
+          if (outcome === 'error') {
+            showError('Não foi possível salvar. Suas escolhas foram mantidas. Tente novamente.');
+            return;
+          }
+          saved = submitted;
+          if (options.scene === 'home') {
+            dismissed = true;
+            $('target-dialog').close();
+            $('edition-prompt').hidden = true;
+            $('home-title').focus();
+            $('home-status').textContent = 'Edição salva nesta demonstração. Você pode alterá-la nas configurações.';
+          } else {
+            $('save-status').textContent = 'Escolha salva nesta demonstração.';
+            const selected = catalog().find(edition => edition.id === saved.choice);
+            $('confirmation').innerHTML = '<h3>' + (options.scene === 'onboarding' ? 'Sua edição foi registrada' : 'Edição atualizada') + '</h3><dl><dt>Edição-alvo</dt><dd>' + escape(selected?.name || 'Ainda não sei') + '</dd><dt>Conclusão prevista</dt><dd>' + (saved.year ? saved.year + '.' + saved.term : 'Não informada') + '</dd></dl>' +
+              (options.scene === 'onboarding' ? '<p class="muted">A próxima etapa é Especialidade, seguida de Instituições e Confirmação. Essas etapas existentes serão integradas na fase B.</p>' : '');
+            $('confirmation').hidden = false;
+          }
+        }, 450);
+      }
+      function appShell(content) {
+        return '<div class="app-shell"><aside class="app-nav" aria-label="Contexto de navegação"><div class="brand">SanarFlix <span>PRO</span></div><ul><li ' + (options.scene === 'home' ? 'aria-current="page"' : '') + '>Início</li><li>Simulados</li><li>Ranking</li><li>Caderno de erros</li><li ' + (options.scene === 'settings' ? 'aria-current="page"' : '') + '>Configurações</li></ul></aside><div class="app-content"><div class="topbar"><strong>ENAMED Arena</strong><span>Conta fictícia · Pessoa ' + options.account.toUpperCase() + '</span></div><div class="page">' + content + '</div></div></div>';
+      }
+      function render() {
+        document.documentElement.dataset.theme = options.theme;
+        const enabled = options.flag === 'on';
+        const flagNotice = '<p id="flag-notice" class="flag-notice notice">Fluxo atual preservado com editions_ui desligada. Esta DEMO não implementa as etapas antigas.</p>';
+        if (options.scene === 'onboarding') {
+          $('stage').innerHTML = '<div class="onboarding"><div class="brand">SanarFlix <span>PRO · ENAMED</span></div>' +
+            '<ol class="steps" aria-label="Etapas do cadastro">' + (enabled ? '<li aria-current="step"><b>1</b>Sua edição</li>' : '') +
+            '<li ' + (!enabled ? 'aria-current="step"' : '') + '><b>' + (enabled ? '2' : '1') + '</b>Especialidade</li><li><b>' + (enabled ? '3' : '2') + '</b>Instituições</li><li><b>' + (enabled ? '4' : '3') + '</b>Confirmação</li></ol>' +
+            (enabled ? '<div class="onboarding-panel"><aside class="onboarding-aside"><p class="eyebrow">Etapa 1 de 4 · Sua edição</p><div class="rule"></div><h2>Qual edição você pretende fazer?</h2><p class="muted">Informe sua previsão de conclusão e escolha seu alvo. Tudo bem ainda não saber.</p><p class="tip">Você pode mudar essa escolha nas configurações, mesmo durante uma janela de simulado.</p></aside><section class="picker-pane"><h1>Sua edição</h1><p class="muted">Escolha seu alvo para a preparação.</p><div id="picker-host"></div></section></div>' : flagNotice) + '</div>';
+          if (enabled) mountPicker($('picker-host'));
+        } else if (options.scene === 'home') {
+          $('stage').innerHTML = appShell('<header><p class="eyebrow muted">Início</p><h1 id="home-title" tabindex="-1">Olá, Pessoa ' + options.account.toUpperCase() + '</h1></header>' +
+            (enabled ? '<section id="edition-prompt" class="prompt" aria-labelledby="prompt-title"><div><h2 id="prompt-title">Qual edição é o seu alvo?</h2><p class="muted">Escolha quando quiser. Seus simulados continuam disponíveis.</p></div><div class="actions"><button id="open-target">Escolher edição</button><button id="dismiss-prompt" class="quiet">Agora não</button></div></section>' : flagNotice) +
+            '<p id="home-status" role="status"></p><section id="home-content" class="context-card"><p class="eyebrow muted">Contexto da home · demonstração</p><h2>Seus simulados</h2><p class="muted">Área existente preservada. Este recorte não representa catálogo ou resultados reais.</p><button id="demo-simulados" class="quiet" type="button">Ver simulados · DEMO</button><p id="simulados-status" role="status"></p></section>') +
+            (enabled ? '<dialog id="target-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-description"><h2 id="dialog-title" tabindex="-1">Escolher edição</h2><p id="dialog-description" class="muted">Você pode alterar depois nas configurações.</p><div id="dialog-picker"></div></dialog>' : '');
+          $('demo-simulados').onclick = () => { $('simulados-status').textContent = 'A navegação de simulados permanece fora deste protótipo.'; };
+          if (enabled) {
+            $('edition-prompt').hidden = dismissed || saved !== null;
+            $('dismiss-prompt').onclick = () => { dismissed = true; $('edition-prompt').hidden = true; $('home-title').focus(); };
+            $('open-target').onclick = () => {
+              reset();
+              returnFocus = $('open-target');
+              mountPicker($('dialog-picker'));
+              $('target-dialog').showModal();
+              $('dialog-title').focus();
+            };
+            $('target-dialog').addEventListener('close', () => {
+              reset();
+              $('dialog-picker').innerHTML = '';
+              if (returnFocus?.isConnected) returnFocus.focus();
+            });
+            $('target-dialog').addEventListener('cancel', event => {
+              event.preventDefault();
+              if (!pending) $('target-dialog').close();
+            });
+            $('target-dialog').addEventListener('keydown', event => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                if (!pending) $('target-dialog').close();
+              }
+              if (event.key !== 'Tab') return;
+              const controls = Array.from($('target-dialog').querySelectorAll('button:not(:disabled),select:not(:disabled),input:not(:disabled)'));
+              // A radio group has one Tab stop; arrows remain browser-native.
+              const checked = controls.find(element => element.name === 'edition' && element.checked);
+              const firstRadio = controls.find(element => element.name === 'edition');
+              const focusable = controls.filter(element => element.name !== 'edition' || element === (checked || firstRadio));
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (!first) { event.preventDefault(); $('dialog-title').focus(); return; }
+              if (event.shiftKey && (document.activeElement === first || document.activeElement === $('dialog-title'))) { event.preventDefault(); last.focus(); }
+              else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+            });
+            if (query.get('dialog') === 'open') $('open-target').click();
+          }
+        } else {
+          $('stage').innerHTML = appShell('<header><p class="eyebrow muted">Sua conta</p><h1>Configurações</h1><p class="muted">Dados da Pessoa ' + options.account.toUpperCase() + ' · Demonstração</p></header><div class="settings-grid"><aside class="settings-nav" aria-label="Seções das configurações"><p>Conta</p><p>Plano</p><p aria-current="page">Perfil acadêmico</p><p>Notificações</p></aside><div>' +
+            (enabled ? '<section class="settings-card"><h2>Edição-alvo</h2><p class="muted">Essa escolha é independente da edição de especialidade e instituições.</p><div id="picker-host"></div></section>' : flagNotice) +
+            '<section class="context-card academic"><h2>Especialidade e instituições</h2><p id="academic-lock" class="notice">Perfil acadêmico bloqueado durante a janela ativa. Isso não impede mudar sua edição-alvo.</p><p class="muted">Clínica médica · Instituição fictícia de demonstração</p><button id="edit-academic" disabled>Editar perfil · bloqueado</button></section></div></div>');
+          if (enabled) mountPicker($('picker-host'));
+        }
+      }
+      Object.keys(options).forEach(key => {
+        $('demo-' + key).onchange = event => {
+          options[key] = event.target.value;
+          if (key === 'result') return;
+          if (key === 'theme') { document.documentElement.dataset.theme = options.theme; return; }
+          if ((key === 'catalog' || key === 'long') && $('target-form') && !pending) { renderCatalog(); return; }
+          if (key === 'account') { saved = null; dismissed = false; }
+          reset();
+          render();
+        };
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { useComparativeData } from '@/hooks/useComparativeData';
+import { useSimulados } from '@/hooks/useSimulados';
+import { formatSimuladoLabel } from '@/lib/editions';
 import {
   BarChart3, ArrowUpRight, ArrowDownRight, Minus, ChevronDown, ChevronUp,
 } from 'lucide-react';
@@ -21,8 +23,12 @@ import { ComparativoEvolutionChart } from '@/components/comparativo/ComparativoE
 import { ComparativoSpecialtyRadar } from '@/components/comparativo/ComparativoSpecialtyRadar';
 import { ComparativoBehaviorCards } from '@/components/comparativo/ComparativoBehaviorCards';
 import { ComparativoActionableInsights } from '@/components/comparativo/ComparativoActionableInsights';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PercentileHistorySection } from '@/components/comparativo/PercentileHistorySection';
 
 export default function ComparativoPage() {
+  const editionsEnabled = useAppConfig('editions_ui');
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].comparativo;
@@ -52,19 +58,32 @@ export default function ComparativoPage() {
     );
   }
 
-  return <ComparativoContent />;
+  if (!editionsEnabled) return <ComparativoContent />;
+  return <Tabs defaultValue="edition" className="min-w-0">
+    <TabsList className="mb-5 h-auto min-h-11 max-w-full"><TabsTrigger value="edition" className="min-h-11 text-caption">Nesta edição</TabsTrigger><TabsTrigger value="history" className="min-h-11 text-caption">Histórico por percentil</TabsTrigger></TabsList>
+    <TabsContent value="edition"><ComparativoContent /></TabsContent>
+    <TabsContent value="history"><PageHeader title="Comparativo entre simulados" subtitle="Sua posição relativa, com os limites de cada edição." /><PercentileHistorySection /></TabsContent>
+  </Tabs>;
 }
 
 function ComparativoContent() {
-  const { entries, allSlots, loading } = useComparativeData();
+  const { entries, allSlots: originalSlots, loading } = useComparativeData();
+  const { simulados, editionsUi } = useSimulados();
   const { profile, onboarding } = useUser();
   const [showDetails, setShowDetails] = useState(false);
 
   // Sort ascending by sequenceNumber for everything downstream
   const sorted = useMemo(
-    () => [...entries].sort((a, b) => a.sequenceNumber - b.sequenceNumber),
-    [entries],
+    () => entries.map(entry => {
+      const metadata = editionsUi ? simulados.find(sim => sim.id === entry.simuladoId) : undefined;
+      return { ...entry, editionId: metadata?.editionId, editionCode: metadata?.editionCode, editionLabel: metadata?.editionLabel };
+    }).sort((a, b) => a.sequenceNumber - b.sequenceNumber),
+    [entries, simulados, editionsUi],
   );
+  const allSlots = originalSlots.map(slot => {
+    const metadata = editionsUi ? simulados.find(sim => sim.id === slot.simuladoId) : undefined;
+    return { ...slot, editionId: metadata?.editionId, editionCode: metadata?.editionCode, editionLabel: metadata?.editionLabel };
+  });
 
   const compTracked = useRef(false);
   useEffect(() => {
@@ -199,7 +218,7 @@ function ComparativoContent() {
                             to={`/desempenho?simulado=${entry.simuladoId}`}
                             className="text-body font-medium text-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group"
                           >
-                            <span className="text-caption text-muted-foreground tabular-nums">#{entry.sequenceNumber}</span>
+                            <span className="text-caption text-muted-foreground tabular-nums">{formatSimuladoLabel(entry)}</span>
                             {entry.title}
                             <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </Link>

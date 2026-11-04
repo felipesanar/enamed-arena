@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { NavItem } from "@/components/premium/NavItem";
 import { cn } from "@/lib/utils";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 const mainNav = [
   { title: "Início", url: "/", icon: LayoutDashboard },
@@ -17,6 +18,7 @@ const mainNav = [
 ];
 
 export function SidebarNavSection({ collapsed }: { collapsed?: boolean }) {
+  const editionsEnabled = useAppConfig('editions_ui');
   return (
     <nav
       aria-label="Links principais"
@@ -36,6 +38,7 @@ export function SidebarNavSection({ collapsed }: { collapsed?: boolean }) {
           collapsed={collapsed}
         />
       ))}
+      {editionsEnabled && <NavItem to="/calendario" icon={Calendar} label="Calendário" collapsed={collapsed} />}
     </nav>
   );
 }

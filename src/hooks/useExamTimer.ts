@@ -9,28 +9,48 @@ interface UseExamTimerProps {
   deadline: string | null; // ISO date
   onTimeUp: () => void;
   paused?: boolean;
+  attemptKey?: string; // Different attempts may share the same deadline.
+  now?: () => number;
+  clockReady?: boolean;
+  allowTimeUp?: boolean | (() => boolean);
+  /** Explicit cancellation of an unstarted expiry; legacy callers remain once-per-key. */
+  rearmTimeUp?: () => boolean;
 }
 
-export function useExamTimer({ deadline, onTimeUp, paused = false }: UseExamTimerProps) {
+export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, now = Date.now, clockReady = true, allowTimeUp = true, rearmTimeUp }: UseExamTimerProps) {
   const calcRemaining = useCallback((): number => {
     if (!deadline) return 0;
-    const diff = new Date(deadline).getTime() - Date.now();
+    const diff = new Date(deadline).getTime() - now();
+    if (!Number.isFinite(diff)) return NaN;
     return Math.max(0, Math.floor(diff / 1000));
-  }, [deadline]);
+  }, [deadline, now]);
 
   const [remaining, setRemaining] = useState(calcRemaining);
-  const timeUpFiredRef = useRef(false);
+  const firedKeysRef = useRef(new Set<string>());
+  // Legacy callers without attemptKey retain the per-deadline contract.
+  const key = attemptKey ?? deadline;
   const onTimeUpRef = useRef(onTimeUp);
   onTimeUpRef.current = onTimeUp;
+  const allowTimeUpRef = useRef(allowTimeUp);
+  allowTimeUpRef.current = allowTimeUp;
+  const rearmTimeUpRef = useRef(rearmTimeUp);
+  rearmTimeUpRef.current = rearmTimeUp;
 
   useEffect(() => {
-    if (paused || !deadline) return;
+    setRemaining(calcRemaining());
+  }, [deadline, calcRemaining, attemptKey]);
+
+  useEffect(() => {
+    if (paused || !deadline || !clockReady || key === null) return;
 
     const tick = () => {
       const r = calcRemaining();
       setRemaining(r);
-      if (r === 0 && !timeUpFiredRef.current) {
-        timeUpFiredRef.current = true;
+      if (rearmTimeUpRef.current?.()) firedKeysRef.current.delete(key);
+      const allowed = typeof allowTimeUpRef.current === 'function' ? allowTimeUpRef.current() : allowTimeUpRef.current;
+      // An estimated zero or lost ownership must not consume the owner's expiry.
+      if (r === 0 && allowed && !firedKeysRef.current.has(key)) {
+        firedKeysRef.current.add(key);
         onTimeUpRef.current();
       }
     };
@@ -38,9 +58,9 @@ export function useExamTimer({ deadline, onTimeUp, paused = false }: UseExamTime
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [paused, deadline, calcRemaining]);
+  }, [paused, deadline, calcRemaining, key, clockReady, allowTimeUp, rearmTimeUp]);
 
-  return remaining;
+  return Number.isFinite(remaining) ? remaining : 0;
 }
 
 export function formatTimer(seconds: number): string {

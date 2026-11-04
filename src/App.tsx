@@ -13,6 +13,7 @@ import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
 import { LegacyCadernoGate } from "@/components/caderno/LegacyCadernoGate";
 import { CadernoLayout } from "@/components/caderno/CadernoLayout";
 import { AnalyticsSync } from "@/components/AnalyticsSync";
+import { EditionsUiGate } from '@/admin/components/EditionsUiGate';
 
 // Page lazy imports — default exports
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -25,6 +26,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
+const EditionCalendarPage = lazy(() => import("./pages/EditionCalendarPage"));
 const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
 const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
 const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
@@ -68,6 +70,8 @@ const HomePagePremium = lazy(() =>
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage"));
 const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
 const AdminSimulados = lazy(() => import("./admin/pages/AdminSimulados"));
+const AdminEdicoes = lazy(() => import('./admin/pages/AdminEdicoes'));
+const AdminCutoffImport = lazy(() => import('./admin/pages/AdminCutoffImport'));
 const AdminSimuladoForm = lazy(() => import("./admin/pages/AdminSimuladoForm"));
 const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestions"));
 const AdminUsuarios    = lazy(() => import('./admin/pages/AdminUsuarios'))
@@ -75,6 +79,7 @@ const AdminUsuarioDetail = lazy(() => import('./admin/pages/AdminUsuarioDetail')
 const AdminSimuladoAnalytics = lazy(() => import('./admin/pages/AdminSimuladoAnalytics'))
 const AdminSimuladoResultados = lazy(() => import('./admin/pages/AdminSimuladoResultados'))
 const AdminQuestionManager = lazy(() => import('./admin/pages/AdminQuestionManager'))
+const AdminQuestionBank = lazy(() => import('./admin/pages/AdminQuestionBank'))
 const AdminTentativas  = lazy(() => import('./admin/pages/AdminTentativas'))
 const AdminPreviews = lazy(() => import('./admin/pages/AdminPreviews'))
 const AdminDesempenhoPreview = lazy(() => import('./admin/pages/AdminDesempenhoPreviewPage'))
@@ -150,12 +155,15 @@ const App = () => (
               <Route path="/admin" element={<Suspense fallback={<PageShell />}><AdminGuard /></Suspense>}>
                 <Route element={<Suspense fallback={<PageLoadingSkeleton />}><AdminApp /></Suspense>}>
                   <Route index element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDashboard /></Suspense>} />
+                  <Route path="edicoes" element={<EditionsUiGate><Suspense fallback={<PageLoadingSkeleton />}><AdminEdicoes /></Suspense></EditionsUiGate>} />
+                  <Route path="cortes" element={<EditionsUiGate><Suspense fallback={<PageLoadingSkeleton />}><AdminCutoffImport /></Suspense></EditionsUiGate>} />
                   <Route path="simulados" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimulados /></Suspense>} />
                   <Route path="simulados/novo" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id/questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUploadQuestions /></Suspense>} />
                   <Route path="simulados/:id/questoes/editar" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
                   <Route path="questoes" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
+                  <Route path="banco-questoes" element={<EditionsUiGate><Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionBank /></Suspense></EditionsUiGate>} />
                   <Route path="questoes/:simuladoId" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminQuestionManager /></Suspense>} />
                   <Route path="usuarios"   element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarios /></Suspense>} />
                   <Route path="usuarios/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminUsuarioDetail /></Suspense>} />
@@ -179,6 +187,7 @@ const App = () => (
               <Route element={<ProtectedRoute><ErrorBoundary fallbackTitle="Algo deu errado nesta seção"><DashboardLayout /></ErrorBoundary></ProtectedRoute>}>
                 <Route index element={<HomePagePremium />} />
                 <Route path="simulados" element={<SimuladosPage />} />
+                <Route path="calendario" element={<EditionCalendarPage />} />
                 <Route path="simulados/:id/start" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />

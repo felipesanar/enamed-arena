@@ -148,9 +148,9 @@ export function ComparativoBehaviorCards({ entries }: Props) {
           </p>
         </div>
         <div className="hidden md:flex items-center gap-1.5 text-caption text-muted-foreground">
-          <span className="font-mono">#{first.sequenceNumber}</span>
+          <span className="font-mono">{formatSimuladoLabel(first)}</span>
           <span>→</span>
-          <span className="font-mono">#{last.sequenceNumber}</span>
+          <span className="font-mono">{formatSimuladoLabel(last)}</span>
         </div>
       </div>
 
@@ -215,3 +215,4 @@ export function ComparativoBehaviorCards({ entries }: Props) {
     </div>
   );
 }
+import { formatSimuladoLabel } from '@/lib/editions';

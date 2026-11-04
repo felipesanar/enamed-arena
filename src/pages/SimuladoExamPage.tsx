@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useExamFlow } from '@/hooks/useExamFlow';
 import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
 import { ExamHeader } from '@/components/exam/ExamHeader';
+import { ExamTabOwnershipNotice } from '@/components/exam/ExamTabOwnershipNotice';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
 import { ConfidenceSelector } from '@/components/exam/ConfidenceSelector';
 import { QuestionNavigator, NavigatorLegend } from '@/components/exam/QuestionNavigator';
@@ -244,13 +245,13 @@ export default function SimuladoExamPage() {
   }, [enterFullscreen, exitFullscreen]);
 
   useEffect(() => {
-    if (flow.timeRemaining <= 300 && flow.timeRemaining > 295 && !timeWarningShown) {
+    if (flow.clockTrusted !== false && flow.timeRemaining <= 300 && flow.timeRemaining > 295 && !timeWarningShown) {
       setTimeWarningShown(true);
       setTimeWarningVisible(true);
       const timer = setTimeout(() => setTimeWarningVisible(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [flow.timeRemaining, timeWarningShown]);
+  }, [flow.timeRemaining, flow.clockTrusted, timeWarningShown]);
 
   if (flow.loading) {
     return (
@@ -311,7 +312,7 @@ export default function SimuladoExamPage() {
       </div>
 
       <AnimatePresence>
-        {flow.focusControl.isTabAway && (
+        {!flow.tabLease.blocked && flow.focusControl.isTabAway && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -327,7 +328,7 @@ export default function SimuladoExamPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {flow.focusControl.isFullscreenLost && (
+        {!flow.tabLease.blocked && flow.focusControl.isFullscreenLost && (
           <motion.div
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -362,10 +363,28 @@ export default function SimuladoExamPage() {
         currentQuestion={flow.currentIndex + 1}
         totalQuestions={flow.questions.length}
         timeRemaining={flow.timeRemaining}
-        onFinalize={() => flow.setShowSubmitModal(true)}
+        clockTrusted={flow.clockTrusted}
+        onFinalize={() => { if (!flow.interactionLocked) flow.setShowSubmitModal(true); }}
         saving={flow.saving ?? false}
         answeredCount={flow.summary.answered}
       />
+
+      <ExamTabOwnershipNotice
+        status={flow.tabLease.status !== 'owned' ? flow.tabLease.status : flow.preparation.status === 'ready' ? 'owned' : flow.preparation.status === 'error' ? 'runtime_error' : 'preparing'}
+        onTakeover={flow.tabLease.status === 'owned' ? flow.preparation.retry : flow.tabLease.takeover} />
+
+      {flow.interactionLocked && !flow.tabLease.blocked && flow.preparation.status === 'ready' &&
+        (flow.submitting || (flow.clockTrusted !== false && flow.timeRemaining === 0)) && (
+        <div role="status" className="border-b border-warning/15 bg-warning/8 px-4 py-3 text-body-sm">
+          <p>{flow.submitting ? 'Confirmando a finalização. Aguarde.' : 'Tempo esgotado. As respostas estão bloqueadas até a confirmação da finalização.'}</p>
+          {!flow.submitting && (
+            <button type="button" onClick={() => flow.finalize(true)}
+              className="mt-2 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Tentar finalizar novamente
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Offline banner */}
       <AnimatePresence>
@@ -386,7 +405,7 @@ export default function SimuladoExamPage() {
 
       {/* Time warning banner */}
       <AnimatePresence>
-        {timeWarningVisible && (
+        {timeWarningVisible && flow.clockTrusted !== false && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -421,11 +440,11 @@ export default function SimuladoExamPage() {
                 </p>
                 <div className={cn(
                   'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-body tabular-nums font-semibold mb-6',
-                  getTimerBgClass(flow.timeRemaining),
-                  getTimerColor(flow.timeRemaining),
+                  flow.clockTrusted !== false ? getTimerBgClass(flow.timeRemaining) : 'bg-muted/50',
+                  flow.clockTrusted !== false ? getTimerColor(flow.timeRemaining) : 'text-foreground',
                 )}>
                   <Clock className="h-4 w-4" />
-                  {formatTimer(flow.timeRemaining)} restantes
+                  {flow.clockTrusted === false ? 'Tempo estimado: ' : ''}{formatTimer(flow.timeRemaining)}{flow.clockTrusted !== false ? ' restantes' : ''}
                 </div>
                 <div>
                   <button
@@ -449,11 +468,11 @@ export default function SimuladoExamPage() {
 
                 <div className={cn(
                   'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-body-lg tabular-nums font-semibold mb-6',
-                  getTimerBgClass(flow.timeRemaining),
-                  getTimerColor(flow.timeRemaining),
+                  flow.clockTrusted !== false ? getTimerBgClass(flow.timeRemaining) : 'bg-muted/50',
+                  flow.clockTrusted !== false ? getTimerColor(flow.timeRemaining) : 'text-foreground',
                 )}>
                   <Clock className="h-4 w-4" />
-                  {formatTimer(flow.timeRemaining)}
+                  {flow.clockTrusted === false ? 'Tempo estimado: ' : ''}{formatTimer(flow.timeRemaining)}
                 </div>
 
                 <p className="text-body-sm text-muted-foreground mb-8">
@@ -481,31 +500,33 @@ export default function SimuladoExamPage() {
             <main className="flex-1 min-h-0 overflow-hidden p-3 md:p-4 pb-14 md:pb-0">
               <div className="max-w-5xl mx-auto h-full min-h-0">
                 <div className="h-full overflow-y-auto pr-1">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={flow.currentQuestion.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <QuestionDisplay
-                        question={flow.currentQuestion}
-                        answer={flow.currentAnswer}
-                        onSelectOption={flow.handleSelectOption}
-                        onEliminateOption={flow.handleEliminateOption}
-                      />
-                      {/* Seletor de confiança — só aparece após marcar uma alternativa (spec 04 §1.1) */}
-                      {flow.currentAnswer?.selectedOption && (
-                        <ConfidenceSelector
-                          value={flow.currentAnswer?.confidence ?? null}
-                          onChange={flow.handleSetConfidence}
+                  <fieldset disabled={flow.interactionLocked} className="min-w-0 border-0 p-0 disabled:opacity-60">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={flow.currentQuestion.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <QuestionDisplay
+                          question={flow.currentQuestion}
+                          answer={flow.currentAnswer}
+                          onSelectOption={flow.handleSelectOption}
+                          onEliminateOption={flow.handleEliminateOption}
                         />
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
+                        {/* Seletor de confiança — só aparece após marcar uma alternativa (spec 04 §1.1) */}
+                        {flow.currentAnswer?.selectedOption && (
+                          <ConfidenceSelector
+                            value={flow.currentAnswer?.confidence ?? null}
+                            onChange={flow.handleSetConfidence}
+                          />
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  </fieldset>
                   <div className="mt-3 pt-3 border-t border-[hsl(var(--exam-border))]">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <fieldset disabled={flow.interactionLocked} className="flex flex-wrap items-center gap-2 min-w-0 border-0 p-0 disabled:opacity-60">
                       <button
                         type="button"
                         onClick={flow.toggleReview}
@@ -541,7 +562,7 @@ export default function SimuladoExamPage() {
                           theme={flow.currentQuestion.theme}
                         />
                       )}
-                    </div>
+                    </fieldset>
                     <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/50">
                       Atalhos: <kbd className="px-1 rounded bg-muted/60 font-mono">1–5</kbd> alternativas
                       {' · '}<kbd className="px-1 rounded bg-muted/60 font-mono">←</kbd>{' '}

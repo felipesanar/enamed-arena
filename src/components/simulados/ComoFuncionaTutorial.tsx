@@ -23,10 +23,10 @@ const STEPS = [
   {
     id: "janela",
     mission: "Fase 01",
-    title: "Janela oficial",
+    title: "Janela de execução",
     subtitle: "Modo ranking",
     body:
-      "Enquanto a janela de execução estiver aberta, sua prova vale para o ranking nacional ENAMED. É o modo competitivo oficial — mesmo formato, mesma pressão do dia da seleção.",
+      "Ao realizar o simulado na janela de execução, você participa do ranking dos participantes da plataforma Sanar. Pratique a gestão do tempo e prepare-se para sua edição-alvo do ENAMED.",
     Icon: Trophy,
     accent: "#e83862",
   },
@@ -36,7 +36,7 @@ const STEPS = [
     title: "Depois da janela",
     subtitle: "Treino inteligente",
     body:
-      "O mesmo simulado continua disponível: mesma interface, mesma correção e análise. Fora da janela você treina com referência total — a realização não entra no ranking.",
+      "O simulado continua disponível para treino: a realização não entra no ranking. A correção e a análise respeitam a data de liberação configurada para o simulado.",
     Icon: Sparkles,
     accent: "#c084fc",
   },
@@ -44,9 +44,9 @@ const STEPS = [
     id: "resultados",
     mission: "Fase 03",
     title: "Resultados & ranking",
-    subtitle: "Tudo liberado junto",
+    subtitle: "Confira a data de liberação",
     body:
-      "Após o encerramento da janela, liberamos resultado detalhado, gabarito e o ranking da prova para você comparar desempenho e evoluir no próximo ciclo.",
+      "Resultado detalhado, gabarito e ranking ficam disponíveis na data de liberação configurada para cada simulado, que pode ser posterior ao fim da janela. Use essa análise para orientar sua preparação para a edição-alvo.",
     Icon: BarChart3,
     accent: "#38bdf8",
   },
@@ -60,8 +60,8 @@ const STEPS = [
     accent: "#fbbf24",
     pills: [
       "Não é possível pausar o cronômetro",
-      "Resultado liberado após a janela",
-      "Ranking disponível após encerramento",
+      "Resultado disponível na data de liberação",
+      "Ranking disponível na data de liberação",
     ],
   },
 ] as const;
@@ -206,7 +206,7 @@ function TutorialPanel({
           {/* HUD header */}
           <div className="relative z-[1] mb-5 flex items-center justify-between gap-3">
             <div>
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.35em] text-white/35">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.35em] text-white/80">
                 Simulados ENAMED
               </p>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-[#e83862]/90">
@@ -262,11 +262,11 @@ function TutorialPanel({
                       <h2 className="text-lg font-extrabold leading-tight tracking-tight text-white sm:text-xl">
                         {current.title}
                       </h2>
-                      <p className="mt-0.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/40">
+                      <p className="mt-0.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/80">
                         {current.subtitle}
                       </p>
                       {current.body ? (
-                        <p className="mt-3 text-sm leading-relaxed text-white/72">{current.body}</p>
+                        <p className="mt-3 text-sm leading-relaxed text-white/80">{current.body}</p>
                       ) : null}
                       {"pills" in current && current.pills ? (
                         <ul className="mt-4 space-y-2">

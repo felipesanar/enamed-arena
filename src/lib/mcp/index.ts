@@ -19,6 +19,8 @@ export default defineMcp({
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
+    // Supabase tokens must carry aud=authenticated; do not substitute resource.
+    acceptResourceClaim: false,
   }),
   tools: [getMyProfile, listSimulados, getMyPerformance, listMyAttempts, listErrorNotebook],
 });

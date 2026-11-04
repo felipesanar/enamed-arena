@@ -10,13 +10,21 @@ interface UseFocusControlProps {
   onTabExit: () => void;
   onTabReturn: () => void;
   onFullscreenExit?: () => void;
+  isEscapeAllowed?: () => boolean;
 }
 
-export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit }: UseFocusControlProps) {
+export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit, isEscapeAllowed }: UseFocusControlProps) {
   const [isTabAway, setIsTabAway] = useState(false);
   const [isFullscreenLost, setIsFullscreenLost] = useState(false);
   const [canInteract, setCanInteract] = useState(true);
   const wasInFullscreenRef = useRef(false);
+  const escapeUntil = useRef(-1);
+  const intentionalUntil = useRef(-1);
+  const acceptedExit = useRef(false);
+  const escapeAllowedRef = useRef(isEscapeAllowed);
+  escapeAllowedRef.current = isEscapeAllowed;
+  const callbacksRef = useRef({ onTabExit, onTabReturn, onFullscreenExit });
+  callbacksRef.current = { onTabExit, onTabReturn, onFullscreenExit };
 
   useEffect(() => {
     wasInFullscreenRef.current = !!document.fullscreenElement;
@@ -25,31 +33,40 @@ export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit }: Us
   const handleVisibility = useCallback(() => {
     if (document.hidden) {
       setIsTabAway(true);
-      onTabExit();
+      callbacksRef.current.onTabExit();
       setCanInteract(false);
     } else {
       setIsTabAway(false);
-      onTabReturn();
+      callbacksRef.current.onTabReturn();
       // Re-enable interaction ONLY if the integrity contract is satisfied:
       // i.e. the user is back in fullscreen. Otherwise we keep interaction
       // disabled until they re-enter fullscreen (the integrity overlay UI
       // shows the prompt for that).
-      setCanInteract(!!document.fullscreenElement);
+      setCanInteract(!!document.fullscreenElement || acceptedExit.current);
     }
-  }, [onTabExit, onTabReturn]);
+  }, []);
 
   const handleFullscreenChange = useCallback(() => {
     const isFs = !!document.fullscreenElement;
     const wasFs = wasInFullscreenRef.current;
     wasInFullscreenRef.current = isFs;
 
-    setIsFullscreenLost(!isFs);
-
-    if (wasFs && !isFs && onFullscreenExit) {
-      logger.log('[FocusControl] Fullscreen exit detected');
-      onFullscreenExit();
+    if (wasFs && !isFs) {
+      const now = performance.now();
+      acceptedExit.current = now <= escapeUntil.current || now <= intentionalUntil.current;
+      escapeUntil.current = -1;
+      intentionalUntil.current = -1;
+    } else if (isFs) {
+      acceptedExit.current = false;
     }
-  }, [onFullscreenExit]);
+    setIsFullscreenLost(!isFs && !acceptedExit.current);
+    setCanInteract(!document.hidden && (isFs || acceptedExit.current));
+
+    if (wasFs && !isFs && !acceptedExit.current && callbacksRef.current.onFullscreenExit) {
+      logger.log('[FocusControl] Fullscreen exit detected');
+      callbacksRef.current.onFullscreenExit();
+    }
+  }, []);
 
   const enterFullscreen = useCallback(async () => {
     try {
@@ -62,16 +79,29 @@ export function useFocusControl({ onTabExit, onTabReturn, onFullscreenExit }: Us
 
   const exitFullscreen = useCallback(async () => {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
+      if (document.fullscreenElement) {
+        intentionalUntil.current = performance.now() + 500;
+        await document.exitFullscreen();
+      }
     } catch {}
   }, []);
 
   useEffect(() => {
+    const keydown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== 'Escape' || !event.isTrusted || event.repeat || !document.fullscreenElement ||
+        escapeAllowedRef.current?.() === false || target?.closest?.('input, textarea, [contenteditable="true"], [contenteditable=""]')) return;
+      escapeUntil.current = performance.now() + 500;
+    };
     const fsEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange'];
+    document.addEventListener('keydown', keydown, true);
     document.addEventListener('visibilitychange', handleVisibility);
     fsEvents.forEach(e => document.addEventListener(e, handleFullscreenChange));
 
     return () => {
+      escapeUntil.current = -1;
+      intentionalUntil.current = -1;
+      document.removeEventListener('keydown', keydown, true);
       document.removeEventListener('visibilitychange', handleVisibility);
       fsEvents.forEach(e => document.removeEventListener(e, handleFullscreenChange));
     };

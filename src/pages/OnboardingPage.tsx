@@ -2,6 +2,10 @@ import { useState, useCallback, useRef, useEffect, Fragment } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { EditionTargetForm } from "@/components/editions/EditionTargetSettings";
+import { EditionTargetSummary, type EditionTargetValue } from "@/components/editions/EditionTargetPicker";
 import { usePersistedState, clearPersistedStateByPrefix } from "@/hooks/usePersistedState";
 import { trackEvent } from "@/lib/analytics";
 import { logger } from "@/lib/logger";
@@ -88,6 +92,14 @@ function DesktopTips({ step }: { step: number }) {
 }
 
 export default function OnboardingPage() {
+  const { user, loading } = useAuth();
+  const { profile, onboarding, isLoading } = useUser();
+  const editionsEnabled = useAppConfig('editions_ui');
+  if (loading || isLoading || !user || profile?.id !== user.id || (onboarding && onboarding.userId !== user.id)) return null;
+  return <OnboardingFlow key={`${user.id}:${editionsEnabled}`} accountId={user.id} editionsEnabled={editionsEnabled} />;
+}
+
+function OnboardingFlow({ accountId, editionsEnabled }: { accountId: string; editionsEnabled: boolean }) {
   const prefersReducedMotion = useReducedMotion();
   const {
     profile,
@@ -106,18 +118,24 @@ export default function OnboardingPage() {
     rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   const segment = profile?.segment ?? "guest";
 
-  const [step, setStep] = usePersistedState("onboarding:step", 0);
+  const [hasTargetStep] = useState(editionsEnabled && !isOnboardingComplete);
+  const [showTarget, setShowTarget] = useState(hasTargetStep);
+  const [target, setTarget] = useState<EditionTargetValue>({ targetEditionId: onboarding?.targetEditionId ?? undefined, expectedGraduationTerm: onboarding?.expectedGraduationTerm ?? null });
+  const steps = hasTargetStep ? ['Sua edição', ...STEPS] : STEPS;
+  const [step, setStep] = usePersistedState(`onboarding:${accountId}:step`, 0);
+  const displayStep = showTarget ? 0 : step + (hasTargetStep ? 1 : 0);
+  const active = useRef(true);
+  const saving = useRef(false);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const [selectedSpecialty, setSelectedSpecialty] =
-    usePersistedState<SpecialtySelection | null>("onboarding:specialtySel", null);
+    usePersistedState<SpecialtySelection | null>(`onboarding:${accountId}:specialtySel`, null);
   const [selectedInstitutions, setSelectedInstitutions] =
-    usePersistedState<InstitutionSelection[]>("onboarding:institutionSel", []);
+    usePersistedState<InstitutionSelection[]>(`onboarding:${accountId}:institutionSel`, []);
   const [institutionsUndecided, setInstitutionsUndecided] =
-    usePersistedState<boolean>("onboarding:institutionsUndecided", false);
+    usePersistedState<boolean>(`onboarding:${accountId}:institutionsUndecided`, false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const isEditingBlocked = isOnboardingComplete && onboardingEditLocked;
-
-  const STEP_NAMES = ['Especialidade', 'Instituições', 'Confirmação'] as const;
 
   const startedTracked = useRef(false);
   useEffect(() => {
@@ -133,14 +151,13 @@ export default function OnboardingPage() {
   }, []);
 
   useEffect(() => {
+    if (showTarget) return;
     trackEvent('onboarding_step_viewed', {
       step: (step + 1) as 1 | 2 | 3,
-      step_name: STEP_NAMES[step],
+      step_name: STEPS[step],
     });
-    // STEP_NAMES is a module-level constant — including it would only add
-    // noise. Effect depends only on the step index.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+    // Keep the existing academic 1–3 analytics contract; the target step has no new event.
+  }, [step, showTarget]);
 
   const nextEditableText = onboardingNextEditableAt
     ? new Date(onboardingNextEditableAt).toLocaleString("pt-BR", {
@@ -161,6 +178,7 @@ export default function OnboardingPage() {
   };
 
   const handleNext = () => {
+    if (showTarget || isSaving) return;
     if (isEditingBlocked) {
       trackEvent('onboarding_edit_blocked', {
         reason: 'active_exam_window',
@@ -178,12 +196,14 @@ export default function OnboardingPage() {
   };
 
   const handleBack = () => {
-    if (isEditingBlocked) return;
+    if (isEditingBlocked || isSaving) return;
     setError("");
+    if (step === 0 && hasTargetStep) { setShowTarget(true); return; }
     if (step > 0) setStep(step - 1);
   };
 
   const handleFinish = async () => {
+    if (saving.current || showTarget) return;
     if (isEditingBlocked) {
       trackEvent('onboarding_edit_blocked', {
         reason: 'active_exam_window',
@@ -198,6 +218,7 @@ export default function OnboardingPage() {
       return;
     }
     if (!canProceed()) return;
+    saving.current = true;
     setIsSaving(true);
     setError("");
     try {
@@ -207,11 +228,7 @@ export default function OnboardingPage() {
           ? []
           : selectedInstitutions.map((i) => i.id),
       });
-      trackEvent("onboarding_completed", {
-        segment,
-        specialty: selectedSpecialty?.name ?? UNDECIDED_LABEL,
-        institutions_count: institutionsUndecided ? 0 : selectedInstitutions.length,
-      });
+      if (!active.current) return;
       clearPersistedStateByPrefix("onboarding:");
       // Volta para onde o aluno tentou ir antes de ser desviado para cá (o
       // ProtectedRoute manda o destino em `?next=`). Só aceitamos caminho
@@ -219,6 +236,7 @@ export default function OnboardingPage() {
       // continua indo para a home, como sempre foi.
       navigate(safeNextPath);
     } catch (e) {
+      if (!active.current) return;
       logger.error("[OnboardingPage] Error saving onboarding:", e);
       const msg = e instanceof Error ? e.message.toLowerCase() : "";
       if (msg.includes("janela")) {
@@ -229,7 +247,7 @@ export default function OnboardingPage() {
         setError("Erro ao salvar seus dados. Tente novamente.");
       }
     } finally {
-      setIsSaving(false);
+      if (active.current) { saving.current = false; setIsSaving(false); }
     }
   };
 
@@ -279,7 +297,7 @@ export default function OnboardingPage() {
   const handlePointerUp = (e: React.PointerEvent) => {
     const start = swipeStart.current;
     swipeStart.current = null;
-    if (!start || isEditingBlocked) return;
+    if (!start || isEditingBlocked || isSaving || showTarget) return;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
@@ -287,7 +305,8 @@ export default function OnboardingPage() {
     if (dx > 0 && step > 0) handleBack();
   };
 
-  const StepIcon = STEP_META[step].icon;
+  const stepMeta = showTarget ? { icon: GraduationCap, title: 'Qual edição você pretende fazer?', description: 'Informe sua previsão de conclusão e escolha seu alvo. Tudo bem ainda não saber.' } : STEP_META[step];
+  const StepIcon = stepMeta.icon;
 
   return (
     <div
@@ -339,33 +358,47 @@ export default function OnboardingPage() {
 
       {/* Progress dots */}
       <p className="sr-only" aria-live="polite">
-        Etapa {step + 1} de {STEPS.length}: {STEPS[step]}
+        Etapa {displayStep + 1} de {steps.length}: {steps[displayStep]}
       </p>
+      {hasTargetStep ? (
+        <ol role="list" aria-label="Progresso do cadastro" className="dark relative z-10 mx-auto grid w-full max-w-[900px] grid-cols-4 list-none px-3.5 pt-3.5">
+          {steps.map((label, i) => (
+            <li key={label} aria-current={i === displayStep ? 'step' : undefined}
+              className={`relative flex min-w-0 flex-col items-center gap-1 text-center transition-colors duration-300 motion-reduce:transition-none ${i < displayStep ? 'text-success' : i === displayStep ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {i > 0 && <span aria-hidden className={`absolute right-1/2 top-3.5 h-px w-full ${i <= displayStep ? 'bg-success/40' : 'bg-border'}`} />}
+              <span aria-hidden className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 bg-card text-[11px] font-bold ${i < displayStep ? 'border-success/50' : i === displayStep ? 'border-primary onboarding-dot-active' : 'border-border'}`}>
+                {i < displayStep ? <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.5} /> : i + 1}
+              </span>
+              <span className="min-w-0 max-w-full whitespace-normal break-words text-[10px] font-medium leading-snug sm:text-caption">{label}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (<>
       <div className="relative z-10 flex items-center justify-center px-14 pt-3.5">
-        {([0, 1, 2] as const).map((i) => (
+        {steps.map((_, i) => (
           <Fragment key={i}>
             {i > 0 && (
               <div
                 className="flex-1 max-w-16 min-w-4 h-px mx-1.5 transition-colors duration-500"
                 style={{
                   background:
-                    i <= step
+                    i <= displayStep
                       ? "rgba(74,222,128,.3)"
                       : "rgba(255,255,255,.09)",
                 }}
               />
             )}
             <div
-              aria-current={i === step ? "step" : undefined}
-              className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold transition-all duration-300${i === step ? " onboarding-dot-active" : ""}`}
+              aria-current={i === displayStep ? "step" : undefined}
+              className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold transition-all duration-300${i === displayStep ? " onboarding-dot-active" : ""}`}
               style={
-                i < step
+                i < displayStep
                   ? {
                       background: "rgba(74,222,128,.12)",
                       border: "2px solid rgba(74,222,128,.5)",
                       color: "#4ade80",
                     }
-                  : i === step
+                  : i === displayStep
                   ? {
                       background: "rgba(232,56,98,.2)",
                       border: "2px solid #e83862",
@@ -378,7 +411,7 @@ export default function OnboardingPage() {
                     }
               }
             >
-              {i < step ? (
+              {i < displayStep ? (
                 <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
               ) : (
                 i + 1
@@ -390,15 +423,15 @@ export default function OnboardingPage() {
 
       {/* Step labels */}
       <div className="relative z-10 flex justify-between px-7 pt-1">
-        {STEPS.map((label, i) => (
+        {steps.map((label, i) => (
           <span
             key={label}
             className="text-[9px] font-semibold uppercase tracking-[.07em] flex-1 text-center transition-colors duration-300"
             style={{
               color:
-                i < step
+                i < displayStep
                   ? "rgba(74,222,128,.55)"
-                  : i === step
+                  : i === displayStep
                   ? "rgba(232,56,98,.9)"
                   : "rgba(255,255,255,.34)",
             }}
@@ -407,6 +440,8 @@ export default function OnboardingPage() {
           </span>
         ))}
       </div>
+
+      </>)}
 
       {/* Edit-locked banner */}
       {isEditingBlocked && onboarding && (
@@ -511,7 +546,7 @@ export default function OnboardingPage() {
                   className="text-[17px] font-extrabold leading-snug"
                   style={{ color: "rgba(255,255,255,.95)" }}
                 >
-                  {STEP_META[step].title}
+                  {stepMeta.title}
                 </p>
 
                 {/* Step description */}
@@ -519,11 +554,11 @@ export default function OnboardingPage() {
                   className="text-[12px] leading-relaxed"
                   style={{ color: "rgba(255,255,255,.68)" }}
                 >
-                  {STEP_META[step].description}
+                  {stepMeta.description}
                 </p>
 
                 {/* Contextual tips */}
-                <DesktopTips step={step} />
+                {!showTarget && <DesktopTips step={step} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -534,7 +569,7 @@ export default function OnboardingPage() {
             <div className="flex-1 min-h-0 overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
-                  key={step}
+                  key={showTarget ? 'target' : step}
                   initial={prefersReducedMotion ? false : { opacity: 0, x: 40 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={prefersReducedMotion ? undefined : { opacity: 0, x: -40 }}
@@ -544,13 +579,17 @@ export default function OnboardingPage() {
                   }}
                   className="h-full"
                 >
-                  {step === 0 && (
+                  {showTarget && <div className="dark min-w-0 space-y-4 bg-card p-4 text-foreground lg:rounded-xl">
+                    <h1 className="text-heading-3">Sua edição</h1>
+                    <EditionTargetForm initialValue={target} submitLabel="Salvar e continuar" onSaved={value => { setTarget(value); setStep(0); setShowTarget(false); }} />
+                  </div>}
+                  {!showTarget && step === 0 && (
                     <SpecialtyStep
                       selection={selectedSpecialty}
                       onSelect={handleSelectSpecialty}
                     />
                   )}
-                  {step === 1 && (
+                  {!showTarget && step === 1 && (
                     <InstitutionStep
                       selected={selectedInstitutions}
                       undecided={institutionsUndecided}
@@ -559,7 +598,8 @@ export default function OnboardingPage() {
                       selectedSpecialty={selectedSpecialty}
                     />
                   )}
-                  {step === 2 && (
+                  {!showTarget && step === 2 && (<>
+                    {hasTargetStep && <div className="dark bg-card p-4 text-foreground"><EditionTargetSummary value={target} /></div>}
                     <ConfirmationStep
                       segment={segment}
                       specialtyName={selectedSpecialty?.name ?? UNDECIDED_LABEL}
@@ -568,7 +608,7 @@ export default function OnboardingPage() {
                           ? []
                           : selectedInstitutions.map((i) => i.name)
                       }
-                    />
+                    /></>
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -599,7 +639,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Bottom nav */}
-        <div
+        {!showTarget && <div
           className="flex items-center gap-2.5 px-4 lg:px-6 pb-4 pt-2.5 flex-shrink-0"
           style={{
             background:
@@ -610,7 +650,7 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={handleBack}
-            disabled={step === 0}
+            disabled={(step === 0 && !hasTargetStep) || isSaving}
             className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-[13px] text-[12.5px] font-medium transition-opacity disabled:opacity-0 disabled:pointer-events-none shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
             style={{
               background: "rgba(255,255,255,.055)",
@@ -626,7 +666,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={handleNext}
-              disabled={isEditingBlocked}
+              disabled={isEditingBlocked || isSaving}
               className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[13px] text-[13.5px] font-bold transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e83862]/40"
               style={{
                 background: "#e83862",
@@ -660,7 +700,7 @@ export default function OnboardingPage() {
               )}
             </button>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

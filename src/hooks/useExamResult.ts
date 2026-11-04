@@ -3,7 +3,8 @@
  * Used by CorrecaoPage, DesempenhoPage.
  * This hook only trusts server-side persisted data.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLayoutEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { pickMostRelevantAttempt } from '@/lib/attempt-helpers';
 import {
   simuladosApi,
@@ -12,7 +13,7 @@ import {
   type AttemptQuestionResultRow,
 } from '@/services/simuladosApi';
 import { useAuth } from '@/contexts/AuthContext';
-import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 import type { ExamState, ExamAnswer } from '@/types/exam';
 
 function answersToExamState(attempt: AttemptRow, answerRows: AnswerRow[]): ExamState {
@@ -42,90 +43,90 @@ function answersToExamState(attempt: AttemptRow, answerRows: AnswerRow[]): ExamS
 }
 
 export function useExamResult(simuladoId: string | undefined) {
-  const [examState, setExamState] = useState<ExamState | null>(null);
-  const [attempt, setAttempt] = useState<AttemptRow | null>(null);
-  const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [attemptQuestionResults, setAttemptQuestionResults] = useState<Record<string, AttemptQuestionResultRow>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  // Counter used to ignore out-of-order responses when simuladoId/user change
-  // during an inflight fetch.
-  const reqIdRef = useRef(0);
-
-  const fetchData = useCallback(async () => {
-    if (!simuladoId || !user) {
-      setAttempt(null);
-      setExamState(null);
-      setAttemptId(null);
-      setAttemptQuestionResults({});
-      setError(null);
-      setLoading(false);
+  const { user, loading: authLoading } = useAuth();
+  const client = useQueryClient();
+  const userId = user?.id;
+  const enabled = !!simuladoId && !!userId && !authLoading;
+  // Capability, not a frontend admin role, is the existing SQL preview permission.
+  const access = useQuery({
+    queryKey: ['exam-result-access', userId], enabled, staleTime: 5 * 60 * 1000, retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_get_access');
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as { capabilities?: string[] } | null;
+      return row?.capabilities?.includes('results.view') === true;
+    },
+  });
+  const preview = enabled && access.data === true;
+  const queryKey = ['exam-result', userId, simuladoId, preview];
+  const query = useQuery({
+    queryKey, enabled: enabled && access.isFetched, staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const config = await simuladosApi.getSimulado(simuladoId!);
+      if (!config) return null;
+      const [online, offline] = await Promise.all([
+        simuladosApi.getAttempt(config.id, userId!, ['online', 'presencial']),
+        simuladosApi.getAttempt(config.id, userId!, 'offline'),
+      ]);
+      const chosen = pickMostRelevantAttempt(online, offline) ?? null;
+      const releaseAt = Date.parse(config.resultsReleaseAt);
+      const released = Number.isFinite(releaseAt) && Date.now() > releaseAt;
+      if (!chosen) return { releaseAt, released, attempt: null, examState: null,
+        attemptQuestionResults: {} as Record<string, AttemptQuestionResultRow> };
+      const finished = chosen.status === 'submitted' || chosen.status === 'expired';
+      const [answers, results] = await Promise.all([
+        simuladosApi.getAnswers(chosen.id),
+        (released || preview) && finished ? simuladosApi.getAttemptQuestionResults(chosen.id) : Promise.resolve([]),
+      ]);
+      return { releaseAt, released, attempt: released || preview ? chosen : { ...chosen, score_percentage: null, total_correct: null, total_answered: null }, examState: answersToExamState(chosen, answers),
+        attemptQuestionResults: Object.fromEntries(results.map(row => [row.question_id, row])) as Record<string, AttemptQuestionResultRow> };
+    },
+  });
+  const data = enabled && access.isFetched ? query.data : null;
+  const released = !!data && Number.isFinite(data.releaseAt) && Date.now() > data.releaseAt;
+  // A fresh pre-release cache must expire at release, even inside staleTime.
+  // A clock/calendar change back before release clears correction data before paint.
+  useLayoutEffect(() => {
+    if (!enabled || !data || !Number.isFinite(data.releaseAt)) return;
+    const queryKey = ['exam-result', userId, simuladoId, preview];
+    const refresh = () => { void client.invalidateQueries({ queryKey, exact: true }); };
+    if (released !== data.released) {
+      if (!released && !preview) client.setQueryData(queryKey, { ...data, released: false,
+        attempt: data.attempt ? { ...data.attempt, score_percentage: null, total_correct: null, total_answered: null } : null,
+        attemptQuestionResults: {} });
+      refresh();
       return;
     }
-
-    const reqId = ++reqIdRef.current;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const config = await simuladosApi.getSimulado(simuladoId);
-      if (reqId !== reqIdRef.current) return;
-      if (!config) {
-        setAttempt(null);
-        setExamState(null);
-        setAttemptId(null);
-        setAttemptQuestionResults({});
-        return;
-      }
-
-      const [onlineAttempt, offlineAttempt] = await Promise.all([
-        simuladosApi.getAttempt(config.id, user.id, ['online', 'presencial']),
-        simuladosApi.getAttempt(config.id, user.id, 'offline'),
-      ]);
-      if (reqId !== reqIdRef.current) return;
-
-      const chosen = pickMostRelevantAttempt(onlineAttempt, offlineAttempt) ?? null;
-      if (!chosen) {
-        setAttempt(null);
-        setExamState(null);
-        setAttemptId(null);
-        setAttemptQuestionResults({});
-        return;
-      }
-
-      const [answerRows, questionResults] = await Promise.all([
-        simuladosApi.getAnswers(chosen.id),
-        simuladosApi.getAttemptQuestionResults(chosen.id),
-      ]);
-      if (reqId !== reqIdRef.current) return;
-
-      const questionResultsMap = questionResults.reduce<Record<string, AttemptQuestionResultRow>>((acc, row) => {
-        acc[row.question_id] = row;
-        return acc;
-      }, {});
-
-      setAttempt(chosen);
-      setAttemptId(chosen.id);
-      setAttemptQuestionResults(questionResultsMap);
-      setExamState(answersToExamState(chosen, answerRows));
-    } catch (err: unknown) {
-      if (reqId !== reqIdRef.current) return;
-      logger.error('[useExamResult] Error:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar resultado');
-      // Do NOT clear previously-loaded data; the UI may prefer to show stale
-      // data with a non-blocking error banner. Consumers can choose via `error`.
-    } finally {
-      if (reqId === reqIdRef.current) {
-        setLoading(false);
-      }
+    if (!released) {
+      let timer: ReturnType<typeof setTimeout>;
+      const schedule = () => {
+        timer = setTimeout(() => {
+          if (Date.now() > data.releaseAt) refresh(); else schedule();
+        }, Math.min(2_147_483_647, Math.max(1, data.releaseAt - Date.now() + 1)));
+      };
+      schedule();
+      return () => clearTimeout(timer);
     }
-  }, [simuladoId, user]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { examState, attempt, attemptId, attemptQuestionResults, loading, error, refetch: fetchData };
+  }, [client, userId, simuladoId, enabled, data, released, preview]);
+  const { refetch: refetchQuery } = query;
+  const { refetch: refetchAccess, isError: accessFailed } = access;
+  const refetch = useCallback(async () => {
+    if (!enabled) return;
+    if (accessFailed) {
+      await refetchAccess();
+      return;
+    }
+    await refetchQuery();
+  }, [enabled, accessFailed, refetchAccess, refetchQuery]);
+  const attempt = data?.attempt ?? null;
+  const error = access.error ?? query.error;
+  return {
+    examState: data?.examState ?? null,
+    attempt: attempt && !released && !preview ? { ...attempt, score_percentage: null, total_correct: null, total_answered: null } : attempt,
+    attemptId: attempt?.id ?? null,
+    attemptQuestionResults: released || preview ? data?.attemptQuestionResults ?? {} : {},
+    loading: enabled && (!access.isFetched || query.isLoading),
+    error: enabled && error ? (error instanceof Error ? error.message : 'Erro ao carregar resultado') : null,
+    refetch,
+  };
 }

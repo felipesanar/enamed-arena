@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { validateQuestions, type QuestionRow } from './validateQuestions';
+import { validateQuestions, validateImportRows, parseImportCsv, type QuestionRow } from './validateQuestions';
 import { checkGabarito } from '@/admin/lib/gabaritoCheck';
 import type { GabaritoFinding } from '@/admin/lib/gabaritoCheck';
 
@@ -14,6 +14,28 @@ const base: QuestionRow = {
   alternativaA: 'a', alternativaB: 'b', alternativaC: 'c', alternativaD: 'd',
   gabarito: 'B', comentario: 'Alternativa B: CORRETA.',
 };
+
+describe('canonical import validation', () => {
+  it('parses legacy CSV with semicolons, BOM, quotes and embedded newlines', () => {
+    expect(parseImportCsv('\uFEFFnumero;Enunciado;Alternativa E\r\n1;"Texto; com ""aspas""\ne linha";e')).toEqual([{ numero: '1', Enunciado: 'Texto; com "aspas"\ne linha', 'Alternativa E': 'e' }]);
+    expect(parseImportCsv('numero,Enunciado\n1,text')).toEqual([{ numero: '1', Enunciado: 'text' }]);
+    expect(() => parseImportCsv('numero;Enunciado\n1;"aberto')).toThrow();
+  });
+  const areas = [{ id: 'p', blueprint_id: 'b', code: 'ped', label: 'Pediatria', aliases: ['PED'], weight: 1, sort_order: 1 }];
+  const row = { question_number: 1, text: 'Conduta?', area: 'PED', options: ['A','B','C','D'].map(label => ({ label, text: label, is_correct: label === 'A' })) };
+  it('accepts four versus five options only for the corresponding format', () => {
+    expect(validateImportRows([row], areas, { questions: 120, options: 4 })).toEqual([]);
+    expect(validateImportRows([row], areas, { questions: 120, options: 5 })[0].field).toBe('options');
+    expect(validateImportRows([{ ...row, options: [...row.options, { label: 'E', text: 'E', is_correct: false }] }], areas, { questions: 120, options: 5 })).toEqual([]);
+  });
+  it('reports payload row numbers and rejects duplicates, limits and ambiguous areas', () => {
+    const errors = validateImportRows([row, { ...row, area: 'Preventiva' }], areas, { questions: 1, options: 4 });
+    expect(errors).toContainEqual(expect.objectContaining({ row: 2, field: 'question_number' }));
+    expect(errors).toContainEqual(expect.objectContaining({ row: 2, field: 'area' }));
+    expect(validateImportRows([{ ...row, question_number: 0 }], areas, { questions: 120, options: 4 })).not.toEqual([]);
+    expect(validateImportRows([{ ...row, options: row.options.map(o => ({ ...o, is_correct: true })) }], areas, { questions: 120, options: 4 })).not.toEqual([]);
+  });
+});
 
 const finding = (overrides: Partial<GabaritoFinding>): GabaritoFinding => ({
   questionNumber: 1,

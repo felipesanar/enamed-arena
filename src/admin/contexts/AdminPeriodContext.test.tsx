@@ -1,0 +1,77 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import type { ReactNode } from 'react'
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: identity.id ? { id: identity.id } : null }) }))
+const identity = vi.hoisted(() => ({ id: 'a' as string | null }))
+import { AdminPeriodProvider, useAdminPeriod } from './AdminPeriodContext'
+const wrapper = ({ children }: { children: ReactNode }) => <AdminPeriodProvider>{children}</AdminPeriodProvider>
+describe('admin report session', () => {
+  beforeEach(() => { sessionStorage.clear(); identity.id = 'a'; vi.restoreAllMocks() })
+  it('preserves legacy period, independent edition/range, and validates catalog', () => {
+    sessionStorage.setItem('admin_period', '30')
+    const { result } = renderHook(useAdminPeriod, { wrapper })
+    expect(result.current.period).toBe(30)
+    act(() => result.current.setReportEditionId('edition-a'))
+    act(() => result.current.setReportRange({ kind: 'all' }))
+    expect(result.current.reportEditionId).toBe('edition-a')
+    expect(result.current.reportScope).toBeUndefined()
+    act(() => result.current.setReportCatalog({ status: 'ready', editions: [{ id: 'edition-a', label: 'A' }] }))
+    expect(result.current.reportScope).toEqual({ editionId: 'edition-a', startAt: null, endAt: null })
+    act(() => result.current.setPeriod(90))
+    expect(result.current.reportRange).toEqual({ kind: 'all' })
+    act(() => result.current.setReportCatalog({ status: 'ready', editions: [] }))
+    expect(result.current.reportScope).toBeUndefined()
+    expect(result.current.reportEditionId).toBe('edition-a')
+    expect(result.current.reportError).toMatch(/escolha/i)
+  })
+  it('never exposes account A selection or catalog during switch/logout', () => {
+    const { result, rerender } = renderHook(useAdminPeriod, { wrapper })
+    act(() => result.current.setReportEditionId('edition-a'))
+    identity.id = 'b'; rerender()
+    expect(result.current.reportEditionId).toBeNull()
+    expect(result.current.reportScope).toBeUndefined()
+    act(() => result.current.setReportEditionId('edition-b'))
+    identity.id = null; rerender()
+    expect(result.current.reportEditionId).toBeNull()
+    identity.id = 'a'; rerender()
+    expect(result.current.reportEditionId).toBe('edition-a')
+  })
+  it('preserves independent filters even when setters are batched', () => {
+    const { result } = renderHook(useAdminPeriod, { wrapper })
+    act(() => {
+      result.current.setReportEditionId('edition-a')
+      result.current.setReportRange({ kind: 'all' })
+    })
+    expect(result.current.reportEditionId).toBe('edition-a')
+    expect(result.current.reportRange).toEqual({ kind: 'all' })
+    expect(JSON.parse(sessionStorage.getItem('admin-report:a:v1')!)).toEqual({ editionId: 'edition-a', range: { kind: 'all' } })
+  })
+  it('preserves independent filters when range is set before edition in one batch', () => {
+    const { result } = renderHook(useAdminPeriod, { wrapper })
+    act(() => {
+      result.current.setReportRange({ kind: 'all' })
+      result.current.setReportEditionId('edition-a')
+    })
+    expect(result.current.reportEditionId).toBe('edition-a')
+    expect(result.current.reportRange).toEqual({ kind: 'all' })
+    expect(JSON.parse(sessionStorage.getItem('admin-report:a:v1')!)).toEqual({ editionId: 'edition-a', range: { kind: 'all' } })
+  })
+  it('handles malformed and unavailable sessionStorage without crashing', () => {
+    sessionStorage.setItem('admin-report:a:v1', '{')
+    const { result, unmount } = renderHook(useAdminPeriod, { wrapper })
+    expect(result.current.reportWarning).toMatch(/inválidos/)
+    unmount()
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+    const other = renderHook(useAdminPeriod, { wrapper })
+    act(() => other.result.current.setPeriod(30))
+    act(() => {
+      other.result.current.setReportEditionId('x')
+      other.result.current.setReportRange({ kind: 'all' })
+    })
+    expect(other.result.current.reportWarning).toMatch(/sessão/i)
+    expect(other.result.current.period).toBe(30)
+    expect(other.result.current.reportEditionId).toBe('x')
+    expect(other.result.current.reportRange).toEqual({ kind: 'all' })
+  })
+})

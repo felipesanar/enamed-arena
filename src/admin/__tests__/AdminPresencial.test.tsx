@@ -6,6 +6,8 @@ import { renderWithAccess } from './test-utils'
 vi.mock('@/admin/hooks/useAdminPresencial')
 vi.mock('@/admin/hooks/useAdminTentativas')
 vi.mock('@/admin/services/adminApi')
+const editionsFlag = vi.hoisted(() => ({ value: false }))
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => editionsFlag.value }))
 // `qrcode.react` está em package.json (dependência desta feature) mas ausente do
 // node_modules compartilhado por junction entre worktrees — falta rodar `npm install`
 // na raiz depois que os package.json dos agentes em paralelo forem consolidados.
@@ -125,6 +127,7 @@ class ResizeObserverStub {
 
 describe('AdminPresencial', () => {
   beforeEach(() => {
+    editionsFlag.value = false
     global.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
     vi.mocked(useAdminPresencialSessions).mockReturnValue({ data: mockSessions, isLoading: false, isError: false } as any)
     vi.mocked(useAdminPresencialSessionUpsert).mockReturnValue({ mutate: vi.fn(), isPending: false } as any)
@@ -145,6 +148,36 @@ describe('AdminPresencial', () => {
     // "Sala A — Bloco 2" também é o session_label das linhas da fila — mais de uma ocorrência é esperado.
     expect(screen.getAllByText('Sala A — Bloco 2').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('8/10')).toBeInTheDocument()
+  })
+
+  it('flag off never exposes or sends ranking rule', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /editar sessão/i }))
+    expect(screen.queryByLabelText('Regra para o ranking')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    const mutate = vi.mocked(useAdminPresencialSessionUpsert).mock.results[0].value.mutate
+    expect(mutate.mock.calls[0][0]).not.toHaveProperty('ranking_rule')
+  })
+
+  it.each([undefined, 'legacy_online_window', 'session_window_v1'])('preserves existing real rule without inferring unknown: %s', ranking_rule => {
+    editionsFlag.value = true
+    vi.mocked(useAdminPresencialSessions).mockReturnValue({ data: [{ ...mockSessions[0], ranking_rule }], isLoading: false } as any)
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /editar sessão/i }))
+    expect(screen.getByLabelText('Regra para o ranking')).toHaveValue(ranking_rule ?? '')
+    if (!ranking_rule) expect(screen.getByLabelText('Regra para o ranking')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    const mutate = vi.mocked(useAdminPresencialSessionUpsert).mock.results.at(-1)!.value.mutate
+    if (ranking_rule) expect(mutate.mock.calls[0][0]).toHaveProperty('ranking_rule', ranking_rule)
+    else expect(mutate.mock.calls[0][0]).not.toHaveProperty('ranking_rule')
+  })
+
+  it('prefers the session window explicitly for new sessions', () => {
+    editionsFlag.value = true
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /nova sessão/i }))
+    expect(screen.getByLabelText('Regra para o ranking')).toHaveValue('session_window_v1')
+    expect(screen.getByText('A regra vale para novas participações. As anteriores mantêm a regra registrada.')).toBeInTheDocument()
   })
 
   it('opens the print dialog with the QR svg, the correct URL and the print-sheet id', () => {

@@ -8,15 +8,8 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-/** Data do próximo ENAMED — atualizar por ciclo (dono: Conteúdo/Ops). */
-export const ENAMED_DATE = new Date('2026-11-28T00:00:00-03:00');
-
-function calcDaysUntilEnamed(): number {
-  const now = new Date();
-  const diff = ENAMED_DATE.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
+import { useExamEditions } from '@/hooks/useExamEditions';
+import { getDaysUntil } from '@/lib/editions';
 
 function pluralize(n: number, s: string, p: string) {
   return n === 1 ? s : p;
@@ -63,7 +56,8 @@ export function PageHero({
 }: PageHeroProps) {
   const prefersReducedMotion = useReducedMotion();
   const progressPct = totalCount === 0 ? 0 : Math.round((resolvedCount / totalCount) * 100);
-  const daysUntilEnamed = calcDaysUntilEnamed();
+  const { nextEdition } = useExamEditions();
+  const daysUntilEnamed = getDaysUntil(nextEdition?.exam_date ?? null, new Date());
 
   return (
     <div
@@ -158,10 +152,12 @@ export function PageHero({
         </div>
 
         {/* Countdown ENAMED */}
-        {daysUntilEnamed > 0 && (
+        {nextEdition && daysUntilEnamed !== null && daysUntilEnamed >= 0 && (
           <p className="text-[11px] text-white/40">
-            <span className="font-bold tabular-nums text-white/65">{daysUntilEnamed}</span>{' '}
-            {pluralize(daysUntilEnamed, 'dia', 'dias')} para o ENAMED
+            {daysUntilEnamed === 0 ? `${nextEdition.label}: É hoje` : (
+              <><span className="font-bold tabular-nums text-white/65">{daysUntilEnamed}</span>{' '}
+                {pluralize(daysUntilEnamed, 'dia', 'dias')} para o {nextEdition.label}</>
+            )}
           </p>
         )}
       </div>

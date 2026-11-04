@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { PresencialEntryCard } from './PresencialEntryCard'
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }))
 
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
@@ -83,7 +84,7 @@ describe('PresencialEntryCard', () => {
     await waitFor(() => {
       expect(offlineApi.createPresencialAttempt).toHaveBeenCalledWith('sim-7')
     })
-    expect(persistOfflineAttempt).toHaveBeenCalledWith({
+    expect(persistOfflineAttempt).toHaveBeenCalledWith('u1', {
       id: 'attempt-1',
       simulado_id: 'sim-7',
       simulado_slug: 'simulado-7',

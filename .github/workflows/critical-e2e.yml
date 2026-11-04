@@ -1,0 +1,39 @@
+name: Critical staging E2E (manual only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: critical-staging-fixture
+  cancel-in-progress: false
+jobs:
+  critical:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    environment: STAGING
+    # Manual protected staging only. No deployment or fork-PR secrets.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: node node_modules/@playwright/test/cli.js install --with-deps chromium
+      - name: Validate local backend fencing (no credentials)
+        env:
+          CRITICAL_E2E_MODE: safety
+        run: node node_modules/@playwright/test/cli.js test --config e2e/critical.config.ts
+      - name: Run isolated fixture against protected STAGING
+        env:
+          CRITICAL_E2E_ENV: STAGING
+          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+          E2E_EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.E2E_EXPECTED_SUPABASE_PROJECT_REF }}
+          E2E_FIXTURE_EMAIL: ${{ secrets.E2E_FIXTURE_EMAIL }}
+          E2E_FIXTURE_PASSWORD: ${{ secrets.E2E_FIXTURE_PASSWORD }}
+          E2E_FIXTURE_SIMULADO_ID: ${{ vars.E2E_FIXTURE_SIMULADO_ID }}
+          E2E_ALLOW_FIXTURE_MUTATION: 'true'
+        run: node node_modules/@playwright/test/cli.js test --config e2e/critical.config.ts

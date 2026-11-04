@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import AnswerSheetPage from './AnswerSheetPage'
+import { trackEvent } from '@/lib/analytics'
+let currentUser = 'u1'
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: currentUser } }) }))
+beforeEach(() => { localStorage.clear(); currentUser = 'u1'; vi.mocked(trackEvent).mockReset(); })
 
 // ── Framer Motion mock ──────────────────────────────────────────────────────
 vi.mock('framer-motion', () => ({
@@ -33,7 +37,7 @@ import { toast } from '@/hooks/use-toast'
 vi.mock('@/hooks/useSimuladoDetail')
 vi.mock('@/hooks/useOfflineAttempt')
 vi.mock('@/services/offlineApi', () => ({
-  offlineApi: { submitOfflineAnswers: vi.fn() },
+  offlineApi: { submitOfflineAnswers: vi.fn(), getOfflineAttemptStatus: vi.fn() },
 }))
 vi.mock('@/services/cadernoApi', () => ({
   cadernoApi: {
@@ -121,8 +125,11 @@ function setup(
     activeAttempt,
     clearAttempt: mockClearAttempt,
     invalidate: vi.fn(),
+    isConfirmed: !!activeAttempt,
+    retry: vi.fn(),
   } as any)
   vi.mocked(cadernoApi.listActiveCadernos).mockResolvedValue(cadernos as any)
+  vi.mocked(offlineApi.getOfflineAttemptStatus).mockResolvedValue('offline_pending')
 }
 
 function renderPage() {
@@ -157,6 +164,104 @@ function answerAll() {
   mockQuestions.forEach(q => selectAnswer(q.number, 'A'))
 }
 
+describe('AnswerSheetPage durable recovery', () => {
+  beforeEach(() => { vi.clearAllMocks(); setup(); })
+  it('restores after reload only for same owner/attempt/grade and deduplicates view', async () => {
+    const first = await renderPageReady()
+    selectAnswer(1, 'B')
+    first.unmount()
+    const second = await renderPageReady()
+    expect(screen.getByRole('button', { name: /Questão 1 .*alternativa B/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/rascunho restaurado/i)).toBeInTheDocument()
+    expect(vi.mocked(trackEvent).mock.calls.filter(c => c[0] === 'offline_answer_sheet_opened')).toHaveLength(2)
+    second.unmount()
+    currentUser = 'u2'
+    await renderPageReady()
+    expect(screen.getByRole('button', { name: /Questão 1 .*alternativa B/ })).toHaveAttribute('aria-pressed', 'false')
+  })
+  it('failed submit keeps answers and reconciles submitted status before retrying', async () => {
+    vi.mocked(offlineApi.submitOfflineAnswers).mockRejectedValueOnce(new Error('timeout'))
+    await renderPageReady()
+    answerAll()
+    fireEvent.click(screen.getByRole('button', { name: /enviar gabarito/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirmar envio/i }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Erro ao enviar gabarito' })))
+    expect(screen.getByRole('button', { name: /Questão 1 .*alternativa A/ })).toHaveAttribute('aria-pressed', 'true')
+    vi.mocked(offlineApi.getOfflineAttemptStatus).mockResolvedValue('submitted')
+    fireEvent.click(screen.getByRole('button', { name: /enviar gabarito/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirmar envio/i }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalled())
+    expect(offlineApi.submitOfflineAnswers).toHaveBeenCalledTimes(1)
+    expect(offlineApi.submitOfflineAnswers).toHaveBeenCalledWith('att-1', expect.any(Array), 'sim-1')
+  })
+  it('telemetry throwing does not prevent editing or submitting', async () => {
+    vi.mocked(trackEvent).mockImplementation(() => { throw new Error('telemetry') })
+    vi.mocked(offlineApi.submitOfflineAnswers).mockResolvedValue({ attempt_id: 'att-1', is_within_window: false })
+    await renderPageReady()
+    answerAll()
+    fireEvent.click(screen.getByRole('button', { name: /enviar gabarito/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirmar envio/i }))
+    await waitFor(() => expect(offlineApi.submitOfflineAnswers).toHaveBeenCalled())
+  })
+  it('local-only pending is not an editable authorization', async () => {
+    vi.mocked(useOfflineAttempt).mockReturnValue({ activeAttempt: baseAttempt, isConfirmed: false, queryError: true, retry: vi.fn() } as any)
+    renderPage()
+    await waitFor(() => expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Questão 1 .*alternativa A/ })).toBeNull()
+  })
+  it('never applies old submission callbacks to a new signed-in user', async () => {
+    let resolve!: (value: any) => void
+    vi.mocked(offlineApi.submitOfflineAnswers).mockImplementationOnce(() => new Promise(r => { resolve = r }))
+    const page = await renderPageReady()
+    answerAll()
+    fireEvent.click(screen.getByRole('button', { name: /enviar gabarito/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirmar envio/i }))
+    await waitFor(() => expect(offlineApi.submitOfflineAnswers).toHaveBeenCalled())
+    currentUser = 'u2'
+    page.rerender(<MemoryRouter initialEntries={['/simulados/sim-1/gabarito']}><Routes><Route path="/simulados/:id/gabarito" element={<AnswerSheetPage />} /></Routes></MemoryRouter>)
+    resolve({ attempt_id: 'att-1', is_within_window: true })
+    await waitFor(() => expect(screen.getByRole('button', { name: /Questão 1 .*alternativa A/ })).toHaveAttribute('aria-pressed', 'false'))
+    expect(mockClearAttempt).not.toHaveBeenCalled()
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+  it('changed natural option identity does not replay an older draft', async () => {
+    const first = await renderPageReady()
+    selectAnswer(1, 'A')
+    first.unmount()
+    setup({ questions: [{ ...mockQuestions[0], options: [{ id: 'new-option', label: 'A' }] }, ...mockQuestions.slice(1)] })
+    await renderPageReady()
+    expect(screen.getByRole('button', { name: /Questão 1 .*alternativa A/ })).toHaveAttribute('aria-pressed', 'false')
+  })
+  it('restores the same printed caderno after reload, but not a changed skeleton', async () => {
+    setup({ cadernos: twoCadernos })
+    vi.mocked(cadernoApi.setAttemptCaderno).mockResolvedValue(undefined)
+    vi.mocked(cadernoApi.getCadernoSkeleton).mockResolvedValue(cadernoAzulSkeleton as any)
+    const first = renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Caderno 2, cor Azul/i }))
+    await screen.findByRole('button', { name: /Questão 1 .*alternativa A/ })
+    selectAnswer(1, 'B')
+    first.unmount()
+    const second = renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Caderno 2, cor Azul/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Questão 1 .*alternativa B/ })).toHaveAttribute('aria-pressed', 'true'))
+    second.unmount()
+    vi.mocked(cadernoApi.getCadernoSkeleton).mockResolvedValue(cadernoAzulSkeleton.map(q => ({ ...q, options: q.options.map(o => ({ ...o, id: `${o.id}-revised` })) })) as any)
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Caderno 2, cor Azul/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Questão 1 .*alternativa B/ })).toHaveAttribute('aria-pressed', 'false'))
+  })
+  it.each(['submitted', 'expired'])('never edits a %s attempt even if a local pending/draft exists', async status => {
+    const first = await renderPageReady()
+    selectAnswer(1, 'B')
+    first.unmount()
+    setup({ activeAttempt: { ...baseAttempt, status } })
+    renderPage()
+    await waitFor(() => expect(screen.getByText(/tentativa offline não encontrada/i)).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Questão 1 .*alternativa B/ })).toBeNull()
+    expect(offlineApi.submitOfflineAnswers).not.toHaveBeenCalled()
+  })
+})
+
 // ── Tests ───────────────────────────────────────────────────────────────────
 describe('AnswerSheetPage — loading', () => {
   beforeEach(() => { vi.clearAllMocks() })
@@ -187,7 +292,7 @@ describe('AnswerSheetPage — estados de erro', () => {
   it('mostra "Tentativa offline não encontrada" quando o attempt é de outro simulado', async () => {
     setup({ activeAttempt: { ...baseAttempt, simulado_id: 'outro-sim' } })
     renderPage()
-    expect(await screen.findByText(/tentativa offline não encontrada/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/tentativa offline não encontrada/i)).toBeInTheDocument())
   })
 })
 
@@ -278,7 +383,7 @@ describe('AnswerSheetPage — envio do gabarito', () => {
         { question_id: 'q1', selected_option_id: 'q1a' },
         { question_id: 'q2', selected_option_id: 'q2a' },
         { question_id: 'q3', selected_option_id: 'q3a' },
-      ])
+      ], 'sim-1')
     })
 
     expect(mockClearAttempt).toHaveBeenCalled()
@@ -302,24 +407,23 @@ describe('AnswerSheetPage — envio do gabarito', () => {
 
     await waitFor(() => {
       expect(toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Gabarito enviado' }),
+        expect.objectContaining({
+          title: 'Gabarito enviado',
+          description: expect.stringMatching(/Gabarito recebido fora da janela de ranking.*data de liberação do simulado/),
+        }),
       )
     })
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({
+      description: expect.stringMatching(/Resultado disponível/),
+    }))
     expect(mockNavigate).toHaveBeenCalledWith('/simulados/enamed-2025-1')
   })
 
-  it('alerta "Sessão expirada" e não navega quando não há attempt ativo', async () => {
+  it('não permite edição quando não há attempt ativo', async () => {
     setup({ activeAttempt: null })
-    await renderPageReady()
-    answerAll()
-    fireEvent.click(screen.getByRole('button', { name: /enviar gabarito/i }))
-    fireEvent.click(screen.getByRole('button', { name: /confirmar envio/i }))
-
-    await waitFor(() => {
-      expect(toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Sessão expirada', variant: 'destructive' }),
-      )
-    })
+    renderPage()
+    await waitFor(() => expect(screen.getByText(/tentativa offline não encontrada/i)).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Questão 1 .*alternativa A/ })).toBeNull()
     expect(offlineApi.submitOfflineAnswers).not.toHaveBeenCalled()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
@@ -397,7 +501,7 @@ describe('AnswerSheetPage — fluxo de cadernos: grade na ordem do caderno', () 
         { question_id: 'q3', selected_option_id: 'q3-caderno-a' },
         { question_id: 'q1', selected_option_id: 'q1-caderno-a' },
         { question_id: 'q2', selected_option_id: 'q2-caderno-a' },
-      ])
+      ], 'sim-1')
     })
   })
 

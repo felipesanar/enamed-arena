@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,13 +25,21 @@ import { AdminConfirmDialog } from '@/admin/components/ui/AdminConfirmDialog';
 import { formatInt } from '@/admin/lib/format';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
+import { CloneSimuladoDialog } from '@/admin/components/editions/CloneSimuladoDialog';
+import type { ExamEdition } from '@/types/edition';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateQuestionBankQueries } from '@/lib/exam-query-cache';
 
 interface SimuladoListItem {
+  edition_id?: string;
   id: string;
   title: string;
   sequence_number: number;
   status: string;
   questions_count: number;
+  attempts_count?: number | null;
   execution_window_start: string;
   execution_window_end: string;
 }
@@ -98,8 +107,8 @@ function formatWindow(startIso: string, endIso: string): string | null {
   const start = new Date(startIso)
   const end = new Date(endIso)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
-  const dm = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-  const dmy = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  const dm = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
+  const dmy = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: '2-digit' })
   return `${dm(start)} → ${dmy(end)}`
 }
 
@@ -147,6 +156,19 @@ function LoadingTable() {
 // ─── Conteúdo ──────────────────────────────────────────────────────────────
 
 function AdminSimuladosContent() {
+  const queryClient = useQueryClient();
+  const editionsEnabled = useAppConfig('editions_ui');
+  const [editions, setEditions] = useState<ExamEdition[]>([]);
+  const [editionFilter, setEditionFilter] = useState('');
+  const [editionError, setEditionError] = useState(false);
+  const [cloneTarget, setCloneTarget] = useState<SimuladoListItem | null>(null);
+  const loadEditions = () => {
+    if (!editionsEnabled) return;
+    setEditionError(false);
+    adminEditionsApi.list().then(setEditions).catch(() => setEditionError(true));
+  };
+  useEffect(loadEditions, [editionsEnabled]);
+  const gridCols = editionsEnabled ? '48px minmax(0,2fr) 100px 130px 90px 200px 44px' : GRID_COLS;
   const navigate = useNavigate();
   const { data: engagementMap } = useAdminSimuladoEngagementMap();
   const [simulados, setSimulados] = useState<SimuladoListItem[]>([]);
@@ -170,10 +192,15 @@ function AdminSimuladosContent() {
   useEffect(load, []);
 
   const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleting) return;
+    if (deleteTarget.attempts_count !== 0) {
+      toast({ title: 'Exclusão bloqueada', description: 'Não foi confirmada a ausência de tentativas. Preserve o histórico.', variant: 'destructive' });
+      return;
+    }
     setDeleting(true);
     try {
-      await adminApi.deleteQuestionsForSimulado(deleteTarget.id);
+      const count = await adminApi.getSimuladoAttemptsCount(deleteTarget.id);
+      if (count !== 0) throw new Error('O simulado possui tentativas e não pode ser excluído. Preserve o histórico.');
       await adminApi.deleteSimulado(deleteTarget.id);
       toast({ title: 'Simulado excluído' });
       setDeleteTarget(null);
@@ -222,7 +249,7 @@ function AdminSimuladosContent() {
         : `${formatInt(simulados.length)} ${simulados.length === 1 ? 'prova cadastrada' : 'provas cadastradas'} · ${availableNow} ${availableNow === 1 ? 'disponível agora' : 'disponíveis agora'}`
 
   return (
-    <div className="space-y-6">
+    <div className={cn('space-y-6', editionsEnabled && 'editions-experience')}>
       <AdminPageHeader
         title="Simulados"
         subtitle={subtitle}
@@ -232,6 +259,12 @@ function AdminSimuladosContent() {
           </Button>
         }
       />
+
+      {editionsEnabled && <div className="space-y-2 text-sm text-admin-text">
+        <label htmlFor="simulados-edition">Filtrar por edição</label>
+        <select id="simulados-edition" className="ml-3 min-h-11 max-w-full rounded-md border border-admin-line bg-admin-surface p-2" value={editionFilter} onChange={e => setEditionFilter(e.target.value)}><option value="">Todas as edições</option>{editions.map(edition => <option key={edition.id} value={edition.id}>{edition.code} · {edition.label}</option>)}</select>
+        {editionError && <div role="alert">Não foi possível carregar as edições. <Button variant="outline" onClick={loadEditions}>Tentar novamente</Button></div>}
+      </div>}
 
       {loading ? (
         <LoadingTable />
@@ -267,11 +300,12 @@ function AdminSimuladosContent() {
         <div className="overflow-hidden rounded-xl border border-admin-line bg-admin-surface">
           {/* Cabeçalho */}
           <div
-            className="grid border-b border-admin-line bg-admin-bg-outer text-[10.5px] font-bold uppercase tracking-[0.06em] text-admin-faint"
-            style={{ gridTemplateColumns: GRID_COLS }}
+            className={cn('grid border-b border-admin-line bg-admin-bg-outer text-[10.5px] font-bold uppercase tracking-[0.06em] text-admin-faint', editionsEnabled && 'editions-simulados-header')}
+            style={{ gridTemplateColumns: gridCols }}
           >
             <div className="px-4 py-3">#</div>
             <div className="px-3 py-3">Título</div>
+            {editionsEnabled && <div className="px-3 py-3">Edição</div>}
             <div className="px-3 py-3">Disponibilidade</div>
             <div className="px-3 py-3">Questões</div>
             <div className="px-3 py-3">Janela de execução</div>
@@ -279,7 +313,8 @@ function AdminSimuladosContent() {
           </div>
 
           {/* Linhas */}
-          {simulados.map((s, idx) => {
+          {editionsEnabled && editionFilter && !simulados.some(s => s.edition_id === editionFilter) && <p className="p-5 text-sm text-admin-muted">Nenhum simulado nesta edição.</p>}
+          {simulados.filter(s => !editionsEnabled || !editionFilter || s.edition_id === editionFilter).map((s, idx) => {
             const availability = deriveAvailability(s, now)
             const isDraftEmpty = availability === 'draft' && s.questions_count === 0
             const windowLabel = formatWindow(s.execution_window_start, s.execution_window_end)
@@ -294,8 +329,9 @@ function AdminSimuladosContent() {
                   'grid items-center border-b border-admin-line-subtle last:border-0',
                   'motion-safe:transition-colors hover:bg-admin-raised/40',
                   idx % 2 === 1 && 'bg-admin-bg-outer/60',
+                  editionsEnabled && 'editions-simulados-row',
                 )}
-                style={{ gridTemplateColumns: GRID_COLS }}
+                style={{ gridTemplateColumns: gridCols }}
               >
                 <div className="px-4 py-3.5 font-mono text-[12.5px] text-admin-faint">{seq}</div>
 
@@ -312,6 +348,7 @@ function AdminSimuladosContent() {
                   </button>
                 </div>
 
+                {editionsEnabled && <div data-label="Edição" className="break-words px-3 py-3.5 text-sm text-admin-text">{editions.find(e => e.id === s.edition_id)?.code ?? 'Não definida'}</div>}
                 <div className="px-3 py-3.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <AvailabilityBadge availability={availability} />
@@ -331,7 +368,7 @@ function AdminSimuladosContent() {
                   </div>
                 </div>
 
-                <div className="px-3 py-3.5">
+                <div data-label={editionsEnabled ? 'Questões' : undefined} className="px-3 py-3.5">
                   {isDraftEmpty ? (
                     <span
                       className="inline-flex items-center gap-1.5 font-mono text-[12.5px] tabular-nums text-admin-warning"
@@ -349,7 +386,7 @@ function AdminSimuladosContent() {
 
                 <div className="px-3 py-3.5">
                   {windowLabel ? (
-                    <span className="font-mono text-[12px] text-admin-muted">{windowLabel}</span>
+                    <span className="font-mono text-[12px] text-admin-muted">{windowLabel} (horário de Brasília)</span>
                   ) : (
                     <span className="text-[12px] text-admin-faint">não definida</span>
                   )}
@@ -359,6 +396,7 @@ function AdminSimuladosContent() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
+                        id={`simulado-actions-${s.id}`}
                         type="button"
                         aria-label={`Ações do simulado ${s.title}`}
                         className="flex h-7 w-7 items-center justify-center rounded-md text-admin-faint motion-safe:transition-colors hover:bg-admin-raised hover:text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30"
@@ -376,6 +414,7 @@ function AdminSimuladosContent() {
                       >
                         <Pencil className="h-4 w-4 text-admin-faint" /> Editar simulado
                       </DropdownMenuItem>
+                      {editionsEnabled && <DropdownMenuItem disabled={editionError || !editions.length} onSelect={() => setCloneTarget(s)}>Clonar como rascunho</DropdownMenuItem>}
                       <DropdownMenuItem
                         className="gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-admin-text focus:bg-admin-raised focus:text-admin-text"
                         onClick={() => navigate(`/admin/simulados/${s.id}/questoes`)}
@@ -415,12 +454,26 @@ function AdminSimuladosContent() {
 
                       <DropdownMenuSeparator className="my-1.5 bg-admin-line-subtle" />
 
-                      <DropdownMenuItem
-                        className="gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-admin-destructive focus:bg-admin-destructive/10 focus:text-admin-destructive"
-                        onClick={() => setDeleteTarget(s)}
-                      >
-                        <Trash2 className="h-4 w-4" /> Excluir simulado
-                      </DropdownMenuItem>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block" tabIndex={s.attempts_count !== 0 ? 0 : undefined}>
+                              <DropdownMenuItem
+                                disabled={s.attempts_count !== 0}
+                                className="gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-admin-destructive focus:bg-admin-destructive/10 focus:text-admin-destructive"
+                                onClick={() => { if (s.attempts_count === 0) setDeleteTarget(s) }}
+                              >
+                                <Trash2 className="h-4 w-4" /> Excluir simulado
+                              </DropdownMenuItem>
+                            </span>
+                          </TooltipTrigger>
+                          {s.attempts_count !== 0 && (
+                            <TooltipContent>{s.attempts_count != null && s.attempts_count > 0
+                              ? 'Este simulado possui tentativas. A exclusão apagaria o histórico.'
+                              : 'Contagem de tentativas indisponível. Exclusão bloqueada.'}</TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -430,6 +483,10 @@ function AdminSimuladosContent() {
         </div>
       )}
 
+      {editionsEnabled && cloneTarget && <CloneSimuladoDialog source={cloneTarget} editions={editions} onClose={() => setCloneTarget(null)} onCloned={id => {
+        invalidateQuestionBankQueries(queryClient);
+        setCloneTarget(null); toast({ title: 'Rascunho clonado' }); navigate(`/admin/simulados/${id}`);
+      }} />}
       <AdminConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
