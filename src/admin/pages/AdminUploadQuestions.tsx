@@ -39,6 +39,8 @@ import { adminQuestionImportApi } from '@/admin/services/adminQuestionImportApi'
 import type { QuestionImportRow, QuestionImportError } from '@/types/question-import';
 import { checkGabarito } from '@/admin/lib/gabaritoCheck';
 import { ENAMED_BLUEPRINT } from '@/lib/enamedBlueprint';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateQuestionBankQueries } from '@/lib/exam-query-cache';
 
 interface ParsedRow {
   [key: string]: string | number;
@@ -352,6 +354,7 @@ function buildRowIssues(rows: ParsedRow[]): Map<number, RowIssue> {
 }
 
 function AdminUploadQuestionsContent() {
+  const queryClient = useQueryClient();
   const { id: simuladoId } = useParams<{ id: string }>();
   const editionsEnabled = useAppConfig('editions_ui');
   const matrix = useEditionBlueprint(simuladoId, editionsEnabled);
@@ -693,6 +696,7 @@ function AdminUploadQuestionsContent() {
       if (!Number.isInteger(totalInserted)) throw new Error('Resposta inesperada do servidor ao salvar.');
 
       setUploadProgress({ step: 'Pronto!', percent: 100 });
+      invalidateQuestionBankQueries(queryClient);
       toast({ title: `${totalInserted} ${totalInserted === 1 ? 'questão importada' : 'questões importadas'}` });
       resetParsedState();
       setExistingCount((prev) => prev + totalInserted);
@@ -710,6 +714,7 @@ function AdminUploadQuestionsContent() {
     setClearing(true);
     try {
       await adminApi.deleteQuestionsForSimulado(simuladoId);
+      invalidateQuestionBankQueries(queryClient);
       setExistingCount(0);
       toast({ title: 'Questões removidas' });
       setConfirmClearOpen(false);

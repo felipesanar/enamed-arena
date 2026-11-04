@@ -8,9 +8,10 @@ import { fetchAllCutoffScores } from '@/services/rankingApi';
 import { cutoffApi } from '@/services/cutoffApi';
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u' } }) }));
-const config = vi.hoisted(() => ({ enabled: false }));
+const config = vi.hoisted(() => ({ enabled: false, historyReference: null as unknown }));
 vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => config.enabled }));
 vi.mock('@/services/cutoffApi', () => ({ cutoffApi: { getAllScores: vi.fn().mockResolvedValue([]) } }));
+vi.mock('@/components/ranking/CutoffHistorySection', () => ({ CutoffHistorySection: ({ reference }: { reference: unknown }) => { config.historyReference = reference; return <p>Histórico de referência selecionado</p>; } }));
 
 vi.mock('@/services/rankingApi', () => {
   const rows = [
@@ -71,6 +72,24 @@ function renderModal(props: Partial<React.ComponentProps<typeof CutoffScoreModal
 }
 
 describe('CutoffScoreModal', () => {
+  it('passes only canonical IDs of the selected row to reference history', async () => {
+    config.enabled = true;
+    vi.mocked(cutoffApi.getAllScores).mockResolvedValueOnce([{ institution_id: 'inst', specialty_id: 'spec', institution_name: 'Instituição', specialty_name: 'Clínica', practice_scenario: '', cutoff_score_general: 60, cutoff_score_quota: null, reference_edition_id: 'ed', reference_label: 'Processo', source: 'Fonte' }]);
+    render(<QueryClientProvider client={queryClient()}><CutoffScopeContext.Provider value={{ editionsUi: true, referenceEditionId: 'ed' }}><CutoffScoreModal open onClose={vi.fn()} /></CutoffScopeContext.Provider></QueryClientProvider>);
+    await screen.findByText('Instituição');
+    fireEvent.click(screen.getByRole('tab', { name: 'Histórico da referência' }));
+    fireEvent.change(screen.getByLabelText('Instituição e especialidade do histórico'), { target: { value: JSON.stringify(['inst','spec','']) } });
+    expect(config.historyReference).toEqual({ institutionId: 'inst', specialtyId: 'spec', practiceScenario: '' });
+  });
+  it('does not infer a missing specialty ID from labels or current targets', async () => {
+    config.enabled = true;
+    vi.mocked(cutoffApi.getAllScores).mockResolvedValueOnce([{ institution_id: 'inst', institution_name: 'Instituição', specialty_name: 'Clínica', practice_scenario: '', cutoff_score_general: 60, cutoff_score_quota: null, reference_edition_id: 'ed', reference_label: 'Processo', source: 'Fonte' }]);
+    render(<QueryClientProvider client={queryClient()}><CutoffScopeContext.Provider value={{ editionsUi: true, referenceEditionId: 'ed' }}><CutoffScoreModal open onClose={vi.fn()} userSpecialty="Clínica" userInstitutions={['Instituição']} /></CutoffScopeContext.Provider></QueryClientProvider>);
+    await screen.findByText('Instituição');
+    fireEvent.click(screen.getByRole('tab', { name: 'Histórico da referência' }));
+    expect(screen.getByLabelText('Instituição e especialidade do histórico').querySelectorAll('option')).toHaveLength(1);
+    expect(config.historyReference).toBeNull();
+  });
   beforeEach(() => { config.enabled = false; vi.mocked(cutoffApi.getAllScores).mockClear(); });
   it('uses supplied exam metadata and falls back to neutral ENAMED', () => {
     const { unmount } = renderModal({ simulado: { editionCode: '2027.1' } });

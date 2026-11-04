@@ -2,14 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const flag = vi.hoisted(() => ({ value: true }));
 vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => flag.value }));
 vi.mock('@/admin/services/adminEditionsApi', () => ({ adminEditionsApi: { list: vi.fn(), blueprints: vi.fn(), upsert: vi.fn() } }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'staff' }, loading: false }) }));
+vi.mock('@/services/editionAnalysisApi', () => ({ editionAnalysisApi: { configureRanking: vi.fn() } }));
+import { editionAnalysisApi } from '@/services/editionAnalysisApi';
 import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
 import AdminEdicoes from '@/admin/pages/AdminEdicoes';
 
 function mount(capabilities = ['content.manage']) {
-  return render(<MemoryRouter><AdminAccessProvider roles={[]} capabilities={capabilities}><AdminEdicoes /></AdminAccessProvider></MemoryRouter>);
+  return render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><AdminAccessProvider roles={[]} capabilities={capabilities}><AdminEdicoes /></AdminAccessProvider></MemoryRouter></QueryClientProvider>);
 }
 describe('AdminEdicoes', () => {
   beforeEach(() => {
@@ -27,6 +31,26 @@ describe('AdminEdicoes', () => {
     mount([]);
     expect(screen.getByText('Sem acesso a esta área')).toBeInTheDocument();
     expect(adminEditionsApi.list).not.toHaveBeenCalled();
+  });
+  it('keeps ranking policy configuration hidden without both capabilities', async () => {
+    mount(['content.manage']); await screen.findByText('Nenhuma edição cadastrada');
+    expect(screen.queryByText('Política do ranking da edição')).not.toBeInTheDocument(); expect(editionAnalysisApi.configureRanking).not.toHaveBeenCalled();
+  });
+  it('starts policy fields blank and requires an explicit justified configuration', async () => {
+    vi.mocked(adminEditionsApi.list).mockResolvedValue([{ id: 'e', code: '2027.1', year: 2027, term: 1, label: 'Edição teste', status: 'active', exam_date: null, exam_date_confirmed: false, official_results_at: null, format: {}, created_at: '', updated_at: '' }]);
+    vi.mocked(editionAnalysisApi.configureRanking).mockResolvedValue({ edition_id: 'e', best_n: 3, minimum_simulados: 2, enabled: true, updated_by: 'staff', updated_at: '2026-01-01' });
+    mount(['content.manage','intel.view']); await screen.findByText('Política do ranking da edição');
+    expect(screen.getByLabelText('Melhores simulados (N)')).toHaveValue(null);
+    expect(screen.getByLabelText('Mínimo de participações')).toHaveValue(null);
+    expect(screen.getByLabelText('Ranking ativo')).not.toBeChecked();
+    fireEvent.change(screen.getByLabelText('Edição da política'), { target: { value: 'e' } });
+    fireEvent.change(screen.getByLabelText('Melhores simulados (N)'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Mínimo de participações'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Justificativa da política'), { target: { value: 'Regra editorial revisada' } });
+    fireEvent.click(screen.getByLabelText('Ranking ativo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar política' }));
+    await waitFor(() => expect(editionAnalysisApi.configureRanking).toHaveBeenCalledExactlyOnceWith('staff', { editionId: 'e', bestN: 3, minimumSimulados: 2, enabled: true, reason: 'Regra editorial revisada' }));
+    expect(await screen.findByText('Política salva.')).toBeInTheDocument();
   });
   it('offers retry after load failure', async () => {
     vi.mocked(adminEditionsApi.list).mockRejectedValueOnce(new Error('offline'));

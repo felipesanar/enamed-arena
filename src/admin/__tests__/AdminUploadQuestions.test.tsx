@@ -4,6 +4,9 @@ import { render } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext'
 import { renderWithAccess } from './test-utils'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+const invalidateBank = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/exam-query-cache', () => ({ invalidateQuestionBankQueries: invalidateBank }))
 
 // Mocks de infraestrutura: a página depende de Supabase, parser de xlsx e API.
 const getSimulado = vi.fn()
@@ -49,15 +52,26 @@ import { supabase } from '@/integrations/supabase/client'
 
 function renderPage() {
   return renderWithAccess(
-    <MemoryRouter initialEntries={['/admin/simulados/sim-1/questoes']}>
+    <QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={['/admin/simulados/sim-1/questoes']}>
       <Routes>
         <Route path="/admin/simulados/:id/questoes" element={<AdminUploadQuestions />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter></QueryClientProvider>,
   )
 }
 
 describe('AdminUploadQuestions', () => {
+  it('invalidates observed bank data only after an acknowledged successful import', async () => {
+    flag.value=true
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data:{session:{user:{id:'operator'}}},error:null } as never)
+    vi.mocked(parseXlsxFirstWorksheetRows).mockResolvedValue([{numero:'1','Grande Área':'Pediatria',Enunciado:'Conduta?','Alternativa A':'a','Alternativa B':'b','Alternativa C':'c','Alternativa D':'d','Alternativa E':'e',Gabarito:'E'}])
+    importQuestions.mockResolvedValue({ok:true,imported:1,errors:[]})
+    const {container}=renderPage();await screen.findByText('Subir questões')
+    const file=new File(['test'],'teste.xlsx');Object.defineProperty(file,'arrayBuffer',{value:async()=>new ArrayBuffer(1)})
+    fireEvent.change(container.querySelector('input[type=file]')!,{target:{files:[file]}})
+    fireEvent.click(await screen.findByRole('button',{name:'Importar 1 pronta'}))
+    await waitFor(()=>expect(invalidateBank).toHaveBeenCalledTimes(1))
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     importQuestions.mockReset()

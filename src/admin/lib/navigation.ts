@@ -37,6 +37,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { to: '/admin/cortes', label: 'Importar cortes', icon: FileText, capability: 'content.manage', editionsOnly: true },
       { to: '/admin/simulados', label: 'Simulados',         icon: FileText, capability: 'content.manage' },
       { to: '/admin/questoes',  label: 'Banco de questões', icon: Database, capability: 'content.manage' },
+      { to: '/admin/banco-questoes', label: 'Banco versionado', icon: Database, capability: 'content.manage', editionsOnly: true },
     ],
   },
   {

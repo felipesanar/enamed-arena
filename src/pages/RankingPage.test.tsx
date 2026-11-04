@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -23,6 +23,7 @@ vi.mock('@/hooks/useSimulados', () => ({ useSimulados: () => ({ editionsUi: stat
   { id: 'old', editionId: 'e-old', editionCode: '2026' }, { id: 'new', editionId: 'e-new', editionCode: '2027.1' },
 ] }) }));
 vi.mock('@/hooks/useRankingEvolution', () => ({ useRankingEvolution: () => ({ data: null }) }));
+vi.mock('@/components/ranking/EditionRankingSection', () => ({ EditionRankingSection: () => <div>Classificação da edição</div> }));
 vi.mock('@/components/presencial/PresencialEntryCard', () => ({ PresencialEntryCard: () => null }));
 vi.mock('@/components/ranking/RankingView', () => ({ RankingView: (props: ComponentProps<typeof RankingView>) => {
   state.viewProps = props; state.scope = useCutoffScope(); return <div>Ranking</div>;
@@ -39,6 +40,12 @@ function renderPage() {
 }
 
 describe('RankingPage metadata bridge', () => {
+  it('exposes the edition view only under the flag while preserving the existing simulado bridge', () => {
+    state.flag = true;
+    renderPage();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Edição' }), { button: 0, ctrlKey: false });
+    expect(screen.getByText('Classificação da edição')).toBeInTheDocument();
+  });
   it('enriches options by exam ID and follows the selected edition without changing selection', async () => {
     state.flag = true; state.selected = 'old'; state.setSelected.mockClear();
     const { rerenderPage } = renderPage();
@@ -64,5 +71,6 @@ describe('RankingPage metadata bridge', () => {
       { id: 'old', title: 'Histórica', sequence_number: 1 }, { id: 'new', title: 'Atual', sequence_number: 1 },
     ]);
     expect(state.context).not.toHaveBeenCalled();
+    expect(screen.queryByRole('tab', { name: 'Edição' })).not.toBeInTheDocument();
   });
 });

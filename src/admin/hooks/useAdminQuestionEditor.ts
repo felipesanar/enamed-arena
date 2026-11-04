@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/admin/services/adminApi'
 import { toast } from '@/hooks/use-toast'
+import { invalidateQuestionBankQueries } from '@/lib/exam-query-cache'
 
 // ─── Query key helper ────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ export function useUpdateQuestion(simuladoId: string) {
     }) => adminApi.updateQuestion(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: questionsKey(simuladoId) })
+      invalidateQuestionBankQueries(qc)
       toast({ title: 'Questão atualizada com sucesso.' })
     },
     onError: (error) => {
@@ -67,6 +69,7 @@ export function useUpdateOption(simuladoId: string) {
       adminApi.updateOption(optionId, text),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: questionsKey(simuladoId) })
+      invalidateQuestionBankQueries(qc)
       toast({ title: 'Alternativa atualizada com sucesso.' })
     },
     onError: (error) => {
@@ -82,6 +85,7 @@ export function useSetCorrectOption(simuladoId: string) {
       adminApi.setCorrectOption(questionId, optionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: questionsKey(simuladoId) })
+      invalidateQuestionBankQueries(qc)
       toast({ title: 'Gabarito atualizado com sucesso.' })
     },
     onError: (error) => {
@@ -96,6 +100,7 @@ export function useDeleteQuestion(simuladoId: string) {
     mutationFn: (id: string) => adminApi.deleteQuestion(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: questionsKey(simuladoId) })
+      invalidateQuestionBankQueries(qc)
       toast({ title: 'Questão excluída com sucesso.' })
     },
     onError: (error) => {

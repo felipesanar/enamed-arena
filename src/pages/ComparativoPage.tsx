@@ -23,8 +23,12 @@ import { ComparativoEvolutionChart } from '@/components/comparativo/ComparativoE
 import { ComparativoSpecialtyRadar } from '@/components/comparativo/ComparativoSpecialtyRadar';
 import { ComparativoBehaviorCards } from '@/components/comparativo/ComparativoBehaviorCards';
 import { ComparativoActionableInsights } from '@/components/comparativo/ComparativoActionableInsights';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PercentileHistorySection } from '@/components/comparativo/PercentileHistorySection';
 
 export default function ComparativoPage() {
+  const editionsEnabled = useAppConfig('editions_ui');
   const { profile } = useUser();
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].comparativo;
@@ -54,7 +58,12 @@ export default function ComparativoPage() {
     );
   }
 
-  return <ComparativoContent />;
+  if (!editionsEnabled) return <ComparativoContent />;
+  return <Tabs defaultValue="edition" className="min-w-0">
+    <TabsList className="mb-5 h-auto min-h-11 max-w-full"><TabsTrigger value="edition" className="min-h-11 text-caption">Nesta edição</TabsTrigger><TabsTrigger value="history" className="min-h-11 text-caption">Histórico por percentil</TabsTrigger></TabsList>
+    <TabsContent value="edition"><ComparativoContent /></TabsContent>
+    <TabsContent value="history"><PageHeader title="Comparativo entre simulados" subtitle="Sua posição relativa, com os limites de cada edição." /><PercentileHistorySection /></TabsContent>
+  </Tabs>;
 }
 
 function ComparativoContent() {

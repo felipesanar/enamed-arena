@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { renderWithAccess } from './test-utils'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+const invalidateBank = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/exam-query-cache', () => ({ invalidateQuestionBankQueries: invalidateBank }))
+vi.mock('@/admin/components/editions/CloneSimuladoDialog', () => ({ CloneSimuladoDialog: ({ onCloned }: { onCloned: (id:string)=>void }) => <button onClick={()=>onCloned('new-draft')}>Confirmar clone fictício</button> }))
 const editionsFlag = vi.hoisted(() => ({ value: false }))
 vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => editionsFlag.value }))
 vi.mock('@/admin/services/adminEditionsApi', () => ({ adminEditionsApi: { list: vi.fn() } }))
@@ -67,13 +71,21 @@ const rows = [
 
 function renderPage() {
   return renderWithAccess(
-    <MemoryRouter>
+    <QueryClientProvider client={new QueryClient()}><MemoryRouter>
       <AdminSimulados />
-    </MemoryRouter>,
+    </MemoryRouter></QueryClientProvider>,
   )
 }
 
 describe('AdminSimulados', () => {
+  it('invalidates observed bank data only after cloning is acknowledged', async () => {
+    editionsFlag.value=true;renderPage();await screen.findByText('ENAMED Clínica Médica')
+    const trigger=screen.getByRole('button',{name:'Ações do simulado ENAMED Clínica Médica'})
+    fireEvent.keyDown(trigger,{key:'Enter'})
+    fireEvent.click(await screen.findByRole('menuitem',{name:'Clonar como rascunho'}))
+    fireEvent.click(await screen.findByRole('button',{name:'Confirmar clone fictício'}))
+    expect(invalidateBank).toHaveBeenCalledTimes(1)
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     editionsFlag.value = false
