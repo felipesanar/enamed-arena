@@ -21,6 +21,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -52,6 +53,10 @@ import {
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useEditionStudyContext } from '@/hooks/useEditionStudyContext';
+import { notebookApi } from '@/services/notebookApi';
+import { Button } from '@/components/ui/button';
 import { SEGMENT_ACCESS } from '@/types';
 import { simuladosApi } from '@/services/simuladosApi';
 import { useExamEditions } from '@/hooks/useExamEditions';
@@ -418,9 +423,83 @@ function RetaFinalContent({ userId }: { userId: string }) {
 
 // ─── Export da página ────────────────────────────────────────────────────────
 
+function EditionRetaFinalContent({ userId }: { userId: string }) {
+  const study = useEditionStudyContext(true);
+  const { context } = study;
+  const target = context.edition;
+  const allowed = !!userId && !!target && !!context.date && context.daysUntil !== null && context.daysUntil > 0 && !study.loading && !study.error;
+  const notebook = useQuery({
+    queryKey: ['edition-study-notebook', userId, target?.id ?? null],
+    enabled: allowed,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      // Accumulated learning is intentional: not a fallback for an unresolved target.
+      const rows = await notebookApi.getAllRows({ editionId: null }, { editionsEnabled: true });
+      if (rows.some(row => row.user_id !== userId)) throw new Error('Notebook owner mismatch');
+      return rows;
+    },
+  });
+  if (study.loading) return <CadernoSkeleton />;
+  if (study.error || allowed && notebook.isError) return <div role="alert" className="space-y-3 rounded-lg border bg-card p-6">
+    <p>Não foi possível carregar o plano.</p>
+    <Button variant="outline" onClick={() => { study.refetch(); if (allowed) void notebook.refetch(); }}>Tentar novamente</Button>
+    <Link className="block underline" to="/caderno">Ir para o Caderno</Link>
+  </div>;
+  if (!allowed) return <div role="status" className="space-y-3 rounded-lg border bg-card p-6 [overflow-wrap:anywhere]">
+    <h1 className="text-heading-2 font-bold">{!target ? 'Edição-alvo não resolvida' : context.daysUntil === 0 ? `${target.label}: É hoje` : context.daysUntil !== null && context.daysUntil < 0 ? `${target.label}: A prova já passou` : `${target.label}: Data a confirmar`}</h1>
+    <p>{context.daysUntil === 0 ? 'Boa prova! Continue revisando no seu ritmo.' : 'Continue revisando seu caderno. O plano só será montado com uma edição-alvo e uma data oficial confirmada futura.'}</p>
+    <Link className="inline-flex min-h-11 items-center underline focus-visible:ring-2 focus-visible:ring-ring" to="/caderno">Ir para o Caderno</Link>
+  </div>;
+  if (!notebook.isSuccess) return <CadernoSkeleton />;
+  const entries: RetaFinalEntry[] = notebook.data
+    .filter(row => !['leech_blocked', 'awaiting_lesson'].includes(row.last_review_outcome ?? ''))
+    .map(row => ({ id: row.id, area: row.area, theme: row.theme, reason: row.reason,
+      srs_due_at: row.srs_due_at ?? row.next_review_at ?? null, srs_reps: row.srs_reps ?? null,
+      srs_lapses: row.srs_lapses ?? null, mastered_at: row.mastered_at ?? row.resolved_at ?? null }));
+  const plan = buildRetaFinalPlan({ entries, enamedDate: context.date, today: new Date(), areaWeights: context.areaWeights });
+  const formatLabel = context.format ? `${context.format.questions} questões · ${context.format.options} alternativas · ${context.format.duration_minutes} minutos` : 'Formato indisponível. Nenhum formato de outra edição foi presumido.';
+  const reviewHref = (id: string) => `/caderno/revisao?${new URLSearchParams({ entry: id })}`;
+  return <section className="caderno-root min-w-0 space-y-6 [overflow-wrap:anywhere]" aria-labelledby="edition-study-title">
+    <header className="space-y-2">
+      <h1 id="edition-study-title" className="text-heading-2 font-bold">Seu plano de revisão</h1>
+      <p>Revisões acumuladas do caderno · prioridades de {target.label}</p>
+      <p className="text-sm">{plan.stats.totalActive} questões ativas · {plan.stats.mastered} dominadas ou resolvidas</p>
+    </header>
+    <RetaFinalHero daysUntil={plan.daysUntil!} stats={{ ...plan.stats, daysUntil: plan.daysUntil! }} editionLabel={target.label} formatLabel={formatLabel} />
+    <aside className="space-y-2 rounded-lg border bg-card p-5" aria-label="Referências desta edição">
+      <h2 className="font-semibold">Referências desta edição</h2>
+      <p className="text-sm">Data oficial: {context.date!.split('-').reverse().join('/')} · Brasília</p>
+      <p className="text-sm">{context.matrixStatus === 'provisional' ? 'Pesos provisórios: usados apenas para priorização pedagógica.' : context.matrixStatus === 'unavailable' ? 'Matriz indisponível: priorização neutra por área, sem herdar pesos de outra edição.' : 'Matriz da edição-alvo: usada apenas para priorização pedagógica.'}</p>
+      <p className="text-sm">Pesos não calculam nota nem proficiência. Questões bloqueadas aguardam a intervenção disponível no Caderno.</p>
+    </aside>
+    {!entries.length ? <EmptyNotebookState /> : plan.stats.totalActive === 0 ? <UpToDateState daysUntil={plan.daysUntil!} label={target.label} /> : <>
+      <div className="space-y-4 rounded-lg border bg-card p-5">
+        <h2 className="text-heading-3 font-bold">Hoje, domine {plan.todayEntries.length} questões</h2>
+        {plan.todayEntries.length > 0 ? <>
+          <Link className="inline-flex min-h-11 items-center rounded-md bg-primary px-5 py-2 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" to={reviewHref(plan.todayEntries[0].id)}>Revisar hoje</Link>
+          <p className="text-sm">A sessão começa pela primeira questão priorizada. Para revisar outra, abra seu link abaixo.</p>
+          <ol className="divide-y divide-border">{plan.todayEntries.map(entry => <li key={entry.id} className="py-3">
+            <Link className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring" to={reviewHref(entry.id)} aria-label={`Revisar ${entry.theme ?? entry.area ?? 'questão'}`}>{entry.area ?? 'Sem área'} · {entry.theme ?? 'Questão do caderno'}</Link>
+          </li>)}</ol>
+        </> : <UpToDateState daysUntil={plan.daysUntil!} label={target.label} />}
+      </div>
+      {plan.stats.uncovered > 0 && <p className="rounded-lg border p-4 text-sm">{plan.stats.uncovered} questões não caberão antes da prova. Considere aumentar seu ritmo de revisão.</p>}
+      <details className="rounded-lg border bg-card p-5">
+        <summary className="min-h-11 cursor-pointer font-semibold focus-visible:ring-2 focus-visible:ring-ring">Próximos dias</summary>
+        <ol className="space-y-3">{plan.plan.slice(1, 1 + MAX_FUTURE_DAYS).map(day => <li key={day.date.toISOString()}>
+          <p className="font-semibold">{day.date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })} · {day.entries.length} questões</p>
+          {day.entries.map(entry => <Link key={entry.id} className="block py-2 underline focus-visible:ring-2 focus-visible:ring-ring" to={reviewHref(entry.id)}>{entry.area ?? 'Sem área'} · {entry.theme ?? 'Questão do caderno'}</Link>)}
+        </li>)}</ol>
+      </details>
+    </>}
+  </section>;
+}
+
 export default function CadernoRetaFinalPage() {
   const { profile } = useUser();
   const { user } = useAuth();
+  const editionsEnabled = useAppConfig('editions_ui');
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
 
@@ -440,7 +519,9 @@ export default function CadernoRetaFinalPage() {
           ]}
         />
       ) : (
-        <RetaFinalContent userId={user?.id ?? ''} />
+        editionsEnabled
+          ? <EditionRetaFinalContent key={`edition-${user?.id ?? ''}`} userId={user?.id ?? ''} />
+          : <RetaFinalContent key={`legacy-${user?.id ?? ''}`} userId={user?.id ?? ''} />
       )}
     </PageTransition>
   );

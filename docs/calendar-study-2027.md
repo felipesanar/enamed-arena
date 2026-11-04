@@ -1,6 +1,6 @@
-# Calendário e plano por edição: fase A
+# Calendário e plano por edição: fases A e B
 
-Implementação pura e protótipo offline. Não integra rotas, sidebar, React, hooks, banco ou produção. A fase B depende da revisão do protótipo pelo orquestrador/Codex. Não há data oficial confirmada para 2027 neste trabalho.
+Fase A: implementação pura e protótipo offline. Fase B: integração React do calendário e da Reta Final por edição, após aprovação da direção visual. Não houve alteração de schema, RLS ou produção. Não há data oficial confirmada para 2027 neste trabalho; datas nas fixtures de QA são sintéticas.
 
 ## Calendário
 
@@ -39,7 +39,29 @@ UID estável não garante que todos os clientes de agenda dedupliquem importaç�
 
 Com flag desligada, a integração futura deve continuar chamando o construtor sem `areaWeights`, mantendo o comportamento legado. Com flag ligada, deve passar sempre `context.areaWeights`, mesmo quando vazio, e `context.date`. Sem data/hoje/passado, o construtor mantém sua regra atual de plano vazio. Uma ação de revisão sem data deve apontar ao fluxo existente de revisão disponível, não inventar dias ou preencher `todayEntries` artificialmente.
 
-Não foi criada consulta de total do caderno. Não foi alterada paginação, API, Caderno, Insights, Home, AI ou Admin. `useEditionBlueprint` atual é por **simulado**, não por alvo: não reutilizar esse hook para obter a matriz da edição-alvo errada. A obtenção futura de matriz por alvo precisa de contrato autorizado específico, fora desta fase.
+Não foi criada consulta de total do caderno nem alterada sua paginação. Caderno, Insights, Home, AI e Admin permanecem fora do escopo. `useEditionBlueprint` atual é por **simulado**, não por alvo: a fase B usa o contrato autorizado `blueprintsApi.getForEdition`, sem escolher um simulado arbitrário.
+
+## Integração React (fase B)
+
+- `/calendario` usa os wrappers existentes `ProtectedRoute` e `DashboardLayout`. A página verifica `useAppConfig('editions_ui')` antes de montar os hooks de conteúdo; flag desligada redireciona para `/simulados`. O link da sidebar usa a mesma flag. Não existe dependência de gate administrativo ou requisito PRO para o calendário.
+- A edição consultada é independente do alvo. `useSimulados` fornece metadados autorizados; helpers existentes filtram e exportam somente eventos públicos. Estados reais de carregamento, erro/retry, vazio, data pendente e configuração inválida estão presentes. Datas confirmadas inválidas geram aviso, sem evento oficial fabricado.
+- Exportações ICS usam Blob e revogação da URL temporária; Google exige clique explícito. Horários são apresentados em Brasília e eventos DATE preservam o dia, independentemente do fuso do navegador.
+- `useEditionStudyContext` resolve o alvo da conta atual por `useUserEdition`, valida data/formato/matriz e isola a consulta de blueprint por conta, alvo e blueprint. Alvo ausente não vira próxima edição global. Trocas de conta/alvo suspendem o contexto anterior.
+- A Reta Final mantém `ProGate` e o ramo legado quando a flag está desligada. Com a flag ligada, usa pesos da edição-alvo; matriz desconhecida passa `[]`, sem pesos legados. Pesos provisórios e formato validado são explícitos.
+- O caderno é acumulado intencionalmente com `getAllRows({ editionId: null }, { editionsEnabled: true })`, somente após resolver alvo com data confirmada futura. Não há consulta do caderno quando alvo/data estão ausentes. A UI informa “Revisões acumuladas do caderno · prioridades de {alvo}”.
+- A revisão existente aceita `?entry=<id>`, não uma fila de IDs. “Revisar hoje” abre a primeira entrada priorizada e cada questão tem seu link; não foi inventado contrato de fila. Resolved, deleted, mastered e itens bloqueados seguem as exclusões existentes. Todas dominadas produz estado em dia, não caderno vazio.
+
+## Evidências da fase B
+
+Suíte explícita com os testes de calendário/plano, API de blueprint, hook de contexto, páginas, hero e sidebar: **8 arquivos, 59 testes passando**. Inclui 1500 linhas de caderno, troca de conta/alvo em voo, flag desligada, erros/retry, exportação e filtros de elegibilidade. Testes novos falharam antes da implementação; regressões de data oficial inválida e estado de todas dominadas também foram reproduzidas antes da correção.
+
+`node .superpowers/calendarStudyQA/typecheck.mjs`: zero diagnósticos nos 18 arquivos próprios. Não é typecheck global. QA React privada com componentes reais e APIs sintéticas: `node .superpowers/calendarStudyQA/react-browser.mjs`, 18 combinações em 375/768/1440 e claro/escuro, 22 capturas, um download ICS, seleção por teclado, zero overflow e zero erros de página. Usa fuso America/Los_Angeles para exercitar datas e bloqueia rede fora do servidor local. Capturas mobile/claro e hero desktop/escuro foram inspecionadas; isso não constitui auditoria integral de acessibilidade.
+
+As fixtures não validam backend/RLS em ambiente integrado. Build, suíte e typecheck globais ficam com o orquestrador. Leitor de tela/zoom, tipografia com a fonte efetivamente carregada e importação em clientes externos ICS/Google permanecem para revisão; não há OAuth, sincronização ou garantia de deduplicação.
+
+Revisão visual final do Codex aprovou a direção restante e apontou quebra de palavra nos KPIs do hero. Corrigido somente em `RetaFinalHero`: padding/tipografia/tracking compactos no mobile e labels sem quebra, mantendo os três KPIs e as medidas desktop. Regressão reproduzida antes da correção em teste e navegador. `hero-browser.mjs` validou 320/375, claro/escuro: Vencidas, No plano e Dominadas em uma linha, dentro dos tiles, sem overflow. Quatro capturas `hero-final-*.png`, incluindo 375 claro/escuro inspecionadas. Não foram repetidos os 18 cenários completos após esse ajuste.
+
+Verificação final pontual: `RetaFinalHero.test.tsx` com 3 testes passando (um novo); a execução anterior dos oito arquivos tinha 59 testes. ESLint de todos os fontes/testes da fase B, incluindo App, sidebar, wrappers de teste e serviço de blueprint: zero erros, um aviso `no-explicit-any` preexistente em `CadernoRetaFinalPage.tsx:235`.
 
 ## Verificação local
 

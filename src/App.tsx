@@ -26,6 +26,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const SimuladosPage = lazy(() => import("./pages/SimuladosPage"));
+const EditionCalendarPage = lazy(() => import("./pages/EditionCalendarPage"));
 const SimuladoDetailPage = lazy(() => import("./pages/SimuladoDetailPage"));
 const SimuladoExamPage = lazy(() => import("./pages/SimuladoExamPage"));
 const AnswerSheetPage = lazy(() => import("./pages/AnswerSheetPage"));
@@ -184,6 +185,7 @@ const App = () => (
               <Route element={<ProtectedRoute><ErrorBoundary fallbackTitle="Algo deu errado nesta seção"><DashboardLayout /></ErrorBoundary></ProtectedRoute>}>
                 <Route index element={<HomePagePremium />} />
                 <Route path="simulados" element={<SimuladosPage />} />
+                <Route path="calendario" element={<EditionCalendarPage />} />
                 <Route path="simulados/:id/start" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id" element={<SimuladoDetailPage />} />
                 <Route path="simulados/:id/prova" element={<SimuladoExamPage />} />
