@@ -68,8 +68,8 @@ function setup({
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 describe('useExamBeacon', () => {
-  let addEventSpy: ReturnType<typeof vi.spyOn>;
-  let removeEventSpy: ReturnType<typeof vi.spyOn>;
+  let addEventSpy: MockInstance<typeof window.addEventListener>;
+  let removeEventSpy: MockInstance<typeof window.removeEventListener>;
   let fetchSpy: MockInstance<typeof fetch>;
 
   beforeEach(() => {

@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: "npm"
       - run: npm ci --omit=optional
       - run: npm run lint
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: "npm"
       - run: npm ci --omit=optional
       - run: npm run typecheck
@@ -44,13 +44,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: "npm"
       # Sem --omit=optional: vitest/vite dependem do binário nativo opcional do
       # rollup (@rollup/rollup-linux-x64-gnu); omitir opcionais quebra com
       # "Cannot find module @rollup/rollup-linux-x64-gnu" (npm/cli#4828).
       - run: npm ci
       - run: npm run test
+      - run: npm run test:security
 
   edge-pins:
     name: Edge Function pins
@@ -61,7 +62,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
       - run: node scripts/check-edge-function-pins.mjs
 
   build:
@@ -72,7 +73,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: "npm"
       # Sem --omit=optional pelo mesmo motivo do job de testes (binário do rollup).
       - run: npm ci
@@ -92,7 +93,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: "npm"
       - run: npm ci --omit=optional
       - run: node scripts/check-npm-audit.mjs

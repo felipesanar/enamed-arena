@@ -18,8 +18,17 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ area, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
+    const client = supabaseForUser(ctx);
+    const { data: profile, error: profileError } = await client
+      .from("profiles")
+      .select("segment")
+      .eq("id", ctx.getUserId()!)
+      .maybeSingle();
+    if (profileError || profile?.segment !== "pro") {
+      return { content: [{ type: "text", text: "PRO access required for the error notebook." }], isError: true };
+    }
     const capped = Math.min(Math.max(limit ?? 20, 1), 100);
-    let query = supabaseForUser(ctx)
+    let query = client
       .from("error_notebook")
       .select("id, area, theme, reason, question_number, simulado_title, was_correct, created_at, next_review_at")
       .is("deleted_at", null)

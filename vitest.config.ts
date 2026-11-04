@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig({
+  // Scope tests use explicit fake env values, never developer secrets.
+  envFile: false,
   plugins: [react()],
   test: {
     environment: "jsdom",
