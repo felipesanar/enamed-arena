@@ -82,7 +82,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -93,10 +92,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    const { data: isAdmin } = await adminClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!isAdmin) {
+    const { error: capabilityError } = await anonClient.rpc("admin_require", { p_capability: "content.manage" });
+    if (capabilityError) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
@@ -116,6 +113,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { error: auditError } = await anonClient.rpc("admin_log_action", {
+      p_action: "verify_gabarito_requested", p_entity_type: "questions", p_entity_id: null,
+      p_summary: "Answer key verification requested", p_metadata: { question_count: questions.length },
+    });
+    if (auditError) {
+      return new Response(JSON.stringify({ error: "Could not audit verification request" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const findings = await runWithConcurrency(questions, apiKey);
 
     return new Response(JSON.stringify({ findings }), {
