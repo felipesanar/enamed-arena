@@ -438,7 +438,7 @@ async function resolveIds(
     }
   }
 
-  let optionsByQuestion = new Map<string, Map<Letter, string>>();
+  const optionsByQuestion = new Map<string, Map<Letter, string>>();
   if (questionIdsNeeded.size > 0) {
     const { data: optionRows, error: optionsErr } = await supabase
       .from('question_options')
