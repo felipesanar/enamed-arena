@@ -56,7 +56,7 @@ Consulta única de métricas: `get_user_performance_summary({ p_user_id: caller,
 
 Prova em fonte SQL, não em produção: `20261104084903_fase1_performance_scope.sql` faz a summary delegar ao histórico com ownership `p_user_id=auth.uid()`. O histórico filtra edição, liberação e treino antes de agregar, com seleção da tentativa elegível. O teste verifica essa cadeia na migration; doubles não comprovam aplicação da migration ou RLS em ambiente real.
 
-As cinco tools continuam read-only; auth issuer/audience e `acceptResourceClaim: false`, JWT do caller e gate PRO do notebook não foram alterados. `supabase/functions/mcp/index.ts` e `deno.json` permanecem intocados. O orquestrador deve regenerá-los pelo gerador oficial Linux após integrar estas fontes. Não executar o gerador Windows nem usar o bundle anterior como evidência desta entrega.
+As cinco tools continuam read-only; auth issuer/audience e `acceptResourceClaim: false`, JWT do caller e gate PRO do notebook não foram alterados. Os artefatos gerados não foram editados por este worker. Na revisão posterior, o Codex informou ter copiado para o worktree o bundle produzido por emissão oficial Linux dupla, determinística e validada. Esse bundle foi preservado na correção do teste de segurança; não foi executado o gerador Windows.
 
 ## Verificação Local
 
@@ -80,10 +80,24 @@ Os testes não têm permissão de rede e injetam fetch/Auth/RPC. Cobertura: dois
 
 Resultados finais locais: Vitest 33 passando/0 falhando; Deno 26 passando/0 falhando (os 11 testes dos helpers compartilhados aparecem nos dois runners, não são contagens independentes). Ambos exit 0. Check dos três entrypoints Deno, typecheck strict das fontes/testes MCP, ESLint MCP, Deno lint dos 13 arquivos Edge e `git diff --check`: exit 0. Nenhuma suíte global/build foi executada. Os testes também cobrem retry, falha de rede/modelo/requester, respostas inválidas e uso dos defaults de thinking em modelo configurado diferente do Flash original.
 
+## Correção Do Guard Do Gerador
+
+Escopo desta correção de revisão: somente `scripts/generate-mcp.test.mjs` e este documento. Não houve alteração de fontes MCP/Gemini, gerador de produção, bundle, configuração ou pacotes. Os resultados da seção anterior são históricos e suas suítes não foram repetidas nesta correção.
+
+RED observado: `node --test scripts/generate-mcp.test.mjs` retornou exit 1, com 8 testes passando e 1 falhando. A causa era a asserção blanket que proibia toda `.rpc()`, inclusive a leitura autorizada de desempenho.
+
+O helper privado no próprio teste agora inspeciona a AST do JavaScript emitido usando o TypeScript já instalado no projeto. Exige exatamente uma RPC literal `client.rpc("get_user_performance_summary", { p_user_id: userId, p_edition_id: edition.id, p_include_training: false })`, sem argumentos adicionais, spreads ou chaves dinâmicas. Na mesma região do handler `get_my_performance`, verifica bindings locais `const client = supabaseForUser(ctx)`, `const userId = ctx.getUserId()` e `const edition = await resolvePerformanceEdition(client, userId, edition_id)`, anteriores à chamada. A validação é uma regressão estática do artefato, não uma prova de autorização em runtime.
+
+Foram adicionadas 18 negativas com mutações somente em memória do artefato oficial: finalizer e admin RPC; argumento/binding de usuário forjado; treino true; edição null e binding não resolvido; nome RPC dinâmico, acesso computado, método dinâmico e alias; RPC extra; spread de override; service-role; insert/update/upsert/delete. Cada caso exige que a mutação realmente altere o texto antes de verificar sua rejeição. Os guards existentes de pins, issuer/audience, read-only, autenticação, JWT do caller, chave pública e notebook PRO foram preservados, assim como os testes de publicação determinística e proteção dos artefatos.
+
+GREEN: `node --test scripts/check-edge-function-pins.test.mjs scripts/generate-mcp.test.mjs` retornou exit 0, com 30 passando e 0 falhando. Não houve instalação, rede externa, leitura de segredos, commit ou deploy nesta correção.
+
+Distinção do check do bundle, conforme verificação local informada pelo Codex na revisão: `deno check` da cópia `.js` byte-idêntica passou; `index.ts` gerado mantém os diagnósticos strict conhecidos do erasure de tipos pelo SDK (ctx implícito, declaração de process.env e widening do tipo text). O artefato não foi editado nem o strict relaxado para esconder isso. O `deno eval` local informado confirmou apenas `typeof process === "object"` e `typeof process.env === "object"`, sem leitura de valores secretos. Esses checks não comprovam integração runtime com Supabase, chamada MCP implantada, RLS em ambiente real ou deploy; nenhum desses resultados é alegado aqui.
+
 ## Integrações Pendentes
 
 - Frontend: enviar `editionContext` real e o resultado de `computePercentile`, além de `simuladoId` no summary individual e em cada entrada comparativa. Nesta entrega os clientes atuais continuam usando caminho legado/desconhecido; não se declara a integração ponta a ponta concluída.
 - Frontend: revisar chaves/invalidação do cache de textos IA para que mensagens antigas com corte fixo não sejam reapresentadas como novas. Cache de UI não foi alterado neste escopo.
 - SQL/ambiente: confirmar rollout autorizado de catálogo/cortes e da RPC F1, políticas de leitura e comportamento de release/RLS com usuários reais em ambiente autorizado. Nenhuma migração foi aplicada aqui.
-- Bundle MCP: regeneração oficial Linux e revisão do artefato/manifest pelo orquestrador. Diagnósticos strict do bundle antigo gerado não foram mascarados.
+- Bundle MCP: emissão oficial Linux dupla e cópia foram informadas pelo Codex; guard estático do artefato passou nesta correção. Revisão final do artefato/manifest e eventual deploy permanecem com o orquestrador. Diagnósticos strict do `.ts` gerado não foram mascarados nem confundidos com o check aprovado da cópia `.js`.
 - Conteúdo: revisão humana da redação revisada e da referência efetivamente cadastrada. D6 continua sem fonte inventada. Nenhuma chamada Gemini real foi feita para validar a saída do modelo.
