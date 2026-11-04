@@ -18,9 +18,11 @@ import { canAccessSimulado } from '@/lib/simulado-helpers';
 import { examSubmissionErrorMessage } from '@/lib/examSubmissionErrors';
 import type { ExamState } from '@/types/exam';
 import type { Question, SimuladoStatus } from '@/types';
+import type { ServerClock } from '@/hooks/useServerClock';
 
 /** Subconjunto de useExamStorageReal necessário aqui. */
 interface LifecycleStorage {
+  userId?: string;
   loadState: () => Promise<{ state: ExamState | null; notifyResultEmail: boolean }>;
   initializeState: (
     numQuestions: number,
@@ -45,6 +47,7 @@ export interface UseExamLifecycleArgs {
   state: ExamState | null;
   setState: React.Dispatch<React.SetStateAction<ExamState | null>>;
   setShowSubmitModal: React.Dispatch<React.SetStateAction<boolean>>;
+  clock?: ServerClock;
 }
 
 export interface UseExamLifecycleReturn {
@@ -72,6 +75,7 @@ export function useExamLifecycle({
   state,
   setState,
   setShowSubmitModal,
+  clock,
 }: UseExamLifecycleArgs): UseExamLifecycleReturn {
   const queryClient = useQueryClient();
 
@@ -87,6 +91,9 @@ export function useExamLifecycle({
   const scopeRef = useRef({ active: true });
   const attemptIdentity = storage.attemptId.current;
   const stateMatchesSimulado = !!simulado && state?.simuladoId === simulado.id;
+  const clockReady = clock?.ready ?? true;
+  const clockTrusted = !clock || clock.status === 'synced';
+  const now = clock?.now ?? Date.now;
 
   useEffect(() => {
     const scope = { active: true };
@@ -95,12 +102,13 @@ export function useExamLifecycle({
     hasAutoSubmitTracked.current = false;
     setTimeExpired(false);
     setSubmitting(false);
+    setNotificationSaving(false);
     return () => {
       scope.active = false;
       if (timeUpTimerRef.current) clearTimeout(timeUpTimerRef.current);
       timeUpTimerRef.current = null;
     };
-  }, [simulado?.id, attemptIdentity]);
+  }, [simulado?.id, attemptIdentity, storage.userId]);
 
   // ── Gate: redirect if not eligible ──
   useEffect(() => {
@@ -141,28 +149,20 @@ export function useExamLifecycle({
 
         if (existing && existing.status === 'in_progress') {
           // Guard: if deadline already passed, finalize instead of resuming with 0 timer
-          if (existing.effectiveDeadline && new Date(existing.effectiveDeadline) <= new Date()) {
+          if (clockTrusted && existing.effectiveDeadline && new Date(existing.effectiveDeadline).getTime() <= now()) {
             logger.log('[useExamFlow] Deadline already passed, finalizing attempt');
             setState(existing);
             if (cancelled) return;
-            const answeredBefore = Object.values(existing.answers).filter(a => !!a.selectedOption).length;
-            trackEvent('exam_auto_submitted', {
-              simulado_id: simulado.id,
-              attempt_id: storage.attemptId.current ?? '',
-              answered: answeredBefore,
-              total: questions.length,
-              reason: 'past_deadline_on_init',
-            });
-            // Will be finalized by handleTimeUp
+            // Only handleTimeUp announces/tracks automatic submission.
           } else {
             setState(existing);
             if (cancelled) return;
             const answeredBefore = Object.values(existing.answers).filter(a => !!a.selectedOption).length;
             const timeElapsedMinutes = existing.startedAt
-              ? Math.round((Date.now() - new Date(existing.startedAt).getTime()) / 60000)
+              ? Math.round((now() - new Date(existing.startedAt).getTime()) / 60000)
               : 0;
             const timeRemainingSeconds = existing.effectiveDeadline
-              ? Math.max(0, Math.round((new Date(existing.effectiveDeadline).getTime() - Date.now()) / 1000))
+              ? Math.max(0, Math.round((new Date(existing.effectiveDeadline).getTime() - now()) / 1000))
               : 0;
             trackEvent('exam_resumed', {
               simulado_id: simulado.id,
@@ -186,6 +186,7 @@ export function useExamLifecycle({
             );
             if (!cancelled) setState(fresh);
           } catch (initErr) {
+            if (cancelled) return;
             // create_attempt_guarded blocks the online exam once the student
             // has a presencial attempt for this simulado (pending or
             // submitted) — see migration 20260812100400. The generic error
@@ -214,6 +215,7 @@ export function useExamLifecycle({
         // no follow-up query needed.
         if (!cancelled) setNotifyResultByEmailState(result.notifyResultEmail);
       } catch (err) {
+        if (cancelled) return;
         logger.error('[useExamFlow] Init failed:', err);
         navigate(`/simulados/${id}`, { replace: true });
       } finally {
@@ -222,14 +224,14 @@ export function useExamLifecycle({
     })();
 
     return () => { cancelled = true; };
-    // Intentionally re-run only on simulado identity change. Including
+    // Re-run on exam/account identity changes, not answer/query refreshes. Including
     // `questions.length` here previously caused redundant re-initialization
     // whenever the questions query cache refreshed mid-attempt — in the worst
     // case spawning a second `create_attempt_guarded` call. The questions
     // emptiness check is still inside the effect body, so the user still
     // bounces back to the detail page if no questions exist.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [simulado?.id, loadingSimulado]);
+  }, [simulado?.id, loadingSimulado, storage.userId]);
 
   useEffect(() => {
     setIsWithinWindow(true);
@@ -237,7 +239,7 @@ export function useExamLifecycle({
 
   const finalize = useCallback(async (isAutoSubmit = false) => {
     const scope = scopeRef.current;
-    if (!scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado) return;
+    if (!scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado || (isAutoSubmit && !clockTrusted)) return;
     hasFinalized.current = true;
     setSubmitting(true);
 
@@ -245,7 +247,7 @@ export function useExamLifecycle({
 
     if (!isAutoSubmit) {
       const timeRemainingAtSubmit = state.effectiveDeadline
-        ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - Date.now()) / 1000))
+        ? Math.max(0, Math.round((new Date(state.effectiveDeadline).getTime() - now()) / 1000))
         : 0;
       trackEvent('exam_submit_attempted', {
         simulado_id: simulado.id,
@@ -265,14 +267,14 @@ export function useExamLifecycle({
       const result = await storage.submitAttempt(state, isAutoSubmit);
       if (!scope.active) return;
       if (!result) throw new Error('Finalizacao do simulado nao retornou resultado.');
-      setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date().toISOString() } : prev);
+      setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date(now()).toISOString() } : prev);
 
       const withinRankingWindow = result?.is_within_window ?? true;
       const scorePercentage = result?.score_percentage ?? 0;
       setIsWithinWindow(withinRankingWindow);
 
       const durationMinutes = state.startedAt
-        ? Math.round((Date.now() - new Date(state.startedAt).getTime()) / 60000)
+        ? Math.round((now() - new Date(state.startedAt).getTime()) / 60000)
         : 0;
       trackEvent('simulado_completed', {
         simulado_id: simulado.id,
@@ -310,12 +312,15 @@ export function useExamLifecycle({
     } finally {
       if (scope.active) setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado]);
+  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, clockTrusted]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
+    const scope = scopeRef.current;
+    if (!scope.active) return;
     setNotificationSaving(true);
     try {
       await storage.setResultNotification(enabled);
+      if (!scope.active) return;
       setNotifyResultByEmailState(enabled);
       toast({
         title: enabled ? 'Notificação ativada' : 'Notificação desativada',
@@ -324,13 +329,14 @@ export function useExamLifecycle({
           : 'Você não receberá aviso por email para este simulado.',
       });
     } catch {
+      if (!scope.active) return;
       toast({
         title: 'Erro ao atualizar notificação',
         description: 'Tente novamente em instantes.',
         variant: 'destructive',
       });
     } finally {
-      setNotificationSaving(false);
+      if (scope.active) setNotificationSaving(false);
     }
   }, [storage]);
 
@@ -354,15 +360,17 @@ export function useExamLifecycle({
   }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado]);
 
   const timeRemaining = useExamTimer({
-    attemptKey: `${simulado?.id ?? ''}:${attemptIdentity ?? ''}`,
+    attemptKey: `${storage.userId ?? ''}:${simulado?.id ?? ''}:${attemptIdentity ?? ''}`,
     deadline: stateMatchesSimulado ? state?.effectiveDeadline ?? null : null,
     onTimeUp: handleTimeUp,
     paused: state?.status !== 'in_progress',
+    now,
+    clockReady: clockTrusted,
   });
 
   return {
     submitting,
-    interactionLocked: !stateMatchesSimulado || timeExpired || submitting || (state?.status === 'in_progress' && !!state.effectiveDeadline && new Date(state.effectiveDeadline).getTime() <= Date.now()),
+    interactionLocked: !stateMatchesSimulado || !clockReady || timeExpired || submitting || (clockTrusted && state?.status === 'in_progress' && !!state.effectiveDeadline && new Date(state.effectiveDeadline).getTime() <= now()),
     initLoading,
     isWithinWindow,
     notifyResultByEmail,

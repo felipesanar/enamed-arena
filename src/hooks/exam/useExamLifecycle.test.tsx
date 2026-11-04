@@ -71,6 +71,7 @@ describe('lifecycle identity changes', () => {
       effectiveDeadline: new Date(Date.now()-1000).toISOString(), lastSavedAt: '' };
     const b: ExamState = { ...a, simuladoId: 'b', effectiveDeadline: new Date(Date.now()+5000).toISOString() };
     const setState = vi.fn();
+    const navigate = vi.fn();
     const storage = { loadState: vi.fn(() => new Promise<never>(() => {})), initializeState: vi.fn(),
       submitAttempt: vi.fn().mockResolvedValue({ score_percentage: 10, is_within_window: true }),
       setResultNotification: vi.fn(), attemptId: { current: 'attempt-a' } };
@@ -79,10 +80,31 @@ describe('lifecycle identity changes', () => {
     const hook = renderHook(({ state, simuladoId }) => useExamLifecycle({
       simulado: { id: simuladoId, status: 'in_progress', estimatedDurationMinutes: 1, executionWindowEnd: null },
       state, setState, storage, questions: [{ id: 'q' }] as any, questionIds: ['q'], id: simuladoId,
-      navigate: vi.fn(), loadingSimulado: false, isOnboardingComplete: true, setShowSubmitModal: vi.fn(),
+      navigate, loadingSimulado: false, isOnboardingComplete: true, setShowSubmitModal: vi.fn(),
     }), { initialProps: { state: a, simuladoId: 'a' }, wrapper });
-    return { ...hook, storage, a, b, setState };
+    return { ...hook, storage, a, b, setState, navigate };
   }
+  it('does not redirect the new session after an old initialization fails', async () => {
+    const { rerender, storage, b, navigate } = setup();
+    let reject!: (reason: unknown) => void;
+    storage.loadState.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }));
+    rerender({ state: b, simuladoId: 'b' });
+    rerender({ state: { ...b, simuladoId: 'c' }, simuladoId: 'c' });
+    await act(async () => { reject(new Error('old failure')); });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+  it('does not update the new session from an old notification request', async () => {
+    const { result, rerender, storage, b } = setup();
+    let resolve!: () => void;
+    storage.setResultNotification.mockReturnValueOnce(new Promise<void>(r => { resolve = r; }));
+    let request!: Promise<void>;
+    act(() => { request = result.current.setNotifyResultByEmail(true); });
+    rerender({ state: b, simuladoId: 'b' });
+    await act(async () => { resolve(); await request; });
+    expect(result.current.notifyResultByEmail).toBe(false);
+    expect(result.current.notificationSaving).toBe(false);
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Notificação ativada' }));
+  });
   it('cancels the old timeout while B loads, unlocks B, and auto-submits B once', async () => {
     const { result, rerender, storage, a, b } = setup();
     expect(result.current.interactionLocked).toBe(true);

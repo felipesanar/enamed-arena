@@ -10,33 +10,37 @@ interface UseExamTimerProps {
   onTimeUp: () => void;
   paused?: boolean;
   attemptKey?: string; // Different attempts may share the same deadline.
+  now?: () => number;
+  clockReady?: boolean;
 }
 
-export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey }: UseExamTimerProps) {
+export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, now = Date.now, clockReady = true }: UseExamTimerProps) {
   const calcRemaining = useCallback((): number => {
     if (!deadline) return 0;
-    const diff = new Date(deadline).getTime() - Date.now();
+    const diff = new Date(deadline).getTime() - now();
+    if (!Number.isFinite(diff)) return NaN;
     return Math.max(0, Math.floor(diff / 1000));
-  }, [deadline]);
+  }, [deadline, now]);
 
   const [remaining, setRemaining] = useState(calcRemaining);
-  const timeUpFiredRef = useRef(false);
+  const firedKeysRef = useRef(new Set<string>());
+  // Legacy callers without attemptKey retain the per-deadline contract.
+  const key = attemptKey ?? deadline;
   const onTimeUpRef = useRef(onTimeUp);
   onTimeUpRef.current = onTimeUp;
 
   useEffect(() => {
-    timeUpFiredRef.current = false;
     setRemaining(calcRemaining());
   }, [deadline, calcRemaining, attemptKey]);
 
   useEffect(() => {
-    if (paused || !deadline) return;
+    if (paused || !deadline || !clockReady || key === null) return;
 
     const tick = () => {
       const r = calcRemaining();
       setRemaining(r);
-      if (r === 0 && !timeUpFiredRef.current) {
-        timeUpFiredRef.current = true;
+      if (r === 0 && !firedKeysRef.current.has(key)) {
+        firedKeysRef.current.add(key);
         onTimeUpRef.current();
       }
     };
@@ -44,9 +48,9 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey }:
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [paused, deadline, calcRemaining, attemptKey]);
+  }, [paused, deadline, calcRemaining, key, clockReady]);
 
-  return remaining;
+  return Number.isFinite(remaining) ? remaining : 0;
 }
 
 export function formatTimer(seconds: number): string {
