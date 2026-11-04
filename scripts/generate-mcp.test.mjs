@@ -3,9 +3,74 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import ts from "typescript";
 import { assertSafeGenerationPath, generateMcp, validateArtifacts } from "./generate-mcp.mjs";
 
 const ref = "lljnbysgcwvkhlnaqxtt";
+
+// Static regression guard for the emitted JS, not a runtime authorization proof.
+function assertReadOnlyPerformanceRpc(index) {
+  assert.doesNotMatch(index, /SERVICE_ROLE|\.(?:insert|update|upsert|delete)\s*\(/);
+  const source = ts.createSourceFile("mcp.js", index, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  assert.equal(source.parseDiagnostics.length, 0, "Artifact must parse");
+  const rpcCalls = [];
+  const mutations = new Set(["insert", "update", "upsert", "delete"]);
+  function visit(node) {
+    if (ts.isPropertyAccessExpression(node)) {
+      assert.ok(!mutations.has(node.name.text), "Mutation methods are forbidden");
+      if (node.name.text === "rpc") {
+        assert.ok(ts.isCallExpression(node.parent) && node.parent.expression === node, "RPC aliases/dynamic calls are forbidden");
+        rpcCalls.push(node.parent);
+      }
+    }
+    if (ts.isElementAccessExpression(node)) {
+      const key = ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text : null;
+      assert.ok(key !== "rpc" && !mutations.has(key), "Computed RPC/mutation access is forbidden");
+      assert.ok(!(ts.isIdentifier(node.expression) && node.expression.text === "client"), "Dynamic client access is forbidden");
+      assert.ok(!(ts.isCallExpression(node.parent) && node.parent.expression === node), "Dynamic method calls are forbidden");
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  assert.equal(rpcCalls.length, 1, "Exactly one authorized RPC is required");
+  const call = rpcCalls[0];
+  assert.equal(call.expression.expression.getText(source), "client", "RPC must use the caller client");
+  assert.equal(call.arguments.length, 2, "RPC must have exactly two arguments");
+  assert.ok(ts.isStringLiteral(call.arguments[0]) && call.arguments[0].text === "get_user_performance_summary", "Only the literal performance read RPC is allowed");
+  const args = call.arguments[1];
+  assert.ok(ts.isObjectLiteralExpression(args), "RPC arguments must be a literal object");
+  assert.equal(args.properties.length, 3, "RPC must have exactly three scope arguments");
+  const expected = { p_user_id: "userId", p_edition_id: "edition.id", p_include_training: "false" };
+  for (const property of args.properties) {
+    assert.ok(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name), "No computed keys, shorthand or spreads");
+    const key = property.name.text;
+    assert.ok(Object.hasOwn(expected, key), "Unknown or duplicate RPC argument");
+    assert.equal(property.initializer.getText(source), expected[key], `Invalid ${key}`);
+    delete expected[key];
+  }
+  let block = call.parent;
+  while (block && !ts.isBlock(block)) block = block.parent;
+  assert.ok(block, "RPC must be inside the handler block");
+  for (const [name, initializer] of Object.entries({
+    client: "supabaseForUser(ctx)", userId: "ctx.getUserId()",
+    edition: "await resolvePerformanceEdition(client, userId, edition_id)",
+  })) {
+    const bindings = block.statements.filter(ts.isVariableStatement).flatMap(statement =>
+      statement.declarationList.declarations.filter(declaration => ts.isIdentifier(declaration.name) && declaration.name.text === name)
+        .map(declaration => ({ statement, declaration })));
+    assert.equal(bindings.length, 1, `Exactly one local ${name} binding is required`);
+    const { statement, declaration } = bindings[0];
+    assert.ok(statement.declarationList.flags & ts.NodeFlags.Const, `${name} must be const`);
+    assert.ok(statement.end < call.pos, `${name} must be bound before the RPC`);
+    assert.equal(declaration.initializer?.getText(source), initializer, `Invalid ${name} provenance`);
+  }
+  let handler = block.parent;
+  while (handler && !ts.isArrowFunction(handler)) handler = handler.parent;
+  assert.ok(handler && handler.parameters.length === 2 && handler.parameters[1].name.getText(source) === "ctx", "OAuth handler context required");
+  assert.ok(ts.isPropertyAssignment(handler.parent) && handler.parent.name.getText(source) === "handler", "RPC must belong to a tool handler");
+  const toolName = handler.parent.parent.properties.find(property => ts.isPropertyAssignment(property) && property.name.getText(source) === "name");
+  assert.ok(toolName && ts.isStringLiteral(toolName.initializer) && toolName.initializer.text === "get_my_performance", "RPC must belong to get_my_performance");
+}
 
 test("the checked-in official Linux artifact retains fixed pins and authorization boundaries", async () => {
   const directory = new URL("../supabase/functions/mcp/", import.meta.url);
@@ -23,8 +88,33 @@ test("the checked-in official Linux artifact retains fixed pins and authorizatio
   assert.match(index, /SUPABASE_PUBLISHABLE_KEY \?\? process\.env\.SUPABASE_ANON_KEY/);
   assert.match(index, /from\("profiles"\)\.select\("segment"\)\.eq\("id", ctx\.getUserId\(\)\)/);
   assert.match(index, /if \(profileError \|\| profile\?\.segment !== "pro"\)/);
-  assert.doesNotMatch(index, /SERVICE_ROLE|\.(?:insert|update|upsert|delete|rpc)\s*\(/);
+  assertReadOnlyPerformanceRpc(index);
 });
+
+for (const [name, mutate] of [
+  ["finalizer RPC", index => index.replace('rpc("get_user_performance_summary"', 'rpc("finalize_attempt_with_results"')],
+  ["admin RPC", index => index.replace('rpc("get_user_performance_summary"', 'rpc("admin_import_cutoffs"')],
+  ["forged user argument", index => index.replace("p_user_id: userId", 'p_user_id: "forged-user"')],
+  ["forged OAuth binding", index => index.replace("const userId = ctx.getUserId();", 'const userId = "forged-user";')],
+  ["training enabled", index => index.replace("p_include_training: false", "p_include_training: true")],
+  ["global edition argument", index => index.replace("p_edition_id: edition.id", "p_edition_id: null")],
+  ["unresolved edition binding", index => index.replace("const edition = await resolvePerformanceEdition(client, userId, edition_id);", "const edition = null;")],
+  ["dynamic RPC name", index => index.replace('rpc("get_user_performance_summary"', "rpc(rpcName")],
+  ["computed RPC", index => index.replace("client.rpc(", 'client["rpc"](')],
+  ["dynamic client method", index => index.replace("client.rpc(", "client[method](")],
+  ["RPC alias", index => index.replace("client.rpc(", "(client.rpc)(")],
+  ["extra RPC", index => index + '\nclient.rpc("get_user_performance_summary", {});'],
+  ["scope override spread", index => index.replace("p_include_training: false", "p_include_training: false, ...overrides")],
+  ["service role", index => index + "\nconst key = process.env.SUPABASE_SERVICE_ROLE_KEY;"],
+  ...["insert", "update", "upsert", "delete"].map(method => [method, index => index + `\nclient.${method}({});`]),
+]) {
+  test(`the read-only RPC guard rejects a mutated artifact: ${name}`, async () => {
+    const index = await readFile(new URL("../supabase/functions/mcp/index.ts", import.meta.url), "utf8");
+    const mutated = mutate(index);
+    assert.notEqual(mutated, index, "Mutation must change the official artifact");
+    assert.throws(() => assertReadOnlyPerformanceRpc(mutated), assert.AssertionError);
+  });
+}
 
 test("the eight resolved upgrade advisories are no longer audit exceptions", async () => {
   const retired = new Set([
