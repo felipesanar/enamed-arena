@@ -1,8 +1,23 @@
+import type { ExamArea, ExamBlueprint } from '@/types/edition';
+
+/** Exact matching for edition data; legacy substring helpers below remain isolated. */
+export function resolveBlueprintArea(value: string, areas: readonly ExamArea[]): ExamArea | null {
+  const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const key = normalize(value ?? '');
+  if (!key) return null;
+  const matches = areas.filter(area => [area.code, area.label, ...area.aliases].some(alias => normalize(alias) === key));
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export function adaptEditionBlueprint(blueprint: ExamBlueprint, areas: readonly ExamArea[]) {
+  return { ...blueprint, areas: areas.filter(a => a.blueprint_id === blueprint.id).map(a => ({ ...a, aliases: [...a.aliases] })).sort((a, b) => a.sort_order - b.sort_order) };
+}
+
 /**
  * ENAMED Blueprint — mapa de pesos das grandes áreas na prova.
  *
  * Pesos somam 1.0 (100%).
- * Fonte: distribuição histórica do ENAMED / SanarFlix Conteúdo.
+ * Legacy provisional weights, not a confirmed official distribution.
  *
  * TODO: validar pesos oficiais com Conteúdo antes do lançamento em produção.
  *
