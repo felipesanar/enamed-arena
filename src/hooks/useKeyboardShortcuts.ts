@@ -1,6 +1,6 @@
 /**
  * Keyboard shortcuts — ported from SanarFlix Academy's useKeyboardShortcuts.
- * Supports 1-5 for alternatives (A-E), arrows, F for review, H for high-confidence, Esc for finalize.
+ * Dispatches the caller's map; R/H and numeric meanings belong to the exam flow.
  */
 
 import { useEffect, useRef } from 'react';
@@ -35,17 +35,11 @@ export function useKeyboardShortcuts(
     if (!enabled) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (preventInInputs) {
-        const target = event.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.isContentEditable)
-        ) {
-          return;
-        }
-      }
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.keyCode === 229) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('[role="dialog"], [role="alertdialog"], dialog[open]') ||
+        document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"], dialog[open]')) return;
+      if (preventInInputs && target?.closest('input, textarea, select, [role="textbox"], [contenteditable]:not([contenteditable="false"])')) return;
 
       const action = shortcutsRef.current[event.key];
       if (action) {
