@@ -20,6 +20,7 @@ import {
 
 import { PageTransition } from "@/components/premium/PageTransition";
 import { AcademicProfileEditor } from "@/components/profile/AcademicProfileEditor";
+import { EditionTargetSettings } from "@/components/editions/EditionTargetSettings";
 import { SettingsHero } from "@/components/settings/SettingsHero";
 import { SettingsNav, type SettingsNavSection } from "@/components/settings/SettingsNav";
 import { SettingsSection } from "@/components/settings/SettingsSection";
@@ -286,6 +287,7 @@ export default function ConfiguracoesPage() {
                 ) : null
               }
             >
+              <EditionTargetSettings />
               {onboardingEditLocked && !editingAcademic && (
                 <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/5 px-4 py-3 text-body-sm text-foreground">
                   <AlertTriangle

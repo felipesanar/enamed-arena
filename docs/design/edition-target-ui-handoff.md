@@ -1,5 +1,7 @@
 # Edição-alvo: Handoff da Fase A
 
+Integração React da fase B registrada em `../edition-target-ui-2027.md`. Este documento mantém o histórico e os limites da DEMO aprovada; não é evidência de validação visual das páginas React.
+
 ## Entrega e Limites
 
 Protótipo autocontido de HTML/CSS/JS para revisão da F1-8, não uma implementação React nem uma entrega em produção. Fontes: `edition-target-brief.md`, `PRODUCT.md`, `DESIGN.md`, componentes atuais e contratos de edições do repositório.
@@ -70,7 +72,7 @@ API de composição prevista, ainda não criada nesta fase:
 
 ```ts
 type EditionTargetValue = {
-  targetEditionId: string | null;
+  targetEditionId: string | null | undefined;
   expectedGraduationTerm: string | null;
 };
 
@@ -81,7 +83,7 @@ type EditionTargetPickerProps = {
 };
 ```
 
-Centralizar tipos de domínio em `src/types/`, conforme convenção do projeto. O picker controlado compõe campos, catálogo e sugestão; não deve assumir persistência nem adicionar props obrigatórias a componentes antigos. Manter estado de interação separado para exigir escolha explícita no cadastro: `null` sozinho não distingue “não tocado” de “Ainda não sei”. Uma preferência existente pode ser exibida sem forçar nova escolha.
+O picker controlado compõe campos, catálogo e sugestão; não deve assumir persistência nem adicionar props obrigatórias a componentes antigos. `undefined` distingue “não tocado” de `null`, escolha explícita de “Ainda não sei”. Uma preferência existente pode ser exibida sem forçar nova escolha. A fase B deriva o tipo local do domínio existente, sem alterar tipos compartilhados, fora do escopo autorizado.
 
 - `EditionTargetPrompt`: sem props obrigatórias; consome providers existentes e pode ser reutilizado em `/simulados` na integração futura de listas. Sem duplicar prompts na mesma página.
 - `EditionTargetSettings`: compõe picker, envio e feedback nas configurações, independente do guard acadêmico.

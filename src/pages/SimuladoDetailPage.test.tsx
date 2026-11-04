@@ -99,6 +99,35 @@ describe("SimuladoDetailPage — Dark Arena card", () => {
     expect(screen.getByText("Prova em tela cheia")).toBeInTheDocument();
   });
 
+  it('uses the edition of the selected exam, with a neutral fallback', () => {
+    setupMocks({ simulado: { ...baseSimulado, editionCode: '2027.1' } });
+    renderPage();
+    expect(screen.getByText('2027.1 · Simulado 8 · ENAMED 2027.1')).toBeInTheDocument();
+    expect(screen.queryByText(/ENAMED 2026/)).not.toBeInTheDocument();
+  });
+
+  it('shows training and continue for an in-progress non-ranking attempt', () => {
+    setupMocks({ simulado: { ...baseSimulado, status: 'in_progress', userState: {
+      simuladoId: 'sim-8', started: true, finished: false, isWithinWindow: false,
+    } } });
+    renderPage();
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar Simulado' })).toBeInTheDocument();
+  });
+
+  it('keeps the direct detail authoritative when the catalog has stale attempt data', () => {
+    setupMocks({
+      simulado: { ...baseSimulado, status: 'in_progress', editionCode: '2027.2', userState: {
+        simuladoId: 'sim-8', started: true, finished: false, isWithinWindow: false,
+        effectiveDeadline: '2099-01-01T00:00:00Z',
+      } },
+      simulados: [{ ...baseSimulado, userState: { ...baseSimulado.userState, effectiveDeadline: '2020-01-01T00:00:00Z' } }],
+    });
+    renderPage();
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar Simulado' })).toBeInTheDocument();
+  });
+
   it("shows helper copy while the checklist is incomplete", () => {
     renderPage();
     expect(

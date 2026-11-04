@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ComparativeEntryRich } from '@/hooks/useComparativeData';
+import { formatSimuladoLabel } from '@/lib/editions';
 
 interface Props {
   open: boolean;
@@ -43,7 +44,7 @@ export function SimuladoSnapshotDrawer({ open, onOpenChange, entry }: Props) {
         <SheetHeader className="text-left">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-overline uppercase tracking-wider font-bold text-primary">
-              Simulado #{entry.sequenceNumber}
+              {formatSimuladoLabel(entry)}
             </span>
           </div>
           <SheetTitle className="text-heading-2 text-foreground">{entry.title}</SheetTitle>

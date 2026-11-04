@@ -20,6 +20,7 @@ import { canViewResultsOrAdminPreview } from '@/lib/simulado-helpers';
 import { computePerformanceBreakdown } from '@/lib/resultHelpers';
 import type { PerformanceBreakdown } from '@/lib/resultHelpers';
 import { BarChart3 } from 'lucide-react';
+import { editionBadge } from '@/lib/edition-groups';
 
 export default function DesempenhoPage() {
   const { profile } = useUser();
@@ -80,6 +81,7 @@ export default function DesempenhoPage() {
   }, [examState, performanceQuestions]);
 
   const loading = loadingSimulados || loadingDetail || loadingExam;
+  const selectedSimulado = simuladosWithResults.find(sim => sim.id === selectedSimuladoId);
 
   if (loading && !breakdown) {
     return (
@@ -88,7 +90,7 @@ export default function DesempenhoPage() {
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <div className="space-y-4 md:space-y-5">
           <SkeletonCard className="h-[180px] rounded-[22px] bg-primary/[0.06]" />
@@ -110,7 +112,7 @@ export default function DesempenhoPage() {
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <EmptyState
           variant="error"
@@ -129,7 +131,7 @@ export default function DesempenhoPage() {
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <EmptyState
           icon={BarChart3}
@@ -148,7 +150,7 @@ export default function DesempenhoPage() {
           title="Desempenho"
           subtitle="Análise detalhada do seu desempenho por especialidade e tema."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
           action={canCompare ? (
             <Link
               to="/comparativo"

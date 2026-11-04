@@ -37,6 +37,8 @@ import { RankingFilterBar } from './RankingFilterBar';
 import { RankingTable } from './RankingTable';
 import { computePercentile } from '@/lib/ranking-percentile';
 import type { RankingEvolution } from '@/hooks/useRankingEvolution';
+import type { SimuladoConfig } from '@/types';
+import { formatSimuladoLabel } from '@/lib/editions';
 
 // ─── Table row types ──────────────────────────────────────────────────────────
 
@@ -96,7 +98,8 @@ export type RankingTrackSource = 'page' | 'admin_preview';
 
 export interface RankingViewProps {
   loading: boolean;
-  simuladosWithResults: Array<{ id: string; title: string; sequence_number: number }>;
+  simuladosWithResults: Array<{ id: string; title: string; sequence_number: number } & Pick<SimuladoConfig, 'editionId' | 'editionCode' | 'editionLabel'>>;
+  editionsUi?: boolean;
   selectedSimuladoId: string | null;
   setSelectedSimuladoId: (id: string) => void;
   filteredParticipants: RankingParticipant[];
@@ -148,6 +151,7 @@ export function RankingView({
   toolbar,
   heroStanding,
   heroEvolution,
+  editionsUi = false,
 }: RankingViewProps) {
   const mountedAtRef = useRef<number>(Date.now());
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
@@ -267,7 +271,10 @@ export function RankingView({
         }
       : null);
 
-  const selectedSimuladoTitle = simuladosWithResults.find((s) => s.id === selectedSimuladoId)?.title;
+  const selectedSimulado = simuladosWithResults.find((s) => s.id === selectedSimuladoId);
+  const selectedSimuladoTitle = selectedSimulado && editionsUi
+    ? formatSimuladoLabel({ ...selectedSimulado, sequenceNumber: selectedSimulado.sequence_number })
+    : selectedSimulado?.title;
 
   const hasActiveFilters =
     rankingComparison.bySpecialty ||
@@ -297,6 +304,7 @@ export function RankingView({
         <div className="space-y-5">
           {/* ── Simulado selector chips ──────────────────────────────────── */}
           <RankingSimuladoSelector
+            editionsUi={editionsUi}
             simuladosWithResults={simuladosWithResults}
             selectedSimuladoId={selectedSimuladoId}
             setSelectedSimuladoId={setSelectedSimuladoId}
@@ -304,6 +312,7 @@ export function RankingView({
 
           {/* ── Hero ("Você primeiro") ───────────────────────────────────── */}
           <RankingHero
+            simulado={selectedSimulado}
             simuladoTitle={selectedSimuladoTitle}
             standing={heroStandingResolved}
             notaMedia={stats.notaMedia}
@@ -362,6 +371,7 @@ export function RankingView({
 
       {/* ── CutoffScoreModal ─────────────────────────────────────────────── */}
       <CutoffScoreModal
+        simulado={selectedSimulado}
         open={cutoffModalOpen}
         onClose={() => setCutoffModalOpen(false)}
         userSpecialty={userSpecialty}

@@ -6,6 +6,7 @@ import type { SimuladoWithStatus } from "@/types";
 import { Link } from "react-router-dom";
 import { getSimuladoCTA, formatDateShort, buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { CalendarPlus } from "lucide-react";
+import { formatSimuladoLabel } from '@/lib/editions';
 
 interface SimuladoCardProps {
   simulado: SimuladoWithStatus;
@@ -20,8 +21,8 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
     <PremiumCard interactive delay={delay} className="flex flex-col p-5 md:p-6">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-            <span className="text-body font-bold text-primary">#{simulado.sequenceNumber}</span>
+          <div className="min-h-10 rounded-lg bg-accent flex items-center justify-center px-2">
+            <span className="text-body font-bold text-primary">{formatSimuladoLabel(simulado)}</span>
           </div>
           {simulado.dbStatus === 'test' && (
             <span className="px-2 py-0.5 rounded-md text-micro-label font-semibold bg-warning/15 text-warning border border-warning/30 uppercase tracking-wide">
@@ -31,6 +32,9 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
         </div>
         <StatusBadge status={simulado.status} />
       </div>
+      {simulado.status === 'in_progress' && simulado.userState?.isWithinWindow === false && (
+        <span className="text-caption text-info mb-2">Treino</span>
+      )}
 
       <h3 className="text-heading-3 text-foreground mb-3">{simulado.title}</h3>
 

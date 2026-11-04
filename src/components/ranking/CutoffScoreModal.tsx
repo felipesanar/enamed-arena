@@ -4,8 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { fetchAllCutoffScores } from '@/services/rankingApi';
 import { cn } from '@/lib/utils';
+import { editionBadge } from '@/lib/edition-groups';
+import type { SimuladoConfig } from '@/types';
 
 interface CutoffScoreModalProps {
+  simulado?: Pick<SimuladoConfig, 'editionCode' | 'editionLabel'>;
   open: boolean;
   onClose: () => void;
   userSpecialty?: string;
@@ -28,6 +31,7 @@ export function CutoffScoreModal({
   userSpecialty,
   userInstitutions,
   currentUserScore,
+  simulado,
 }: CutoffScoreModalProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [search, setSearch] = useState('');
@@ -156,7 +160,7 @@ export function CutoffScoreModal({
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-[9px] uppercase tracking-[2.5px] font-bold mb-1 text-muted-foreground/70">
-                    ENAMED 2026
+                    {editionBadge(simulado)}
                   </p>
                   <h2 className="text-[17px] font-extrabold tracking-tight text-foreground">
                     Notas de Corte

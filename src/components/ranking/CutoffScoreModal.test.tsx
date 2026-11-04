@@ -58,6 +58,13 @@ function renderModal(props: Partial<React.ComponentProps<typeof CutoffScoreModal
 }
 
 describe('CutoffScoreModal', () => {
+  it('uses supplied exam metadata and falls back to neutral ENAMED', () => {
+    const { unmount } = renderModal({ simulado: { editionCode: '2027.1' } });
+    expect(screen.getByText('ENAMED 2027.1')).toBeInTheDocument();
+    unmount();
+    renderModal();
+    expect(screen.getByText('ENAMED')).toBeInTheDocument();
+  });
   it('does not render when open=false', () => {
     renderModal({ open: false });
     expect(screen.queryByRole('dialog')).toBeNull();
