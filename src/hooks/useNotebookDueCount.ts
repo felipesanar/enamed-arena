@@ -12,6 +12,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { simuladosApi } from '@/services/simuladosApi';
+import { notebookApi } from '@/services/notebookApi';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 export const NOTEBOOK_DUE_COUNT_KEY = (userId: string | undefined) =>
   ['notebook-due-count', userId] as const;
@@ -23,10 +25,12 @@ const STALE_TIME = 5 * 60 * 1000; // 5 min
  * a flag v2 ativa (ou onde o caderno é relevante) para evitar fetch supérfluo.
  */
 export function useNotebookDueCount(userId: string | undefined, enabled: boolean) {
+  const editionsEnabled = useAppConfig('editions_ui');
   return useQuery({
-    queryKey: NOTEBOOK_DUE_COUNT_KEY(userId),
+    queryKey: editionsEnabled ? [...NOTEBOOK_DUE_COUNT_KEY(userId), null, true] : NOTEBOOK_DUE_COUNT_KEY(userId),
     queryFn: async () => {
       if (!userId) return 0;
+      if (editionsEnabled) return (await notebookApi.getCounts({}, { editionsEnabled: true })).due;
       const entries = await simuladosApi.getErrorNotebook(userId);
       const now = Date.now();
       // Espelha EXATAMENTE a fila "due" de useActiveRecallSession (buildQueue),

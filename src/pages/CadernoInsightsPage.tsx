@@ -34,6 +34,10 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { simuladosApi } from '@/services/simuladosApi';
+import { notebookApi } from '@/services/notebookApi';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useNotebookEditionFilter } from '@/hooks/useNotebookEditionFilter';
+import { NotebookEditionSelector } from '@/components/caderno/NotebookEditionSelector';
 
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import { InsightCard } from '@/components/caderno/insights/InsightCard';
@@ -209,11 +213,15 @@ function ProfSanHeader({
 interface InsightsContentProps {
   userId: string;
   userName: string;
+  editionsEnabled?: boolean;
+  editionId?: string | null;
 }
 
-function InsightsContent({ userId, userName }: InsightsContentProps) {
+export function InsightsContent({ userId, userName, editionsEnabled = false, editionId = null }: InsightsContentProps) {
   const isMobile = useIsMobile();
   const tracked = useRef(false);
+  const showHistory = !editionsEnabled || !!editionId;
+  const queryScope = [userId, editionsEnabled ? editionId : null, editionsEnabled];
 
   // ─── React Query: pattern insights (staleTime 24h conforme spec §A.3) ───
   const {
@@ -224,8 +232,9 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
     dataUpdatedAt: insightsUpdatedAt,
     refetch: refetchInsights,
   } = useQuery({
-    queryKey: ['caderno-pattern-insights', userId],
-    queryFn: () => simuladosApi.getPatternInsights(),
+    queryKey: ['caderno-pattern-insights', ...queryScope],
+    queryFn: () => editionsEnabled ? notebookApi.getPatternInsights(editionId) : simuladosApi.getPatternInsights(),
+    enabled: !!userId,
     staleTime: 1000 * 60 * 60 * 24,
     retry: 1,
   });
@@ -235,8 +244,9 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
     data: historyData,
     isLoading: historyLoading,
   } = useQuery({
-    queryKey: ['caderno-area-score-history', userId],
-    queryFn: () => simuladosApi.getAreaScoreHistory(userId),
+    queryKey: ['caderno-area-score-history', ...queryScope],
+    queryFn: () => editionsEnabled ? notebookApi.getAreaScoreHistory(editionId!) : simuladosApi.getAreaScoreHistory(userId),
+    enabled: !!userId && showHistory,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
@@ -246,8 +256,9 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
     data: calibrationData,
     isLoading: calibrationLoading,
   } = useQuery({
-    queryKey: ['caderno-confidence-calibration', userId],
-    queryFn: () => simuladosApi.getConfidenceCalibration(),
+    queryKey: ['caderno-confidence-calibration', ...queryScope],
+    queryFn: () => editionsEnabled ? notebookApi.getConfidenceCalibration(editionId) : simuladosApi.getConfidenceCalibration(),
+    enabled: !!userId,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
@@ -291,7 +302,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
   // ─── Dados derivados ───
 
   const sorted = sortBySeverity(insightsData?.insights ?? []);
-  const roiInsights = sorted.filter((i) => i.type === 'roi');
+  const roiInsights = showHistory ? sorted.filter((i) => i.type === 'roi') : [];
   const otherInsights = sorted.filter((i) => i.type !== 'roi');
 
   const insightsExtra = insightsData as (typeof insightsData & { from_cache?: boolean; message?: string }) | undefined;
@@ -306,6 +317,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
 
   return (
     <StaggerContainer className="space-y-6">
+      {!showHistory && <p role="note" className="rounded-xl border border-border p-4 text-sm text-muted-foreground">Selecione uma edição para ver a evolução de pontuação. O histórico cumulativo reúne edições e modalidades diferentes; causas e confiança continuam disponíveis aqui.</p>}
       {/* ── Estado: carregando (primeira vez) ── */}
       {insightsLoading && (
         <StaggerItem>
@@ -367,7 +379,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
                 <InsightsEmptyState message={apiMessage} entryCount={0} />
               </StaggerItem>
 
-              <StaggerItem>
+              {showHistory && <StaggerItem>
                 <div className="border-t border-border/60 pt-6">
                   <RoiPanel
                     history={(historyData as any) ?? null}
@@ -375,7 +387,7 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
                     roiInsights={[]}
                   />
                 </div>
-              </StaggerItem>
+              </StaggerItem>}
             </>
           )}
 
@@ -464,13 +476,13 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
               </StaggerItem>
 
               {/* ── ROI Panel ── */}
-              <StaggerItem>
+              {showHistory && <StaggerItem>
                 <RoiPanel
                   history={(historyData as any) ?? null}
                   loading={historyLoading}
                   roiInsights={roiInsights}
                 />
-              </StaggerItem>
+              </StaggerItem>}
 
               {/* ── Divisor ── */}
               <StaggerItem>
@@ -494,7 +506,16 @@ function InsightsContent({ userId, userName }: InsightsContentProps) {
 
 // ─── Page export ───
 
+function EditionInsights({ userId, userName }: InsightsContentProps) {
+  const edition = useNotebookEditionFilter(true);
+  return <div className="caderno-root space-y-6">
+    <NotebookEditionSelector filter={edition} />
+    {edition.ready && <InsightsContent key={`${userId}:${edition.editionId}`} userId={userId} userName={userName} editionsEnabled editionId={edition.editionId} />}
+  </div>;
+}
+
 export default function CadernoInsightsPage() {
+  const editionsEnabled = useAppConfig('editions_ui');
   const { profile } = useUser();
   const { user } = useAuth();
   const segment = profile?.segment ?? 'guest';
@@ -518,7 +539,7 @@ export default function CadernoInsightsPage() {
           ]}
         />
       ) : (
-        <InsightsContent userId={user?.id ?? ''} userName={firstName} />
+        editionsEnabled ? <EditionInsights key={user?.id} userId={user?.id ?? ''} userName={firstName} /> : <InsightsContent key={user?.id} userId={user?.id ?? ''} userName={firstName} />
       )}
     </PageTransition>
   );

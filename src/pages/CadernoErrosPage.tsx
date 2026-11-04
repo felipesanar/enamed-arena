@@ -21,6 +21,8 @@ import { EmptyState } from '@/components/EmptyState';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { simuladosApi } from '@/services/simuladosApi';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { NotebookEditionContent } from '@/pages/CadernoPage';
 import { SEGMENT_ACCESS } from '@/types';
 import { type DbReason } from '@/lib/errorNotebookReasons';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
@@ -524,10 +526,12 @@ function CadernoContent({ userId }: { userId: string }) {
  * ────────────────────────────────────────────────────────────────────────── */
 
 export default function CadernoErrosPage() {
+  const editionsEnabled = useAppConfig('editions_ui');
   const { profile } = useUser();
   const { user } = useAuth();
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
+  if (hasAccess && editionsEnabled) return <PageTransition><NotebookEditionContent key={user?.id} userId={user?.id ?? ''} /></PageTransition>;
 
   return (
     <PageTransition>

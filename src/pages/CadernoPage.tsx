@@ -42,6 +42,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { type DbReason } from '@/lib/errorNotebookReasons';
 import { simuladosApi } from '@/services/simuladosApi';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useNotebookEditionFilter } from '@/hooks/useNotebookEditionFilter';
+import { useNotebookPage } from '@/hooks/useNotebookPage';
+import { NotebookEditionSelector, notebookControlClass } from '@/components/caderno/NotebookEditionSelector';
+import { NotebookPagination } from '@/components/caderno/NotebookPagination';
+import { DB_REASON_META } from '@/lib/errorNotebookReasons';
+import type { NotebookFilters } from '@/types/notebook-pagination';
+import { notebookEditionLink } from '@/lib/notebookEditionLinks';
 
 import { CadernoHero } from '@/components/caderno/CadernoHero';
 import { CadernoModeCards } from '@/components/caderno/CadernoModeCards';
@@ -882,11 +890,112 @@ function QueueSection({
 
 /* ── Page export ── */
 
+export function NotebookEditionContent({ userId }: { userId: string }) {
+  const prefersReducedMotion = useReducedMotion();
+  const edition = useNotebookEditionFilter(true);
+  const [filters, setFilters] = useState<NotebookFilters>({ state: 'all', search: null });
+  const [search, setSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setFilters(prev => ({ ...prev, search: search || null })), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const [paging, setPaging] = useState({ scope: '', offset: 0 });
+  const scope = JSON.stringify([userId, edition.editionId, filters]);
+  const offset = paging.scope === scope ? paging.offset : 0;
+  const effective = { ...filters, editionId: edition.editionId };
+  const { page, scopeCounts, invalidate } = useNotebookPage(effective, offset, edition.ready);
+  const [selection, setSelection] = useState<{ scope: string; ids: Set<string> }>({ scope: '', ids: new Set() });
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const selected = selection.scope === `${scope}:${offset}` ? selection.ids : new Set<string>();
+  const rows = page.data?.items ?? [];
+  useEffect(() => { setHidden(new Set()); }, [scope]);
+  useEffect(() => {
+    if (page.data && offset > 0 && offset >= page.data.total) setPaging({ scope, offset: Math.max(0, Math.ceil(page.data.total / 50) * 50 - 50) });
+  }, [page.data, offset, scope]);
+  const changePage = (next: number) => { setPaging({ scope, offset: next }); setSelection({ scope: '', ids: new Set() }); titleRef.current?.focus(); };
+  async function mutate(ids: string[], action: 'resolve' | 'snooze' | 'delete', value?: number | boolean) {
+    if (busyRef.current || !ids.length || ids.some(id => !rows.some(row => row.id === id))) return;
+    busyRef.current = true; setBusy(true);
+    try {
+      if (action === 'delete') {
+        let undone = false;
+        setHidden(new Set(ids));
+        const notification = toast({ title: 'Item removido do caderno', duration: 5000,
+          action: <ToastAction altText="Desfazer remoção" onClick={() => { undone = true; setHidden(new Set()); notification.dismiss(); }}>Desfazer</ToastAction> });
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        if (undone) return;
+      }
+      const outcomes = await Promise.allSettled(ids.map(id => action === 'delete' ? simuladosApi.deleteErrorNotebookEntry(id, userId)
+        : action === 'resolve' ? simuladosApi.toggleResolvedEntry(id, userId, value !== false) : simuladosApi.snoozeErrorNotebookEntry(id, Number(value))));
+      await invalidate();
+      if (outcomes.some(r => r.status === 'rejected')) throw new Error('Some notebook updates failed');
+      setSelection({ scope: '', ids: new Set() });
+    } catch {
+      toast({ title: 'Não foi possível atualizar', description: 'Tente novamente. As contagens foram consultadas no servidor.', variant: 'destructive' });
+    } finally { setHidden(new Set()); busyRef.current = false; setBusy(false); }
+  }
+  const label = (id: string, text: string, child: React.ReactNode) => <div><label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{text}</label>{child}</div>;
+  const update = (key: keyof NotebookFilters, value: string) => setFilters(prev => ({ ...prev, [key]: value || null }));
+  return <div className="caderno-root mx-auto max-w-[1120px] space-y-6 text-[var(--c-ink)]">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs text-[var(--c-muted)]">Meu aprendizado / Caderno • PRO</p><h1 className="text-3xl font-bold">Caderno de erros</h1><p className="mt-2 text-sm text-[var(--c-muted)]">Cada edição passa. O que você aprendeu continua aqui.</p></div>
+      <CadernoExportMenu userId={userId} disabled={!edition.ready || page.isPending || page.isError || !page.data?.total} notebookFilters={effective} editionLabel={edition.label} editionsEnabled />
+    </header>
+    <NotebookEditionSelector filter={edition} />
+    {edition.ready && <>
+      {scopeCounts.data && <section aria-label="Totais da edição, antes dos filtros" className="min-w-0 max-w-full rounded-[20px] border border-[var(--c-border)] bg-[var(--c-surface)] p-5"><p className="mb-3 min-w-0 max-w-full [overflow-wrap:anywhere] text-sm text-[var(--c-muted)]">{edition.label} • antes dos filtros</p><dl className="grid grid-cols-3 gap-3">{[['Total', scopeCounts.data.total], ['Dominadas', scopeCounts.data.mastered], ['Devidas agora', scopeCounts.data.due]].map(([name, value]) => <div key={name}><dt className="text-xs text-[var(--c-muted)]">{name}</dt><dd className="text-2xl font-bold">{value}</dd></div>)}</dl></section>}
+      <CadernoModeCards devidasHoje={scopeCounts.data?.due ?? 0} daysLeft={null} isEnamedNear={false} prefersReducedMotion={!!prefersReducedMotion}
+        hasPending={!!scopeCounts.data && scopeCounts.data.total > scopeCounts.data.mastered}
+        revisaoTo={notebookEditionLink('/caderno/revisao?mode=due', edition.editionId, true)}
+        treinoTo={notebookEditionLink('/caderno/treino', edition.editionId, true)} retaFinalTo="/caderno/reta-final" />
+      <section aria-label="Filtrar entradas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {label('notebook-reason', 'Causa do erro', <select id="notebook-reason" className={notebookControlClass} value={filters.reason ?? ''} onChange={e => update('reason', e.target.value)}><option value="">Todas as causas</option>{Object.entries(DB_REASON_META).map(([id, meta]) => <option key={id} value={id}>{meta.label}</option>)}</select>)}
+        {label('notebook-area', 'Área', <select id="notebook-area" className={notebookControlClass} value={filters.area ?? ''} onChange={e => update('area', e.target.value)}><option value="">Todas as áreas</option>{(scopeCounts.data?.by_area ?? []).filter(a => a.area).map(a => <option key={a.area}>{a.area}</option>)}</select>)}
+        {label('notebook-search', 'Buscar no caderno', <input id="notebook-search" type="search" maxLength={200} className={notebookControlClass} value={search} onChange={e => setSearch(e.target.value)} placeholder="Tema, questão ou anotação" />)}
+        {label('notebook-state', 'Domínio', <select id="notebook-state" className={notebookControlClass} value={filters.state ?? 'all'} onChange={e => update('state', e.target.value)}><option value="all">Todas as entradas</option><option value="pending">Pendentes</option><option value="mastered">Dominadas</option></select>)}
+      </section>
+      <div className="flex flex-wrap justify-between gap-2 text-sm"><p className="text-[var(--c-muted)]">Filtros aplicados à lista, contagens e exportação.</p><button onClick={() => { setFilters({ state: 'all', search: null }); setSearch(''); }} className="min-h-11 underline">Limpar filtros</button></div>
+      <h2 ref={titleRef} tabIndex={-1} className="text-xl font-semibold outline-none">Seu histórico de aprendizado</h2>
+      {page.isPending && <p role="status">Carregando seu caderno…</p>}
+      {page.isError && <div role="alert"><p>Não foi possível carregar o caderno</p><button className="min-h-11 underline" onClick={() => page.refetch()}>Tentar novamente</button></div>}
+      {page.isSuccess && <>
+        <p role="status" className="text-sm text-[var(--c-muted)]">Com os filtros: {page.data.counts.total} entradas • {page.data.counts.mastered} dominadas • {page.data.counts.due} devidas agora</p>
+        {!page.data.total && <p>{scopeCounts.data?.total === 0 ? 'Seu caderno começa com o próximo aprendizado.' : 'Nenhuma entrada com esses filtros.'}</p>}
+        {!!page.data.total && <div className="flex flex-wrap items-center gap-3 text-sm"><span>Seleção somente nesta página: {selected.size} de {rows.length}</span><button disabled={busy} className="min-h-11 underline" onClick={() => setSelection({ scope: `${scope}:${offset}`, ids: new Set(rows.map(r => r.id)) })}>Selecionar página</button><button disabled={busy || !selected.size} className="min-h-11 underline" onClick={() => mutate([...selected], 'resolve')}>Dominar selecionadas</button><button disabled={busy || !selected.size} className="min-h-11 underline" onClick={() => mutate([...selected], 'snooze', 1)}>Adiar selecionadas</button><button disabled={busy || !selected.size} className="min-h-11 underline" onClick={() => mutate([...selected], 'delete')}>Remover selecionadas</button></div>}
+        <div className={busy ? 'pointer-events-none space-y-3' : 'space-y-3'} aria-busy={busy}>
+          {rows.filter(row => !hidden.has(row.id)).map(row => <NotebookEntryCard key={row.id}
+            entry={{ id: row.id, simuladoId: row.simulado_id, questionId: row.question_id,
+              questionNumber: row.question_number, area: row.area, theme: row.theme, reason: row.reason,
+              learningNote: row.learning_text, wasCorrect: row.was_correct, addedAt: row.created_at,
+              nextReviewAt: row.next_review_at, simuladoTitle: row.simulado_title, questionText: row.question_text,
+               resolvedAt: row.resolved_at ?? row.mastered_at, srsDueAt: row.srs_due_at,
+               srsReps: row.srs_reps, srsInterval: row.srs_interval, masteredAt: row.mastered_at,
+               lastReviewOutcome: row.last_review_outcome, srsLapses: row.srs_lapses,
+              editionId: row.edition_id ?? null, editionCode: row.edition_code, editionLabel: row.edition_label }}
+            selected={selected.has(row.id)} selectable
+            onToggleSelect={id => setSelection(() => {
+              const ids = new Set(selected); if (ids.has(id)) ids.delete(id); else ids.add(id);
+              return { scope: `${scope}:${offset}`, ids };
+            })}
+            onRemove={id => mutate([id], 'delete')}
+            onToggleMastered={(id, value) => mutate([id], 'resolve', value)}
+            onSnooze={(id, days) => mutate([id], 'snooze', days)}
+            reviewHref={notebookEditionLink(`/caderno/revisao?entry=${encodeURIComponent(row.id)}`, edition.editionId, true)} />)}
+        </div>
+        <NotebookPagination offset={offset} total={page.data.total} busy={page.isFetching || busy} onPage={changePage} />
+      </>}
+    </>}
+  </div>;
+}
+
 export default function CadernoPage() {
   const { profile } = useUser();
   const { user } = useAuth();
   const segment = profile?.segment ?? 'guest';
   const hasAccess = SEGMENT_ACCESS[segment].cadernoErros;
+  const editionsEnabled = useAppConfig('editions_ui');
 
   return (
     <PageTransition>
@@ -904,7 +1013,7 @@ export default function CadernoPage() {
           ]}
         />
       ) : (
-        <CadernoContent userId={user?.id ?? ''} />
+        editionsEnabled ? <NotebookEditionContent key={user?.id} userId={user?.id ?? ''} /> : <CadernoContent userId={user?.id ?? ''} />
       )}
     </PageTransition>
   );

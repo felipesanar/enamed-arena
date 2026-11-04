@@ -48,6 +48,11 @@ export interface CadernoExportEntry {
   correct_label: string | null;
   /** Explicação oficial da questão (pode conter markdown leve). */
   explanation: string | null;
+  edition_id?: string | null;
+  edition_code?: string | null;
+  edition_label?: string | null;
+  question_id?: string | null;
+  simulado_id?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +135,7 @@ function hexToRgb(hex: string): [number, number, number] {
  * resumo do Prof. San e a anotação do aluno.
  * Retorna o Blob e dispara o download no browser.
  */
-export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
+export function exportNotebookPdf(entries: CadernoExportEntry[], filterLabel?: string): Blob {
   const doc = createPdf();
   const x = PAGE.marginX;
   const w = PAGE.contentWidth;
@@ -190,6 +195,7 @@ export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
   y += 8;
 
   const grouped = groupByArea(entries);
+  if (filterLabel) writeParagraph(`Filtro: ${filterLabel}`, { fontSize: 8, color: COLORS.gray700 });
 
   grouped.forEach((areaEntries, areaName) => {
     // ── Cabeçalho de área ──
@@ -222,6 +228,9 @@ export function exportNotebookPdf(entries: CadernoExportEntry[]): Blob {
       doc.text(headerLine, x, y);
       y += 5;
 
+      if (entry.edition_id !== undefined) {
+        writeParagraph(entry.edition_label || entry.edition_code || (!entry.question_id && !entry.simulado_id ? 'Adicionado manualmente' : 'Edição não informada'), { fontSize: 8, color: COLORS.gray700 });
+      }
       if (entry.simulado_title) {
         doc.setFont('Helvetica', 'normal');
         doc.setFontSize(7);
