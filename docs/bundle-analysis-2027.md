@@ -7,11 +7,14 @@ Medição em 04/11/2026, com Node 24.16 e as mesmas dependências isoladas de Vi
 | Base antes da Home, a70c1c0 | 145 | 4.832.573 B | 1.436.861 B | 50.020 B | 13.639 B |
 | Controle isolado da Home/RQ, d016dc4 | 146 | 4.839.931 B | 1.440.272 B | 43.964 B | 11.786 B |
 | Conjunto integrado, 7079906 | 151 | 4.926.450 B | 1.472.039 B | 43.964 B | 11.783 B |
+| Conjunto final de código, e8de066 | 158 | 5.016.160 B | 1.501.677 B | 44.488 B | 11.891 B |
 
 O chunk próprio da Home diminuiu 6.056 bytes (12,1%) e 1.853 bytes gzip (13,6%) no controle. O total JS desse controle aumentou 7.358 bytes (0,15%), com a lógica compartilhada dos hooks. O conjunto posterior inclui outras funcionalidades e não isola o efeito da Home. A soma dos chunks não é o download inicial de uma rota, pois há imports dinâmicos e cache do navegador.
 
-O maior chunk continua vendor-pdf-xlsx: 1.425.339 bytes, 427.268 gzip, igual nos três builds. O gráfico de linhas tem cerca de 393.837 bytes; html2canvas tem 201.041 bytes. O limite de 600 kB continua gerando aviso para a biblioteca de exportação. A Home ainda referencia chunks compartilhados que incluem exportação; a redução do arquivo próprio não prova a remoção de toda biblioteca pesada do caminho de carregamento. O coletor não mediu latência de rede, transferência HTTP, memória ou LCP.
+No conjunto final, o chunk próprio da Home tem também a recuperação de erro do catálogo. Comparado à base, são 5.532 bytes a menos (11,1%) e 1.748 bytes gzip a menos (12,8%). O total cresce com as funcionalidades integradas; não é uma medição isolada do efeito da Home. O build final passou sem ler .env. Os avisos de anotações PURE do Zod foram preservados, assim como o aviso de chunk maior que 600 kB.
+
+O maior chunk continua vendor-pdf-xlsx: 1.425.339 bytes, 427.268 gzip, igual nos quatro builds. O gráfico de linhas tem cerca de 393.837 bytes; html2canvas tem 201.041 bytes. O limite de 600 kB continua gerando aviso para a biblioteca de exportação. A Home ainda referencia chunks compartilhados que incluem exportação; a redução do arquivo próprio não prova a remoção de toda biblioteca pesada do caminho de carregamento. O coletor não mediu latência de rede, transferência HTTP, memória ou LCP.
 
 Os quatro hooks usam React Query com staleTime de cinco minutos, chaves por identidade/escopo e invalidação após finalização. Testes funcionais verificam reuso do cache e transições; esse efeito sobre consultas é distinto do tamanho do bundle. A Home deixou de carregar diretamente useSimuladoDetail/useExamResult para descobrir a pior área.
 
-Os JSONs completos, imports e módulos por chunk e os logs ficam nos artefatos locais ignorados .superpowers/editions/bundle-before-home.json, bundle-home-control.json e bundle-integrated-7079906.json. O controle foi um checkout detached próprio, sem alterar o checkout principal. Nenhuma redução global foi presumida. Builds posteriores precisam de nova medição se alterarem o grafo.
+Os JSONs completos, imports e módulos por chunk e os logs ficam nos artefatos locais ignorados .superpowers/editions/bundle-before-home.json, bundle-home-control.json, bundle-integrated-7079906.json e bundle-final-e8de066.json. O controle foi um checkout detached próprio, sem alterar o checkout principal. Nenhuma redução global foi presumida. Builds posteriores precisam de nova medição se alterarem o grafo.

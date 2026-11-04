@@ -43,4 +43,3 @@ Alterações somente em páginas, componente, serviços, parser, tipos de opera�
 Preservados shell/tokens e componentes shadcn locais; padrões de layout/formulário Dendê consultados como referência, sem instalar/migrar biblioteca. D6 permanece sem atribuição oficial, e o legado não recebe um processo presumido. Nenhuma data editorial ou calibragem TRI foi criada.
 
 Pendências de integração: disponibilidade/deploy autorizado das RPCs, teste integrado de autenticação/RLS e revisão editorial da fonte real. Testes com mocks não comprovam Supabase Auth E2E ou execução de importação/reprocessamento no banco.
-

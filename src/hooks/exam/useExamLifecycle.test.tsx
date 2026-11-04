@@ -77,7 +77,8 @@ describe('trusted clock correction during time-up grace', () => {
 
   it('uses live ownership and the latest answer snapshot when grace is rearmed', async () => {
     const h = setup();
-    const updated = { ...h.initial, answers: { q: { selectedOption: 'opt', eliminatedAlternatives: [] } } };
+    const updated: ExamState = { ...h.initial, answers: { q: { questionId: 'q', selectedOption: 'opt',
+      markedForReview: false, highConfidence: false, eliminatedAlternatives: [], confidence: null } } };
     h.rerender({ state: updated });
     h.own(false);
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
