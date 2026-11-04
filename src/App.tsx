@@ -13,6 +13,7 @@ import { PageLoadingSkeleton } from "@/components/premium/PageLoadingSkeleton";
 import { LegacyCadernoGate } from "@/components/caderno/LegacyCadernoGate";
 import { CadernoLayout } from "@/components/caderno/CadernoLayout";
 import { AnalyticsSync } from "@/components/AnalyticsSync";
+import { EditionsUiGate } from '@/admin/components/EditionsUiGate';
 
 // Page lazy imports — default exports
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -68,6 +69,7 @@ const HomePagePremium = lazy(() =>
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage"));
 const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
 const AdminSimulados = lazy(() => import("./admin/pages/AdminSimulados"));
+const AdminEdicoes = lazy(() => import('./admin/pages/AdminEdicoes'));
 const AdminSimuladoForm = lazy(() => import("./admin/pages/AdminSimuladoForm"));
 const AdminUploadQuestions = lazy(() => import("./admin/pages/AdminUploadQuestions"));
 const AdminUsuarios    = lazy(() => import('./admin/pages/AdminUsuarios'))
@@ -150,6 +152,7 @@ const App = () => (
               <Route path="/admin" element={<Suspense fallback={<PageShell />}><AdminGuard /></Suspense>}>
                 <Route element={<Suspense fallback={<PageLoadingSkeleton />}><AdminApp /></Suspense>}>
                   <Route index element={<Suspense fallback={<PageLoadingSkeleton />}><AdminDashboard /></Suspense>} />
+                  <Route path="edicoes" element={<EditionsUiGate><Suspense fallback={<PageLoadingSkeleton />}><AdminEdicoes /></Suspense></EditionsUiGate>} />
                   <Route path="simulados" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimulados /></Suspense>} />
                   <Route path="simulados/novo" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />
                   <Route path="simulados/:id" element={<Suspense fallback={<PageLoadingSkeleton />}><AdminSimuladoForm /></Suspense>} />

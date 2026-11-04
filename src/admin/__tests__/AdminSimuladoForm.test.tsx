@@ -6,6 +6,9 @@ import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext'
 import { ALL_CAPABILITIES } from './test-utils'
 
 vi.mock('@/admin/services/adminApi')
+const editionsFlag = vi.hoisted(() => ({ value: false }))
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => editionsFlag.value }))
+vi.mock('@/admin/services/adminEditionsApi', () => ({ adminEditionsApi: { list: vi.fn(), nextSequence: vi.fn() } }))
 const navigateSpy = vi.fn()
 vi.mock('react-router-dom', async (orig) => {
   const actual = await orig<typeof import('react-router-dom')>()
@@ -16,6 +19,7 @@ const toastSpy = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ toast: (args: unknown) => toastSpy(args) }))
 
 import { adminApi } from '@/admin/services/adminApi'
+import { adminEditionsApi } from '@/admin/services/adminEditionsApi'
 import AdminSimuladoForm from '@/admin/pages/AdminSimuladoForm'
 
 function renderAt(path: string, capabilities: string[] = ALL_CAPABILITIES) {
@@ -48,6 +52,9 @@ const sample = {
 describe('AdminSimuladoForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    editionsFlag.value = false
+    vi.mocked(adminEditionsApi.list).mockResolvedValue([{ id: 'edition-27', code: '2027.1', year: 2027, term: 1, label: 'ENAMED 2027.1' }] as never)
+    vi.mocked(adminEditionsApi.nextSequence).mockResolvedValue(4)
     vi.mocked(adminApi.getQuestionsCount).mockResolvedValue(100)
     vi.mocked(adminApi.getSimulado).mockResolvedValue(sample as never)
     vi.mocked(adminApi.createSimulado).mockResolvedValue({} as never)
@@ -57,6 +64,37 @@ describe('AdminSimuladoForm', () => {
   it('mostra o estado sem permissão quando falta content.manage', () => {
     renderAt('/admin/simulados/novo', ['dashboard.view'])
     expect(screen.getByText('Sem acesso a esta área')).toBeInTheDocument()
+    expect(adminEditionsApi.list).not.toHaveBeenCalled()
+  })
+
+  it('flag desligada não consulta edições nem muda o request legado', () => {
+    renderAt('/admin/simulados/novo')
+    expect(screen.queryByLabelText('Edição')).not.toBeInTheDocument()
+    expect(adminEditionsApi.list).not.toHaveBeenCalled()
+  })
+
+  it('sugere sequência e mantém o rascunho para retry após falha de publicação', async () => {
+    editionsFlag.value = true
+    vi.mocked(adminApi.saveSimuladoWithEdition).mockImplementationOnce(async (_id, _values, saved) => {
+      saved('draft-id'); throw new Error('Publicação bloqueada')
+    }).mockResolvedValueOnce({ id: 'draft-id' } as never)
+    renderAt('/admin/simulados/novo')
+    await screen.findByRole('option', { name: /2027.1/ })
+    fireEvent.change(screen.getByLabelText('Edição'), { target: { value: 'edition-27' } })
+    await waitFor(() => expect(screen.getByDisplayValue('enamed-2027-1-simulado-4')).toBeInTheDocument())
+    fireEvent.change(screen.getByLabelText(/^Título/), { target: { value: 'Nova prova 27' } })
+    fireEvent.change(screen.getByLabelText(/Abre em/), { target: { value: '2027-06-15T08:00' } })
+    fireEvent.change(screen.getByLabelText(/Fecha em/), { target: { value: '2027-06-30T23:59' } })
+    fireEvent.change(screen.getByLabelText(/Libera resultados/), { target: { value: '2027-07-01T08:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar simulado' }))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ title: 'Rascunho salvo; publicação bloqueada' })))
+    expect(screen.getByLabelText(/^Título/)).toHaveValue('Nova prova 27')
+    expect(navigateSpy).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar rascunho' }))
+    await waitFor(() => expect(adminApi.saveSimuladoWithEdition).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(adminApi.saveSimuladoWithEdition).mock.calls[1][0]).toBe('draft-id')
+    expect(vi.mocked(adminApi.saveSimuladoWithEdition).mock.calls[1][1]).toMatchObject({ edition_id: 'edition-27', execution_window_start: '2027-06-15T11:00:00.000Z', status: 'draft' })
+    expect(adminApi.createSimulado).not.toHaveBeenCalled()
   })
 
   it('em novo simulado, mostra os botões da topbar e o painel "O que o aluno vê"', () => {

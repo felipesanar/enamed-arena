@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { renderWithAccess } from './test-utils'
+const editionsFlag = vi.hoisted(() => ({ value: false }))
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => editionsFlag.value }))
+vi.mock('@/admin/services/adminEditionsApi', () => ({ adminEditionsApi: { list: vi.fn() } }))
 
 vi.mock('@/admin/services/adminApi', () => ({
   adminApi: {
@@ -23,6 +26,7 @@ vi.mock('@/admin/utils/exportQuestionRanking', () => ({
 }))
 
 import { adminApi } from '@/admin/services/adminApi'
+import { adminEditionsApi } from '@/admin/services/adminEditionsApi'
 import AdminSimulados from '@/admin/pages/AdminSimulados'
 
 // Datas fixas em relação ao "agora" controlado abaixo.
@@ -72,6 +76,8 @@ function renderPage() {
 describe('AdminSimulados', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    editionsFlag.value = false
+    vi.mocked(adminEditionsApi.list).mockResolvedValue([{ id: 'e27', code: '2027.1', label: 'ENAMED 2027.1' }, { id: 'empty', code: '2027.2', label: 'ENAMED 2027.2' }] as never)
     // Controla só o "agora" (Date.now) sem mexer na fila de timers,
     // para não quebrar o polling do findBy* do Testing Library.
     vi.spyOn(Date, 'now').mockReturnValue(NOW)
@@ -90,12 +96,25 @@ describe('AdminSimulados', () => {
     expect(screen.getByText('Agendado')).toBeInTheDocument()
     expect(screen.getByText('Rascunho')).toBeInTheDocument()
     expect(screen.getByText('Encerrado')).toBeInTheDocument()
+    expect(adminEditionsApi.list).not.toHaveBeenCalled()
+  })
+
+  it('consulta e filtra a edição somente com flag ativa', async () => {
+    editionsFlag.value = true
+    vi.mocked(adminApi.listSimulados).mockResolvedValue(rows.map((row, index) => ({ ...row, edition_id: index === 0 ? 'e27' : 'e26' })) as never)
+    renderPage()
+    await screen.findByText('ENAMED Clínica Médica')
+    fireEvent.change(await screen.findByLabelText('Filtrar por edição'), { target: { value: 'e27' } })
+    expect(screen.getByText('ENAMED Clínica Médica')).toBeInTheDocument()
+    expect(screen.queryByText('ENAMED Cirurgia Geral')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Filtrar por edição'), { target: { value: 'empty' } })
+    expect(screen.getByText('Nenhum simulado nesta edição.')).toBeInTheDocument()
   })
 
   it('mostra a janela de execução em formato dd/mm → dd/mm/aa (mono)', async () => {
     renderPage()
-    // O dia exato depende do fuso do ambiente de teste; o formato é o que importa.
-    const windows = await screen.findAllByText(/^\d{2}\/\d{2} → \d{2}\/\d{2}\/\d{2}$/)
+    // Datas independentes do fuso do navegador, explicitamente em Brasília.
+    const windows = await screen.findAllByText(/^\d{2}\/\d{2} → \d{2}\/\d{2}\/\d{2} \(horário de Brasília\)$/)
     expect(windows.length).toBeGreaterThanOrEqual(1)
   })
 

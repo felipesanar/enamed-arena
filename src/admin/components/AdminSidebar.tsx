@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminAccess } from '@/admin/contexts/AdminAccessContext'
 import { visibleNav } from '@/admin/lib/navigation'
+import { useAppConfig } from '@/hooks/useAppConfig'
 import { getInitials } from '@/admin/lib/format'
 import { ROLE_META } from '@/admin/lib/constants'
 import { logger } from '@/lib/logger'
@@ -27,7 +28,8 @@ export function AdminSidebar({ collapsed, onToggle, onOpenPalette }: AdminSideba
   const navigate = useNavigate()
   const { user } = useAuth()
   const { roles, capabilities } = useAdminAccess()
-  const nav = visibleNav(capabilities)
+  const editionsEnabled = useAppConfig('editions_ui')
+  const nav = visibleNav(capabilities, editionsEnabled)
   const roleLabel = roles.map(r => ROLE_META[r]?.label ?? r).join(' · ')
   const userName = user?.user_metadata?.full_name ?? user?.email
 

@@ -12,6 +12,7 @@ import { useAdminAccess } from '@/admin/contexts/AdminAccessContext'
 import { getAvailableCommands, type AdminCommand } from '@/admin/lib/commandRegistry'
 import { useAdminQuickSearch } from '@/admin/hooks/useAdminQuickSearch'
 import { logger } from '@/lib/logger'
+import { useAppConfig } from '@/hooks/useAppConfig'
 
 const RECENTS_KEY = 'admin.recents'
 const MAX_RECENTS = 5
@@ -42,8 +43,9 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
   const { capabilities } = useAdminAccess()
   const [query, setQuery] = useState('')
   const { results, isFetching, isError } = useAdminQuickSearch(query)
-  const commands = getAvailableCommands(capabilities)
-  const recents = readRecents()
+  const editionsEnabled = useAppConfig('editions_ui')
+  const commands = getAvailableCommands(capabilities, editionsEnabled)
+  const recents = readRecents().filter(r => !r.route.startsWith('/admin/edicoes') || (editionsEnabled && capabilities.has('content.manage')))
 
   useEffect(() => {
     if (!open) setQuery('')

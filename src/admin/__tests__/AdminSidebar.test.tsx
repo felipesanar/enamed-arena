@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { visibleNav } from '@/admin/lib/navigation'
 import { AdminSidebar } from '@/admin/components/AdminSidebar'
 import { AdminAccessProvider } from '@/admin/contexts/AdminAccessContext'
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => false }))
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
