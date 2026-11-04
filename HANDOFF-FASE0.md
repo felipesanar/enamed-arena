@@ -1,5 +1,7 @@
 # Handoff — Transição ENAMED 2027 · Fase 0
 
+> **Atualização do Codex em 04/11/2026:** as tarefas estão implementadas e integradas localmente em `feat/fase0-2027`. A validação do aplicativo passou; o ensaio SQL e o rollout seguem pendentes. A seção 10 registra o estado atual. As seções 1–9 preservam o levantamento original da passagem.
+
 **De:** sessão Claude Code (Opus) de 03–04/11/2026 · **Para:** Codex, usando o OpenCode Sanar como executor de código.
 **Onde continuar:** este worktree, `C:\Users\felipe.souza\Documents\Projetos (Sanar)\enamed-arena\.claude\worktrees\fase0-2027`, na branch `feat/fase0-2027` (criada de `origin/main` @ `88937e9`; ainda sem commits).
 
@@ -157,3 +159,55 @@ Testes SQL mínimos (como `authenticated` simulando `request.jwt.claims`):
 ## 9. Depois da Fase 0
 
 Fase 1 (meta 31/01/2027): `exam_editions` completo + `simulados.edition_id` + backfill 2026, admin de edições e clonagem, matriz/formato por edição, corte com referência, front por edição, edição-alvo do aluno. Detalhes, SQL de referência e estratégia de migração na seção 4 (Entregável C) de `docs/auditoria-enamed-2027.md`.
+
+## 10. Estado da execução local (04/11/2026)
+
+**Estado:** implementação local preparada para revisão; homologação SQL e ações de produção pendentes. Worktree e branch continuam os indicados no início deste arquivo. O plano elaborado no Opus foi executado pelo OpenCode Sanar com `sanar/gpt-6.1-sol`, após conferir login e modelos disponíveis. Os seis jobs foram revisados e integrados pelo Codex; suas worktrees foram mantidas para rastreabilidade. O monitor próprio foi encerrado depois da conclusão, preservando o servidor compartilhado.
+
+| Entrega | Job OpenCode | Commit de implementação | Resultado local |
+|---|---|---|---|
+| F-02 mínimo + preservação deste handoff | Orquestrador | `69f1110` | Seis cópias conferidas por hash, hotfix presencial recuperado de produção e dois scaffolds arquivados |
+| T1 — Datas por edição | `fase0-t1-d8b6` | `16ba4fb` | Tabela/RPC, calendário SP, estados sem data e countdown/Reta Final sem constante fixa |
+| T2 — Integridade | `fase0-t2-b3a5` | `dd577cb` | Criação protegida, triggers, liberação de resultados e ranking deduplicado |
+| T3 — Comentários e gabarito | `fase0-t3-13d8` | `e3a2a95` | Privilégios de coluna, RPC de correção e leitores administrativos ajustados |
+| T4 — Finalização e manutenção | `fase0-t4-0da5` | `318d57f` | Branco no envio automático, cutoff persistido, cron preparado, retry e identidade estável nas operações assíncronas |
+| T5 — Preservação e PDF | `fase0-t5-813f` | `de3fed3` | FKs RESTRICT, bloqueio de exclusão e autorização antes do cache/URL do PDF |
+| I-01 / I-05 — Integrações | `fase0-t6-0178` | `6936071` | Vault em runtime, cron sem segredo no comando e autenticação do endpoint de alerta |
+
+### Verificação consolidada
+
+Executada no worktree da Fase 0 após integrar as seis tarefas:
+
+- `npm run test -- --reporter=dot`: **1.049 testes passando em 123 arquivos**.
+- `npm run lint`: **0 erros**, 325 avisos.
+- `npm run typecheck`: **0 erros**.
+- `npm run check:edge-pins`: **43 arquivos verificados**, todos os imports externos com versão completa.
+- `git diff --check origin/main`: sem problemas de whitespace.
+- `mcp/index.ts`, cliente/tipos gerados do Supabase e arquivos de dependências declaradas ficaram fora do diff.
+- Build local não executado pelo risco conhecido do plugin MCP no Windows. A validação de build fica para o CI Linux. Validação manual em navegador desktop/mobile continua pendente.
+
+**Testes SQL: não executados.** Há seis arquivos de fixtures em `supabase/tests/fase0_*.sql`. Não existe engine PostgreSQL/Docker local disponível. O conector Supabase recusou acesso ao projeto; as leituras de metadados foram feitas pela CLI autenticada. As fixtures de integrações exigem um PostgreSQL vazio e descartável: não executá-las em produção ou em um Supabase real. Os testes do aplicativo não comprovam as migrations, seus rollbacks nem a integração real de cron/Vault/HTTP.
+
+### Ajustes confirmados durante a execução
+
+- A definição de produção de `prevent_direct_attempts_update` era `SECURITY DEFINER`, tornando o bypass por `current_user` ineficaz como proteção do cliente. A T2 usa trigger invoker e protege também tipo, ID, caderno, criação, início e prazo. A RPC legítima de atribuição de caderno permanece válida.
+- A leitura de produção confirmou que `authenticated` também podia selecionar `question_options.is_correct` diretamente. A T3 revoga esse acesso, além dos comentários; omitir o campo no frontend não seria suficiente.
+- A manutenção da T4 filtra **tentativa e item de fila** pelo cutoff persistido na primeira implantação. O legado da decisão 10 continua preservado, inclusive depois de reaplicar as migrations.
+- As operações de storage capturam o ID da tentativa antes de qualquer `await` e mantêm esse ID nos retries, na finalização e na fila. Respostas pendentes da próxima prova são preservadas. Lifecycle e timer também descartam callbacks antigos ao trocar de prova.
+- O endpoint `gabarito-key-alerts` não verificava o secret recebido. A correção local autentica antes de qualquer consulta privilegiada. O inventário de produção continua sendo o anterior ao deploy: gabarito v5, HubSpot v58 e PDF v70, todos com `verify_jwt=false`.
+
+### Ambiente de dependências
+
+O `node_modules` compartilhado não continha `qrcode.react`, embora a dependência conste no lockfile. Após autorização explícita do Felipe, foi feita instalação isolada com `npm ci --ignore-scripts` em `.superpowers/fase0/deps`. A junction **deste worktree** aponta para essa instalação privada; a pasta compartilhada não foi modificada por essa instalação. Os logs de verificação e prompts ficam em `.superpowers/fase0/`, ignorado pelo Git.
+
+O arquivo `HANDOFF-2027.md` apareceu de outra sessão durante a execução. Foi preservado sem alterações e permanece não rastreado; não faz parte destes commits.
+
+### Próximos passos e limites de publicação
+
+1. Definir um ambiente descartável autorizado e ensaiar as migrations, fixtures, idempotência, rollback, concorrência e comparação dos rankings. A pergunta sobre esse ambiente ficou pendente no chat. Para criar branch Supabase, consultar o custo e obter o aceite antes da criação.
+2. Revisar o PR em rascunho. O F-02 realizado é o mínimo do handoff; o baseline completo do drift continua para a Fase 1.
+3. Obter o OK separado para habilitar `pg_cron`, aplicar migrations, publicar `generate-exam-pdf` **e a correção de `gabarito-key-alerts`**, configurar os secrets e executar verificações que enviem dados/e-mails. Nada disso foi executado nesta sessão.
+4. Seguir [o procedimento de integrações](docs/fase0-integracoes-deploy.md), conferindo a correspondência dos secrets entre Vault e Edge Functions sem versionar seus valores. O backfill HubSpot atual envia todos os profiles com e-mail; não possui filtro por data e exige aprovação específica de impacto e volume.
+5. Coordenar banco, Edge Functions e frontend. O novo frontend depende das RPCs; a revogação de colunas da T3 quebra o `SELECT *` do frontend antigo. Publicar em janela coordenada, com frontend na sequência do banco e recarga dos clientes antigos. Rollback também precisa coordenar banco e frontend.
+
+As decisões sobre tentativas antigas, SSO e funções one-off permanecem com o Felipe. A Fase 0 só poderá ser considerada homologada após os ensaios e as verificações de produção previstos no plano.
