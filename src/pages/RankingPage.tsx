@@ -41,6 +41,7 @@ export default function RankingPage() {
     userInstitutions,
     userSpecialtyId,
     userInstitutionIds,
+    comparisonContext,
     refetch,
   } = useRanking();
   const { simulados, editionsUi } = useSimulados();
@@ -158,6 +159,7 @@ export default function RankingPage() {
         userInstitutions={userInstitutions}
         userSpecialtyId={userSpecialtyId}
         userInstitutionIds={userInstitutionIds}
+        comparisonContext={comparisonContext}
         allowedSegments={allowedSegments}
         trackSource="page"
         participantDisplay="public"

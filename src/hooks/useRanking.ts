@@ -16,7 +16,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useAppConfig } from '@/hooks/useAppConfig';
 import { useUserEdition } from '@/hooks/useUserEdition';
-import type { RankingQueryOptions, RankingSimuladoOption } from '@/types/ranking';
+import type { RankingComparisonContext, RankingQueryOptions, RankingSimuladoOption } from '@/types/ranking';
 import { usePersistedState, clearPersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
@@ -63,6 +63,7 @@ interface UseRankingReturn {
   userInstitutions: string[];
   userSpecialtyId: string | null;
   userInstitutionIds: string[];
+  comparisonContext: RankingComparisonContext;
 
   // Actions
   refetch: () => void;
@@ -70,9 +71,10 @@ interface UseRankingReturn {
 
 export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn {
   const { user, loading: authLoading } = useAuth();
-  const { onboarding } = useUser();
+  const { onboarding: loadedOnboarding } = useUser();
+  const onboarding = user && loadedOnboarding?.userId === user.id ? loadedOnboarding : null;
   const editionsUi = useAppConfig('editions_ui');
-  const { userEdition } = useUserEdition(editionsUi);
+  const { userEdition, data: editions } = useUserEdition(editionsUi);
   const editionId = options.editionId !== undefined ? options.editionId : userEdition?.id;
   const userId = user?.id;
   const enabled = !!userId && !authLoading && (!editionsUi || !!editionId);
@@ -81,7 +83,7 @@ export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn 
   const [explicitChoice, setExplicitChoice] = useState<{ key: string; id: string } | null>(null);
   const list = useQuery({
     queryKey: ['ranking-simulados', userId, scope], enabled, staleTime: 5 * 60 * 1000,
-    queryFn: () => editionsUi ? fetchSimuladosWithResults(true) : fetchSimuladosWithResults(),
+    queryFn: () => editionsUi ? fetchSimuladosWithResults(true, userId) : fetchSimuladosWithResults(),
   });
   const simuladosWithResults = useMemo(() => enabled ? list.data ?? [] : [], [enabled, list.data]);
   let saved: unknown = null;
@@ -109,7 +111,7 @@ export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn 
   const loading = enabled && (list.isLoading || (!!selectedSimuladoId && ranking.isLoading));
   const queryError = enabled ? list.error ?? ranking.error : null;
   const error = queryError ? queryError instanceof Error ? queryError.message : 'Não foi possível carregar o ranking.' : null;
-  const [rankingComparison, setRankingComparison] = usePersistedState<RankingComparisonSelection>(
+  const [requestedComparison, setRankingComparison] = usePersistedState<RankingComparisonSelection>(
     'ranking:comparisonFlags',
     RANKING_COMPARISON_DEFAULT,
   );
@@ -150,6 +152,28 @@ export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn 
     [rawRanking, user?.id],
   );
 
+  const selectedEditionId = simuladosWithResults.find(sim => sim.id === selectedSimuladoId)?.editionId;
+  const selectedEdition = editionsUi ? editions?.find(edition => edition.id === selectedEditionId) : null;
+  const comparisonContext = useMemo<RankingComparisonContext>(() => {
+    if (!enabled) return { specialty: '', institutions: [], historical: false };
+    if (!editionsUi || (selectedEdition && !['closed', 'archived'].includes(selectedEdition.status))) {
+      return { specialty: userSpecialty, institutions: userInstitutions, historical: false };
+    }
+    if (!selectedEdition) return { specialty: '', institutions: [], historical: false,
+      notice: 'Contexto de comparação indisponível; comparação geral disponível' };
+    const caller = rawRanking.find(row => row.user_id === userId);
+    const specialty = caller?.especialidade?.trim() || '';
+    const institutions = (caller?.instituicoes_alvo ?? []).filter(label => label?.trim());
+    return { specialty, institutions, historical: true,
+      ...(!specialty || !institutions.length
+        ? { notice: 'Preferências históricas não registradas; comparação geral disponível' } : {}) };
+  }, [enabled, editionsUi, selectedEdition, userSpecialty, userInstitutions, rawRanking, userId]);
+  // Unavailable dimensions are masked for this scope only, never written over persistence.
+  const rankingComparison = useMemo(() => ({
+    bySpecialty: requestedComparison.bySpecialty && !!comparisonContext.specialty,
+    byInstitution: requestedComparison.byInstitution && comparisonContext.institutions.length > 0,
+  }), [requestedComparison, comparisonContext]);
+
   // Stats
   const stats = useMemo(
     () => computeRankingStats(rawRanking),
@@ -163,10 +187,10 @@ export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn 
         allParticipants,
         rankingComparison,
         segmentFilter,
-        userSpecialty,
-        userInstitutions,
+        comparisonContext.specialty,
+        comparisonContext.institutions,
       ),
-    [allParticipants, rankingComparison, segmentFilter, userSpecialty, userInstitutions],
+    [allParticipants, rankingComparison, segmentFilter, comparisonContext],
   );
 
   const currentUser = useMemo(
@@ -200,6 +224,7 @@ export function useRanking(options: RankingQueryOptions = {}): UseRankingReturn 
     userInstitutions,
     userSpecialtyId,
     userInstitutionIds,
+    comparisonContext,
     refetch,
   };
 }

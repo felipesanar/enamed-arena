@@ -27,9 +27,9 @@ export function RankingCutoffSection({ state, entries, onOpenCutoffTable }: Prop
           <Target className="h-[18px] w-[18px] text-primary" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-body-sm font-semibold text-foreground">Você passaria?</p>
+          <p className="text-body-sm font-semibold text-foreground">Referências de corte</p>
           <p className="text-caption text-muted-foreground">
-            Defina sua especialidade e instituições-alvo para comparar sua nota com as notas de corte.
+            Defina sua especialidade e instituições-alvo para consultar referências de corte.
           </p>
         </div>
         <Link
@@ -59,13 +59,13 @@ export function RankingCutoffSection({ state, entries, onOpenCutoffTable }: Prop
   return (
     <section
       className="overflow-hidden rounded-2xl border border-border bg-card"
-      aria-label="Sua nota comparada às notas de corte"
+      aria-label="Referências de corte"
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-border px-5 py-3.5">
         <Target className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-micro-label uppercase tracking-wider text-muted-foreground">Notas de corte</p>
+          <p className="text-micro-label uppercase tracking-wider text-muted-foreground">Referências de corte</p>
           <p className="text-body-sm font-semibold text-foreground">{referenceDescription}</p>
         </div>
       </div>
