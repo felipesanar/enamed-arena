@@ -169,7 +169,17 @@ export const adminApi = {
     if (error) throw error;
     // Authoritative counts cannot depend on the caller's attempts SELECT policy.
     const counts = await supabase.rpc('admin_simulado_attempt_counts' as never, {} as never);
-    if (counts.error) throw counts.error;
+    if (counts.error) {
+      const { code, message, details } = counts.error;
+      const missingTarget = code === 'PGRST202'
+        ? [message, details].some(text => typeof text === 'string'
+          && /\bfunction (?:public\.)?admin_simulado_attempt_counts(?=\s|\(|$)/.test(text))
+        : code === '42883'
+          && /^function (?:public\.)?admin_simulado_attempt_counts\([^)]*\) does not exist$/.test(message);
+      // Read-only rollout compatibility: unknown counts must never authorize deletion.
+      if (missingTarget) return data.map(s => ({ ...s, attempts_count: null }));
+      throw counts.error;
+    }
     const rows = counts.data as unknown as Array<{ simulado_id: string; attempts_count: number }> | null;
     return data.map(s => ({ ...s, attempts_count: rows?.find(c => c.simulado_id === s.id)?.attempts_count ?? null }));
   },
