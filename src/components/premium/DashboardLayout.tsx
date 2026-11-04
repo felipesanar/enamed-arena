@@ -6,6 +6,7 @@ import { MobileBottomNav } from "@/components/premium/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUser } from "@/contexts/UserContext";
 import { cn } from "@/lib/utils";
+import { SkipLink } from '@/components/SkipLink';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "enamed-premium-sidebar-collapsed";
 
@@ -62,6 +63,7 @@ export function DashboardLayout() {
 
   return (
     <div className="dashboard-page-bg flex min-h-screen w-full">
+      <SkipLink />
       {!isMobile && !isExamRoute && (
         <div
           className={cn(
@@ -91,6 +93,8 @@ export function DashboardLayout() {
         )}
       >
         <main
+          id="main-content"
+          tabIndex={-1}
           className={cn(
             "flex-1",
             isExamRoute ? "p-0 overflow-hidden" : (isArenaRoute || isFullBleedRoute) ? "p-0" : "px-4 md:px-8 py-6 md:py-8",

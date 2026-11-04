@@ -6,6 +6,7 @@ import { Menu, Command } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { SEGMENT_LABELS } from "@/types";
 import { Link } from "react-router-dom";
+import { SkipLink } from '@/components/SkipLink';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
+      <SkipLink />
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
@@ -55,7 +57,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <main id="main-content" tabIndex={-1} className="scroll-mt-16 flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
             {children}
           </main>
         </div>
