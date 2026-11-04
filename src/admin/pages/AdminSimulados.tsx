@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ interface SimuladoListItem {
   sequence_number: number;
   status: string;
   questions_count: number;
+  attempts_count?: number | null;
   execution_window_start: string;
   execution_window_end: string;
 }
@@ -170,10 +172,15 @@ function AdminSimuladosContent() {
   useEffect(load, []);
 
   const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleting) return;
+    if (deleteTarget.attempts_count !== 0) {
+      toast({ title: 'Exclusão bloqueada', description: 'Não foi confirmada a ausência de tentativas. Preserve o histórico.', variant: 'destructive' });
+      return;
+    }
     setDeleting(true);
     try {
-      await adminApi.deleteQuestionsForSimulado(deleteTarget.id);
+      const count = await adminApi.getSimuladoAttemptsCount(deleteTarget.id);
+      if (count !== 0) throw new Error('O simulado possui tentativas e não pode ser excluído. Preserve o histórico.');
       await adminApi.deleteSimulado(deleteTarget.id);
       toast({ title: 'Simulado excluído' });
       setDeleteTarget(null);
@@ -415,12 +422,26 @@ function AdminSimuladosContent() {
 
                       <DropdownMenuSeparator className="my-1.5 bg-admin-line-subtle" />
 
-                      <DropdownMenuItem
-                        className="gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-admin-destructive focus:bg-admin-destructive/10 focus:text-admin-destructive"
-                        onClick={() => setDeleteTarget(s)}
-                      >
-                        <Trash2 className="h-4 w-4" /> Excluir simulado
-                      </DropdownMenuItem>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block" tabIndex={s.attempts_count !== 0 ? 0 : undefined}>
+                              <DropdownMenuItem
+                                disabled={s.attempts_count !== 0}
+                                className="gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-admin-destructive focus:bg-admin-destructive/10 focus:text-admin-destructive"
+                                onClick={() => { if (s.attempts_count === 0) setDeleteTarget(s) }}
+                              >
+                                <Trash2 className="h-4 w-4" /> Excluir simulado
+                              </DropdownMenuItem>
+                            </span>
+                          </TooltipTrigger>
+                          {s.attempts_count !== 0 && (
+                            <TooltipContent>{s.attempts_count != null && s.attempts_count > 0
+                              ? 'Este simulado possui tentativas. A exclusão apagaria o histórico.'
+                              : 'Contagem de tentativas indisponível. Exclusão bloqueada.'}</TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
