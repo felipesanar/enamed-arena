@@ -16,6 +16,35 @@ import { simuladosApi } from "./simuladosApi";
 const missingRpc = (name: string, args: string) => ({ code: 'PGRST202', details: null, hint: null,
   message: `Could not find the function public.${name}(${args}) in the schema cache` });
 
+describe('question image origins', () => {
+  it.each([
+    ['https://sanarflix.com.br/image.png', true],
+    ['https://app.sanarflix.com.br/image.png', true],
+    ['https://a.b.sanarflix.com.br/image.png', true],
+    ['https://x.supabase.co/storage/image.png', true],
+    ['https://x.supabase.in/image.png', true],
+    ['https://simulados.sanar.com.br/image.png', true],
+    ['https://preview.lovable.app/image.png', true],
+    ['https://preview.lovableproject.com/image.png', true],
+    ['https://sanaflix.com/image.png', false],
+    ['https://app.sanaflix.com/image.png', false],
+    ['http://sanarflix.com.br/image.png', false],
+    ['https://sanarflix.com.br.evil/image.png', false],
+    ['https://evil-sanarflix.com.br/image.png', false],
+    ['https://sanarflix.com.br@evil.com/image.png', false],
+  ])('filters all question image fields for %s', async (url, allowed) => {
+    const builder = { select: vi.fn(() => builder), eq: vi.fn(() => builder), order: vi.fn(() => builder),
+      limit: vi.fn(async () => ({ data: [{ id: 'q1', question_number: 1, text: 'Question', area: 'CM',
+        image_url: url, image_url_2: url, question_options: [] }], error: null })) };
+    vi.mocked(supabase.from).mockReturnValue(builder as never);
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ question_id: 'q1', explanation: 'Released', explanation_image_url: url }], error: null } as never);
+    const [question] = await simuladosApi.getQuestions('s1', true);
+    expect(question.imageUrl).toBe(allowed ? url : null);
+    expect(question.imageUrl2).toBe(allowed ? url : null);
+    expect(question.explanationImageUrl).toBe(allowed ? url : null);
+  });
+});
+
 describe('submitAttempt rollout compatibility', () => {
   const grade = { score_percentage: 0, total_correct: 0, total_answered: 2, total_questions: 2, is_within_window: true };
   beforeEach(() => { vi.mocked(supabase.rpc).mockReset(); vi.mocked(supabase.from).mockReset(); });
