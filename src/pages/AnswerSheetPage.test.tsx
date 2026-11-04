@@ -407,9 +407,15 @@ describe('AnswerSheetPage — envio do gabarito', () => {
 
     await waitFor(() => {
       expect(toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Gabarito enviado' }),
+        expect.objectContaining({
+          title: 'Gabarito enviado',
+          description: expect.stringMatching(/Gabarito recebido fora da janela de ranking.*data de liberação do simulado/),
+        }),
       )
     })
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({
+      description: expect.stringMatching(/Resultado disponível/),
+    }))
     expect(mockNavigate).toHaveBeenCalledWith('/simulados/enamed-2025-1')
   })
 
