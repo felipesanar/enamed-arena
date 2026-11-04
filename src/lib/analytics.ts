@@ -152,6 +152,9 @@ export type AnalyticsEventName =
   | "offline_pdf_generated"
   | "offline_answers_submitted"
   | "offline_answers_submit_failed"
+  | "offline_answer_sheet_opened"
+  | "offline_draft_restored"
+  | "offline_recovery_clicked"
   | "offline_printing_consent_viewed"
   | "offline_printing_started"
   | "offline_printing_completed_early"
@@ -455,7 +458,17 @@ export type ResultadoViewedPayload = z.infer<typeof resultadoViewedSchema>;
 // Mapa nome → schema para validação de runtime em trackEvent.
 // Eventos ausentes = payload solto aceito (retrocompatível com 64 call-sites).
 // ---------------------------------------------------------------------------
+const offlineRecoverySchema = z.object({
+  attempt_id: z.string().min(1),
+  simulado_id: z.string().min(1),
+  route: z.enum(['answer_sheet', 'pdf_dialog']),
+  answers_count: z.number().int().min(0).max(1000).optional(),
+}).strict();
+
 const eventSchemas = {
+  offline_answer_sheet_opened: offlineRecoverySchema,
+  offline_draft_restored: offlineRecoverySchema,
+  offline_recovery_clicked: offlineRecoverySchema,
   caderno_triage_viewed: cadernoTriageViewedSchema,
   caderno_triage_item_toggled: cadernoTriageItemToggledSchema,
   caderno_triage_batch_added: cadernoTriageBatchAddedSchema,
@@ -496,6 +509,9 @@ const eventSchemas = {
 // Tipos derivados dos schemas Zod — sem duplicação manual.
 // ---------------------------------------------------------------------------
 export interface EventPayloadMap {
+  offline_answer_sheet_opened: z.infer<typeof offlineRecoverySchema>;
+  offline_draft_restored: z.infer<typeof offlineRecoverySchema>;
+  offline_recovery_clicked: z.infer<typeof offlineRecoverySchema>;
   caderno_triage_viewed: CadernoTriageViewedPayload;
   caderno_triage_item_toggled: CadernoTriageItemToggledPayload;
   caderno_triage_batch_added: CadernoTriageBatchAddedPayload;
