@@ -22,6 +22,8 @@ export function isExamState(v: unknown): v is ExamState {
     (a.selectedOption === null || typeof a.selectedOption === 'string') &&
     typeof a.markedForReview === 'boolean' && typeof a.highConfidence === 'boolean' &&
     Array.isArray(a.eliminatedAlternatives) && a.eliminatedAlternatives.every((x: unknown) => typeof x === 'string') &&
+    (a.clientUpdatedAt == null || date(a.clientUpdatedAt)) &&
+    (a.answeredAt == null || date(a.answeredAt)) &&
     (a.confidence == null || ['baixa', 'media', 'alta'].includes(a.confidence)));
 }
 export function readExamCache(identity: ExamCacheIdentity): ExamCache | null {

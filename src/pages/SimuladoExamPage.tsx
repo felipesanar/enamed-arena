@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useExamFlow } from '@/hooks/useExamFlow';
 import { formatTimer, getTimerColor, getTimerBgClass } from '@/hooks/useExamTimer';
 import { ExamHeader } from '@/components/exam/ExamHeader';
+import { ExamTabOwnershipNotice } from '@/components/exam/ExamTabOwnershipNotice';
 import { QuestionDisplay } from '@/components/exam/QuestionDisplay';
 import { ConfidenceSelector } from '@/components/exam/ConfidenceSelector';
 import { QuestionNavigator, NavigatorLegend } from '@/components/exam/QuestionNavigator';
@@ -311,7 +312,7 @@ export default function SimuladoExamPage() {
       </div>
 
       <AnimatePresence>
-        {flow.focusControl.isTabAway && (
+        {!flow.tabLease.blocked && flow.focusControl.isTabAway && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -327,7 +328,7 @@ export default function SimuladoExamPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {flow.focusControl.isFullscreenLost && (
+        {!flow.tabLease.blocked && flow.focusControl.isFullscreenLost && (
           <motion.div
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -362,12 +363,16 @@ export default function SimuladoExamPage() {
         currentQuestion={flow.currentIndex + 1}
         totalQuestions={flow.questions.length}
         timeRemaining={flow.timeRemaining}
-        onFinalize={() => flow.setShowSubmitModal(true)}
+        onFinalize={() => { if (!flow.interactionLocked) flow.setShowSubmitModal(true); }}
         saving={flow.saving ?? false}
         answeredCount={flow.summary.answered}
       />
 
-      {flow.interactionLocked && (
+      <ExamTabOwnershipNotice
+        status={flow.tabLease.status !== 'owned' ? flow.tabLease.status : flow.preparation.status === 'ready' ? 'owned' : flow.preparation.status === 'error' ? 'runtime_error' : 'preparing'}
+        onTakeover={flow.tabLease.status === 'owned' ? flow.preparation.retry : flow.tabLease.takeover} />
+
+      {flow.interactionLocked && !flow.tabLease.blocked && flow.preparation.status === 'ready' && (
         <div role="status" className="border-b border-warning/15 bg-warning/8 px-4 py-3 text-body-sm">
           <p>{flow.submitting ? 'Confirmando a finalização. Aguarde.' : 'Tempo esgotado. As respostas estão bloqueadas até a confirmação da finalização.'}</p>
           {!flow.submitting && (
