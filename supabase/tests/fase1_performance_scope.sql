@@ -1,6 +1,7 @@
 -- Disposable local target clone only. All fixture changes roll back.
 \set ON_ERROR_STOP on
 BEGIN;
+\ir local/fixture-publication-setup.sql
 -- Explicit offline fixture isolation: preserve auth/profile creation, but do
 -- not invoke the outbound HubSpot trigger. DDL is restored by ROLLBACK.
 ALTER TABLE public.profiles DISABLE TRIGGER on_profile_created_hubspot;
@@ -13,6 +14,7 @@ INSERT INTO public.exam_editions(id,code,year,term,label,status) VALUES
  ('f1700000-0000-0000-0000-000000000011','2197.1',2197,1,'Performance A','active'),
  ('f1700000-0000-0000-0000-000000000012','2197.2',2197,2,'Performance B','preparing');
 -- 25 released A exams, one B and two unreleased A exams.
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,
  execution_window_start,execution_window_end,results_release_at,status)
 SELECT ('f1710000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
@@ -23,6 +25,7 @@ SELECT ('f1710000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  CASE WHEN n>=27 THEN now()+interval '1 day'
  ELSE now()-interval '8 days' END,'published'
 FROM generate_series(1,28) n;
+SELECT pg_temp.fixture_publication_end();
 
 INSERT INTO public.attempts(id,simulado_id,user_id,status,effective_deadline,
  finished_at,score_percentage,total_correct,total_answered,is_within_window,attempt_type)

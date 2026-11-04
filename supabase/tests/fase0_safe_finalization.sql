@@ -1,6 +1,7 @@
 -- LOCAL disposable database only, after both T4 migrations. No remote execution.
 -- Plain PostgreSQL assertions (no test extension required); all fixtures roll back.
 BEGIN;
+\ir local/fixture-publication-setup.sql
 DO $test$
 DECLARE
   u uuid := gen_random_uuid(); s uuid := gen_random_uuid(); q uuid; opt uuid;
@@ -16,9 +17,11 @@ BEGIN
   UPDATE fase0_private.attempt_jobs_config SET deployed_at = now() - interval '1 hour' WHERE singleton;
   cutoff := now() - interval '1 hour';
   INSERT INTO auth.users(id, email) VALUES (u, u::text || '@example.invalid');
+  PERFORM pg_temp.fixture_publication_begin();
   INSERT INTO public.simulados(id, title, slug, sequence_number, questions_count,
     execution_window_start, execution_window_end, results_release_at)
   VALUES(s, 'T4 fixture', s::text, 999999, 100, now()-interval '1 day', now()+interval '1 day', now()+interval '2 days');
+  PERFORM pg_temp.fixture_publication_end();
   INSERT INTO public.attempts(id, simulado_id, user_id, attempt_type, status, effective_deadline, created_at)
   VALUES(expired,s,u,'online','in_progress',now()+interval '1 hour',now());
   FOR i IN 1..100 LOOP

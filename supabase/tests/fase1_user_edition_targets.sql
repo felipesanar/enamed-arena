@@ -2,6 +2,7 @@
 -- psql -v ON_ERROR_STOP=1 -f supabase/tests/fase1_user_edition_targets.sql
 -- No external services required; the production auth schema/roles must exist.
 BEGIN;
+\ir local/fixture-publication-setup.sql
 
 INSERT INTO auth.users(id,email) VALUES
  ('f1800000-0000-0000-0000-000000000001','target-one@example.invalid'),
@@ -17,10 +18,12 @@ INSERT INTO public.enamed_institutions(id,name,uf,slug) VALUES
  ('f1800000-0000-0000-0000-000000000022','Fixture institution','SP','fixture-target-institution');
 INSERT INTO public.onboarding_profiles(user_id,status,completed_at) VALUES
  ('f1800000-0000-0000-0000-000000000001','completed','2026-01-01T00:00:00Z');
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,
  execution_window_start,execution_window_end,results_release_at,status) VALUES
  ('f1800000-0000-0000-0000-000000000031','Fixture B','fixture-target-b',9901,
- 'f1800000-0000-0000-0000-000000000012',now()-interval '1 hour',now()+interval '1 hour',now()+interval '2 hours','published');
+  'f1800000-0000-0000-0000-000000000012',now()-interval '1 hour',now()+interval '1 hour',now()+interval '2 hours','published');
+SELECT pg_temp.fixture_publication_end();
 
 CREATE TEMP TABLE target_before AS SELECT
  (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.id),'[]') FROM public.attempts a) AS attempts,

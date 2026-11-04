@@ -1,8 +1,10 @@
 -- Run only on a fresh F1 clone with the current F2 analytics migration applied.
 \set ON_ERROR_STOP on
 SELECT 1/((inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=54737
- AND current_database() LIKE 'enamed_test_archived_%' AND session_user='postgres')::int);
+ AND (current_database() LIKE 'enamed_test_archived_%' OR current_database() ~ '^enamed_test_fixtures_integrated_[a-z0-9_]+$')
+ AND session_user='postgres' AND current_user='postgres')::int);
 BEGIN;
+\ir local/fixture-publication-setup.sql
 ALTER TABLE public.profiles DISABLE TRIGGER on_profile_created_hubspot;
 INSERT INTO auth.users(id,email) SELECT
  ('fa180000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
@@ -23,6 +25,7 @@ INSERT INTO public.onboarding_profiles(user_id,specialty_id,target_institution_i
  SELECT id,'fa180000-0000-0000-0000-000000000021',
  ARRAY['fa180000-0000-0000-0000-000000000023']::uuid[] FROM auth.users
  WHERE id IN ('fa180000-0000-0000-0000-000000000001','fa180000-0000-0000-0000-000000000002');
+SELECT pg_temp.fixture_publication_begin();
 INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,status,
  execution_window_start,execution_window_end,results_release_at)
  SELECT ('fa181000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
@@ -30,7 +33,8 @@ INSERT INTO public.simulados(id,title,slug,sequence_number,edition_id,status,
  CASE WHEN n=2 THEN 'fa180000-0000-0000-0000-000000000012'::uuid
  ELSE 'fa180000-0000-0000-0000-000000000011'::uuid END,'published',
  now()-interval '10 days',now()-interval '9 days',now()-interval '8 days'
- FROM generate_series(1,2) n;
+  FROM generate_series(1,2) n;
+SELECT pg_temp.fixture_publication_end();
 INSERT INTO public.questions(id,simulado_id,question_number,text,area,theme,explanation)
  SELECT ('fa182000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
  ('fa181000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,1,'Question '||n,'CM','Theme','Comment'
