@@ -21,6 +21,8 @@ export interface OnboardingProfile {
   targetInstitutionIds: string[];
   status: OnboardingStatus;
   completedAt?: string;
+  targetEditionId?: string | null;
+  expectedGraduationTerm?: string | null;
 }
 
 /** Seleção de especialidade na UI — id null = "Ainda não sei". */
@@ -56,6 +58,12 @@ export interface SimuladoConfig {
   slug: string;
   title: string;
   sequenceNumber: number;
+  /** Nullable/optional until the database expand migration has been applied. */
+  editionId?: string | null;
+  editionCode?: string | null;
+  editionLabel?: string | null;
+  editionExamDate?: string | null;
+  sourceSimuladoId?: string | null;
   description: string;
   questionsCount: number;
   estimatedDuration: string; // e.g. "5h"
