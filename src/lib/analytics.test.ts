@@ -67,6 +67,15 @@ describe('analytics', () => {
     expect(() => trackEvent('offline_printing_expired', { simulado_id: 's' })).not.toThrow();
   });
 
+  it('requires bounded recovery metadata and rejects answer contents', async () => {
+    const { validateEventPayload } = await import('./analytics');
+    for (const name of ['offline_answer_sheet_opened', 'offline_draft_restored', 'offline_recovery_clicked']) {
+      expect(validateEventPayload(name, { attempt_id: 'a', simulado_id: 's', route: 'answer_sheet', answers_count: 2 }).ok).toBe(true);
+      expect(validateEventPayload(name, { attempt_id: 'a' }).ok).toBe(false);
+      expect(validateEventPayload(name, { attempt_id: 'a', simulado_id: 's', route: 'answer_sheet', selected_option_id: 'private' }).ok).toBe(false);
+    }
+  });
+
   // -------------------------------------------------------------------------
   // Validação de runtime (Fase 2, passo 2) — schemas Zod por evento.
   // -------------------------------------------------------------------------
