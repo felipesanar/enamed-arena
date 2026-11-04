@@ -17,7 +17,7 @@ Implementacao de F1-7/F3-7, job `f1-home-queries-6328`.
 - Desempenho usa `p_edition_id` e `p_include_training=false` no fluxo novo. Historia scoped passa limite nulo, sem teto silencioso de 12/20 resultados.
 - Zero e uma media valida. Falhas de desempenho/ranking aparecem com acao de nova tentativa, sem recuperar KPIs de outra edicao.
 - A Home usa areas do comparativo, nao recalcula acertos a partir das questoes no cliente.
-- A RPC de areas nao recebe edicao: suas linhas sao filtradas pelos simulados permitidos antes dos insights. Slots e entradas do comparativo ficam na edicao resolvida; treino nao entra nas entradas do fluxo novo.
+- Na UI nova, areas vem de `get_area_score_history(p_user_id, p_edition_id)`, restritas ao attempt escolhido pelo backend e associado ao mesmo ID pela RPC comportamental scoped. Filtrar apenas simulado nao remove treino de outra modalidade do mesmo simulado. A flag desligada conserva `get_user_area_scores_by_simulado(p_user_id)` sem argumentos novos.
 - Top usa apenas `computePercentile(position, total)` com participante e total validos. Nao ha inferencia `100 - nota` nem variacao de colocacao derivada da nota.
 - Resultado resolve slug para UUID antes de consultar tentativas. Nota e AQR ficam ocultos antes da liberacao, exceto com capability `results.view` retornada por `admin_get_access`. Papel administrativo isolado nao concede esse preview no hook de resultado.
 - Erro ao consultar a capability e exposto; refetch tenta novamente a permissao. A permissao e cacheada por usuario, sem reaproveitar preview entre contas.
@@ -76,15 +76,34 @@ node node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json
 
 Resultado: **sucesso, zero diagnosticos**. Lint dos arquivos de implementacao e testes tocados nesta revisao: zero erros, 36 avisos. `git diff --check` sem erros de whitespace (avisos LF/CRLF). Nenhuma nova alteracao de lifecycle, codegen ou campos de usuario nesta revisao.
 
-### Integracao de landing pendente
+## Revisao final: areas e acesso direto
 
-`src/pages/SimuladoLandingPage.tsx` nao existe neste checkout. Conforme a autorizacao condicional, nenhum arquivo substituto foi alterado. A rota real esta em `src/App.tsx:185-186`, usando `SimuladoDetailPage` para `/simulados/:id/start` e `/simulados/:id`.
+Esta revisao parte da implementacao anterior integrada pelo parent em `a6c3206` e altera apenas os dois bugs abaixo. Nao reexecuta a suite global nem o typecheck global das rodadas anteriores.
 
-Pontos exatos para o responsavel pela integracao do guard `simulado.dbStatus === 'archived' && !simulado.userState?.finished`:
+### Areas sem treino
 
-- `src/pages/SimuladoDetailPage.tsx:195`: `isAccessible` ainda depende somente do status temporal.
-- `src/pages/SimuladoDetailPage.tsx:605-634`: bloco de retomada e navegacao para prova/gabarito, inclusive `offline_pending`.
-- `src/pages/SimuladoDetailPage.tsx:686`: fallback de tentativa iniciada.
-- `src/pages/SimuladoDetailPage.tsx:700-705`: montagem do dialogo offline.
+- `getAreaScoreHistory(userId, editionId?)` ganha somente o argumento opcional de edicao. Sem esse argumento, os parametros legados e o JSON original permanecem intactos para Caderno/ROI.
+- A nova UI consulta esse getter e a RPC comportamental com edicao em `Promise.all`. Alvo nulo, vazio ou somente espacos desabilita as consultas, sem fallback global.
+- O wire continua `{ by_area, global }`. No comparativo, pontos de `by_area` sao associados por `attempt_id` ao `simulado_id` retornado no comportamento. Somente IDs da edicao, elegiveis e com correspondencia univoca sao usados. Nao ha escolha de modalidade/desempate ou mistura de attempts no cliente.
+- Normalizacao usa os valores reais `questions_total`, `questions_correct` e `score * 100`. Score deve ser numerico finito entre zero e um; contagens inteiras validas, total positivo, corretas entre zero e total; data de conclusao valida. Pontos malformados, IDs desconhecidos/fora do escopo e mapeamentos ambiguos sao descartados. Areas ausentes nao viram zero; score zero valido e preservado.
+- A fixture com treino 100%, outra modalidade e attempt elegivel 20% devolve apenas CM=20 e contagens 6/30, nunca agregado 60/100. Testes tambem cobrem legado, alvo pendente, erro/refetch e preservacao do JSON do servico. O teste do servico esta em `useComparativeData.test.tsx`, usando o modulo real; `simuladosApi.test.ts` nao foi alterado.
 
-Esse guard deve impedir iniciar/retomar em arquivado inacabado e apresentar estado neutro, preservando o bloco de resultados finalizados em `:655-681`. **O acesso direto a essa pagina ainda precisa dessa integracao**; o guard do card nao substitui o guard de rota. Nenhuma RPC de criacao foi chamada nesta validacao.
+### Arquivado no detalhe
+
+A pendencia anterior de landing foi resolvida no caminho real autorizado nesta revisao: `src/pages/SimuladoDetailPage.tsx`. Depois de todos os hooks e dos estados loading/erro, o guard `simulado.dbStatus === 'archived' && !simulado.userState?.finished` retorna "Prova arquivada" com acesso ao historico.
+
+O retorno ocorre antes de qualquer CTA ou montagem de `OfflineModeSimpleDialog`, bloqueando inicio e retomada online/offline/`offline_pending`, inclusive tentativa expirada. Tentativa finalizada nao entra no guard: bloco de resultado, navegacao de correcao e leituras existentes permanecem intactos. Prova publicada continua com inicio/retomada normais. Nenhuma API ou arquitetura offline foi alterada; nenhum hook foi movido para depois do retorno.
+
+### Validacao desta revisao
+
+TDD reproduziu **11 falhas antes da implementacao**. Resultado final: **50 testes aprovados em tres arquivos**, 13,67 s:
+
+```text
+node node_modules/vitest/vitest.mjs run src/hooks/useComparativeData.test.tsx src/services/simuladosApi.test.ts src/pages/SimuladoDetailPage.test.tsx --maxWorkers=2
+```
+
+Checagem TypeScript restrita via compiler API: cinco roots da tarefa (hook, teste, detalhe, teste, servico), mais `src/test/setup.ts` e `src/vite-env.d.ts` existentes para as declaracoes de ambiente; mesmas opcoes do projeto, sem alterar configuracao ou gerar arquivos. **Zero diagnosticos**. A primeira tentativa de subset omitiu essas declaracoes e apontou apenas tipos ambientais de Vite/jest-dom; a segunda incluiu os arquivos existentes e passou, sem supressoes ou relaxamento de tipos.
+
+Lint dos cinco arquivos de codigo/testes: **zero erros e 31 avisos**, todos no servico existente fora do metodo modificado. `git diff --check` sem erros de whitespace, apenas avisos LF/CRLF.
+
+Sem SQL novo, alteracoes de tipos gerados, pacotes, rede, `.env`, subagentes, producao ou Git mutante. Nenhuma alteracao de engine, clock, lifecycle, persistencia, hooks/dialogos offline ou outros arquivos fora do escopo. Parent permanece responsavel por validacoes globais, build e medicao de bundle.

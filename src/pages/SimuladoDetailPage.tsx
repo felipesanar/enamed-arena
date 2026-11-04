@@ -192,6 +192,19 @@ export default function SimuladoDetailPage() {
     );
   }
 
+  if (simulado.dbStatus === 'archived' && !simulado.userState?.finished) {
+    return (
+      <SimuladoDetailPaddedShell>
+        <EmptyState
+          title="Prova arquivada"
+          description="Esta prova não está disponível para iniciar ou continuar. Seus resultados finalizados continuam acessíveis no histórico."
+          backHref="/simulados"
+          backLabel="Ver histórico"
+        />
+      </SimuladoDetailPaddedShell>
+    );
+  }
+
   const isAccessible = canAccessSimulado(simulado.status);
   const hasResults = canViewResults(simulado.status);
 
