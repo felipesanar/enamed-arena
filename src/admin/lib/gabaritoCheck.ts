@@ -157,7 +157,12 @@ function rangesOverlap(a: TextRange, b: TextRange): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
-const ANSWER_LINE_SOURCE = 'resposta\\s*[:\\-]?\\s*(?:alternativa\\s*|letra\\s*)?([a-d])\\b';
+// O separador (':' ou '-') só é dispensável quando a palavra "alternativa"/
+// "letra" desambigua; letra solta exige o separador, senão a preposição "a"
+// em frases como "aguardar resposta a analgésicos" casa como "Resposta: A"
+// (falso positivo real — S7 Q73, bloqueada no import em 31/08).
+const ANSWER_LINE_SOURCE =
+  'resposta\\s*(?:[:\\-]\\s*(?:alternativa\\s*|letra\\s*)?|(?:alternativa|letra)\\s*)([a-d])\\b';
 
 export interface AnswerLineMark extends TextRange {
   label: OptionLabel;
