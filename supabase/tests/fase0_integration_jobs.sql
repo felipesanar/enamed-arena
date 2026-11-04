@@ -1,7 +1,9 @@
 -- LOCAL ONLY: empty disposable PostgreSQL database, superuser, psql.
--- psql -X -h 127.0.0.1 -p 5432 -v ON_ERROR_STOP=1 -d fase0_integration_fixture -f supabase/tests/fase0_integration_jobs.sql
+-- Preferred entry point: node scripts/sql-local/run.mjs --maintenance-db enamed_test_EXISTING --mode integrations
 -- Never run against Supabase/production: schemas below are mocks, not extensions.
 \set ON_ERROR_STOP on
+\ir local/guard.sql
+\ir local/preflight.sql
 BEGIN;
 DO $$
 BEGIN
@@ -11,9 +13,7 @@ BEGIN
      OR to_regprocedure('public.invoke_gabarito_key_alerts()') IS NOT NULL THEN
     RAISE EXCEPTION 'Use an EMPTY disposable local database; no existing integration objects allowed';
   END IF;
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon; END IF;
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated; END IF;
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;
+  -- Roles are cluster-global and must already exist; preflight above is read-only.
 END $$;
 CREATE FUNCTION pg_temp.check_true(ok boolean, label text) RETURNS void
 LANGUAGE plpgsql AS $$ BEGIN
