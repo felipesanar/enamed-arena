@@ -26,6 +26,7 @@ function scoreTint(score: number): 'high' | 'mid' | 'low' {
 }
 
 const GRID_COLS = '1fr 88px 64px 52px';
+const EMPTY_ROWS: ReferencedCutoffScore[] = [];
 
 export function CutoffScoreModal({
   open,
@@ -43,13 +44,13 @@ export function CutoffScoreModal({
   const { user } = useAuth();
   const queryEnabled = open && flag.ready && (!editionsUi || !!referenceEditionId);
 
-  const { data = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['all-cutoff-scores', user?.id ?? null, editionsUi ? referenceEditionId ?? null : 'legacy'],
     queryFn: () => editionsUi ? cutoffApi.getAllScores(referenceEditionId!) : fetchAllCutoffScores(),
     staleTime: Infinity,
     enabled: queryEnabled,
   });
-  const rows = (queryEnabled ? data : []) as ReferencedCutoffScore[];
+  const rows = (queryEnabled ? data ?? EMPTY_ROWS : EMPTY_ROWS) as ReferencedCutoffScore[];
   const labels = [...new Set(rows.map(row => row.reference_label).filter(Boolean))];
   const sources = [...new Set(rows.map(row => row.source).filter(Boolean))];
   const knownReference = rows.length > 0 && rows.every(row => row.reference_edition_id && row.reference_label?.trim() && row.source?.trim());

@@ -14,3 +14,11 @@ export interface RankingQueryOptions {
   selection?: 'persisted' | 'latest-in-edition';
   editionId?: string | null;
 }
+
+/** Labels used only for cohort comparison, never for current cutoff lookups. */
+export interface RankingComparisonContext {
+  specialty: string;
+  institutions: string[];
+  historical: boolean;
+  notice?: string;
+}

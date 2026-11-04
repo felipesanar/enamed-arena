@@ -42,6 +42,38 @@ Nao calcula score, nao altera tentativas e nao infere proficiencia TRI.
 - Cortes sao informativos: nao ha alegacao de aprovacao, barra de equivalencia,
   diferenca percentual ou sinal de passou/faltou entre escalas nao comprovadas.
 
+## Ranking fechado e foto de comparacao
+
+- `useRanking` resolve a edicao da prova selecionada pelo DTO da selecao e pelo
+  catalogo ja retornado por `useUserEdition(editionsUi)`. Nao abre outra query de
+  catalogo e nao acrescenta reads no modo legado.
+- Em edicao `closed` ou `archived`, o contexto dos filtros vem exclusivamente de
+  `especialidade` e `instituicoes_alvo` da linha do proprio caller no ranking
+  autorizado. O backend ja resolve os IDs da foto de finalizacao. Nenhuma outra
+  linha, onboarding atual ou ID inferido de label substitui uma foto ausente.
+- Em edicao ativa, a comparacao acompanha o onboarding atual. Metadata de edicao
+  ainda nao resolvida deixa os filtros dependentes indisponiveis, sem fallback.
+- `comparisonContext` e separado dos alvos atuais: `userSpecialty`,
+  `userInstitutions`, `userSpecialtyId` e `userInstitutionIds` continuam sendo os
+  valores atuais para IA e lookup de referencias. O provider de cortes continua
+  usando a edicao da prova selecionada; nenhum argumento de RPC de corte mudou.
+- Foto ausente exibe "Preferencias historicas nao registradas; comparacao geral
+  disponivel" (com acentos na UI). Cada dimensao sem foto fica indisponivel e
+  desligada na selecao efetiva, sem sobrescrever a preferencia persistida para
+  outros escopos. Nacional continua disponivel; ausencia de foto nao e erro de
+  rede nem motivo para pedir ao aluno que reconstitua preferencias antigas.
+- `RankingParticipant.institutions` preserva todas as labels autorizadas;
+  `institution` continua a primeira label de display para callers anteriores.
+  O filtro compara a intersecao de todas as instituicoes, mantendo o filtro de
+  segmento e sem misturar provas/edicoes.
+- A lista opt-in inclui metadata de provas arquivadas liberadas somente quando
+  ha participacao finalizada do proprio usuario autenticado. A leitura auxiliar
+  de `attempts` seleciona apenas `simulado_id,user_id,status,finished_at`, exige
+  owner, status `submitted`/`expired` e `finished_at` presente, sob RLS. Nao le
+  respostas ou notas. Flag falsa preserva a consulta `published` sem read extra.
+- Chaves RQ por identidade/escopo, staleTime de cinco minutos, selecao persistida,
+  Home `latest-in-edition`, refetch e invalidacao existentes foram preservados.
+
 ## Cache e ciclo de vida
 
 `useAiSummary` centraliza geracao automatica/manual, retry e armazenamento.
@@ -63,16 +95,41 @@ Nao calcula score, nao altera tentativas e nao infere proficiencia TRI.
 
 ## Verificacao
 
-Testes locais usam mocks, sem Supabase/Gemini reais e sem credenciais.
+Testes locais usam mocks, sem Supabase/Gemini reais e sem credenciais. A retomada
+roda os 12 arquivos originais (56 testes no checkpoint F2-2), mais ranking,
+selecao historica e harnesses das paginas:
 
 ```sh
 npm run test -- src/lib/ai-edition-context.test.ts src/lib/profSanCache.test.ts src/services/cutoffApi.test.ts src/hooks/useAiEditionContext.test.tsx src/hooks/useCutoffContext.test.tsx src/hooks/useCutoffScores.test.ts src/components/desempenho/ProfSanorPerformance.test.tsx src/components/desempenho/AIPerformanceSummary.test.tsx src/components/ranking/ProfSanorRanking.test.tsx src/components/comparativo/ComparativoHero.test.tsx src/components/ranking/CutoffScoreModal.test.tsx src/components/ranking/RankingCutoffSection.test.tsx --maxWorkers=2
-npm run typecheck
+npm run test -- src/hooks/useRanking.test.tsx src/services/rankingApi.test.ts src/components/ranking/RankingView.test.tsx --maxWorkers=2
+npm run test -- src/pages/DesempenhoPage.test.tsx src/pages/RankingPage.test.tsx --maxWorkers=2
+.\node_modules\.bin\eslint.cmd src/hooks/useRanking.ts src/hooks/useRanking.test.tsx src/services/rankingApi.ts src/services/rankingApi.test.ts src/types/ranking.ts src/pages/RankingPage.tsx src/pages/RankingPage.test.tsx src/pages/DesempenhoPage.test.tsx src/components/ranking/RankingView.tsx src/components/ranking/RankingView.test.tsx src/components/ranking/RankingFilterBar.tsx src/components/ranking/RankingCutoffSection.tsx src/components/ranking/RankingCutoffSection.test.tsx src/components/ranking/CutoffScoreModal.tsx src/hooks/useAiEditionContext.test.tsx src/hooks/useCutoffContext.test.tsx
 ```
+
+A rodada unica dos 17 arquivos excedeu o prazo de 180s sem resultado; o mesmo
+escopo foi dividido nos tres lotes acima. O lote original agora tem 57 testes
+(os 56 anteriores mais a regressao da copy sem perfil), ranking tem 39 e paginas
+tem 14. Lint dos 16 arquivos TypeScript tocados: zero erros e cinco warnings
+preexistentes (export misto de RankingView e casts any de rankingApi fora das
+linhas alteradas). Nenhuma regra foi desabilitada para esses warnings.
 
 Cobertura inclui flag legada/pendente/ativa, formato e edicao, treino historico,
 serie mista, percentil real, corte sem fonte, cache legado, mudanca de conta e
 de prova durante requisicao, alteracao intermediaria da serie e retry.
+
+Regressoes adicionais verificam coorte CM congelada apesar de troca atual para
+GO, edicao ativa acompanhando perfil, instituicao em segunda posicao, foto nula
+sem fallback, ausencia da linha do caller, logout/anon/account switch e resposta
+atrasada, persistencia de filtros entre escopos e arquivados own/finalized versus
+outro owner/pending/sem finalizacao. Provider + RankingView + useCutoffScores reais
+provam ID historico com alvos atuais, corte 720 sem distancia/aprovacao, fonte
+conhecida ou indisponivel, e troca para referencia nula sem cache/global legado.
+
+Correcoes do CI integrado: rows do modal reutilizam um array vazio estavel;
+wrappers com hooks tem nome de componente; testes de pagina usam QueryClient
+isolado e servicos mockados, preservando as assercoes comportamentais. Nao foram
+relaxadas regras ESLint/TS nem removidos casos. Typecheck global, build e suite
+global desta retomada ficam com o orquestrador; IA/cache nao foram reimplementados.
 
 Nao fazem parte desta verificacao: chamadas HTTP reais, deploy, dados D6,
 validacao visual no navegador, build ou suite global. Componentes existentes

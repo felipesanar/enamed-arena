@@ -11,5 +11,12 @@ describe('cutoff panel provenance', () => {
     expect(screen.getByText(/Fonte indisponível/)).toBeInTheDocument();
     expect(screen.queryByText('1 de 1')).not.toBeInTheDocument();
     expect(screen.queryByText('+20 acima')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Referências de corte' })).toBeInTheDocument();
+  });
+  it('no-profile copy offers references, not score comparison or approval', () => {
+    render(<MemoryRouter><RankingCutoffSection state="no_profile" entries={[]} userScore={null} onOpenCutoffTable={() => {}} /></MemoryRouter>);
+    expect(screen.getByText('Referências de corte')).toBeInTheDocument();
+    expect(screen.getByText('Defina sua especialidade e instituições-alvo para consultar referências de corte.')).toBeInTheDocument();
+    expect(screen.queryByText(/Você passaria|comparar sua nota/)).not.toBeInTheDocument();
   });
 });

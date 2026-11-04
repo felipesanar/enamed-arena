@@ -11,6 +11,7 @@ interface Props {
   segmentFilter: SegmentFilter;
   userSpecialty: string;
   userInstitutions: string[];
+  notice?: string;
   visibleSegmentOptions: SegmentOption[];
   onSelectAllComparison: () => void;
   onToggleSpecialtyComparison: () => void;
@@ -28,6 +29,7 @@ export function RankingFilterBar({
   segmentFilter,
   userSpecialty,
   userInstitutions,
+  notice,
   visibleSegmentOptions,
   onSelectAllComparison,
   onToggleSpecialtyComparison,
@@ -76,7 +78,7 @@ export function RankingFilterBar({
               type="button"
               onClick={onToggleInstitutionComparison}
               aria-pressed={rankingComparison.byInstitution}
-              aria-label={`Filtrar também por instituição: ${userInstitutions[0]}`}
+              aria-label={`Filtrar também por instituição: ${userInstitutions.join(', ')}`}
               className={cn(pillBase, 'max-w-[14rem]', rankingComparison.byInstitution ? pillOn : pillOff)}
               initial={{ opacity: 0, x: -8, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -84,7 +86,7 @@ export function RankingFilterBar({
               whileTap={{ scale: 0.95 }}
             >
               <Building className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="truncate">{userInstitutions[0]}</span>
+              <span className="truncate" title={userInstitutions.join(', ')}>{userInstitutions.join(', ')}</span>
             </motion.button>
           )}
         </AnimatePresence>
@@ -111,12 +113,13 @@ export function RankingFilterBar({
         ))}
       </div>
 
+      {notice && <p role="status" className="text-caption text-muted-foreground mt-2.5 leading-snug">{notice}</p>}
       {rankingComparison.bySpecialty && (
         <p className="text-caption text-muted-foreground mt-2.5 leading-snug">
           <span className="text-primary mr-1">●</span>
           Comparando com candidatos de <span className="text-foreground">{userSpecialty}</span>
           {rankingComparison.byInstitution && userInstitutions[0] ? (
-            <> · <span className="text-foreground">{userInstitutions[0]}</span></>
+            <> · <span className="text-foreground">{userInstitutions.join(', ')}</span></>
           ) : (
             <span> (todas as instituições)</span>
           )}

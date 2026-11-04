@@ -38,6 +38,7 @@ import { RankingTable } from './RankingTable';
 import { computePercentile } from '@/lib/ranking-percentile';
 import type { RankingEvolution } from '@/hooks/useRankingEvolution';
 import type { SimuladoConfig } from '@/types';
+import type { RankingComparisonContext } from '@/types/ranking';
 import { formatSimuladoLabel } from '@/lib/editions';
 
 // ─── Table row types ──────────────────────────────────────────────────────────
@@ -113,11 +114,13 @@ export interface RankingViewProps {
   userInstitutions: string[];
   userSpecialtyId: string | null;
   userInstitutionIds: string[];
+  /** Separate from current onboarding targets used for cutoff requests. */
+  comparisonContext?: RankingComparisonContext;
   allowedSegments: SegmentFilter[];
   trackSource: RankingTrackSource;
   /** public: masks others as Candidato #n; admin: shows profile name when available */
   participantDisplay: 'public' | 'admin';
-  /** Oculta o painel "Você passaria?" (ex.: preview admin). Default: true */
+  /** Controls the informational cutoff reference panel. Default: true. */
   showApprovalPanel?: boolean;
   toolbar?: React.ReactNode;
   /** Standing GLOBAL para o hero (de allParticipants). Ausente → fallback p/ currentUser+filtered. */
@@ -144,6 +147,7 @@ export function RankingView({
   userInstitutions,
   userSpecialtyId,
   userInstitutionIds,
+  comparisonContext,
   allowedSegments,
   trackSource,
   participantDisplay,
@@ -153,6 +157,8 @@ export function RankingView({
   heroEvolution,
   editionsUi = false,
 }: RankingViewProps) {
+  const comparisonSpecialty = comparisonContext?.specialty ?? userSpecialty;
+  const comparisonInstitutions = comparisonContext?.institutions ?? userInstitutions;
   const mountedAtRef = useRef<number>(Date.now());
   const visibleSegmentOptions = SEGMENT_OPTIONS.filter((o) => allowedSegments.includes(o.key));
   const [cutoffModalOpen, setCutoffModalOpen] = useState(false);
@@ -200,7 +206,7 @@ export function RankingView({
   const handleSelectAllComparison = () => applyComparisonUpdate(RANKING_COMPARISON_DEFAULT);
 
   const handleToggleSpecialtyComparison = () => {
-    if (!userSpecialty) return;
+    if (!comparisonSpecialty) return;
     const next = { ...rankingComparison, bySpecialty: !rankingComparison.bySpecialty };
     // When turning specialty off, also clear institution (institution pill becomes hidden)
     if (!next.bySpecialty) next.byInstitution = false;
@@ -208,7 +214,7 @@ export function RankingView({
   };
 
   const handleToggleInstitutionComparison = () => {
-    if (userInstitutions.length === 0) return;
+    if (comparisonInstitutions.length === 0) return;
     applyComparisonUpdate({ ...rankingComparison, byInstitution: !rankingComparison.byInstitution });
   };
 
@@ -319,7 +325,7 @@ export function RankingView({
             evolution={heroEvolution ?? null}
           />
 
-          {/* ── Nota de corte ("Você passaria?") — junto ao hero, subordinada ── */}
+          {/* Informational references keep current target IDs and selected-edition scope. */}
           {showApprovalPanel && (
             <RankingCutoffSection
               state={approvalState}
@@ -341,14 +347,15 @@ export function RankingView({
             />
           )}
 
-          {(filteredParticipants.length > 0 || hasActiveFilters) && (
+          {(filteredParticipants.length > 0 || hasActiveFilters || comparisonContext?.notice) && (
             <>
               {/* ── Filter bar ──────────────────────────────────────────── */}
               <RankingFilterBar
                 rankingComparison={rankingComparison}
                 segmentFilter={segmentFilter}
-                userSpecialty={userSpecialty}
-                userInstitutions={userInstitutions}
+                userSpecialty={comparisonSpecialty}
+                userInstitutions={comparisonInstitutions}
+                notice={comparisonContext?.notice}
                 visibleSegmentOptions={visibleSegmentOptions}
                 onSelectAllComparison={handleSelectAllComparison}
                 onToggleSpecialtyComparison={handleToggleSpecialtyComparison}
