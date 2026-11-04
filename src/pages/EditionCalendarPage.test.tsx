@@ -4,9 +4,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { ExamEdition } from '@/types/edition';
 import EditionCalendarPage from '@/pages/EditionCalendarPage';
 
-const mocks = vi.hoisted(() => ({ enabled: true, target: 'later', pending: false, error: false,
+const mocks = vi.hoisted(() => ({ enabled: true, flagPending: false, target: 'later', pending: false, error: false,
   editions: [] as ExamEdition[], sims: [] as unknown[], useEditions: vi.fn(), useSims: vi.fn(), retry: vi.fn(), admin: vi.fn() }));
-vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => mocks.enabled }));
+vi.mock('@/hooks/useAppConfig', () => ({ useAppConfig: () => mocks.enabled,
+  useAppConfigState: () => ({ enabled: mocks.enabled, isPending: mocks.flagPending }) }));
 vi.mock('@/hooks/useUserEdition', () => ({ useUserEdition: (...args: unknown[]) => { mocks.useEditions(...args); return {
   data: mocks.editions, userEdition: mocks.editions.find(e => e.id === mocks.target), isPending: mocks.pending,
   isError: mocks.error, isSuccess: !mocks.pending && !mocks.error, refetch: mocks.retry }; } }));
@@ -14,14 +15,36 @@ vi.mock('@/hooks/useSimulados', () => ({ useSimulados: () => { mocks.useSims(); 
 vi.mock('@/admin/components/EditionsUiGate', () => ({ EditionsUiGate: () => { mocks.admin(); throw new Error('admin gate forbidden'); } }));
 const edition = (id: string): ExamEdition => ({ id, code: id, label: `ENAMED ${id}`, year: 2027, term: 1,
   status: 'planned', exam_date: null, exam_date_confirmed: false, official_results_at: null, format: {}, created_at: '', updated_at: '' });
-function mount() { return render(<MemoryRouter initialEntries={['/calendario']}><Routes>
+function calendarRoute() { return <MemoryRouter initialEntries={['/calendario']}><Routes>
   <Route path="/calendario" element={<EditionCalendarPage />} /><Route path="/simulados" element={<p>Destino simulados</p>} />
-</Routes></MemoryRouter>); }
-beforeEach(() => { vi.clearAllMocks(); mocks.enabled = true; mocks.pending = false; mocks.error = false; mocks.target = 'later';
+</Routes></MemoryRouter>; }
+function mount() { return render(calendarRoute()); }
+beforeEach(() => { vi.clearAllMocks(); mocks.enabled = true; mocks.flagPending = false; mocks.pending = false; mocks.error = false; mocks.target = 'later';
   mocks.editions = [edition('next'), edition('later')]; mocks.sims = [{ id: 's1', editionId: 'later', title: 'Simulado alvo', dbStatus: 'published',
     executionWindowStart: '2027-05-01T12:00:00Z', executionWindowEnd: '2027-05-02T12:00:00Z', resultsReleaseAt: '2027-05-03T12:00:00Z' }]; });
 afterEach(cleanup);
 describe('EditionCalendarPage student access', () => {
+  it('keeps a direct link while the flag loads, without mounting calendar data hooks', () => {
+    mocks.enabled = false; mocks.flagPending = true;
+    const view = mount();
+    expect(screen.getByRole('status')).toHaveTextContent('Carregando');
+    expect(screen.queryByText('Destino simulados')).not.toBeInTheDocument();
+    expect(mocks.useEditions).not.toHaveBeenCalled();
+    expect(mocks.useSims).not.toHaveBeenCalled();
+    mocks.flagPending = false; mocks.enabled = true;
+    view.rerender(calendarRoute());
+    expect(screen.getByRole('heading', { name: 'Calendário de simulados' })).toBeInTheDocument();
+    expect(screen.queryByText('Destino simulados')).not.toBeInTheDocument();
+  });
+  it('redirects only after a pending flag resolves disabled', () => {
+    mocks.enabled = false; mocks.flagPending = true;
+    const view = mount();
+    expect(screen.queryByText('Destino simulados')).not.toBeInTheDocument();
+    mocks.flagPending = false; view.rerender(calendarRoute());
+    expect(screen.getByText('Destino simulados')).toBeInTheDocument();
+    expect(mocks.useEditions).not.toHaveBeenCalled();
+    expect(mocks.useSims).not.toHaveBeenCalled();
+  });
   it('flag off redirects before mounting data hooks and never consults admin capability', () => {
     mocks.enabled = false; mount(); expect(screen.getByText('Destino simulados')).toBeInTheDocument();
     expect(mocks.useEditions).not.toHaveBeenCalled(); expect(mocks.useSims).not.toHaveBeenCalled(); expect(mocks.admin).not.toHaveBeenCalled();

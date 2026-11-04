@@ -14,8 +14,8 @@ const client = supabase as unknown as {
   };
 };
 
-/** Fail-closed UI flag, not a substitute for server authorization. */
-export function useAppConfig(key: 'editions_ui'): boolean {
+/** Distinguishes an unresolved flag from a final fail-closed result. */
+export function useAppConfigState(key: 'editions_ui'): { enabled: boolean; isPending: boolean } {
   const { user, loading } = useAuth();
   const query = useQuery({
     queryKey: ['app-config', user?.id ?? null, key],
@@ -33,5 +33,13 @@ export function useAppConfig(key: 'editions_ui'): boolean {
     },
   });
   // Keep confirmed UI stable during background refresh; a final error is not success.
-  return !!user && !loading && query.isSuccess && query.data === true;
+  return {
+    enabled: !!user && !loading && query.isSuccess && query.data === true,
+    isPending: loading || (!!user && query.isPending),
+  };
+}
+
+/** Fail-closed UI flag, not a substitute for server authorization. */
+export function useAppConfig(key: 'editions_ui'): boolean {
+  return useAppConfigState(key).enabled;
 }

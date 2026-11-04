@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAppConfig } from '@/hooks/useAppConfig';
+import { useAppConfigState } from '@/hooks/useAppConfig';
 import { useUserEdition } from '@/hooks/useUserEdition';
 import { useSimulados } from '@/hooks/useSimulados';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,7 @@ function CalendarContent() {
 }
 
 export default function EditionCalendarPage() {
-  const enabled = useAppConfig('editions_ui');
+  const { enabled, isPending } = useAppConfigState('editions_ui');
+  if (isPending) return <p role="status" aria-live="polite" className="p-6">Carregando calendário…</p>;
   return enabled ? <CalendarContent /> : <Navigate to="/simulados" replace />;
 }
