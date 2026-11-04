@@ -165,7 +165,11 @@ export const adminApi = {
       .select('*')
       .order('sequence_number', { ascending: true });
     if (error) throw error;
-    return data;
+    // Authoritative counts cannot depend on the caller's attempts SELECT policy.
+    const counts = await supabase.rpc('admin_simulado_attempt_counts' as never, {} as never);
+    if (counts.error) throw counts.error;
+    const rows = counts.data as unknown as Array<{ simulado_id: string; attempts_count: number }> | null;
+    return data.map(s => ({ ...s, attempts_count: rows?.find(c => c.simulado_id === s.id)?.attempts_count ?? null }));
   },
 
   async getSimulado(id: string) {
@@ -199,8 +203,22 @@ export const adminApi = {
   },
 
   async deleteSimulado(id: string) {
+    const count = await adminApi.getSimuladoAttemptsCount(id);
+    if (count > 0) throw new Error('Não é possível excluir: o simulado possui tentativas. Preserve o histórico.');
     const { error } = await supabase.from('simulados').delete().eq('id', id);
+    if (error?.code === '23503') throw new Error('Não é possível excluir: existem registros vinculados. Preserve o histórico de tentativas.');
     if (error) throw error;
+  },
+
+  async getSimuladoAttemptsCount(id: string): Promise<number> {
+    const { data, error } = await supabase.rpc('admin_simulado_attempt_counts' as never, { p_simulado_id: id } as never);
+    if (error) throw error;
+    const rows = data as unknown as Array<{ simulado_id: string; attempts_count: number }> | null;
+    const count = rows?.find(row => row.simulado_id === id)?.attempts_count;
+    if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) {
+      throw new Error('Não foi possível confirmar a ausência de tentativas. Exclusão bloqueada.');
+    }
+    return count;
   },
 
   // ─── Questions ───
@@ -214,17 +232,12 @@ export const adminApi = {
   },
 
   async deleteQuestionsForSimulado(simuladoId: string) {
-    // Delete options first, then questions
-    const { data: questions } = await supabase
-      .from('questions')
-      .select('id')
-      .eq('simulado_id', simuladoId);
-
-    if (questions && questions.length > 0) {
-      const qIds = questions.map(q => q.id);
-      await supabase.from('question_options').delete().in('question_id', qIds);
-      await supabase.from('questions').delete().eq('simulado_id', simuladoId);
-    }
+    const count = await adminApi.getSimuladoAttemptsCount(simuladoId);
+    if (count > 0) throw new Error('Não é possível excluir questões: o simulado possui tentativas. Preserve o histórico.');
+    // The FK cascades options in the same statement; a blocked question rolls back everything.
+    const { error } = await supabase.from('questions').delete().eq('simulado_id', simuladoId);
+    if (error?.code === '23503') throw new Error('Não é possível excluir questões: existem registros vinculados. Preserve o histórico de tentativas.');
+    if (error) throw error;
   },
 
   // ─── Analytics Dashboard ───

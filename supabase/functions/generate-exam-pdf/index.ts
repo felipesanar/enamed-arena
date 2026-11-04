@@ -6,6 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { authorizeExamPdf } from "./access.ts";
 import {
   PDFDocument,
   PDFFont,
@@ -579,7 +580,8 @@ serve(async (req) => {
     const anonClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const userId = claimsData?.claims?.sub;
+    if (claimsErr || typeof userId !== "string" || !userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -589,6 +591,26 @@ serve(async (req) => {
     }
 
     const supabase = getAdminClient();
+
+    const allowed = await authorizeExamPdf({
+      userId,
+      simuladoId: simulado_id,
+      force: force === true,
+      now: Date.now(),
+      hasCapability: async () => await anonClient.rpc("has_capability", { p_capability: "content.manage" }),
+      getSimulado: async () => await supabase.from("simulados")
+        .select("status, execution_window_start, execution_window_end")
+        .eq("id", simulado_id).maybeSingle(),
+      getAttempt: async () => await supabase.from("attempts")
+        .select("user_id, simulado_id, attempt_type")
+        .eq("simulado_id", simulado_id).eq("user_id", userId)
+        .eq("attempt_type", "offline").maybeSingle(),
+    });
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "PDF indisponível: requer tentativa offline própria na janela aberta ou permissão de conteúdo." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: simMeta, error: simMetaErr } = await supabase.from("simulados").select("updated_at").eq("id", simulado_id).single();
     if (simMetaErr || !simMeta) {
