@@ -41,7 +41,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
   const canUseNotebook = SEGMENT_ACCESS[segment].cadernoErros;
   const isCadernoV2 = useCadernoV2Flag();
 
-  const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id);
+  const { simulado, questions, loading: loadingSim, error: errorSim, refetch: refetchSim } = useSimuladoDetail(id, true);
   const { examState, attempt, attemptQuestionResults, loading: loadingExam, error: errorExam, refetch: refetchExam } = useExamResult(id);
   const loadError = errorSim ?? errorExam;
   const retryLoad = () => {
@@ -67,7 +67,7 @@ export default function CorrecaoPage({ adminPreview = false }: CorrecaoPageProps
     () =>
       questions.map((question) => ({
         ...question,
-        correctOptionId: attemptQuestionResults[question.id]?.correct_option_id ?? '',
+        correctOptionId: attemptQuestionResults[question.id]?.correct_option_id ?? question.correctOptionId,
       })),
     [questions, attemptQuestionResults],
   );
