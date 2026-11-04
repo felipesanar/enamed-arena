@@ -48,6 +48,7 @@ import { logger } from '@/lib/logger';
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 import { getReasonMeta } from '@/lib/errorNotebookReasons';
+import { hasKnownAnswerKey } from '@/lib/questionCorrection';
 import { ProfSanorAvatar } from '@/components/comparativo/ProfSanorAvatar';
 import type { Question } from '@/types';
 
@@ -329,6 +330,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reviewData, setReviewData] = useState<ReviewData | null>(null);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [reviewReload, setReviewReload] = useState(0);
   const [generatingAi, setGeneratingAi] = useState(false);
 
   const [sessionDominated, setSessionDominated] = useState(0);
@@ -448,13 +450,13 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
     return () => {
       cancelled = true;
     };
-  }, [currentEntry, userId]);
+  }, [currentEntry, userId, reviewReload]);
 
   // Auto-generate AI review on first view if not cached.
   useEffect(() => {
     if (!currentEntry || !reviewData || loadingReview) return;
     if (reviewData.aiReviewMd) return;
-    if (!reviewData.question) return;
+    if (!hasKnownAnswerKey(reviewData.question)) return;
     if (generatedFor.current.has(currentEntry.id)) return;
     generatedFor.current.add(currentEntry.id);
     void generateAiReview();
@@ -463,6 +465,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
   const generateAiReview = async (force = false) => {
     if (!currentEntry || !reviewData?.question) return;
+    if (!hasKnownAnswerKey(reviewData.question)) return;
     if (generatingAi) return;
     setGeneratingAi(true);
     try {
@@ -539,6 +542,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
   const sendChatMessage = async () => {
     if (!currentEntry || !reviewData?.question) return;
+    if (!hasKnownAnswerKey(reviewData.question)) return;
     const trimmed = chatInput.trim();
     if (!trimmed || chatLoading) return;
     if (reviewData.chatCount >= CHAT_LIMIT_PER_ENTRY) return;
@@ -638,6 +642,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
   const handleResolved = async () => {
     if (!currentEntry) return;
+    if (!hasKnownAnswerKey(reviewData?.question)) return;
     try {
       await simuladosApi.toggleResolvedEntry(currentEntry.id, userId, true);
       trackEvent('caderno_revisao_marked_resolved', {
@@ -850,6 +855,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
   const reasonMeta = getReasonMeta(currentEntry.reason);
   const question = reviewData?.question ?? null;
+  const correctionUnavailable = !!question && !hasKnownAnswerKey(question);
   const userSelectedId = reviewData?.userSelectedOptionId ?? null;
 
   return (
@@ -920,7 +926,15 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
 
       {/* Cards principais */}
       <AnimatePresence mode="wait">
-        {!loadingReview && question && (
+        {!loadingReview && correctionUnavailable && (
+          <div role="status" className="rounded-2xl border border-border bg-card p-6 text-center">
+            <AlertCircle className="mx-auto h-8 w-8 text-warning" aria-hidden />
+            <p className="mt-3 text-body font-semibold text-foreground">Correção indisponível</p>
+            <p className="mt-1 text-caption text-muted-foreground">Tente novamente para carregar o gabarito. Sua revisão não foi registrada.</p>
+            <Button variant="outline" onClick={() => setReviewReload(value => value + 1)} className="mt-4">Tentar novamente</Button>
+          </div>
+        )}
+        {!loadingReview && question && !correctionUnavailable && (
           <motion.div
             key={currentEntry.id}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
@@ -1449,6 +1463,7 @@ function CadernoRevisaoContent({ userId, studentName }: { userId: string; studen
                 >
                   <Button
                     onClick={handleResolved}
+                    disabled={loadingReview || !hasKnownAnswerKey(question)}
                     size="sm"
                     className="bg-success hover:bg-success/90 !text-success-foreground shadow-[0_4px_14px_-4px_hsl(152_60%_36%/0.4)]"
                   >

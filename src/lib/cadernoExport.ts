@@ -28,7 +28,7 @@ import {
 export interface CadernoExportOption {
   label: string;
   text: string;
-  isCorrect: boolean;
+  isCorrect: boolean | null;
 }
 
 export interface CadernoExportEntry {
@@ -46,6 +46,8 @@ export interface CadernoExportEntry {
   options: CadernoExportOption[];
   /** Label (A/B/C…) da alternativa correta, ou null se desconhecida. */
   correct_label: string | null;
+  /** Core content is readable, but the released correction is unavailable. */
+  correction_unavailable?: boolean;
   /** Explicação oficial da questão (pode conter markdown leve). */
   explanation: string | null;
   edition_id?: string | null;
@@ -260,22 +262,27 @@ export function exportNotebookPdf(entries: CadernoExportEntry[], filterLabel?: s
       }
 
       // ── Alternativas (com gabarito) ──
+      const correctionUnavailable = entry.correction_unavailable === true || (entry.options.length > 0 && !entry.correct_label);
+      if (correctionUnavailable) {
+        writeParagraph('Correção indisponível. Alternativas exibidas sem classificação.', { fontSize: 8, color: COLORS.gray700 });
+      }
       if (entry.options.length > 0) {
         writeLabel('Alternativas', COLORS.gray500);
         for (const opt of entry.options) {
           const prefix = `${opt.label}) `;
-          const body = opt.text + (opt.isCorrect ? '   (resposta correta)' : '');
+          const isCorrect = !correctionUnavailable && opt.isCorrect === true;
+          const body = opt.text + (isCorrect ? '   (resposta correta)' : '');
           writeParagraph(prefix + body, {
             fontSize: 8,
-            style: opt.isCorrect ? 'bold' : 'normal',
-            color: opt.isCorrect ? COLORS.greenDark : COLORS.gray700,
+            style: isCorrect ? 'bold' : 'normal',
+            color: isCorrect ? COLORS.greenDark : COLORS.gray700,
             indent: 2,
           });
         }
       }
 
       // ── Gabarito (referência rápida) ──
-      if (entry.correct_label) {
+      if (!correctionUnavailable && entry.correct_label) {
         y = checkPageBreak(doc, y, 6);
         y += 1;
         doc.setFont('Helvetica', 'bold');
@@ -286,13 +293,13 @@ export function exportNotebookPdf(entries: CadernoExportEntry[], filterLabel?: s
       }
 
       // ── Explicação oficial ──
-      if (entry.explanation) {
+      if (!correctionUnavailable && entry.explanation) {
         writeLabel('Explicação', COLORS.wine);
         writeParagraph(stripMd(entry.explanation), { fontSize: 8, color: COLORS.gray700 });
       }
 
       // ── Resumo Prof. San ──
-      if (entry.ai_review_md) {
+      if (!correctionUnavailable && entry.ai_review_md) {
         writeLabel('Resumo do Prof. San', COLORS.wine);
         writeParagraph(stripMd(entry.ai_review_md), { fontSize: 8, color: COLORS.gray700 });
       }

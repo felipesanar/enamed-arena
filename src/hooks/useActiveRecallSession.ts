@@ -23,6 +23,7 @@ import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent } from '@/lib/analytics';
 import { getReasonMeta } from '@/lib/errorNotebookReasons';
+import { hasKnownAnswerKey } from '@/lib/questionCorrection';
 import { isLeechEntry, isAwaitingLesson, isReviewBlocked } from '@/lib/cadernoStatus';
 import type { Confidence, ReviewOutcome, SrsState } from '@/types/caderno';
 import type { Question } from '@/types';
@@ -95,6 +96,8 @@ export interface UseActiveRecallSessionReturn {
   loadingList: boolean;
   listError: boolean;
   loadingReview: boolean;
+  correctionUnavailable: boolean;
+  retryCorrection: () => void;
   generatingAi: boolean;
 
   // Review data for current entry
@@ -274,6 +277,8 @@ export function useActiveRecallSession(
   // Per-entry review data
   const [reviewData, setReviewData] = useState<EntryReviewData | null>(null);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [reviewReload, setReviewReload] = useState(0);
+  const retryCorrection = useCallback(() => setReviewReload(value => value + 1), []);
   const [generatingAi, setGeneratingAi] = useState(false);
 
   // FSM state
@@ -418,7 +423,7 @@ export function useActiveRecallSession(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on id only
-  }, [currentEntry?.id, userId]);
+  }, [currentEntry?.id, userId, reviewReload]);
 
   // ── Auto-generate AI on first reveal if not cached ──────────────────────────
   // We only trigger generation after the reveal phase starts so the student
@@ -427,6 +432,7 @@ export function useActiveRecallSession(
   const generateAiReview = useCallback(
     async (force = false) => {
       if (!currentEntry || !reviewData?.question) return;
+      if (!hasKnownAnswerKey(reviewData.question)) return;
       if (generatingAiRef.current) return;
       if (!force && generatedFor.current.has(currentEntry.id)) return;
       if (!force && reviewData.aiReviewMd) return;
@@ -510,6 +516,7 @@ export function useActiveRecallSession(
 
   const selectOption = useCallback((optionId: string) => {
     if (phase !== 'answering') return;
+    if (!hasKnownAnswerKey(reviewData?.question)) return;
     setSelectedOptionId(optionId);
     // Advance to confidence phase immediately after selection
     setPhase('confidence');
@@ -526,12 +533,14 @@ export function useActiveRecallSession(
   /** Mobile CTA: advance to confidence phase when an option is already selected. */
   const goToConfidence = useCallback(() => {
     if (phase !== 'answering' || !selectedOptionId) return;
+    if (!hasKnownAnswerKey(reviewData?.question)) return;
     setPhase('confidence');
-  }, [phase, selectedOptionId]);
+  }, [phase, selectedOptionId, reviewData]);
 
   const setConfidence = useCallback(
     (c: Confidence) => {
       if (phase !== 'confidence') return;
+      if (!hasKnownAnswerKey(reviewData?.question)) return;
       setConfidenceState(c);
       setPhase('revealed');
 
@@ -590,6 +599,7 @@ export function useActiveRecallSession(
       if (!currentEntry || !selectedOptionId || confidence === null) return;
 
       const q = reviewData?.question;
+      if (!hasKnownAnswerKey(q)) return;
       const wasCorrect = q ? q.correctOptionId === selectedOptionId : false;
 
       // Validate: 'facil' not allowed when wrong
@@ -805,6 +815,7 @@ export function useActiveRecallSession(
 
   const sendChatMessage = useCallback(async () => {
     if (!currentEntry || !reviewData?.question) return;
+    if (!hasKnownAnswerKey(reviewData.question)) return;
     const trimmed = chatInput.trim();
     if (!trimmed || chatLoading) return;
     if ((reviewData.chatCount ?? 0) >= CHAT_LIMIT_PER_ENTRY) return;
@@ -1014,6 +1025,8 @@ export function useActiveRecallSession(
     loadingList,
     listError,
     loadingReview,
+    correctionUnavailable: !!reviewData?.question && !hasKnownAnswerKey(reviewData.question),
+    retryCorrection,
     generatingAi,
     reviewData,
     phase,

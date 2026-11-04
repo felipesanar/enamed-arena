@@ -27,7 +27,8 @@ describe('submitAttempt rollout compatibility', () => {
   });
   it('retries only the undispatched missing signature manually and preserves grade zero', async () => {
     let dispatched = 0;
-    vi.mocked(supabase.rpc).mockImplementation(async (_name, args) => {
+    // The service awaits the RPC thenable; the test boundary supplies a Promise.
+    vi.mocked(supabase.rpc as unknown as (name: string, args?: Record<string, unknown>) => Promise<unknown>).mockImplementation(async (_name, args) => {
       if ('p_auto_submit' in args!) return { data: null, status: 404,
         error: missingRpc('finalize_attempt_with_results', 'p_attempt_id, p_auto_submit') } as never;
       dispatched++;

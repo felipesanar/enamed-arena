@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { simuladosApi } from '@/services/simuladosApi';
 import { DB_REASON_META } from '@/lib/errorNotebookReasons';
+import { hasKnownAnswerKey } from '@/lib/questionCorrection';
 import type { Json } from '@/integrations/supabase/types';
 import type { Question } from '@/types';
 import type { ConfidenceCalibration } from '@/types/caderno';
@@ -193,16 +194,19 @@ export const notebookApi = {
     await assertIdentity(userId);
     return rows.map(row => {
       const question = row.simulado_id ? questions.get(row.simulado_id)?.find(q => q.id === row.question_id) : undefined;
-      const options = (question?.options ?? []).map(o => ({ label: o.label, text: o.text, isCorrect: o.id === question?.correctOptionId }));
+      const knownKey = hasKnownAnswerKey(question);
+      const correctionUnavailable = !!row.question_id && !knownKey;
+      const options = (question?.options ?? []).map(o => ({ label: o.label, text: o.text, isCorrect: knownKey ? o.id === question?.correctOptionId : null }));
       return {
         id: row.id, question_id: row.question_id, simulado_id: row.simulado_id, area: row.area ?? null, theme: row.theme ?? null,
         question_number: row.question_number ?? question?.number ?? null,
         question_text: question?.text ?? row.question_text ?? null, reason: row.reason,
         learning_text: row.learning_text ?? null, simulado_title: row.simulado_title ?? null,
         // No cached correction fallback when the live release gate hides a question.
-        ai_review_md: question ? row.ai_review_md ?? null : null,
+        ai_review_md: knownKey ? row.ai_review_md ?? null : null,
         created_at: row.created_at, options, correct_label: options.find(o => o.isCorrect)?.label ?? null,
-        explanation: question?.explanation ?? null,
+        explanation: knownKey ? question?.explanation ?? null : null,
+        correction_unavailable: correctionUnavailable,
         edition_id: row.edition_id, edition_code: row.edition_code, edition_label: row.edition_label,
       };
     });

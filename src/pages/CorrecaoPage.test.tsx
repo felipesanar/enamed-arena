@@ -8,6 +8,7 @@ import * as UserContext from '@/contexts/UserContext'
 import { useSimuladoDetail } from '@/hooks/useSimuladoDetail'
 import { usePdfDownload } from '@/hooks/usePdfDownload'
 import { useExamResult } from '@/hooks/useExamResult'
+import type { AttemptRow } from '@/services/simuladosApi'
 
 vi.mock('@/hooks/usePdfDownload', () => ({
   usePdfDownload: vi.fn(() => ({ downloading: false, stage: null, progress: null,
@@ -82,7 +83,13 @@ const mockExamState = {
   },
 }
 
-const mockAttempt = { total_correct: 1, total_answered: 2, score_percentage: '50' }
+const mockAttempt: AttemptRow = {
+  id: 'attempt-1', simulado_id: 'sim-1', user_id: 'user-1', status: 'submitted',
+  current_question_index: 1, started_at: '2026-01-01T10:00:00Z',
+  effective_deadline: '2026-01-01T11:00:00Z', last_saved_at: '2026-01-01T10:30:00Z',
+  finished_at: '2026-01-01T10:30:00Z', tab_exit_count: 0, fullscreen_exit_count: 0,
+  total_correct: 1, total_answered: 2, score_percentage: 50,
+}
 
 const mockAttemptQuestionResults = {
   q1: { correct_option_id: 'o1b' },
@@ -150,7 +157,7 @@ describe('CorrecaoPage rollout comments state', () => {
   beforeEach(() => { vi.clearAllMocks() })
   it('shows missing comments while preserving a server-correct AQR and the server grade', () => {
     vi.mocked(useSimuladoDetail).mockReturnValueOnce({ simulado: mockSimulado, questions: coreQuestions(), loading: false } as ReturnType<typeof useSimuladoDetail>)
-    vi.mocked(useExamResult).mockReturnValueOnce({ ...useExamResult(), attempt: mockAttempt,
+    vi.mocked(useExamResult).mockReturnValueOnce({ ...useExamResult('sim-1'), attempt: mockAttempt,
       attemptQuestionResults: {
         q1: { question_id: 'q1', selected_option_id: 'o1a', correct_option_id: 'o1a', is_correct: true, was_answered: true },
         q2: { question_id: 'q2', selected_option_id: 'o2b', correct_option_id: 'o2a', is_correct: false, was_answered: true },
@@ -164,7 +171,7 @@ describe('CorrecaoPage rollout comments state', () => {
   })
   it('does not interpret an unknown answer key as wrong or invent a zero score when AQR/grade are missing', () => {
     vi.mocked(useSimuladoDetail).mockReturnValueOnce({ simulado: mockSimulado, questions: coreQuestions(), loading: false } as ReturnType<typeof useSimuladoDetail>)
-    vi.mocked(useExamResult).mockReturnValueOnce({ ...useExamResult(), attempt: null, attemptQuestionResults: {} } as ReturnType<typeof useExamResult>)
+    vi.mocked(useExamResult).mockReturnValueOnce({ ...useExamResult('sim-1'), attempt: null, attemptQuestionResults: {} } as ReturnType<typeof useExamResult>)
     renderPage()
     expect(screen.getByText('Correção indisponível')).toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
@@ -172,7 +179,7 @@ describe('CorrecaoPage rollout comments state', () => {
   })
   it('keeps an existing server grade visible without fabricating per-question correction', () => {
     vi.mocked(useSimuladoDetail).mockReturnValueOnce({ simulado: mockSimulado, questions: coreQuestions(), loading: false } as ReturnType<typeof useSimuladoDetail>)
-    vi.mocked(useExamResult).mockReturnValueOnce({ ...useExamResult(), attempt: { ...mockAttempt, score_percentage: '75' }, attemptQuestionResults: {} } as ReturnType<typeof useExamResult>)
+    vi.mocked(useExamResult).mockReturnValueOnce({ ...useExamResult('sim-1'), attempt: { ...mockAttempt, score_percentage: 75 }, attemptQuestionResults: {} } as ReturnType<typeof useExamResult>)
     renderPage()
     expect(screen.getByText('Correção indisponível')).toBeInTheDocument()
     expect(screen.getByText('Nota registrada: 75%')).toBeInTheDocument()
