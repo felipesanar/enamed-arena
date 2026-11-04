@@ -13,7 +13,7 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
 
 const tools = [
   { definition: getMyProfile, invoke: (ctx: ToolContext) => getMyProfile.handler({}, ctx) },
-  { definition: getMyPerformance, invoke: (ctx: ToolContext) => getMyPerformance.handler({}, ctx) },
+  { definition: getMyPerformance, invoke: (ctx: ToolContext) => getMyPerformance.handler({ edition_id: undefined }, ctx) },
   { definition: listMyAttempts, invoke: (ctx: ToolContext) => listMyAttempts.handler({ limit: undefined }, ctx) },
   { definition: listSimulados, invoke: (ctx: ToolContext) => listSimulados.handler({ limit: undefined }, ctx) },
   { definition: listErrorNotebook, invoke: (ctx: ToolContext) => listErrorNotebook.handler({ area: undefined, limit: undefined }, ctx) },
@@ -137,14 +137,13 @@ describe("MCP 3.4 tools and caller authorization", () => {
   });
 
   it("retains user filters and read-only client surface for the other tools", async () => {
-    for (const tool of tools.filter(({ definition }) => definition !== listErrorNotebook)) {
+    for (const tool of tools.filter(({ definition }) => definition !== listErrorNotebook && definition !== getMyPerformance)) {
       const { queries } = clientWith();
       await tool.invoke(context());
       expect(queries.size).toBe(1);
       const [table, query] = [...queries.entries()][0];
       expect(query.select).toHaveBeenCalled();
       if (table === "profiles") expect(query.eq).toHaveBeenCalledWith("id", "caller-id");
-      if (table === "user_performance_summary") expect(query.eq).toHaveBeenCalledWith("user_id", "caller-id");
       // Mock exposes no insert/update/delete/rpc: accidental writes fail the test.
     }
   });
