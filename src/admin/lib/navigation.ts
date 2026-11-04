@@ -8,6 +8,7 @@ export interface AdminNavItem {
   label: string
   icon: LucideIcon
   capability: string
+  editionsOnly?: boolean
   /** NavLink end (rota index) */
   end?: boolean
 }
@@ -32,6 +33,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     title: 'Conteúdo',
     items: [
+      { to: '/admin/edicoes', label: 'Edições', icon: FileText, capability: 'content.manage', editionsOnly: true },
       { to: '/admin/simulados', label: 'Simulados',         icon: FileText, capability: 'content.manage' },
       { to: '/admin/questoes',  label: 'Banco de questões', icon: Database, capability: 'content.manage' },
     ],
@@ -68,8 +70,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 ]
 
 /** Grupos visíveis para um conjunto de capabilities (grupo some se vazio). */
-export function visibleNav(capabilities: Set<string>): AdminNavGroup[] {
+export function visibleNav(capabilities: Set<string>, editionsEnabled = false): AdminNavGroup[] {
   return ADMIN_NAV
-    .map(g => ({ ...g, items: g.items.filter(i => capabilities.has(i.capability)) }))
+    .map(g => ({ ...g, items: g.items.filter(i => capabilities.has(i.capability) && (!i.editionsOnly || editionsEnabled)) }))
     .filter(g => g.items.length > 0)
 }

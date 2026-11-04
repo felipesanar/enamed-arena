@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
 import type {
   DashboardKpis,
   TimeseriesRow,
@@ -190,6 +191,7 @@ export const adminApi = {
     results_release_at: string;
     theme_tags: string[];
     status: 'draft' | 'published' | 'test';
+    edition_id?: string;
   }) {
     const { data, error } = await supabase.from('simulados').insert(values).select().single();
     if (error) throw error;
@@ -200,6 +202,22 @@ export const adminApi = {
     const { data, error } = await supabase.from('simulados').update(values).eq('id', id).select().single();
     if (error) throw error;
     return data;
+  },
+
+  /** Keep a failed publication as a draft and return its ID before validation so
+   * the editor can retry without creating a duplicate. Never used by legacy UI. */
+  async saveSimuladoWithEdition(id: string | null, values: {
+    edition_id?: string; title: string; slug: string; sequence_number: number; description: string;
+    duration_minutes: number; questions_count: number; execution_window_start: string;
+    execution_window_end: string; results_release_at: string; theme_tags: string[];
+    status: 'draft' | 'published' | 'test';
+  }, onDraftSaved: (id: string) => void) {
+    if (!values.edition_id) throw new Error('Selecione a edição.');
+    const payload = { ...values, status: values.status === 'published' ? 'draft' as const : values.status };
+    const saved = id ? await adminApi.updateSimulado(id, payload) : await adminApi.createSimulado(payload);
+    onDraftSaved(saved.id);
+    if (values.status === 'published') await adminEditionsApi.publish(saved.id);
+    return saved;
   },
 
   async deleteSimulado(id: string) {
