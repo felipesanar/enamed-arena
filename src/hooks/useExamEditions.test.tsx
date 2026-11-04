@@ -6,13 +6,30 @@ import { useExamEditions } from '@/hooks/useExamEditions';
 
 const rpc = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc } }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
-const setup = () => {
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
+const setup = (data?: unknown[]) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  if (data) client.setQueryData(['exam-editions'], data);
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   return { client, ...renderHook(() => useExamEditions(), { wrapper }) };
 };
 describe('useExamEditions', () => {
+  it('reavalia virada do calendario em SP sem refetch e limpa timer', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-29T02:59:30Z'));
+    const { result, unmount, client } = setup([
+      { id: 'today', code: '2026', status: 'active', exam_date: '2026-11-28' },
+      { id: 'tomorrow', code: '2027', status: 'active', exam_date: '2026-11-29' },
+    ]);
+    expect(result.current.nextEdition?.id).toBe('today');
+    expect(result.current.now.toISOString()).toBe('2026-11-29T02:59:30.000Z');
+    act(() => { vi.advanceTimersByTime(60_000); });
+    expect(result.current.nextEdition?.id).toBe('tomorrow');
+    expect(rpc).not.toHaveBeenCalled();
+    unmount();
+    client.clear();
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it('consulta RPC e deriva edicao sem data, com cache de uma hora', async () => {
     rpc.mockResolvedValue({ data: [{ id: 'next', year: 2027, term: 1, status: 'planned', exam_date: null }], error: null });
     const { result, client } = setup();
