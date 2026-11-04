@@ -61,6 +61,7 @@ describe('reprocess dialog (mock RPC)', () => {
     const current: QueryKey[] = ['simulado-detail-stats', 'simulado-question-stats', 'score-distribution', 'performance-by-area', 'simulado-results-aggregate'].map(name => ['admin', name, 's']);
     current.push(['admin', 'simulado-results-roster', { simuladoId: 's' }]);
     const other = [['admin', 'simulado-detail-stats', 'other'], ['admin', 'simulado-results-roster', { simuladoId: 'other' }], ...['user-performance', 'ranking-simulados', 'ranking', 'comparative', 'exam-result', 'exam-result-access', 'simulados', 'simulado', 'notebook-page', 'notebook-counts', 'notebook-due-count', 'caderno-pattern-insights', 'caderno-area-score-history', 'caderno-confidence-calibration'].map(prefix => [prefix, 'another-student'])];
+    other.push(...['my-percentile-history', 'edition-ranking', 'question-bank-item-analysis'].map(prefix => [prefix, 'another-student']));
     const keys = [...current, ...other];
     const fetches = keys.map(() => vi.fn().mockResolvedValue('updated'));
     const unsubscribes = keys.map((queryKey, index) => {
