@@ -87,7 +87,25 @@ selection, including keepalive. Legacy editing/manual persistence does not requi
 the new clock RPC. V1 editing/persistence waits for a synchronized clock; pending
 or initial fallback cannot fabricate versions. A previously synchronized monotonic
 anchor continues across connectivity loss and OS-clock changes. Initial fallback
-recovers through the existing online/visibility clock refresh, not a new pipeline.
+recovers through online/visibility refresh or the preparation retry, using the
+same scoped clock pipeline.
+
+### Visual clock and expiry authorization
+
+- `pending` denies the global `canWrite` guard used by storage, including confirmed legacy mode. Declared `fallback` allows legacy editing only after capabilities, reconciliation and tab ownership are ready. V1 always requires `synced`; estimated time never supplies answer versions.
+- The visual timer uses a monotonic anchor and may tick from 10 to 9 to 0 in fallback. It does not reread the OS clock on ticks/rerenders. Estimated zero is not evidence of expiry: it cannot lock by deadline, call time-up, consume the attempt's fired key, auto-submit, clear cache/dirty answers or mark completion.
+- `allowTimeUp` is additive and defaults to true for legacy timer callers. Lifecycle checks trusted time and live ownership before consuming the key; its existing finalization/ownership guards and query invalidation remain in place.
+- A late trusted sample recalculates against the real server deadline: a future deadline corrects remaining time without submission, while an elapsed deadline can fire once after write ownership/readiness is restored. Backend deadlines and score authority are unchanged.
+- `resync` is optional and stable within a session. Preparation retry requests both capabilities and clock again. Before the first trusted sample, resync enters `pending` without moving the monotonic anchor to OS time; a refresh failure after a trusted sample preserves the trusted status and anchor. Stale responses/callbacks from another session or after unmount cannot update the current scope.
+- Confirmed V1 plus clock failure is recoverable `error`, rendered through the existing `runtime_error` notice and enabled **Tentar novamente**. During retry the notice is preparing/disabled; V1 remains blocked until valid clock sync and remote reconciliation complete.
+- Untrusted clocks display **Tempo estimado**, visibly and accessibly, with neutral timer styling. Confirmed-expiry announcements, the expiry banner and five-minute warnings are suppressed for estimated time. Ownership/preparation/other interaction locks are not described as expired deadlines. Optional UI props default to the previous trusted behavior for existing callers.
+
+Local clock regression validation for `f3-clock-rollout-6883` (2026-11-04): TDD
+reproduced the frozen legacy fallback, missing retry RPC, inaccessible error
+recovery, pending global write guard and misleading estimated-expiry UI before
+their fixes. Focused command and final outcome are recorded in
+`docs/rollout-compat-2027.md`. No Auth, Supabase, cron, production or browser/device
+validation is implied by these mocked/local tests.
 
 Safe auto-finalize/explanations/counts fallbacks in Home/admin are owned by the
 parent. These flags are exposed for those consumers without editing them here.

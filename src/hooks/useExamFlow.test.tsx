@@ -17,7 +17,7 @@ vi.mock('react-router-dom', () => ({ useParams: () => ({ id: 'sim' }), useNaviga
 vi.mock('@/contexts/UserContext', () => ({ useUser: () => ({ isOnboardingComplete: true }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user' } }) }));
 vi.mock('@/hooks/useSimuladoDetail', () => ({ useSimuladoDetail: () => ({ simulado, questions, loading: false }) }));
-vi.mock('@/hooks/useExamStorageReal', () => ({ useExamStorageReal: () => storage }));
+vi.mock('@/hooks/useExamStorageReal', () => ({ useExamStorageReal: vi.fn(() => storage) }));
 vi.mock('@/hooks/useKeyboardShortcuts', () => ({ useKeyboardShortcuts: shortcuts }));
 vi.mock('@/hooks/exam/useExamIntegrity', () => ({ useExamIntegrity: vi.fn(() => ({})) }));
 vi.mock('@/hooks/exam/useExamBeacon', () => ({ useExamBeacon: vi.fn() }));
@@ -26,7 +26,91 @@ vi.mock('@/services/serverClockApi', () => ({ serverClockApi: { getServerTime: v
 import { serverClockApi } from '@/services/serverClockApi';
 import { useExamFlow } from '@/hooks/useExamFlow';
 import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
+import { useExamStorageReal } from '@/hooks/useExamStorageReal';
 afterEach(() => { vi.useRealTimers(); runtime.mode = 'v1'; runtime.revision = 'initial'; });
+it('ticks legacy fallback through zero without submission or local expiry despite OS jumps', async () => {
+  vi.useFakeTimers(); vi.clearAllMocks(); runtime.mode = 'legacy';
+  vi.mocked(serverClockApi.getServerTime).mockRejectedValueOnce(new Error('PGRST202'));
+  const initial = { simuladoId: 'sim', status: 'in_progress', answers: { q: { selectedOption: 'a' } },
+    currentQuestionIndex: 0, effectiveDeadline: new Date(Date.now() + 10000).toISOString(),
+    startedAt: new Date().toISOString(), tabExitCount: 0, fullscreenExitCount: 0 };
+  storage.loadState.mockResolvedValue({ state: initial, notifyResultEmail: false });
+  const client = new QueryClient();
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const { result } = renderHook(() => useExamFlow(), { wrapper });
+  await act(async () => {});
+  expect(result.current.timeRemaining).toBe(10);
+  vi.setSystemTime(Date.now() + 86400000);
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(result.current.timeRemaining).toBe(9);
+  vi.setSystemTime(Date.now() - 172800000);
+  await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
+  expect(result.current.timeRemaining).toBe(0);
+  expect(result.current.clockTrusted).toBe(false);
+  expect(result.current.interactionLocked).toBe(false);
+  expect(result.current.state).toEqual(initial);
+  expect(result.current.isCompleted).toBe(false);
+  expect(storage.submitAttempt).not.toHaveBeenCalled();
+  expect(storage.saveStateDebounced).not.toHaveBeenCalled();
+});
+
+it('retries clock RPC with capabilities and keeps v1 blocked until sync and reconciliation', async () => {
+  vi.useFakeTimers(); vi.clearAllMocks();
+  vi.mocked(serverClockApi.getServerTime).mockRejectedValueOnce(new Error('500'));
+  const initial = { simuladoId: 'sim', status: 'in_progress', answers: {}, currentQuestionIndex: 0,
+    effectiveDeadline: new Date(Date.now() + 60000).toISOString(), startedAt: new Date().toISOString(),
+    tabExitCount: 0, fullscreenExitCount: 0 };
+  storage.loadState.mockResolvedValue({ state: initial, notifyResultEmail: false });
+  const client = new QueryClient();
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const { result, rerender } = renderHook(() => useExamFlow(), { wrapper });
+  await act(async () => {});
+  expect(result.current.preparation.status).toBe('error');
+  const retry = result.current.preparation.retry;
+  let resolve!: (n: number) => void;
+  vi.mocked(serverClockApi.getServerTime).mockReturnValueOnce(new Promise<number>(r => { resolve = r; }));
+  act(() => { result.current.preparation.retry(); });
+  expect(serverClockApi.getServerTime).toHaveBeenCalledTimes(2);
+  expect(runtime.retry).toHaveBeenCalledOnce();
+  expect(result.current.preparation.status).toBe('preparing');
+  expect(result.current.preparation.retry).toBe(retry);
+  expect(result.current.interactionLocked).toBe(true);
+  expect(vi.mocked(useExamStorageReal).mock.calls.at(-1)?.[2]?.()).toBe(false);
+  act(() => result.current.handleSelectOption('a'));
+  expect(storage.saveStateDebounced).not.toHaveBeenCalled();
+  await act(async () => { resolve(Date.now()); });
+  expect(result.current.preparation.status).toBe('preparing');
+  let reconcile!: (value: { state: typeof initial; notifyResultEmail: boolean }) => void;
+  storage.loadState.mockReturnValueOnce(new Promise(r => { reconcile = r; }));
+  runtime.revision = 'retried';
+  rerender();
+  expect(result.current.interactionLocked).toBe(true);
+  expect(vi.mocked(useExamStorageReal).mock.calls.at(-1)?.[2]?.()).toBe(false);
+  await act(async () => { reconcile({ state: initial, notifyResultEmail: false }); });
+  await act(async () => {});
+  expect(result.current.preparation.status).toBe('ready');
+  expect(result.current.interactionLocked).toBe(false);
+  expect(vi.mocked(useExamStorageReal).mock.calls.at(-1)?.[2]?.()).toBe(true);
+});
+
+it('denies the storage write guard globally while legacy clock is pending, then allows declared fallback', async () => {
+  vi.useFakeTimers(); vi.clearAllMocks(); runtime.mode = 'legacy';
+  let reject!: (reason: Error) => void;
+  vi.mocked(serverClockApi.getServerTime).mockReturnValueOnce(new Promise<number>((_resolve, fail) => { reject = fail; }));
+  storage.loadState.mockResolvedValue({ state: { simuladoId: 'sim', status: 'in_progress', answers: {},
+    currentQuestionIndex: 0, effectiveDeadline: new Date(Date.now() + 60000).toISOString(),
+    startedAt: new Date().toISOString(), tabExitCount: 0, fullscreenExitCount: 0 }, notifyResultEmail: false });
+  const client = new QueryClient();
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const { result } = renderHook(() => useExamFlow(), { wrapper });
+  await act(async () => {});
+  const canWrite = vi.mocked(useExamStorageReal).mock.calls.at(-1)?.[2];
+  expect(canWrite?.()).toBe(false);
+  expect(result.current.preparation.status).toBe('preparing');
+  await act(async () => { reject(new Error('PGRST202')); });
+  expect(canWrite?.()).toBe(true);
+  expect(result.current.preparation.status).toBe('ready');
+});
 it('blocks every mutation and manual/automatic submission without tab ownership', async () => {
   vi.useFakeTimers(); vi.clearAllMocks();
   lease.blocked = true;
@@ -61,7 +145,7 @@ it('does not expire or submit a blank exam from an ahead OS clock when initial s
   expect(result.current.state?.status).toBe('in_progress');
   expect(useExamIntegrity).toHaveBeenLastCalledWith(expect.objectContaining({ now: expect.any(Function) }));
   expect(result.current.interactionLocked).toBe(true);
-  expect(result.current.preparation.status).toBe('preparing');
+  expect(result.current.preparation.status).toBe('error');
   act(() => result.current.handleSelectOption('a'));
   expect(result.current.state?.answers.q).toBeUndefined();
   expect(storage.saveStateDebounced).not.toHaveBeenCalled();

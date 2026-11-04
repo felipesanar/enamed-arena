@@ -245,13 +245,13 @@ export default function SimuladoExamPage() {
   }, [enterFullscreen, exitFullscreen]);
 
   useEffect(() => {
-    if (flow.timeRemaining <= 300 && flow.timeRemaining > 295 && !timeWarningShown) {
+    if (flow.clockTrusted !== false && flow.timeRemaining <= 300 && flow.timeRemaining > 295 && !timeWarningShown) {
       setTimeWarningShown(true);
       setTimeWarningVisible(true);
       const timer = setTimeout(() => setTimeWarningVisible(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [flow.timeRemaining, timeWarningShown]);
+  }, [flow.timeRemaining, flow.clockTrusted, timeWarningShown]);
 
   if (flow.loading) {
     return (
@@ -363,6 +363,7 @@ export default function SimuladoExamPage() {
         currentQuestion={flow.currentIndex + 1}
         totalQuestions={flow.questions.length}
         timeRemaining={flow.timeRemaining}
+        clockTrusted={flow.clockTrusted}
         onFinalize={() => { if (!flow.interactionLocked) flow.setShowSubmitModal(true); }}
         saving={flow.saving ?? false}
         answeredCount={flow.summary.answered}
@@ -372,7 +373,8 @@ export default function SimuladoExamPage() {
         status={flow.tabLease.status !== 'owned' ? flow.tabLease.status : flow.preparation.status === 'ready' ? 'owned' : flow.preparation.status === 'error' ? 'runtime_error' : 'preparing'}
         onTakeover={flow.tabLease.status === 'owned' ? flow.preparation.retry : flow.tabLease.takeover} />
 
-      {flow.interactionLocked && !flow.tabLease.blocked && flow.preparation.status === 'ready' && (
+      {flow.interactionLocked && !flow.tabLease.blocked && flow.preparation.status === 'ready' &&
+        (flow.submitting || (flow.clockTrusted !== false && flow.timeRemaining === 0)) && (
         <div role="status" className="border-b border-warning/15 bg-warning/8 px-4 py-3 text-body-sm">
           <p>{flow.submitting ? 'Confirmando a finalização. Aguarde.' : 'Tempo esgotado. As respostas estão bloqueadas até a confirmação da finalização.'}</p>
           {!flow.submitting && (
@@ -403,7 +405,7 @@ export default function SimuladoExamPage() {
 
       {/* Time warning banner */}
       <AnimatePresence>
-        {timeWarningVisible && (
+        {timeWarningVisible && flow.clockTrusted !== false && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -438,11 +440,11 @@ export default function SimuladoExamPage() {
                 </p>
                 <div className={cn(
                   'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-body tabular-nums font-semibold mb-6',
-                  getTimerBgClass(flow.timeRemaining),
-                  getTimerColor(flow.timeRemaining),
+                  flow.clockTrusted !== false ? getTimerBgClass(flow.timeRemaining) : 'bg-muted/50',
+                  flow.clockTrusted !== false ? getTimerColor(flow.timeRemaining) : 'text-foreground',
                 )}>
                   <Clock className="h-4 w-4" />
-                  {formatTimer(flow.timeRemaining)} restantes
+                  {flow.clockTrusted === false ? 'Tempo estimado: ' : ''}{formatTimer(flow.timeRemaining)}{flow.clockTrusted !== false ? ' restantes' : ''}
                 </div>
                 <div>
                   <button
@@ -466,11 +468,11 @@ export default function SimuladoExamPage() {
 
                 <div className={cn(
                   'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-body-lg tabular-nums font-semibold mb-6',
-                  getTimerBgClass(flow.timeRemaining),
-                  getTimerColor(flow.timeRemaining),
+                  flow.clockTrusted !== false ? getTimerBgClass(flow.timeRemaining) : 'bg-muted/50',
+                  flow.clockTrusted !== false ? getTimerColor(flow.timeRemaining) : 'text-foreground',
                 )}>
                   <Clock className="h-4 w-4" />
-                  {formatTimer(flow.timeRemaining)}
+                  {flow.clockTrusted === false ? 'Tempo estimado: ' : ''}{formatTimer(flow.timeRemaining)}
                 </div>
 
                 <p className="text-body-sm text-muted-foreground mb-8">

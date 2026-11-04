@@ -109,12 +109,34 @@ export function useExamLifecycle({
   const clockReady = clock?.ready ?? true;
   const clockTrusted = !clock || clock.status === 'synced';
   const now = clock?.now ?? Date.now;
+  const submissionStartedRef = useRef(false);
+  const expiryPendingRef = useRef(false);
+  const rearmRequestedRef = useRef(false);
+  const deadlineRemainingRef = useRef<() => number>(() => NaN);
+  deadlineRemainingRef.current = () => stateMatchesSimulado && state?.effectiveDeadline
+    ? new Date(state.effectiveDeadline).getTime() - now() : NaN;
+  const autoSubmitAllowedRef = useRef<(snapshot?: ExamState | null) => boolean>(() => false);
+  autoSubmitAllowedRef.current = (snapshot = state) => snapshot === state && scopeRef.current.active &&
+    clockTrusted && !ownershipBlocked && canWrite() && state?.status === 'in_progress' &&
+    stateMatchesSimulado && deadlineRemainingRef.current() <= 0;
+
+  const cancelTimeUpGrace = useCallback(() => {
+    if (submissionStartedRef.current || !expiryPendingRef.current) return;
+    if (timeUpTimerRef.current) clearTimeout(timeUpTimerRef.current);
+    timeUpTimerRef.current = null;
+    expiryPendingRef.current = false;
+    rearmRequestedRef.current = true;
+    setTimeExpired(false);
+  }, []);
 
   useEffect(() => {
     const scope = { active: true };
     scopeRef.current = scope;
     hasFinalized.current = false;
     hasAutoSubmitTracked.current = false;
+    submissionStartedRef.current = false;
+    expiryPendingRef.current = false;
+    rearmRequestedRef.current = false;
     setTimeExpired(false);
     setSubmitting(false);
     setNotificationSaving(false);
@@ -254,7 +276,9 @@ export function useExamLifecycle({
 
   const finalize = useCallback(async (isAutoSubmit = false) => {
     const scope = scopeRef.current;
-    if (ownershipBlocked || !canWrite() || !scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado || (isAutoSubmit && !clockTrusted)) return;
+    if (ownershipBlocked || !canWrite() || !scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado || (isAutoSubmit && !autoSubmitAllowedRef.current(state))) return;
+    const previouslyStarted = submissionStartedRef.current;
+    submissionStartedRef.current = true;
     hasFinalized.current = true;
     setSubmitting(true);
 
@@ -274,12 +298,14 @@ export function useExamLifecycle({
       });
     }
 
+    let resultReceived = false;
     try {
       // submitAttempt now returns is_within_window + score_percentage in the
       // same payload (see migration 20260516000000), so we don't need a
       // follow-up SELECT against `attempts` — that eliminated a wasted round
       // trip and a read-after-write race with replicas.
       const result = await storage.submitAttempt(state, isAutoSubmit);
+      resultReceived = true;
       if (!scope.active) return;
       if (!result) throw new Error('Finalizacao do simulado nao retornou resultado.');
       setState(prev => prev ? { ...prev, status: 'submitted', lastSavedAt: new Date(now()).toISOString() } : prev);
@@ -310,6 +336,11 @@ export function useExamLifecycle({
       invalidateExamQueries(queryClient, storage.userId, simulado.id, id);
     } catch (err) {
       if (!scope.active) return;
+      const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined;
+      // Only explicit SQL validation/permission rejection proves no finalization.
+      // A previous uncertain request or any started auto must remain latched.
+      if (!isAutoSubmit && !previouslyStarted && !resultReceived &&
+        (code === 'P0001' || code === '22023' || code === '42501')) submissionStartedRef.current = false;
       trackEvent('exam_submit_failed', {
         simulado_id: simulado.id,
         attempt_id: storage.attemptId.current ?? '',
@@ -324,7 +355,10 @@ export function useExamLifecycle({
     } finally {
       if (scope.active) setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, clockTrusted, id, ownershipBlocked, canWrite]);
+  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, id, ownershipBlocked, canWrite]);
+
+  const finalizeRef = useRef(finalize);
+  finalizeRef.current = finalize;
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     const scope = scopeRef.current;
@@ -354,7 +388,8 @@ export function useExamLifecycle({
 
   const handleTimeUp = useCallback(() => {
     const scope = scopeRef.current;
-    if (ownershipBlocked || !canWrite() || !scope.active || !stateMatchesSimulado) return;
+    if (!autoSubmitAllowedRef.current() || submissionStartedRef.current) return;
+    expiryPendingRef.current = true;
     setTimeExpired(true);
     toast({ title: 'Tempo esgotado!', description: 'Aguarde a confirmação da finalização automática.' });
     if (!hasAutoSubmitTracked.current && state && simulado) {
@@ -368,16 +403,33 @@ export function useExamLifecycle({
         reason: 'timer_expired',
       });
     }
-    timeUpTimerRef.current = setTimeout(() => { if (scope.active) void finalize(true); }, 2000);
-  }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado, ownershipBlocked, canWrite]);
+    timeUpTimerRef.current = setTimeout(() => {
+      if (!scope.active || scopeRef.current !== scope) return;
+      timeUpTimerRef.current = null;
+      // Both the clock anchor and ownership can change without changing this closure.
+      if (!autoSubmitAllowedRef.current()) { cancelTimeUpGrace(); return; }
+      void finalizeRef.current(true);
+    }, 2000);
+  }, [state, simulado, storage, questionIds.length, cancelTimeUpGrace]);
+
+  const allowTimeUp = useCallback(() => clockTrusted && !submissionStartedRef.current && autoSubmitAllowedRef.current(), [clockTrusted]);
+  const rearmTimeUp = useCallback(() => {
+    if (submissionStartedRef.current) return false;
+    if (deadlineRemainingRef.current() > 0) cancelTimeUpGrace();
+    const rearm = rearmRequestedRef.current;
+    rearmRequestedRef.current = false;
+    return rearm;
+  }, [cancelTimeUpGrace]);
 
   const timeRemaining = useExamTimer({
     attemptKey: `${storage.userId ?? ''}:${simulado?.id ?? ''}:${attemptIdentity ?? ''}`,
     deadline: stateMatchesSimulado ? state?.effectiveDeadline ?? null : null,
     onTimeUp: handleTimeUp,
-    paused: ownershipBlocked || state?.status !== 'in_progress',
+    paused: state?.status !== 'in_progress',
     now,
-    clockReady: clockTrusted,
+    clockReady,
+    allowTimeUp,
+    rearmTimeUp,
   });
 
   return {

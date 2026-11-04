@@ -6,13 +6,19 @@ export interface ServerClock {
   now: () => number;
   status: 'pending' | 'synced' | 'fallback';
   ready: boolean;
+  resync?: () => void;
 }
 
 export function useServerClock(sessionKey: string): ServerClock {
-  const anchorRef = useRef({ epoch: Date.now(), mono: performance.now(), key: sessionKey });
+  const anchorRef = useRef<{ epoch: number; mono: number; key: string } | null>(null);
+  if (!anchorRef.current) anchorRef.current = { epoch: Date.now(), mono: performance.now(), key: sessionKey };
   const [sync, setSync] = useState<{ key: string; status: ServerClock['status'] }>({ key: sessionKey, status: 'pending' });
+  const refreshRef = useRef<{ key: string; refresh: () => Promise<void> } | null>(null);
+  const resync = useCallback(() => {
+    if (refreshRef.current?.key === sessionKey) void refreshRef.current.refresh();
+  }, [sessionKey]);
   const now = useCallback(() => {
-    const anchor = anchorRef.current;
+    const anchor = anchorRef.current!;
     return anchor.epoch + performance.now() - anchor.mono;
   }, []);
 
@@ -25,6 +31,7 @@ export function useServerClock(sessionKey: string): ServerClock {
     let synced = false;
     const refresh = async () => {
       const sequence = ++request;
+      if (!synced) setSync({ key: sessionKey, status: 'pending' });
       const startMono = performance.now();
       const startEpoch = now();
       let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -59,6 +66,7 @@ export function useServerClock(sessionKey: string): ServerClock {
         }
       }
     };
+    refreshRef.current = { key: sessionKey, refresh };
     void refresh();
     const online = () => { void refresh(); };
     const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
@@ -66,6 +74,7 @@ export function useServerClock(sessionKey: string): ServerClock {
     document.addEventListener('visibilitychange', visible);
     return () => {
       active = false;
+      if (refreshRef.current?.refresh === refresh) refreshRef.current = null;
       timeouts.forEach(clearTimeout);
       window.removeEventListener('online', online);
       document.removeEventListener('visibilitychange', visible);
@@ -73,5 +82,5 @@ export function useServerClock(sessionKey: string): ServerClock {
   }, [sessionKey, now]);
 
   const status = sync.key === sessionKey ? sync.status : 'pending';
-  return { now, status, ready: status !== 'pending' };
+  return { now, status, ready: status !== 'pending', resync };
 }

@@ -47,6 +47,7 @@ export interface UseExamFlowReturn {
   // Side effects (focus, timer, finalize)
   focusControl: ReturnType<typeof useFocusControl>;
   timeRemaining: ReturnType<typeof useExamTimer>;
+  clockTrusted?: boolean;
   finalize: (isAutoSubmit?: boolean) => Promise<void>;
   setNotifyResultByEmail: (enabled: boolean) => Promise<void>;
 
@@ -98,7 +99,7 @@ export function useExamFlow(): UseExamFlowReturn {
   const questionIds = useMemo(() => questions.map(q => q.id), [questions]);
   /** Sempre UUID do banco — rotas podem usar `slug`; RPCs e FK exigem UUID. */
   const clock = useServerClock(`${user?.id ?? ''}:${simulado?.id ?? ''}`);
-  const { status: clockStatus, now } = clock;
+  const { status: clockStatus, now, resync } = clock;
   const ownershipRef = useRef<() => boolean>(() => false);
   const canWrite = useCallback(() => ownershipRef.current(), []);
   const runtimeRef = useRef<ExamRuntimePersistence>({ mode: 'pending', onMismatch: () => {} });
@@ -123,14 +124,15 @@ export function useExamFlow(): UseExamFlowReturn {
   }, [loadStorageState]);
   const tabLease = useExamTabLease(user?.id, storage.attemptId.current, reloadForOwnership);
   const knownRuntime = capabilities.mode === 'legacy' || capabilities.mode === 'v1';
-  const preparationBlocked = !knownRuntime || preparedRevision !== capabilities.revision ||
+  const preparationBlocked = !knownRuntime || clockStatus === 'pending' || preparedRevision !== capabilities.revision ||
     (capabilities.mode === 'v1' && clockStatus !== 'synced');
   const retryPreparation = useCallback(() => {
     runtimeRef.current.mode = 'pending';
     ownershipRef.current = () => false;
     setPreparedRevision(''); setFailedRevision('');
     retryCapabilities();
-  }, [retryCapabilities]);
+    resync?.();
+  }, [retryCapabilities, resync]);
   runtimeRef.current = { mode: preparationBlocked ? 'pending' : capabilities.mode, onMismatch: retryPreparation };
   ownershipRef.current = () => !preparationBlocked && tabLease.canWrite();
   useEffect(() => {
@@ -279,7 +281,8 @@ export function useExamFlow(): UseExamFlowReturn {
 
   return {
     tabLease,
-    preparation: { status: capabilities.mode === 'error' || failedRevision === capabilities.revision ? 'error' :
+    preparation: { status: capabilities.mode === 'error' || failedRevision === capabilities.revision ||
+      (capabilities.mode === 'v1' && clockStatus === 'fallback') ? 'error' :
       preparationBlocked ? 'preparing' : 'ready', retry: retryPreparation },
     simulado,
     questions,
@@ -296,6 +299,7 @@ export function useExamFlow(): UseExamFlowReturn {
     notificationSaving,
     focusControl,
     timeRemaining,
+    clockTrusted: clockStatus === 'synced',
     finalize,
     setNotifyResultByEmail,
     updateState,

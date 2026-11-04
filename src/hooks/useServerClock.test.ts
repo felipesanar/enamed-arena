@@ -5,6 +5,41 @@ vi.mock('@/services/serverClockApi', () => ({ serverClockApi: { getServerTime } 
 import { useServerClock } from '@/hooks/useServerClock';
 beforeEach(() => { vi.useFakeTimers(); vi.resetAllMocks(); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+it('exposes stable scoped retry and preserves a trusted anchor after refresh failure', async () => {
+  getServerTime.mockRejectedValueOnce(new Error('500'));
+  const { result, rerender, unmount } = renderHook(({ key }) => useServerClock(key), { initialProps: { key: 'a' } });
+  await act(async () => {});
+  const retry = result.current.resync;
+  expect(retry).toEqual(expect.any(Function));
+  let resolveRetry!: (n: number) => void;
+  getServerTime.mockReturnValueOnce(new Promise<number>(r => { resolveRetry = r; }));
+  act(() => { retry?.(); });
+  expect(result.current.status).toBe('pending');
+  expect(result.current.ready).toBe(false);
+  await act(async () => { resolveRetry(10000); });
+  expect(result.current.status).toBe('synced');
+  expect(result.current.resync).toBe(retry);
+  getServerTime.mockRejectedValueOnce(new Error('offline'));
+  vi.setSystemTime(Date.now() - 86400000);
+  await act(async () => { vi.advanceTimersByTime(1000); retry?.(); });
+  expect(result.current.status).toBe('synced');
+  expect(result.current.now()).toBe(11000);
+  let resolve!: (n: number) => void;
+  getServerTime.mockReturnValueOnce(new Promise<number>(r => { resolve = r; }));
+  act(() => { retry?.(); });
+  getServerTime.mockResolvedValueOnce(20000);
+  rerender({ key: 'b' });
+  await act(async () => { resolve(999999); });
+  expect(result.current.status).toBe('synced');
+  expect(result.current.now()).toBe(20000);
+  const calls = getServerTime.mock.calls.length;
+  retry?.();
+  expect(getServerTime).toHaveBeenCalledTimes(calls);
+  const currentRetry = result.current.resync;
+  unmount();
+  currentRetry?.();
+  expect(getServerTime).toHaveBeenCalledTimes(calls);
+});
 it.each([-3600000, 3600000])('uses midpoint and survives OS clock drift (skew=%s)', async skew => {
   const server = Date.parse('2026-01-01T00:00:00Z');
   vi.setSystemTime(server + skew);
@@ -45,6 +80,17 @@ it('declares monotonic local fallback after RPC failure and revalidates online',
   getServerTime.mockResolvedValue(now + 5000);
   await act(async () => { window.dispatchEvent(new Event('online')); });
   expect(result.current.status).toBe('synced');
+});
+it('does not read the OS clock again during fallback ticks or rerenders', async () => {
+  getServerTime.mockRejectedValueOnce(new Error('PGRST202'));
+  const { result, rerender } = renderHook(() => useServerClock('a'));
+  await act(async () => {});
+  const epoch = result.current.now();
+  const osClock = vi.spyOn(Date, 'now');
+  act(() => vi.advanceTimersByTime(1000));
+  rerender();
+  expect(result.current.now()).toBe(epoch + 1000);
+  expect(osClock).not.toHaveBeenCalled();
 });
 it('bounds a stalled RPC and ignores its late completion after timeout', async () => {
   let resolve!: (n: number) => void;
