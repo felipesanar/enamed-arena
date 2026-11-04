@@ -22,6 +22,9 @@ export const blueprintsApi = {
     if (sim.error) throw sim.error;
     const editionId = record(sim.data).edition_id;
     if (typeof editionId !== 'string') throw new Error('Simulado sem edição.');
+    return blueprintsApi.getForEdition(editionId);
+  },
+  async getForEdition(editionId: string) {
     const edition = await client.from('exam_editions').select('id,code,blueprint_id,format').eq('id', editionId).single();
     if (edition.error) throw edition.error;
     const e = record(edition.data);
