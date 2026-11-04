@@ -12,9 +12,10 @@ interface UseExamTimerProps {
   attemptKey?: string; // Different attempts may share the same deadline.
   now?: () => number;
   clockReady?: boolean;
+  allowTimeUp?: boolean | (() => boolean);
 }
 
-export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, now = Date.now, clockReady = true }: UseExamTimerProps) {
+export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, now = Date.now, clockReady = true, allowTimeUp = true }: UseExamTimerProps) {
   const calcRemaining = useCallback((): number => {
     if (!deadline) return 0;
     const diff = new Date(deadline).getTime() - now();
@@ -28,6 +29,8 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, n
   const key = attemptKey ?? deadline;
   const onTimeUpRef = useRef(onTimeUp);
   onTimeUpRef.current = onTimeUp;
+  const allowTimeUpRef = useRef(allowTimeUp);
+  allowTimeUpRef.current = allowTimeUp;
 
   useEffect(() => {
     setRemaining(calcRemaining());
@@ -39,7 +42,9 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, n
     const tick = () => {
       const r = calcRemaining();
       setRemaining(r);
-      if (r === 0 && !firedKeysRef.current.has(key)) {
+      const allowed = typeof allowTimeUpRef.current === 'function' ? allowTimeUpRef.current() : allowTimeUpRef.current;
+      // An estimated zero or lost ownership must not consume the owner's expiry.
+      if (r === 0 && allowed && !firedKeysRef.current.has(key)) {
         firedKeysRef.current.add(key);
         onTimeUpRef.current();
       }
@@ -48,7 +53,7 @@ export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey, n
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [paused, deadline, calcRemaining, key, clockReady]);
+  }, [paused, deadline, calcRemaining, key, clockReady, allowTimeUp]);
 
   return Number.isFinite(remaining) ? remaining : 0;
 }

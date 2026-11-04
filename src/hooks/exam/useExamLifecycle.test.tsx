@@ -3,10 +3,52 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExamState } from '@/types/exam';
+import type { ServerClock } from '@/hooks/useServerClock';
 const { toast } = vi.hoisted(() => ({ toast: vi.fn() }));
 vi.mock('@/hooks/use-toast', () => ({ toast }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 import { useExamLifecycle } from '@/hooks/exam/useExamLifecycle';
+
+it.each([false, true])('reconciles fallback zero only after trusted time and ownership (past=%s)', async past => {
+  vi.useFakeTimers(); vi.clearAllMocks();
+  const initial: ExamState = { simuladoId: 'sim', status: 'in_progress', currentQuestionIndex: 0, answers: {},
+    tabExitCount: 0, fullscreenExitCount: 0, startedAt: new Date().toISOString(),
+    effectiveDeadline: new Date(Date.now() + 10000).toISOString(), lastSavedAt: '' };
+  const storage = { loadState: vi.fn(() => new Promise<never>(() => {})), initializeState: vi.fn(),
+    submitAttempt: vi.fn().mockResolvedValue({ score_percentage: 0, is_within_window: true }),
+    setResultNotification: vi.fn(), attemptId: { current: 'attempt' } };
+  const epoch = Date.now();
+  let offset = 0; let owned = true;
+  const now = () => epoch + performance.now() + offset;
+  const client = new QueryClient();
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const { result, rerender, unmount } = renderHook(({ status }: { status: ServerClock['status'] }) => useExamLifecycle({
+    simulado: { id: 'sim', status: 'in_progress', estimatedDurationMinutes: 1, executionWindowEnd: null },
+    state: initial, setState: vi.fn(), storage, questions: [{ id: 'q' }] as any, questionIds: ['q'], id: 'sim',
+    navigate: vi.fn(), loadingSimulado: false, isOnboardingComplete: true, setShowSubmitModal: vi.fn(),
+    clock: { now, status, ready: status !== 'pending' }, canWrite: () => owned,
+  }), { wrapper, initialProps: { status: 'pending' } });
+  expect(result.current.interactionLocked).toBe(true);
+  rerender({ status: 'fallback' });
+  act(() => vi.advanceTimersByTime(1000));
+  expect(result.current.timeRemaining).toBe(9);
+  act(() => vi.advanceTimersByTime(11000));
+  expect(result.current.timeRemaining).toBe(0);
+  expect(result.current.interactionLocked).toBe(false);
+  expect(storage.submitAttempt).not.toHaveBeenCalled();
+  expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Tempo esgotado!' }));
+  owned = false;
+  offset = past ? 0 : -10000;
+  rerender({ status: 'synced' });
+  expect(result.current.timeRemaining).toBe(past ? 0 : 8);
+  act(() => vi.advanceTimersByTime(1000));
+  expect(storage.submitAttempt).not.toHaveBeenCalled();
+  owned = true;
+  await act(async () => { await vi.advanceTimersByTimeAsync(past ? 4000 : 12000); });
+  expect(storage.submitAttempt).toHaveBeenCalledTimes(1);
+  expect(toast.mock.calls.filter(([value]) => value.title === 'Tempo esgotado!')).toHaveLength(1);
+  unmount(); client.clear(); vi.useRealTimers();
+});
 
 describe('lifecycle result release copy', () => {
   it.each([

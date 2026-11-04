@@ -354,7 +354,7 @@ export function useExamLifecycle({
 
   const handleTimeUp = useCallback(() => {
     const scope = scopeRef.current;
-    if (ownershipBlocked || !canWrite() || !scope.active || !stateMatchesSimulado) return;
+    if (!clockTrusted || ownershipBlocked || !canWrite() || !scope.active || !stateMatchesSimulado) return;
     setTimeExpired(true);
     toast({ title: 'Tempo esgotado!', description: 'Aguarde a confirmação da finalização automática.' });
     if (!hasAutoSubmitTracked.current && state && simulado) {
@@ -369,15 +369,19 @@ export function useExamLifecycle({
       });
     }
     timeUpTimerRef.current = setTimeout(() => { if (scope.active) void finalize(true); }, 2000);
-  }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado, ownershipBlocked, canWrite]);
+  }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado, ownershipBlocked, canWrite, clockTrusted]);
+
+  const allowTimeUp = useCallback(() => clockTrusted && !ownershipBlocked && canWrite(),
+    [clockTrusted, ownershipBlocked, canWrite]);
 
   const timeRemaining = useExamTimer({
     attemptKey: `${storage.userId ?? ''}:${simulado?.id ?? ''}:${attemptIdentity ?? ''}`,
     deadline: stateMatchesSimulado ? state?.effectiveDeadline ?? null : null,
     onTimeUp: handleTimeUp,
-    paused: ownershipBlocked || state?.status !== 'in_progress',
+    paused: state?.status !== 'in_progress',
     now,
-    clockReady: clockTrusted,
+    clockReady,
+    allowTimeUp,
   });
 
   return {
