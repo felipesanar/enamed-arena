@@ -32,3 +32,7 @@ verify_jwt = false
 # O gate é o código da sala + janela + rate limit dentro do handler.
 [functions.presencial]
 verify_jwt = false
+
+[functions.gabarito-key-alerts]
+# Auth via x-internal-secret in the handler, before privileged data access.
+verify_jwt = false
