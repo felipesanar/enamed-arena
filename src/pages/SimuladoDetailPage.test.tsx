@@ -3,6 +3,15 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import SimuladoDetailPage from "./SimuladoDetailPage";
 
+const dialog = vi.hoisted(() => ({ render: vi.fn() }));
+vi.mock('@/components/simulados/OfflineModeSimpleDialog', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/components/simulados/OfflineModeSimpleDialog')>();
+  return { ...actual, OfflineModeSimpleDialog: (props: Parameters<typeof actual.OfflineModeSimpleDialog>[0]) => {
+    dialog.render(props);
+    return <actual.OfflineModeSimpleDialog {...props} />;
+  } };
+});
+
 // ── Framer Motion ────────────────────────────────────────────────────────────
 vi.mock("framer-motion", () => ({
   motion: new Proxy(
@@ -84,6 +93,43 @@ function renderPage() {
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
+describe('SimuladoDetailPage archived direct access', () => {
+  beforeEach(() => { mockNavigate.mockReset(); dialog.render.mockClear(); setupMocks(); });
+  it.each([
+    { status: 'available', started: false, attemptType: 'online', attemptStatus: 'in_progress' },
+    { status: 'available_late', started: false, attemptType: 'offline', attemptStatus: 'offline_pending' },
+    { status: 'in_progress', started: true, attemptType: 'online', attemptStatus: 'in_progress' },
+    { status: 'in_progress', started: true, attemptType: 'offline', attemptStatus: 'in_progress' },
+    { status: 'in_progress', started: true, attemptType: 'offline', attemptStatus: 'offline_pending' },
+    { status: 'available_late', started: true, attemptType: 'online', attemptStatus: 'expired' },
+  ])('blocks unfinished archived $status/$attemptType/$attemptStatus', state => {
+    setupMocks({ simulado: { ...baseSimulado, dbStatus: 'archived', status: state.status,
+      userState: { ...baseSimulado.userState, ...state, finished: false } } });
+    renderPage();
+    expect(screen.getByText('Prova arquivada')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver histórico' })).toHaveAttribute('href', '/simulados');
+    expect(screen.queryByRole('button', { name: /iniciar|continuar|gabarito/i })).not.toBeInTheDocument();
+    expect(dialog.render).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+  it('preserves released archived owner results and history navigation', () => {
+    setupMocks({ simulado: { ...baseSimulado, dbStatus: 'archived', status: 'completed',
+      userState: { ...baseSimulado.userState, started: true, finished: true, score: 20 } } });
+    renderPage();
+    expect(screen.queryByText('Prova arquivada')).not.toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /correção/i })).toHaveAttribute('href', '/simulados/sim-8/correcao');
+  });
+  it('preserves published online resume and dialog integration', () => {
+    setupMocks({ simulado: { ...baseSimulado, dbStatus: 'published', status: 'in_progress',
+      userState: { ...baseSimulado.userState, started: true, finished: false } } });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar Simulado' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/simulados/sim-8/prova');
+    expect(dialog.render).toHaveBeenCalled();
+  });
+});
+
 describe("SimuladoDetailPage — Dark Arena card", () => {
   beforeEach(() => {
     mockNavigate.mockReset();

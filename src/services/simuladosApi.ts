@@ -1079,10 +1079,11 @@ export const simuladosApi = {
    *
    * Calls `get_area_score_history(p_user_id uuid) → jsonb`.
    */
-  async getAreaScoreHistory(userId: string): Promise<unknown> {
+  async getAreaScoreHistory(userId: string, editionId?: string): Promise<unknown> {
     logger.log('[SimuladosApi] Fetching area score history for user', userId);
     const { data, error } = await rpc('get_area_score_history', {
       p_user_id: userId,
+      ...(editionId?.trim() ? { p_edition_id: editionId.trim() } : {}),
     });
 
     if (error) {
