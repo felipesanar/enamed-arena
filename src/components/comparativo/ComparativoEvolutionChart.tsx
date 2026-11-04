@@ -10,6 +10,7 @@ import {
 } from '@/lib/chartTheme';
 import { SimuladoSnapshotDrawer } from './SimuladoSnapshotDrawer';
 import type { ComparativeEntryRich, SimuladoSlot } from '@/hooks/useComparativeData';
+import { formatSimuladoLabel } from '@/lib/editions';
 
 interface Props {
   entries: ComparativeEntryRich[];
@@ -28,7 +29,7 @@ export function ComparativoEvolutionChart({ entries, allSlots, goalScore = 50 }:
   // (com connectNulls=false a linha não atravessa o gap futuro).
   const data = useMemo(
     () => allSlots.map(slot => ({
-      name: `#${slot.sequenceNumber}`,
+      name: formatSimuladoLabel(slot),
       score: slot.score,
       simuladoId: slot.simuladoId,
       title: slot.title,

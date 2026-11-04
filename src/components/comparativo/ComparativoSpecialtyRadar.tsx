@@ -7,6 +7,7 @@ import { PremiumCard } from '@/components/PremiumCard';
 import { cn } from '@/lib/utils';
 import { CHART_COLORS, getChartTooltipContentStyle } from '@/lib/chartTheme';
 import type { ComparativeEntryRich } from '@/hooks/useComparativeData';
+import { formatSimuladoLabel } from '@/lib/editions';
 
 interface AreaListItem {
   area: string;
@@ -26,8 +27,8 @@ function AreaGroupedList({
   entries: ComparativeEntryRich[];
   areaList: AreaListItem[];
 }) {
-  const firstNum = entries[0].sequenceNumber;
-  const lastNum = entries[entries.length - 1].sequenceNumber;
+  const firstNum = formatSimuladoLabel(entries[0]);
+  const lastNum = formatSimuladoLabel(entries[entries.length - 1]);
 
   const rising = areaList.filter(a => (a.delta ?? 0) > 0).sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0));
   const falling = areaList.filter(a => (a.delta ?? 0) < 0).sort((a, b) => (a.delta ?? 0) - (b.delta ?? 0));
@@ -129,8 +130,8 @@ function AreaGroup({
   subtitle: string;
   variant: 'positive' | 'negative' | 'neutral' | 'empty';
   items: AreaListItem[];
-  firstNum: number;
-  lastNum: number;
+  firstNum: string;
+  lastNum: string;
 }) {
   const v = VARIANT[variant];
   const { TrendIcon } = v;
@@ -172,8 +173,8 @@ function AreaRow({
   lastScore: number | null;
   delta: number | null;
   variant: 'positive' | 'negative' | 'neutral' | 'empty';
-  firstNum: number;
-  lastNum: number;
+  firstNum: string;
+  lastNum: string;
 }) {
   const v = VARIANT[variant];
 
@@ -198,7 +199,7 @@ function AreaRow({
           <div
             className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-3 rounded-full bg-muted-foreground/50 border-2 border-background shadow-sm"
             style={{ left: `${firstScore}%` }}
-            aria-label={`Simulado #${firstNum}: ${firstScore}%`}
+            aria-label={`${firstNum}: ${firstScore}%`}
           />
         )}
         {/* Marcador #último (cor da variante) */}
@@ -209,7 +210,7 @@ function AreaRow({
               v.barFill,
             )}
             style={{ left: `${lastScore}%` }}
-            aria-label={`Simulado #${lastNum}: ${lastScore}%`}
+            aria-label={`${lastNum}: ${lastScore}%`}
           />
         )}
         {/* Linha conectora entre os dois marcadores */}
@@ -226,8 +227,8 @@ function AreaRow({
 
       {/* Linha 3: legenda compacta */}
       <div className="flex items-center justify-between text-caption text-muted-foreground mt-1.5 tabular-nums">
-        <span>#{firstNum} <span className="text-foreground/70">{firstScore != null ? `${firstScore}%` : '—'}</span></span>
-        <span>#{lastNum} <span className="text-foreground/70 font-semibold">{lastScore != null ? `${lastScore}%` : '—'}</span></span>
+        <span>{firstNum} <span className="text-foreground/70">{firstScore != null ? `${firstScore}%` : '—'}</span></span>
+        <span>{lastNum} <span className="text-foreground/70 font-semibold">{lastScore != null ? `${lastScore}%` : '—'}</span></span>
       </div>
     </div>
   );
@@ -257,7 +258,7 @@ export function ComparativoSpecialtyRadar({ entries }: Props) {
     return allAreas.map(area => {
       const row: Record<string, string | number> = { area };
       entries.forEach(e => {
-        row[`#${e.sequenceNumber}`] = e.areaScores[area] ?? 0;
+        row[e.simuladoId] = e.areaScores[area] ?? 0;
       });
       return row;
     });
@@ -309,8 +310,8 @@ export function ComparativoSpecialtyRadar({ entries }: Props) {
               {entries.map((e, i) => (
                 <Radar
                   key={e.simuladoId}
-                  name={`#${e.sequenceNumber} ${e.title}`}
-                  dataKey={`#${e.sequenceNumber}`}
+                  name={`${formatSimuladoLabel(e)} · ${e.title}`}
+                  dataKey={e.simuladoId}
                   stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
                   fill={SERIES_COLORS[i % SERIES_COLORS.length]}
                   fillOpacity={0.18}

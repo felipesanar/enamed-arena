@@ -9,7 +9,8 @@
  *   responsive and the progress indicator updates.
  */
 import type { PerformanceBreakdown, QuestionResult } from '@/lib/resultHelpers';
-import type { Question } from '@/types';
+import type { Question, SimuladoConfig } from '@/types';
+import { editionBadge } from '@/lib/edition-groups';
 import type { ExamState } from '@/types/exam';
 import {
   COLORS, PAGE, createPdf,
@@ -22,6 +23,7 @@ export type ProgressStage = 'preparing' | 'loading_images' | 'generating' | 'com
 export type ProgressCallback = (stage: ProgressStage, current: number, total: number) => void;
 
 export interface ProvaRevisadaInput {
+  simulado?: Pick<SimuladoConfig, 'editionCode' | 'editionLabel'>;
   simuladoTitle: string;
   studentName: string;
   questions: Question[];
@@ -60,7 +62,7 @@ export async function generateProvaRevisadaPdf(input: ProvaRevisadaInput): Promi
   await yieldToBrowser();
 
   const doc = createPdf();
-  let y = drawPremiumHeader(doc, 'Prova Revisada', simuladoTitle);
+  let y = drawPremiumHeader(doc, 'Prova Revisada', simuladoTitle, undefined, editionBadge(input.simulado));
   y = drawIdentificationCard(doc, studentName, {
     correct: overall.totalCorrect,
     total: overall.totalQuestions,

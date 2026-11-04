@@ -8,6 +8,28 @@ vi.mock('@/hooks/use-toast', () => ({ toast }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 import { useExamLifecycle } from '@/hooks/exam/useExamLifecycle';
 
+describe('lifecycle result release copy', () => {
+  it.each([
+    ['2027-02-10T01:00:00Z', '09/02/2027, 22:00'],
+    [undefined, 'liberação dos resultados'],
+  ])('uses the current exam release date in Brasilia: %s', async (resultsReleaseAt, expected) => {
+    vi.clearAllMocks();
+    const client = new QueryClient();
+    const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const storage = { loadState: vi.fn().mockResolvedValue({ state: null, notifyResultEmail: false }),
+      initializeState: vi.fn().mockRejectedValue(new Error('PRESENCIAL_ATTEMPT_EXISTS')),
+      submitAttempt: vi.fn(), setResultNotification: vi.fn(), attemptId: { current: null } };
+    const simulado = { id: 'sim', status: 'available' as const, estimatedDurationMinutes: 300,
+      executionWindowEnd: null, resultsReleaseAt };
+    renderHook(() => useExamLifecycle({ simulado, storage, questions: [{ id: 'q' }] as any, questionIds: ['q'],
+      id: 'sim', navigate: vi.fn(), loadingSimulado: false, isOnboardingComplete: true,
+      state: null, setState: vi.fn(), setShowSubmitModal: vi.fn() }), { wrapper });
+    await act(async () => {});
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: expect.stringContaining(expected) }));
+    expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ description: expect.stringContaining('07/09') }));
+  });
+});
+
 describe('lifecycle time-up', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllMocks(); });
   afterEach(() => vi.useRealTimers());
@@ -17,7 +39,8 @@ describe('lifecycle time-up', () => {
       effectiveDeadline: new Date(Date.now() - 60_000).toISOString(), lastSavedAt: '' };
     const storage = { loadState: vi.fn().mockResolvedValue({ state: initial, notifyResultEmail: false }),
       initializeState: vi.fn(), submitAttempt: vi.fn(), setResultNotification: vi.fn(), attemptId: { current: 'attempt' } };
-    const simulado = { id: 'sim', status: 'in_progress' as const, estimatedDurationMinutes: 1, executionWindowEnd: initial.effectiveDeadline };
+    const simulado = { id: 'sim', status: 'in_progress' as const, estimatedDurationMinutes: 1, executionWindowEnd: initial.effectiveDeadline,
+      resultsReleaseAt: '2099-02-10T01:00:00Z' };
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
     const hook = renderHook(() => {
@@ -37,6 +60,8 @@ describe('lifecycle time-up', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
     expect(storage.submitAttempt).toHaveBeenCalledWith(expect.objectContaining({ answers: {} }), true);
     expect(result.current.state.status).toBe('submitted');
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Simulado finalizado',
+      description: expect.stringContaining('09/02/2099, 22:00 (horário de Brasília)') }));
   });
   it('stays locked after failure and allows retry without false success', async () => {
     const { result, storage } = setup();

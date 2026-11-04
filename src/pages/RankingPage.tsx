@@ -18,6 +18,8 @@ import { RankingView } from '@/components/ranking/RankingView';
 import { ProfSanorRanking } from '@/components/ranking/ProfSanorRanking';
 import { FloatingProfSan } from '@/components/FloatingProfSan';
 import { PresencialEntryCard } from '@/components/presencial/PresencialEntryCard';
+import { useSimulados } from '@/hooks/useSimulados';
+import { editionBadge } from '@/lib/edition-groups';
 
 export default function RankingPage() {
   const {
@@ -40,6 +42,12 @@ export default function RankingPage() {
     userInstitutionIds,
     refetch,
   } = useRanking();
+  const { simulados, editionsUi } = useSimulados();
+  const options = simuladosWithResults.map(option => {
+    const metadata = editionsUi ? simulados.find(sim => sim.id === option.id) : undefined;
+    return { ...option, ...(metadata ? { editionId: metadata.editionId, editionCode: metadata.editionCode, editionLabel: metadata.editionLabel } : {}) };
+  });
+  const selectedSimulado = options.find(option => option.id === selectedSimuladoId);
 
   const { profile } = useUser();
   const { user } = useAuth();
@@ -74,7 +82,7 @@ export default function RankingPage() {
           title="Ranking"
           subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <PresencialEntryCard />
         <EmptyState
@@ -94,7 +102,7 @@ export default function RankingPage() {
           title="Ranking"
           subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
           subtitlePlacement="inline-end"
-          badge="ENAMED 2026"
+          badge={editionBadge(selectedSimulado)}
         />
         <PresencialEntryCard />
         <EmptyState
@@ -112,7 +120,7 @@ export default function RankingPage() {
         title="Ranking"
         subtitle="Veja sua posição entre todos os candidatos que realizaram o simulado."
         subtitlePlacement="inline-end"
-        badge="ENAMED 2026"
+        badge={editionBadge(selectedSimulado)}
       />
       <PresencialEntryCard />
       {currentUser && (
@@ -131,7 +139,8 @@ export default function RankingPage() {
       )}
       <RankingView
         loading={loading}
-        simuladosWithResults={simuladosWithResults}
+        simuladosWithResults={options}
+        editionsUi={editionsUi}
         selectedSimuladoId={selectedSimuladoId}
         setSelectedSimuladoId={setSelectedSimuladoId}
         filteredParticipants={filteredParticipants}

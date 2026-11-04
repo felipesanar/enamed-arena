@@ -35,7 +35,7 @@ interface LifecycleStorage {
 }
 
 export interface UseExamLifecycleArgs {
-  simulado: { id: string; status: SimuladoStatus; estimatedDurationMinutes: number; executionWindowEnd: string | null | undefined } | null | undefined;
+  simulado: { id: string; status: SimuladoStatus; estimatedDurationMinutes: number; executionWindowEnd: string | null | undefined; resultsReleaseAt?: string } | null | undefined;
   questions: Question[];
   questionIds: string[];
   storage: LifecycleStorage;
@@ -61,6 +61,16 @@ export interface UseExamLifecycleReturn {
   finalize: (isAutoSubmit?: boolean) => Promise<void>;
   setNotifyResultByEmail: (enabled: boolean) => Promise<void>;
   timeRemaining: ReturnType<typeof useExamTimer>;
+}
+
+function resultsReleaseCopy(value: string | undefined, now: number): string {
+  const release = value ? new Date(value) : null;
+  if (!release || !Number.isFinite(release.getTime())) return 'Aguarde a liberação dos resultados.';
+  if (release.getTime() <= now) return 'Consulte seu resultado na área de desempenho.';
+  return `Seu resultado sai em ${release.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })} (horário de Brasília).`;
 }
 
 export function useExamLifecycle({
@@ -198,7 +208,7 @@ export function useExamLifecycle({
               logger.log('[useExamFlow] Blocked: presencial attempt already exists for this simulado');
               toast({
                 title: 'Simulado já realizado',
-                description: 'Você já fez este simulado presencialmente. Seu resultado sai em 07/09.',
+                description: `Você já fez este simulado presencialmente. ${resultsReleaseCopy(simulado.resultsReleaseAt, now())}`,
                 variant: 'destructive',
               });
             } else {
@@ -288,7 +298,7 @@ export function useExamLifecycle({
         is_within_window: withinRankingWindow,
       });
       setShowSubmitModal(false);
-      toast({ title: 'Simulado finalizado', description: 'Suas respostas foram registradas com sucesso.' });
+      toast({ title: 'Simulado finalizado', description: `Suas respostas foram registradas com sucesso. ${resultsReleaseCopy(simulado.resultsReleaseAt, now())}` });
 
       // Invalidate caches so the user sees fresh data on next screen
       // (CorrecaoPage, SimuladoDetailPage, SimuladosPage list, performance summary).

@@ -30,6 +30,14 @@ function renderCard(overrides: Partial<SimuladoWithStatus> = {}) {
 }
 
 describe('SimuladoCard', () => {
+  it('labels the actual edition and resumable training', () => {
+    renderCard({ editionCode: '2027.1', status: 'in_progress', userState: {
+      simuladoId: 'sim-1', started: true, finished: false, isWithinWindow: false,
+    } });
+    expect(screen.getByText('2027.1 · Simulado 3')).toBeInTheDocument();
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveTextContent('Continuar Simulado');
+  });
   it('renders CTA link when available', () => {
     renderCard();
     const link = screen.getByRole('link');

@@ -2,6 +2,7 @@ import type { EditionTargetProfile, ExamEdition } from '@/types/edition';
 import type { SimuladoConfig, SimuladoUserState } from '@/types';
 import { deriveSimuladoStatus } from '@/lib/simulado-helpers';
 import { parseISO, isValid } from 'date-fns';
+import { formatSimuladoLabel as formatLabel } from '@/lib/simulado-label';
 
 const calendar = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -85,5 +86,5 @@ export function selectCurrentSimulado<T extends SimuladoConfig & { userState?: S
 }
 
 export function formatSimuladoLabel(sim: Pick<SimuladoConfig, 'editionCode' | 'sequenceNumber'>): string {
-  return `${sim.editionCode ? `${sim.editionCode} · ` : ''}Simulado ${sim.sequenceNumber}`;
+  return formatLabel(sim);
 }

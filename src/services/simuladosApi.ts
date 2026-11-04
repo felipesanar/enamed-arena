@@ -63,6 +63,9 @@ export interface SimuladoRow {
   results_release_at: string;
   theme_tags: string[];
   status: string;
+  edition_id?: string | null;
+  source_simulado_id?: string | null;
+  exam_editions?: unknown;
 }
 
 export interface QuestionRow {
@@ -224,8 +227,11 @@ function safeImageUrl(value: string | null | undefined): string | null {
   return isAllowedImageUrl(value) ? (value as string) : null;
 }
 
-function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
-    return {
+function rowToSimuladoConfig(row: SimuladoRow, includeEdition = false): SimuladoConfig {
+  const relation = row.exam_editions;
+  const edition = relation && typeof relation === 'object' && !Array.isArray(relation)
+    ? relation as Record<string, unknown> : null;
+  return {
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -239,6 +245,12 @@ function rowToSimuladoConfig(row: SimuladoRow): SimuladoConfig {
     resultsReleaseAt: row.results_release_at,
     themeTags: row.theme_tags || [],
     dbStatus: row.status as SimuladoConfig['dbStatus'],
+    ...(includeEdition ? {
+      editionId: typeof row.edition_id === 'string' ? row.edition_id : undefined,
+      sourceSimuladoId: typeof row.source_simulado_id === 'string' ? row.source_simulado_id : undefined,
+      editionCode: typeof edition?.code === 'string' ? edition.code : undefined,
+      editionLabel: typeof edition?.label === 'string' ? edition.label : undefined,
+    } : {}),
   };
 }
 
@@ -319,12 +331,12 @@ function applyAttemptTypeFilter(query: any, filter: AttemptTypeFilter) {
 // ─── API ───
 
 export const simuladosApi = {
-  async listSimulados(): Promise<SimuladoConfig[]> {
+  async listSimulados(includeEdition = false): Promise<SimuladoConfig[]> {
     logger.log('[SimuladosApi] Fetching simulados');
     const { data, error } = await supabase
       .from('simulados')
-      .select('*')
-      .in('status', ['published', 'test'])
+      .select(includeEdition ? '*, exam_editions!simulados_edition_id_fkey(code, label)' : '*')
+      .in('status', includeEdition ? ['published', 'test', 'archived'] : ['published', 'test'])
       .order('sequence_number', { ascending: false });
 
     if (error) {
@@ -332,15 +344,15 @@ export const simuladosApi = {
       throw error;
     }
 
-    return (data || []).map(rowToSimuladoConfig);
+    return ((data || []) as unknown as SimuladoRow[]).map(row => rowToSimuladoConfig(row, includeEdition));
   },
 
   /** Aceita UUID (`id`) ou `slug` na URL (ex.: `/simulados/simulado-2-.../start`). */
-  async getSimulado(idOrSlug: string): Promise<SimuladoConfig | null> {
+  async getSimulado(idOrSlug: string, includeEdition = false): Promise<SimuladoConfig | null> {
     const ref = idOrSlug.trim();
     if (!ref) return null;
 
-    const base = supabase.from('simulados').select('*');
+    const base = supabase.from('simulados').select(includeEdition ? '*, exam_editions!simulados_edition_id_fkey(code, label)' : '*');
     const { data, error } = isUuidString(ref)
       ? await base.eq('id', ref).maybeSingle()
       : await base.eq('slug', ref).maybeSingle();
@@ -350,7 +362,7 @@ export const simuladosApi = {
       throw error;
     }
 
-    return data ? rowToSimuladoConfig(data as SimuladoRow) : null;
+    return data ? rowToSimuladoConfig(data as unknown as SimuladoRow, includeEdition) : null;
   },
 
   async getQuestions(simuladoId: string, includeCorrectAnswers = false): Promise<Question[]> {

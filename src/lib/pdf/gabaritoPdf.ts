@@ -4,7 +4,8 @@
  */
 import { jsPDF } from 'jspdf';
 import type { QuestionResult, PerformanceBreakdown } from '@/lib/resultHelpers';
-import type { Question } from '@/types';
+import type { Question, SimuladoConfig } from '@/types';
+import { editionBadge } from '@/lib/edition-groups';
 import {
   COLORS, PAGE, createPdf,
   drawPremiumHeader, drawIdentificationCard, addFooterToAllPages,
@@ -12,6 +13,7 @@ import {
 } from './pdfHelpers';
 
 export interface GabaritoInput {
+  simulado?: Pick<SimuladoConfig, 'editionCode' | 'editionLabel'>;
   simuladoTitle: string;
   studentName: string;
   questions: Question[];
@@ -26,7 +28,7 @@ export function generateGabaritoPdf(input: GabaritoInput): Blob {
   const w = PAGE.contentWidth;
 
   // ─── Header + ID card ───
-  let y = drawPremiumHeader(doc, 'Gabarito Resumido', simuladoTitle);
+  let y = drawPremiumHeader(doc, 'Gabarito Resumido', simuladoTitle, undefined, editionBadge(input.simulado));
   y = drawIdentificationCard(doc, studentName, {
     correct: overall.totalCorrect,
     total: overall.totalQuestions,

@@ -5,6 +5,8 @@ import { PercentileRing } from './PercentileRing';
 import { ClimbBadge } from './ClimbBadge';
 import { EvolutionSparkline } from './EvolutionSparkline';
 import type { RankingEvolution } from '@/hooks/useRankingEvolution';
+import { editionBadge } from '@/lib/edition-groups';
+import type { SimuladoConfig } from '@/types';
 
 export interface HeroStanding {
   position: number;
@@ -14,6 +16,7 @@ export interface HeroStanding {
 }
 
 interface Props {
+  simulado?: Pick<SimuladoConfig, 'editionCode' | 'editionLabel'>;
   simuladoTitle?: string;
   standing: HeroStanding | null;
   notaMedia: number;
@@ -23,7 +26,7 @@ interface Props {
 const WINE = 'linear-gradient(155deg,#7a1a32 0%,#5c1225 46%,#3d0b18 100%)';
 
 /** Hero "Você primeiro": colocação pessoal, percentil, climb e evolução. Superfície wine always-dark. */
-export function RankingHero({ simuladoTitle, standing, notaMedia, evolution }: Props) {
+export function RankingHero({ simuladoTitle, standing, notaMedia, evolution, simulado }: Props) {
   return (
     <section
       className="relative overflow-hidden rounded-[22px] p-6 text-white"
@@ -43,7 +46,7 @@ export function RankingHero({ simuladoTitle, standing, notaMedia, evolution }: P
       />
 
       <p className="relative mb-5 text-[11px] font-medium uppercase tracking-[0.14em] text-white/55">
-        Ranking ENAMED 2026{simuladoTitle ? ` · ${simuladoTitle}` : ''}
+        Ranking {editionBadge(simulado)}{simuladoTitle ? ` · ${simuladoTitle}` : ''}
       </p>
 
       {!standing ? (

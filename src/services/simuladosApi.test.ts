@@ -98,3 +98,60 @@ describe("simuladosApi.updateAttempt", () => {
     ).rejects.toThrow(/not allowed/i);
   });
 });
+
+describe('simuladosApi edition metadata opt-in', () => {
+  const row = { id: 's1', slug: 'simulado-1', sequence_number: 1, duration_minutes: 300,
+    edition_id: 'e1', source_simulado_id: 'source', exam_editions: { code: '2027.1', label: 'ENAMED 2027.1' } };
+  function mockRow(value: unknown = row) {
+    const builder = {
+      select: vi.fn(() => builder), in: vi.fn(() => builder), order: vi.fn(() => builder),
+      eq: vi.fn(() => builder), maybeSingle: vi.fn(async () => ({ data: value, error: null })),
+      then: (resolve: (value: unknown) => unknown) => resolve({ data: [value], error: null }),
+    };
+    vi.mocked(supabase.from).mockReturnValue(builder as never);
+    return builder;
+  }
+  beforeEach(() => vi.clearAllMocks());
+
+  it('keeps the old select and ignores new metadata by default', async () => {
+    const query = mockRow();
+    const result = await simuladosApi.listSimulados();
+    expect(query.select).toHaveBeenCalledWith('*');
+    expect(query.in).toHaveBeenCalledWith('status', ['published', 'test']);
+    expect(result[0].editionCode).toBeUndefined();
+  });
+
+  it('opts into the real FK relationship without filtering away history', async () => {
+    const query = mockRow();
+    const result = await simuladosApi.listSimulados(true);
+    expect(query.select).toHaveBeenCalledWith('*, exam_editions!simulados_edition_id_fkey(code, label)');
+    expect(query.in).toHaveBeenCalledWith('status', ['published', 'test', 'archived']);
+    expect(query.eq).not.toHaveBeenCalled();
+    expect(result[0]).toMatchObject({ editionId: 'e1', editionCode: '2027.1', editionLabel: 'ENAMED 2027.1', sourceSimuladoId: 'source' });
+  });
+
+  it.each(['simulado-1', '123e4567-e89b-42d3-a456-426614174000'])('preserves slug/UUID lookup %s', async (ref) => {
+    const query = mockRow();
+    expect((await simuladosApi.getSimulado(ref, true))?.editionCode).toBe('2027.1');
+    expect(query.eq).toHaveBeenCalledWith(ref === 'simulado-1' ? 'slug' : 'id', ref);
+    expect(query.select).toHaveBeenCalledWith('*, exam_editions!simulados_edition_id_fkey(code, label)');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it.each(['simulado-1', '123e4567-e89b-42d3-a456-426614174000'])('keeps direct lookup neutral without a join when disabled: %s', async ref => {
+    const query = mockRow();
+    const result = await simuladosApi.getSimulado(ref, false);
+    expect(query.select).toHaveBeenCalledWith('*');
+    expect(query.eq).toHaveBeenCalledWith(ref === 'simulado-1' ? 'slug' : 'id', ref);
+    expect(result?.editionCode).toBeUndefined();
+    expect(result?.editionLabel).toBeUndefined();
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it.each([null, [], [{ code: '2027.1' }], { code: 2027, label: false }])('does not trust malformed relation %j', async (exam_editions) => {
+    mockRow({ ...row, exam_editions });
+    const [result] = await simuladosApi.listSimulados(true);
+    expect(result.editionCode).toBeUndefined();
+    expect(result.editionLabel).toBeUndefined();
+  });
+});

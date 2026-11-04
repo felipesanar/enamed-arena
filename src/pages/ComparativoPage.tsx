@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { SEGMENT_ACCESS } from '@/types';
 import { useComparativeData } from '@/hooks/useComparativeData';
+import { useSimulados } from '@/hooks/useSimulados';
+import { formatSimuladoLabel } from '@/lib/editions';
 import {
   BarChart3, ArrowUpRight, ArrowDownRight, Minus, ChevronDown, ChevronUp,
 } from 'lucide-react';
@@ -56,15 +58,23 @@ export default function ComparativoPage() {
 }
 
 function ComparativoContent() {
-  const { entries, allSlots, loading } = useComparativeData();
+  const { entries, allSlots: originalSlots, loading } = useComparativeData();
+  const { simulados, editionsUi } = useSimulados();
   const { profile, onboarding } = useUser();
   const [showDetails, setShowDetails] = useState(false);
 
   // Sort ascending by sequenceNumber for everything downstream
   const sorted = useMemo(
-    () => [...entries].sort((a, b) => a.sequenceNumber - b.sequenceNumber),
-    [entries],
+    () => entries.map(entry => {
+      const metadata = editionsUi ? simulados.find(sim => sim.id === entry.simuladoId) : undefined;
+      return { ...entry, editionId: metadata?.editionId, editionCode: metadata?.editionCode, editionLabel: metadata?.editionLabel };
+    }).sort((a, b) => a.sequenceNumber - b.sequenceNumber),
+    [entries, simulados, editionsUi],
   );
+  const allSlots = originalSlots.map(slot => {
+    const metadata = editionsUi ? simulados.find(sim => sim.id === slot.simuladoId) : undefined;
+    return { ...slot, editionId: metadata?.editionId, editionCode: metadata?.editionCode, editionLabel: metadata?.editionLabel };
+  });
 
   const compTracked = useRef(false);
   useEffect(() => {
@@ -199,7 +209,7 @@ function ComparativoContent() {
                             to={`/desempenho?simulado=${entry.simuladoId}`}
                             className="text-body font-medium text-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group"
                           >
-                            <span className="text-caption text-muted-foreground tabular-nums">#{entry.sequenceNumber}</span>
+                            <span className="text-caption text-muted-foreground tabular-nums">{formatSimuladoLabel(entry)}</span>
                             {entry.title}
                             <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </Link>

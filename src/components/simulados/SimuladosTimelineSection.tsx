@@ -15,6 +15,8 @@ import {
 import { buildGoogleCalendarUrl } from "@/lib/simulado-helpers";
 import { cn } from "@/lib/utils";
 import type { SimuladoWithStatus } from "@/types";
+import { formatSimuladoLabel } from '@/lib/editions';
+import { groupSimuladosByEdition } from '@/lib/edition-groups';
 
 export type SimuladosTimelineSectionProps = {
   items: SimuladoWithStatus[];
@@ -26,11 +28,13 @@ export type SimuladosTimelineSectionProps = {
   compact?: boolean;
   /** Callback para iniciar simulado novo — dispara o modal de escolha online/offline na página pai. */
   onStartSimulado?: (sim: SimuladoWithStatus) => void;
+  editionsUi?: boolean;
+  currentEditionId?: string | null;
 };
 
 /** Link para iniciar ou retomar (janela aberta, após janela em modo treino, ou prova em andamento). */
 function simuladoTakeExamHref(sim: SimuladoWithStatus): string {
-  const resume = sim.userState?.started === true && sim.userState?.finished !== true;
+  const resume = sim.status === 'in_progress';
   if (resume) {
     return sim.userState?.attemptType === "offline"
       ? `/simulados/${sim.slug}/gabarito`
@@ -40,7 +44,7 @@ function simuladoTakeExamHref(sim: SimuladoWithStatus): string {
 }
 
 function simuladoTakeExamLinkLabel(sim: SimuladoWithStatus): string {
-  const resume = sim.userState?.started === true && sim.userState?.finished !== true;
+  const resume = sim.status === 'in_progress';
   if (!resume) return "Fazer simulado";
   return sim.userState?.attemptType === "offline" ? "Enviar gabarito" : "Continuar";
 }
@@ -123,7 +127,7 @@ function TimelineItem({
   const linkClass =
     "inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
-  const resume = sim.userState?.started === true && sim.userState?.finished !== true;
+  const resume = sim.status === 'in_progress';
 
   const topRail = compact ? "top-[21px] sm:top-[22px]" : "top-[23px] sm:top-[24px]";
   const dotTop = compact ? "top-[17px]" : "top-[19px]";
@@ -188,7 +192,7 @@ function TimelineItem({
                   variant.labelEmphasis && "text-primary",
                 )}
               >
-                {variant.label}
+                {isInProgress && sim.userState?.isWithinWindow === false ? 'Treino · Em andamento' : variant.label}
               </span>
             </div>
             <div className="flex items-center gap-2 min-w-0">
@@ -200,8 +204,8 @@ function TimelineItem({
               )}
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {format(parseISO(sim.executionWindowStart), "dd/MM/yyyy", { locale: ptBR })} · #
-              {sim.sequenceNumber}
+              <span>{formatSimuladoLabel(sim)}</span>
+              {' · '}{format(parseISO(sim.executionWindowStart), "dd/MM/yyyy", { locale: ptBR })}
             </p>
           </div>
 
@@ -237,7 +241,7 @@ function TimelineItem({
               <div className="flex flex-col items-end gap-0.5">
                 {resume || !onStartSimulado ? (
                   <Link to={simuladoTakeExamHref(sim)} className={linkClass}>
-                    {isAvailableLate && sim.userState?.started !== true
+                    {isAvailableLate
                       ? "Fazer como treino"
                       : simuladoTakeExamLinkLabel(sim)}{" "}
                     <ArrowRight className="h-3.5 w-3.5 opacity-80" />
@@ -284,8 +288,32 @@ export function SimuladosTimelineSection({
   embedded = false,
   compact = false,
   onStartSimulado,
+  editionsUi = false,
+  currentEditionId,
 }: SimuladosTimelineSectionProps) {
   const headingId = useId();
+
+  if (editionsUi) {
+    const groups = groupSimuladosByEdition(items, currentEditionId);
+    return <div className={cn('space-y-6', className)}>
+      {!currentEditionId && (
+        <p className="text-sm text-muted-foreground">Nenhum simulado disponível nesta edição. Consulte os treinos e o histórico abaixo.</p>
+      )}
+      {groups.map(group => group.isCurrent ? (
+        <section key={group.key} aria-label={group.label}>
+          <h2 className="text-heading-3 mb-3">{group.label}</h2>
+          <SimuladosTimelineSection items={group.items} reduced={reduced} embedded compact={compact} onStartSimulado={onStartSimulado} />
+        </section>
+      ) : (
+        <details key={group.key} className="rounded-xl border border-border p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+            {group.label} · Treino
+          </summary>
+          <div className="mt-4"><SimuladosTimelineSection items={group.items} reduced={reduced} embedded compact={compact} onStartSimulado={onStartSimulado} /></div>
+        </details>
+      ))}
+    </div>;
+  }
 
   const headingClass =
     "whitespace-nowrap text-sm font-semibold tracking-tight text-foreground";
