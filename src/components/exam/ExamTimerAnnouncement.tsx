@@ -9,11 +9,17 @@ function remaining(seconds: number) {
   return `Tempo restante: ${parts.join(' e ')}.`;
 }
 
-export function ExamTimerAnnouncement({ timeRemaining }: { timeRemaining: number }) {
+export function ExamTimerAnnouncement({ timeRemaining, clockTrusted = true }: { timeRemaining: number; clockTrusted?: boolean }) {
   const previous = useRef<number | null>(null);
   const announced = useRef(new Set<number>());
   const [message, setMessage] = useState('');
   useEffect(() => {
+    if (!clockTrusted) {
+      previous.current = null;
+      announced.current.clear();
+      setMessage('');
+      return;
+    }
     const current = Math.max(0, Math.floor(timeRemaining));
     if (!Number.isFinite(current)) return;
     if (previous.current === null) {
@@ -26,6 +32,6 @@ export function ExamTimerAnnouncement({ timeRemaining }: { timeRemaining: number
       if (crossed.length) setMessage(remaining(current));
     }
     previous.current = current;
-  }, [timeRemaining]);
-  return <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{message}</span>;
+  }, [timeRemaining, clockTrusted]);
+  return <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{clockTrusted ? message : ''}</span>;
 }

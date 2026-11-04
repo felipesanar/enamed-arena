@@ -12,10 +12,11 @@ interface ExamHeaderProps {
   onFinalize: () => void;
   saving?: boolean;
   answeredCount?: number;
+  clockTrusted?: boolean;
 }
 
 export function ExamHeader({
-  title, currentQuestion, totalQuestions, timeRemaining, onFinalize, saving = false, answeredCount,
+  title, currentQuestion, totalQuestions, timeRemaining, onFinalize, saving = false, answeredCount, clockTrusted = true,
 }: ExamHeaderProps) {
   const progressPct = answeredCount !== undefined && totalQuestions > 0
     ? Math.round((answeredCount / totalQuestions) * 100)
@@ -91,17 +92,19 @@ export function ExamHeader({
 
           <div
             role="timer"
-            aria-label={`Tempo restante: ${formatTimer(timeRemaining)}`}
+            aria-label={`${clockTrusted ? 'Tempo restante' : 'Tempo estimado'}: ${formatTimer(timeRemaining)}`}
             aria-live="off"
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-body text-foreground tabular-nums font-semibold transition-colors duration-500 motion-reduce:animate-none',
-              getTimerBgClass(timeRemaining),
+              clockTrusted ? getTimerBgClass(timeRemaining) : 'bg-muted/50',
+              !clockTrusted && 'flex-col gap-0',
             )}
           >
-            <Clock className={cn('h-3.5 w-3.5 motion-reduce:animate-none', getTimerPulseClass(timeRemaining))} aria-hidden />
+            <Clock className={cn('h-3.5 w-3.5 motion-reduce:animate-none', clockTrusted ? getTimerPulseClass(timeRemaining) : 'hidden')} aria-hidden />
+            {!clockTrusted && <span className="text-caption font-sans">Tempo estimado</span>}
             {formatTimer(timeRemaining)}
           </div>
-          <ExamTimerAnnouncement timeRemaining={timeRemaining} />
+          <ExamTimerAnnouncement timeRemaining={timeRemaining} clockTrusted={clockTrusted} />
 
           <button
             type="button"

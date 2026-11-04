@@ -2,6 +2,18 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, it } from 'vitest';
 import { ExamTimerAnnouncement } from './ExamTimerAnnouncement';
 afterEach(cleanup);
+it('suppresses untrusted warnings without consuming confirmed thresholds', () => {
+  const { rerender } = render(<ExamTimerAnnouncement timeRemaining={10} clockTrusted={false} />);
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  rerender(<ExamTimerAnnouncement timeRemaining={0} clockTrusted={false} />);
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  rerender(<ExamTimerAnnouncement timeRemaining={10} clockTrusted />);
+  expect(screen.getByRole('status')).toHaveTextContent('10 segundos');
+  rerender(<ExamTimerAnnouncement timeRemaining={0} clockTrusted />);
+  expect(screen.getByRole('status')).toHaveTextContent('Tempo esgotado');
+  rerender(<ExamTimerAnnouncement timeRemaining={0} clockTrusted={false} />);
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+});
 it('announces resume once, thresholds once and only the latest crossed threshold', () => {
   const { rerender } = render(<ExamTimerAnnouncement timeRemaining={610} />);
   const live = screen.getByRole('status');

@@ -78,3 +78,34 @@ it('keeps another-tab ownership distinct from expiry and offers a guarded takeov
   expect(flow.tabLease.takeover).toHaveBeenCalledOnce();
   expect(flow.finalize).not.toHaveBeenCalled();
 });
+
+it('does not present estimated zero or a pending clock as confirmed expiry', () => {
+  flow = { ...flow, interactionLocked: true, clockTrusted: false, timeRemaining: 0 };
+  const { rerender } = render(<SimuladoExamPage />);
+  expect(screen.queryByText(/Tempo esgotado/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Tentar finalizar novamente' })).not.toBeInTheDocument();
+  flow = { ...flow, timeRemaining: 300 };
+  rerender(<SimuladoExamPage />);
+  expect(screen.queryByText('Restam 5 minutos para o término da prova.')).not.toBeInTheDocument();
+});
+
+it('offers enabled preparation retry after clock failure and disables it while retry is pending', () => {
+  flow = { ...flow, clockTrusted: false, interactionLocked: true,
+    preparation: { status: 'error', retry: vi.fn() } };
+  const { rerender } = render(<SimuladoExamPage />);
+  const retry = screen.getByRole('button', { name: 'Tentar novamente' });
+  expect(retry).toBeEnabled();
+  fireEvent.click(retry);
+  expect(flow.preparation.retry).toHaveBeenCalledOnce();
+  flow = { ...flow, preparation: { ...flow.preparation, status: 'preparing' } };
+  rerender(<SimuladoExamPage />);
+  expect(screen.getByRole('button', { name: 'Preparando...' })).toBeDisabled();
+  expect(screen.queryByText(/Tempo esgotado/)).not.toBeInTheDocument();
+});
+
+it('does not mistake other interaction locks for an expired deadline', () => {
+  flow = { ...flow, clockTrusted: true, interactionLocked: true, timeRemaining: 60 };
+  render(<SimuladoExamPage />);
+  expect(screen.queryByText(/Tempo esgotado/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Tentar finalizar novamente' })).not.toBeInTheDocument();
+});
