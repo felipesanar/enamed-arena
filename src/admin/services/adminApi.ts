@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { AdminReportScope } from '@/types/admin-period';
 import { adminEditionsApi } from '@/admin/services/adminEditionsApi';
 import type {
   DashboardKpis,
@@ -815,32 +816,33 @@ export const adminApi = {
   },
 
   // ─── Inteligência ───
-  async getCohortRetention(months = 6): Promise<CohortRetentionRow[]> {
-    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months })
+  async getCohortRetention(months = 6, scope?: AdminReportScope): Promise<CohortRetentionRow[]> {
+    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as CohortRetentionRow[]
   },
 
-  async getPerformanceByArea(simuladoId: string | null = null, segment = 'all'): Promise<AreaPerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId as string, p_segment: segment })
+  async getPerformanceByArea(simuladoId: string | null = null, segment = 'all', scope?: AdminReportScope): Promise<AreaPerformanceRow[]> {
+    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId as string, p_segment: segment, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as AreaPerformanceRow[]
   },
 
-  async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12): Promise<ThemePerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId as string, p_area: area as string, p_limit: limit })
+  async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12, scope?: AdminReportScope): Promise<ThemePerformanceRow[]> {
+    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId as string, p_area: area as string, p_limit: limit, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as ThemePerformanceRow[]
   },
 
-  async getScoreDistribution(simuladoId: string | null = null): Promise<ScoreBucket[]> {
-    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId as string })
+  async getScoreDistribution(simuladoId: string | null = null, scope?: AdminReportScope): Promise<ScoreBucket[]> {
+    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId as string, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
     if (error) throw error
     return (data ?? []) as ScoreBucket[]
   },
 
-  async getScoreEvolution(): Promise<ScoreEvolutionRow[]> {
-    const { data, error } = await supabase.rpc('admin_score_evolution')
+  async getScoreEvolution(scope?: AdminReportScope): Promise<ScoreEvolutionRow[]> {
+    // Generated Args still says never; the opt-in contract adds these nullable arguments.
+    const { data, error } = await (scope === undefined ? supabase.rpc('admin_score_evolution') : supabase.rpc('admin_score_evolution', { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt } as never))
     if (error) throw error
     return (data ?? []) as ScoreEvolutionRow[]
   },
@@ -851,14 +853,14 @@ export const adminApi = {
     return ((Array.isArray(data) ? data[0] : data) ?? null) as EngagementMetrics | null
   },
 
-  async getSegmentBreakdown(): Promise<SegmentBreakdownRow[]> {
-    const { data, error } = await supabase.rpc('admin_segment_breakdown')
+  async getSegmentBreakdown(scope?: AdminReportScope): Promise<SegmentBreakdownRow[]> {
+    const { data, error } = await (scope === undefined ? supabase.rpc('admin_segment_breakdown') : supabase.rpc('admin_segment_breakdown', { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt } as never))
     if (error) throw error
     return (data ?? []) as SegmentBreakdownRow[]
   },
 
-  async getIntelInsights(): Promise<IntelInsight[]> {
-    const { data, error } = await supabase.rpc('admin_intel_insights')
+  async getIntelInsights(scope?: AdminReportScope): Promise<IntelInsight[]> {
+    const { data, error } = await (scope === undefined ? supabase.rpc('admin_intel_insights') : supabase.rpc('admin_intel_insights', { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt } as never))
     if (error) throw error
     return (data ?? []) as IntelInsight[]
   },

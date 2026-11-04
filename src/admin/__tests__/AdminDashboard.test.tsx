@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { renderWithAccess } from './test-utils'
 
 vi.mock('@/admin/hooks/useAdminDashboard')
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'dashboard-operator' }, loading: false }) }))
 vi.mock('@/admin/hooks/useAdminAuth')
 vi.mock('@/admin/services/adminApi')
 vi.mock('@/admin/hooks/useGabaritoSuspicion', () => ({
