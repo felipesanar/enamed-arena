@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { isMissingRpcSignature } from '@/lib/backend-rpc-availability';
 import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 import { isUuidString } from '@/lib/simulado-id';
 import { logger } from '@/lib/logger';
@@ -384,18 +385,23 @@ export const simuladosApi = {
     if (rows.length === 0) return [];
 
     const corrections = new Map<string, QuestionExplanationRow>();
+    let explanationUnavailable = false;
     if (includeCorrectAnswers) {
-      const { data: released, error: releaseError } = await rpc('get_question_explanations', { p_simulado_id: simuladoId });
-      if (releaseError) throw releaseError;
+      const { data: released, error: releaseError, status } = await rpc('get_question_explanations', { p_simulado_id: simuladoId });
+      if (releaseError) {
+        if (!isMissingRpcSignature(releaseError, 'get_question_explanations', ['p_simulado_id'], status)) throw releaseError;
+        explanationUnavailable = true;
+      }
       for (const correction of (released ?? []) as unknown as QuestionExplanationRow[]) {
         corrections.set(correction.question_id, correction);
       }
     }
 
     // Review consumers must not mistake an unreleased answer key for wrong answers.
-    return rows.filter(row => !includeCorrectAnswers || corrections.has(row.id)).map((row) => {
+    return rows.filter(row => !includeCorrectAnswers || explanationUnavailable || corrections.has(row.id)).map((row) => {
       const { question_options, ...qRow } = row;
-      return rowsToQuestion(qRow, question_options ?? [], corrections.get(row.id));
+      const question = rowsToQuestion(qRow, question_options ?? [], corrections.get(row.id));
+      return explanationUnavailable ? { ...question, explanationUnavailable: true } : question;
     });
   },
 
@@ -571,10 +577,16 @@ export const simuladosApi = {
 
   async submitAttempt(attemptId: string, isAutoSubmit = false): Promise<FinalizedAttemptResult> {
     logger.log('[SimuladosApi] Submitting attempt with guarded server-side processing');
-    const { data, error } = await supabase.rpc('finalize_attempt_with_results', {
+    const initialResponse = await supabase.rpc('finalize_attempt_with_results', {
       p_attempt_id: attemptId,
       p_auto_submit: isAutoSubmit,
     } as { p_attempt_id: string }); // Generated RPC types predate the default argument.
+    let { data, error } = initialResponse;
+
+    if (!isAutoSubmit && isMissingRpcSignature(error, 'finalize_attempt_with_results', ['p_attempt_id', 'p_auto_submit'], initialResponse.status)) {
+      // PGRST202 did not dispatch the call. Never retry an uncertain mutation.
+      ({ data, error } = await supabase.rpc('finalize_attempt_with_results', { p_attempt_id: attemptId }));
+    }
 
     if (error) {
       logger.error('[SimuladosApi] Error finalizing attempt:', error);

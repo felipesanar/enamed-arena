@@ -13,6 +13,133 @@ vi.mock("@/integrations/supabase/client", () => {
 import { supabase } from "@/integrations/supabase/client";
 import { simuladosApi } from "./simuladosApi";
 
+const missingRpc = (name: string, args: string) => ({ code: 'PGRST202', details: null, hint: null,
+  message: `Could not find the function public.${name}(${args}) in the schema cache` });
+
+describe('submitAttempt rollout compatibility', () => {
+  const grade = { score_percentage: 0, total_correct: 0, total_answered: 2, total_questions: 2, is_within_window: true };
+  beforeEach(() => { vi.mocked(supabase.rpc).mockReset(); vi.mocked(supabase.from).mockReset(); });
+  it.each([false, true])('keeps the supported boolean signature and server DTO for auto=%s', async auto => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [grade], error: null } as never);
+    expect(await simuladosApi.submitAttempt('a1', auto)).toEqual(grade);
+    expect(supabase.rpc).toHaveBeenCalledExactlyOnceWith('finalize_attempt_with_results', { p_attempt_id: 'a1', p_auto_submit: auto });
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+  it('retries only the undispatched missing signature manually and preserves grade zero', async () => {
+    let dispatched = 0;
+    vi.mocked(supabase.rpc).mockImplementation(async (_name, args) => {
+      if ('p_auto_submit' in args!) return { data: null, status: 404,
+        error: missingRpc('finalize_attempt_with_results', 'p_attempt_id, p_auto_submit') } as never;
+      dispatched++;
+      return { data: [grade], error: null } as never;
+    });
+    expect(await simuladosApi.submitAttempt('a1')).toEqual(grade);
+    expect(dispatched).toBe(1); // PGRST202 did not dispatch a mutation, not an acknowledgement.
+    expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'finalize_attempt_with_results', { p_attempt_id: 'a1' });
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+  it('does not mask an unsupported auto-finalization', async () => {
+    const error = missingRpc('finalize_attempt_with_results', 'p_attempt_id, p_auto_submit');
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error, status: 404 } as never);
+    await expect(simuladosApi.submitAttempt('a1', true)).rejects.toBe(error);
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    { code: '42501', message: 'unauthorized', status: 401 },
+    { code: '42501', message: 'forbidden', status: 403 },
+    { code: 'XX000', message: 'server error', status: 500 },
+    { code: '404', message: 'Not Found' },
+    { code: '42883', message: 'function internal_helper does not exist' },
+    { code: 'PGRST203', message: 'ambiguous function' },
+    { code: 'PGRST202', message: 'generic schema cache error' },
+    missingRpc('another_rpc', 'p_attempt_id, p_auto_submit'),
+    missingRpc('finalize_attempt_with_results', 'p_attempt_id'),
+  ])('does not retry other failures: $code/$message', async error => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error } as never);
+    await expect(simuladosApi.submitAttempt('a1')).rejects.toBe(error);
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+  it('propagates timeout/network rejection without a second mutation', async () => {
+    const error = new Error('network timeout');
+    vi.mocked(supabase.rpc).mockRejectedValue(error);
+    await expect(simuladosApi.submitAttempt('a1')).rejects.toBe(error);
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+  it.each(['blank answers rejected', 'legacy failure'])('propagates the one-argument failure without a third attempt: %s', async message => {
+    const error = { code: 'P0001', message };
+    vi.mocked(supabase.rpc)
+      .mockResolvedValueOnce({ data: null, error: missingRpc('finalize_attempt_with_results', 'p_attempt_id, p_auto_submit') } as never)
+      .mockResolvedValueOnce({ data: null, error } as never);
+    await expect(simuladosApi.submitAttempt('a1')).rejects.toBe(error);
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+  it('preserves the server idempotent result with no extra mutation', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [grade], error: null } as never);
+    expect(await simuladosApi.submitAttempt('already-submitted')).toEqual(grade);
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('getQuestions comments compatibility', () => {
+  const missing = missingRpc('get_question_explanations', 'p_simulado_id');
+  function mockCore() {
+    const builder = { select: vi.fn((_columns: string) => builder), eq: vi.fn(() => builder), order: vi.fn(() => builder),
+      limit: vi.fn(async () => ({ data: [{ id: 'q1', question_number: 1, text: 'Core text', area: 'CM', theme: 'T',
+        explanation: 'REST secret', correct_option_id: 'wrong-rest-secret',
+        question_options: [{ id: 'o1', question_id: 'q1', label: 'A', text: 'Core option', is_correct: true }] }], error: null })) };
+    vi.mocked(supabase.from).mockReturnValue(builder as never);
+    return builder;
+  }
+  beforeEach(() => { vi.mocked(supabase.rpc).mockReset(); vi.mocked(supabase.from).mockReset(); });
+  it('returns core with an explicit missing-comment flag and no secret REST fallback', async () => {
+    const builder = mockCore();
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: missing, status: 404 } as never);
+    const [question] = await simuladosApi.getQuestions('s1', true);
+    expect(question).toMatchObject({ id: 'q1', text: 'Core text', correctOptionId: '', explanationUnavailable: true,
+      options: [{ id: 'o1', label: 'A', text: 'Core option' }] });
+    expect(question.explanation).toBeUndefined();
+    expect(supabase.from).toHaveBeenCalledExactlyOnceWith('questions');
+    expect(builder.select.mock.lastCall?.[0]).not.toMatch(/explanation|is_correct|correct_option/);
+    expect(supabase.rpc).toHaveBeenCalledExactlyOnceWith('get_question_explanations', { p_simulado_id: 's1' });
+  });
+  it('quiz never requests explanations or includes comments/answer keys', async () => {
+    mockCore();
+    const [question] = await simuladosApi.getQuestions('s1', false);
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(question.explanation).toBeUndefined();
+    expect(question.correctOptionId).toBe('');
+    expect(question).not.toHaveProperty('explanationUnavailable');
+  });
+  it('preserves the guarded correction response on the new backend', async () => {
+    mockCore();
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ question_id: 'q1', correct_option_id: 'o1', explanation: 'Released' }], error: null } as never);
+    expect((await simuladosApi.getQuestions('s1', true))[0]).toMatchObject({ correctOptionId: 'o1', explanation: 'Released' });
+  });
+  it.each([{ code: '42501', message: 'forbidden', status: 403 }, { code: '500', message: 'server error' },
+    { code: '404', message: 'Not Found' }, missingRpc('another_rpc', 'p_simulado_id')])('propagates comment failures: $code', async error => {
+    mockCore();
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error } as never);
+    await expect(simuladosApi.getQuestions('s1', true)).rejects.toBe(error);
+    expect(supabase.from).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+  it('propagates network failures for comments', async () => {
+    mockCore();
+    const error = new Error('network timeout');
+    vi.mocked(supabase.rpc).mockRejectedValue(error);
+    await expect(simuladosApi.getQuestions('s1', true)).rejects.toBe(error);
+    expect(supabase.from).toHaveBeenCalledTimes(1);
+  });
+  it('keeps the existing release gate when the guarded RPC returns no authorized rows', async () => {
+    mockCore();
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as never);
+    expect(await simuladosApi.getQuestions('s1', true)).toEqual([]);
+  });
+});
+
 describe('edition performance RPC arguments', () => {
   beforeEach(() => { vi.clearAllMocks(); vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as never); });
   it('preserves legacy arguments', async () => {
