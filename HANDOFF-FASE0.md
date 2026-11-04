@@ -211,3 +211,11 @@ O arquivo `HANDOFF-2027.md` apareceu de outra sessão durante a execução. Foi 
 5. Coordenar banco, Edge Functions e frontend. O novo frontend depende das RPCs; a revogação de colunas da T3 quebra o `SELECT *` do frontend antigo. Publicar em janela coordenada, com frontend na sequência do banco e recarga dos clientes antigos. Rollback também precisa coordenar banco e frontend.
 
 As decisões sobre tentativas antigas, SSO e funções one-off permanecem com o Felipe. A Fase 0 só poderá ser considerada homologada após os ensaios e as verificações de produção previstos no plano.
+
+## 11. Atualização de execução — ensaio SQL local em 04/11/2026
+
+O pré-requisito de ambiente descartável da seção anterior foi resolvido: PostgreSQL portátil isolado, sem Docker, sem custo de branch Supabase e sem escrita em produção. As seis fixtures F0 passaram sobre catálogo restaurado e doubles explícitos; a correção adicional de auditoria também passou e foi integrada. Consulte `docs/fase0-sql-validation-2026-11-04.md` e `docs/sql-local-validation.md`.
+
+O replay legado confirmou trigger duplicado; o baseline completo permanece pendente. Os testes não substituem as verificações de serviços gerenciados nem autorizam rollout. As autorizações específicas de produção e decisões sobre backlog/SSO/one-offs continuam vigentes.
+
+O novo pedido de implementação das fases 0–4 iniciou a branch `feat/fase1-edicoes`, empilhada neste trabalho. `HANDOFF-2027.md` foi preservado e commitado nessa branch, conforme instrução atual do Felipe. Esta atualização substitui os estados de ambiente e de arquivo não rastreado da seção 10, mantendo o histórico daquela entrega.
