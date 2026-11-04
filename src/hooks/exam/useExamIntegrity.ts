@@ -27,6 +27,8 @@ export interface UseExamIntegrityArgs {
   storage: IntegrityStorage;
   setState: Dispatch<SetStateAction<ExamState | null>>;
   now?: () => number;
+  canWrite?: () => boolean;
+  isEscapeAllowed?: () => boolean;
 }
 
 /** Segundos restantes até o deadline efetivo (0 se não houver). */
@@ -41,8 +43,11 @@ export function useExamIntegrity({
   storage,
   setState,
   now = Date.now,
+  canWrite = () => true,
+  isEscapeAllowed,
 }: UseExamIntegrityArgs): ReturnType<typeof useFocusControl> {
   const registerExit = useCallback((kind: 'tab_exit' | 'fullscreen_exit') => {
+    if (!canWrite()) return;
     const s = stateRef.current;
     const sim = simuladoRef.current;
     const attemptId = storage.attemptId.current;
@@ -62,20 +67,21 @@ export function useExamIntegrity({
       count_so_far: kind === 'tab_exit' ? updated.tabExitCount : updated.fullscreenExitCount,
       time_remaining_seconds: timeRemainingSeconds(s, now),
     });
-  }, [storage, stateRef, simuladoRef, setState, now]);
+  }, [storage, stateRef, simuladoRef, setState, now, canWrite]);
 
   const onTabExit = useCallback(() => registerExit('tab_exit'), [registerExit]);
 
   const onTabReturn = useCallback(() => {}, []);
 
   const onFullscreenExit = useCallback(() => {
+    if (!canWrite()) return;
     registerExit('fullscreen_exit');
     toast({
       title: 'Você saiu da tela cheia',
       description: 'Penalidade de integridade registrada. Volte para tela cheia para continuar em conformidade.',
       variant: 'destructive',
     });
-  }, [registerExit]);
+  }, [registerExit, canWrite]);
 
-  return useFocusControl({ onTabExit, onTabReturn, onFullscreenExit });
+  return useFocusControl({ onTabExit, onTabReturn, onFullscreenExit, isEscapeAllowed });
 }

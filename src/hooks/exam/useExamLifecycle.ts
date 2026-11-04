@@ -48,6 +48,8 @@ export interface UseExamLifecycleArgs {
   setState: React.Dispatch<React.SetStateAction<ExamState | null>>;
   setShowSubmitModal: React.Dispatch<React.SetStateAction<boolean>>;
   clock?: ServerClock;
+  ownershipBlocked?: boolean;
+  canWrite?: () => boolean;
 }
 
 export interface UseExamLifecycleReturn {
@@ -86,6 +88,8 @@ export function useExamLifecycle({
   setState,
   setShowSubmitModal,
   clock,
+  ownershipBlocked = false,
+  canWrite = () => true,
 }: UseExamLifecycleArgs): UseExamLifecycleReturn {
   const queryClient = useQueryClient();
 
@@ -249,7 +253,7 @@ export function useExamLifecycle({
 
   const finalize = useCallback(async (isAutoSubmit = false) => {
     const scope = scopeRef.current;
-    if (!scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado || (isAutoSubmit && !clockTrusted)) return;
+    if (ownershipBlocked || !canWrite() || !scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado || (isAutoSubmit && !clockTrusted)) return;
     hasFinalized.current = true;
     setSubmitting(true);
 
@@ -322,7 +326,7 @@ export function useExamLifecycle({
     } finally {
       if (scope.active) setSubmitting(false);
     }
-  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, clockTrusted]);
+  }, [state, simulado, storage, questionIds.length, queryClient, setState, setShowSubmitModal, stateMatchesSimulado, now, clockTrusted, ownershipBlocked, canWrite]);
 
   const setNotifyResultByEmail = useCallback(async (enabled: boolean) => {
     const scope = scopeRef.current;
@@ -352,7 +356,7 @@ export function useExamLifecycle({
 
   const handleTimeUp = useCallback(() => {
     const scope = scopeRef.current;
-    if (!scope.active || !stateMatchesSimulado) return;
+    if (ownershipBlocked || !canWrite() || !scope.active || !stateMatchesSimulado) return;
     setTimeExpired(true);
     toast({ title: 'Tempo esgotado!', description: 'Aguarde a confirmação da finalização automática.' });
     if (!hasAutoSubmitTracked.current && state && simulado) {
@@ -367,20 +371,20 @@ export function useExamLifecycle({
       });
     }
     timeUpTimerRef.current = setTimeout(() => { if (scope.active) void finalize(true); }, 2000);
-  }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado]);
+  }, [finalize, state, simulado, storage, questionIds.length, stateMatchesSimulado, ownershipBlocked, canWrite]);
 
   const timeRemaining = useExamTimer({
     attemptKey: `${storage.userId ?? ''}:${simulado?.id ?? ''}:${attemptIdentity ?? ''}`,
     deadline: stateMatchesSimulado ? state?.effectiveDeadline ?? null : null,
     onTimeUp: handleTimeUp,
-    paused: state?.status !== 'in_progress',
+    paused: ownershipBlocked || state?.status !== 'in_progress',
     now,
     clockReady: clockTrusted,
   });
 
   return {
     submitting,
-    interactionLocked: !stateMatchesSimulado || !clockReady || timeExpired || submitting || (clockTrusted && state?.status === 'in_progress' && !!state.effectiveDeadline && new Date(state.effectiveDeadline).getTime() <= now()),
+    interactionLocked: ownershipBlocked || !stateMatchesSimulado || !clockReady || timeExpired || submitting || (clockTrusted && state?.status === 'in_progress' && !!state.effectiveDeadline && new Date(state.effectiveDeadline).getTime() <= now()),
     initLoading,
     isWithinWindow,
     notifyResultByEmail,

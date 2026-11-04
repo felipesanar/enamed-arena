@@ -13,10 +13,19 @@ vi.mock('@/hooks/useFocusControl', () => ({ useFocusControl: (callbacks: typeof 
   return {};
 } }));
 vi.mock('@/services/simuladosApi', () => ({ simuladosApi: api }));
+vi.mock('@/services/examAnswersApi', async importOriginal => ({
+  ...await importOriginal<typeof import('@/services/examAnswersApi')>(),
+  examAnswersApi: { bulkUpsertAnswers: (id: string, answers: unknown) => api.bulkUpsertAnswers(id, answers) },
+}));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 vi.mock('@/services/serverClockApi', () => ({ serverClockApi: { getServerTime: vi.fn() } }));
-import { useExamStorageReal } from '@/hooks/useExamStorageReal';
+import { useExamStorageReal as useExamStorageRealRaw } from '@/hooks/useExamStorageReal';
+import type { ExamRuntimePersistence } from '@/types/exam-runtime';
+function useExamStorageReal(sim: string, clock?: Parameters<typeof useExamStorageRealRaw>[1], canWrite?: () => boolean,
+  runtime: () => ExamRuntimePersistence = () => ({ mode: 'legacy', onMismatch: () => {} })) {
+  return useExamStorageRealRaw(sim, clock, canWrite, runtime);
+}
 import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
 import { useServerClock } from '@/hooks/useServerClock';
 import { serverClockApi } from '@/services/serverClockApi';
@@ -25,6 +34,80 @@ const state: ExamState = { simuladoId: 'sim', status: 'in_progress', currentQues
   answers: { blank: { questionId: 'blank', selectedOption: null, markedForReview: true, highConfidence: false, eliminatedAlternatives: [], confidence: null } },
   tabExitCount: 0, fullscreenExitCount: 0, startedAt: new Date().toISOString(),
   effectiveDeadline: new Date(Date.now() - 60_000).toISOString(), lastSavedAt: '' };
+
+describe('runtime rollout persistence', () => {
+  const identity = { userId: 'user', attemptId: 'attempt', simuladoId: 'sim' };
+  beforeEach(() => {
+    vi.useFakeTimers(); vi.resetAllMocks(); localStorage.clear(); auth.user = { id: 'user' };
+    api.updateAttempt.mockResolvedValue(undefined);
+    api.bulkUpsertAnswers.mockResolvedValue(undefined);
+    api.submitAttempt.mockResolvedValue({ score_percentage: 10 });
+  });
+  afterEach(() => vi.useRealTimers());
+  it.each(['pending', 'error'] as const)('never flushes or finalizes an unconfirmed %s probe', async mode => {
+    const h = renderHook(() => useExamStorageRealRaw('sim', undefined, () => true, () => ({ mode, onMismatch: vi.fn() })));
+    h.result.current.attemptId.current = 'attempt';
+    h.result.current.markAnswerDirty('blank');
+    act(() => h.result.current.saveStateDebounced(state));
+    await expect(h.result.current.flushPendingState(state)).rejects.toThrow('EXAM_RUNTIME_PENDING');
+    await expect(h.result.current.submitAttempt(state, true)).rejects.toThrow('EXAM_RUNTIME_PENDING');
+    expect(api.updateAttempt).not.toHaveBeenCalled();
+    expect(api.bulkUpsertAnswers).not.toHaveBeenCalled();
+    expect(api.submitAttempt).not.toHaveBeenCalled();
+    expect(readExamCache(identity)?.dirtyQuestionIds).toEqual(['blank']);
+  });
+  it.each(['pending', 'fallback'] as const)('blocks V1 with %s clock but permits legacy writes', async status => {
+    let mode: ExamRuntimePersistence['mode'] = 'v1';
+    const clock = { now: Date.now, status, ready: status === 'fallback' };
+    const h = renderHook(() => useExamStorageRealRaw('sim', clock, () => true, () => ({ mode, onMismatch: vi.fn() })));
+    h.result.current.attemptId.current = 'attempt';
+    h.result.current.markAnswerDirty('blank');
+    act(() => h.result.current.saveStateDebounced({ ...state, lastSavedAt: state.startedAt }));
+    await expect(h.result.current.flushPendingState(state)).rejects.toThrow('CLOCK_UNAVAILABLE');
+    expect(readExamCache(identity)?.dirtyQuestionIds).toEqual(['blank']);
+    mode = 'legacy';
+    await act(async () => { await h.result.current.flushPendingState(state); });
+    expect(api.bulkUpsertAnswers).toHaveBeenCalledTimes(1);
+    expect(readExamCache(identity)?.dirtyQuestionIds).toEqual([]);
+  });
+  it('retains dirty on legacy-to-V1 guard no-op and reprobes before reconciliation', async () => {
+    let mode: ExamRuntimePersistence['mode'] = 'legacy';
+    const onMismatch = vi.fn(() => { mode = 'pending'; });
+    api.bulkUpsertAnswers.mockRejectedValueOnce(new Error('ANSWER_WRITE_MISMATCH'));
+    const h = renderHook(() => useExamStorageRealRaw('sim', undefined, () => true, () => ({ mode, onMismatch })));
+    h.result.current.attemptId.current = 'attempt';
+    h.result.current.markAnswerDirty('blank');
+    act(() => h.result.current.saveStateDebounced(state));
+    await expect(h.result.current.submitAttempt({ ...state, effectiveDeadline: new Date().toISOString() }, true))
+      .rejects.toThrow('ANSWER_WRITE_MISMATCH');
+    expect(onMismatch).toHaveBeenCalledTimes(1);
+    expect(api.bulkUpsertAnswers).toHaveBeenCalledTimes(1);
+    expect(api.submitAttempt).not.toHaveBeenCalled();
+    expect(readExamCache(identity)?.dirtyQuestionIds).toEqual(['blank']);
+    await expect(h.result.current.flushPendingState(state)).rejects.toThrow('EXAM_RUNTIME_PENDING');
+    mode = 'v1';
+    api.getAttempt.mockResolvedValue({ id: 'attempt', simulado_id: 'sim', status: 'in_progress',
+      current_question_index: 0, tab_exit_count: 0, fullscreen_exit_count: 0,
+      started_at: state.startedAt, effective_deadline: state.effectiveDeadline, last_saved_at: state.startedAt });
+    api.getAnswers.mockResolvedValue([{ question_id: 'blank', selected_option_id: 'remote',
+      marked_for_review: false, high_confidence: false, eliminated_options: [], client_updated_at: state.startedAt }]);
+    let reconciled!: ExamState;
+    await act(async () => { reconciled = (await h.result.current.loadState(true)).state!; });
+    expect(reconciled.answers.blank.selectedOption).toBe('remote');
+    expect(api.bulkUpsertAnswers).toHaveBeenCalledTimes(1);
+    expect(readExamCache(identity)?.dirtyQuestionIds).toEqual([]);
+  });
+  it('does not silently discard dirty answers when automatic submission misses write grace', async () => {
+    const h = renderHook(() => useExamStorageReal('sim'));
+    h.result.current.attemptId.current = 'attempt';
+    h.result.current.markAnswerDirty('blank');
+    act(() => h.result.current.saveStateDebounced(state));
+    await expect(h.result.current.submitAttempt(state, true)).rejects.toThrow('Respostas pendentes');
+    expect(api.submitAttempt).not.toHaveBeenCalled();
+    expect(readExamCache(identity)?.dirtyQuestionIds).toEqual(['blank']);
+    expect(readExamCache(identity)?.state.status).toBe('in_progress');
+  });
+});
 
 describe('finalization storage', () => {
   afterEach(() => vi.useRealTimers());
@@ -35,6 +118,61 @@ describe('finalization storage', () => {
     api.getAnswers.mockResolvedValue([]);
     api.updateAttempt.mockResolvedValue(undefined);
     api.bulkUpsertAnswers.mockResolvedValue(undefined);
+  });
+  it('rechecks ownership before queued writes, retries and finalize', async () => {
+    let owner = true;
+    const { result } = renderHook(() => useExamStorageReal('sim', undefined, () => owner));
+    result.current.attemptId.current = 'attempt';
+    result.current.markAnswerDirty('blank');
+    owner = false;
+    await act(async () => { await result.current.flushPendingState(state); });
+    expect(api.updateAttempt).not.toHaveBeenCalled();
+    expect(result.current.getPersistenceSnapshot()).toBeNull();
+    await expect(result.current.submitAttempt(state)).rejects.toThrow('TAB_NOT_OWNER');
+    expect(api.submitAttempt).not.toHaveBeenCalled();
+  });
+  it('loads and flushes a legacy selection without erasing its answered_at', async () => {
+    api.getAttempt.mockResolvedValue({ id: 'attempt', simulado_id: 'sim', status: 'in_progress',
+      current_question_index: 0, tab_exit_count: 0, fullscreen_exit_count: 0,
+      started_at: state.startedAt, effective_deadline: state.effectiveDeadline, last_saved_at: state.startedAt });
+    const stamp = '2020-01-01T00:00:00.000Z';
+    api.getAnswers.mockResolvedValue([{ question_id: 'q', selected_option_id: 'a', answered_at: stamp,
+      client_updated_at: null, marked_for_review: false, high_confidence: false, eliminated_options: [] }]);
+    const h = renderHook(() => useExamStorageReal('sim'));
+    let loaded!: ExamState;
+    await act(async () => { loaded = (await h.result.current.loadState()).state!; });
+    expect(loaded.answers.q.answeredAt).toBe(stamp);
+    await act(async () => { await h.result.current.flushPendingState(loaded); });
+    const { answerRows } = await vi.importActual<typeof import('@/services/examAnswersApi')>('@/services/examAnswersApi');
+    const [, sent] = api.bulkUpsertAnswers.mock.calls.at(-1)!;
+    expect(answerRows('attempt', sent, 'legacy')[0]).toMatchObject({ answered_at: stamp });
+    expect(readExamCache({ userId: 'user', simuladoId: 'sim', attemptId: 'attempt' })?.state.answers.q.answeredAt).toBe(stamp);
+  });
+  it('never falls back to cache on required remote acquisition', async () => {
+    writeExamCache({ userId: 'user', attemptId: 'attempt', simuladoId: 'sim' }, { ...state, lastSavedAt: state.startedAt }, ['blank']);
+    api.getAttempt.mockRejectedValue(new Error('offline'));
+    const h = renderHook(() => useExamStorageReal('sim', undefined, () => false));
+    await expect(h.result.current.loadState(true)).rejects.toThrow('offline');
+    expect(api.bulkUpsertAnswers).not.toHaveBeenCalled();
+  });
+  it.each(['resolve', 'retry'] as const)('does not send answers after losing lease during metadata %s', async stage => {
+    vi.useFakeTimers();
+    let owner = true;
+    let finish!: () => void;
+    api.updateAttempt.mockImplementationOnce(() => new Promise<void>((resolve, reject) => {
+      finish = () => stage === 'resolve' ? resolve() : reject(new Error('network'));
+    }));
+    const h = renderHook(() => useExamStorageReal('sim', undefined, () => owner));
+    h.result.current.attemptId.current = 'attempt';
+    h.result.current.markAnswerDirty('blank');
+    act(() => h.result.current.saveStateDebounced(state));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    owner = false;
+    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(10000); });
+    expect(api.bulkUpsertAnswers).not.toHaveBeenCalled();
+    expect(api.updateAttempt).toHaveBeenCalledTimes(1);
+    h.unmount();
+    expect(api.bulkUpsertAnswers).not.toHaveBeenCalled();
   });
   it('captures burst counters once and never rebinds an old integrity callback', async () => {
     const { result, rerender } = renderHook(({ sim }) => useExamStorageReal(sim), { initialProps: { sim: 'sim' } });
@@ -308,6 +446,26 @@ describe('storage attempt identity', () => {
     await act(async () => { window.dispatchEvent(new Event('online')); });
     expect(api.bulkUpsertAnswers).toHaveBeenCalledWith('attempt', state.answers);
     expect(readExamCache({ userId: 'user', attemptId: 'attempt', simuladoId: 'sim' })?.dirtyQuestionIds).toEqual([]);
+  });
+  it.each([
+    ['2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', false],
+    ['2026-01-02T00:00:00Z', '2026-01-02T00:00:00Z', false],
+    [null, '2026-01-02T00:00:00Z', false],
+    ['2026-01-03T00:00:00Z', '2026-01-02T00:00:00Z', true],
+  ])('merges pending %s against DB %s before replay (pending wins=%s)', async (pendingVersion, remoteVersion, wins) => {
+    const cached = { ...state, lastSavedAt: state.startedAt, answers: { blank: { ...state.answers.blank, clientUpdatedAt: pendingVersion } } };
+    writeExamCache({ userId: 'user', attemptId: 'attempt', simuladoId: 'sim' }, cached, ['blank']);
+    api.getAttempt.mockResolvedValue({ id: 'attempt', simulado_id: 'sim', status: 'in_progress',
+      current_question_index: 0, tab_exit_count: 0, fullscreen_exit_count: 0,
+      started_at: state.startedAt, effective_deadline: state.effectiveDeadline, last_saved_at: state.startedAt });
+    api.getAnswers.mockResolvedValue([{ question_id: 'blank', selected_option_id: 'remote',
+      marked_for_review: false, high_confidence: false, eliminated_options: [], client_updated_at: remoteVersion }]);
+    const { result } = renderHook(() => useExamStorageReal('sim'));
+    const loaded: { state: ExamState | null } = { state: null };
+    await act(async () => { loaded.state = (await result.current.loadState()).state; });
+    expect(loaded.state?.answers.blank.selectedOption).toBe(wins ? null : 'remote');
+    if (wins) expect(api.bulkUpsertAnswers).toHaveBeenCalledWith('attempt', cached.answers);
+    else expect(api.bulkUpsertAnswers).not.toHaveBeenCalled();
   });
 
   it('keeps dirty revisions in cache until the matching ACK, not an older request', async () => {

@@ -56,6 +56,26 @@ function setup(args: Partial<Parameters<typeof useExamAnswers>[0]> = {}) {
 describe('useExamAnswers', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('versions actual edits with synced time, not navigation or same-value selection', () => {
+    const h = setup({ now: () => 1000 });
+    act(() => h.result.current.handleSelectOption('opt-b'));
+    const next = h.apply(baseState());
+    expect(next.answers.q1.clientUpdatedAt).toBe('1970-01-01T00:00:01.000Z');
+    expect(next.answers.q1.answeredAt).toBe(next.answers.q1.clientUpdatedAt);
+    act(() => h.result.current.handleSelectOption('opt-b'));
+    expect(h.apply(next)).toBe(next);
+    act(() => h.result.current.toggleReview());
+    const reviewed = h.apply(next);
+    expect(reviewed.answers.q1.clientUpdatedAt).toBe('1970-01-01T00:00:01.001Z');
+    expect(reviewed.answers.q1.answeredAt).toBe(next.answers.q1.answeredAt);
+    act(() => h.result.current.handleSetConfidence('alta'));
+    expect(h.apply(reviewed).answers.q1.answeredAt).toBe(next.answers.q1.answeredAt);
+    act(() => h.result.current.handleSelectOption(null));
+    expect(h.apply(reviewed).answers.q1.answeredAt).toBeNull();
+    act(() => h.result.current.handleNavigate(2));
+    expect(h.apply(reviewed).answers.q1).toBe(reviewed.answers.q1);
+  });
+
   it('handleSelectOption marca dirty e seta selectedOption', () => {
     const h = setup();
     act(() => h.result.current.handleSelectOption('opt-b'));

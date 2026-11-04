@@ -28,3 +28,13 @@ it('survives blocked storage', () => {
   expect(() => writeExamCache(identity, state, [])).not.toThrow();
   read.mockRestore(); write.mockRestore();
 });
+it('preserves finite versions and rejects corrupted answer versions', () => {
+  const answer = { questionId: 'q', selectedOption: null, markedForReview: false,
+    highConfidence: false, eliminatedAlternatives: [], confidence: null, clientUpdatedAt: '2026-01-01T00:01:00.001Z' };
+  writeExamCache(identity, { ...state, answers: { q: answer } }, ['q']);
+  expect(readExamCache(identity)?.state.answers.q.clientUpdatedAt).toBe(answer.clientUpdatedAt);
+  const payload = JSON.parse(localStorage.getItem(examCacheKey(identity))!);
+  payload.state.answers.q.clientUpdatedAt = 'infinity';
+  localStorage.setItem(examCacheKey(identity), JSON.stringify(payload));
+  expect(readExamCache(identity)).toBeNull();
+});

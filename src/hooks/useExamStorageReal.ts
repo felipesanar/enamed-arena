@@ -5,6 +5,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { simuladosApi } from '@/services/simuladosApi';
+import { answerRows, assertAnswerRowsAccepted, examAnswersApi } from '@/services/examAnswersApi';
+import type { ExamRuntimePersistence } from '@/types/exam-runtime';
+import { pendingAnswerWins } from '@/lib/exam-answer-version';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
@@ -59,7 +62,10 @@ function snapshotState(state: ExamState, simuladoId: string): ExamState {
 
 const syncKey = (state: ExamState, attemptId: string) => JSON.stringify({ ...state, lastSavedAt: '', attemptId });
 
-export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
+const allowPersistence = () => true;
+const unknownRuntime = (): ExamRuntimePersistence => ({ mode: 'pending', onMismatch: () => {} });
+export function useExamStorageReal(simuladoId: string, clock?: ServerClock, canWrite: () => boolean = allowPersistence,
+  getRuntime: () => ExamRuntimePersistence = unknownRuntime) {
   const { user } = useAuth();
   const now = clock?.now ?? Date.now;
   const clockTrusted = !clock || clock.status === 'synced';
@@ -74,6 +80,13 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
   const cleanupFlushRef = useRef<() => void>(() => {});
   const scopeRef = useRef<StorageScope>({ simuladoId, active: true });
   const [isSaving, setIsSaving] = useState(false);
+  const canWriteRef = useRef(canWrite);
+  const runtimeRef = useRef(getRuntime);
+  runtimeRef.current = getRuntime;
+  canWriteRef.current = canWrite;
+  const assertOwner = useCallback(() => {
+    if (!canWriteRef.current()) throw new Error('TAB_NOT_OWNER');
+  }, []);
 
   useEffect(() => {
     const scope = { simuladoId, userId: user?.id, active: true };
@@ -114,9 +127,13 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     let lastError: unknown = null;
     for (let i = 0; i < attempts; i += 1) {
       try {
-        return await operation();
+        assertOwner();
+        const result = await operation();
+        assertOwner();
+        return result;
       } catch (error) {
         lastError = error;
+        if (error instanceof Error && ['TAB_NOT_OWNER', 'ANSWER_WRITE_MISMATCH', 'EXAM_RUNTIME_PENDING', 'CLOCK_UNAVAILABLE'].includes(error.message)) throw error;
         const isLast = i === attempts - 1;
         logger.warn(`[ExamStorageReal] ${label} failed (attempt ${i + 1}/${attempts})`);
         if (!isLast) {
@@ -126,7 +143,24 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     }
     // Keep PostgREST's structured code/message for finalization error mapping.
     throw lastError;
-  }, []);
+  }, [assertOwner]);
+
+  const requireRuntime = useCallback(() => {
+    const runtime = runtimeRef.current();
+    if (runtime.mode !== 'legacy' && runtime.mode !== 'v1') throw new Error('EXAM_RUNTIME_PENDING');
+    if (runtime.mode === 'v1' && !clockTrusted) throw new Error('CLOCK_UNAVAILABLE');
+    return { ...runtime, mode: runtime.mode };
+  }, [clockTrusted]);
+
+  const persistAnswers = useCallback(async (operation: AttemptOperation, answers: Record<string, ExamAnswer>) => {
+    const runtime = requireRuntime();
+    try {
+      await examAnswersApi.bulkUpsertAnswers(operation.attemptId, answers, runtime.mode);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ANSWER_WRITE_MISMATCH' && isOperationActive(operation)) runtime.onMismatch();
+      throw error;
+    }
+  }, [requireRuntime, isOperationActive]);
 
   // ── Local cache read ──
   const loadLocalState = useCallback((): ExamState | null => {
@@ -151,11 +185,11 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
       ? new Date(now()).toISOString() : state.lastSavedAt }, simuladoId);
     latestRef.current = { state: snapshot, operation };
     const bucket = dirtyQuestionIdsRef.current;
-    writeExamCache(operation, snapshot, snapshot.status === 'in_progress' && bucket.attemptId === operation.attemptId ? [...bucket.ids] : []);
+    if (canWriteRef.current()) writeExamCache(operation, snapshot, snapshot.status === 'in_progress' && bucket.attemptId === operation.attemptId ? [...bucket.ids] : []);
   }, [simuladoId, captureOperation, now, clockTrusted]);
 
   // ── Load from Supabase (or local cache as fallback) ──
-  const loadState = useCallback(async (): Promise<LoadStateResult> => {
+  const loadState = useCallback(async (requireRemote = false, signal?: AbortSignal): Promise<LoadStateResult> => {
     const scope = scopeRef.current;
     const initialAttemptId = attemptIdRef.current;
     if (!scope.active || scope.simuladoId !== simuladoId) throw new Error('Operacao de outro simulado ou encerrada.');
@@ -164,6 +198,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
 
     try {
       const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
+      if (signal?.aborted) throw new Error('Ownership sync cancelled');
       knownAttempt = attempt;
       if (!attempt) {
         // Preserve pending cache from another attempt; no identity can be inferred.
@@ -173,6 +208,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
       if (scope.active && scopeRef.current === scope) attemptIdRef.current = attempt.id;
 
       const answerRows = await simuladosApi.getAnswers(attempt.id);
+      if (signal?.aborted) throw new Error('Ownership sync cancelled');
       const answers: Record<string, ExamAnswer> = {};
       answerRows.forEach(a => {
         answers[a.question_id] = {
@@ -182,6 +218,8 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
           highConfidence: a.high_confidence,
           eliminatedAlternatives: a.eliminated_options || [],
           confidence: (a as any).confidence ?? null,
+          clientUpdatedAt: (a as typeof a & { client_updated_at?: string | null }).client_updated_at ?? null,
+          answeredAt: a.answered_at ?? null,
         };
       });
 
@@ -199,15 +237,20 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
 
       if (scope.active && scopeRef.current === scope && attemptIdRef.current === attempt.id) {
         const cache = readExamCache({ userId: user.id, attemptId: attempt.id, simuladoId });
-        // Dirty revisions have no server ACK. Wall-clock timestamps cannot order
-        // them against DB writes when the OS clock or its sync offset changed.
+        // A remote version wins ties and prevents stale offline cache replay.
         if (state.status === 'in_progress' && cache?.state.status === 'in_progress' && cache.dirtyQuestionIds.length) {
           const bucket = dirtyQuestionIdsRef.current;
           if (bucket.attemptId !== attempt.id) {
             dirtyQuestionIdsRef.current = { attemptId: attempt.id, ids: new Set(), revisions: new Map() };
           }
           for (const id of cache.dirtyQuestionIds) {
-            if (cache.state.answers[id]) state.answers[id] = cache.state.answers[id];
+            const pending = cache.state.answers[id];
+            if (!pending || !pendingAnswerWins(pending.clientUpdatedAt, state.answers[id]?.clientUpdatedAt)) {
+              dirtyQuestionIdsRef.current.ids.delete(id);
+              dirtyQuestionIdsRef.current.revisions.delete(id);
+              continue;
+            }
+            state.answers[id] = pending;
             dirtyQuestionIdsRef.current.ids.add(id);
             dirtyQuestionIdsRef.current.revisions.set(id, ++revisionRef.current);
           }
@@ -216,7 +259,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
           state.fullscreenExitCount = Math.max(state.fullscreenExitCount, cache.state.fullscreenExitCount);
         }
         saveLocalState(state);
-        if (state.status === 'in_progress' && dirtyQuestionIdsRef.current.ids.size) cleanupFlushRef.current();
+        if (canWriteRef.current() && state.status === 'in_progress' && dirtyQuestionIdsRef.current.ids.size) cleanupFlushRef.current();
       }
       logger.log('[ExamStorageReal] Loaded from Supabase, status:', state.status);
       // notify_result_email already comes with the attempt row; expose it so
@@ -227,6 +270,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
         notifyResultEmail: Boolean(attempt.notify_result_email),
       };
     } catch (err) {
+      if (requireRemote) throw err;
       if (!scope.active) throw err;
       logger.error('[ExamStorageReal] DB load failed, using local cache');
       trackEvent('exam_storage_fallback', {
@@ -329,14 +373,16 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     operation = captureOperation(state),
     allAnswers = false,
   ) => {
-    if (!operation) return;
+    if (!operation || !canWriteRef.current()) return;
+    const runtime = requireRuntime();
     const snapshot = snapshotState(state, operation.simuladoId);
     const bucket = dirtyQuestionIdsRef.current;
     // Capture revisions before awaiting, but retain dirty IDs until their ACK.
     const dirty = bucket.attemptId === operation.attemptId ? [...bucket.ids] : [];
     const revisions = new Map(dirty.map(id => [id, bucket.revisions.get(id)]));
-    const subset: Record<string, ExamAnswer> = allAnswers ? snapshot.answers : {};
-    if (!allAnswers) {
+    const sendAll = allAnswers && runtime.mode === 'legacy';
+    const subset: Record<string, ExamAnswer> = sendAll ? snapshot.answers : {};
+    if (!sendAll) {
       for (const id of dirty) {
         if (snapshot.answers[id]) subset[id] = snapshot.answers[id];
       }
@@ -349,6 +395,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     operation.scope.queue = new Promise<void>(resolve => { release = resolve; });
     try {
       if (previous) await previous;
+      assertOwner();
       await withRetry(
         async () => simuladosApi.updateAttempt(operation.attemptId, {
           current_question_index: snapshot.currentQuestionIndex,
@@ -359,7 +406,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
       );
       if (Object.keys(subset).length > 0) {
         await withRetry(
-          async () => simuladosApi.bulkUpsertAnswers(operation.attemptId, subset),
+          async () => persistAnswers(operation, subset),
           allAnswers ? 'Bulk upsert ALL answers (flush)' : 'Bulk upsert dirty answers',
         );
         logger.log('[ExamStorageReal] Synced', Object.keys(subset).length, 'answer(s) to DB');
@@ -378,13 +425,14 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
       if (operation.scope.syncingSnapshot === key) operation.scope.syncingSnapshot = undefined;
       release();
     }
-  }, [captureOperation, isOperationActive, withRetry]);
+  }, [captureOperation, isOperationActive, withRetry, assertOwner, persistAnswers, requireRuntime]);
 
   // ── Save state (write-through: local immediately, DB debounced) ──
   // Caller must mark which answers changed via markDirty() so syncToDb knows
   // what to send. Metadata-only changes (currentQuestionIndex, exit counters)
   // are still synced because updateAttempt runs unconditionally.
   const saveStateDebounced = useCallback((state: ExamState) => {
+    if (!canWriteRef.current()) return;
     const operation = captureOperation(state);
     const snapshot = snapshotState(state, simuladoId);
     saveLocalState(snapshot);
@@ -402,6 +450,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
   }, [captureOperation, simuladoId, saveLocalState, syncToDb, isOperationActive]);
 
   const saveStateSync = useCallback((state: ExamState) => {
+    if (!canWriteRef.current()) return;
     const operation = captureOperation(state);
     saveLocalState(state);
     void syncToDb(state, operation).catch(() => logger.error('[ExamStorageReal] DB sync failed'));
@@ -410,6 +459,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
   // Mark a specific answer as dirty (needs flushing next sync). Called from
   // useExamFlow when the user picks an option / toggles a flag.
   const markAnswerDirty = useCallback((questionId: string) => {
+    if (!canWriteRef.current()) return;
     if (!scopeRef.current.active || scopeRef.current.simuladoId !== simuladoId || scopeRef.current.userId !== user?.id) return;
     const attemptId = attemptIdRef.current;
     if (dirtyQuestionIdsRef.current.attemptId !== attemptId) {
@@ -452,6 +502,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
   }, [flushLatest]);
 
   const getPersistenceSnapshot = useCallback(() => {
+    if (!canWriteRef.current()) return null;
     const latest = latestRef.current;
     return latest && isOperationActive(latest.operation) && isExamState(latest.state) && latest.state.status === 'in_progress'
       ? { ...latest.operation, state: snapshotState(latest.state, latest.operation.simuladoId) } : null;
@@ -461,9 +512,10 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     if (!operation) return;
     const snapshot = snapshotState(finalState, operation.simuladoId);
 
-    if (Object.keys(snapshot.answers).length > 0) {
+    const runtime = requireRuntime();
+    if (runtime.mode === 'legacy' && Object.keys(snapshot.answers).length > 0) {
       await withRetry(
-        async () => simuladosApi.bulkUpsertAnswers(operation.attemptId, snapshot.answers),
+        async () => persistAnswers(operation, snapshot.answers),
         'Final answers upsert',
       );
     }
@@ -473,16 +525,23 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
       'Load persisted answers for integrity check',
     );
     const persistedQuestionIds = new Set(persistedAnswers.map(a => a.question_id));
+    if (runtime.mode === 'v1') {
+      const expected = answerRows(operation.attemptId, snapshot.answers, 'v1');
+      try { assertAnswerRowsAccepted(expected, persistedAnswers.filter(a => !!snapshot.answers[a.question_id])); }
+      catch (error) { if (isOperationActive(operation)) runtime.onMismatch(); throw error; }
+    }
     const missing = Object.keys(snapshot.answers).filter(questionId => !persistedQuestionIds.has(questionId));
     if (missing.length > 0) {
       throw new Error(`Respostas pendentes de persistencia: ${missing.length}`);
     }
-  }, [captureOperation, withRetry]);
+  }, [captureOperation, withRetry, requireRuntime, persistAnswers, isOperationActive]);
 
   // ── Submit (finalize) ──
   // Returns the finalize RPC payload so callers can read score and
   // is_within_window without a follow-up SELECT (avoids race vs. replicas).
   const submitAttempt = useCallback(async (finalState: ExamState, isAutoSubmit = false): Promise<FinalizedAttemptResult> => {
+    assertOwner();
+    requireRuntime();
     if (!user) throw new Error('SESSION_EXPIRED');
     const operation = captureOperation(finalState);
     if (!operation) {
@@ -503,8 +562,13 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
         await flushPendingState(snapshot, operation);
         await ensureAllAnswersPersisted(snapshot, operation);
       }
+    } else if (dirtyQuestionIdsRef.current.attemptId === operation.attemptId && dirtyQuestionIdsRef.current.ids.size) {
+      // Do not convert an unacknowledged cache into a successful terminal state.
+      // The server owns the deadline; late local intent remains for reconciliation.
+      throw new Error(`Respostas pendentes de persistencia: ${dirtyQuestionIdsRef.current.ids.size}`);
     }
     let finalizeResult: FinalizedAttemptResult | null = null;
+    assertOwner();
     try {
       finalizeResult = await withRetry(
         async () => simuladosApi.submitAttempt(operation.attemptId, isAutoSubmit),
@@ -513,7 +577,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     } catch (error) {
       // Fail-safe path: enqueue for server-side reprocessing and bubble a clear error.
       // A rejected manual incomplete submission must not become an early auto-submit.
-      if (isAutoSubmit || expired) {
+      if (canWriteRef.current() && (isAutoSubmit || expired)) {
         try {
           await simuladosApi.enqueueAttemptReprocessing(
             operation.attemptId,
@@ -531,10 +595,11 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
     if (isOperationActive(operation)) saveLocalState(submitted);
     logger.log('[ExamStorageReal] Attempt submitted');
     return finalizeResult;
-  }, [user, captureOperation, syncToDb, flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState, isOperationActive, now, clockTrusted]);
+  }, [user, captureOperation, syncToDb, flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState, isOperationActive, now, clockTrusted, requireRuntime]);
 
   // ── Integrity events ──
   const registerIntegrityExit = useCallback((state: ExamState, field: 'tabExitCount' | 'fullscreenExitCount') => {
+    if (!canWriteRef.current()) return null;
     const operation = captureOperation(state);
     if (!operation || state.status !== 'in_progress') return null;
     const latest = latestRef.current;
@@ -558,6 +623,7 @@ export function useExamStorageReal(simuladoId: string, clock?: ServerClock) {
   }, [captureOperation]);
 
   const setResultNotification = useCallback(async (enabled: boolean) => {
+    assertOwner();
     const operation = captureOperation();
     if (!operation) return;
     await simuladosApi.setAttemptResultNotification(operation.attemptId, enabled);

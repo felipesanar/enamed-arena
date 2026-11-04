@@ -45,6 +45,19 @@ function setup(state: ExamState | null = makeState()) {
 
 describe('useExamIntegrity', () => {
   beforeEach(() => { vi.clearAllMocks(); captured = null; });
+  it('does not penalize a blocked tab, including callbacks captured before takeover', () => {
+    let owner = true;
+    const storage = { attemptId: { current: 'a' }, registerTabExit: vi.fn(), registerFullscreenExit: vi.fn() };
+    renderHook(() => useExamIntegrity({ stateRef: { current: makeState() }, simuladoRef: { current: { id: 'sim-1' } },
+      storage, setState: vi.fn(), canWrite: () => owner }));
+    const callbacks = captured!;
+    owner = false;
+    callbacks.onTabExit(); callbacks.onFullscreenExit();
+    expect(storage.registerTabExit).not.toHaveBeenCalled();
+    expect(storage.registerFullscreenExit).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
 
   it('onTabExit registra a saída e dispara exam_integrity_event (tab_exit)', () => {
     const { registerTabExit } = setup(makeState({ tabExitCount: 2 }));
