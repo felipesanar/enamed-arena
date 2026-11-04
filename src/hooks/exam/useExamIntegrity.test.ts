@@ -20,6 +20,7 @@ import { trackEvent } from '@/lib/analytics';
 
 function makeState(overrides: Partial<ExamState> = {}): ExamState {
   return {
+    simuladoId: 'sim-1',
     status: 'in_progress',
     tabExitCount: 0,
     fullscreenExitCount: 0,
@@ -30,8 +31,8 @@ function makeState(overrides: Partial<ExamState> = {}): ExamState {
 }
 
 function setup(state: ExamState | null = makeState()) {
-  const registerTabExit = vi.fn();
-  const registerFullscreenExit = vi.fn();
+  const registerTabExit = vi.fn((s: ExamState) => s ? ({ ...s, tabExitCount: s.tabExitCount + 1 }) : null);
+  const registerFullscreenExit = vi.fn((s: ExamState) => s ? ({ ...s, fullscreenExitCount: s.fullscreenExitCount + 1 }) : null);
   const setState = vi.fn();
   const storage = { registerTabExit, registerFullscreenExit, attemptId: { current: 'att-1' } };
   const stateRef = { current: state };
@@ -39,7 +40,7 @@ function setup(state: ExamState | null = makeState()) {
   renderHook(() =>
     useExamIntegrity({ stateRef, simuladoRef, storage, setState } as any),
   );
-  return { registerTabExit, registerFullscreenExit, setState };
+  return { registerTabExit, registerFullscreenExit, setState, storage, stateRef };
 }
 
 describe('useExamIntegrity', () => {
@@ -71,10 +72,31 @@ describe('useExamIntegrity', () => {
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
   });
 
-  it('não trackeia quando não há state (mas ainda registra/avisa)', () => {
+  it('não registra nem trackeia quando não há state', () => {
     const { registerTabExit } = setup(null);
     captured!.onTabExit();
-    expect(registerTabExit).toHaveBeenCalledTimes(1);
+    expect(registerTabExit).not.toHaveBeenCalled();
     expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it('updates tab state functionally without lowering newer counts or touching another attempt', () => {
+    const { setState, storage } = setup(makeState({ tabExitCount: 2 }));
+    captured!.onTabExit();
+    const updater = setState.mock.calls[0][0];
+    expect(updater(makeState({ tabExitCount: 2 })).tabExitCount).toBe(3);
+    expect(updater(makeState({ tabExitCount: 9 })).tabExitCount).toBe(9);
+    const other = makeState({ simuladoId: 'other' });
+    expect(updater(other)).toBe(other);
+    storage.attemptId.current = 'another-attempt';
+    const next = makeState();
+    expect(updater(next)).toBe(next);
+  });
+
+  it('uses the supplied synchronized clock for telemetry', () => {
+    const stateRef = { current: makeState({ effectiveDeadline: new Date(90000).toISOString() }) };
+    const storage = { attemptId: { current: 'a' }, registerTabExit: vi.fn((s: ExamState) => ({ ...s, tabExitCount: 1 })), registerFullscreenExit: vi.fn() };
+    renderHook(() => useExamIntegrity({ stateRef, simuladoRef: { current: { id: 'sim-1' } }, storage, setState: vi.fn(), now: () => 30000 }));
+    captured!.onTabExit();
+    expect(trackEvent).toHaveBeenLastCalledWith('exam_integrity_event', expect.objectContaining({ time_remaining_seconds: 60 }));
   });
 });

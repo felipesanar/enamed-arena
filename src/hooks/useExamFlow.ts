@@ -118,6 +118,7 @@ export function useExamFlow(): UseExamFlowReturn {
     simuladoRef,
     storage,
     setState,
+    now,
   });
 
   const {

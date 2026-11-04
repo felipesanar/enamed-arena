@@ -14,12 +14,13 @@ vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user' 
 vi.mock('@/hooks/useSimuladoDetail', () => ({ useSimuladoDetail: () => ({ simulado, questions, loading: false }) }));
 vi.mock('@/hooks/useExamStorageReal', () => ({ useExamStorageReal: () => storage }));
 vi.mock('@/hooks/useKeyboardShortcuts', () => ({ useKeyboardShortcuts: shortcuts }));
-vi.mock('@/hooks/exam/useExamIntegrity', () => ({ useExamIntegrity: () => ({}) }));
+vi.mock('@/hooks/exam/useExamIntegrity', () => ({ useExamIntegrity: vi.fn(() => ({})) }));
 vi.mock('@/hooks/exam/useExamBeacon', () => ({ useExamBeacon: vi.fn() }));
 vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
 vi.mock('@/services/serverClockApi', () => ({ serverClockApi: { getServerTime: vi.fn(async () => Date.now()) } }));
 import { serverClockApi } from '@/services/serverClockApi';
 import { useExamFlow } from '@/hooks/useExamFlow';
+import { useExamIntegrity } from '@/hooks/exam/useExamIntegrity';
 afterEach(() => vi.useRealTimers());
 it('does not expire or submit a blank exam from an ahead OS clock when initial sync fails', async () => {
   vi.useFakeTimers(); vi.clearAllMocks();
@@ -36,6 +37,7 @@ it('does not expire or submit a blank exam from an ahead OS clock when initial s
   await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
   expect(storage.submitAttempt).not.toHaveBeenCalled();
   expect(result.current.state?.status).toBe('in_progress');
+  expect(useExamIntegrity).toHaveBeenLastCalledWith(expect.objectContaining({ now: expect.any(Function) }));
   expect(result.current.interactionLocked).toBe(false);
   act(() => result.current.handleSelectOption('a'));
   expect(result.current.state?.answers.q?.selectedOption).toBe('a');
