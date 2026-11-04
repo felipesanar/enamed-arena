@@ -548,11 +548,12 @@ export const simuladosApi = {
     return (data || []) as AnswerRow[];
   },
 
-  async submitAttempt(attemptId: string): Promise<FinalizedAttemptResult> {
+  async submitAttempt(attemptId: string, isAutoSubmit = false): Promise<FinalizedAttemptResult> {
     logger.log('[SimuladosApi] Submitting attempt with guarded server-side processing');
     const { data, error } = await supabase.rpc('finalize_attempt_with_results', {
       p_attempt_id: attemptId,
-    });
+      p_auto_submit: isAutoSubmit,
+    } as { p_attempt_id: string }); // Generated RPC types predate the default argument.
 
     if (error) {
       logger.error('[SimuladosApi] Error finalizing attempt:', error);

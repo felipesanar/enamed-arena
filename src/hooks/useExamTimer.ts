@@ -9,9 +9,10 @@ interface UseExamTimerProps {
   deadline: string | null; // ISO date
   onTimeUp: () => void;
   paused?: boolean;
+  attemptKey?: string; // Different attempts may share the same deadline.
 }
 
-export function useExamTimer({ deadline, onTimeUp, paused = false }: UseExamTimerProps) {
+export function useExamTimer({ deadline, onTimeUp, paused = false, attemptKey }: UseExamTimerProps) {
   const calcRemaining = useCallback((): number => {
     if (!deadline) return 0;
     const diff = new Date(deadline).getTime() - Date.now();
@@ -22,6 +23,11 @@ export function useExamTimer({ deadline, onTimeUp, paused = false }: UseExamTime
   const timeUpFiredRef = useRef(false);
   const onTimeUpRef = useRef(onTimeUp);
   onTimeUpRef.current = onTimeUp;
+
+  useEffect(() => {
+    timeUpFiredRef.current = false;
+    setRemaining(calcRemaining());
+  }, [deadline, calcRemaining, attemptKey]);
 
   useEffect(() => {
     if (paused || !deadline) return;
@@ -38,7 +44,7 @@ export function useExamTimer({ deadline, onTimeUp, paused = false }: UseExamTime
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [paused, deadline, calcRemaining]);
+  }, [paused, deadline, calcRemaining, attemptKey]);
 
   return remaining;
 }

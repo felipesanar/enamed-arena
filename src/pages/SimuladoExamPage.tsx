@@ -367,6 +367,18 @@ export default function SimuladoExamPage() {
         answeredCount={flow.summary.answered}
       />
 
+      {flow.interactionLocked && (
+        <div role="status" className="border-b border-warning/15 bg-warning/8 px-4 py-3 text-body-sm">
+          <p>{flow.submitting ? 'Confirmando a finalização. Aguarde.' : 'Tempo esgotado. As respostas estão bloqueadas até a confirmação da finalização.'}</p>
+          {!flow.submitting && (
+            <button type="button" onClick={() => flow.finalize(true)}
+              className="mt-2 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Tentar finalizar novamente
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Offline banner */}
       <AnimatePresence>
         {!isOnline && (
@@ -481,31 +493,33 @@ export default function SimuladoExamPage() {
             <main className="flex-1 min-h-0 overflow-hidden p-3 md:p-4 pb-14 md:pb-0">
               <div className="max-w-5xl mx-auto h-full min-h-0">
                 <div className="h-full overflow-y-auto pr-1">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={flow.currentQuestion.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <QuestionDisplay
-                        question={flow.currentQuestion}
-                        answer={flow.currentAnswer}
-                        onSelectOption={flow.handleSelectOption}
-                        onEliminateOption={flow.handleEliminateOption}
-                      />
-                      {/* Seletor de confiança — só aparece após marcar uma alternativa (spec 04 §1.1) */}
-                      {flow.currentAnswer?.selectedOption && (
-                        <ConfidenceSelector
-                          value={flow.currentAnswer?.confidence ?? null}
-                          onChange={flow.handleSetConfidence}
+                  <fieldset disabled={flow.interactionLocked} className="min-w-0 border-0 p-0 disabled:opacity-60">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={flow.currentQuestion.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <QuestionDisplay
+                          question={flow.currentQuestion}
+                          answer={flow.currentAnswer}
+                          onSelectOption={flow.handleSelectOption}
+                          onEliminateOption={flow.handleEliminateOption}
                         />
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
+                        {/* Seletor de confiança — só aparece após marcar uma alternativa (spec 04 §1.1) */}
+                        {flow.currentAnswer?.selectedOption && (
+                          <ConfidenceSelector
+                            value={flow.currentAnswer?.confidence ?? null}
+                            onChange={flow.handleSetConfidence}
+                          />
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  </fieldset>
                   <div className="mt-3 pt-3 border-t border-[hsl(var(--exam-border))]">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <fieldset disabled={flow.interactionLocked} className="flex flex-wrap items-center gap-2 min-w-0 border-0 p-0 disabled:opacity-60">
                       <button
                         type="button"
                         onClick={flow.toggleReview}
@@ -541,7 +555,7 @@ export default function SimuladoExamPage() {
                           theme={flow.currentQuestion.theme}
                         />
                       )}
-                    </div>
+                    </fieldset>
                     <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/50">
                       Atalhos: <kbd className="px-1 rounded bg-muted/60 font-mono">1–5</kbd> alternativas
                       {' · '}<kbd className="px-1 rounded bg-muted/60 font-mono">←</kbd>{' '}

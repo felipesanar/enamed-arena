@@ -36,6 +36,27 @@ export interface LoadStateResult {
   notifyResultEmail: boolean;
 }
 
+interface StorageScope {
+  simuladoId: string;
+  active: boolean;
+}
+
+interface AttemptOperation {
+  readonly attemptId: string;
+  readonly simuladoId: string;
+  readonly scope: StorageScope;
+}
+
+function snapshotState(state: ExamState, simuladoId: string): ExamState {
+  if (state.simuladoId !== simuladoId) throw new Error('Estado de outro simulado.');
+  return {
+    ...state,
+    answers: Object.fromEntries(Object.entries(state.answers).map(([id, answer]) => [id, {
+      ...answer, eliminatedAlternatives: [...answer.eliminatedAlternatives],
+    }])),
+  };
+}
+
 export function useExamStorageReal(simuladoId: string) {
   const { user } = useAuth();
   const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,16 +64,35 @@ export function useExamStorageReal(simuladoId: string) {
   // Dirty set: question IDs whose answer changed since the last DB sync.
   // bulkUpsertAnswers only writes these, instead of re-sending every answer
   // every debounce tick — keeps payloads small even on 200+ question exams.
-  const dirtyQuestionIdsRef = useRef<Set<string>>(new Set());
-  const pendingAnswersRef = useRef<Record<string, ExamAnswer>>({});
+  const dirtyQuestionIdsRef = useRef({ attemptId: null as string | null, ids: new Set<string>() });
+  const scopeRef = useRef<StorageScope>({ simuladoId, active: true });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Clear pending debounced save on unmount to avoid writing to an unmounted component
   useEffect(() => {
+    const scope = { simuladoId, active: true };
+    scopeRef.current = scope;
+    attemptIdRef.current = null;
+    dirtyQuestionIdsRef.current = { attemptId: null, ids: new Set() };
+    setIsSaving(false);
     return () => {
+      scope.active = false;
       if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
+      debouncedSaveRef.current = null;
     };
-  }, []);
+  }, [simuladoId, user?.id]);
+
+  const captureOperation = useCallback((state?: ExamState): AttemptOperation | null => {
+    const scope = scopeRef.current;
+    if (!scope.active || scope.simuladoId !== simuladoId || (state && state.simuladoId !== simuladoId)) {
+      throw new Error('Operacao de outro simulado ou encerrada.');
+    }
+    const attemptId = attemptIdRef.current;
+    return attemptId && user ? { attemptId, simuladoId, scope } : null;
+  }, [simuladoId, user]);
+
+  const isOperationActive = useCallback((operation: AttemptOperation) => (
+    operation.scope.active && scopeRef.current === operation.scope && attemptIdRef.current === operation.attemptId
+  ), []);
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -75,7 +115,8 @@ export function useExamStorageReal(simuladoId: string) {
         }
       }
     }
-    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    // Keep PostgREST's structured code/message for finalization error mapping.
+    throw lastError;
   }, []);
 
   // ── Local cache read ──
@@ -91,6 +132,7 @@ export function useExamStorageReal(simuladoId: string) {
 
   // ── Local cache write ──
   const saveLocalState = useCallback((state: ExamState) => {
+    if (state.simuladoId !== simuladoId) throw new Error('Estado de outro simulado.');
     try {
       localStorage.setItem(getLocalKey(simuladoId), JSON.stringify({
         ...state,
@@ -103,17 +145,20 @@ export function useExamStorageReal(simuladoId: string) {
 
   // ── Load from Supabase (or local cache as fallback) ──
   const loadState = useCallback(async (): Promise<LoadStateResult> => {
+    const scope = scopeRef.current;
+    const initialAttemptId = attemptIdRef.current;
+    if (!scope.active || scope.simuladoId !== simuladoId) throw new Error('Operacao de outro simulado ou encerrada.');
     if (!user) return { state: loadLocalState(), fromCache: true, notifyResultEmail: false };
 
     try {
       const attempt = await simuladosApi.getAttempt(simuladoId, user.id, 'online');
       if (!attempt) {
         // No online attempt in DB — clear any orphan local cache
-        localStorage.removeItem(getLocalKey(simuladoId));
+        if (scope.active) localStorage.removeItem(getLocalKey(simuladoId));
         return { state: null, fromCache: false, notifyResultEmail: false };
       }
 
-      attemptIdRef.current = attempt.id;
+      if (scope.active) attemptIdRef.current = attempt.id;
 
       const answerRows = await simuladosApi.getAnswers(attempt.id);
       const answers: Record<string, ExamAnswer> = {};
@@ -140,7 +185,7 @@ export function useExamStorageReal(simuladoId: string) {
         status: attempt.status as ExamState['status'],
       };
 
-      saveLocalState(state);
+      if (scope.active && attemptIdRef.current === attempt.id) saveLocalState(state);
       logger.log('[ExamStorageReal] Loaded from Supabase, status:', state.status);
       // notify_result_email already comes with the attempt row; expose it so
       // callers don't need a follow-up getAttempt() to read it.
@@ -150,10 +195,11 @@ export function useExamStorageReal(simuladoId: string) {
         notifyResultEmail: Boolean(attempt.notify_result_email),
       };
     } catch (err) {
+      if (!scope.active) throw err;
       logger.error('[ExamStorageReal] DB load failed, using local cache');
       trackEvent('exam_storage_fallback', {
         simulado_id: simuladoId,
-        attempt_id: attemptIdRef.current ?? undefined,
+        attempt_id: initialAttemptId ?? undefined,
         error_message: err instanceof Error ? err.message : 'unknown',
         fallback_source: 'localStorage',
       });
@@ -172,6 +218,8 @@ export function useExamStorageReal(simuladoId: string) {
     durationMinutes: number,
     windowEndISO: string,
   ): Promise<ExamState> => {
+    const scope = scopeRef.current;
+    if (!scope.active || scope.simuladoId !== simuladoId) throw new Error('Operacao de outro simulado ou encerrada.');
     const now = new Date();
     const personalDeadline = new Date(now.getTime() + durationMinutes * 60 * 1000);
     const windowDeadline = new Date(windowEndISO);
@@ -196,7 +244,7 @@ export function useExamStorageReal(simuladoId: string) {
           user.id,
           effectiveDeadline.toISOString(),
         );
-        attemptIdRef.current = attempt.id;
+        if (scope.active) attemptIdRef.current = attempt.id;
         // Use server deadline (authoritative)
         state.effectiveDeadline = attempt.effective_deadline;
         state.startedAt = attempt.started_at;
@@ -207,6 +255,7 @@ export function useExamStorageReal(simuladoId: string) {
         });
         logger.log('[ExamStorageReal] Created DB attempt:', attempt.id);
       } catch (err) {
+        if (!scope.active) throw err;
         logger.error('[ExamStorageReal] Failed to create DB attempt:', err);
         toast({
           title: 'Erro ao criar tentativa',
@@ -218,166 +267,179 @@ export function useExamStorageReal(simuladoId: string) {
       }
     }
 
-    saveLocalState(state);
+    if (scope.active) saveLocalState(state);
     return state;
   }, [simuladoId, user, saveLocalState]);
 
   // ── Debounced sync to Supabase ──
   // Writes only the answers marked dirty since the last successful sync,
   // not the entire answer map. Cuts ~98% of payload on long exams.
-  const syncToDb = useCallback(async (state: ExamState) => {
-    if (!attemptIdRef.current || !user) return;
-
-    await withRetry(
-      async () => simuladosApi.updateAttempt(attemptIdRef.current!, {
-        current_question_index: state.currentQuestionIndex,
-        tab_exit_count: state.tabExitCount,
-        fullscreen_exit_count: state.fullscreenExitCount,
-      }),
-      'Update attempt metadata',
-    );
-
-    // Snapshot the dirty set and clear it BEFORE the request, so any new
-    // changes made while the request is in flight are not lost (they go into
-    // a fresh dirty set for the next debounce tick).
-    const dirty = Array.from(dirtyQuestionIdsRef.current);
-    dirtyQuestionIdsRef.current = new Set();
-
-    if (dirty.length === 0) return;
-
-    const subset: Record<string, ExamAnswer> = {};
-    for (const id of dirty) {
-      const ans = state.answers[id];
-      if (ans) subset[id] = ans;
+  const syncToDb = useCallback(async (
+    state: ExamState,
+    operation = captureOperation(state),
+    allAnswers = false,
+  ) => {
+    if (!operation) return;
+    const snapshot = snapshotState(state, operation.simuladoId);
+    const bucket = dirtyQuestionIdsRef.current;
+    // Detach only this attempt's dirty batch BEFORE the first await. New edits
+    // get a fresh set, and an old completion must never clear/restore B's set.
+    const dirty = isOperationActive(operation) && bucket.attemptId === operation.attemptId ? [...bucket.ids] : [];
+    if (dirty.length) bucket.ids = new Set();
+    const subset: Record<string, ExamAnswer> = allAnswers ? snapshot.answers : {};
+    if (!allAnswers) {
+      for (const id of dirty) {
+        if (snapshot.answers[id]) subset[id] = snapshot.answers[id];
+      }
     }
 
     try {
       await withRetry(
-        async () => simuladosApi.bulkUpsertAnswers(attemptIdRef.current!, subset),
-        'Bulk upsert dirty answers',
+        async () => simuladosApi.updateAttempt(operation.attemptId, {
+          current_question_index: snapshot.currentQuestionIndex,
+          tab_exit_count: snapshot.tabExitCount,
+          fullscreen_exit_count: snapshot.fullscreenExitCount,
+        }),
+        'Update attempt metadata',
       );
-      logger.log('[ExamStorageReal] Synced', dirty.length, 'dirty answer(s) to DB');
+      if (Object.keys(subset).length > 0) {
+        await withRetry(
+          async () => simuladosApi.bulkUpsertAnswers(operation.attemptId, subset),
+          allAnswers ? 'Bulk upsert ALL answers (flush)' : 'Bulk upsert dirty answers',
+        );
+        logger.log('[ExamStorageReal] Synced', Object.keys(subset).length, 'answer(s) to DB');
+      }
     } catch (err) {
-      // Restore the dirty set so the next debounce tick (or flush) retries.
-      // Without this, transient failures silently drop answers.
-      for (const id of dirty) dirtyQuestionIdsRef.current.add(id);
+      if (isOperationActive(operation) && dirtyQuestionIdsRef.current === bucket) {
+        for (const id of dirty) bucket.ids.add(id);
+      }
       throw err;
     }
-  }, [user, withRetry]);
+  }, [captureOperation, isOperationActive, withRetry]);
 
   // ── Save state (write-through: local immediately, DB debounced) ──
   // Caller must mark which answers changed via markDirty() so syncToDb knows
   // what to send. Metadata-only changes (currentQuestionIndex, exit counters)
   // are still synced because updateAttempt runs unconditionally.
   const saveStateDebounced = useCallback((state: ExamState) => {
-    saveLocalState(state);
-    setIsSaving(true);
+    const operation = captureOperation(state);
+    const snapshot = snapshotState(state, simuladoId);
+    saveLocalState(snapshot);
+    setIsSaving(!!operation);
 
     if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
-    debouncedSaveRef.current = setTimeout(() => {
-      syncToDb(state).catch(() => {
+    const timer = setTimeout(() => {
+      syncToDb(snapshot, operation).catch(() => {
         logger.error('[ExamStorageReal] Debounced DB sync failed');
       }).finally(() => {
-        setIsSaving(false);
+        if (operation && isOperationActive(operation) && debouncedSaveRef.current === timer) setIsSaving(false);
       });
     }, STORAGE_CONFIG.DEBOUNCE_MS);
-  }, [saveLocalState, syncToDb]);
+    debouncedSaveRef.current = timer;
+  }, [captureOperation, simuladoId, saveLocalState, syncToDb, isOperationActive]);
 
   const saveStateSync = useCallback((state: ExamState) => {
+    const operation = captureOperation(state);
     saveLocalState(state);
-    syncToDb(state);
-  }, [saveLocalState, syncToDb]);
+    void syncToDb(state, operation).catch(() => logger.error('[ExamStorageReal] DB sync failed'));
+  }, [captureOperation, saveLocalState, syncToDb]);
 
   // Mark a specific answer as dirty (needs flushing next sync). Called from
   // useExamFlow when the user picks an option / toggles a flag.
   const markAnswerDirty = useCallback((questionId: string) => {
-    dirtyQuestionIdsRef.current.add(questionId);
-  }, []);
+    if (!scopeRef.current.active || scopeRef.current.simuladoId !== simuladoId) return;
+    const attemptId = attemptIdRef.current;
+    if (dirtyQuestionIdsRef.current.attemptId !== attemptId) {
+      dirtyQuestionIdsRef.current = { attemptId, ids: new Set() };
+    }
+    dirtyQuestionIdsRef.current.ids.add(questionId);
+  }, [simuladoId]);
 
   // ── Flush before finalize ──
   // Before submitting we want EVERY answer in the DB, not just the dirty
   // ones — covers any answer that was persisted long ago and is correct in
   // the DB, but also catches drift bugs cheaply. The integrity check below
   // (ensureAllAnswersPersisted) gives us strong post-conditions.
-  const flushPendingState = useCallback(async (state?: ExamState) => {
-    if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
+  const flushPendingState = useCallback(async (state?: ExamState, operation = captureOperation(state)) => {
+    if (!operation) return;
+    if (isOperationActive(operation) && debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
     const stateToSync = state || loadLocalState();
-    if (!stateToSync || !attemptIdRef.current || !user) return;
+    if (stateToSync) await syncToDb(stateToSync, operation, true);
+  }, [captureOperation, isOperationActive, loadLocalState, syncToDb]);
 
-    // Force the entire answer set on flush — overrides dirty-only behaviour.
-    await withRetry(
-      async () => simuladosApi.updateAttempt(attemptIdRef.current!, {
-        current_question_index: stateToSync.currentQuestionIndex,
-        tab_exit_count: stateToSync.tabExitCount,
-        fullscreen_exit_count: stateToSync.fullscreenExitCount,
-      }),
-      'Update attempt metadata (flush)',
-    );
+  const ensureAllAnswersPersisted = useCallback(async (finalState: ExamState, operation = captureOperation(finalState)) => {
+    if (!operation) return;
+    const snapshot = snapshotState(finalState, operation.simuladoId);
 
-    if (Object.keys(stateToSync.answers).length > 0) {
+    if (Object.keys(snapshot.answers).length > 0) {
       await withRetry(
-        async () => simuladosApi.bulkUpsertAnswers(attemptIdRef.current!, stateToSync.answers),
-        'Bulk upsert ALL answers (flush)',
-      );
-    }
-    dirtyQuestionIdsRef.current = new Set();
-    pendingAnswersRef.current = {};
-  }, [loadLocalState, user, withRetry]);
-
-  const ensureAllAnswersPersisted = useCallback(async (finalState: ExamState) => {
-    if (!attemptIdRef.current || !user) return;
-
-    if (Object.keys(finalState.answers).length > 0) {
-      await withRetry(
-        async () => simuladosApi.bulkUpsertAnswers(attemptIdRef.current!, finalState.answers),
+        async () => simuladosApi.bulkUpsertAnswers(operation.attemptId, snapshot.answers),
         'Final answers upsert',
       );
     }
 
     const persistedAnswers = await withRetry(
-      async () => simuladosApi.getAnswers(attemptIdRef.current!),
+      async () => simuladosApi.getAnswers(operation.attemptId),
       'Load persisted answers for integrity check',
     );
     const persistedQuestionIds = new Set(persistedAnswers.map(a => a.question_id));
-    const missing = Object.keys(finalState.answers).filter(questionId => !persistedQuestionIds.has(questionId));
+    const missing = Object.keys(snapshot.answers).filter(questionId => !persistedQuestionIds.has(questionId));
     if (missing.length > 0) {
       throw new Error(`Respostas pendentes de persistencia: ${missing.length}`);
     }
-  }, [user, withRetry]);
+  }, [captureOperation, withRetry]);
 
   // ── Submit (finalize) ──
   // Returns the finalize RPC payload so callers can read score and
   // is_within_window without a follow-up SELECT (avoids race vs. replicas).
-  const submitAttempt = useCallback(async (finalState: ExamState): Promise<FinalizedAttemptResult | null> => {
-    await flushPendingState(finalState);
-    await ensureAllAnswersPersisted(finalState);
-
-    if (!attemptIdRef.current) {
+  const submitAttempt = useCallback(async (finalState: ExamState, isAutoSubmit = false): Promise<FinalizedAttemptResult> => {
+    if (!user) throw new Error('SESSION_EXPIRED');
+    const operation = captureOperation(finalState);
+    if (!operation) {
       throw new Error('Tentativa nao inicializada para finalizacao.');
+    }
+    if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
+    const snapshot = snapshotState(finalState, operation.simuladoId);
+    const deadline = snapshot.effectiveDeadline ? new Date(snapshot.effectiveDeadline).getTime() : Infinity;
+    const expired = Date.now() >= deadline;
+    // After the write grace period, finalize persisted answers as-is. Rewriting
+    // them would be rejected by the answer deadline guard, blocking the score.
+    if (Date.now() <= deadline + 30_000) {
+      if (isAutoSubmit || expired) {
+        await syncToDb(snapshot, operation);
+      } else {
+        await flushPendingState(snapshot, operation);
+        await ensureAllAnswersPersisted(snapshot, operation);
+      }
     }
     let finalizeResult: FinalizedAttemptResult | null = null;
     try {
       finalizeResult = await withRetry(
-        async () => simuladosApi.submitAttempt(attemptIdRef.current!),
+        async () => simuladosApi.submitAttempt(operation.attemptId, isAutoSubmit),
         'Finalize attempt server-side',
       );
     } catch (error) {
       // Fail-safe path: enqueue for server-side reprocessing and bubble a clear error.
-      await withRetry(
-        async () => simuladosApi.enqueueAttemptReprocessing(
-          attemptIdRef.current!,
-          'Finalizacao falhou no client; tentativa enfileirada para reprocessamento.',
-        ),
-        'Enqueue attempt reprocessing',
-      );
+      // A rejected manual incomplete submission must not become an early auto-submit.
+      if (isAutoSubmit || expired) {
+        try {
+          await simuladosApi.enqueueAttemptReprocessing(
+            operation.attemptId,
+            'Finalizacao automatica falhou no client; reprocessamento solicitado.',
+          );
+        } catch (queueError) {
+          logger.error('[ExamStorageReal] Could not enqueue finalization:', queueError);
+        }
+      }
       throw error;
     }
+    if (!finalizeResult) throw new Error('Finalizacao do simulado nao retornou resultado.');
 
-    const submitted: ExamState = { ...finalState, status: 'submitted', lastSavedAt: new Date().toISOString() };
-    saveLocalState(submitted);
+    const submitted: ExamState = { ...snapshot, status: 'submitted', lastSavedAt: new Date().toISOString() };
+    if (isOperationActive(operation)) saveLocalState(submitted);
     logger.log('[ExamStorageReal] Attempt submitted');
     return finalizeResult;
-  }, [flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState]);
+  }, [user, captureOperation, syncToDb, flushPendingState, ensureAllAnswersPersisted, withRetry, saveLocalState, isOperationActive]);
 
   // ── Integrity events ──
   const registerTabExit = useCallback(() => {

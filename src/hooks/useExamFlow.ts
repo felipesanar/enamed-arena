@@ -36,6 +36,7 @@ export interface UseExamFlowReturn {
   showSubmitModal: boolean;
   setShowSubmitModal: (v: boolean | ((prev: boolean) => boolean)) => void;
   submitting: boolean;
+  interactionLocked: boolean;
   notificationSaving: boolean;
 
   // Side effects (focus, timer, finalize)
@@ -112,6 +113,7 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const {
     submitting,
+    interactionLocked,
     initLoading,
     isWithinWindow,
     notifyResultByEmail,
@@ -146,12 +148,13 @@ export function useExamFlow(): UseExamFlowReturn {
 
   const updateState = useCallback((updater: (prev: ExamState) => ExamState) => {
     setState(prev => {
-      if (!prev || prev.status !== 'in_progress') return prev;
+      if (!prev || prev.status !== 'in_progress' || interactionLocked ||
+        (prev.effectiveDeadline && new Date(prev.effectiveDeadline).getTime() <= Date.now())) return prev;
       const updated = updater(prev);
       storage.saveStateDebounced(updated);
       return updated;
     });
-  }, [storage]);
+  }, [storage, interactionLocked]);
 
   const {
     handleSelectOption,
@@ -163,6 +166,7 @@ export function useExamFlow(): UseExamFlowReturn {
     toggleHighConfidence,
     handleSetConfidence,
   } = useExamAnswers({
+    disabled: interactionLocked || state?.status !== 'in_progress',
     currentQuestion,
     currentIndex,
     questionsLength: questions.length,
@@ -198,7 +202,7 @@ export function useExamFlow(): UseExamFlowReturn {
   }, [handlePrev, handleNext, toggleReview, toggleHighConfidence, currentQuestion, handleSelectOption, currentAnswer?.selectedOption, handleSetConfidence]);
 
   useKeyboardShortcuts(shortcuts, {
-    enabled: state?.status === 'in_progress' && !showSubmitModal && !submitting,
+    enabled: state?.status === 'in_progress' && !showSubmitModal && !interactionLocked,
   });
 
   const loading = loadingSimulado || initLoading || !simulado || !state;
@@ -217,6 +221,7 @@ export function useExamFlow(): UseExamFlowReturn {
     showSubmitModal,
     setShowSubmitModal,
     submitting,
+    interactionLocked,
     notificationSaving,
     focusControl,
     timeRemaining,
