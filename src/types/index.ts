@@ -119,6 +119,8 @@ export interface Question {
   options: QuestionOption[];
   correctOptionId: string;
   explanation?: string;
+  /** The guarded comments RPC is absent; restricted REST columns remain forbidden. */
+  explanationUnavailable?: boolean;
 }
 
 export interface QuestionAnswer {
