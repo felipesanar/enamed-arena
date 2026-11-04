@@ -33,6 +33,7 @@ admin_clone_simulado(p_source uuid, p_edition_id uuid,
  p_window_start timestamptz, p_window_end timestamptz,
  p_results_release_at timestamptz, p_copy_questions boolean default false) returns uuid;
 admin_import_questions(p_simulado_id uuid, p_rows jsonb) returns jsonb;
+admin_publish_simulado(p_simulado_id uuid) returns void;
 set_target_edition_guarded(p_edition_id uuid default null,
  p_expected_graduation_term text default null) returns void;
 ```
