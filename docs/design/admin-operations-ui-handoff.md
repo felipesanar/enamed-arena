@@ -2,7 +2,9 @@
 
 ## Estado
 
-Fase A, protótipo autocontido para revisão do Codex **antes de React**. Não é o app real, não testa autenticação, não executa SQL, não importa arquivos pessoais e não altera resultados. Não há aprovação editorial nem autorização de produção. A fase B não foi iniciada.
+Fase A aprovada e preservada como protótipo autocontido. Fase B implementada em React neste worktree, com 47 testes em 8 arquivos passando após revisão funcional; integração e QA visual React ainda pendentes. Não há aprovação editorial, autorização de produção ou execução real de RPC. Detalhes e comandos em `docs/admin-operations-2027.md`.
+
+As seções abaixo até “Fase B” registram o protótipo da fase A; suas capturas e medições não são evidência da implementação React.
 
 Abrir `docs/design/admin-operations-prototype.html` diretamente no Edge, via arquivo local. Não depende de servidor, Vite, CDN, fonte remota ou arquivo auxiliar. Não foi criado preview HTTP; portas 54738–54743 e scripts existentes permaneceram intactos.
 
@@ -46,7 +48,7 @@ Fontes locais consultadas: `PRODUCT.md`, `DESIGN.md`, brief de operações, hand
 | Reprocessar | Contrato esperado `admin_reprocess_simulado(p_simulado_id uuid,p_reason text)` com `{operation_id,simulado_id,answer_key_hash,attempts_processed,scores_changed,entries_reconciled,idempotent}`. Capabilities em conjunto e prova encerrada/consistente; o frontend não substitui preflight/locks do servidor. **RPC em job paralelo, sem relatório confirmado nesta execução: não declarar backend pronto.** |
 | Retry real | O bloqueio local evita envio concorrente, não resolve timeout de resposta incerta nem cria chave de idempotência no RPC de cortes. Antes de retry real, reconciliar resultado/auditoria e conflitos. Não prometer exatamente-uma-vez. Reprocessamento do mesmo gabarito é idempotente nos dados conforme contrato, não uma garantia implementada pelo HTML. |
 
-Serviços/adapters/tipos de importação e reprocessamento reais ainda precisam ser verificados/criados no escopo da fase B. Tipos gerados do Supabase não foram editados nem tomados como prova de disponibilidade do RPC paralelo. Nenhuma chamada ao backend foi feita.
+Serviços/adapters/tipos foram criados na fase B conforme a seção final. Tipos gerados do Supabase não foram editados nem tomados como prova de disponibilidade do RPC paralelo. Nenhuma chamada ao backend foi feita nesta entrega.
 
 ## Composição
 
@@ -95,7 +97,7 @@ Contraste calculado por luminância sRGB/WCAG, não estimado visualmente:
 
 Todos os pares de texto usados e medidos passaram 4,5:1. A primeira checagem encontrou `accent/raised` escuro em **4,38:1**: esse par foi evitado no hover da operação ativa, que permanece em surface (4,80:1), sem trocar o token de marca. Erros/status têm texto e não apenas cor. Não equivale a auditoria WCAG completa: leitura com leitor de tela, zoom/forced-colors e QA integrado do produto ainda exigem revisão humana.
 
-## Limites E Próximos Passos
+## Limites Da Fase A
 
 - Revisão Codex obrigatória antes da fase B; sem React, SQL, Edge, serviços, rotas, tipos ou produção nesta entrega.
 - D6 continua pendente: confirmar origem/referência e compatibilidade editorial antes de qualquer import real. Legado 2026 permanece sem atribuição automática.
@@ -104,3 +106,21 @@ Todos os pares de texto usados e medidos passaram 4,5:1. A primeira checagem enc
 - Planejar resposta incerta de rede e reconciliação de importações, em vez de reenviar automaticamente. O HTML demonstra falha certa local, não ambiguidade de rede.
 - Aplicar `editions_ui` e capabilities reais no frontend e servidor; não levar controles DEMO, fixtures, contagens, `.dataset.sends` de teste ou valores fictícios para o produto.
 - Fases executadas: contexto, extensão da direção existente, protótipo, referência de padrões/tokens, revisão visual/teclado/contraste/responsividade e handoff. Sem nova direção, perguntas, motion decorativo, publicação, instalação ou implementação React.
+
+## Fase B
+
+Implementados `AdminCutoffImport`, `ReprocessSimuladoDialog`, serviços `adminCutoffApi`/`adminReprocessApi`, `cutoffImport` e tipos centralizados em `admin-operations.ts`. Integrados rota `/admin/cortes`, navegação com flag/capability e ação contextual na página real de resultados, sem alterar shell ou APIs globais.
+
+O processo não é um segundo ID fictício: deriva do rótulo real da edição selecionada, acompanhado da fonte declarada. Parser reutiliza leitores existentes, rejeita colisões após normalização, registra aba/linha original, resolve nomes canônicos sem ambiguidade e mostra prévia antes da confirmação. CSV/XLSX agora são arquivos reais, não lotes DEMO. A tabela React fica em região de rolagem interna acessível, em vez de reproduzir o editor simplificado do HTML.
+
+Timeout de importação invalida a confirmação; nova conferência consulta catálogos e conflitos do banco, impedindo reenviar um lote já gravado. Falha por linha mantém arquivo/fonte e informa zero importados. Sucesso bloqueia repetir o mesmo lote/contexto na sessão.
+
+Reprocessamento usa Dialog/Radix real e motivo obrigatório. Inicial/erro focam motivo, Escape devolve foco ao disparador, sucesso foca relatório agregado. Refetch somente dos resultados administrativos ativos do simulado atual; demais prefixes pertinentes são marcados stale sem executar consultas de aluno com credencial administrativa.
+
+Validação: 47 testes/8 arquivos, incluindo as quatro correções solicitadas pelo Codex. Os dois erros de nulabilidade do parser foram corrigidos por estreitamento explícito, sem any/ignore; TypeScript global fica com o orquestrador. QA React local tentado e interrompido após timeouts do preview no limite solicitado: não afirmar novas capturas, responsividade ou teste browser concluídos. Cobertura de interação/foco é unitária com Radix/jsdom e serviços mockados. O protótipo aprovado não foi rerodado.
+
+Escopo, comando completo, falhas observadas do QA e pendências estão em `docs/admin-operations-2027.md`. Permanecem pendentes QA visual React enxuto, TypeScript global e integração autorizada com Supabase; não é entrega de Auth E2E nem comprovação de deploy das RPCs.
+
+## Revisão final do Codex — fase B
+
+A implementação funcional e os quatro ajustes de revisão foram verificados: 47 testes em8 arquivos, TypeScript de tsconfig.app.json exit0 e lint exit0 (2warnings preexistentes). O Codex concluiu e inspecionou o React real a1440/claro/preflight e375/escuro/diálogo, com cache Vite privado: sem overflow, foco inicial no motivo, Escape/retorno ao disparador e foco no relatório, zero page errors/requests externos. Os serviços são mocks e esta evidência não equivale a Auth/RLS/RPC E2E. Arquivos QA em .superpowers/admin-opsQA; detalhes e limites em docs/admin-operations-2027.md. Pronto para integração pelo orquestrador; não houve produção.
