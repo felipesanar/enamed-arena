@@ -1,19 +1,14 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Flame, ArrowUpRight } from "lucide-react";
-import { ENAMED_DATE } from "@/components/caderno/PageHero";
+import { useExamEditions } from "@/hooks/useExamEditions";
+import { getDaysUntil } from "@/lib/editions";
 import { useCadernoRoutes } from "@/hooks/useCadernoRoutes";
 import { useHasAccess } from "@/contexts/UserContext";
 import { trackEvent } from "@/lib/analytics";
 
 /** Janela em que a contagem regressiva passa a ser exibida na home. */
 const COUNTDOWN_WINDOW_DAYS = 90;
-
-function daysUntilEnamed(): number {
-  const now = Date.now();
-  const diff = ENAMED_DATE.getTime() - now;
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
 
 /**
  * EnamedCountdownCard — "Reta Final".
@@ -27,26 +22,28 @@ export function EnamedCountdownCard() {
   const hasCadernoAccess = useHasAccess("cadernoErros");
   const enabled = hasCadernoAccess && caderno.v2;
 
-  const daysUntil = useMemo(() => daysUntilEnamed(), []);
-  const withinWindow = daysUntil >= 0 && daysUntil <= COUNTDOWN_WINDOW_DAYS;
+  const { nextEdition } = useExamEditions();
+  const daysUntil = getDaysUntil(nextEdition?.exam_date ?? null, new Date());
+  const withinWindow = daysUntil !== null && daysUntil >= 0 && daysUntil <= COUNTDOWN_WINDOW_DAYS;
   const shouldRender = enabled && withinWindow;
 
   const trackedRef = useRef(false);
   useEffect(() => {
-    if (!shouldRender || trackedRef.current) return;
+    if (!shouldRender || daysUntil === null || trackedRef.current) return;
     trackedRef.current = true;
     trackEvent("caderno_home_countdown_viewed", { days_until: daysUntil });
   }, [shouldRender, daysUntil]);
 
-  if (!shouldRender) return null;
+  if (!shouldRender || !nextEdition || daysUntil === null) return null;
 
-  const daysLabel = daysUntil === 1 ? "Falta 1 dia" : `Faltam ${daysUntil} dias`;
+  const daysLabel = daysUntil === 0 ? "É hoje" : daysUntil === 1 ? "Falta 1 dia" : `Faltam ${daysUntil} dias`;
+  const countdownLabel = daysUntil === 0 ? `${nextEdition.label}: ${daysLabel}` : `${daysLabel} para o ${nextEdition.label}`;
 
   return (
     <Link
       to={caderno.retaFinal}
       className="group flex h-full min-h-0 no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-[16px]"
-      aria-label={`Reta Final. ${daysLabel} para o ENAMED. Abrir War Room.`}
+      aria-label={`Reta Final. ${countdownLabel}. Abrir War Room.`}
     >
       <div className="relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-primary/20 bg-[linear-gradient(165deg,hsl(var(--primary)/0.08)_0%,hsl(var(--card))_46%,hsl(var(--muted)/0.3)_100%)] p-3 sm:p-3.5 shadow-[0_8px_18px_-14px_hsl(var(--primary)/0.35),0_2px_6px_hsl(220_20%_10%/0.04)] dark:shadow-[0_8px_18px_-14px_rgba(0,0,0,0.5),0_2px_6px_rgba(0,0,0,0.25)] transition-all duration-[240ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:-translate-y-0.5 hover:border-primary/28 hover:shadow-[0_12px_22px_-16px_hsl(var(--primary)/0.42),0_4px_10px_-8px_hsl(var(--primary)/0.12)]">
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
@@ -68,7 +65,7 @@ export function EnamedCountdownCard() {
 
           <div className="flex min-h-0 flex-1 flex-col justify-center gap-1 border-t border-primary/[0.1] pt-2">
             <p className="font-extrabold tracking-[-0.03em] text-foreground text-[clamp(1.05rem,2vw+0.5rem,1.45rem)] leading-[1.1]">
-              {daysLabel} para o ENAMED
+              {countdownLabel}
             </p>
             <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground sm:text-body-sm sm:leading-snug">
               Ative o modo War Room e priorize seus pontos fracos no sprint final.

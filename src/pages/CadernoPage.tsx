@@ -45,7 +45,8 @@ import { simuladosApi } from '@/services/simuladosApi';
 
 import { CadernoHero } from '@/components/caderno/CadernoHero';
 import { CadernoModeCards } from '@/components/caderno/CadernoModeCards';
-import { ENAMED_DATE } from '@/components/caderno/PageHero';
+import { useExamEditions } from '@/hooks/useExamEditions';
+import { getDaysUntil } from '@/lib/editions';
 import { FilterBar, type CausaFilter } from '@/components/caderno/FilterBar';
 import { CadernoExportMenu } from '@/components/caderno/CadernoExportMenu';
 import { ZeroPendingState } from '@/components/caderno/ZeroPendingState';
@@ -110,6 +111,7 @@ function useDebounce<T>(value: T, delay: number): T {
 /* ── CadernoContent ── */
 
 function CadernoContent({ userId }: { userId: string }) {
+  const { nextEdition } = useExamEditions();
   const prefersReducedMotion = useReducedMotion();
   const { profile } = useUser();
 
@@ -504,8 +506,8 @@ function CadernoContent({ userId }: { userId: string }) {
 
   /* ── CTA — Sessão de Revisão ── */
 
-  const daysLeft = Math.ceil((ENAMED_DATE.getTime() - Date.now()) / 86_400_000);
-  const isENAMEDNear = daysLeft > 0 && daysLeft <= 45;
+  const daysLeft = getDaysUntil(nextEdition?.exam_date ?? null, new Date());
+  const isENAMEDNear = daysLeft !== null && daysLeft >= 0 && daysLeft <= 45;
 
   /* ── Loading state ── */
 
@@ -574,6 +576,7 @@ function CadernoContent({ userId }: { userId: string }) {
           specialties={specialties.length}
           streak={streak}
           daysLeft={daysLeft}
+          editionLabel={nextEdition?.label}
           isEnamedNear={isENAMEDNear}
           prefersReducedMotion={!!prefersReducedMotion}
         />
@@ -582,6 +585,7 @@ function CadernoContent({ userId }: { userId: string }) {
         <CadernoModeCards
           devidasHoje={buckets.devidas.length}
           daysLeft={daysLeft}
+          editionLabel={nextEdition?.label}
           isEnamedNear={isENAMEDNear}
           hasPending={!allResolved && totalPending > 0}
           revisaoTo={
