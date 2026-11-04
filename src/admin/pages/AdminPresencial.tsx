@@ -1,5 +1,5 @@
 // src/admin/pages/AdminPresencial.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   QrCode, Printer, Plus, Pencil, UserSearch, ArrowLeftRight,
@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dialog'
 import { useAdminCan } from '@/admin/contexts/AdminAccessContext'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAppConfig } from '@/hooks/useAppConfig'
+import type { RankingRule } from '@/admin/types/admin-session'
 import { localInputToUtcISO, utcISOToLocalInput } from '@/admin/lib/timezone'
 import {
   useAdminPresencialSessions, useAdminPresencialSessionUpsert,
@@ -151,6 +153,7 @@ export default function AdminPresencial() {
 // ────────────────────────────────────────────────────────────────────────
 
 type SessionFormState = {
+  ranking_rule?: RankingRule | null
   id: string | null
   simulado_id: string
   code: string
@@ -303,8 +306,10 @@ function SessionFormDialog({
 }) {
   const { data: simulados } = useAdminSimuladoList()
   const upsert = useAdminPresencialSessionUpsert()
+  const editionsEnabled = useAppConfig('editions_ui')
   const [form, setForm] = useState<SessionFormState>(EMPTY_SESSION_FORM)
   const [codeError, setCodeError] = useState<string | null>(null)
+  const returnFocus = useRef<HTMLElement | null>(null)
   const isEdit = !!session
 
   const { data: cadernos } = useAdminPresencialCadernos(form.simulado_id || null)
@@ -326,11 +331,12 @@ function SessionFormDialog({
         closes_at: utcISOToLocalInput(session.closes_at),
         is_active: session.is_active,
         caderno_id: session.caderno_id ?? '',
+        ...(editionsEnabled ? { ranking_rule: session.ranking_rule === 'legacy_online_window' || session.ranking_rule === 'session_window_v1' ? session.ranking_rule : null } : {}),
       })
     } else {
-      setForm(EMPTY_SESSION_FORM)
+      setForm({ ...EMPTY_SESSION_FORM, ...(editionsEnabled ? { ranking_rule: 'session_window_v1' as const } : {}) })
     }
-  }, [open, session])
+  }, [open, session, editionsEnabled])
 
   const set = <K extends keyof SessionFormState>(k: K, v: SessionFormState[K]) =>
     setForm(prev => ({ ...prev, [k]: v }))
@@ -361,6 +367,7 @@ function SessionFormDialog({
         closes_at: localInputToUtcISO(form.closes_at),
         is_active: form.is_active,
         caderno_id: form.caderno_id || null,
+        ...(editionsEnabled && form.ranking_rule ? { ranking_rule: form.ranking_rule } : {}),
       },
       { onSuccess: () => onOpenChange(false) },
     )
@@ -368,7 +375,7 @@ function SessionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-admin-surface border-admin-line text-admin-text sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto bg-admin-surface border-admin-line text-admin-text sm:max-w-lg" onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement }} onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus() }}>
         <DialogHeader>
           <DialogTitle className="text-admin-text">{isEdit ? 'Editar sessão' : 'Nova sessão'}</DialogTitle>
         </DialogHeader>
@@ -460,6 +467,16 @@ function SessionFormDialog({
             </div>
           </div>
 
+          {editionsEnabled && <div className="space-y-1.5">
+            <Label htmlFor="session-ranking-rule">Regra para o ranking</Label>
+            <select id="session-ranking-rule" disabled={isEdit && !form.ranking_rule} value={form.ranking_rule ?? ''} onChange={e => set('ranking_rule', (e.target.value || null) as RankingRule | null)} className="min-h-11 w-full rounded-md border border-admin-line-strong bg-admin-bg px-3 py-2 text-sm text-admin-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-admin-accent disabled:opacity-50" aria-describedby="session-ranking-help">
+              {!form.ranking_rule && <option value="">Regra não informada</option>}
+              <option value="session_window_v1">Janela da sessão</option>
+              <option value="legacy_online_window">Janela online</option>
+            </select>
+            <p id="session-ranking-help" className="text-xs text-admin-muted">A regra vale para novas participações. As anteriores mantêm a regra registrada.</p>
+            {!form.ranking_rule && <p className="text-xs text-admin-muted">A regra atual não foi informada. Você pode salvar os outros campos sem alterá-la.</p>}
+          </div>}
           {codeError && <p className="text-xs text-admin-destructive">{codeError}</p>}
           {form.opens_at && form.closes_at && localInputToUtcISO(form.closes_at) <= localInputToUtcISO(form.opens_at) && (
             <p className="text-xs text-admin-destructive">O fechamento precisa ser depois da abertura.</p>
