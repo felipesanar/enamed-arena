@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppConfig } from '@/hooks/useAppConfig';
 import { userEditionsApi } from '@/services/userEditionsApi';
 import { editionsApi } from '@/services/editionsApi';
+import { displaySpecialty } from '@/lib/academic-profile';
 
 interface UserContextValue {
   profile: UserProfile | null;
@@ -43,6 +44,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   if (sessionRef.current.identity !== identity) {
     sessionRef.current = { identity, token: sessionRef.current.token + 1 };
   }
+  const sessionToken = sessionRef.current.token;
+  const completedUsersRef = React.useRef(new Set<string>());
   const requestRef = React.useRef(0);
   const guardRequestRef = React.useRef(0);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -136,6 +139,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           ...target,
         };
         setOnboarding(onb);
+        if (onb.status === 'completed') completedUsersRef.current.add(userId);
         logger.log('[UserContext] Onboarding loaded:', { status: onb.status });
       } else {
         setOnboarding(null);
@@ -206,19 +210,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const isOnboardingComplete = onboarding?.status === 'completed';
 
   const saveOnboarding = useCallback(async (data: { specialtyId: string | null; targetInstitutionIds: string[] }) => {
-    if (!authUser) throw new Error('Not authenticated');
+    if (!authUser || authLoading || sessionRef.current.token !== sessionToken) throw new Error('Not authenticated');
+    if (isLoading || profile?.id !== authUser.id || (onboarding && onboarding.userId !== authUser.id)) {
+      throw new Error('Profile is not ready');
+    }
     const token = sessionRef.current.token;
+    const wasCompleted = completedUsersRef.current.has(authUser.id);
+    const targetEditionId = editionsEnabled ? onboarding?.targetEditionId : null;
     const { data: savedRow, error } = await supabaseRpc('save_onboarding_guarded', {
       p_specialty_id: data.specialtyId,
       p_target_institution_ids: data.targetInstitutionIds,
     });
     if (error) throw error;
     if (sessionRef.current.token !== token) return;
-
-    if (editionsEnabled) {
-      await fetchUserData(authUser.id, true);
-      return;
-    }
 
     const row = Array.isArray(savedRow) ? savedRow[0] : savedRow;
     const onboardingData: OnboardingProfile = {
@@ -231,13 +235,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
       status: ((row as any)?.status as OnboardingStatus) ?? 'completed',
       completedAt: (row as any)?.completed_at ?? undefined,
     };
-    setOnboarding(onboardingData);
-    await fetchOnboardingEditGuard();
+    if (onboardingData.userId !== authUser.id) return;
+    // Claim before any further await: concurrent saves and stale callbacks cannot emit twice.
+    const firstCompletion = onboardingData.status === 'completed' && !wasCompleted
+      && !completedUsersRef.current.has(authUser.id);
+    if (onboardingData.status === 'completed') completedUsersRef.current.add(authUser.id);
+    if (editionsEnabled) {
+      await fetchUserData(authUser.id, true);
+    } else {
+      setOnboarding(onboardingData);
+      await fetchOnboardingEditGuard();
+    }
+    if (sessionRef.current.token !== token) return;
     logger.log('[UserContext] Onboarding saved to Supabase');
-  }, [authUser, fetchOnboardingEditGuard, editionsEnabled, fetchUserData]);
+    if (!firstCompletion) return;
+    // Telemetry is best-effort and only describes an explicit target, never the resolver fallback.
+    try {
+      const edition = targetEditionId == null ? null
+        : (await editionsApi.getExamEditions()).find(item => item.id === targetEditionId);
+      if (sessionRef.current.token !== token) return;
+      if (targetEditionId != null && !edition) {
+        logger.error('[UserContext] Onboarding analytics skipped: edition missing from catalog');
+        return;
+      }
+      await trackEvent('onboarding_completed', {
+        segment: profile.segment,
+        specialty: displaySpecialty(onboardingData),
+        institutions_count: onboardingData.targetInstitutionIds.length,
+        edition_code: edition?.code ?? null,
+      });
+    } catch {
+      logger.error('[UserContext] Onboarding analytics unavailable; onboarding was saved');
+    }
+  }, [authUser, authLoading, sessionToken, isLoading, profile, onboarding, fetchOnboardingEditGuard, editionsEnabled, fetchUserData]);
 
   const saveTargetEdition = useCallback(async (editionId: string | null, expectedGraduationTerm: string | null) => {
-    if (!authUser || authLoading) throw new Error('Not authenticated');
+    if (!authUser || authLoading || sessionRef.current.token !== sessionToken) throw new Error('Not authenticated');
     if (!editionsEnabled) throw new Error('Editions UI is disabled');
     const token = sessionRef.current.token;
     await userEditionsApi.setTargetEdition(editionId, expectedGraduationTerm);
@@ -260,7 +293,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch {
       logger.error('[UserContext] Target analytics unavailable; preference was saved');
     }
-  }, [authUser, authLoading, editionsEnabled, fetchUserData, queryClient]);
+  }, [authUser, authLoading, sessionToken, editionsEnabled, fetchUserData, queryClient]);
 
   const updateProfile = useCallback(async (
     data: Partial<Pick<UserProfile, 'name' | 'avatarUrl'>>,
