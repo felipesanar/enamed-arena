@@ -22,6 +22,8 @@ import { useAppConfig } from '@/hooks/useAppConfig';
 import { useUserEdition } from '@/hooks/useUserEdition';
 import { editionBadge } from '@/lib/edition-groups';
 import { formatSimuladoLabel } from '@/lib/editions';
+import { selectHomeSimulado } from '@/lib/home-hero-state';
+import { EditionTargetPrompt } from '@/components/editions/EditionTargetPrompt';
 import type { ExamEdition } from '@/types/edition';
 
 // ─── Loading skeleton ────────────────────────────────────────────────────────
@@ -98,6 +100,7 @@ function SimuladosContent({ editionsUi = false, currentEdition }: { editionsUi?:
   }, [loading, simulados, activeAttempt]);
 
   const heroSimulado = useMemo(() => {
+    if (editionsUi) return selectHomeSimulado(simulados, currentEdition ?? null, new Date());
     const candidates = editionsUi ? simulados.filter(sim => !!currentEdition && sim.editionId === currentEdition.id) : simulados;
     const active = candidates.find(s => s.status === "available" || s.status === "in_progress");
     if (active) return active;
@@ -159,6 +162,8 @@ function SimuladosContent({ editionsUi = false, currentEdition }: { editionsUi?:
         badge={currentEdition?.label || editionBadge(heroSimulado)}
       />
 
+      <EditionTargetPrompt />
+
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -197,6 +202,11 @@ function SimuladosContent({ editionsUi = false, currentEdition }: { editionsUi?:
         </motion.div>
       )}
 
+      {editionsUi && !simulados.some(sim => sim.editionId === currentEdition?.id) && (
+        <EmptyState title="Calendário em breve" description="Enquanto isso, pratique com simulados de edições anteriores."
+          backHref="/simulados?filter=treino" backLabel="Ver treinos" />
+      )}
+
       {heroSimulado ? (
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
@@ -213,7 +223,7 @@ function SimuladosContent({ editionsUi = false, currentEdition }: { editionsUi?:
           />
         </motion.div>
       ) : (
-        simulados.length === 0 && (
+        !editionsUi && simulados.length === 0 && (
           <EmptyState
             title="Nenhum simulado disponível no momento"
             description="Fique de olho, em breve novos simulados serão publicados!"

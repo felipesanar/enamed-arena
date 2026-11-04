@@ -101,11 +101,30 @@ describe('selectCurrentSimulado', () => {
     expect(selectCurrentSimulado([future, open], edition(), now)).toBe(open);
     expect(selectCurrentSimulado([open], edition(), new Date('invalid'))).toBeNull();
   });
-  it('arquivado so aparece com tentativa, e treino iniciado pode continuar', () => {
+  it('arquivado so aparece como historico finalizado, nunca como retomada', () => {
     expect(selectCurrentSimulado([sim({ dbStatus: 'archived' })], edition(), now)).toBeNull();
     const training = sim({ dbStatus: 'archived', executionWindowStart: '2026-11-27T10:00:00Z',
       executionWindowEnd: '2026-11-27T20:00:00Z', userState: started('2026-11-28T11:00:00Z') });
-    expect(selectCurrentSimulado([sim(), training], edition(), now)).toBe(training);
+    const upcoming = sim({ id: 'next', executionWindowStart: '2027-01-01T10:00:00Z', executionWindowEnd: '2027-01-01T20:00:00Z' });
+    expect(selectCurrentSimulado([training, upcoming], edition(), now)).toBe(upcoming);
+    expect(selectCurrentSimulado([training], edition(), now)).toBeNull();
+    const finished = sim({ dbStatus: 'archived', userState: started('2026-11-27T11:00:00Z', true), resultsReleaseAt: '2026-11-28T11:00:00Z' });
+    expect(selectCurrentSimulado([finished], edition(), now)).toBe(finished);
+  });
+  it('tentativa expirada nao supera proxima prova mesmo com status em cache', () => {
+    const expired = sim({ status: 'in_progress', executionWindowStart: '2026-11-27T10:00:00Z',
+      executionWindowEnd: '2026-11-27T20:00:00Z', userState: {
+        ...started('2026-11-27T11:00:00Z'), effectiveDeadline: '2026-11-27T15:00:00Z',
+      } });
+    const upcoming = sim({ id: 'next', executionWindowStart: '2027-01-01T10:00:00Z', executionWindowEnd: '2027-01-01T20:00:00Z' });
+    expect(selectCurrentSimulado([expired, upcoming], edition(), now)).toBe(upcoming);
+  });
+  it('treino publicado com deadline futuro tem prioridade, prazo invalido nao', () => {
+    const training = sim({ executionWindowStart: '2026-11-27T10:00:00Z', executionWindowEnd: '2026-11-27T20:00:00Z',
+      userState: { ...started('2026-11-28T11:00:00Z'), isWithinWindow: false, effectiveDeadline: '2026-11-28T15:00:00Z' } });
+    const open = sim();
+    expect(selectCurrentSimulado([open, training], edition(), now)).toBe(training);
+    expect(selectCurrentSimulado([open, { ...training, userState: { ...training.userState!, effectiveDeadline: 'invalid' } }], edition(), now)).toBe(open);
   });
   it('aguardando precede resultado liberado mais recente, que precede treino', () => {
     const training = sim({ executionWindowStart: '2026-11-27T10:00:00Z', executionWindowEnd: '2026-11-27T20:00:00Z' });

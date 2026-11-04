@@ -14,6 +14,7 @@ interface SimuladoCardProps {
 }
 
 export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
+  const archivedUnfinished = simulado.dbStatus === 'archived' && !simulado.userState?.finished;
   const cta = getSimuladoCTA(simulado.status);
   const hasScore = simulado.userState?.score !== undefined;
 
@@ -101,7 +102,11 @@ export function SimuladoCard({ simulado, delay = 0 }: SimuladoCardProps) {
       )}
 
       <div className="mt-auto pt-4">
-        {cta.variant === 'primary' ? (
+        {archivedUnfinished ? (
+          <button type="button" disabled className="w-full py-2.5 rounded-xl bg-muted text-muted-foreground text-body text-center font-medium">
+            Simulado arquivado
+          </button>
+        ) : cta.variant === 'primary' ? (
           <Link
             to={`/simulados/${simulado.id}`}
             className="block w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-wine-hover transition-colors text-center"

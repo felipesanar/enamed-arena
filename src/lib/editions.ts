@@ -64,15 +64,15 @@ export function selectCurrentSimulado<T extends SimuladoConfig & { userState?: S
   const timestamp = (value: string | undefined) => value ? parseISO(value).getTime() : NaN;
   const candidates = simulados.filter((sim) => sim.editionId === edition.id
     && sim.dbStatus !== 'draft' && sim.dbStatus !== 'test'
-    && (sim.dbStatus !== 'archived' || sim.userState?.started || sim.userState?.finished))
+    && (sim.dbStatus !== 'archived' || sim.userState?.finished === true))
     .flatMap((sim) => {
       const start = timestamp(sim.executionWindowStart);
       const end = timestamp(sim.executionWindowEnd);
       const release = timestamp(sim.resultsReleaseAt);
       if (![start, end, release].every(Number.isFinite) || start >= end) return [];
       const status = deriveSimuladoStatus(sim, sim.userState, now);
-      // An unfinished training attempt can also be resumed, but never before opening.
-      const inProgress = sim.userState?.started && !sim.userState.finished && now.getTime() > start;
+      // The derived status validates deadlines, including resumed training.
+      const inProgress = status === 'in_progress';
       const rank = inProgress ? 0 : status === 'available' ? 1 : status === 'upcoming' ? 2
         : status === 'closed_waiting' ? 3 : status === 'completed' ? 4 : 5;
       const attemptAt = timestamp(sim.userState?.startedAt);

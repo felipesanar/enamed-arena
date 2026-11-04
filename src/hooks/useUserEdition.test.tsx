@@ -20,6 +20,11 @@ afterEach(() => { cleanup(); mocks.auth.user = { id: 'u1' }; mocks.user.profile 
   mocks.user.onboarding = { userId: 'u1', targetEditionId: 'old' }; mocks.editions.isSuccess = true; });
 
 describe('useUserEdition', () => {
+  it('disabled never resolves cached target', () => {
+    mocks.editions.data = [edition('old')];
+    const { result } = renderHook(() => useUserEdition(false));
+    expect(result.current.userEdition).toBeNull();
+  });
   it('combina alvo com edicoes sem alterar perfil, preserva nextEdition', () => {
     const old = edition('old', { status: 'archived' });
     const next = edition('next');

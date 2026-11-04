@@ -7,13 +7,19 @@ import { useExamEditions } from '@/hooks/useExamEditions';
 const rpc = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc } }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
-const setup = (data?: unknown[]) => {
+const setup = (data?: unknown[], enabled = true) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   if (data) client.setQueryData(['exam-editions'], data);
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  return { client, ...renderHook(() => useExamEditions(), { wrapper }) };
+  return { client, ...renderHook(() => useExamEditions(enabled), { wrapper }) };
 };
 describe('useExamEditions', () => {
+  it('disabled never queries or exposes cached edition context', () => {
+    const { result, client } = setup([{ id: 'old', status: 'planned', exam_date: null }], false);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(result.current.nextEdition).toBeNull();
+    client.clear();
+  });
   it('reavalia virada do calendario em SP sem refetch e limpa timer', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-29T02:59:30Z'));

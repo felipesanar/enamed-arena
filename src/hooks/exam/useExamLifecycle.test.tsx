@@ -38,7 +38,7 @@ describe('lifecycle time-up', () => {
       tabExitCount: 0, fullscreenExitCount: 0, startedAt: new Date().toISOString(),
       effectiveDeadline: new Date(Date.now() - 60_000).toISOString(), lastSavedAt: '' };
     const storage = { loadState: vi.fn().mockResolvedValue({ state: initial, notifyResultEmail: false }),
-      initializeState: vi.fn(), submitAttempt: vi.fn(), setResultNotification: vi.fn(), attemptId: { current: 'attempt' } };
+      initializeState: vi.fn(), submitAttempt: vi.fn(), setResultNotification: vi.fn(), attemptId: { current: 'attempt' }, userId: 'u1' };
     const simulado = { id: 'sim', status: 'in_progress' as const, estimatedDurationMinutes: 1, executionWindowEnd: initial.effectiveDeadline,
       resultsReleaseAt: '2099-02-10T01:00:00Z' };
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -49,8 +49,25 @@ describe('lifecycle time-up', () => {
         id: 'sim', navigate: vi.fn(), loadingSimulado: false, isOnboardingComplete: true,
         state, setState, setShowSubmitModal: vi.fn() }) };
     }, { wrapper });
-    return { ...hook, storage };
+    return { ...hook, storage, client };
   }
+  it('only marks the submitting account caches stale after confirmed success, without reprocessing', async () => {
+    const { result, storage, client } = setup();
+    const mine = ['user-performance', 'u1', 'e1']; const other = ['user-performance', 'u2', 'e1'];
+    client.setQueryData(mine, {}); client.setQueryData(other, {});
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    storage.submitAttempt.mockRejectedValueOnce(new Error('Failed to fetch'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(invalidate).not.toHaveBeenCalled();
+    storage.submitAttempt.mockResolvedValue({ score_percentage: 10, is_within_window: true });
+    await act(async () => { await result.current.finalize(true); });
+    expect(client.getQueryState(mine)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(other)?.isInvalidated).toBe(false);
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ refetchType: 'none' }));
+    await act(async () => { await result.current.finalize(true); });
+    expect(storage.submitAttempt).toHaveBeenCalledTimes(2);
+    client.clear();
+  });
   it('locks immediately, sends true after delay and only announces confirmed success', async () => {
     const { result, storage } = setup();
     expect(result.current.interactionLocked).toBe(true);
