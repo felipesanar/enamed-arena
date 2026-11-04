@@ -16,6 +16,7 @@ export type AnalyticsEventName =
   | "onboarding_started"
   | "onboarding_step_viewed"
   | "onboarding_completed"
+  | "target_edition_set"
   | "onboarding_edit_blocked"
   // Simulado list & detail
   | "simulados_list_viewed"
