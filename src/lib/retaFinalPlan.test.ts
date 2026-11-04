@@ -10,12 +10,56 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildRetaFinalPlan, type RetaFinalEntry } from './retaFinalPlan';
+import { buildRetaFinalPlan, resolveEditionStudyContext, type RetaFinalEntry } from './retaFinalPlan';
+import type { ExamEdition } from '@/types/edition';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const TODAY = new Date('2026-06-06T00:00:00-03:00');
 const ENAMED = new Date('2026-11-28T00:00:00-03:00');
+
+describe('edition study context', () => {
+  const edition: ExamEdition = { id: 'target', code: '2027.2', blueprint_id: 'bp', exam_date: null, exam_date_confirmed: false,
+    year: 2027, term: 2, label: 'ENAMED 2027.2', status: 'preparing', official_results_at: null, created_at: '', updated_at: '',
+    format: { questions: 100, options: 4, duration_minutes: 300, scoring: 'tri' } };
+  it('selected target wins even without date; a missing selected ID never silently uses next edition', () => {
+    expect(resolveEditionStudyContext([edition], 'target', TODAY).edition).toBe(edition);
+    expect(resolveEditionStudyContext([edition], 'missing', TODAY).edition).toBeNull();
+    const context = resolveEditionStudyContext([edition], 'target', TODAY);
+    expect(context.date).toBeNull();
+    expect(context.format?.questions).toBe(100);
+    expect(context.matrixStatus).toBe('unavailable');
+    expect(context.areaWeights).toEqual([]);
+  });
+  it('validates format and matches blueprint IDs; marks provisional weights', () => {
+    const blueprint = { id: 'bp', code: 'demo', label: 'Demo', weights_provisional: true };
+    const areas = [{ id: 'a', blueprint_id: 'bp', code: 'a', label: 'A', aliases: ['Alias'], weight: 1, sort_order: 1 }];
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint, areas }).matrixStatus).toBe('provisional');
+    expect(resolveEditionStudyContext([{ ...edition, format: {} }], 'target', TODAY).format).toBeNull();
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint: { ...blueprint, id: 'wrong' }, areas }).matrixStatus).toBe('unavailable');
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint, areas: [{ ...areas[0], weight: NaN }] }).areaWeights).toEqual([]);
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint, areas: [{ ...areas[0], blueprint_id: 'wrong' }] }).areaWeights).toEqual([]);
+    expect(resolveEditionStudyContext([edition], 'target', TODAY, { blueprint: { ...blueprint, weights_provisional: false }, areas }).matrixStatus).toBe('available');
+  });
+  it('resolves confirmed dates with SP boundaries; unknown and unconfirmed dates stay null', () => {
+    const dated = { ...edition, exam_date: '2027-08-01', exam_date_confirmed: true };
+    const now = new Date('2027-08-01T02:30:00Z');
+    expect(resolveEditionStudyContext([dated], 'target', now).daysUntil).toBe(1);
+    expect(resolveEditionStudyContext([dated], 'target', new Date('2027-08-01T03:00:00Z')).daysUntil).toBe(0);
+    expect(resolveEditionStudyContext([dated], 'target', new Date('2027-08-02T03:00:00Z')).daysUntil).toBe(-1);
+    expect(resolveEditionStudyContext([{ ...dated, exam_date_confirmed: false }], 'target', now).date).toBeNull();
+    expect(resolveEditionStudyContext([{ ...dated, exam_date: '2027-02-30' }], 'target', now).date).toBeNull();
+    expect(resolveEditionStudyContext([dated], null, now).edition).toBe(dated);
+  });
+  it('uses additive weights with exact aliases, neutral invalid weights, and unchanged omitted defaults', () => {
+    const entries = [makeEntry({ id: 'clinic', area: 'Clínica Médica' }), makeEntry({ id: 'alias', area: 'ALIAS' })];
+    const input = { entries, enamedDate: ENAMED, today: TODAY };
+    expect(buildRetaFinalPlan(input)).toEqual(buildRetaFinalPlan({ ...input, areaWeights: undefined }));
+    expect(buildRetaFinalPlan({ ...input, areaWeights: [{ code: 'x', label: 'X', aliases: ['alias'], weight: 1 }] }).todayEntries[0].id).toBe('alias');
+    expect(buildRetaFinalPlan({ ...input, areaWeights: [] }).todayEntries.map(e => e.id)).toEqual(['clinic', 'alias']);
+    expect(buildRetaFinalPlan({ ...input, areaWeights: [{ code: 'x', label: 'X', aliases: ['alias'], weight: Infinity }] }).todayEntries[0].id).toBe('clinic');
+  });
+});
 
 function makeEntry(overrides: Partial<RetaFinalEntry> & { id: string }): RetaFinalEntry {
   return {

@@ -8,8 +8,34 @@
  *   - Opera sobre dados já existentes: getErrorNotebook() + campos SRS.
  */
 
-import { getAreaWeight } from '@/lib/enamedBlueprint';
-import { getDaysUntil } from '@/lib/editions';
+import { getAreaWeight, resolveBlueprintArea } from '@/lib/enamedBlueprint';
+import { getDaysUntil, getNextEdition } from '@/lib/editions';
+import { validateExamFormat } from '@/lib/edition-format';
+import type { ExamArea, ExamBlueprint, ExamEdition } from '@/types/edition';
+import type { EditionStudyContext, StudyAreaWeight } from '@/types/edition-calendar';
+
+const validWeights = (areas: readonly StudyAreaWeight[]) => areas.length > 0
+  && areas.every(a => typeof a.code === 'string' && !!a.code.trim() && typeof a.label === 'string'
+    && Array.isArray(a.aliases) && a.aliases.every(alias => typeof alias === 'string')
+    && Number.isFinite(a.weight) && a.weight > 0 && a.weight <= 1)
+  && Math.abs(areas.reduce((sum, a) => sum + a.weight, 0) - 1) < 0.000001;
+
+/** Selected IDs never fall back to another year, including when missing from the catalog. */
+export function resolveEditionStudyContext(
+  editions: readonly ExamEdition[], selectedId: string | null, now: Date,
+  matrix?: { blueprint: ExamBlueprint; areas: readonly ExamArea[] },
+): EditionStudyContext {
+  const edition = selectedId !== null ? editions.find(e => e.id === selectedId) ?? null : getNextEdition(editions, now);
+  const format = validateExamFormat(edition?.format);
+  const areas = matrix?.areas ?? [];
+  const validMatrix = !!edition?.blueprint_id && matrix?.blueprint.id === edition.blueprint_id
+    && typeof matrix.blueprint.weights_provisional === 'boolean'
+    && areas.every(a => a.blueprint_id === edition.blueprint_id) && validWeights(areas);
+  const date = edition?.exam_date_confirmed && getDaysUntil(edition.exam_date, now) !== null ? edition.exam_date : null;
+  return { edition, date, daysUntil: getDaysUntil(date, now), format: format.valid ? format.value : null,
+    matrixStatus: !validMatrix ? 'unavailable' : matrix.blueprint.weights_provisional ? 'provisional' : 'available',
+    areaWeights: validMatrix ? areas.map(({ code, label, aliases, weight }) => ({ code, label, aliases: [...aliases], weight })) : [] };
+}
 
 // ─── Tipos de entrada ───────────────────────────────────────────────────────
 
@@ -40,6 +66,8 @@ export interface BuildRetaFinalPlanInput {
    * @default 15
    */
   dailyCapacity?: number;
+  /** Omitted = legacy behavior. Empty/invalid = neutral weighting, never 2026 fallback. */
+  areaWeights?: readonly StudyAreaWeight[];
 }
 
 // ─── Tipos de saída ──────────────────────────────────────────────────────────
@@ -104,6 +132,7 @@ function calcScore(
   entry: RetaFinalEntry,
   todayMs: number,
   areaFreqMap: Map<string, number>,
+  areaWeights?: readonly StudyAreaWeight[],
 ): number {
   let score = 0;
 
@@ -122,7 +151,8 @@ function calcScore(
   score += lapses * 0.8;
 
   // 3. Peso ENAMED da área
-  const areaWeight = getAreaWeight(entry.area);
+  const areaWeight = areaWeights === undefined ? getAreaWeight(entry.area)
+    : validWeights(areaWeights) ? resolveBlueprintArea(entry.area ?? '', areaWeights as ExamArea[])?.weight ?? 0 : 0;
   score += areaWeight * 4;
 
   // 4. Frequência de erro na área
@@ -156,6 +186,7 @@ export function buildRetaFinalPlan({
   enamedDate,
   today,
   dailyCapacity = 15,
+  areaWeights,
 }: BuildRetaFinalPlanInput): RetaFinalPlan {
   const todayStart = startOfDay(today);
   const examDate = enamedDate instanceof Date
@@ -216,7 +247,7 @@ export function buildRetaFinalPlan({
   // 4. Ordenar por score (maior primeiro)
   const scored = active.map((e) => ({
     entry: e,
-    score: calcScore(e, todayMs, areaFreqMap),
+    score: calcScore(e, todayMs, areaFreqMap, areaWeights),
   }));
   scored.sort((a, b) => b.score - a.score);
   const sorted = scored.map((s) => s.entry);
