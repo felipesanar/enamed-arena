@@ -14,11 +14,14 @@ export default defineConfig({
       "src/**/*.{test,spec}.{ts,tsx}",
       "supabase/functions/**/*.{test,spec}.ts",
     ],
-    // Edge functions Deno (gemini-*) importam de https:// e rodam com `deno test`,
-    // não sob o Node/Vitest. Excluídas aqui para não quebrar `npm run test`.
+    // Native Deno tests run outside Vitest. Keep dual-runtime _shared tests here.
     exclude: [
       ...configDefaults.exclude,
       "supabase/functions/gemini-*/**",
+      "supabase/functions/caderno-reminders/handler.test.ts",
+      "supabase/functions/calendar-notifications/worker.test.ts",
+      "supabase/functions/hubspot-contact-sync/handler.test.ts",
+      "supabase/functions/ops-health-alerts/worker.test.ts",
     ],
     coverage: {
       provider: "v8",
