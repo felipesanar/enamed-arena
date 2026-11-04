@@ -24,6 +24,8 @@ beforeEach(() => {
     simulado: { id: 'sim', title: 'Prova de teste' }, questions: [question], questionIds: ['q'], currentQuestion: question,
     state: { status: 'in_progress', answers: {} }, currentIndex: 0, currentAnswer: { selectedOption: 'opt', eliminatedAlternatives: [] },
     summary: { answered: 1, total: 1, unanswered: 0 }, timeRemaining: 60,
+    tabLease: { status: 'owned', blocked: false, takeover: vi.fn() },
+    preparation: { status: 'ready', retry: vi.fn() },
      focusControl: { isTabAway: false, isFullscreenLost: false }, setShowSubmitModal: vi.fn(),
      finalize: vi.fn(),
     handleSelectOption: vi.fn(), handleEliminateOption: vi.fn(), handleSetConfidence: vi.fn(),
@@ -58,4 +60,21 @@ it('keeps the submission lock readable and separate from fullscreen loss', () =>
   expect(screen.getByRole('status')).toHaveTextContent(/Confirmando/);
   expect(screen.getByRole('button', { name: 'Voltar à tela cheia' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Marcar p/ revisar' })).toBeDisabled();
+});
+it('keeps another-tab ownership distinct from expiry and offers a guarded takeover', () => {
+  flow = { ...flow, interactionLocked: true,
+    tabLease: { status: 'blocked', blocked: true, takeover: vi.fn() } };
+  render(<SimuladoExamPage />);
+  expect(screen.getByRole('status')).toHaveTextContent('Esta prova está aberta em outra aba');
+  expect(screen.queryByText(/Tempo esgotado/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Tentar finalizar novamente' })).not.toBeInTheDocument();
+  const answer = screen.getByRole('radio', { name: /Resposta de teste/ });
+  expect(answer).toBeDisabled();
+  (answer as HTMLButtonElement).click();
+  expect(flow.handleSelectOption).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Finalizar' }));
+  expect(flow.setShowSubmitModal).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Continuar nesta aba' }));
+  expect(flow.tabLease.takeover).toHaveBeenCalledOnce();
+  expect(flow.finalize).not.toHaveBeenCalled();
 });
