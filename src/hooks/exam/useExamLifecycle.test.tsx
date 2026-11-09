@@ -110,6 +110,13 @@ describe('trusted clock correction during time-up grace', () => {
     expect(h.storage.submitAttempt).toHaveBeenCalledTimes(1);
   });
 
+  it('treats a non-boolean argument (e.g. a click event) as a manual submission before the deadline', async () => {
+    const h = setup(5000);
+    const clickEvent = { type: 'click' } as unknown as boolean;
+    await act(async () => { await h.result.current.finalize(clickEvent); });
+    expect(h.storage.submitAttempt).toHaveBeenCalledExactlyOnceWith(h.initial, false);
+  });
+
   it.each([
     { code: 'P0001', message: 'UNANSWERED_QUESTIONS' },
     { code: '22023', message: 'Invalid argument' },

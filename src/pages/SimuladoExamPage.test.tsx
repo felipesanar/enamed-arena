@@ -7,7 +7,10 @@ vi.mock('@/contexts/UserContext', () => ({ useHasAccess: () => false }));
 vi.mock('@/services/simuladosApi', () => ({ simuladosApi: {} }));
 vi.mock('@/components/exam/ExamCompletedScreen', () => ({ ExamCompletedScreen: () => null }));
 vi.mock('@/components/exam/ExamHeader', () => ({ ExamHeader: ({ onFinalize }: any) => <button onClick={onFinalize}>Finalizar</button> }));
-vi.mock('@/components/exam/SubmitConfirmModal', () => ({ SubmitConfirmModal: () => null }));
+// Mirrors the real modal wiring: the confirm button passes its click event straight to onConfirm.
+vi.mock('@/components/exam/SubmitConfirmModal', () => ({
+  SubmitConfirmModal: ({ open, onConfirm }: any) => open ? <button onClick={onConfirm}>Finalizar prova</button> : null,
+}));
 import SimuladoExamPage from '@/pages/SimuladoExamPage';
 
 const originalScroll = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView');
@@ -52,6 +55,12 @@ it('natively disables answers, confidence and marks on expiry, without disabling
   fireEvent.click(retry);
   expect(flow.finalize).toHaveBeenCalledWith(true);
   expect(screen.getByRole('button', { name: 'Finalizar' })).toBeEnabled();
+});
+it('submits manually from the confirm modal instead of forwarding the click event as auto-submit', () => {
+  flow = { ...flow, showSubmitModal: true };
+  render(<SimuladoExamPage />);
+  fireEvent.click(screen.getByRole('button', { name: 'Finalizar prova' }));
+  expect(flow.finalize).toHaveBeenCalledExactlyOnceWith(false);
 });
 it('keeps the submission lock readable and separate from fullscreen loss', () => {
   flow = { ...flow, interactionLocked: true, submitting: true,
