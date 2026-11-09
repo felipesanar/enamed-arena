@@ -274,7 +274,10 @@ export function useExamLifecycle({
     setIsWithinWindow(true);
   }, [simulado?.id]);
 
-  const finalize = useCallback(async (isAutoSubmit = false) => {
+  const finalize = useCallback(async (autoSubmitArg: boolean = false) => {
+    // Only a literal `true` means automatic submission. Callers wired straight to
+    // onClick forward the click event here, which must count as a manual submit.
+    const isAutoSubmit = autoSubmitArg === true;
     const scope = scopeRef.current;
     if (ownershipBlocked || !canWrite() || !scope.active || hasFinalized.current || !state || !simulado || !stateMatchesSimulado || (isAutoSubmit && !autoSubmitAllowedRef.current(state))) return;
     const previouslyStarted = submissionStartedRef.current;

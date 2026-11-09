@@ -693,7 +693,7 @@ export default function SimuladoExamPage() {
         summary={flow.summary}
         reviewIndices={reviewIndices}
         submitting={flow.submitting}
-        onConfirm={flow.finalize}
+        onConfirm={() => flow.finalize(false)}
         onCancel={() => flow.setShowSubmitModal(false)}
         onNavigateToQuestion={(index) => {
           flow.handleNavigate(index);
