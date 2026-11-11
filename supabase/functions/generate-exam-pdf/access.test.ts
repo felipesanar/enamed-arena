@@ -31,9 +31,19 @@ describe('gate PDF', () => {
   it.each([null, { ...attempt, user_id: 'other' }, { ...attempt, attempt_type: 'online' }, { ...attempt, simulado_id: 'other' }])('nega tentativa invalida: %j', async data => {
     expect(await authorizeExamPdf(setup({ getAttempt: async () => ({ data, error: null }) }))).toBe(false)
   })
+  it('permite tentativa offline propria depois da janela encerrada (modo treino)', async () => {
+    const closed = { ...simulado, execution_window_start: '2026-06-28T12:01:00Z', execution_window_end: '2026-07-05T02:59:00Z' }
+    expect(await authorizeExamPdf(setup({ getSimulado: async () => ({ data: closed, error: null }) }))).toBe(true)
+  })
+  it('nega fora da janela sem tentativa offline propria', async () => {
+    const closed = { ...simulado, execution_window_end: '2026-11-03T00:00:00Z' }
+    expect(await authorizeExamPdf(setup({
+      getSimulado: async () => ({ data: closed, error: null }),
+      getAttempt: async () => ({ data: null, error: null }),
+    }))).toBe(false)
+  })
   it.each([
     { ...simulado, execution_window_start: '2026-11-06T00:00:00Z' },
-    { ...simulado, execution_window_end: '2026-11-03T00:00:00Z' },
     { ...simulado, execution_window_start: null },
     { ...simulado, status: 'draft' },
   ])('nega janela/status invalido: %j', async data => {
