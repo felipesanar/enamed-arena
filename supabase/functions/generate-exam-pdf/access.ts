@@ -24,10 +24,10 @@ export async function authorizeExamPdf(input: AccessInput): Promise<boolean> {
 
     const simulado = await input.getSimulado();
     if (simulado.error || !simulado.data || simulado.data.status !== 'published') return false;
+    // Block only BEFORE the window opens (questions must not leak early). After it
+    // closes the simulado stays available as treino, so the PDF must keep working.
     const start = Date.parse(simulado.data.execution_window_start);
-    const end = Date.parse(simulado.data.execution_window_end);
-    if (!Number.isFinite(start) || !Number.isFinite(end) ||
-        !Number.isFinite(input.now) || input.now < start || input.now >= end) return false;
+    if (!Number.isFinite(start) || !Number.isFinite(input.now) || input.now < start) return false;
 
     const attempt = await input.getAttempt();
     return !attempt.error && !!attempt.data &&

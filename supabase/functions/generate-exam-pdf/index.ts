@@ -607,7 +607,7 @@ serve(async (req) => {
         .eq("attempt_type", "offline").maybeSingle(),
     });
     if (!allowed) {
-      return new Response(JSON.stringify({ error: "PDF indisponível: requer tentativa offline própria na janela aberta ou permissão de conteúdo." }), {
+      return new Response(JSON.stringify({ error: "PDF indisponível: requer tentativa offline própria após a abertura da janela ou permissão de conteúdo." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
