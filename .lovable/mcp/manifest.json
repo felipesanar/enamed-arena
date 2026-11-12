@@ -1,10 +1,11 @@
 {
   "version": 1,
-  "sdk_version": "0.20.0",
-  "path": "/functions/v1/mcp",
+  "sdk_version": "3.4.0",
+  "path": "/mcp",
   "auth": {
     "type": "oauth",
     "issuer": "https://lljnbysgcwvkhlnaqxtt.supabase.co/auth/v1",
+    "accept_resource_claim": false,
     "accepted_audiences": [
       "authenticated"
     ]
@@ -38,28 +39,42 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "limit": {
+              "description": "Maximum number of simulados to return. Defaults to 20.",
               "type": "integer",
-              "description": "Maximum number of simulados to return. Defaults to 20."
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "additionalProperties": false
         },
         "outputSchema": null
       },
       {
         "name": "get_my_performance",
         "title": "Get my performance summary",
-        "description": "Return the signed-in user's overall performance summary: total attempts and average, best and last scores.",
+        "description": "Return released, non-training performance for one catalog edition of the signed-in OAuth user. Never a global aggregate.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
           "openWorldHint": false
         },
-        "inputSchema": null,
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "edition_id": {
+              "description": "Catalog edition UUID. Defaults to the user's target, graduation term, then current catalog edition.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
         "outputSchema": null
       },
       {
@@ -72,15 +87,17 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "limit": {
+              "description": "Maximum number of attempts to return. Defaults to 20.",
               "type": "integer",
-              "description": "Maximum number of attempts to return. Defaults to 20."
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "additionalProperties": false
         },
         "outputSchema": null
       },
@@ -94,19 +111,21 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "area": {
-              "type": "string",
-              "description": "Filter entries by medical area (e.g. 'Clínica Médica')."
+              "description": "Filter entries by medical area (e.g. 'Clínica Médica').",
+              "type": "string"
             },
             "limit": {
+              "description": "Maximum number of entries to return. Defaults to 20.",
               "type": "integer",
-              "description": "Maximum number of entries to return. Defaults to 20."
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "additionalProperties": false
         },
         "outputSchema": null
       }
