@@ -883,26 +883,27 @@ export const adminApi = {
   },
 
   // ─── Inteligência ───
+  // These RPCs accept explicit null filters; generated Args omit SQL nullability.
   async getCohortRetention(months = 6, scope?: AdminReportScope): Promise<CohortRetentionRow[]> {
-    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
+    const { data, error } = await supabase.rpc('admin_cohort_retention', { p_months: months, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) } as never)
     if (error) throw error
     return (data ?? []) as CohortRetentionRow[]
   },
 
   async getPerformanceByArea(simuladoId: string | null = null, segment = 'all', scope?: AdminReportScope): Promise<AreaPerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId as string, p_segment: segment, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
+    const { data, error } = await supabase.rpc('admin_performance_by_area', { p_simulado_id: simuladoId, p_segment: segment, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) } as never)
     if (error) throw error
     return (data ?? []) as AreaPerformanceRow[]
   },
 
   async getPerformanceByTheme(simuladoId: string | null = null, area: string | null = null, limit = 12, scope?: AdminReportScope): Promise<ThemePerformanceRow[]> {
-    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId as string, p_area: area as string, p_limit: limit, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
+    const { data, error } = await supabase.rpc('admin_performance_by_theme', { p_simulado_id: simuladoId, p_area: area, p_limit: limit, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) } as never)
     if (error) throw error
     return (data ?? []) as ThemePerformanceRow[]
   },
 
   async getScoreDistribution(simuladoId: string | null = null, scope?: AdminReportScope): Promise<ScoreBucket[]> {
-    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId as string, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) })
+    const { data, error } = await supabase.rpc('admin_score_distribution', { p_simulado_id: simuladoId, ...(scope === undefined ? {} : { p_edition_id: scope.editionId, p_start_at: scope.startAt, p_end_at: scope.endAt }) } as never)
     if (error) throw error
     return (data ?? []) as ScoreBucket[]
   },
